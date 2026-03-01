@@ -1,235 +1,143 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
+import React, { useState, useMemo } from "react";
 import { Space_Grotesk, Inter } from "next/font/google";
 import { 
   Smartphone, Receipt, Truck, Box, Utensils, Calendar, 
-  ArrowRight, ShieldCheck, TrendingUp, Users, Target, 
-  Zap, CheckCircle2, AlertCircle, Lock
+  ArrowRight, TrendingUp, Users, Zap, CheckCircle2, 
+  AlertCircle, Lock, LayoutGrid, Briefcase 
 } from "lucide-react";
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
+const space = Space_Grotesk({ subsets: ["latin"], weight: ["300", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "600"] });
 
+// --- DONNÉES ---
 const SOLUTIONS = [
-  { id: "Onyx Catalog", icon: Smartphone, pain: "Perte de temps infinie sur WhatsApp avec les envois de photos.", solution: "Catalogue digital pro avec lien direct pour commander en un clic." },
-  { id: "Onyx Devis", icon: Receipt, pain: "Devis gribouillés sur papier qui font perdre des clients sérieux.", solution: "Générateur de PDF pro en 60s pour sécuriser vos deals." },
-  { id: "Onyx Tiak", icon: Truck, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel." },
-  { id: "Onyx Stock", icon: Box, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture." },
-  { id: "Onyx Menu", icon: Utensils, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement." },
-  { id: "Onyx Booking", icon: Calendar, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé." },
+  { id: "Onyx Catalog", icon: Smartphone, p: "Perte de temps sur WhatsApp.", s: "Catalogue digital avec lien de commande." },
+  { id: "Onyx Devis", icon: Receipt, p: "Devis manuels trop lents.", s: "PDF pro généré en 60 secondes chrono." },
+  { id: "Onyx Tiak", icon: Truck, p: "Zéro visibilité sur le cash livreur.", s: "Suivi logistique et encaissement live." },
+  { id: "Onyx Stock", icon: Box, p: "Ruptures de stock surprises.", s: "Scan intelligent & alertes WhatsApp." },
+  { id: "Onyx Menu", icon: Utensils, p: "Menus sales et erreurs de service.", s: "QR Menu interactif scannable." },
+  { id: "Onyx Booking", icon: Calendar, p: "Rendez-vous oubliés (No-shows).", s: "Réservations avec paiement d'acompte." },
 ];
 
-export default function OnyxOpsElite() {
-  const [clients, setClients] = useState(6.5); // Valeur pour obtenir 58.500F M1 (6.5 * 30k * 30%)
-  const waNumber = "221768102039";
+export default function OnyxElite() {
+  const [q, setQ] = useState({ solo: 0, trio: 0, full: 10, premium: 0 });
+  const wa = "221768102039";
+  const link = (m: string) => `https://wa.me/${wa}?text=${encodeURIComponent(m)}`;
 
-  const getWaLink = (msg: string) => `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
-
-  // Calculs du simulateur
-  const commissionM1 = Math.round(clients * 30000 * 0.30); // Basé sur Pack Full pour l'exemple
-  const commissionM6 = Math.round((clients * 30000 * 0.30) + (clients * 5 * 30000 * 0.10)); // M6 cumulé simplifié
+  const stats = useMemo(() => {
+    const pr = { solo: 7500, trio: 17500, full: 30000, premium: 75000 };
+    const m1 = (q.solo * pr.solo) + (q.trio * pr.trio) + (q.full * pr.full) + (q.premium * pr.premium);
+    let total = 0;
+    for (let i = 1; i <= 6; i++) { total += (m1 * 0.3) + ((i - 1) * m1 * 0.1); }
+    return { m1: m1 * 0.3, total };
+  }, [q]);
 
   return (
-    <div className={`${inter.className} min-h-screen bg-white text-black select-none print:hidden`}>
-      {/* SECURITY OVERLAY (Anti-Screenshot/Selection) */}
-      <style jsx global>{`
-        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
-        @media print { body { display: none; } }
-      `}</style>
-
+    <div className={`${inter.className} min-h-screen bg-white text-black select-none relative`}>
+      <style jsx global>{`body{user-select:none;-webkit-user-select:none;}@media print{body{display:none!important;}}`}</style>
+      
       {/* BACKGROUND PATTERN */}
-      <div 
-        className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none"
-        style={{ backgroundImage: `url('https://i.ibb.co/chCcXT7p/back-site.png')`, backgroundRepeat: 'repeat', backgroundSize: '400px' }}
-      />
+      <div className="fixed inset-0 z-0 opacity-15 pointer-events-none" style={{ backgroundImage: "url('https://i.ibb.co/chCcXT7p/back-site.png')", backgroundRepeat: 'repeat', backgroundSize: '400px' }} />
 
       <div className="relative z-10">
-        {/* NAV BAR */}
-        <nav className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex justify-between items-center max-w-7xl mx-auto rounded-b-3xl shadow-sm">
+        {/* NAV */}
+        <nav className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex justify-between items-center max-w-7xl mx-auto rounded-b-3xl">
           <div className="flex items-center gap-3">
-            <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" className="h-10 w-auto" />
-            <span className={`${spaceGrotesk.className} font-bold tracking-tighter text-xl`}>ONYX OPS</span>
+            <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Logo" className="h-10 w-auto" />
+            <span className={`${space.className} font-bold text-2xl tracking-tighter`}>ONYX OPS</span>
           </div>
-          <div className="hidden md:flex gap-8 font-semibold text-sm uppercase">
-            <a href="#solutions" className="hover:text-[#39FF14] transition">Solutions</a>
-            <a href="#tarifs" className="hover:text-[#39FF14] transition">Tarifs</a>
-            <a href="#partenaires" className="hover:text-[#39FF14] transition">Partenaires</a>
-          </div>
-          <button className="bg-black text-[#39FF14] px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition duration-300">
-            Accès Hub
-          </button>
+          <button className="bg-black text-[#39FF14] px-6 py-2 rounded-full font-bold text-[10px] uppercase">Accès Hub</button>
         </nav>
 
-        {/* HERO SECTION */}
-        <header className="pt-20 pb-16 px-6 text-center max-w-5xl mx-auto">
-          <div className={`${spaceGrotesk.className} inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] mb-8`}>
-            <Zap className="w-3 h-3 text-[#39FF14] fill-[#39FF14]" /> DAKAR BUSINESS ECOSYSTEM
+        {/* HERO */}
+        <header className="pt-20 pb-12 px-6 text-center max-w-5xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-2 mb-8 uppercase font-black text-[9px] tracking-widest">
+            <span className="bg-zinc-100 px-3 py-1 rounded-full flex items-center gap-1"><Zap className="w-3 h-3 text-[#39FF14]"/> 6 SaaS</span>
+            <span className="bg-zinc-100 px-3 py-1 rounded-full">7.500F/MOIS</span>
+            <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full">30% Commission</span>
           </div>
-          <h1 className={`${spaceGrotesk.className} text-5xl md:text-7xl font-bold leading-[1] tracking-tighter mb-6`}>
-            DIGITALISEZ VOTRE <br/> <span className="text-[#39FF14] italic">PROPRE EMPIRE.</span>
+          <h1 className={`${space.className} text-5xl md:text-8xl font-bold leading-[0.9] tracking-tighter mb-8 uppercase`}>
+            VOTRE BUSINESS EN <br/><span className="text-[#39FF14] italic underline decoration-black">MODE ÉLITE.</span>
           </h1>
-          <p className="text-zinc-500 text-lg max-w-2xl mx-auto font-medium mb-10">
-            OnyxOps transforme les douleurs des commerçants sénégalais en revenus automatiques via WhatsApp.
-          </p>
+          <p className="text-zinc-500 text-lg mb-10 max-w-3xl mx-auto">La suite complète d'outils pour PME sénégalaises. Gérez ventes, stocks et devis sur WhatsApp. <span className="block font-black text-black mt-2 text-sm uppercase italic">0 Engagement • 0 Coût Caché</span></p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="#partenaires" className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition flex items-center gap-2 justify-center"><Briefcase className="w-4 h-4"/> Devenir Partenaire</a>
+            <a href="#solutions" className="bg-black text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 justify-center hover:bg-zinc-800 transition"><LayoutGrid className="w-4 h-4 text-[#39FF14]"/> Découvrir Solutions</a>
+          </div>
         </header>
 
-        {/* SOLUTIONS SECTION */}
-        <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto">
-          <h2 className={`${spaceGrotesk.className} text-3xl font-bold mb-12 text-center`}>NOS 6 SOLUTIONS <span className="text-[#39FF14]">RADICALES</span></h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {SOLUTIONS.map((s, i) => (
-              <div key={i} className="group bg-white border border-zinc-100 p-8 rounded-[2.5rem] shadow-xl hover:border-[#39FF14] transition-all relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition">
-                  <s.icon className="w-24 h-24" />
-                </div>
-                <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
-                  <s.icon className="w-6 h-6" />
-                </div>
-                <h3 className={`${spaceGrotesk.className} text-2xl font-bold mb-4 italic uppercase`}>{s.id}</h3>
-                <div className="space-y-4">
-                  <div className="bg-red-50 p-4 rounded-2xl border-l-4 border-red-500">
-                    <p className="text-[10px] font-bold text-red-600 uppercase mb-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> La Douleur</p>
-                    <p className="text-xs font-semibold text-zinc-700">{s.pain}</p>
-                  </div>
-                  <div className="bg-[#39FF14]/5 p-4 rounded-2xl border-l-4 border-[#39FF14]">
-                    <p className="text-[10px] font-bold text-[#39FF14] uppercase mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Solution Onyx</p>
-                    <p className="text-xs font-semibold text-zinc-800">{s.solution}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* SOLUTIONS */}
+        <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {SOLUTIONS.map((s, i) => (
+            <div key={i} className="bg-white/80 border-2 border-zinc-50 p-8 rounded-[2.5rem] hover:border-[#39FF14] transition-all">
+              <div className="bg-black text-[#39FF14] w-10 h-10 rounded-xl flex items-center justify-center mb-6"><s.icon className="w-5 h-5" /></div>
+              <h3 className={`${space.className} text-xl font-bold mb-4 uppercase italic`}>{s.id}</h3>
+              <p className="text-red-500 text-[10px] font-black uppercase mb-1">🚫 Douleur : {s.p}</p>
+              <p className="text-zinc-800 text-sm font-semibold">✅ Solution : {s.s}</p>
+            </div>
+          ))}
         </section>
 
-        {/* PRICING SECTION */}
+        {/* PRICING */}
         <section id="tarifs" className="py-20 bg-black text-white rounded-[4rem] mx-4 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className={`${spaceGrotesk.className} text-4xl font-bold mb-4`}>OFFRES <span className="text-[#39FF14]">NO-LIMIT.</span></h2>
-              <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché. Que du cashflow.</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* SOLO */}
-              <div className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition">
-                <p className="text-[10px] font-black tracking-[0.3em] text-zinc-500 mb-4 uppercase">Onyx Solo</p>
-                <div className="text-4xl font-bold mb-6 italic">7.500F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
-                <ul className="text-xs space-y-3 mb-10 text-zinc-400">
-                  <li className="flex gap-2">✔ 1 Micro-SaaS au choix</li>
-                  <li className="flex gap-2">✔ Support WhatsApp 24/7</li>
-                </ul>
-                <a href={getWaLink("Bonjour Onyx, je veux COMMENCER avec l'offre Solo à 7.500F.")} className="block text-center bg-white text-black py-4 rounded-2xl font-black text-sm hover:bg-[#39FF14] transition uppercase tracking-tighter">Commencer</a>
+          <div className="max-w-7xl mx-auto text-center">
+            <h2 className={`${space.className} text-4xl font-bold mb-16 uppercase italic`}>CHOISISSEZ VOTRE <span className="text-[#39FF14]">ARME.</span></h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-zinc-900/50 p-8 rounded-[3rem] border border-white/5 flex flex-col justify-between">
+                <div><p className="text-[10px] font-black text-zinc-500 mb-4 uppercase">Solo</p><div className={`${space.className} text-4xl font-bold mb-8 italic`}>7.500F</div><ul className="text-[11px] text-zinc-400 space-y-2 mb-8"><li>✔ 1 SaaS</li><li>✔ Support WhatsApp</li></ul></div>
+                <a href={link("Bonjour, je veux COMMENCER (Solo 7.5k).")} className="bg-white text-black py-4 rounded-xl font-black text-[10px] uppercase hover:bg-[#39FF14]">Commencer</a>
               </div>
-
-              {/* TRIO (Best Seller) */}
-              <div className="bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] p-8 rounded-[3rem] scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)]">
-                <p className="text-[10px] font-black tracking-[0.3em] text-[#39FF14] mb-4 uppercase">Pack Trio</p>
-                <div className="text-4xl font-bold mb-6 italic text-white">17.500F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
-                <ul className="text-xs space-y-3 mb-10 text-zinc-300">
-                  <li className="flex gap-2">✔ 3 Micro-SaaS Connectés</li>
-                  <li className="flex gap-2">✔ Formation Gérant incluse</li>
-                  <li className="flex gap-2">✔ Dashboard de revenus</li>
-                </ul>
-                <a href={getWaLink("Bonjour Onyx, je veux CHOISIR CE PACK Trio à 17.500F.")} className="block text-center bg-[#39FF14] text-black py-4 rounded-2xl font-black text-sm hover:scale-105 transition uppercase tracking-tighter">Choisir ce pack</a>
+              <div className="bg-zinc-800 p-8 rounded-[3rem] border-2 border-[#39FF14] scale-105 flex flex-col justify-between shadow-2xl">
+                <div><p className="text-[10px] font-black text-[#39FF14] mb-4 uppercase">Pack Trio</p><div className={`${space.className} text-4xl font-bold mb-8 italic`}>17.500F</div><ul className="text-[11px] text-zinc-200 space-y-2 mb-8"><li>✔ 3 SaaS</li><li>✔ Gérant Formé</li></ul></div>
+                <a href={link("Bonjour, je veux CHOISIR CE PACK (Trio 17.5k).")} className="bg-[#39FF14] text-black py-4 rounded-xl font-black text-[10px] uppercase">Choisir ce pack</a>
               </div>
-
-              {/* FULL */}
-              <div className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition">
-                <p className="text-[10px] font-black tracking-[0.3em] text-zinc-500 mb-4 uppercase">Pack Full</p>
-                <div className="text-4xl font-bold mb-6 italic">30.000F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
-                <ul className="text-xs space-y-3 mb-10 text-zinc-400">
-                  <li className="flex gap-2">✔ Les 6 Solutions Onyx</li>
-                  <li className="flex gap-2">✔ Multi-boutiques</li>
-                  <li className="flex gap-2">✔ Rapports PDF Automatiques</li>
-                </ul>
-                <a href={getWaLink("Bonjour Onyx, je veux TOUT CHOISIR avec le pack Full à 30.000F.")} className="block text-center bg-white text-black py-4 rounded-2xl font-black text-sm hover:bg-[#39FF14] transition uppercase tracking-tighter">Tout choisir</a>
+              <div className="bg-zinc-900/50 p-8 rounded-[3rem] border border-white/5 flex flex-col justify-between">
+                <div><p className="text-[10px] font-black text-zinc-500 mb-4 uppercase">Pack Full</p><div className={`${space.className} text-4xl font-bold mb-8 italic`}>30.000F</div><ul className="text-[11px] text-zinc-400 space-y-2 mb-8"><li>✔ Les 6 SaaS</li><li>✔ Multi-boutiques</li></ul></div>
+                <a href={link("Bonjour, je veux TOUT CHOISIR (Full 30k).")} className="bg-white text-black py-4 rounded-xl font-black text-[10px] uppercase hover:bg-[#39FF14]">Tout choisir</a>
               </div>
-
-              {/* PREMIUM */}
-              <div className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition">
-                <p className="text-[10px] font-black tracking-[0.3em] text-zinc-500 mb-4 uppercase">Onyx Premium</p>
-                <div className="text-4xl font-bold mb-6 italic text-red-500">75.000F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
-                <ul className="text-xs space-y-3 mb-10 text-zinc-400">
-                  <li className="flex gap-2">✔ Studio Créatif IA</li>
-                  <li className="flex gap-2">✔ CRM Expert + Blog</li>
-                  <li className="flex gap-2">✔ Account Manager Dédié</li>
-                </ul>
-                <a href={getWaLink("Bonjour Onyx, je souhaite CONTACTER l'équipe pour l'offre Premium à 75.000F.")} className="block text-center border-2 border-white/20 text-white py-4 rounded-2xl font-black text-sm hover:bg-white hover:text-black transition uppercase tracking-tighter">Contacter</a>
+              <div className="bg-zinc-900/50 p-8 rounded-[3rem] border border-white/5 flex flex-col justify-between">
+                <div><p className="text-[10px] font-black text-zinc-500 mb-4 uppercase">Premium</p><div className={`${space.className} text-4xl font-bold mb-8 text-red-500 italic`}>75.000F</div><ul className="text-[11px] text-zinc-400 space-y-2 mb-8"><li>✔ Studio IA</li><li>✔ Manager Dédié</li></ul></div>
+                <a href={link("Bonjour, je veux CONTACTER pour l'offre Premium (75k).")} className="border border-white/20 text-white py-4 rounded-xl font-black text-[10px] uppercase hover:bg-white hover:text-black">Contacter</a>
               </div>
             </div>
           </div>
         </section>
 
-        {/* SIMULATEUR & PARTENAIRES */}
-        <section id="partenaires" className="py-24 px-6 max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className={`${spaceGrotesk.className} text-5xl font-black mb-6 uppercase leading-none`}>VOTRE <span className="text-[#39FF14]">RENTE</span> SÉNÉGALAISE.</h2>
-              <p className="text-zinc-600 mb-10 font-bold leading-relaxed">
-                Rejoignez notre réseau. Vendez OnyxOps à vos contacts et construisez votre indépendance financière.
-              </p>
-              <div className="space-y-6">
-                <div className="flex gap-4 items-center">
-                  <div className="bg-[#39FF14] text-black p-3 rounded-full"><TrendingUp /></div>
-                  <div><p className="font-black text-lg">30% CASH IMMÉDIAT</p><p className="text-xs text-zinc-400 uppercase font-bold">Sur chaque premier mois de pack signé.</p></div>
-                </div>
-                <div className="flex gap-4 items-center">
-                  <div className="bg-black text-[#39FF14] p-3 rounded-full"><Zap /></div>
-                  <div><p className="font-black text-lg">10% RÉCURRENT À VIE</p><p className="text-xs text-zinc-400 uppercase font-bold">Tant que votre client paie son SaaS.</p></div>
-                </div>
-                <div className="flex gap-4 items-center">
-                  <div className="bg-white border-2 border-black text-black p-3 rounded-full"><Users /></div>
-                  <div><p className="font-black text-lg">5% RÉSEAU AFFILIÉ</p><p className="text-xs text-zinc-400 uppercase font-bold">Commission sur toutes les ventes de votre équipe.</p></div>
-                </div>
-              </div>
+        {/* PARTENAIRES & SIMULATEUR */}
+        <section id="partenaires" className="py-24 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <h2 className={`${space.className} text-5xl font-black mb-8 uppercase italic leading-none`}>VOTRE <span className="text-[#39FF14]">RENTE</span> SÉNÉGALAISE.</h2>
+            <div className="space-y-6">
+              <div className="flex gap-4"><TrendingUp className="text-[#39FF14]"/><p className="font-black">30% COMMISSION M1 <span className="block text-zinc-400 text-xs font-medium">Cash immédiat à la signature.</span></p></div>
+              <div className="flex gap-4"><Zap className="text-[#39FF14]"/><p className="font-black">10% RÉCURRENT À VIE <span className="block text-zinc-400 text-xs font-medium">Revenu mensuel par client actif.</span></p></div>
+              <div className="flex gap-4"><Users className="text-[#39FF14]"/><p className="font-black">5% RÉSEAU AFFILIÉ <span className="block text-zinc-400 text-xs font-medium">Bonus sur les ventes de votre équipe.</span></p></div>
             </div>
-
-            {/* SIMULATEUR INTERACTIF */}
-            <div className="bg-zinc-50 border border-zinc-200 p-10 rounded-[4rem] shadow-2xl relative">
-              <div className="absolute top-0 right-0 p-6 opacity-20"><Target className="w-12 h-12" /></div>
-              <h3 className={`${spaceGrotesk.className} text-xl font-bold mb-8 uppercase italic`}>Simulateur de Gains</h3>
-              
-              <div className="mb-10">
-                <div className="flex justify-between text-xs font-bold uppercase mb-4">
-                  <span>Clients signés par mois :</span>
-                  <span className="text-[#39FF14] bg-black px-3 py-1 rounded-full">{clients}</span>
+          </div>
+          <div className="bg-white border-4 border-black p-8 rounded-[3rem] shadow-2xl">
+            <h3 className="font-black text-center uppercase mb-8 italic">Simulateur de Gains</h3>
+            <div className="space-y-6 mb-10">
+              {['solo', 'trio', 'full', 'premium'].map((p) => (
+                <div key={p} className="flex flex-col gap-1">
+                  <div className="flex justify-between text-[9px] font-black uppercase"><span>{p}</span><span className="bg-[#39FF14] text-black px-2 rounded">{q[p as keyof typeof q]}</span></div>
+                  <input type="range" min="0" max="30" value={q[p as keyof typeof q]} onChange={(e)=>setQ({...q, [p]:parseInt(e.target.value)})} className="w-full accent-black" />
                 </div>
-                <input 
-                  type="range" min="1" max="25" step="0.5" 
-                  value={clients} onChange={(e) => setClients(parseFloat(e.target.value))}
-                  className="w-full h-3 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#39FF14]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-black p-6 rounded-3xl text-white">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase mb-2 italic">Gain Immédiat (M1)</p>
-                  <p className={`${spaceGrotesk.className} text-2xl font-bold text-[#39FF14]`}>{commissionM1.toLocaleString()} F</p>
-                </div>
-                <div className="bg-white border-2 border-black p-6 rounded-3xl">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase mb-2 italic">Cumul sur 6 mois</p>
-                  <p className={`${spaceGrotesk.className} text-2xl font-bold text-black`}>{commissionM6.toLocaleString()} F</p>
-                </div>
-              </div>
-              
-              <a href={getWaLink("Bonjour Onyx, je veux devenir PARTENAIRE. Mon objectif est de signer " + clients + " clients par mois.")} className="mt-8 block text-center bg-[#39FF14] text-black py-5 rounded-[2rem] font-black uppercase text-sm shadow-[0_15px_40px_rgba(57,255,20,0.3)] hover:scale-105 transition">Devenir Partenaire</a>
+              ))}
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-black p-4 rounded-2xl text-white text-center"><p className="text-[9px] font-bold text-zinc-500 uppercase">Gain M1</p><p className={`${space.className} text-lg font-bold text-[#39FF14]`}>{stats.m1.toLocaleString()} F</p></div>
+              <div className="bg-[#39FF14] p-4 rounded-2xl border-2 border-black text-center text-black"><p className="text-[9px] font-bold opacity-50 uppercase">Total 6 Mois 💰</p><p className={`${space.className} text-lg font-bold`}>{stats.total.toLocaleString()} F</p></div>
+            </div>
+            <a href={link(`Partenaire Volume: S(${q.solo}) T(${q.trio}) F(${q.full}) P(${q.premium}).`)} className="mt-8 block text-center bg-black text-white py-4 rounded-xl font-black uppercase text-xs hover:bg-[#39FF14] hover:text-black transition">Postuler Maintenant</a>
           </div>
         </section>
 
         {/* FOOTER */}
-        <footer className="py-12 border-t border-zinc-100 bg-white">
+        <footer className="py-12 border-t border-zinc-100 bg-white/80 text-center">
           <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-3">
-              <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" className="h-6 w-auto grayscale opacity-50" />
-              <p className="text-zinc-300 font-black text-[10px] tracking-[0.5em] uppercase">OnyxOps 2026 • Dakar Tech • Security Active</p>
-            </div>
-            <div className="flex gap-6 items-center">
-               <Lock className="w-3 h-3 text-zinc-200" />
-               <a href="tel:+221768102039" className="text-zinc-400 font-bold text-xs hover:text-[#39FF14] transition underline decoration-[#39FF14]">Support : (+221) 76 810 20 39</a>
-            </div>
+            <div className="flex items-center gap-3"><img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Logo" className="h-6 w-auto" /><p className="text-zinc-300 font-black text-[9px] uppercase tracking-widest italic">OnyxOps 2026 • Dakar Tech</p></div>
+            <div className="flex gap-4 items-center font-bold text-xs text-zinc-500"><Lock className="w-4 h-4 text-zinc-200" /><a href="tel:+221768102039" className="hover:text-[#39FF14] underline underline-offset-4">(+221) 76 810 20 39</a></div>
           </div>
         </footer>
       </div>
