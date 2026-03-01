@@ -1,13 +1,52 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Space_Grotesk, Inter } from "next/font/google";
 import { 
   Smartphone, Receipt, Truck, Box, Utensils, Calendar, 
   ArrowRight, ShieldCheck, TrendingUp, Users, Target, 
-  Zap, CheckCircle2, AlertCircle, Lock, Handshake, Package
+  Zap, CheckCircle2, AlertCircle, Lock, Handshake, Package, Info, X
 } from "lucide-react";
+
+const PLAN_DETAILS: Record<string, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
+  solo: {
+    title: "Onyx Solo : L'essentiel WhatsApp",
+    desc: "Digitalisez votre boutique en 24h. Idéal pour transformer vos discussions WhatsApp en commandes réelles sans effort manuel.",
+    benefits: ["Catalogue interactif (Fini les 50 photos/jour)", "Lien de commande unique", "Fidélisation client automatique"],
+    why: "Choisissez Solo pour gagner 2h par jour et ne plus jamais rater une vente parce que vous étiez 'occupé'.",
+    cible: "Vendeurs Instagram / WhatsApp",
+    avantage: "Fini les envois manuels de photos.",
+    chiffreCle: "+15% de ventes via catalogue pro.",
+  },
+  trio: {
+    title: "Pack Trio : Le Contrôle Total",
+    desc: "Le combo gagnant : Vente + Stock + Devis. Connectez vos opérations pour éviter les fuites de cash et les pertes de produits.",
+    benefits: ["Inventaire en temps réel", "Facturation pro instantanée", "Gestion des encaissements sécurisée"],
+    why: "C'est le pack 'Sérénité'. Vous savez exactement ce qui sort de votre boutique et ce qui entre en caisse.",
+    cible: "Boutiques et Prestataires",
+    avantage: "Maîtrise totale du stock et du cash.",
+    chiffreCle: "0 rupture de stock, 100% traçabilité.",
+  },
+  full: {
+    title: "Pack Full : L'Ecosystème Complet",
+    desc: "Les 6 SaaS Onyx travaillent ensemble pour votre succès. Une gestion digne d'une multinationale sur votre simple smartphone.",
+    benefits: ["Logistique & Livreurs intégrés", "Menu QR & Réservations", "Rapports de performance hebdomadaires"],
+    why: "Pour l'entrepreneur qui veut scaler. Automatisez tout et concentrez-vous sur votre stratégie de croissance.",
+    cible: "PME & Restaurants",
+    avantage: "Digitalisation complète 360°.",
+    chiffreCle: "Gagnez 10h/semaine de gestion.",
+  },
+  premium: {
+    title: "Onyx Premium : L'Elite Business",
+    desc: "Puissance maximale. Intégrez l'Intelligence Artificielle et le marketing de données pour doubler votre chiffre d'affaires.",
+    benefits: ["Studio Créatif IA (Visuels & Textes)", "CRM & Relance Client automatique", "Conseiller stratégique dédié"],
+    why: "Le choix des leaders. Ne vous contentez pas de gérer, dominez votre secteur avec les meilleurs outils du monde.",
+    cible: "PME & Franchises",
+    avantage: "IA et CRM pour dominer le marché.",
+    chiffreCle: "Croissance X2 avec le marketing data.",
+  },
+};
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "600"] });
@@ -30,7 +69,21 @@ const PACKS = [
 
 export default function OnyxOpsElite() {
   const [packCounts, setPackCounts] = useState({ solo: 0, pack3: 0, full: 0, premium: 0 });
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const waNumber = "221768102039";
+
+  const openPlanModal = (plan: string) => (e: React.MouseEvent) => { e.stopPropagation(); setSelectedPlan(plan); };
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setSelectedPlan(null); };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = selectedPlan ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [selectedPlan]);
 
   const getWaLink = (msg: string) => `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
 
@@ -85,7 +138,7 @@ export default function OnyxOpsElite() {
             DIGITALISEZ VOTRE <br/> <span className="text-[#39FF14] italic">PROPRE EMPIRE.</span>
           </h1>
           <p className="text-zinc-500 text-lg max-w-2xl mx-auto font-medium mb-10">
-            La suite complète d&apos;outils pour les commerces de proximité, les PME et PMI sénégalaises. Gérez vos ventes, stocks, devis et livraisons directement depuis votre téléphone et via Whatsapp. 0 engagement 0 cout cachés.
+            La suite complète d&apos;outils pour les commerces de proximité, les PME et PMI sénégalaises. Gérez vos ventes, stocks, devis et livraisons directement depuis votre téléphone et via Whatsapp. 0 Engagement 0 coûts cachés.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <a href="#partenaires" className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition duration-300">
@@ -130,23 +183,29 @@ export default function OnyxOpsElite() {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <h2 className={`${spaceGrotesk.className} text-4xl font-bold mb-4`}>OFFRES <span className="text-[#39FF14]">NO-LIMIT.</span></h2>
-              <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché. Que du cashflow.</p>
+              <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d&apos;abonnement caché. Que du cashflow.</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* SOLO */}
-              <div className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition">
+              <div onClick={() => setSelectedPlan("solo")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setSelectedPlan("solo")} className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition cursor-pointer relative group">
+                <button type="button" onClick={openPlanModal("solo")} className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-white text-black flex items-center gap-1.5 hover:bg-zinc-100 transition text-[10px] font-bold uppercase tracking-wider">
+                  <Info className="w-3 h-3" /> Infos
+                </button>
                 <p className="text-[10px] font-black tracking-[0.3em] text-zinc-500 mb-4 uppercase">Onyx Solo</p>
                 <div className="text-4xl font-bold mb-6 italic">7.500F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
                 <ul className="text-xs space-y-3 mb-10 text-zinc-400">
                   <li className="flex gap-2">✔ 1 Micro-SaaS au choix</li>
                   <li className="flex gap-2">✔ Support WhatsApp 24/7</li>
                 </ul>
-                <a href={getWaLink("Bonjour Onyx, je veux COMMENCER avec l'offre Solo à 7.500F.")} className="block text-center bg-white text-black py-4 rounded-2xl font-black text-sm hover:bg-[#39FF14] transition uppercase tracking-tighter">Commencer</a>
+                <a href={getWaLink("Bonjour Onyx, je veux COMMENCER avec l'offre Solo à 7.500F.")} onClick={(e) => e.stopPropagation()} className="block text-center bg-white text-black py-4 rounded-2xl font-black text-sm hover:bg-[#39FF14] transition uppercase tracking-tighter">Commencer</a>
               </div>
 
               {/* TRIO (Best Seller) */}
-              <div className="bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] p-8 rounded-[3rem] scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)]">
+              <div onClick={() => setSelectedPlan("trio")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setSelectedPlan("trio")} className="bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] p-8 rounded-[3rem] scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)] cursor-pointer relative">
+                <button type="button" onClick={openPlanModal("trio")} className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-white text-black flex items-center gap-1.5 hover:bg-zinc-100 transition text-[10px] font-bold uppercase tracking-wider">
+                  <Info className="w-3 h-3" /> Infos
+                </button>
                 <p className="text-[10px] font-black tracking-[0.3em] text-[#39FF14] mb-4 uppercase">Pack Trio</p>
                 <div className="text-4xl font-bold mb-6 italic text-white">17.500F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
                 <ul className="text-xs space-y-3 mb-10 text-zinc-300">
@@ -154,11 +213,14 @@ export default function OnyxOpsElite() {
                   <li className="flex gap-2">✔ Formation Gérant incluse</li>
                   <li className="flex gap-2">✔ Dashboard de revenus</li>
                 </ul>
-                <a href={getWaLink("Bonjour Onyx, je veux CHOISIR CE PACK Trio à 17.500F.")} className="block text-center bg-[#39FF14] text-black py-4 rounded-2xl font-black text-sm hover:scale-105 transition uppercase tracking-tighter">Choisir ce pack</a>
+                <a href={getWaLink("Bonjour Onyx, je veux CHOISIR CE PACK Trio à 17.500F.")} onClick={(e) => e.stopPropagation()} className="block text-center bg-[#39FF14] text-black py-4 rounded-2xl font-black text-sm hover:scale-105 transition uppercase tracking-tighter">Choisir ce pack</a>
               </div>
 
               {/* FULL */}
-              <div className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition">
+              <div onClick={() => setSelectedPlan("full")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setSelectedPlan("full")} className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition cursor-pointer relative">
+                <button type="button" onClick={openPlanModal("full")} className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-white text-black flex items-center gap-1.5 hover:bg-zinc-100 transition text-[10px] font-bold uppercase tracking-wider">
+                  <Info className="w-3 h-3" /> Infos
+                </button>
                 <p className="text-[10px] font-black tracking-[0.3em] text-zinc-500 mb-4 uppercase">Pack Full</p>
                 <div className="text-4xl font-bold mb-6 italic">30.000F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
                 <ul className="text-xs space-y-3 mb-10 text-zinc-400">
@@ -166,11 +228,14 @@ export default function OnyxOpsElite() {
                   <li className="flex gap-2">✔ Multi-boutiques</li>
                   <li className="flex gap-2">✔ Rapports PDF Automatiques</li>
                 </ul>
-                <a href={getWaLink("Bonjour Onyx, je veux TOUT CHOISIR avec le pack Full à 30.000F.")} className="block text-center bg-white text-black py-4 rounded-2xl font-black text-sm hover:bg-[#39FF14] transition uppercase tracking-tighter">Tout choisir</a>
+                <a href={getWaLink("Bonjour Onyx, je veux TOUT CHOISIR avec le pack Full à 30.000F.")} onClick={(e) => e.stopPropagation()} className="block text-center bg-white text-black py-4 rounded-2xl font-black text-sm hover:bg-[#39FF14] transition uppercase tracking-tighter">Tout choisir</a>
               </div>
 
               {/* PREMIUM */}
-              <div className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition">
+              <div onClick={() => setSelectedPlan("premium")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setSelectedPlan("premium")} className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition cursor-pointer relative">
+                <button type="button" onClick={openPlanModal("premium")} className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-white text-black flex items-center gap-1.5 hover:bg-zinc-100 transition text-[10px] font-bold uppercase tracking-wider">
+                  <Info className="w-3 h-3" /> Infos
+                </button>
                 <p className="text-[10px] font-black tracking-[0.3em] text-zinc-500 mb-4 uppercase">Onyx Premium</p>
                 <div className="text-4xl font-bold mb-6 italic text-red-500">75.000F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
                 <ul className="text-xs space-y-3 mb-10 text-zinc-400">
@@ -178,7 +243,70 @@ export default function OnyxOpsElite() {
                   <li className="flex gap-2">✔ CRM Expert + Blog</li>
                   <li className="flex gap-2">✔ Account Manager Dédié</li>
                 </ul>
-                <a href={getWaLink("Bonjour Onyx, je souhaite CONTACTER l'équipe pour l'offre Premium à 75.000F.")} className="block text-center border-2 border-white/20 text-white py-4 rounded-2xl font-black text-sm hover:bg-white hover:text-black transition uppercase tracking-tighter">Contacter</a>
+                <a href={getWaLink("Bonjour Onyx, je souhaite CONTACTER l'équipe pour l'offre Premium à 75.000F.")} onClick={(e) => e.stopPropagation()} className="block text-center border-2 border-white/20 text-white py-4 rounded-2xl font-black text-sm hover:bg-white hover:text-black transition uppercase tracking-tighter">Contacter</a>
+              </div>
+            </div>
+
+            {/* MODAL */}
+            {selectedPlan && PLAN_DETAILS[selectedPlan] && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedPlan(null)}>
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-hidden="true" />
+                <div onClick={(e) => e.stopPropagation()} className="relative bg-white text-black rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
+                  <button type="button" onClick={() => setSelectedPlan(null)} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-zinc-800 transition">
+                    <X className="w-4 h-4" />
+                  </button>
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-3`}>{PLAN_DETAILS[selectedPlan].title}</h3>
+                  <p className="text-sm text-zinc-600 mb-6">{PLAN_DETAILS[selectedPlan].desc}</p>
+                  <div className="space-y-2 mb-6">
+                    {PLAN_DETAILS[selectedPlan].benefits.map((b, i) => (
+                      <div key={i} className="flex items-start gap-2 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-[#39FF14] flex-shrink-0 mt-0.5" />
+                        <span className="font-medium text-zinc-800">{b}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-4 rounded-2xl bg-[#39FF14]/10 border border-[#39FF14]/30 mb-4">
+                    <p className="text-[10px] font-bold text-[#39FF14] uppercase mb-1">Chiffre clé</p>
+                    <p className="text-sm font-black text-black">{PLAN_DETAILS[selectedPlan].chiffreCle}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase mb-1">Pourquoi choisir</p>
+                    <p className="text-zinc-700 italic text-sm">{PLAN_DETAILS[selectedPlan].why}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* GUIDE DE CHOIX */}
+        <section className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-100">
+          <div className="bg-zinc-50 rounded-[4rem] p-12 grid md:grid-cols-2 gap-12 items-center">
+            <div className="relative aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl bg-zinc-200 order-2 md:order-1">
+              <Image src="/egerie-onyx.jpg" alt="Conseillère OnyxOps" fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
+              <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur p-4 rounded-2xl border border-[#39FF14]">
+                <p className="font-black text-xs uppercase tracking-widest">Conseillère OnyxOps</p>
+                <p className="text-[10px] font-bold text-zinc-500 italic">&quot;Je vous accompagne vers le succès.&quot;</p>
+              </div>
+            </div>
+            <div className="order-1 md:order-2">
+              <h2 className={`${spaceGrotesk.className} text-5xl font-bold mb-8 uppercase leading-[0.9] tracking-tighter`}>
+                QUELLE OFFRE <br/><span className="text-[#39FF14]">POUR VOTRE BUSINESS ?</span>
+              </h2>
+              <div className="space-y-6">
+                {[
+                  { t: "Vendeur WhatsApp", p: "Solo", d: "Digitalisez votre catalogue pour vendre pendant que vous dormez." },
+                  { t: "Boutique Physique", p: "Trio", d: "Sécurisez votre stock et professionnalisez vos factures cash." },
+                  { t: "Restaurant / PME", p: "Full", d: "Gérez vos menus, réservations et livreurs sans une seule erreur." },
+                  { t: "Marque / Leader", p: "Premium", d: "Utilisez l'IA pour multiplier vos clients et votre impact." },
+                ].map((item, i) => (
+                  <div key={i} className="group cursor-default border-b border-zinc-200 pb-4">
+                    <h4 className="font-black text-sm uppercase flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-[#39FF14] rounded-full" /> {item.t}
+                    </h4>
+                    <p className="text-xs text-zinc-500 mt-1 font-medium italic">Conseil : Orientez-vous vers le <span className="text-black font-bold">Pack {item.p}</span>. {item.d}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
