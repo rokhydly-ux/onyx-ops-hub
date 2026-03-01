@@ -71,7 +71,7 @@ export default function OnyxOpsElite() {
   const [packCounts, setPackCounts] = useState({ solo: 0, pack3: 0, full: 0, premium: 0 });
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   
-  // NOUVELLES VARIABLES D'ÉTAT POUR LE TUNNEL ET LES MODALES
+  // VARIABLES D'ÉTAT POUR LE TUNNEL ET LES MODALES
   const [selectedSaaS, setSelectedSaaS] = useState<any>(null);
   const [saasMetier, setSaasMetier] = useState("");
   const [activeProfiles, setActiveProfiles] = useState<string[]>([]);
@@ -274,11 +274,10 @@ export default function OnyxOpsElite() {
           </div>
         </section>
 
-        {/* NOUVELLE SECTION : QUELLE OFFRE CHOISIR (TUNNEL) */}
+        {/* TUNNEL : QUELLE OFFRE CHOISIR */}
         <section className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-100">
           <div className="bg-zinc-50 rounded-[4rem] p-8 md:p-12 grid lg:grid-cols-2 gap-12 items-center shadow-inner border border-zinc-200">
             <div className="relative aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl bg-zinc-200 order-2 lg:order-1">
-              {/* L'image de la conseillère */}
               <img src="https://i.ibb.co/bRdvjrhV/ONYX-LOGOS-2.png" alt="Conseillère OnyxOps" className="object-cover w-full h-full" />
               <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-md p-5 rounded-3xl border-2 border-[#39FF14] shadow-xl">
                 <p className="font-black text-xs uppercase tracking-widest flex items-center gap-2 mb-2">
@@ -388,6 +387,70 @@ export default function OnyxOpsElite() {
           </div>
         </section>
 
+        {/* SECTION COMPARATIF - WAKH DEUG (SPÉCIAL SÉNÉGAL) */}
+        <section className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-100">
+          <div className="text-center mb-16">
+            <div className={`${spaceGrotesk.className} inline-flex items-center gap-2 bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 px-4 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] mb-4 uppercase`}>
+              Spécial Marché Sénégalais 🇸🇳
+            </div>
+            <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-bold mb-4 uppercase leading-[0.9] tracking-tighter`}>
+              WAKH DEUG : ONYX VS <span className="text-zinc-400 italic line-through">LES AUTRES</span>
+            </h2>
+            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic max-w-2xl mx-auto">
+              Pourquoi payer des logiciels étrangers hors de prix quand vous avez plus d'options, plus de puissance, et un prix imbattable conçu pour nos réalités ?
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto items-center">
+            {/* Les Autres */}
+            <div className="bg-zinc-50 border-2 border-zinc-200 p-8 md:p-12 rounded-[3rem] opacity-80">
+              <h3 className={`${spaceGrotesk.className} text-2xl font-bold text-zinc-400 mb-8 uppercase text-center`}>Les Logiciels Classiques</h3>
+              <ul className="space-y-6">
+                {[
+                  { text: "Abonnements en Euros / Dollars très chers", icon: <X className="text-red-500 w-5 h-5" /> },
+                  { text: "Usines à gaz conçues pour l'Europe", icon: <X className="text-red-500 w-5 h-5" /> },
+                  { text: "Nécessite souvent un ordinateur fixe", icon: <X className="text-red-500 w-5 h-5" /> },
+                  { text: "Assistance par email (réponse en 48h)", icon: <X className="text-red-500 w-5 h-5" /> },
+                  { text: "Aucune intégration avec nos Tiak-Tiak", icon: <X className="text-red-500 w-5 h-5" /> }
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-4 text-sm font-semibold text-zinc-500">
+                    <div className="mt-0.5 bg-red-100 p-1 rounded-full flex-shrink-0">{item.icon}</div>
+                    <span>{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* OnyxOps */}
+            <div className="bg-black border-2 border-[#39FF14] p-8 md:p-12 rounded-[3rem] shadow-[0_0_40px_rgba(57,255,20,0.15)] relative scale-105 z-10">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap">
+                Le Choix des Boss 🚀
+              </div>
+              <h3 className={`${spaceGrotesk.className} text-3xl font-bold text-white mb-8 uppercase text-center flex items-center justify-center gap-3`}>
+                OnyxOps <Zap className="text-[#39FF14] w-6 h-6 fill-[#39FF14]" />
+              </h3>
+              <ul className="space-y-6">
+                {[
+                  { text: "Prix imbattable en FCFA (dès 7.500F/mois)", icon: <CheckCircle2 className="text-black w-5 h-5" /> },
+                  { text: "Outils 100% pensés pour WhatsApp et le Sénégal", icon: <CheckCircle2 className="text-black w-5 h-5" /> },
+                  { text: "Tout se gère tranquillement depuis votre smartphone", icon: <CheckCircle2 className="text-black w-5 h-5" /> },
+                  { text: "Support VIP & Local sur WhatsApp 7j/7", icon: <CheckCircle2 className="text-black w-5 h-5" /> },
+                  { text: "Gestion native des livraisons, paiements mobiles et stocks", icon: <CheckCircle2 className="text-black w-5 h-5" /> }
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-4 text-sm font-bold text-white leading-relaxed">
+                    <div className="mt-0.5 bg-[#39FF14] p-1 rounded-full flex-shrink-0">{item.icon}</div>
+                    <span>{item.text}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-10 pt-8 border-t border-zinc-800 text-center">
+                <p className="text-xs text-zinc-400 font-medium italic mb-4">"Arrêtez de payer plus pour des outils qui en font moins."</p>
+                <a href="#tarifs" className="inline-block bg-[#39FF14] text-black px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition">Voir nos tarifs</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* SIMULATEUR & PARTENAIRES */}
         <section id="partenaires" className="py-24 px-6 max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-16 items-center">
@@ -417,7 +480,7 @@ export default function OnyxOpsElite() {
               </div>
             </div>
 
-            {/* SIMULATEUR INTERACTIF - Par type de pack vendu */}
+            {/* SIMULATEUR INTERACTIF */}
             <div className="bg-zinc-50 border border-zinc-200 p-10 rounded-[4rem] shadow-2xl relative">
               <div className="absolute top-0 right-0 p-6 opacity-20"><Target className="w-12 h-12" /></div>
               <h3 className={`${spaceGrotesk.className} text-xl font-bold mb-6 uppercase italic`}>Simulateur de Gains</h3>
