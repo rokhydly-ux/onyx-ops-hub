@@ -1,598 +1,235 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import {
-  ArrowRight,
-  LayoutGrid,
-  FileText,
-  Zap,
-  Package,
-  UtensilsCrossed,
-  CalendarCheck,
-  Menu,
-  X,
-  AlertTriangle,
-  CheckCircle2,
-  Sparkles,
-  Users,
-  Infinity,
+import { Space_Grotesk, Inter } from "next/font/google";
+import { 
+  Smartphone, Receipt, Truck, Box, Utensils, Calendar, 
+  ArrowRight, ShieldCheck, TrendingUp, Users, Target, 
+  Zap, CheckCircle2, AlertCircle, Lock
 } from "lucide-react";
-import { useState } from "react";
+
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "600"] });
 
 const SOLUTIONS = [
-  {
-    id: "catalog",
-    name: "Catalog",
-    icon: LayoutGrid,
-    pain: "Vos clients vous demandent des photos sur WhatsApp à chaque commande.",
-    solution:
-      "Un catalogue élégant, toujours à jour, que vous partagez en un lien WhatsApp.",
-  },
-  {
-    id: "devis",
-    name: "Devis",
-    icon: FileText,
-    pain: "Devis faits à la main, erreurs de calcul et image peu professionnelle.",
-    solution:
-      "Des devis propres, chiffrés automatiquement et envoyés en un clic à vos clients.",
-  },
-  {
-    id: "tiak",
-    name: "Tiak",
-    icon: Zap,
-    pain: "Perte de cash au comptoir, aucune traçabilité des encaissements.",
-    solution:
-      "Une caisse digitale simple qui trace chaque encaissement et chaque vendeur.",
-  },
-  {
-    id: "stock",
-    name: "Stock",
-    icon: Package,
-    pain: "Ruptures surprises et surstocks qui bloquent votre trésorerie.",
-    solution:
-      "Un suivi temps réel de vos entrées / sorties pour décider avec confiance.",
-  },
-  {
-    id: "menu",
-    name: "Menu",
-    icon: UtensilsCrossed,
-    pain: "Menus papier illisibles, difficiles à mettre à jour et jamais à jour.",
-    solution:
-      "Un menu digital, scannable en QR et partageable sur WhatsApp en quelques secondes.",
-  },
-  {
-    id: "booking",
-    name: "Booking",
-    icon: CalendarCheck,
-    pain: "Rendez-vous oubliés, double réservations et planning brouillon.",
-    solution:
-      "Un agenda connecté où chaque créneau est réservé, confirmé et rappelé automatiquement.",
-  },
+  { id: "Onyx Catalog", icon: Smartphone, pain: "Perte de temps infinie sur WhatsApp avec les envois de photos.", solution: "Catalogue digital pro avec lien direct pour commander en un clic." },
+  { id: "Onyx Devis", icon: Receipt, pain: "Devis gribouillés sur papier qui font perdre des clients sérieux.", solution: "Générateur de PDF pro en 60s pour sécuriser vos deals." },
+  { id: "Onyx Tiak", icon: Truck, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel." },
+  { id: "Onyx Stock", icon: Box, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture." },
+  { id: "Onyx Menu", icon: Utensils, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement." },
+  { id: "Onyx Booking", icon: Calendar, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé." },
 ];
 
-const PLANS = [
-  {
-    name: "Essentiel",
-    price: "7.500 F",
-    description: "Idéal pour lancer votre digitalisation.",
-    features: ["1 solution Onyx au choix", "Support WhatsApp en horaires ouvrés"],
-  },
-  {
-    name: "Croissance",
-    price: "17.500 F",
-    description: "Pour les business qui accélèrent.",
-    features: [
-      "Jusqu'à 3 solutions Onyx",
-      "Onboarding personnalisé",
-      "Support prioritaire",
-    ],
-    highlighted: true,
-  },
-  {
-    name: "Entreprise",
-    price: "30.000 F",
-    description: "Pilotage complet de vos opérations.",
-    features: [
-      "Toutes les solutions Onyx",
-      "Multi-utilisateurs & multi-boutiques",
-      "Accompagnement mensuel",
-    ],
-  },
-  {
-    name: "Premium",
-    price: "75.000 F",
-    description: "Pour les marques qui veulent scaler.",
-    features: [
-      "Personnalisation avancée",
-      "Intégrations externes",
-      "Account manager dédié",
-    ],
-    badge: "Cœur de gamme",
-  },
-];
+export default function OnyxOpsElite() {
+  const [clients, setClients] = useState(6.5); // Valeur pour obtenir 58.500F M1 (6.5 * 30k * 30%)
+  const waNumber = "221768102039";
 
-export default function OnyxOpsLandingPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const getWaLink = (msg: string) => `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
+
+  // Calculs du simulateur
+  const commissionM1 = Math.round(clients * 30000 * 0.30); // Basé sur Pack Full pour l'exemple
+  const commissionM6 = Math.round((clients * 30000 * 0.30) + (clients * 5 * 30000 * 0.10)); // M6 cumulé simplifié
 
   return (
-    <div className="relative min-h-screen bg-white text-black">
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 opacity-[0.15]"
-        style={{
-          backgroundImage:
-            "url('https://i.ibb.co/chCcXT7p/back-site.png')",
-          backgroundSize: "cover",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "top center",
-        }}
+    <div className={`${inter.className} min-h-screen bg-white text-black select-none print:hidden`}>
+      {/* SECURITY OVERLAY (Anti-Screenshot/Selection) */}
+      <style jsx global>{`
+        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+        @media print { body { display: none; } }
+      `}</style>
+
+      {/* BACKGROUND PATTERN */}
+      <div 
+        className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none"
+        style={{ backgroundImage: `url('https://i.ibb.co/chCcXT7p/back-site.png')`, backgroundRepeat: 'repeat', backgroundSize: '400px' }}
       />
 
-      <div className="relative">
-        <header className="sticky top-0 z-40 border-b border-white/60 bg-white/80 backdrop-blur-xl">
-          <nav className="mx-auto flex h-16 md:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-[#39FF14]/40 bg-black shadow-[0_0_18px_rgba(57,255,20,0.4)] md:h-11 md:w-11">
-                <Image
-                  src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png"
-                  alt="OnyxOps Logo"
-                  fill
-                  sizes="44px"
-                  className="object-contain"
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium tracking-[0.12em] uppercase text-gray-500">
-                  OnyxOps
-                </span>
-                <span className="text-xs md:text-[13px] text-gray-500">
-                  Générateur de revenus
-                </span>
-              </div>
-            </Link>
+      <div className="relative z-10">
+        {/* NAV BAR */}
+        <nav className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex justify-between items-center max-w-7xl mx-auto rounded-b-3xl shadow-sm">
+          <div className="flex items-center gap-3">
+            <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" className="h-10 w-auto" />
+            <span className={`${spaceGrotesk.className} font-bold tracking-tighter text-xl`}>ONYX OPS</span>
+          </div>
+          <div className="hidden md:flex gap-8 font-semibold text-sm uppercase">
+            <a href="#solutions" className="hover:text-[#39FF14] transition">Solutions</a>
+            <a href="#tarifs" className="hover:text-[#39FF14] transition">Tarifs</a>
+            <a href="#partenaires" className="hover:text-[#39FF14] transition">Partenaires</a>
+          </div>
+          <button className="bg-black text-[#39FF14] px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition duration-300">
+            Accès Hub
+          </button>
+        </nav>
 
-            <div className="hidden items-center gap-10 text-sm font-medium md:flex">
-              <Link
-                href="#solutions"
-                className="transition-colors hover:text-[#39FF14]"
-              >
-                Solutions
-              </Link>
-              <Link
-                href="#tarifs"
-                className="transition-colors hover:text-[#39FF14]"
-              >
-                Tarifs
-              </Link>
-              <Link
-                href="#partenaires"
-                className="transition-colors hover:text-[#39FF14]"
-              >
-                Partenaires
-              </Link>
-              <Link
-                href="#tarifs"
-                className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-black text-xs font-semibold uppercase tracking-[0.16em] text-white px-5 py-2 hover:bg-[#39FF14] hover:text-black transition-colors"
-              >
-                Voir les offres
-                <ArrowRight className="h-4 w-4 text-[#39FF14]" />
-              </Link>
-            </div>
-
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white/60 p-2 md:hidden"
-              aria-label="Ouvrir le menu"
-            >
-              {menuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </button>
-          </nav>
-
-          {menuOpen && (
-            <div className="md:hidden border-t border-black/5 bg-white/95 backdrop-blur">
-              <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 text-sm">
-                <Link
-                  href="#solutions"
-                  onClick={() => setMenuOpen(false)}
-                  className="py-2"
-                >
-                  Solutions
-                </Link>
-                <Link
-                  href="#tarifs"
-                  onClick={() => setMenuOpen(false)}
-                  className="py-2"
-                >
-                  Tarifs
-                </Link>
-                <Link
-                  href="#partenaires"
-                  onClick={() => setMenuOpen(false)}
-                  className="py-2"
-                >
-                  Partenaires
-                </Link>
-              </div>
-            </div>
-          )}
+        {/* HERO SECTION */}
+        <header className="pt-20 pb-16 px-6 text-center max-w-5xl mx-auto">
+          <div className={`${spaceGrotesk.className} inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] mb-8`}>
+            <Zap className="w-3 h-3 text-[#39FF14] fill-[#39FF14]" /> DAKAR BUSINESS ECOSYSTEM
+          </div>
+          <h1 className={`${spaceGrotesk.className} text-5xl md:text-7xl font-bold leading-[1] tracking-tighter mb-6`}>
+            DIGITALISEZ VOTRE <br/> <span className="text-[#39FF14] italic">PROPRE EMPIRE.</span>
+          </h1>
+          <p className="text-zinc-500 text-lg max-w-2xl mx-auto font-medium mb-10">
+            OnyxOps transforme les douleurs des commerçants sénégalais en revenus automatiques via WhatsApp.
+          </p>
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <section className="grid gap-10 py-16 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:py-24 lg:py-28">
+        {/* SOLUTIONS SECTION */}
+        <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto">
+          <h2 className={`${spaceGrotesk.className} text-3xl font-bold mb-12 text-center`}>NOS 6 SOLUTIONS <span className="text-[#39FF14]">RADICALES</span></h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {SOLUTIONS.map((s, i) => (
+              <div key={i} className="group bg-white border border-zinc-100 p-8 rounded-[2.5rem] shadow-xl hover:border-[#39FF14] transition-all relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition">
+                  <s.icon className="w-24 h-24" />
+                </div>
+                <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
+                  <s.icon className="w-6 h-6" />
+                </div>
+                <h3 className={`${spaceGrotesk.className} text-2xl font-bold mb-4 italic uppercase`}>{s.id}</h3>
+                <div className="space-y-4">
+                  <div className="bg-red-50 p-4 rounded-2xl border-l-4 border-red-500">
+                    <p className="text-[10px] font-bold text-red-600 uppercase mb-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> La Douleur</p>
+                    <p className="text-xs font-semibold text-zinc-700">{s.pain}</p>
+                  </div>
+                  <div className="bg-[#39FF14]/5 p-4 rounded-2xl border-l-4 border-[#39FF14]">
+                    <p className="text-[10px] font-bold text-[#39FF14] uppercase mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Solution Onyx</p>
+                    <p className="text-xs font-semibold text-zinc-800">{s.solution}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* PRICING SECTION */}
+        <section id="tarifs" className="py-20 bg-black text-white rounded-[4rem] mx-4 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className={`${spaceGrotesk.className} text-4xl font-bold mb-4`}>OFFRES <span className="text-[#39FF14]">NO-LIMIT.</span></h2>
+              <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché. Que du cashflow.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* SOLO */}
+              <div className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition">
+                <p className="text-[10px] font-black tracking-[0.3em] text-zinc-500 mb-4 uppercase">Onyx Solo</p>
+                <div className="text-4xl font-bold mb-6 italic">7.500F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
+                <ul className="text-xs space-y-3 mb-10 text-zinc-400">
+                  <li className="flex gap-2">✔ 1 Micro-SaaS au choix</li>
+                  <li className="flex gap-2">✔ Support WhatsApp 24/7</li>
+                </ul>
+                <a href={getWaLink("Bonjour Onyx, je veux COMMENCER avec l'offre Solo à 7.500F.")} className="block text-center bg-white text-black py-4 rounded-2xl font-black text-sm hover:bg-[#39FF14] transition uppercase tracking-tighter">Commencer</a>
+              </div>
+
+              {/* TRIO (Best Seller) */}
+              <div className="bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] p-8 rounded-[3rem] scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)]">
+                <p className="text-[10px] font-black tracking-[0.3em] text-[#39FF14] mb-4 uppercase">Pack Trio</p>
+                <div className="text-4xl font-bold mb-6 italic text-white">17.500F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
+                <ul className="text-xs space-y-3 mb-10 text-zinc-300">
+                  <li className="flex gap-2">✔ 3 Micro-SaaS Connectés</li>
+                  <li className="flex gap-2">✔ Formation Gérant incluse</li>
+                  <li className="flex gap-2">✔ Dashboard de revenus</li>
+                </ul>
+                <a href={getWaLink("Bonjour Onyx, je veux CHOISIR CE PACK Trio à 17.500F.")} className="block text-center bg-[#39FF14] text-black py-4 rounded-2xl font-black text-sm hover:scale-105 transition uppercase tracking-tighter">Choisir ce pack</a>
+              </div>
+
+              {/* FULL */}
+              <div className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition">
+                <p className="text-[10px] font-black tracking-[0.3em] text-zinc-500 mb-4 uppercase">Pack Full</p>
+                <div className="text-4xl font-bold mb-6 italic">30.000F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
+                <ul className="text-xs space-y-3 mb-10 text-zinc-400">
+                  <li className="flex gap-2">✔ Les 6 Solutions Onyx</li>
+                  <li className="flex gap-2">✔ Multi-boutiques</li>
+                  <li className="flex gap-2">✔ Rapports PDF Automatiques</li>
+                </ul>
+                <a href={getWaLink("Bonjour Onyx, je veux TOUT CHOISIR avec le pack Full à 30.000F.")} className="block text-center bg-white text-black py-4 rounded-2xl font-black text-sm hover:bg-[#39FF14] transition uppercase tracking-tighter">Tout choisir</a>
+              </div>
+
+              {/* PREMIUM */}
+              <div className="bg-zinc-900/50 border border-white/10 p-8 rounded-[3rem] hover:scale-105 transition">
+                <p className="text-[10px] font-black tracking-[0.3em] text-zinc-500 mb-4 uppercase">Onyx Premium</p>
+                <div className="text-4xl font-bold mb-6 italic text-red-500">75.000F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
+                <ul className="text-xs space-y-3 mb-10 text-zinc-400">
+                  <li className="flex gap-2">✔ Studio Créatif IA</li>
+                  <li className="flex gap-2">✔ CRM Expert + Blog</li>
+                  <li className="flex gap-2">✔ Account Manager Dédié</li>
+                </ul>
+                <a href={getWaLink("Bonjour Onyx, je souhaite CONTACTER l'équipe pour l'offre Premium à 75.000F.")} className="block text-center border-2 border-white/20 text-white py-4 rounded-2xl font-black text-sm hover:bg-white hover:text-black transition uppercase tracking-tighter">Contacter</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SIMULATEUR & PARTENAIRES */}
+        <section id="partenaires" className="py-24 px-6 max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-white/70 px-3 py-1 text-xs font-medium text-gray-600 backdrop-blur">
-                <Sparkles className="h-3.5 w-3.5 text-[#39FF14]" />
-                Suite Micro‑SaaS pour entrepreneurs sénégalais
-              </div>
-              <h1 className="mt-6 text-3xl leading-tight font-semibold sm:text-4xl md:text-5xl lg:text-[3.2rem] lg:leading-[1.05] tracking-tight">
-                Digitalisez votre{" "}
-                <span className="underline decoration-[#39FF14] decoration-[4px] underline-offset-8">
-                  Business
-                </span>{" "}
-                en un clic.
-              </h1>
-              <p className="mt-5 max-w-xl text-sm sm:text-base text-gray-600">
-                OnyxOps réunit vos ventes, devis, stocks, menus et réservations
-                dans une suite simple à piloter, pensée pour WhatsApp et les
-                réalités du terrain au Sénégal.
+              <h2 className={`${spaceGrotesk.className} text-5xl font-black mb-6 uppercase leading-none`}>VOTRE <span className="text-[#39FF14]">RENTE</span> SÉNÉGALAISE.</h2>
+              <p className="text-zinc-600 mb-10 font-bold leading-relaxed">
+                Rejoignez notre réseau. Vendez OnyxOps à vos contacts et construisez votre indépendance financière.
               </p>
-
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link
-                  href="#tarifs"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#39FF14] px-6 py-3 text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] text-black shadow-[0_0_30px_rgba(57,255,20,0.6)] transition hover:shadow-[0_0_40px_rgba(57,255,20,0.8)]"
-                >
-                  Découvrir les offres
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <span className="text-xs sm:text-sm text-gray-500">
-                  100% en ligne • Activation en moins de 24h
-                </span>
-              </div>
-
-              <div className="mt-10 grid max-w-xl grid-cols-2 gap-4 text-xs sm:text-sm">
-                <div className="rounded-2xl border border-black/5 bg-white/70 p-4 backdrop-blur">
-                  <p className="flex items-center gap-2 font-medium text-gray-900">
-                    <CheckCircle2 className="h-4 w-4 text-[#39FF14]" />
-                    Pensé pour WhatsApp
-                  </p>
-                  <p className="mt-2 text-gray-600">
-                    Chaque outil est conçu pour transformer vos conversations
-                    en chiffre d&apos;affaires mesurable.
-                  </p>
+              <div className="space-y-6">
+                <div className="flex gap-4 items-center">
+                  <div className="bg-[#39FF14] text-black p-3 rounded-full"><TrendingUp /></div>
+                  <div><p className="font-black text-lg">30% CASH IMMÉDIAT</p><p className="text-xs text-zinc-400 uppercase font-bold">Sur chaque premier mois de pack signé.</p></div>
                 </div>
-                <div className="rounded-2xl border border-black/5 bg-white/70 p-4 backdrop-blur">
-                  <p className="flex items-center gap-2 font-medium text-gray-900">
-                    <Users className="h-4 w-4 text-[#39FF14]" />
-                    Créé à Dakar
-                  </p>
-                  <p className="mt-2 text-gray-600">
-                    Une équipe locale qui comprend vos clients, vos vendeurs et
-                    vos marges.
-                  </p>
+                <div className="flex gap-4 items-center">
+                  <div className="bg-black text-[#39FF14] p-3 rounded-full"><Zap /></div>
+                  <div><p className="font-black text-lg">10% RÉCURRENT À VIE</p><p className="text-xs text-zinc-400 uppercase font-bold">Tant que votre client paie son SaaS.</p></div>
+                </div>
+                <div className="flex gap-4 items-center">
+                  <div className="bg-white border-2 border-black text-black p-3 rounded-full"><Users /></div>
+                  <div><p className="font-black text-lg">5% RÉSEAU AFFILIÉ</p><p className="text-xs text-zinc-400 uppercase font-bold">Commission sur toutes les ventes de votre équipe.</p></div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4 md:space-y-5">
-              <div className="relative overflow-hidden rounded-3xl border border-[#39FF14]/30 bg-black text-white shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-                <div className="absolute -inset-[1px] bg-[radial-gradient(circle_at_top,_rgba(57,255,20,0.5),_transparent_55%)] opacity-70" />
-                <div className="relative space-y-5 px-6 py-6 sm:px-7 sm:py-7">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#39FF14]/70">
-                        Vue Business
-                      </p>
-                      <p className="mt-1 text-sm font-medium text-white/90">
-                        Résumé temps réel de vos flux
-                      </p>
-                    </div>
-                    <Infinity className="h-6 w-6 text-[#39FF14]" />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 text-xs">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-gray-400">
-                        Ventes du jour
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-[#39FF14]">
-                        +18,4%
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-gray-400">
-                        Tickets moyens
-                      </p>
-                      <p className="mt-2 text-lg font-semibold">+4.200 F</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-gray-400">
-                        No-shows
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-[#39FF14]">
-                        -32%
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-white/10 pt-4 text-[11px] text-gray-300">
-                    <span>OnyxOps synchronise vos flux Catalog, Tiak, Stock…</span>
-                    <span className="rounded-full border border-[#39FF14]/60 px-2 py-0.5 text-[10px] text-[#39FF14]">
-                      Live
-                    </span>
-                  </div>
+            {/* SIMULATEUR INTERACTIF */}
+            <div className="bg-zinc-50 border border-zinc-200 p-10 rounded-[4rem] shadow-2xl relative">
+              <div className="absolute top-0 right-0 p-6 opacity-20"><Target className="w-12 h-12" /></div>
+              <h3 className={`${spaceGrotesk.className} text-xl font-bold mb-8 uppercase italic`}>Simulateur de Gains</h3>
+              
+              <div className="mb-10">
+                <div className="flex justify-between text-xs font-bold uppercase mb-4">
+                  <span>Clients signés par mois :</span>
+                  <span className="text-[#39FF14] bg-black px-3 py-1 rounded-full">{clients}</span>
                 </div>
-              </div>
-            </div>
-          </section>
-
-          <section id="solutions" className="py-16 md:py-20">
-            <div className="flex items-end justify-between gap-6">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-500">
-                  Suite Onyx
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-                  Chaque douleur business a sa solution Onyx.
-                </h2>
-              </div>
-              <p className="hidden max-w-md text-xs text-gray-500 md:block">
-                Nous partons de vos pertes de cash, de temps et d&apos;image,
-                puis nous dessinons la brique SaaS minimale qui corrige
-                réellement le problème.
-              </p>
-            </div>
-
-            <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {SOLUTIONS.map((solution) => {
-                const Icon = solution.icon;
-                return (
-                  <article
-                    key={solution.id}
-                    className="group flex h-full flex-col rounded-3xl border border-black/5 bg-white/80 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur transition hover:-translate-y-1.5 hover:border-[#39FF14]/60 hover:shadow-[0_28px_70px_rgba(15,23,42,0.12)]"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-black/5 px-3 py-1 text-xs font-medium">
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black text-[#39FF14]">
-                          <Icon className="h-3.5 w-3.5" />
-                        </span>
-                        {solution.name}
-                      </div>
-                      <span className="text-[11px] uppercase tracking-[0.18em] text-gray-400">
-                        Micro‑SaaS
-                      </span>
-                    </div>
-
-                    <div className="mt-4 space-y-3 text-xs sm:text-sm">
-                      <div className="flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50/70 px-3 py-3 text-red-800">
-                        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]">
-                            Douleur
-                          </p>
-                          <p className="mt-1 text-[13px] leading-relaxed">
-                            {solution.pain}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-2 rounded-2xl border border-[#39FF14]/40 bg-white px-3 py-3">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#39FF14]" />
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-700">
-                            Solution Onyx
-                          </p>
-                          <p className="mt-1 text-[13px] leading-relaxed text-gray-700">
-                            {solution.solution}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-
-          <section id="tarifs" className="py-16 md:py-20">
-            <div className="text-center">
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-500">
-                Tarifs OnyxOps
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-                4 offres claires, aucune surprise.
-              </h2>
-              <p className="mt-4 text-sm text-gray-600">
-                Les montants sont exprimés en Franc CFA (F) et facturés
-                mensuellement, sans engagement longue durée.
-              </p>
-            </div>
-
-            <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-              {PLANS.map((plan) => (
-                <div
-                  key={plan.name}
-                  className={`flex h-full flex-col rounded-3xl border bg-white/85 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur ${
-                    plan.highlighted || plan.badge
-                      ? "border-[#39FF14]/70 shadow-[0_0_40px_rgba(57,255,20,0.25)]"
-                      : "border-black/5"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="text-sm font-semibold uppercase tracking-[0.16em]">
-                        {plan.name}
-                      </h3>
-                      <p className="mt-1 text-xs text-gray-500">
-                        {plan.description}
-                      </p>
-                    </div>
-                    {(plan.highlighted || plan.badge) && (
-                      <span className="rounded-full border border-[#39FF14]/50 bg-[#39FF14]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#39FF14]">
-                        {plan.badge ?? "Recommandé"}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mt-5 flex items-baseline gap-1">
-                    <span className="text-2xl font-semibold text-[#39FF14]">
-                      {plan.price}
-                    </span>
-                    <span className="text-[11px] uppercase tracking-[0.16em] text-gray-500">
-                      / mois
-                    </span>
-                  </div>
-
-                  <ul className="mt-4 space-y-2 text-xs text-gray-600">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        <span className="mt-[3px] inline-flex h-1.5 w-1.5 rounded-full bg-[#39FF14]" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link
-                    href="#partenaires"
-                    className="mt-6 inline-flex items-center justify-center rounded-full border border-black/10 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#39FF14] hover:text-black transition-colors"
-                  >
-                    Discuter avec Onyx
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section
-            id="partenaires"
-            className="mb-20 rounded-3xl border border-black/5 bg-white/85 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur md:mb-24 md:p-8"
-          >
-            <div className="grid gap-8 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-500">
-                  Programme Partenaire
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-                  Gagnez avec OnyxOps, à chaque client que vous apportez.
-                </h2>
-                <p className="mt-4 text-sm text-gray-600">
-                  Que vous soyez agence, freelance, consultant ou simple
-                  apporteur d&apos;affaires, OnyxOps partage la valeur créée
-                  avec vous grâce à un modèle simple et lisible.
-                </p>
-
-                <div className="mt-6 grid gap-4 text-xs sm:text-sm md:grid-cols-3">
-                  <div className="rounded-2xl border border-black/5 bg-black text-white px-4 py-4">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-gray-300">
-                      À la signature
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-[#39FF14]">
-                      30%
-                    </p>
-                    <p className="mt-1 text-[13px] text-gray-200">
-                      de la première mensualité versés immédiatement après
-                      activation.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-[#39FF14]/50 bg-[#39FF14]/5 px-4 py-4">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-gray-700">
-                      Tous les mois
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-[#39FF14]">
-                      10%
-                    </p>
-                    <p className="mt-1 text-[13px] text-gray-700">
-                      de la mensualité payée, tant que le client reste actif.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-black/5 bg-white px-4 py-4">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-gray-700">
-                      Transparence
-                    </p>
-                    <p className="mt-2 text-[13px] text-gray-600">
-                      Accès à un tableau de bord partenaires pour suivre vos
-                      commissions en temps réel.
-                    </p>
-                  </div>
-                </div>
+                <input 
+                  type="range" min="1" max="25" step="0.5" 
+                  value={clients} onChange={(e) => setClients(parseFloat(e.target.value))}
+                  className="w-full h-3 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#39FF14]"
+                />
               </div>
 
-              <div className="space-y-4 text-xs sm:text-sm">
-                <div className="flex items-center gap-2 rounded-full border border-black/5 bg-black/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-700">
-                  <Users className="h-4 w-4 text-[#39FF14]" />
-                  Comment devenir partenaire ?
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-black p-6 rounded-3xl text-white">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase mb-2 italic">Gain Immédiat (M1)</p>
+                  <p className={`${spaceGrotesk.className} text-2xl font-bold text-[#39FF14]`}>{commissionM1.toLocaleString()} F</p>
                 </div>
-                <ol className="space-y-3 text-gray-600">
-                  <li className="flex gap-3">
-                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-black/10 text-[11px] font-semibold">
-                      1
-                    </span>
-                    <div>
-                      <p className="font-medium text-gray-800">
-                        Présentez OnyxOps à votre réseau.
-                      </p>
-                      <p className="text-[13px]">
-                        Nous vous fournissons un kit de présentation WhatsApp
-                        et email prêt à l&apos;emploi.
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-black/10 text-[11px] font-semibold">
-                      2
-                    </span>
-                    <div>
-                      <p className="font-medium text-gray-800">
-                        OnyxOps s&apos;occupe du closing.
-                      </p>
-                      <p className="text-[13px]">
-                        Notre équipe fait la démo, adapte l&apos;offre et
-                        gère l&apos;onboarding client.
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-black/10 text-[11px] font-semibold">
-                      3
-                    </span>
-                    <div>
-                      <p className="font-medium text-gray-800">
-                        Vous encaissez vos 30% + 10%.
-                      </p>
-                      <p className="text-[13px]">
-                        Paiement sécurisé, récap mensuel détaillé, zéro charge
-                        opérationnelle pour vous.
-                      </p>
-                    </div>
-                  </li>
-                </ol>
-
-                <Link
-                  href="#"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#39FF14]/60 bg-[#39FF14]/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-colors"
-                >
-                  Rejoindre le programme partenaires
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                <div className="bg-white border-2 border-black p-6 rounded-3xl">
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase mb-2 italic">Cumul sur 6 mois</p>
+                  <p className={`${spaceGrotesk.className} text-2xl font-bold text-black`}>{commissionM6.toLocaleString()} F</p>
+                </div>
               </div>
+              
+              <a href={getWaLink("Bonjour Onyx, je veux devenir PARTENAIRE. Mon objectif est de signer " + clients + " clients par mois.")} className="mt-8 block text-center bg-[#39FF14] text-black py-5 rounded-[2rem] font-black uppercase text-sm shadow-[0_15px_40px_rgba(57,255,20,0.3)] hover:scale-105 transition">Devenir Partenaire</a>
             </div>
-          </section>
-        </main>
+          </div>
+        </section>
 
-        <footer className="border-t border-black/5 bg-white/80 backdrop-blur">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-gray-500 sm:flex-row sm:px-6 lg:px-8">
-            <a
-              href="tel:+221"
-              className="inline-flex items-center gap-2 hover:text-[#39FF14]"
-            >
-              <span>Contact Dakar : (+221)</span>
-            </a>
-            <p>© 2026 OnyxOps. Tous droits réservés.</p>
+        {/* FOOTER */}
+        <footer className="py-12 border-t border-zinc-100 bg-white">
+          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-3">
+              <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" className="h-6 w-auto grayscale opacity-50" />
+              <p className="text-zinc-300 font-black text-[10px] tracking-[0.5em] uppercase">OnyxOps 2026 • Dakar Tech • Security Active</p>
+            </div>
+            <div className="flex gap-6 items-center">
+               <Lock className="w-3 h-3 text-zinc-200" />
+               <a href="tel:+221768102039" className="text-zinc-400 font-bold text-xs hover:text-[#39FF14] transition underline decoration-[#39FF14]">Support : (+221) 76 810 20 39</a>
+            </div>
           </div>
         </footer>
       </div>
