@@ -7,7 +7,7 @@ import {
   Smartphone, Receipt, Truck, Box, Utensils, Calendar, 
   ArrowRight, ShieldCheck, TrendingUp, Users, Target, 
   Zap, CheckCircle2, AlertCircle, Lock, Handshake, Package, Info, X,
-  MapPin, Clock, Mail, LifeBuoy
+  MapPin, Clock, Mail, LifeBuoy, Menu
 } from "lucide-react";
 
 const PLAN_DETAILS: Record<string, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
@@ -70,6 +70,7 @@ const PACKS = [
 
 export default function OnyxOpsElite() {
   const [activeView, setActiveView] = useState<'home' | 'about'>('home');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [packCounts, setPackCounts] = useState({ solo: 0, pack3: 0, full: 0, premium: 0 });
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   
@@ -97,9 +98,9 @@ export default function OnyxOpsElite() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = (selectedPlan || selectedSaaS || showIncidentModal) ? "hidden" : "";
+    document.body.style.overflow = (selectedPlan || selectedSaaS || showIncidentModal || isMobileMenuOpen) ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [selectedPlan, selectedSaaS, showIncidentModal]);
+  }, [selectedPlan, selectedSaaS, showIncidentModal, isMobileMenuOpen]);
 
   // Calculs du simulateur : 30% M1 + 10% récurrent/mois
   const commissionM1 = Math.round(
@@ -120,13 +121,46 @@ export default function OnyxOpsElite() {
   else if (activeProfiles.includes('WhatsApp')) conseillerText = '"Fini de scroller pour envoyer des photos. Votre catalogue va vendre pendant que vous dormez."';
   else if (activeProfiles.includes('Boutique')) conseillerText = '"Fini le cahier de brouillon. On va sécuriser votre stock et professionnaliser votre caisse."';
 
-  const navigateHomeAndScroll = (id: string) => {
-    setActiveView('home');
-    setTimeout(() => {
-      const element = document.getElementById(id);
-      if (element) element.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+  const navigateTo = (view: 'home' | 'about', scrollId?: string) => {
+    setIsMobileMenuOpen(false);
+    setActiveView(view);
+    if (scrollId) {
+      setTimeout(() => {
+        const element = document.getElementById(scrollId);
+        if (element) element.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
+
+  const PaymentMethods = () => (
+    <div className="flex flex-wrap items-center justify-center gap-6 mt-6">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-6 md:h-8 object-contain" />
+      <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-6 md:h-8 object-contain" />
+      <div className="h-6 md:h-8 px-4 bg-black text-white rounded flex items-center justify-center font-black italic text-xs md:text-sm tracking-wider">
+        YAS MONEY
+      </div>
+    </div>
+  );
+
+  const FreeTrialBadge = () => (
+    <div className="bg-gradient-to-r from-[#39FF14]/10 to-zinc-50 border-2 border-[#39FF14] rounded-3xl p-6 md:p-8 max-w-4xl mx-auto my-12 text-center shadow-[0_10px_30px_rgba(57,255,20,0.1)] relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-4 opacity-5"><Target className="w-24 h-24" /></div>
+      <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] mb-4 uppercase">
+        Offre Découverte
+      </div>
+      <h3 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-bold mb-3 uppercase tracking-tighter`}>
+        Testez <span className="text-[#39FF14]">Gratuitement</span> pendant 1 semaine !
+      </h3>
+      <p className="text-zinc-600 font-medium mb-6 max-w-xl mx-auto text-sm">
+        Connectez votre WhatsApp, gérez vos stocks ou facturez vos clients sans aucun risque. L'essai est 100% gratuit, sans engagement. <span className="font-bold italic">(Valable sur tous les packs, sauf Premium).</span>
+      </p>
+      <a href={getWaLink("Bonjour Onyx, je veux activer mon ESSAI GRATUIT de 1 semaine.")} className="inline-block bg-black text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-xl">
+        Démarrer mon essai
+      </a>
+    </div>
+  );
 
   return (
     <div className={`${inter.className} min-h-screen bg-white text-black select-none print:hidden`}>
@@ -145,20 +179,45 @@ export default function OnyxOpsElite() {
       <div className="relative z-10">
         {/* NAV BAR */}
         <nav className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex justify-between items-center max-w-7xl mx-auto rounded-b-3xl shadow-sm z-50">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveView('home')}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateTo('home')}>
             <Image src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" width={120} height={40} className="h-10 w-auto object-contain" unoptimized />
-            <span className={`${spaceGrotesk.className} font-bold tracking-tighter text-xl`}>ONYX OPS</span>
+            <span className={`${spaceGrotesk.className} font-bold tracking-tighter text-xl hidden sm:block`}>ONYX OPS</span>
           </div>
-          <div className="hidden md:flex gap-8 font-semibold text-sm uppercase cursor-pointer">
-            <button onClick={() => navigateHomeAndScroll('solutions')} className="hover:text-[#39FF14] transition">Solutions</button>
-            <button onClick={() => navigateHomeAndScroll('tarifs')} className="hover:text-[#39FF14] transition">Tarifs</button>
-            <button onClick={() => navigateHomeAndScroll('partenaires')} className="hover:text-[#39FF14] transition">Partenaires</button>
-            <button onClick={() => setActiveView('about')} className={`${activeView === 'about' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition`}>À Propos</button>
+          
+          {/* Desktop Nav */}
+          <div className="hidden md:flex gap-8 font-semibold text-sm uppercase items-center">
+            <button onClick={() => navigateTo('home', 'solutions')} className="hover:text-[#39FF14] transition">Solutions</button>
+            <button onClick={() => navigateTo('home', 'tarifs')} className="hover:text-[#39FF14] transition">Tarifs</button>
+            <button onClick={() => navigateTo('home', 'partenaires')} className="hover:text-[#39FF14] transition">Partenaires</button>
+            <button onClick={() => navigateTo('about')} className={`${activeView === 'about' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>À Propos</button>
+            <button className="bg-black text-[#39FF14] px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition duration-300">
+              Accès Hub
+            </button>
           </div>
-          <button className="bg-black text-[#39FF14] px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition duration-300">
-            Accès Hub
-          </button>
+
+          {/* Mobile Nav Toggle */}
+          <div className="flex md:hidden items-center gap-4">
+            <button className="bg-black text-[#39FF14] px-4 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest">
+              Hub
+            </button>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 bg-zinc-100 rounded-full text-black">
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </nav>
+
+        {/* Mobile Menu Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-8 md:hidden animate-in fade-in zoom-in duration-300">
+            <button onClick={() => navigateTo('home', 'solutions')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase tracking-widest`}>Solutions</button>
+            <button onClick={() => navigateTo('home', 'tarifs')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase tracking-widest`}>Tarifs</button>
+            <button onClick={() => navigateTo('home', 'partenaires')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase tracking-widest`}>Partenaires</button>
+            <button onClick={() => navigateTo('about')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase tracking-widest ${activeView === 'about' ? 'text-[#39FF14]' : ''}`}>À Propos</button>
+            <a href={getWaLink("Bonjour, j'ai besoin d'aide avec mon accès OnyxOps.")} className="mt-8 bg-[#39FF14] text-black px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-xl">
+              Support WhatsApp
+            </a>
+          </div>
+        )}
 
         {/* ------------------------------------------------------------------ */}
         {/* VUE : PAGE D'ACCUEIL                                               */}
@@ -166,7 +225,7 @@ export default function OnyxOpsElite() {
         {activeView === 'home' && (
           <div className="animate-in fade-in duration-500">
             {/* HERO SECTION */}
-            <header className="pt-20 pb-16 px-6 text-center max-w-5xl mx-auto">
+            <header className="pt-20 pb-12 px-6 text-center max-w-5xl mx-auto">
               <div className={`${spaceGrotesk.className} inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] mb-8`}>
                 <Zap className="w-3 h-3 text-[#39FF14] fill-[#39FF14]" /> DAKAR BUSINESS ECOSYSTEM
               </div>
@@ -176,15 +235,26 @@ export default function OnyxOpsElite() {
               <p className="text-zinc-500 text-lg max-w-2xl mx-auto font-medium mb-10">
                 La suite complète d&apos;outils pour les commerces de proximité, les PME et PMI sénégalaises. Gérez vos ventes, stocks, devis et livraisons directement depuis votre téléphone et via Whatsapp. 0 Engagement 0 coûts cachés.
               </p>
-              <div className="flex flex-wrap gap-4 justify-center">
-                <button onClick={() => navigateHomeAndScroll('partenaires')} className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition duration-300">
+              
+              <div className="flex flex-wrap gap-4 justify-center mb-10">
+                <button onClick={() => navigateTo('home', 'partenaires')} className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition duration-300">
                   <Handshake className="w-5 h-5" /> Devenir Partenaire
                 </button>
-                <button onClick={() => navigateHomeAndScroll('solutions')} className="inline-flex items-center gap-2 border-2 border-black text-black px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300">
+                <button onClick={() => navigateTo('home', 'solutions')} className="inline-flex items-center gap-2 border-2 border-black text-black px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300">
                   <Package className="w-5 h-5" /> Découvrir les Solutions
                 </button>
               </div>
+
+              {/* Moyens de Paiement Hero */}
+              <div className="pt-6 border-t border-zinc-200/60 max-w-md mx-auto">
+                <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Paiements Locaux Intégrés</p>
+                <PaymentMethods />
+              </div>
             </header>
+
+            <div className="px-6">
+              <FreeTrialBadge />
+            </div>
 
             {/* SOLUTIONS SECTION - INTERACTIVE */}
             <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto">
@@ -464,7 +534,7 @@ export default function OnyxOpsElite() {
                   </ul>
                   <div className="mt-10 pt-8 border-t border-zinc-800 text-center">
                     <p className="text-xs text-zinc-400 font-medium italic mb-4">&quot;Arrêtez de payer plus pour des outils qui en font moins.&quot;</p>
-                    <button onClick={() => navigateHomeAndScroll('tarifs')} className="inline-block bg-[#39FF14] text-black px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition">Voir nos tarifs</button>
+                    <button onClick={() => navigateTo('home', 'tarifs')} className="inline-block bg-[#39FF14] text-black px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition">Voir nos tarifs</button>
                   </div>
                 </div>
               </div>
@@ -561,10 +631,12 @@ export default function OnyxOpsElite() {
               <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Data Driven Methodologie RevOps pour les Entreprises Africaines</p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-12 items-center mb-24">
+            {/* INTÉGRATION ESSAI GRATUIT SUR PAGE A PROPOS */}
+            <FreeTrialBadge />
+
+            <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
               {/* Image Fondatrice Placeholder */}
               <div className="relative aspect-square md:aspect-[4/5] bg-zinc-100 rounded-[3rem] overflow-hidden shadow-xl border border-zinc-200 group">
-                {/* Remplacer le src par l'image de la fondatrice une fois générée */}
                 <div className="absolute inset-0 flex items-center justify-center text-zinc-300 font-bold text-xl uppercase tracking-widest">
                   Photo Maimouna
                 </div>
@@ -586,20 +658,22 @@ export default function OnyxOpsElite() {
                 </h3>
                 <div className="space-y-4 text-zinc-600 font-medium mb-10 leading-relaxed">
                   <p>Trop d&apos;entreprises au Sénégal se concentrent sur les "likes" et les belles photos sur Instagram, en oubliant l&apos;essentiel : <span className="text-black font-bold">la conversion et la gestion du cashflow.</span></p>
-                  <p>Chez OnyxOps, nous implémentons la méthodologie <span className="text-black font-bold">RevOps (Revenue Operations)</span> adaptée aux réalités africaines. Nous alignons vos ventes, votre marketing et votre service client via des outils technologiques simples, fonctionnant sur WhatsApp.</p>
-                  <p>Notre mission : Vous fournir une machine de guerre digitale qui tourne H24, pour que vous puissiez vous concentrer sur la croissance de votre empire.</p>
+                  <p className="p-4 bg-zinc-50 border-l-4 border-black text-sm italic rounded-r-2xl">
+                    "L'idée d'OnyxOps est née d'un constat brutal sur le terrain : nos commerçants jonglent entre des cahiers raturés, des commandes perdues sur WhatsApp et des livreurs Tiak-Tiak injoignables. Il nous fallait une solution unifiée, non pas pensée pour l'Europe, mais développée par des locaux, pour les réalités locales."
+                  </p>
+                  <p>Chez OnyxOps, nous implémentons la méthodologie <span className="text-black font-bold">RevOps (Revenue Operations)</span> adaptée aux réalités africaines. Nous alignons vos ventes, votre marketing et votre service client via des outils technologiques simples.</p>
                 </div>
 
-                <div className="bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-200 space-y-6 mb-10">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-black text-[#39FF14] p-3 rounded-full"><MapPin className="w-5 h-5" /></div>
+                <div className="bg-zinc-50 p-6 md:p-8 rounded-[2.5rem] border border-zinc-200 space-y-4 mb-10">
+                  <a href="https://maps.google.com/?q=Place+de+l'Indépendance,+Dakar,+Senegal" target="_blank" rel="noreferrer" className="flex items-start gap-4 group p-2 rounded-2xl hover:bg-white hover:shadow-md transition">
+                    <div className="bg-black text-[#39FF14] p-3 rounded-full group-hover:scale-110 transition-transform"><MapPin className="w-5 h-5" /></div>
                     <div>
                       <p className="font-black text-xs uppercase tracking-widest text-zinc-500 mb-1">Adresse</p>
                       <p className="font-bold text-sm text-black">Dakar Centre Ville</p>
                       <p className="text-xs font-medium text-zinc-500">Près de la place de l&apos;indépendance</p>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-4">
+                  </a>
+                  <div className="flex items-start gap-4 p-2">
                     <div className="bg-black text-[#39FF14] p-3 rounded-full"><Clock className="w-5 h-5" /></div>
                     <div>
                       <p className="font-black text-xs uppercase tracking-widest text-zinc-500 mb-1">Horaires</p>
@@ -607,17 +681,17 @@ export default function OnyxOpsElite() {
                       <p className="text-xs font-medium text-zinc-500">Du Lundi au Samedi</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <div className="bg-black text-[#39FF14] p-3 rounded-full"><Mail className="w-5 h-5" /></div>
+                  <a href="mailto:contact@onyxops.com" className="flex items-start gap-4 group p-2 rounded-2xl hover:bg-white hover:shadow-md transition">
+                    <div className="bg-black text-[#39FF14] p-3 rounded-full group-hover:scale-110 transition-transform"><Mail className="w-5 h-5" /></div>
                     <div>
                       <p className="font-black text-xs uppercase tracking-widest text-zinc-500 mb-1">Email</p>
-                      <p className="font-bold text-sm text-black">contact@onyxops.com</p>
+                      <p className="font-bold text-sm text-black group-hover:text-[#39FF14] transition">contact@onyxops.com</p>
                     </div>
-                  </div>
+                  </a>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <button onClick={() => setActiveView('home')} className="flex-1 bg-black text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-xl text-center">
+                  <button onClick={() => navigateTo('home')} className="flex-1 bg-black text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-xl text-center">
                     Retour aux Solutions
                   </button>
                   <a href={getWaLink("Bonjour Maimouna, je vous contacte depuis la page À Propos du site OnyxOps.")} className="flex-1 border-2 border-black text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-black hover:text-[#39FF14] transition text-center">
@@ -627,8 +701,38 @@ export default function OnyxOpsElite() {
               </div>
             </div>
 
+            {/* L'ÉQUIPE SECTION */}
+            <div className="py-16 border-t border-zinc-100">
+              <div className="text-center mb-12">
+                <h3 className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>La Machine Derrière <span className="text-[#39FF14]">Onyx</span></h3>
+                <p className="text-zinc-500 text-sm font-bold mt-2">Ceux qui transforment le code en cashflow.</p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                {[
+                  { name: "Amadou Ndiaye", role: "Lead Dev Fullstack", desc: "L'architecte réseau. Il s'assure que vos SaaS ne plantent jamais." },
+                  { name: "Fatou Diop", role: "Head of Customer Success", desc: "La voix de la sagesse. Elle accompagne chaque gérant vers la rentabilité." },
+                  { name: "Cheikh Fall", role: "Product Designer UX/UI", desc: "L'œil du design. Il rend chaque interface aussi simple qu'un message WhatsApp." }
+                ].map((member, idx) => (
+                  <div key={idx} className="bg-zinc-50 rounded-[2rem] p-8 text-center border border-zinc-200 hover:border-[#39FF14] transition group">
+                    <div className="w-20 h-20 bg-black text-[#39FF14] rounded-full mx-auto mb-4 flex items-center justify-center font-black text-2xl uppercase tracking-tighter group-hover:scale-110 transition-transform">
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <h4 className="font-black text-lg mb-1">{member.name}</h4>
+                    <p className="text-[10px] font-bold text-[#39FF14] bg-black inline-block px-3 py-1 rounded-full uppercase tracking-widest mb-4">{member.role}</p>
+                    <p className="text-sm text-zinc-500 font-medium">{member.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* MOYENS DE PAIEMENT ABOUT */}
+            <div className="py-10 text-center">
+              <p className="font-bold text-sm text-zinc-400 uppercase tracking-widest mb-6">Nous acceptons les paiements via</p>
+              <PaymentMethods />
+            </div>
+
             {/* Support Client Block */}
-            <div className="bg-black text-white p-10 md:p-14 rounded-[3rem] text-center max-w-4xl mx-auto shadow-2xl relative overflow-hidden">
+            <div className="bg-black text-white p-10 md:p-14 rounded-[3rem] text-center max-w-4xl mx-auto shadow-2xl relative overflow-hidden mt-12">
               <div className="absolute top-0 right-0 p-8 opacity-10"><LifeBuoy className="w-32 h-32" /></div>
               <LifeBuoy className="w-10 h-10 text-[#39FF14] mx-auto mb-6" />
               <h3 className={`${spaceGrotesk.className} text-3xl font-bold mb-4 uppercase`}>Besoin d&apos;assistance technique ?</h3>
@@ -650,7 +754,7 @@ export default function OnyxOpsElite() {
               <Image src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" width={72} height={24} className="h-6 w-auto object-contain grayscale opacity-50" unoptimized />
               <p className="text-zinc-300 font-black text-[10px] tracking-[0.5em] uppercase">OnyxOps 2026 • Dakar Tech • Security Active</p>
             </div>
-            <div className="flex gap-6 items-center">
+            <div className="flex gap-6 items-center flex-wrap justify-center">
                <Lock className="w-3 h-3 text-zinc-200" />
                <a href="tel:+221768102039" className="text-zinc-400 font-bold text-xs hover:text-[#39FF14] transition underline decoration-[#39FF14]">Support : (+221) 76 810 20 39</a>
             </div>
