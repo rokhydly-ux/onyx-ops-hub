@@ -10,7 +10,10 @@ import {
   MapPin, Clock, Mail, LifeBuoy, Menu, ChevronRight, Star, MessageSquare, Flame
 } from "lucide-react";
 
-const PLAN_DETAILS: Record<string, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
+// TYPE SÉCURISÉ POUR PLAN_DETAILS
+type PlanKey = "solo" | "trio" | "full" | "premium";
+
+const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
   solo: {
     title: "Onyx Solo : L'essentiel WhatsApp",
     desc: "Digitalisez votre boutique en 24h. Idéal pour transformer vos discussions WhatsApp en commandes réelles sans effort manuel.",
@@ -61,38 +64,39 @@ const SOLUTIONS = [
   { id: "Onyx Booking", icon: Calendar, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé." },
 ];
 
-const PACKS = [
+// UTILISATION DU TYPE PlanKey POUR LES IDs
+const PACKS: Array<{ id: PlanKey; name: string; price: number; label: string; rating: string; avis: number }> = [
   { id: "solo", name: "Solo", price: 7500, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
   { id: "trio", name: "Pack Trio", price: 17500, label: "Pack Trio", rating: "5.0/5", avis: 89 },
   { id: "full", name: "Pack Full", price: 30000, label: "Pack Full", rating: "4.9/5", avis: 215 },
   { id: "premium", name: "Premium", price: 75000, label: "Onyx Premium", rating: "5.0/5", avis: 34 },
-] as const;
+];
 
 const SOCIAL_PROOF_MESSAGES = [
-  { name: "Fatou B. (Boutique Prêt-à-porter)", action: "vient de créer son catalogue Onyx Solo", time: "il y a 5 min" },
-  { name: "Moussa D. (Restaurant Dakar)", action: "a activé le Menu QR et Onyx Tiak", time: "il y a 12 min" },
-  { name: "Awa N. (Cosmétiques)", action: "a enregistré son 1er paiement YAS via Onyx", time: "il y a 2 min" },
-  { name: "Ibrahima S. (Grossiste Sandaga)", action: "vient de sécuriser son stock avec le Pack Trio", time: "à l'instant" },
-  { name: "Khadija T. (Presta Services)", action: "a généré un devis PDF en 60s", time: "il y a 8 min" },
-  { name: "Ousmane F. (Électronique)", action: "a choisi le Pack Full pour ses 2 boutiques", time: "il y a 15 min" },
-  { name: "Aminata L. (Fast-Food)", action: "a reçu 14 commandes aujourd'hui via Onyx Menu", time: "il y a 3 min" },
-  { name: "Seydou K. (Quincaillerie)", action: "vient de faire son inventaire par scan", time: "il y a 20 min" },
-  { name: "Mariama C. (Pâtisserie)", action: "a bloqué 5 réservations en ligne avec acompte", time: "il y a 7 min" },
-  { name: "Alioune M. (Vendeur Insta)", action: "a activé son essai gratuit 7 jours", time: "à l'instant" },
+  { name: "Fatou B. (Boutique)", action: "vient de créer son catalogue", time: "il y a 5 min" },
+  { name: "Moussa D. (Restaurant)", action: "a activé le Menu QR", time: "il y a 12 min" },
+  { name: "Awa N. (Cosmétiques)", action: "a enregistré son 1er paiement YAS", time: "il y a 2 min" },
+  { name: "Ibrahima S. (Grossiste)", action: "vient de sécuriser son stock", time: "à l'instant" },
+  { name: "Khadija T. (Services)", action: "a généré un devis PDF en 60s", time: "il y a 8 min" },
+  { name: "Ousmane F. (Boutique)", action: "a choisi le Pack Full", time: "il y a 15 min" },
+  { name: "Aminata L. (Fast-Food)", action: "a reçu 14 commandes via Onyx", time: "il y a 3 min" },
+  { name: "Seydou K. (Matériel)", action: "vient de faire son inventaire", time: "il y a 20 min" },
+  { name: "Mariama C. (Pâtisserie)", action: "a bloqué 5 réservations", time: "il y a 7 min" },
+  { name: "Alioune M. (Vendeur)", action: "a activé son essai 7 jours", time: "à l'instant" },
 ];
 
 const FAQS = [
-  { q: "Est-ce que je dois installer une application compliquée ?", a: "Non, absolument pas. Tout passe par des liens simples que vous envoyez sur WhatsApp ou que vous consultez via votre navigateur. Vos clients n'ont rien à télécharger." },
-  { q: "Comment je reçois mon argent (Khaalis) ?", a: "Directement sur votre mobile ! Nous intégrons les solutions locales (Wave, Orange Money, YAS). Zéro délai d'attente, l'argent tombe sur vos comptes." },
-  { q: "Et si je ne m'y connais pas du tout en informatique ?", a: "OnyxOps a été pensé pour être aussi facile à utiliser que WhatsApp. Si vous savez envoyer un message vocal, vous savez utiliser nos outils. De plus, notre équipe vous forme gratuitement." },
-  { q: "Y a-t-il des frais cachés ou des pourcentages sur mes ventes ?", a: "0% de commission sur vos ventes. Vous ne payez que l'abonnement mensuel de votre pack (à partir de 7.500F). Tout ce que vous gagnez est 100% à vous." }
+  { q: "Est-ce que je dois installer une application compliquée ?", a: "Non, absolument pas. Tout passe par des liens simples que vous envoyez sur WhatsApp ou que vous consultez via votre navigateur." },
+  { q: "Comment je reçois mon argent ?", a: "Directement sur votre mobile ! Nous intégrons Wave, Orange Money et YAS. Zéro délai d'attente." },
+  { q: "Et si je ne m'y connais pas en informatique ?", a: "OnyxOps a été pensé pour être aussi facile à utiliser que WhatsApp. Si vous savez envoyer un vocal, vous savez utiliser nos outils." },
+  { q: "Y a-t-il des frais cachés ou des commissions ?", a: "0% de commission sur vos ventes. Vous ne payez que l'abonnement de votre pack. Tout ce que vous gagnez est 100% à vous." }
 ];
 
 export default function OnyxOpsElite() {
   const [activeView, setActiveView] = useState<'home' | 'about'>('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [packCounts, setPackCounts] = useState({ solo: 0, trio: 0, full: 0, premium: 0 });
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey | null>(null);
   
   // VARIABLES D'ÉTAT POUR LE TUNNEL ET LES MODALES
   const [selectedSaaS, setSelectedSaaS] = useState<any>(null);
@@ -115,7 +119,7 @@ export default function OnyxOpsElite() {
   const waNumber = "221768102039";
   const getWaLink = (msg: string) => `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
 
-  const openPlanModal = (plan: string) => (e: React.MouseEvent) => { e.stopPropagation(); setSelectedPlan(plan); };
+  const openPlanModal = (plan: PlanKey) => (e: React.MouseEvent) => { e.stopPropagation(); setSelectedPlan(plan); };
 
   const openAuthModal = (mode: 'login' | 'signup') => {
     setAuthMode(mode);
@@ -142,15 +146,15 @@ export default function OnyxOpsElite() {
 
   // EFFET POUR LE WIDGET PREUVE SOCIALE
   useEffect(() => {
-    const initialDelay = setTimeout(() => setShowProof(true), 3000); // 1er popup après 3s
+    const initialDelay = setTimeout(() => setShowProof(true), 3000);
 
     const interval = setInterval(() => {
-      setShowProof(false); // Disparition
+      setShowProof(false);
       setTimeout(() => {
         setProofIndex((prev) => (prev + 1) % SOCIAL_PROOF_MESSAGES.length);
-        setShowProof(true); // Réapparition avec nouveau message
-      }, 500); // Temps de transition CSS
-    }, 6000); // Change tous les 6s
+        setShowProof(true);
+      }, 500);
+    }, 6000);
 
     return () => {
       clearTimeout(initialDelay);
@@ -158,7 +162,7 @@ export default function OnyxOpsElite() {
     };
   }, []);
 
-  // Calculs du simulateur : 30% M1 + 10% récurrent/mois
+  // Calculs du simulateur
   const commissionM1 = Math.round(
     packCounts.solo * 7500 * 0.30 + packCounts.trio * 17500 * 0.30 +
     packCounts.full * 30000 * 0.30 + packCounts.premium * 75000 * 0.30
@@ -167,13 +171,12 @@ export default function OnyxOpsElite() {
     packCounts.solo * 7500 * 0.10 + packCounts.trio * 17500 * 0.10 +
     packCounts.full * 30000 * 0.10 + packCounts.premium * 75000 * 0.10
   );
-  const commissionM6 = commissionM1 + recurrentPerMonth * 5; // M2 à M6
+  const commissionM6 = commissionM1 + recurrentPerMonth * 5;
 
-  // Génération du texte de la conseillère
   let conseillerText = '"Sélectionnez votre profil à droite, je vous dirai exactement ce qu\'il vous faut pour exploser vos ventes."';
   if (activeProfiles.includes('Premium')) conseillerText = '"Passons aux choses sérieuses. Répondez à ces 3 questions pour voir si vous êtes prêt pour la puissance de l\'IA."';
   else if (activeProfiles.includes('Restaurant')) conseillerText = '"De la commande à la table jusqu\'au livreur, on va structurer tout votre resto. Concentrez-vous sur vos clients."';
-  else if (activeProfiles.includes('WhatsApp') && activeProfiles.includes('Boutique')) conseillerText = '"Le combo parfait : on digitalise vos ventes en ligne et on sécurise votre stock physique. Zéro fuite de Khaalis !"';
+  else if (activeProfiles.includes('WhatsApp') && activeProfiles.includes('Boutique')) conseillerText = '"Le combo parfait : on digitalise vos ventes en ligne et on sécurise votre stock physique."';
   else if (activeProfiles.includes('WhatsApp')) conseillerText = '"Fini de scroller pour envoyer des photos. Votre catalogue va vendre pendant que vous dormez."';
   else if (activeProfiles.includes('Boutique')) conseillerText = '"Fini le cahier de brouillon. On va sécuriser votre stock et professionnaliser votre caisse."';
 
@@ -203,12 +206,9 @@ export default function OnyxOpsElite() {
   const FreeTrialBadge = () => (
     <div className="bg-gradient-to-r from-[#39FF14]/10 to-zinc-50 border-2 border-[#39FF14] rounded-3xl p-6 md:p-8 max-w-4xl mx-auto my-12 text-center shadow-[0_10px_30px_rgba(57,255,20,0.1)] relative overflow-hidden">
       <div className="absolute top-0 right-0 p-4 opacity-5"><Target className="w-24 h-24" /></div>
-      
-      {/* FOMO EFFECT */}
       <div className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] mb-4 uppercase shadow-lg animate-pulse">
         <Flame className="w-3 h-3" /> Offre Limitée : Plus que 12 places
       </div>
-      
       <h3 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-bold mb-3 uppercase tracking-tighter`}>
         Testez <span className="text-[#39FF14]">Gratuitement</span> pendant 7 jours !
       </h3>
@@ -224,27 +224,23 @@ export default function OnyxOpsElite() {
 
   return (
     <div className={`${inter.className} min-h-screen bg-white text-black select-none print:hidden overflow-x-hidden`}>
-      {/* SECURITY OVERLAY (Anti-Screenshot/Selection) */}
       <style jsx global>{`
         body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
         @media print { body { display: none; } }
       `}</style>
 
-      {/* BACKGROUND PATTERN */}
       <div 
         className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none bg-zinc-50"
         style={{ backgroundImage: `url('https://i.ibb.co/chCcXT7p/back-site.png')`, backgroundRepeat: 'repeat', backgroundSize: '400px' }}
       />
 
       <div className="relative z-10">
-        {/* NAV BAR */}
         <nav className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex justify-between items-center max-w-7xl mx-auto rounded-b-3xl shadow-sm z-50">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateTo('home')}>
             <Image src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" width={150} height={50} className="h-[50px] w-auto object-contain" unoptimized />
             <span className={`${spaceGrotesk.className} font-bold tracking-tighter text-2xl hidden sm:block`}>ONYX OPS</span>
           </div>
           
-          {/* Desktop Nav */}
           <div className="hidden md:flex gap-8 font-semibold text-sm uppercase items-center">
             <button onClick={() => navigateTo('home', 'solutions')} className="hover:text-[#39FF14] transition">Solutions</button>
             <button onClick={() => navigateTo('home', 'tarifs')} className="hover:text-[#39FF14] transition">Tarifs</button>
@@ -255,7 +251,6 @@ export default function OnyxOpsElite() {
             </button>
           </div>
 
-          {/* Mobile Nav Toggle */}
           <div className="flex md:hidden items-center gap-4">
             <button onClick={() => openAuthModal('login')} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest">
               Hub
@@ -266,7 +261,6 @@ export default function OnyxOpsElite() {
           </div>
         </nav>
 
-        {/* Mobile Menu Dropdown */}
         {isMobileMenuOpen && (
           <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-8 md:hidden animate-in fade-in zoom-in duration-300">
             <button onClick={() => navigateTo('home', 'solutions')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase tracking-widest`}>Solutions</button>
@@ -284,7 +278,6 @@ export default function OnyxOpsElite() {
         {/* ------------------------------------------------------------------ */}
         {activeView === 'home' && (
           <div className="animate-in fade-in duration-500">
-            {/* HERO SECTION */}
             <header className="pt-20 pb-12 px-6 text-center max-w-5xl mx-auto">
               <div className={`${spaceGrotesk.className} inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] mb-8`}>
                 <Zap className="w-3 h-3 text-[#39FF14] fill-[#39FF14]" /> DAKAR BUSINESS ECOSYSTEM
@@ -305,7 +298,6 @@ export default function OnyxOpsElite() {
                 </button>
               </div>
 
-              {/* Moyens de Paiement Hero */}
               <div className="pt-6 border-t border-zinc-200/60 max-w-md mx-auto">
                 <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Paiements Locaux Intégrés</p>
                 <PaymentMethods />
@@ -316,14 +308,12 @@ export default function OnyxOpsElite() {
               <FreeTrialBadge />
             </div>
 
-            {/* SECTION AVANT / APRES (CONVERSION) */}
             <section className="py-16 px-6 max-w-6xl mx-auto mb-10">
               <div className="text-center mb-12">
                 <h2 className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Fini le Bricolage. <span className="text-[#39FF14]">Passez au niveau supérieur.</span></h2>
               </div>
               
               <div className="grid md:grid-cols-2 gap-8 items-center">
-                {/* AVANT (Chaos) */}
                 <div className="bg-red-50/50 border border-red-100 rounded-[3rem] p-8 h-full flex flex-col relative overflow-hidden">
                   <div className="absolute top-0 right-0 bg-red-500 text-white px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase tracking-widest">Avant Onyx</div>
                   <h3 className="font-black text-red-800 text-xl mb-6">Le Chaos sur WhatsApp</h3>
@@ -348,7 +338,6 @@ export default function OnyxOpsElite() {
                   </div>
                 </div>
 
-                {/* APRÈS (Onyx) */}
                 <div className="bg-black rounded-[3rem] p-8 h-full flex flex-col relative shadow-[0_15px_40px_rgba(57,255,20,0.15)] border border-[#39FF14]/30">
                   <div className="absolute top-0 right-0 bg-[#39FF14] text-black px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase tracking-widest">Avec OnyxOps</div>
                   <h3 className="font-black text-white text-xl mb-6 flex items-center gap-2"><CheckCircle2 className="text-[#39FF14] w-6 h-6"/> L'Automatisation Parfaite</h3>
@@ -380,7 +369,6 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
-            {/* SOLUTIONS SECTION - INTERACTIVE */}
             <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto">
               <h2 className={`${spaceGrotesk.className} text-3xl font-bold mb-4 text-center`}>NOS 6 SOLUTIONS <span className="text-[#39FF14]">RADICALES</span></h2>
               <p className="text-center text-zinc-500 font-bold text-xs uppercase tracking-widest mb-12">Cliquez sur un outil pour voir s'il est fait pour vous.</p>
@@ -416,55 +404,58 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
-            {/* PRICING SECTION */}
             <section id="tarifs" className="py-20 bg-black text-white rounded-[4rem] mx-4 px-6">
               <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16">
                   <h2 className={`${spaceGrotesk.className} text-4xl font-bold mb-4`}>OFFRES <span className="text-[#39FF14]">NO-LIMIT.</span></h2>
-                  <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché. Que de la liquidité (<span className="text-[#39FF14]">Khaalis</span>).</p>
+                  <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché.</p>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {PACKS.map((pack) => (
-                    <div 
-                      key={pack.id}
-                      onClick={() => setSelectedPlan(pack.id)} 
-                      className={`${pack.id === 'trio' ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] scale-105 lg:scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)]' : 'bg-zinc-900/50 border border-white/10 hover:scale-105'} p-8 rounded-[3rem] transition cursor-pointer relative group flex flex-col`}
-                    >
-                      <button type="button" onClick={openPlanModal(pack.id)} className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-white text-black flex items-center gap-1.5 hover:bg-zinc-100 transition text-[10px] font-bold uppercase tracking-wider z-20">
-                        <Info className="w-3 h-3" /> Infos
-                      </button>
-                      
-                      <p className={`text-[10px] font-black tracking-[0.3em] ${pack.id === 'trio' ? 'text-[#39FF14]' : 'text-zinc-500'} mb-1 uppercase`}>{pack.label}</p>
-                      
-                      {/* ETOILES DE NOTATION */}
-                      <div className="flex items-center gap-1 mb-4">
-                        {[...Array(5)].map((_, i) => (
-                           <Star key={i} className={`w-3 h-3 ${pack.rating.startsWith('5') || i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-yellow-400/30 fill-yellow-400/30'}`} />
-                        ))}
-                        <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis} avis)</span>
-                      </div>
+                  {PACKS.map((pack) => {
+                    // Utilisation de l'optional chaining de façon stricte pour éviter le crash Next.js
+                    const planDetails = PLAN_DETAILS[pack.id];
+                    const packBenefits = planDetails?.benefits || [];
+                    
+                    return (
+                      <div 
+                        key={pack.id}
+                        onClick={() => setSelectedPlan(pack.id)} 
+                        className={`${pack.id === 'trio' ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] scale-105 lg:scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)]' : 'bg-zinc-900/50 border border-white/10 hover:scale-105'} p-8 rounded-[3rem] transition cursor-pointer relative group flex flex-col`}
+                      >
+                        <button type="button" onClick={openPlanModal(pack.id)} className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-white text-black flex items-center gap-1.5 hover:bg-zinc-100 transition text-[10px] font-bold uppercase tracking-wider z-20">
+                          <Info className="w-3 h-3" /> Infos
+                        </button>
+                        
+                        <p className={`text-[10px] font-black tracking-[0.3em] ${pack.id === 'trio' ? 'text-[#39FF14]' : 'text-zinc-500'} mb-1 uppercase`}>{pack.label}</p>
+                        
+                        <div className="flex items-center gap-1 mb-4">
+                          {[...Array(5)].map((_, i) => (
+                             <Star key={i} className={`w-3 h-3 ${pack.rating.startsWith('5') || i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-yellow-400/30 fill-yellow-400/30'}`} />
+                          ))}
+                          <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis} avis)</span>
+                        </div>
 
-                      <div className={`text-3xl lg:text-4xl font-bold mb-6 italic ${pack.id === 'premium' ? 'text-red-500' : 'text-white'}`}>
-                        {pack.price.toLocaleString()}F <span className="text-xs text-zinc-500 font-normal">/ mois</span>
+                        <div className={`text-3xl lg:text-4xl font-bold mb-6 italic ${pack.id === 'premium' ? 'text-red-500' : 'text-white'}`}>
+                          {pack.price.toLocaleString()}F <span className="text-xs text-zinc-500 font-normal">/ mois</span>
+                        </div>
+                        
+                        <ul className={`text-xs space-y-3 mb-10 flex-1 ${pack.id === 'trio' ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                          {packBenefits.map((ben, i) => (
+                            <li key={i} className="flex gap-2">✔ {ben}</li>
+                          ))}
+                        </ul>
+                        
+                        <a href={getWaLink(`Bonjour Onyx, je veux COMMENCER avec l'offre ${pack.label} à ${pack.price.toLocaleString()}F.`)} onClick={(e) => e.stopPropagation()} className={`block text-center py-4 rounded-2xl font-black text-sm transition uppercase tracking-tighter ${pack.id === 'trio' ? 'bg-[#39FF14] text-black hover:bg-white' : pack.id === 'premium' ? 'border-2 border-white/20 text-white hover:bg-white hover:text-black' : 'bg-white text-black hover:bg-[#39FF14]'}`}>
+                          {pack.id === 'premium' ? 'Contacter' : 'Commencer'}
+                        </a>
                       </div>
-                      
-                      <ul className={`text-xs space-y-3 mb-10 flex-1 ${pack.id === 'trio' ? 'text-zinc-300' : 'text-zinc-400'}`}>
-                        {PLAN_DETAILS[pack.id].benefits.map((ben, i) => (
-                          <li key={i} className="flex gap-2">✔ {ben}</li>
-                        ))}
-                      </ul>
-                      
-                      <a href={getWaLink(`Bonjour Onyx, je veux COMMENCER avec l'offre ${pack.label} à ${pack.price.toLocaleString()}F.`)} onClick={(e) => e.stopPropagation()} className={`block text-center py-4 rounded-2xl font-black text-sm transition uppercase tracking-tighter ${pack.id === 'trio' ? 'bg-[#39FF14] text-black hover:bg-white' : pack.id === 'premium' ? 'border-2 border-white/20 text-white hover:bg-white hover:text-black' : 'bg-white text-black hover:bg-[#39FF14]'}`}>
-                        {pack.id === 'premium' ? 'Contacter' : 'Commencer'}
-                      </a>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </section>
 
-            {/* TUNNEL : QUELLE OFFRE CHOISIR */}
             <section className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-100">
               <div className="bg-zinc-50 rounded-[4rem] p-8 md:p-12 grid lg:grid-cols-2 gap-12 items-center shadow-inner border border-zinc-200">
                 <div className="relative aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl bg-zinc-200 order-2 lg:order-1">
@@ -514,13 +505,11 @@ export default function OnyxOpsElite() {
                     ))}
                   </div>
 
-                  {/* RÉSULTATS DYNAMIQUES */}
                   <div className="bg-white p-8 rounded-[2.5rem] shadow-lg border border-zinc-100 min-h-[250px] flex flex-col justify-center">
                     {activeProfiles.length === 0 && (
                       <div className="text-center text-zinc-400 font-bold text-sm uppercase italic">En attente de votre sélection...</div>
                     )}
 
-                    {/* LOGIQUE PREMIUM (QUESTIONS) */}
                     {activeProfiles.includes('Premium') && premiumStep > 0 && premiumStep < 4 && (
                       <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                         <div className="flex gap-1 mb-6">
@@ -538,7 +527,6 @@ export default function OnyxOpsElite() {
                       </div>
                     )}
 
-                    {/* RÉSULTAT PREMIUM */}
                     {activeProfiles.includes('Premium') && premiumStep === 4 && (
                       <div className="animate-in zoom-in duration-300">
                         <h4 className="font-black text-xl mb-2">{premiumScore >= 2 ? "🎯 Onyx Premium (75.000F)" : "💡 Pack Full (30.000F)"}</h4>
@@ -551,7 +539,6 @@ export default function OnyxOpsElite() {
                       </div>
                     )}
 
-                    {/* RÉSULTATS CLASSIQUES */}
                     {!activeProfiles.includes('Premium') && activeProfiles.length > 0 && (
                       <div className="animate-in zoom-in duration-300">
                         <h4 className="font-black text-2xl mb-2 flex items-center gap-2">
@@ -577,7 +564,6 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
-            {/* SECTION COMPARATIF - WAKH DEUG (SPÉCIAL SÉNÉGAL) */}
             <section className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-100">
               <div className="text-center mb-16">
                 <div className={`${spaceGrotesk.className} inline-flex items-center gap-2 bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 px-4 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] mb-4 uppercase`}>
@@ -592,7 +578,6 @@ export default function OnyxOpsElite() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto items-center">
-                {/* Les Autres */}
                 <div className="bg-zinc-50 border-2 border-zinc-200 p-8 md:p-12 rounded-[3rem] opacity-80">
                   <h3 className={`${spaceGrotesk.className} text-2xl font-bold text-zinc-400 mb-8 uppercase text-center`}>Les Logiciels Classiques</h3>
                   <ul className="space-y-6">
@@ -611,7 +596,6 @@ export default function OnyxOpsElite() {
                   </ul>
                 </div>
 
-                {/* OnyxOps */}
                 <div className="bg-black border-2 border-[#39FF14] p-8 md:p-12 rounded-[3rem] shadow-[0_0_40px_rgba(57,255,20,0.15)] relative scale-105 z-10">
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap">
                     Le Choix des Boss 🚀
@@ -641,7 +625,6 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
-            {/* SECTION FAQ (ANTI-FRICTION) */}
             <section className="py-20 px-6 max-w-5xl mx-auto border-t border-zinc-100">
               <div className="text-center mb-16">
                 <h2 className={`${spaceGrotesk.className} text-4xl font-bold mb-4 uppercase tracking-tighter`}>Vos Questions, <span className="text-[#39FF14]">Nos Réponses.</span></h2>
@@ -665,7 +648,6 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
-            {/* SIMULATEUR & PARTENAIRES */}
             <section id="partenaires" className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-100">
               <div className="grid md:grid-cols-2 gap-16 items-center">
                 <div>
@@ -694,7 +676,6 @@ export default function OnyxOpsElite() {
                   </div>
                 </div>
 
-                {/* SIMULATEUR INTERACTIF */}
                 <div className="bg-zinc-50 border border-zinc-200 p-10 rounded-[4rem] shadow-2xl relative">
                   <div className="absolute top-0 right-0 p-6 opacity-20"><Target className="w-12 h-12" /></div>
                   <h3 className={`${spaceGrotesk.className} text-xl font-bold mb-6 uppercase italic`}>Simulateur de Gains</h3>
@@ -709,11 +690,11 @@ export default function OnyxOpsElite() {
                             type="range"
                             min="0"
                             max="25"
-                            value={packCounts[p.id as keyof typeof packCounts]}
+                            value={packCounts[p.id]}
                             onChange={(e) => setPackCounts((prev) => ({ ...prev, [p.id]: parseInt(e.target.value, 10) }))}
                             className="flex-1 h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#39FF14]"
                           />
-                          <span className="text-[#39FF14] bg-black px-3 py-1 rounded-full text-xs font-bold w-12 text-center">{packCounts[p.id as keyof typeof packCounts]}</span>
+                          <span className="text-[#39FF14] bg-black px-3 py-1 rounded-full text-xs font-bold w-12 text-center">{packCounts[p.id]}</span>
                         </div>
                         <span className="text-[10px] text-zinc-400 w-16">{p.price.toLocaleString()}F/unit</span>
                       </div>
@@ -760,7 +741,6 @@ export default function OnyxOpsElite() {
 
             <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
               <div className="relative aspect-square md:aspect-[4/5] bg-zinc-100 rounded-[3rem] overflow-hidden shadow-xl border border-zinc-200 group">
-                {/* Image Fondatrice Maimouna */}
                 <img 
                   src="https://i.ibb.co/Kcr9Jbms/1772397975062-37ba89eb-1a9a-4ac7-b555-20749059995f.png" 
                   alt="Maimouna Traoré - Directrice Marketing" 
@@ -781,11 +761,11 @@ export default function OnyxOpsElite() {
                   L'Efficacité avant <br/>l'Esthétique.
                 </h3>
                 <div className="space-y-4 text-zinc-600 font-medium mb-10 leading-relaxed">
-                  <p>Trop d'entreprises au Sénégal se concentrent sur les "likes" et les belles photos sur Instagram, en oubliant l'essentiel : <span className="text-black font-bold">la conversion et l'encaissement direct (<i className="text-[#39FF14]">Khaalis</i>).</span></p>
+                  <p>Trop d'entreprises au Sénégal se concentrent sur les "likes" et les belles photos sur Instagram, en oubliant l'essentiel : <span className="text-black font-bold">la conversion et l'encaissement direct.</span></p>
                   <p className="p-4 bg-zinc-50 border-l-4 border-black text-sm italic rounded-r-2xl">
-                    "L'idée d'OnyxOps est née d'un constat brutal sur le terrain : nos commerçants jonglent entre des cahiers raturés, des commandes perdues sur WhatsApp et des livreurs Tiak-Tiak injoignables. Il nous fallait une solution unifiée, non pas pensée pour l'Europe, mais développée par des locaux, pour les réalités locales."
+                    "L'idée d'OnyxOps est née d'un constat brutal sur le terrain : nos commerçants jonglent entre des cahiers raturés, des commandes perdues sur WhatsApp et des livreurs Tiak-Tiak injoignables. Il nous fallait une solution unifiée."
                   </p>
-                  <p>Chez OnyxOps, nous implémentons la méthodologie <span className="text-black font-bold">RevOps (Revenue Operations)</span> adaptée aux réalités africaines. Nous alignons vos ventes, votre marketing et votre service client via des outils technologiques simples.</p>
+                  <p>Chez OnyxOps, nous implémentons la méthodologie <span className="text-black font-bold">RevOps (Revenue Operations)</span> adaptée aux réalités africaines. Nous alignons vos ventes, votre marketing et votre service client.</p>
                 </div>
 
                 <div className="bg-zinc-50 p-6 md:p-8 rounded-[2.5rem] border border-zinc-200 space-y-4 mb-10">
@@ -825,11 +805,10 @@ export default function OnyxOpsElite() {
               </div>
             </div>
 
-            {/* L'ÉQUIPE SECTION */}
             <div className="py-16 border-t border-zinc-100">
               <div className="text-center mb-12">
                 <h3 className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>La Machine Derrière <span className="text-[#39FF14]">Onyx</span></h3>
-                <p className="text-zinc-500 text-sm font-bold mt-2">Ceux qui transforment le code en revenus réels (<i className="text-[#39FF14]">Khaalis</i>).</p>
+                <p className="text-zinc-500 text-sm font-bold mt-2">Ceux qui transforment le code en revenus réels.</p>
               </div>
               <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                 {[
@@ -855,13 +834,11 @@ export default function OnyxOpsElite() {
               </div>
             </div>
 
-            {/* MOYENS DE PAIEMENT ABOUT */}
             <div className="py-10 text-center">
               <p className="font-bold text-sm text-zinc-400 uppercase tracking-widest mb-6">Nous acceptons les paiements via</p>
               <PaymentMethods />
             </div>
 
-            {/* Support Client Block */}
             <div className="bg-black text-white p-10 md:p-14 rounded-[3rem] text-center max-w-4xl mx-auto shadow-2xl relative overflow-hidden mt-12">
               <div className="absolute top-0 right-0 p-8 opacity-10"><LifeBuoy className="w-32 h-32" /></div>
               <LifeBuoy className="w-10 h-10 text-[#39FF14] mx-auto mb-6" />
@@ -877,7 +854,6 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* FOOTER GENERAL */}
         <footer className="py-12 border-t border-zinc-100 bg-white">
           <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-3">
@@ -891,9 +867,7 @@ export default function OnyxOpsElite() {
           </div>
         </footer>
 
-        {/* ------------------------------------------------------------------ */}
-        {/* WIDGET PREUVE SOCIALE (EN DIRECT)                                  */}
-        {/* ------------------------------------------------------------------ */}
+        {/* WIDGET PREUVE SOCIALE */}
         <div 
           className={`fixed bottom-6 left-6 z-[90] bg-white text-black p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] transition-all duration-500 transform ${showProof ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'} max-w-[280px] pointer-events-none hidden md:block`}
         >
@@ -907,11 +881,9 @@ export default function OnyxOpsElite() {
           </div>
         </div>
 
-        {/* ------------------------------------------------------------------ */}
-        {/* MODALES PLACÉES À LA FIN POUR ÉVITER LES PROBLÈMES DE Z-INDEX      */}
-        {/* ------------------------------------------------------------------ */}
+        {/* ----------------- MODALES ----------------- */}
         
-        {/* 0. MODALE D'AUTHENTIFICATION (LOGIN / SIGNUP TRIAL) */}
+        {/* 0. AUTHENTIFICATION */}
         {isAuthModalOpen && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={() => setIsAuthModalOpen(false)}>
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md" aria-hidden="true" />
@@ -941,13 +913,13 @@ export default function OnyxOpsElite() {
                 
                 {authMode === 'signup' && (
                   <div className="animate-in fade-in slide-in-from-top-2">
-                    <label className="block text-[10px] font-black uppercase text-zinc-500 mb-1">Secteur d'activité (Pour configurer votre outil)</label>
-                    <select className="w-full bg-zinc-100 border-none p-4 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#39FF14] transition cursor-pointer">
-                      <option value="" disabled selected>Choisissez votre secteur...</option>
-                      <option value="boutique">Boutique / Prêt-à-porter (Onyx Catalog)</option>
-                      <option value="resto">Restauration / Food (Onyx Menu)</option>
-                      <option value="services">Prestataire de Services (Onyx Devis)</option>
-                      <option value="grossiste">Grossiste / Stockage (Onyx Stock)</option>
+                    <label className="block text-[10px] font-black uppercase text-zinc-500 mb-1">Secteur d'activité</label>
+                    <select className="w-full bg-zinc-100 border-none p-4 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#39FF14] transition cursor-pointer" defaultValue="">
+                      <option value="" disabled>Choisissez votre secteur...</option>
+                      <option value="boutique">Boutique / Prêt-à-porter</option>
+                      <option value="resto">Restauration / Food</option>
+                      <option value="services">Prestataire de Services</option>
+                      <option value="grossiste">Grossiste / Stockage</option>
                     </select>
                   </div>
                 )}
@@ -970,7 +942,7 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* 1. MODALE DETAILS DU PACK */}
+        {/* 1. DETAILS PACK */}
         {selectedPlan && PLAN_DETAILS[selectedPlan] && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedPlan(null)}>
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-hidden="true" />
@@ -984,7 +956,7 @@ export default function OnyxOpsElite() {
               
               <div className="space-y-3 mb-6 bg-zinc-50 p-5 rounded-2xl border border-zinc-100">
                 <p className="text-[10px] font-black text-black uppercase tracking-widest flex items-center gap-2 mb-2"><CheckCircle2 className="w-4 h-4 text-[#39FF14]"/> Inclus dans ce pack :</p>
-                {PLAN_DETAILS[selectedPlan].benefits.map((b, i) => (
+                {(PLAN_DETAILS[selectedPlan]?.benefits || []).map((b, i) => (
                   <div key={i} className="flex items-start gap-2 text-sm">
                     <div className="w-1.5 h-1.5 bg-black rounded-full flex-shrink-0 mt-1.5" />
                     <span className="font-semibold text-zinc-700">{b}</span>
@@ -1009,7 +981,7 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* 2. MODALE "CE SAAS EST-IL FAIT POUR MOI ?" */}
+        {/* 2. CHOIX SAAS */}
         {selectedSaaS && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setSelectedSaaS(null)}>
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-hidden="true" />
@@ -1045,23 +1017,23 @@ export default function OnyxOpsElite() {
                       <CheckCircle2 className="text-[#39FF14] w-5 h-5"/> Verdict pour : <span className="text-black">{saasMetier}</span>
                     </p>
                     <p className="text-sm font-semibold text-zinc-800 leading-relaxed">
-                      {selectedSaaS.id === 'Onyx Menu' && saasMetier.includes('Restauration') ? "C'est l'outil PARFAIT pour vous. Fini les menus papiers sales et les erreurs de commande en salle." :
-                       selectedSaaS.id === 'Onyx Catalog' && saasMetier.includes('Prêt-à-porter') ? "Indispensable ! Vos clients Instagram vont pouvoir acheter directement sans attendre vos réponses WhatsApp." :
-                       selectedSaaS.id === 'Onyx Stock' && saasMetier.includes('Grossiste') ? "Vital pour votre business. Suivez vos entrées/sorties par scan et évitez les vols d'inventaire." :
-                       `Oui, ${selectedSaaS.id} est très utile en ${saasMetier}. Mais attention, couplé à d'autres outils dans le Pack Trio, il révèlera tout son potentiel de rentabilité.`}
+                      {selectedSaaS.id === 'Onyx Menu' && saasMetier.includes('Restauration') ? "C'est l'outil PARFAIT pour vous. Fini les menus papiers sales." :
+                       selectedSaaS.id === 'Onyx Catalog' && saasMetier.includes('Prêt-à-porter') ? "Indispensable ! Vos clients vont acheter sans attendre vos réponses." :
+                       selectedSaaS.id === 'Onyx Stock' && saasMetier.includes('Grossiste') ? "Vital pour votre business. Suivez vos entrées/sorties par scan." :
+                       `Oui, ${selectedSaaS.id} est très utile en ${saasMetier}. Mais couplé à d'autres outils, il sera encore plus puissant.`}
                     </p>
                   </div>
                   <button onClick={() => { setSelectedSaaS(null); openAuthModal('signup'); }} className="w-full text-center bg-black text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-[#39FF14] hover:text-black transition">
                     Activer {selectedSaaS.id} gratuitement
                   </button>
-                  <button onClick={() => setSaasMetier("")} className="mt-4 w-full text-center text-xs font-bold text-zinc-400 hover:text-black underline underline-offset-4">Refaire le test avec un autre métier</button>
+                  <button onClick={() => setSaasMetier("")} className="mt-4 w-full text-center text-xs font-bold text-zinc-400 hover:text-black underline underline-offset-4">Refaire le test</button>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* 3. MODALE FORMULAIRE INCIDENT */}
+        {/* 3. TICKET INCIDENT */}
         {showIncidentModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowIncidentModal(false)}>
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-hidden="true" />
@@ -1083,7 +1055,7 @@ export default function OnyxOpsElite() {
                 <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-orange-800 font-medium">
                   <span className="font-bold block mb-1 uppercase tracking-widest">Connexion Requise</span>
-                  Vous devez être connecté(e) à votre espace client OnyxOps pour soumettre et suivre ce formulaire d'incident de manière sécurisée.
+                  Vous devez être connecté(e) à votre espace client OnyxOps pour soumettre ce formulaire.
                 </p>
               </div>
 
@@ -1095,8 +1067,8 @@ export default function OnyxOpsElite() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-1">Description du problème</label>
-                  <textarea rows={3} className="w-full bg-zinc-100 border-none p-4 rounded-xl text-sm font-medium outline-none" placeholder="Détaillez le problème rencontré..."></textarea>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-1">Description</label>
+                  <textarea rows={3} className="w-full bg-zinc-100 border-none p-4 rounded-xl text-sm font-medium outline-none" placeholder="Détaillez le problème..."></textarea>
                 </div>
               </div>
 
@@ -1105,7 +1077,7 @@ export default function OnyxOpsElite() {
               </button>
 
               <p className="text-center mt-4">
-                <a href={getWaLink("Bonjour le support OnyxOps, j'ai une urgence technique et je n'arrive pas à me connecter.")} className="text-xs font-bold text-black underline underline-offset-4 hover:text-[#39FF14] transition">
+                <a href={getWaLink("Bonjour le support OnyxOps, j'ai une urgence technique.")} className="text-xs font-bold text-black underline underline-offset-4 hover:text-[#39FF14] transition">
                   Urgence critique ? Contactez-nous ici.
                 </a>
               </p>
