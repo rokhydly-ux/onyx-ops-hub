@@ -63,7 +63,7 @@ const SOLUTIONS = [
 
 const PACKS = [
   { id: "solo", name: "Solo", price: 7500, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
-  { id: "pack3", name: "Pack Trio", price: 17500, label: "Pack Trio", rating: "5.0/5", avis: 89 },
+  { id: "trio", name: "Pack Trio", price: 17500, label: "Pack Trio", rating: "5.0/5", avis: 89 },
   { id: "full", name: "Pack Full", price: 30000, label: "Pack Full", rating: "4.9/5", avis: 215 },
   { id: "premium", name: "Premium", price: 75000, label: "Onyx Premium", rating: "5.0/5", avis: 34 },
 ] as const;
@@ -91,7 +91,7 @@ const FAQS = [
 export default function OnyxOpsElite() {
   const [activeView, setActiveView] = useState<'home' | 'about'>('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [packCounts, setPackCounts] = useState({ solo: 0, pack3: 0, full: 0, premium: 0 });
+  const [packCounts, setPackCounts] = useState({ solo: 0, trio: 0, full: 0, premium: 0 });
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   
   // VARIABLES D'ÉTAT POUR LE TUNNEL ET LES MODALES
@@ -160,11 +160,11 @@ export default function OnyxOpsElite() {
 
   // Calculs du simulateur : 30% M1 + 10% récurrent/mois
   const commissionM1 = Math.round(
-    packCounts.solo * 7500 * 0.30 + packCounts.pack3 * 17500 * 0.30 +
+    packCounts.solo * 7500 * 0.30 + packCounts.trio * 17500 * 0.30 +
     packCounts.full * 30000 * 0.30 + packCounts.premium * 75000 * 0.30
   );
   const recurrentPerMonth = Math.round(
-    packCounts.solo * 7500 * 0.10 + packCounts.pack3 * 17500 * 0.10 +
+    packCounts.solo * 7500 * 0.10 + packCounts.trio * 17500 * 0.10 +
     packCounts.full * 30000 * 0.10 + packCounts.premium * 75000 * 0.10
   );
   const commissionM6 = commissionM1 + recurrentPerMonth * 5; // M2 à M6
@@ -429,13 +429,13 @@ export default function OnyxOpsElite() {
                     <div 
                       key={pack.id}
                       onClick={() => setSelectedPlan(pack.id)} 
-                      className={`${pack.id === 'pack3' ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] scale-105 lg:scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)]' : 'bg-zinc-900/50 border border-white/10 hover:scale-105'} p-8 rounded-[3rem] transition cursor-pointer relative group flex flex-col`}
+                      className={`${pack.id === 'trio' ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] scale-105 lg:scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)]' : 'bg-zinc-900/50 border border-white/10 hover:scale-105'} p-8 rounded-[3rem] transition cursor-pointer relative group flex flex-col`}
                     >
                       <button type="button" onClick={openPlanModal(pack.id)} className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-white text-black flex items-center gap-1.5 hover:bg-zinc-100 transition text-[10px] font-bold uppercase tracking-wider z-20">
                         <Info className="w-3 h-3" /> Infos
                       </button>
                       
-                      <p className={`text-[10px] font-black tracking-[0.3em] ${pack.id === 'pack3' ? 'text-[#39FF14]' : 'text-zinc-500'} mb-1 uppercase`}>{pack.label}</p>
+                      <p className={`text-[10px] font-black tracking-[0.3em] ${pack.id === 'trio' ? 'text-[#39FF14]' : 'text-zinc-500'} mb-1 uppercase`}>{pack.label}</p>
                       
                       {/* ETOILES DE NOTATION */}
                       <div className="flex items-center gap-1 mb-4">
@@ -449,13 +449,13 @@ export default function OnyxOpsElite() {
                         {pack.price.toLocaleString()}F <span className="text-xs text-zinc-500 font-normal">/ mois</span>
                       </div>
                       
-                      <ul className={`text-xs space-y-3 mb-10 flex-1 ${pack.id === 'pack3' ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                      <ul className={`text-xs space-y-3 mb-10 flex-1 ${pack.id === 'trio' ? 'text-zinc-300' : 'text-zinc-400'}`}>
                         {PLAN_DETAILS[pack.id].benefits.map((ben, i) => (
                           <li key={i} className="flex gap-2">✔ {ben}</li>
                         ))}
                       </ul>
                       
-                      <a href={getWaLink(`Bonjour Onyx, je veux COMMENCER avec l'offre ${pack.label} à ${pack.price.toLocaleString()}F.`)} onClick={(e) => e.stopPropagation()} className={`block text-center py-4 rounded-2xl font-black text-sm transition uppercase tracking-tighter ${pack.id === 'pack3' ? 'bg-[#39FF14] text-black hover:bg-white' : pack.id === 'premium' ? 'border-2 border-white/20 text-white hover:bg-white hover:text-black' : 'bg-white text-black hover:bg-[#39FF14]'}`}>
+                      <a href={getWaLink(`Bonjour Onyx, je veux COMMENCER avec l'offre ${pack.label} à ${pack.price.toLocaleString()}F.`)} onClick={(e) => e.stopPropagation()} className={`block text-center py-4 rounded-2xl font-black text-sm transition uppercase tracking-tighter ${pack.id === 'trio' ? 'bg-[#39FF14] text-black hover:bg-white' : pack.id === 'premium' ? 'border-2 border-white/20 text-white hover:bg-white hover:text-black' : 'bg-white text-black hover:bg-[#39FF14]'}`}>
                         {pack.id === 'premium' ? 'Contacter' : 'Commencer'}
                       </a>
                     </div>
