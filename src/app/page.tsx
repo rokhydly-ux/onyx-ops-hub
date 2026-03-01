@@ -283,7 +283,7 @@ export default function OnyxOpsElite() {
         <section className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-100">
           <div className="bg-zinc-50 rounded-[4rem] p-12 grid md:grid-cols-2 gap-12 items-center">
             <div className="relative aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl bg-zinc-200 order-2 md:order-1">
-              <Image src="/egerie-onyx.jpg" alt="Conseillère OnyxOps" fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
+              <Image src="/egerie-onyx.png" alt="Conseillère OnyxOps" fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
               <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur p-4 rounded-2xl border border-[#39FF14]">
                 <p className="font-black text-xs uppercase tracking-widest">Conseillère OnyxOps</p>
                 <p className="text-[10px] font-bold text-zinc-500 italic">&quot;Je vous accompagne vers le succès.&quot;</p>
