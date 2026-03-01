@@ -922,7 +922,7 @@ export default function OnyxOpsElite() {
                       <option value="resto">Restauration / Food</option>
                       <option value="services">Prestataire de Services</option>
                       <option value="grossiste">Grossiste / Stockage</option>
-                      <option value="rh">Entreprises / RH (Onyx Staff)</option>
+                      <option value="rh">Entreprises / R.H (Onyx Staff)</option>
                     </select>
                   </div>
                 )}
