@@ -16,20 +16,20 @@ type PlanKey = "solo" | "trio" | "full" | "premium";
 const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
   solo: {
     title: "Onyx Solo : L'essentiel WhatsApp",
-    desc: "Digitalisez votre boutique en 24h. Idéal pour transformer vos discussions WhatsApp en commandes réelles sans effort manuel.",
-    benefits: ["Catalogue interactif (Fini les 50 photos/jour)", "Lien de commande unique", "Fidélisation client automatique"],
+    desc: "Digitalisez votre boutique en 24h. Idéal pour transformer vos discussions WhatsApp en commandes réelles et devis professionnels sans effort manuel.",
+    benefits: ["Catalogue interactif & Devis en un clic", "Lien de commande unique", "Fidélisation client automatique"],
     why: "Choisissez Solo pour gagner 2h par jour et ne plus jamais rater une vente parce que vous étiez 'occupé'.",
-    cible: "Vendeurs Instagram / WhatsApp",
-    avantage: "Fini les envois manuels de photos.",
+    cible: "Vendeurs Instagram / WhatsApp & Prestataires",
+    avantage: "Fini les envois manuels de photos et devis raturés.",
     chiffreCle: "+15% de ventes via catalogue pro.",
   },
   trio: {
     title: "Pack Trio : Le Contrôle Total",
-    desc: "Le combo gagnant : Vente + Stock + Devis. Connectez vos opérations pour éviter les fuites de cash et les pertes de produits.",
-    benefits: ["Inventaire en temps réel", "Facturation pro instantanée", "Gestion des encaissements sécurisée"],
-    why: "C'est le pack 'Sérénité'. Vous savez exactement ce qui sort de votre boutique et ce qui entre en caisse.",
-    cible: "Boutiques et Prestataires",
-    avantage: "Maîtrise totale du stock et du cash.",
+    desc: "Le combo gagnant : Vente + Stock + Logistique (Tiak). Connectez vos opérations pour éviter les fuites de cash et les pertes de produits.",
+    benefits: ["Inventaire en temps réel", "Catalogue, Devis & Facturation pro", "Suivi logistique des livreurs"],
+    why: "C'est le pack 'Sérénité'. Vous savez exactement ce qui sort de votre boutique, ce qui est en livraison et ce qui entre en caisse.",
+    cible: "Boutiques, Grossistes et Prestataires",
+    avantage: "Maîtrise totale du stock, des ventes et livraisons.",
     chiffreCle: "0 rupture de stock, 100% traçabilité.",
   },
   full: {
@@ -37,7 +37,7 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
     desc: "Les 6 SaaS Onyx travaillent ensemble pour votre succès. Une gestion digne d'une multinationale sur votre simple smartphone.",
     benefits: ["RH, Paie & Logistique intégrés", "Menu QR & Réservations avec acompte", "Rapports de performance hebdomadaires"],
     why: "Pour l'entrepreneur qui veut scaler. Automatisez tout et concentrez-vous sur votre stratégie de croissance.",
-    cible: "PME & Restaurants",
+    cible: "PME, Agences & Restaurants",
     avantage: "Digitalisation complète 360°.",
     chiffreCle: "Gagnez 10h/semaine de gestion.",
   },
@@ -55,14 +55,14 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "600"] });
 
-// 💡 MISE À JOUR : Fusion Menu+Booking en "Onyx Resto", et ajout de "Onyx Staff"
+// 💡 MISE À JOUR : Fusion Catalog+Devis en "Onyx Vente", Séparation Menu & Booking, Ajout de "Onyx Staff"
 const SOLUTIONS = [
-  { id: "Onyx Catalog", icon: Smartphone, pain: "Perte de temps infinie sur WhatsApp avec les envois de photos.", solution: "Catalogue digital pro avec lien direct pour commander en un clic." },
-  { id: "Onyx Devis", icon: Receipt, pain: "Devis gribouillés sur papier qui font perdre des clients sérieux.", solution: "Générateur de PDF pro en 60s pour sécuriser vos deals." },
+  { id: "Onyx Vente", icon: Smartphone, pain: "Photos WhatsApp interminables et devis gribouillés sur papier.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s." },
   { id: "Onyx Tiak", icon: Truck, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel." },
   { id: "Onyx Stock", icon: Box, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture." },
-  { id: "Onyx Resto", icon: Utensils, pain: "Menus chers à imprimer et réservations brouillonnes (No-shows).", solution: "Menu QR interactif et réservations en ligne avec paiement d'acompte." },
-  { id: "Onyx Staff", icon: Users, pain: "Casse-tête des avances Tabaski, fiches de paies et pointage des employés sur le terrain.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code et gestion lissée des avances." },
+  { id: "Onyx Menu", icon: Utensils, pain: "Menus sales, chers à imprimer et erreurs de commande en salle.", solution: "QR Menu interactif : le client scanne et commande proprement." },
+  { id: "Onyx Booking", icon: Calendar, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé." },
+  { id: "Onyx Staff", icon: Users, pain: "Casse-tête des avances Tabaski, fiches de paie et pointages frauduleux.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code et gestion lissée des avances." },
 ];
 
 const PACKS: Array<{ id: PlanKey; name: string; price: number; label: string; rating: string; avis: number }> = [
@@ -73,11 +73,11 @@ const PACKS: Array<{ id: PlanKey; name: string; price: number; label: string; ra
 ];
 
 const SOCIAL_PROOF_MESSAGES = [
-  { name: "Fatou B. (Boutique)", action: "vient de créer son catalogue", time: "il y a 5 min" },
-  { name: "Moussa D. (Restaurant)", action: "a activé le Menu QR Resto", time: "il y a 12 min" },
+  { name: "Fatou B. (Boutique)", action: "vient de générer un devis via Onyx Vente", time: "il y a 5 min" },
+  { name: "Moussa D. (Restaurant)", action: "a activé le Menu QR", time: "il y a 12 min" },
   { name: "Awa N. (Cosmétiques)", action: "a enregistré son 1er paiement YAS", time: "il y a 2 min" },
   { name: "Entreprise BTP", action: "vient de valider le pointage GPS de ses ouvriers", time: "à l'instant" },
-  { name: "Khadija T. (Services)", action: "a généré un devis PDF en 60s", time: "il y a 8 min" },
+  { name: "Khadija T. (Institut)", action: "a reçu 3 réservations d'acompte", time: "il y a 8 min" },
   { name: "Ousmane F. (Boutique)", action: "a choisi le Pack Full", time: "il y a 15 min" },
   { name: "Aminata L. (Fast-Food)", action: "a reçu 14 commandes via Onyx", time: "il y a 3 min" },
   { name: "Seydou K. (Matériel)", action: "vient de faire son inventaire", time: "il y a 20 min" },
@@ -178,7 +178,7 @@ export default function OnyxOpsElite() {
   else if (activeProfiles.includes('Entreprise / RH')) conseillerText = '"Fini les fiches de paie manuelles et les pointages frauduleux. Sécurisons votre gestion d\'équipe et vos avances Tabaski."';
   else if (activeProfiles.includes('Restaurant')) conseillerText = '"De la commande à la table jusqu\'au livreur, on va structurer tout votre resto. Concentrez-vous sur vos clients."';
   else if (activeProfiles.includes('WhatsApp') && activeProfiles.includes('Boutique')) conseillerText = '"Le combo parfait : on digitalise vos ventes en ligne et on sécurise votre stock physique."';
-  else if (activeProfiles.includes('WhatsApp')) conseillerText = '"Fini de scroller pour envoyer des photos. Votre catalogue va vendre pendant que vous dormez."';
+  else if (activeProfiles.includes('WhatsApp')) conseillerText = '"Fini de scroller pour envoyer des photos. Votre catalogue et vos devis vont vendre pendant que vous dormez."';
   else if (activeProfiles.includes('Boutique')) conseillerText = '"Fini le cahier de brouillon. On va sécuriser votre stock et professionnaliser votre caisse."';
 
   const navigateTo = (view: 'home' | 'about', scrollId?: string) => {
@@ -326,7 +326,7 @@ export default function OnyxOpsElite() {
                     </div>
                     <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-red-100 text-sm text-zinc-600 shadow-sm max-w-[80%]">
                       <p className="font-bold text-xs text-red-500 mb-1">+221 76 111 11 11</p>
-                      Tu as la taille 42 en stock ? Tu livres à Almadies aujourd'hui ??
+                      Tu as la taille 42 en stock ? Tu peux me refaire le devis j'ai perdu la feuille !
                     </div>
                     <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-red-100 text-sm text-zinc-600 shadow-sm max-w-[80%]">
                       <p className="font-bold text-xs text-red-500 mb-1">+221 78 222 22 22</p>
@@ -355,10 +355,10 @@ export default function OnyxOpsElite() {
                     
                     <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl">
                        <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs text-zinc-400 font-bold uppercase">Logistique Tiak-Tiak</span>
+                        <span className="text-xs text-zinc-400 font-bold uppercase">Vente & Logistique</span>
                         <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-2 py-0.5 rounded-full font-black">En route</span>
                       </div>
-                      <p className="text-white text-sm">Nouvelle Commande #1042 payée. Livreur assigné auto.</p>
+                      <p className="text-white text-sm">Devis #1042 accepté & payé en ligne. Livreur assigné auto.</p>
                     </div>
                   </div>
                   
@@ -547,16 +547,16 @@ export default function OnyxOpsElite() {
                           {activeProfiles.includes('Restaurant') || activeProfiles.includes('Entreprise / RH') ? 'Pack Full (30.000F)' : 
                            activeProfiles.length === 2 ? 'Pack Trio (17.500F)' : 
                            activeProfiles.includes('Boutique') ? 'Pack Trio (17.500F)' : 
-                           'Onyx Solo : OnyxCatalog (7.500F)'}
+                           'Onyx Solo : Onyx Vente (7.500F)'}
                         </h4>
                         <p className="text-sm text-zinc-600 mb-6 font-medium leading-relaxed">
                           {activeProfiles.includes('Restaurant') ? "Il vous faut la totale. QR Menu sur les tables, Tiak pour vos livraisons, et Stock pour les ingrédients. Le Pack Full est votre directeur des opérations." : 
                            activeProfiles.includes('Entreprise / RH') ? "OnyxStaff va transformer votre gestion. Pointage GPS WhatsApp pour vos chantiers, Fiches de paie par QR Code et gestion native des avances Tabaski." : 
                            activeProfiles.length === 2 ? "Vous êtes sur tous les fronts. Le Pack Trio lie votre e-commerce WhatsApp à votre gestion de stock physique. Vendez en ligne, déstockez en boutique." : 
-                           activeProfiles.includes('Boutique') ? "Sécurisez vos caisses. Le Pack Trio avec OnyxStock et OnyxDevis vous garantit zéro perte d'inventaire et des factures pro pour vos clients." : 
-                           "Ne payez que pour ce dont vous avez besoin. OnyxCatalog transforme votre WhatsApp en machine à vendre. Lien direct, panier, commande. Simple et radical."}
+                           activeProfiles.includes('Boutique') ? "Sécurisez vos caisses. Le Pack Trio avec OnyxStock et OnyxVente vous garantit zéro perte d'inventaire et des factures pro pour vos clients." : 
+                           "Ne payez que pour ce dont vous avez besoin. Onyx Vente transforme votre WhatsApp en machine à vendre et à facturer. Lien direct, devis PDF, commande. Simple et radical."}
                         </p>
-                        <a href={getWaLink(`Recommandation : Je prends l'offre ${activeProfiles.includes('Restaurant') || activeProfiles.includes('Entreprise / RH') ? 'Full (30k)' : activeProfiles.length === 2 || activeProfiles.includes('Boutique') ? 'Trio (17.5k)' : 'Solo Catalog (7.5k)'}.`)} className="block text-center bg-black text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-xl">
+                        <a href={getWaLink(`Recommandation : Je prends l'offre ${activeProfiles.includes('Restaurant') || activeProfiles.includes('Entreprise / RH') ? 'Full (30k)' : activeProfiles.length === 2 || activeProfiles.includes('Boutique') ? 'Trio (17.5k)' : 'Solo Vente (7.5k)'}.`)} className="block text-center bg-black text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-xl">
                           Commander cette solution (WhatsApp)
                         </a>
                       </div>
@@ -922,7 +922,7 @@ export default function OnyxOpsElite() {
                       <option value="resto">Restauration / Food</option>
                       <option value="services">Prestataire de Services</option>
                       <option value="grossiste">Grossiste / Stockage</option>
-                      <option value="rh">Entreprises / R.H (Onyx Staff)</option>
+                      <option value="rh">Entreprise / RH (Onyx Staff)</option>
                     </select>
                   </div>
                 )}
@@ -1020,9 +1020,10 @@ export default function OnyxOpsElite() {
                       <CheckCircle2 className="text-[#39FF14] w-5 h-5"/> Verdict pour : <span className="text-black">{saasMetier}</span>
                     </p>
                     <p className="text-sm font-semibold text-zinc-800 leading-relaxed">
-                      {selectedSaaS.id === 'Onyx Resto' && saasMetier.includes('Restauration') ? "C'est l'outil PARFAIT pour vous. Fini les menus papiers sales et les no-shows." :
+                      {selectedSaaS.id === 'Onyx Menu' && saasMetier.includes('Restauration') ? "C'est l'outil PARFAIT pour vous. Fini les menus papiers sales et obsolètes." :
+                       selectedSaaS.id === 'Onyx Booking' && saasMetier.includes('Prêt-à-porter') ? "Génial pour réserver vos séances d'essayage ou bloquer des produits avec acompte." :
                        selectedSaaS.id === 'Onyx Staff' && saasMetier.includes('Entreprise') ? "Fini le casse-tête de la paie et des avances Tabaski. Le pointage GPS WhatsApp va sécuriser vos chantiers." :
-                       selectedSaaS.id === 'Onyx Catalog' && saasMetier.includes('Prêt-à-porter') ? "Indispensable ! Vos clients vont acheter sans attendre vos réponses." :
+                       selectedSaaS.id === 'Onyx Vente' && (saasMetier.includes('Prêt-à-porter') || saasMetier.includes('Grossiste')) ? "Indispensable ! Vos clients peuvent consulter votre stock, acheter et recevoir un devis pro instantanément." :
                        selectedSaaS.id === 'Onyx Stock' && saasMetier.includes('Grossiste') ? "Vital pour votre business. Suivez vos entrées/sorties par scan." :
                        `Oui, ${selectedSaaS.id} est très utile en ${saasMetier}. Mais couplé à d'autres outils, il sera encore plus puissant.`}
                     </p>
