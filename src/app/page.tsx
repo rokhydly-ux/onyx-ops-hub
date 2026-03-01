@@ -136,7 +136,7 @@ export default function OnyxOpsElite() {
 
   const PaymentMethods = () => (
     <div className="flex flex-wrap items-center justify-center gap-6 mt-6">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-6 md:h-8 object-contain" />
+      <img src="https://goamobile.com/logosent/wave@221@-P-2021-06-30_00-18-27wave_logo_2.png alt="Wave" className="h-6 md:h-8 object-contain" />
       <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-6 md:h-8 object-contain" />
       <div className="h-6 md:h-8 px-4 bg-black text-white rounded flex items-center justify-center font-black italic text-xs md:text-sm tracking-wider">
         YAS MONEY
