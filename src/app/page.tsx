@@ -5,7 +5,7 @@ import { Space_Grotesk, Inter } from "next/font/google";
 import { 
   Smartphone, Receipt, Truck, Box, Utensils, Calendar, 
   ArrowRight, TrendingUp, Users, Zap, CheckCircle2, 
-  AlertCircle, Lock, briefcase, LayoutGrid
+  AlertCircle, Lock, Briefcase, LayoutGrid 
 } from "lucide-react";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "700"] });
@@ -30,23 +30,15 @@ export default function OnyxOpsEliteV2() {
   // Calcul du simulateur (Modèle cumulé sur 6 mois demandé)
   const stats = useMemo(() => {
     const prices = { solo: 7500, trio: 17500, full: 30000, premium: 75000 };
-    
-    // Gain Immédiat M1 (30% du CA total généré le premier mois)
     const m1Sales = (qty.solo * prices.solo) + (qty.trio * prices.trio) + (qty.full * prices.full) + (qty.premium * prices.premium);
+    
     const gainM1 = m1Sales * 0.30;
-
-    // Gain Récurrent mensuel (10% du CA total)
-    const recurringMensuel = m1Sales * 0.10;
-
-    // Total cumulé sur 6 mois (M1 + M2 + M3 + M4 + M5 + M6) 
-    // Si l'utilisateur vend la même quantité CHAQUE mois :
-    // Total = Σ(n=1 to 6) [ (Qty * Price * 0.3) + ((n-1) * Qty * Price * 0.1) ]
     let total6Months = 0;
     for (let i = 1; i <= 6; i++) {
       total6Months += (m1Sales * 0.3) + ((i - 1) * m1Sales * 0.1);
     }
 
-    return { gainM1, recurringMensuel, total6Months };
+    return { gainM1, total6Months };
   }, [qty]);
 
   return (
