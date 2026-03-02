@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Space_Grotesk, Inter } from "next/font/google";
+import { supabase } from "../../lib/supabaseClient";
+import { useRouter } from "next/navigation";
 import { 
   Smartphone, Receipt, Truck, Box, Utensils, Calendar, 
   ArrowRight, ShieldCheck, TrendingUp, Users, Target, 
@@ -106,6 +108,7 @@ const ARTICLES = [
 ];
 
 export default function OnyxOpsElite() {
+  const router = useRouter();
   const [activeView, setActiveView] = useState<'home' | 'about' | 'blog' | 'dashboard'>('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [packCounts, setPackCounts] = useState({ solo: 0, trio: 0, full: 0, premium: 0 });
@@ -116,6 +119,10 @@ export default function OnyxOpsElite() {
   const [saasMetier, setSaasMetier] = useState("");
   const [customMetier, setCustomMetier] = useState("");
   
+  // LOGIQUE USER CONNECTÉ
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
   // QUIZ & TUNNEL
   const [activeProfiles, setActiveProfiles] = useState<string[]>([]);
   const [premiumStep, setPremiumStep] = useState(0);
@@ -152,6 +159,19 @@ export default function OnyxOpsElite() {
     setCopiedLink(type);
     setTimeout(() => setCopiedLink(null), 2000);
   };
+
+  // CHECK USER
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        setCurrentUser({ ...user, ...data });
+        if (data?.role === 'admin') setIsAdmin(true);
+      }
+    };
+    checkUser();
+  }, []);
 
   // ESC KEY LISTENER
   useEffect(() => {
@@ -192,6 +212,28 @@ export default function OnyxOpsElite() {
     const interval = setInterval(() => { setScenarioIndex((prev) => (prev + 1) % RANDOM_SCENARIOS.length); }, 4000);
     return () => clearInterval(interval);
   }, []);
+
+  // ROUTAGE INTELLIGENT BOT
+  const handleBotAction = async (msg: string, intent: string) => {
+    const currentHour = new Date().getHours();
+    // On considère heures de bureau de 9h à 18h
+    const isWorkHour = currentHour >= 9 && currentHour < 18;
+
+    // Enregistrer le Lead
+    try {
+       await supabase.from('leads').insert({ 
+         source: isWorkHour ? 'Bot Site (Live)' : 'WhatsApp (Hors ligne)', 
+         intent: intent 
+       });
+    } catch(e) { console.error(e) }
+
+    if (isWorkHour) {
+      // Ouvrir un chat interne au site (si on le code plus tard) ou rediriger vers un agent live
+      alert("Un conseiller est en ligne et prend le relais sur cette fenêtre (Simulation d'ouverture de chat).");
+    } else {
+      window.open(getWaLink(msg), "_blank");
+    }
+  };
 
   // SIMULATEUR CALCULS
   const commissionM1 = Math.round(packCounts.solo * 7500 * 0.30 + packCounts.trio * 17500 * 0.30 + packCounts.full * 30000 * 0.30 + packCounts.premium * 75000 * 0.30);
@@ -249,13 +291,34 @@ export default function OnyxOpsElite() {
             <button onClick={() => navigateTo('dashboard')} className={`${activeView === 'dashboard' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>Partenaires</button>
             <button onClick={() => navigateTo('blog')} className={`${activeView === 'blog' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>Blog</button>
             <button onClick={() => navigateTo('about')} className={`${activeView === 'about' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>À Propos</button>
-            <button onClick={() => openAuthModal('login')} className="bg-black text-[#39FF14] px-6 py-3 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition duration-300 shadow-md">
-              Accès Hub
-            </button>
+            
+            {/* LOGIQUE HEADER CONNECTÉ */}
+            {currentUser ? (
+               <div 
+                 onClick={() => isAdmin ? router.push('/admin') : router.push('/dashboard')}
+                 className="flex items-center gap-3 cursor-pointer bg-zinc-100 hover:bg-zinc-200 p-1.5 pr-4 rounded-full transition-colors"
+               >
+                 <img src={currentUser.avatar_url || "https://ui-avatars.com/api/?name=User"} alt="" className="w-8 h-8 rounded-full object-cover" />
+                 <div className="text-left">
+                    <p className="text-[10px] font-black uppercase leading-none">{currentUser.full_name || "Membre Onyx"}</p>
+                    <p className="text-[8px] font-bold text-[#39FF14] uppercase">{isAdmin ? 'Accès Admin' : 'Accès Hub'}</p>
+                 </div>
+               </div>
+            ) : (
+               <button onClick={() => openAuthModal('login')} className="bg-black text-[#39FF14] px-6 py-3 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition duration-300 shadow-md">
+                 Accès Hub
+               </button>
+            )}
           </div>
 
           <div className="flex lg:hidden items-center gap-4">
-            <button onClick={() => openAuthModal('login')} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest">Hub</button>
+             {currentUser ? (
+                <div onClick={() => isAdmin ? router.push('/admin') : router.push('/dashboard')} className="flex items-center cursor-pointer">
+                   <img src={currentUser.avatar_url || "https://ui-avatars.com/api/?name=User"} alt="" className="w-8 h-8 rounded-full object-cover" />
+                </div>
+             ) : (
+                <button onClick={() => openAuthModal('login')} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest">Hub</button>
+             )}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2.5 bg-zinc-100 rounded-full text-black">
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -269,7 +332,9 @@ export default function OnyxOpsElite() {
             <button onClick={() => navigateTo('dashboard')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase tracking-widest ${activeView === 'dashboard' ? 'text-[#39FF14]' : ''}`}>Partenaires</button>
             <button onClick={() => navigateTo('blog')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase tracking-widest ${activeView === 'blog' ? 'text-[#39FF14]' : ''}`}>Blog</button>
             <button onClick={() => navigateTo('about')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase tracking-widest ${activeView === 'about' ? 'text-[#39FF14]' : ''}`}>À Propos</button>
-            <button onClick={() => { setIsMobileMenuOpen(false); openAuthModal('login'); }} className="mt-8 bg-[#39FF14] text-black px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-xl">Se Connecter</button>
+            {!currentUser && (
+               <button onClick={() => { setIsMobileMenuOpen(false); openAuthModal('login'); }} className="mt-8 bg-[#39FF14] text-black px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-xl">Se Connecter</button>
+            )}
           </div>
         )}
 
@@ -429,7 +494,6 @@ export default function OnyxOpsElite() {
                           ))}
                         </ul>
 
-                        {/* NOUVEAU BOUTON : Test d'éligibilité direct sur la carte */}
                         <button onClick={() => navigateTo('home', 'quiz-section')} className="w-full text-center border border-zinc-700 text-zinc-400 py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition mb-3 flex items-center justify-center gap-2">
                           <Target className="w-3 h-3"/> Est-ce fait pour moi ?
                         </button>
@@ -907,7 +971,7 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* BOT WHATSAPP FLOTTANT */}
+        {/* BOT WHATSAPP FLOTTANT (ROUTAGE INTELLIGENT) */}
         <div className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
           {isBotOpen && (
             <div className="bg-white rounded-[2rem] shadow-2xl border border-zinc-200 p-6 mb-4 w-[300px] animate-in slide-in-from-bottom-4 duration-300">
@@ -920,10 +984,10 @@ export default function OnyxOpsElite() {
               </div>
               <p className="text-sm font-medium text-zinc-600 mb-4">Salut ! Je peux t'aider avec quoi ? Clique sur une question :</p>
               <div className="space-y-2">
-                <a href={getWaLink("Bonjour, c'est quoi exactement Onyx Solo et comment ça marche pour ma boutique ?")} target="_blank" rel="noopener noreferrer" className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 p-3 rounded-xl transition">🤖 C'est quoi Onyx Solo ?</a>
-                <a href={getWaLink("Bonjour, j'aimerais comprendre comment fonctionne le pointage GPS pour mes employés.")} target="_blank" rel="noopener noreferrer" className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 p-3 rounded-xl transition">🤖 Comment marche le pointage RH ?</a>
-                <a href={getWaLink("Bonjour, je veux devenir Ambassadeur Onyx. Comment je reçois mes commissions ?")} target="_blank" rel="noopener noreferrer" className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 p-3 rounded-xl transition">🤖 Info sur les Commissions</a>
-                <a href={getWaLink("Bonjour l'équipe Onyx, je veux parler à un conseiller humain svp.")} target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-black text-[#39FF14] text-xs font-black p-3 rounded-xl transition mt-4 uppercase tracking-widest shadow-lg">🗣️ Parler à un humain</a>
+                <button onClick={() => handleBotAction("Bonjour, c'est quoi exactement Onyx Solo et comment ça marche pour ma boutique ?", "Info Onyx Solo")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 p-3 rounded-xl transition">🤖 C'est quoi Onyx Solo ?</button>
+                <button onClick={() => handleBotAction("Bonjour, j'aimerais comprendre comment fonctionne le pointage GPS pour mes employés.", "Info RH")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 p-3 rounded-xl transition">🤖 Comment marche le pointage RH ?</button>
+                <button onClick={() => handleBotAction("Bonjour, je veux devenir Ambassadeur Onyx. Comment je reçois mes commissions ?", "Info Ambassadeur")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 p-3 rounded-xl transition">🤖 Info sur les Commissions</button>
+                <button onClick={() => handleBotAction("Bonjour l'équipe Onyx, je veux parler à un conseiller humain svp.", "Contact Humain")} className="block w-full text-center bg-black text-[#39FF14] text-xs font-black p-3 rounded-xl transition mt-4 uppercase tracking-widest shadow-lg">🗣️ Parler à un humain</button>
               </div>
             </div>
           )}
