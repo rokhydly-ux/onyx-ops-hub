@@ -64,7 +64,7 @@ const SOLUTIONS = [
   { id: "Onyx Staff", icon: Users, pain: "Casse-tête des avances Tabaski, fiches de paie et pointages frauduleux.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code et gestion lissée des avances.", upsellPack: "full", upsellName: "Pack Full", upsellPrice: "30.000F", upsellBenefit: "Gérez vos employés ET les finances de votre entreprise de A à Z." },
 ];
 
-const PACKS = [
+const PACKS: Array<{ id: PlanKey; name: string; price: number; label: string; rating: string; avis: number }> = [
   { id: "solo", name: "Solo", price: 7500, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
   { id: "trio", name: "Pack Trio", price: 17500, label: "Pack Trio", rating: "5.0/5", avis: 89 },
   { id: "full", name: "Pack Full", price: 30000, label: "Pack Full", rating: "4.9/5", avis: 215 },
