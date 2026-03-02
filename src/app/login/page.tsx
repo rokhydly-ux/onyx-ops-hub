@@ -11,7 +11,10 @@ export default function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
-      options: { redirectTo: `${window.location.origin}/auth/callback` }
+      options: { 
+        // window.location.origin détecte automatiquement si tu es sur localhost ou Vercel
+        redirectTo: `${window.location.origin}/auth/callback` 
+      }
     });
     if (error) alert(error.message);
     setLoading(false);
