@@ -185,7 +185,7 @@ export default function AdminConsole() {
 
       {/* FOOTER */}
       <footer className="p-8 border-t border-zinc-100 bg-white flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">
-        <div>© 2026 Onyx Ecosystem — All Rights Reserved</div>
+        <div>© 2026 Onyx Ecosystem — Tous droits réservés</div>
         <div className="flex gap-8">
           <a href="#" className="hover:text-black">Privacy</a>
           <a href="#" className="hover:text-black">Security</a>
