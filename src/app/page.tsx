@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Space_Grotesk, Inter } from "next/font/google";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { 
   Smartphone, Receipt, Truck, Box, Utensils, Calendar, 
@@ -119,10 +119,6 @@ export default function OnyxOpsElite() {
   const [saasMetier, setSaasMetier] = useState("");
   const [customMetier, setCustomMetier] = useState("");
   
-  // LOGIQUE USER CONNECTÉ
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
   // QUIZ & TUNNEL
   const [activeProfiles, setActiveProfiles] = useState<string[]>([]);
   const [premiumStep, setPremiumStep] = useState(0);
@@ -135,8 +131,11 @@ export default function OnyxOpsElite() {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
 
-  // BOT WHATSAPP
+  // BOT WHATSAPP & LOGIQUE CONNECTÉ
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isBotOpen, setIsBotOpen] = useState(false);
+  const [chatSimulated, setChatSimulated] = useState(false);
 
   // WIDGETS PREUVE SOCIALE (ALÉATOIRES INFINIS)
   const [currentProof, setCurrentProof] = useState(generateRandomProof());
@@ -188,7 +187,7 @@ export default function OnyxOpsElite() {
     return () => { document.body.style.overflow = ""; };
   }, [selectedPlan, selectedSaaS, showIncidentModal, isMobileMenuOpen, isAuthModalOpen, selectedArticle]);
 
-  // SOCIAL PROOF & PAYOUT TIMERS (RALENTIS ET ALÉATOIRES INFINIS)
+  // SOCIAL PROOF & PAYOUT TIMERS
   useEffect(() => {
     const proofInterval = setInterval(() => {
       setShowProof(false);
@@ -200,7 +199,6 @@ export default function OnyxOpsElite() {
       setTimeout(() => { setCurrentPayout(generateRandomPayout()); setShowPayout(true); }, 1000);
     }, 15000); // Défilement toutes les 15s
 
-    // Déclenchement initial
     setTimeout(() => setShowProof(true), 4000);
     setTimeout(() => setShowPayout(true), 6000);
 
@@ -213,23 +211,20 @@ export default function OnyxOpsElite() {
     return () => clearInterval(interval);
   }, []);
 
-  // ROUTAGE INTELLIGENT BOT
+  // ROUTAGE INTELLIGENT BOT & ENREGISTREMENT DB
   const handleBotAction = async (msg: string, intent: string) => {
     const currentHour = new Date().getHours();
-    // On considère heures de bureau de 9h à 18h
     const isWorkHour = currentHour >= 9 && currentHour < 18;
 
-    // Enregistrer le Lead
     try {
-       await supabase.from('leads').insert({ 
-         source: isWorkHour ? 'Bot Site (Live)' : 'WhatsApp (Hors ligne)', 
-         intent: intent 
-       });
-    } catch(e) { console.error(e) }
+      await supabase.from('leads').insert({ 
+        source: isWorkHour ? 'Bot Site (Live)' : 'WhatsApp (Hors ligne)', 
+        intent: intent 
+      });
+    } catch(e) { console.error("Erreur insertion Lead:", e) }
 
     if (isWorkHour) {
-      // Ouvrir un chat interne au site (si on le code plus tard) ou rediriger vers un agent live
-      alert("Un conseiller est en ligne et prend le relais sur cette fenêtre (Simulation d'ouverture de chat).");
+      setChatSimulated(true);
     } else {
       window.open(getWaLink(msg), "_blank");
     }
@@ -945,7 +940,7 @@ export default function OnyxOpsElite() {
           </div>
         </footer>
 
-        {/* WIDGET PREUVE SOCIALE (ALÉATOIRE INFINI + LENT) */}
+        {/* WIDGET PREUVE SOCIALE */}
         <div className={`fixed bottom-6 left-6 z-[80] bg-white text-black p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] transition-all duration-1000 transform ${showProof ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'} max-w-[280px] pointer-events-none hidden md:block`}>
           <div className="flex items-start gap-3">
              <div className="bg-[#39FF14]/20 p-2 rounded-full mt-1"><Star className="w-4 h-4 text-[#39FF14] fill-[#39FF14]" /></div>
@@ -957,7 +952,7 @@ export default function OnyxOpsElite() {
           </div>
         </div>
 
-        {/* WIDGET PREUVE SOCIALE PARTENAIRES (AFFICHÉ SEULEMENT SUR LA VUE DASHBOARD) */}
+        {/* WIDGET PREUVE SOCIALE PARTENAIRES */}
         {activeView === 'dashboard' && (
           <div className={`fixed bottom-28 left-6 z-[80] bg-black text-white p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.3)] border-l-4 border-yellow-400 transition-all duration-1000 transform ${showPayout ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'} max-w-[280px] pointer-events-none hidden md:block`}>
             <div className="flex items-start gap-3">
@@ -971,9 +966,9 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* BOT WHATSAPP FLOTTANT (ROUTAGE INTELLIGENT) */}
+        {/* BOT WHATSAPP / LIVE CHAT (ROUTAGE INTELLIGENT) */}
         <div className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
-          {isBotOpen && (
+          {isBotOpen && !chatSimulated && (
             <div className="bg-white rounded-[2rem] shadow-2xl border border-zinc-200 p-6 mb-4 w-[300px] animate-in slide-in-from-bottom-4 duration-300">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
@@ -982,20 +977,40 @@ export default function OnyxOpsElite() {
                 </div>
                 <button onClick={() => setIsBotOpen(false)} className="text-zinc-400 hover:text-black transition"><X className="w-4 h-4"/></button>
               </div>
-              <p className="text-sm font-medium text-zinc-600 mb-4">Salut ! Je peux t'aider avec quoi ? Clique sur une question :</p>
+              <p className="text-sm font-medium text-zinc-600 mb-4">Salut ! Je peux t'aider avec quoi ?</p>
               <div className="space-y-2">
-                <button onClick={() => handleBotAction("Bonjour, c'est quoi exactement Onyx Solo et comment ça marche pour ma boutique ?", "Info Onyx Solo")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 p-3 rounded-xl transition">🤖 C'est quoi Onyx Solo ?</button>
-                <button onClick={() => handleBotAction("Bonjour, j'aimerais comprendre comment fonctionne le pointage GPS pour mes employés.", "Info RH")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 p-3 rounded-xl transition">🤖 Comment marche le pointage RH ?</button>
-                <button onClick={() => handleBotAction("Bonjour, je veux devenir Ambassadeur Onyx. Comment je reçois mes commissions ?", "Info Ambassadeur")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 p-3 rounded-xl transition">🤖 Info sur les Commissions</button>
-                <button onClick={() => handleBotAction("Bonjour l'équipe Onyx, je veux parler à un conseiller humain svp.", "Contact Humain")} className="block w-full text-center bg-black text-[#39FF14] text-xs font-black p-3 rounded-xl transition mt-4 uppercase tracking-widest shadow-lg">🗣️ Parler à un humain</button>
+                <button onClick={() => handleBotAction("C'est quoi Onyx Solo ?", "Info Solo")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold p-3 rounded-xl transition">🤖 C'est quoi Onyx Solo ?</button>
+                <button onClick={() => handleBotAction("Comment marche le pointage ?", "Info RH")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold p-3 rounded-xl transition">🤖 Comment marche le pointage ?</button>
+                <button onClick={() => handleBotAction("Je veux parler à un humain.", "Contact Humain")} className="block w-full text-center bg-black text-[#39FF14] text-xs font-black p-3 rounded-xl transition mt-4 uppercase shadow-lg">🗣️ Parler à un humain</button>
               </div>
             </div>
           )}
+
+          {/* FENÊTRE LIVE CHAT SIMULÉE */}
+          {chatSimulated && (
+            <div className="bg-white rounded-[2rem] shadow-2xl border border-[#39FF14] p-0 mb-4 w-[320px] h-[400px] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
+               <div className="bg-black p-4 flex justify-between items-center">
+                  <div>
+                     <p className="text-[#39FF14] font-black uppercase text-xs">Un conseiller est en ligne</p>
+                     <p className="text-white text-[10px]">Temps de réponse : - de 2 min</p>
+                  </div>
+                  <button onClick={() => {setChatSimulated(false); setIsBotOpen(false);}} className="text-white"><X size={16}/></button>
+               </div>
+               <div className="flex-1 bg-zinc-50 p-4 overflow-y-auto">
+                  <div className="bg-zinc-200 p-3 rounded-2xl rounded-tl-none w-[80%] text-sm mb-4">Bonjour ! Je suis conseiller Onyx. Comment puis-je vous aider pour votre business ?</div>
+               </div>
+               <div className="p-3 bg-white border-t border-zinc-200 flex gap-2">
+                  <input type="text" placeholder="Écrire..." className="flex-1 bg-zinc-100 rounded-xl px-3 outline-none text-sm" />
+                  <button className="bg-[#39FF14] p-2 rounded-xl text-black"><Send size={16}/></button>
+               </div>
+            </div>
+          )}
+
           <button 
             onClick={() => setIsBotOpen(!isBotOpen)} 
-            className="w-16 h-16 rounded-full shadow-[0_15px_30px_rgba(0,0,0,0.2)] overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-white"
+            className="w-16 h-16 rounded-full shadow-[0_15px_30px_rgba(0,0,0,0.2)] overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black flex items-center justify-center"
           >
-            <Image src="https://i.ibb.co/vxNQ39jJ/call.png" alt="Onyx Bot Chat" width={64} height={64} className="w-full h-full object-cover" unoptimized />
+            <MessageSquare className="text-[#39FF14] w-8 h-8" />
           </button>
         </div>
 
@@ -1098,7 +1113,8 @@ export default function OnyxOpsElite() {
             </div>
           </div>
         )} 
-        {/* MODALE DE QUALIFICATION & UPSELL SANS RÉGRESSION DE DESIGN */}
+        
+        {/* MODALE DE QUALIFICATION & UPSELL */}
         {selectedSaaS && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in duration-300">
