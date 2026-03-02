@@ -31,7 +31,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-white p-6 md:p-12">
       <div className="max-w-6xl mx-auto">
         <header className="mb-12">
-          <h1 className="text-4xl font-black uppercase">Bienvenue, {profile.full_name}</h1>
+          <h1>Bienvenue, {profile.full_name || "Cher Partenaire"}</h1>
           <p className="text-[#39FF14] font-bold bg-black inline-block px-3 py-1 rounded-full text-[10px] mt-2 uppercase tracking-widest">
             Rôle : {role}
           </p>
