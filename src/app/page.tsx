@@ -16,22 +16,22 @@ type PlanKey = "solo" | "trio" | "full" | "premium";
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "600"] });
 
-const PLAN_DETAILS: Record<PlanKey, { title: string; price: number; desc: string; benefits: string[]; upsell: string; alternative: string; reason: string }> = {
+const PLAN_DETAILS: Record<PlanKey, { title: string; price: number; desc: string; benefits: string[]; upsell: string; alternative: string; reason: string; savings: string }> = {
   solo: {
     title: "Onyx Solo", price: 7500, desc: "L'essentiel pour vendre.", benefits: ["Catalogue WhatsApp", "Devis PDF", "1 Micro-SaaS"],
-    upsell: "Pack Trio", alternative: "trio", reason: "Si vous livrez vos produits, le Solo ne suit pas vos livreurs. Vous risquez de perdre 15% de votre Khaalis. Passez au Trio pour inclure Onyx Tiak."
+    upsell: "Pack Trio", alternative: "trio", reason: "Si vous livrez vos produits, le Solo ne suit pas vos livreurs.", savings: "10.000F"
   },
   trio: {
     title: "Pack Trio", price: 17500, desc: "Vente + Stock + Tiak.", benefits: ["Suivi livreurs", "Gestion stock scan", "3 Micro-SaaS"],
-    upsell: "Pack Full", alternative: "full", reason: "Le Trio gère vos colis, mais pas vos employés ni vos réservations. Le Pack Full automatise 100% de votre business."
+    upsell: "Pack Full", alternative: "full", reason: "Le Trio gère vos colis, mais pas vos employés.", savings: "12.500F"
   },
   full: {
     title: "Pack Full", price: 30000, desc: "L'écosystème 360°.", benefits: ["Onyx Staff (RH)", "Onyx Resto/Booking", "Les 6 SaaS"],
-    upsell: "Onyx Premium", alternative: "premium", reason: "Pour dominer votre secteur, l'IA est obligatoire. Le Premium inclut la création de vos visuels et de vos textes de vente auto."
+    upsell: "Onyx Premium", alternative: "premium", reason: "Pour dominer, l'IA est obligatoire.", savings: "45.000F"
   },
   premium: {
     title: "Onyx Premium", price: 75000, desc: "IA + Stratégie RevOps.", benefits: ["Studio Créatif IA", "CRM Automatisé", "Conseiller Dédié"],
-    upsell: "Offre Trimestre", alternative: "premium", reason: "Prenez l'offre Sérénité : 2 mois payés = le 3ème OFFERT. Rentabilisez votre IA sur le long terme."
+    upsell: "Offre Trimestre", alternative: "premium", reason: "Prenez l'offre Sérénité.", savings: "75.000F"
   }
 };
 
