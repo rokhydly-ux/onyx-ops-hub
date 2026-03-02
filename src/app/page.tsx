@@ -351,39 +351,43 @@ export default function OnyxOpsElite() {
             </section>
 
             <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto">
-              <h2 className={`${spaceGrotesk.className} text-3xl font-bold mb-4 text-center`}>NOS 6 SOLUTIONS <span className="text-[#39FF14]">RADICALES</span></h2>
-              <p className="text-center text-zinc-500 font-bold text-xs uppercase tracking-widest mb-12">Cliquez sur un outil pour voir s'il est fait pour vous.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {SOLUTIONS.map((s, i) => (
-                  <div 
-                    key={i} 
-                    onClick={() => { setSelectedSaaS(s); setSaasMetier(""); setCustomMetier(""); }}
-                    className="group bg-white border border-zinc-100 p-8 rounded-[2.5rem] shadow-xl hover:border-[#39FF14] transition-all relative overflow-hidden cursor-pointer"
-                  >
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition">
-                      <s.icon className="w-24 h-24" />
-                    </div>
-                    <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
-                      <s.icon className="w-6 h-6" />
-                    </div>
-                    <h3 className={`${spaceGrotesk.className} text-xl font-bold mb-4 italic uppercase flex justify-between items-center relative z-10`}>
-                      {s.id} 
-                      <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic tracking-widest">+ Infos</span>
-                    </h3>
-                    <div className="space-y-4 relative z-10">
-                      <div className="bg-red-50 p-4 rounded-2xl border-l-4 border-red-500">
-                        <p className="text-[10px] font-bold text-red-600 uppercase mb-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> La Douleur</p>
-                        <p className="text-xs font-semibold text-zinc-700">{s.pain}</p>
-                      </div>
-                      <div className="bg-[#39FF14]/5 p-4 rounded-2xl border-l-4 border-[#39FF14]">
-                        <p className="text-[10px] font-bold text-[#39FF14] uppercase mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Solution Onyx</p>
-                        <p className="text-xs font-semibold text-zinc-800">{s.solution}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+  <h2 className={`${spaceGrotesk.className} text-3xl font-bold mb-4 text-center`}>NOS 6 SOLUTIONS <span className="text-[#39FF14]">RADICALES</span></h2>
+  <p className="text-center text-zinc-500 font-bold text-xs uppercase tracking-widest mb-12">Cliquez sur un outil pour voir s'il est fait pour vous.</p>
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {SOLUTIONS.map((s, i) => (
+      <div 
+        key={i} 
+        onClick={() => { 
+          // On s'assure que l'objet s est bien passé pour déclencher le rendu de la modale
+          setSelectedSaaS(s); 
+          setSaasMetier(""); 
+        }}
+        className="group bg-white border border-zinc-100 p-8 rounded-[2.5rem] shadow-xl hover:border-[#39FF14] transition-all relative overflow-hidden cursor-pointer active:scale-95"
+      >
+        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition">
+          <s.icon className="w-24 h-24" />
+        </div>
+        <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
+          <s.icon className="w-6 h-6" />
+        </div>
+        <h3 className={`${spaceGrotesk.className} text-xl font-bold mb-4 italic uppercase flex justify-between items-center relative z-10`}>
+          {s.id} 
+          <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic tracking-widest">+ Infos</span>
+        </h3>
+        <div className="space-y-4 relative z-10">
+          <div className="bg-red-50 p-4 rounded-2xl border-l-4 border-red-500">
+            <p className="text-[10px] font-bold text-red-600 uppercase mb-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> La Douleur</p>
+            <p className="text-xs font-semibold text-zinc-700">{s.pain}</p>
+          </div>
+          <div className="bg-[#39FF14]/5 p-4 rounded-2xl border-l-4 border-[#39FF14]">
+            <p className="text-[10px] font-bold text-[#39FF14] uppercase mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Solution Onyx</p>
+            <p className="text-xs font-semibold text-zinc-800">{s.solution}</p>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>
 
             <section id="tarifs" className="py-20 bg-black text-white rounded-[4rem] mx-4 px-6 relative overflow-hidden">
               <div className="max-w-7xl mx-auto relative z-10">
@@ -1026,6 +1030,63 @@ export default function OnyxOpsElite() {
                 <button className="sm:w-auto bg-zinc-100 text-black px-6 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-zinc-200 transition flex items-center justify-center gap-2">
                   <Share2 className="w-4 h-4" /> Partager
                 </button>
+              </div>
+            </div>
+          </div>
+        )} 
+        {/* MODALE DE QUALIFICATION & UPSELL SANS RÉGRESSION DE DESIGN */}
+        {selectedSaaS && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in duration-300">
+              <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition" onClick={() => setSelectedSaaS(null)}>
+                <X size={20}/>
+              </button>
+              
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-black text-[#39FF14] p-3 rounded-2xl">
+                  <selectedSaaS.icon size={24} />
+                </div>
+                <h3 className="text-2xl font-black uppercase italic">{selectedSaaS.id}</h3>
+              </div>
+        
+              <div className="space-y-6">
+                <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Quelle est votre activité ?</p>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  {["Boutique / Prêt-à-porter", "Restaurant / Fast-Food", "E-commerce / Instagram", "BTP / Agence de Services"].map((metier) => (
+                    <button 
+                      key={metier}
+                      onClick={() => setSaasMetier(metier)}
+                      className={`text-left p-4 rounded-2xl text-xs font-black uppercase transition-all border-2 ${saasMetier === metier ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 border-transparent hover:border-zinc-200'}`}
+                    >
+                      {metier}
+                    </button>
+                  ))}
+                </div>
+        
+                {saasMetier && (
+                  <div className="pt-6 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-[#39FF14]/10 p-6 rounded-[2rem] border-2 border-[#39FF14] relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-10"><Flame size={40}/></div>
+                      <p className="text-[10px] font-black uppercase text-[#39FF14] mb-2 flex items-center gap-1"><Zap size={12}/> Bundle d'urgence conseillé</p>
+                      <p className="text-xs font-bold text-zinc-800 leading-relaxed mb-4">
+                        En tant que <span className="underline">{saasMetier}</span>, si vous vendez mais ne suivez pas vos livreurs (Tiak), vous perdez 20% de votre cash. 
+                      </p>
+                      <button 
+                        onClick={() => window.open(getWaLink(`Bonjour, je suis en activité ${saasMetier}. Je veux passer au ${selectedSaaS.upsellName} pour sécuriser mon cash.`))}
+                        className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition"
+                      >
+                        Passer au {selectedSaaS.upsellName} (+{selectedSaaS.upsellPrice})
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => window.open(getWaLink(`Bonjour, je veux rester sur ${selectedSaaS.id} pour mon activité ${saasMetier}.`))}
+                      className="w-full text-center mt-4 text-[9px] font-black uppercase text-zinc-400 hover:text-black transition underline underline-offset-4"
+                    >
+                      Garder uniquement {selectedSaaS.id}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
