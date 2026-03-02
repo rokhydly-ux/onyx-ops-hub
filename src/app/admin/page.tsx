@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabaseAdmin } from "@/lib/supabaseAdmin"; // Utilise la clé secrète
+import { supabaseAdmin } from "../../lib/supabaseAdmin"; // Utilise la clé secrète
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
