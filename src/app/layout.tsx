@@ -1,27 +1,21 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
+const spaceGrotesk = Space_Grotesk({ 
+  subsets: ["latin"], 
+  weight: ['300', '700', '900'],
+  variable: "--font-space" 
 });
 
-export const metadata: Metadata = {
-  title: "OnyxOps | Pilotez votre business en toute simplicité",
-  description: "Digitalisation WhatsApp au Sénégal - Solutions Micro-SaaS pour entreprises",
-};
+const inter = Inter({ 
+  subsets: ["latin"], 
+  variable: "--font-inter" 
+});
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className="scroll-smooth">
-      <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
-      </body>
+    <html lang="fr" className={`${spaceGrotesk.variable} ${inter.variable}`}>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }
