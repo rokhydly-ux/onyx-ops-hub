@@ -6,7 +6,8 @@ import {
   Users, Wallet, LayoutDashboard, LogOut, TrendingUp, TrendingDown, CheckCircle, 
   MessageSquare, FileText, UserPlus, Zap, Calendar, Globe, Rocket, 
   ShieldCheck, CreditCard, Star, Search, Home, Edit3, Trash2, Send,
-  Megaphone, Download, Filter, BarChart3, Handshake, AlertCircle, Award, Target, X, Bell
+  Megaphone, Download, Filter, BarChart3, Handshake, AlertCircle, Award, Target, X, Bell,
+  Truck, Box, Utensils
 } from "lucide-react";
 
 export default function AdminBentoTerminal() {
