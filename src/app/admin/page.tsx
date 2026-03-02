@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
-import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { 
   Users, Handshake, Wallet, LayoutGrid, 
@@ -39,9 +38,9 @@ export default function AdminConsole() {
   const fetchAdminData = async () => {
     setLoading(true);
     // Récupération des utilisateurs
-    const { data: profs } = await supabaseAdmin.from("profiles").select("*").order('created_at', { ascending: false });
+    const { data: profs } = await supabase.from("profiles").select("*").order('created_at', { ascending: false });
     // Récupération fictive des finances (à lier à ta table subscriptions)
-    const { data: subs } = await supabaseAdmin.from("subscriptions").select("*");
+    const { data: subs } = await supabase.from("subscriptions").select("*");
     
     if (profs) setUsers(profs);
     if (subs) {
