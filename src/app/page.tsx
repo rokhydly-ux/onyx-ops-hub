@@ -10,7 +10,7 @@ import {
   Smartphone, Truck, Box, Utensils, Calendar, 
   ArrowRight, Users, Target, 
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
-  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell
+  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText
 } from "lucide-react";
 
 type PlanKey = "solo" | "trio" | "full" | "premium";
