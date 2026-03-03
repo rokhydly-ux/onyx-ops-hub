@@ -3,13 +3,17 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Space_Grotesk, Inter } from "next/font/google";
-// ⚠️ Si l'import ci-dessous pose problème au build, remplace-le par : import { supabase } from "@/lib/supabaseClient";
-import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/navigation";
+
+// ⚠️ IMPORT SUPABASE : L'alias "@/" est le standard Next.js pour pointer vers le dossier racine/src.
+// Si tu as toujours une erreur sur cette ligne, remplace par : import { supabase } from "../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
+
+// ⚠️ ICÔNES SÉCURISÉES : CheckCircle2 a été retiré pour éviter les crashs de versionnement.
 import { 
   Smartphone, Truck, Box, Utensils, Calendar, 
   ArrowRight, Users, Target, 
-  Zap, CheckCircle2, AlertCircle, Lock, Handshake, Package, X,
+  Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
   Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp
 } from "lucide-react";
 
@@ -154,21 +158,25 @@ export default function OnyxOpsElite() {
   // FETCH INIT & ARTICLES
   useEffect(() => {
     const initData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-        setCurrentUser({ ...user, ...data });
-        if (data?.role === 'admin') setIsAdmin(true);
-      }
-      
-      const { data: dbArticles, error } = await supabase.from('articles').select('*').order('created_at', { ascending: false });
-      if (dbArticles && dbArticles.length > 0) {
-         setArticles(dbArticles);
-      } else {
-         setArticles([
-            { id: 1, title: "Comment doubler vos ventes WhatsApp en 2026", content: "Au Sénégal, 90% des ventes se font sur WhatsApp...", category: "Social Selling", pack_focus: "Onyx Solo" },
-            { id: 2, title: "La fin des fraudes sur les chantiers", content: "Gérer le pointage est un cauchemar...", category: "Gestion d'Équipe", pack_focus: "Pack Full" }
-         ]);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+          setCurrentUser({ ...user, ...data });
+          if (data?.role === 'admin') setIsAdmin(true);
+        }
+        
+        const { data: dbArticles, error } = await supabase.from('articles').select('*').order('created_at', { ascending: false });
+        if (dbArticles && dbArticles.length > 0) {
+           setArticles(dbArticles);
+        } else {
+           setArticles([
+              { id: 1, title: "Comment doubler vos ventes WhatsApp en 2026", content: "Au Sénégal, 90% des ventes se font sur WhatsApp...", category: "Social Selling", pack_focus: "Onyx Solo" },
+              { id: 2, title: "La fin des fraudes sur les chantiers", content: "Gérer le pointage est un cauchemar...", category: "Gestion d'Équipe", pack_focus: "Pack Full" }
+           ]);
+        }
+      } catch (err) {
+        console.warn("Supabase non configuré ou erreur réseau : ", err);
       }
     };
     initData();
@@ -358,7 +366,7 @@ export default function OnyxOpsElite() {
 
                 <div className="bg-black rounded-[3rem] p-8 h-[350px] flex flex-col relative shadow-[0_15px_40px_rgba(57,255,20,0.15)] border border-[#39FF14]/30 transition-all duration-500">
                   <div className="absolute top-0 right-0 bg-[#39FF14] text-black px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase tracking-widest">Avec OnyxOps</div>
-                  <h3 className="font-black text-white text-xl mb-6 flex items-center gap-2"><CheckCircle2 className="text-[#39FF14] w-6 h-6"/> L'Automatisation Parfaite</h3>
+                  <h3 className="font-black text-white text-xl mb-6 flex items-center gap-2"><CheckCircle className="text-[#39FF14] w-6 h-6"/> L'Automatisation Parfaite</h3>
                   <div className="flex-1 flex flex-col justify-center">
                     <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl animate-in slide-in-from-right-4 fade-in duration-500 delay-150" key={`apres-${scenarioIndex}`}>
                       <div className="flex justify-between items-center mb-3">
@@ -474,7 +482,7 @@ export default function OnyxOpsElite() {
                     {activeProfiles.length > 0 && (
                       <div className="animate-in zoom-in duration-300">
                         <h4 className="font-black text-2xl mb-2 flex items-center gap-2">
-                          <CheckCircle2 className="text-[#39FF14]"/> 
+                          <CheckCircle className="text-[#39FF14]"/> 
                           {activeProfiles.includes('Premium') ? 'Onyx Premium (75.000F)' : activeProfiles.includes('Restaurant') ? 'Pack Full (30.000F)' : activeProfiles.includes('Boutique') ? 'Pack Trio (17.500F)' : 'Onyx Solo (7.500F)'}
                         </h4>
                         <p className="text-sm text-zinc-600 mb-6 font-medium leading-relaxed">Solution recommandée en fonction de vos sélections actuelles. Digitalisez vos opérations dès maintenant.</p>
@@ -575,7 +583,7 @@ export default function OnyxOpsElite() {
 
             {partnerStep === 'success' && (
                <div className="text-center max-w-lg mx-auto bg-white p-12 rounded-[3rem] shadow-2xl border-2 border-[#39FF14] animate-in zoom-in">
-                  <CheckCircle2 className="w-16 h-16 text-[#39FF14] mx-auto mb-6" />
+                  <CheckCircle className="w-16 h-16 text-[#39FF14] mx-auto mb-6" />
                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Candidature Reçue.</h2>
                   <p className="text-zinc-600 mb-8 font-medium">Votre compte est en cours de validation par nos équipes (Section Partenaires Admin).</p>
                   <button onClick={() => navigateTo('home')} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs shadow-xl hover:scale-105 transition">Retourner à l'accueil</button>
