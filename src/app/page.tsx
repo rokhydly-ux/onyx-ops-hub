@@ -65,6 +65,17 @@ const RANDOM_SCENARIOS = [
   { avant: { phone: "+221 78 222 22 22", text: "Le livreur ne répond pas 😡", tag: "Logistique", issue: "Clients fâchés" }, apres: { tag: "En route", title: "Logistique Tiak", text: "Commande #402 localisée en temps réel.", sub: "Le client suit le livreur sur WhatsApp." } }
 ];
 
+// --- RÉSOLUTION ERREUR DE BUILD : Composant PaymentMethods réintégré ---
+const PaymentMethods = () => (
+  <div className="flex flex-wrap items-center justify-center gap-6 mt-6">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-6 md:h-8 object-contain" />
+    <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-6 md:h-8 object-contain" />
+    <div className="h-6 md:h-8 px-4 bg-black text-white rounded-lg flex items-center justify-center font-black italic text-[10px] md:text-xs tracking-widest shadow-md">
+      <span className="text-[#39FF14]">YAS</span> MONEY
+    </div>
+  </div>
+);
+
 export default function OnyxOpsElite() {
   const router = useRouter();
   const [activeView, setActiveView] = useState<'home' | 'about' | 'blog' | 'dashboard'>('home');
@@ -91,7 +102,7 @@ export default function OnyxOpsElite() {
   const [userReply, setUserReply] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // PREUVES SOCIALES
+  // PREUVES SOCIALES & SCENARIOS
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
 
@@ -338,13 +349,30 @@ export default function OnyxOpsElite() {
               </div>
             </header>
 
+            {/* --- SECTION FINI LE BRICOLAGE (AVEC PLACEHOLDERS IMAGES) --- */}
             <section className="py-16 px-6 max-w-6xl mx-auto mb-10">
+              <div className="text-center mb-12">
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>Fini le Bricolage. <span className="text-[#39FF14]">Passez au niveau supérieur.</span></h2>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-8 items-center h-full">
-                <div className="bg-red-50/50 border border-red-100 rounded-[3rem] p-8 h-[350px] flex flex-col relative overflow-hidden transition-all duration-500">
-                  <div className="absolute top-0 right-0 bg-red-500 text-white px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase">Avant Onyx</div>
-                  <h3 className="font-black text-red-800 text-xl mb-6">Le Chaos sur WhatsApp</h3>
-                  <div className="flex-1 flex flex-col justify-center">
-                    <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-red-100 shadow-sm max-w-[85%] text-sm text-zinc-600 animate-in slide-in-from-left-4" key={`avant-${scenarioIndex}`}>
+                
+                {/* CARTE : AVANT ONYX (CHAOS) */}
+                <div className="bg-red-50/50 border border-red-100 rounded-[3rem] p-8 h-auto min-h-[450px] flex flex-col relative overflow-hidden transition-all duration-500">
+                  <div className="absolute top-0 right-0 bg-red-500 text-white px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avant Onyx</div>
+                  <h3 className="font-black text-red-800 text-xl mb-6 z-10 relative">Le Chaos sur WhatsApp</h3>
+                  
+                  {/* PLACEHOLDER IMAGE AVANT */}
+                  <div className="w-full h-48 bg-red-200/40 rounded-3xl mb-6 flex flex-col items-center justify-center border-2 border-dashed border-red-300 relative overflow-hidden group">
+                     {/* <img src="URL_IMAGE_AVANT" alt="Chaos" className="absolute inset-0 w-full h-full object-cover z-0" /> */}
+                     <div className="relative z-10 text-center px-4">
+                        <p className="text-xs font-black text-red-500 uppercase tracking-widest mb-1">[Espace Image : Le Chaos]</p>
+                        <p className="text-[10px] text-red-400 font-medium italic">Prompt suggéré : "Un entrepreneur sénégalais très stressé, débordé, regardant son téléphone avec panique, entouré de carnets raturés, style 3D Pixar moderne, fond rougeâtre."</p>
+                     </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col justify-end">
+                    <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-red-100 shadow-sm max-w-[90%] text-sm text-zinc-600 animate-in slide-in-from-left-4" key={`avant-${scenarioIndex}`}>
                       <p className="font-bold text-xs text-red-500 mb-2">{RANDOM_SCENARIOS[scenarioIndex].avant.phone}</p>
                       {RANDOM_SCENARIOS[scenarioIndex].avant.text}
                     </div>
@@ -354,10 +382,21 @@ export default function OnyxOpsElite() {
                   </div>
                 </div>
 
-                <div className="bg-black rounded-[3rem] p-8 h-[350px] flex flex-col relative shadow-[0_15px_40px_rgba(57,255,20,0.15)] border border-[#39FF14]/30">
-                  <div className="absolute top-0 right-0 bg-[#39FF14] text-black px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase">Avec OnyxOps</div>
-                  <h3 className="font-black text-white text-xl mb-6 flex items-center gap-2"><CheckCircle className="text-[#39FF14] w-6 h-6"/> Automatisation Parfaite</h3>
-                  <div className="flex-1 flex flex-col justify-center">
+                {/* CARTE : AVEC ONYX (SÉRÉNITÉ) */}
+                <div className="bg-black rounded-[3rem] p-8 h-auto min-h-[450px] flex flex-col relative shadow-[0_15px_40px_rgba(57,255,20,0.15)] border border-[#39FF14]/30">
+                  <div className="absolute top-0 right-0 bg-[#39FF14] text-black px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avec OnyxOps</div>
+                  <h3 className="font-black text-white text-xl mb-6 flex items-center gap-2 z-10 relative"><CheckCircle className="text-[#39FF14] w-6 h-6"/> Automatisation Parfaite</h3>
+                  
+                  {/* PLACEHOLDER IMAGE APRES */}
+                  <div className="w-full h-48 bg-[#39FF14]/10 rounded-3xl mb-6 flex flex-col items-center justify-center border-2 border-dashed border-[#39FF14]/30 relative overflow-hidden group">
+                     {/* <img src="URL_IMAGE_APRES" alt="Sérénité" className="absolute inset-0 w-full h-full object-cover z-0" /> */}
+                     <div className="relative z-10 text-center px-4">
+                        <p className="text-xs font-black text-[#39FF14] uppercase tracking-widest mb-1">[Espace Image : La Sérénité]</p>
+                        <p className="text-[10px] text-[#39FF14]/70 font-medium italic">Prompt suggéré : "Le même entrepreneur sénégalais, très souriant, serein et confiant, regardant un tableau de bord digital sur son téléphone, néons verts, style 3D Pixar moderne, fond sombre chic."</p>
+                     </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col justify-end">
                     <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl animate-in slide-in-from-right-4" key={`apres-${scenarioIndex}`}>
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-xs text-zinc-400 font-bold uppercase">{RANDOM_SCENARIOS[scenarioIndex].apres.title}</span>
@@ -371,6 +410,7 @@ export default function OnyxOpsElite() {
                     <span className="flex items-center gap-1"><Zap className="w-4 h-4 fill-[#39FF14]" /> Business sous contrôle</span>
                   </div>
                 </div>
+
               </div>
             </section>
 
