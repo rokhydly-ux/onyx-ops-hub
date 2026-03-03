@@ -6,7 +6,7 @@ import { Space_Grotesk, Inter } from "next/font/google";
 import { 
   Users, Wallet, LayoutDashboard, LogOut, TrendingUp, CheckCircle, 
   MessageSquare, UserPlus, X, Send, Edit3, Home, Target, Globe, Box, Sparkles,
-  BarChart3, CreditCard, CalendarClock, PhoneCall, Key, ChevronLeft, ShieldCheck, Mail, Zap, Flame, Smartphone
+  BarChart3, CreditCard, CalendarClock, PhoneCall, Key, ChevronLeft, ShieldCheck, Mail, Zap, Flame, Smartphone, Check
 } from "lucide-react";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
