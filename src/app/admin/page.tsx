@@ -25,8 +25,8 @@ type IAAction = {
 };
 
 export default function AdminDashboard() {
-  // Fix Hydratation robuste
-  const [isMounted, setIsMounted] = useState(false);
+  // Fix Hydratation & Crash Next.js (Rendu Client Uniquement)
+  const [mounted, setMounted] = useState(false);
   const [todayStr, setTodayStr] = useState('');
 
   // Navigation & Filtres Globaux
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
   ];
 
   useEffect(() => {
-    setIsMounted(true);
+    setMounted(true);
     const currentDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
     setTodayStr(currentDate);
 
@@ -97,10 +97,10 @@ export default function AdminDashboard() {
     ]);
 
     setContacts([
-      { id: '1', full_name: 'Magatte Fall', phone: '77 123 45 67', type: 'Prospect', saas: 'Onyx Vente', status: 'En essai (J-7)', isExpiringTrial: true },
-      { id: '2', full_name: 'Boutique Fatou', phone: '76 987 65 43', type: 'Client', saas: 'Pack Trio', status: 'Actif', isExpiringSub: false },
-      { id: '3', full_name: 'Resto Dakar', phone: '78 555 44 33', type: 'Client', saas: 'Onyx Menu', status: 'Expire bientôt', isExpiringSub: true },
-      { id: '4', full_name: 'Modou S.', phone: '77 444 55 66', type: 'Prospect', saas: 'Pack Full', status: 'Nouveau', isExpiringTrial: false },
+      { id: 'c1', full_name: 'Magatte Fall', phone: '77 123 45 67', type: 'Prospect', saas: 'Onyx Vente', status: 'En essai (J-7)', isExpiringTrial: true, isExpiringSub: false },
+      { id: 'c2', full_name: 'Boutique Fatou', phone: '76 987 65 43', type: 'Client', saas: 'Pack Trio', status: 'Actif', isExpiringTrial: false, isExpiringSub: false },
+      { id: 'c3', full_name: 'Resto Dakar', phone: '78 555 44 33', type: 'Client', saas: 'Onyx Menu', status: 'Expire bientôt', isExpiringTrial: false, isExpiringSub: true },
+      { id: 'c4', full_name: 'Modou S.', phone: '77 444 55 66', type: 'Prospect', saas: 'Pack Full', status: 'Nouveau', isExpiringTrial: false, isExpiringSub: false },
     ]);
 
     setPartners([
@@ -119,14 +119,8 @@ export default function AdminDashboard() {
     ]);
   }, []);
 
-  // Composant de chargement pour éviter les erreurs d'hydratation côté client
-  if (!isMounted) {
-    return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  // Coupe-circuit absolu pour empêcher le rendu serveur de crasher le client
+  if (!mounted) return null;
 
   const handleOutsideClick = (setter: any, secondaryAction?: () => void) => (e: any) => {
     if (e.target.id === "modal-overlay") { 
@@ -229,11 +223,14 @@ export default function AdminDashboard() {
      setShowProfileModal(false);
   };
 
-  // Filtrage des actions du Dashboard
+  // Filtrage ultra-sécurisé avec Optional Chaining (?) pour empêcher les crashs
   const filteredActions = actionsIA.filter(a => {
      if(actionTabFilter === 'IA' && a.module === 'Marketing') return false;
      if(actionTabFilter === 'Marketing' && a.module !== 'Marketing') return false;
-     if(actionSearchFilter && !a.title.toLowerCase().includes(actionSearchFilter.toLowerCase()) && !a.desc.toLowerCase().includes(actionSearchFilter.toLowerCase())) return false;
+     
+     const search = actionSearchFilter?.toLowerCase() || "";
+     if(search && !(a.title?.toLowerCase() || "").includes(search) && !(a.desc?.toLowerCase() || "").includes(search)) return false;
+     
      return true;
   });
   
@@ -260,7 +257,7 @@ export default function AdminDashboard() {
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
               ].map(item => {
-                const Icon = item.icon; // FIX REACT RENDERING POUR LES ICONES
+                const Icon = item.icon; 
                 return (
                   <button 
                     key={item.id} 
@@ -299,7 +296,6 @@ export default function AdminDashboard() {
               <ExternalLink size={14}/> Retour au site
             </button>
             
-            {/* Profil Admin avec image dynamique issue du state */}
             <div onClick={() => setShowProfileModal(true)} className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 p-1.5 pr-4 rounded-full cursor-pointer hover:bg-zinc-100 transition shadow-sm hover:scale-105">
               <img src={adminProfile.avatar} className="w-8 h-8 rounded-full object-cover" alt="Admin" />
               <div className="text-left hidden sm:block">
@@ -343,7 +339,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* ACTIONS PLANIFIÉES AVEC ONGLETS ET RECHERCHE */}
+              {/* ACTIONS PLANIFIÉES */}
               <div className="bg-zinc-900 text-white border border-zinc-800 p-8 rounded-[3rem] shadow-2xl">
                  <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                     <h3 className="font-black uppercase text-sm flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> PLANIFICATEUR D'ACTIONS</h3>
@@ -405,12 +401,6 @@ export default function AdminDashboard() {
                     ))}
                     
                     {displayedActions.length === 0 && <p className="text-sm text-zinc-500 italic">Aucune action trouvée.</p>}
-                    
-                    {actionTabFilter === 'All' && !actionSearchFilter && actionsIA.length > 5 && (
-                       <p className="text-center text-xs font-bold text-[#39FF14] mt-4 cursor-pointer hover:underline" onClick={() => setActionSearchFilter(" ")}>
-                         Voir toutes les actions (+{actionsIA.length - 5})
-                       </p>
-                    )}
                  </div>
               </div>
             </div>
@@ -434,8 +424,8 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {leads.map((l, i) => (
-                      <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
+                    {leads.map((l) => (
+                      <tr key={l.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="p-6">
                           <p className="font-black text-sm uppercase">{l.full_name}</p>
                           <p className="text-xs text-zinc-500">{l.date}</p>
@@ -468,7 +458,7 @@ export default function AdminDashboard() {
                     { id: 'exp_trials', label: 'Essais Expirants', val: contacts.filter(c=>c.isExpiringTrial).length, icon: Clock, color: 'text-[#39FF14] bg-black border-black shadow-lg' },
                     { id: 'exp_subs', label: 'Abonnements Expirants', val: contacts.filter(c=>c.isExpiringSub).length, icon: AlertCircle, color: 'text-red-500 bg-red-50 border-red-100' },
                  ].map(card => {
-                    const CardIcon = card.icon; // FIX REACT RENDERING POUR LES ICONES
+                    const CardIcon = card.icon; 
                     return (
                       <div 
                         key={card.id} 
@@ -554,14 +544,18 @@ export default function AdminDashboard() {
                   <tbody>
                     {contacts.filter(c => {
                        if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
-                       if (crmSearch && !c.full_name.toLowerCase().includes(crmSearch.toLowerCase()) && !c.saas.toLowerCase().includes(crmSearch.toLowerCase())) return false;
+                       
+                       // Sécurisation extrême de la recherche
+                       const search = crmSearch?.toLowerCase() || "";
+                       if (search && !(c.full_name?.toLowerCase() || "").includes(search) && !(c.saas?.toLowerCase() || "").includes(search)) return false;
+                       
                        if (crmCardFilter === 'new_clients' && c.type !== 'Client') return false;
                        if (crmCardFilter === 'new_prospects' && c.type !== 'Prospect') return false;
                        if (crmCardFilter === 'exp_trials' && !c.isExpiringTrial) return false;
                        if (crmCardFilter === 'exp_subs' && !c.isExpiringSub) return false;
                        return true;
-                    }).map((c, i) => (
-                      <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
+                    }).map((c) => (
+                      <tr key={c.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="p-6">
                           <p className="font-black text-sm uppercase">{c.full_name}</p>
                           <p className="text-xs text-zinc-500 font-bold">{c.phone}</p>
@@ -631,8 +625,11 @@ export default function AdminDashboard() {
                      </tr>
                    </thead>
                    <tbody>
-                     {partners.filter(p => p.full_name.toLowerCase().includes(partnerSearch.toLowerCase()) && p.status !== 'En attente').map((p, i) => (
-                       <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
+                     {partners.filter(p => {
+                       const search = partnerSearch?.toLowerCase() || "";
+                       return (p.full_name?.toLowerCase() || "").includes(search) && p.status !== 'En attente';
+                     }).map((p) => (
+                       <tr key={p.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                          <td className="p-6">
                            <p className="font-black text-sm uppercase">{p.full_name}</p>
                            <p className="text-xs text-zinc-500 font-bold">{p.contact}</p>
