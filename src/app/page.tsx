@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Space_Grotesk, Inter } from "next/font/google";
+// ⚠️ Si l'import ci-dessous pose problème au build, remplace-le par : import { supabase } from "@/lib/supabaseClient";
 import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { 
   Smartphone, Truck, Box, Utensils, Calendar, 
   ArrowRight, Users, Target, 
-  Zap, CheckCircle2, AlertCircle, Lock, Handshake, Package, Info, X,
-  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Download, Wallet, Check, Send, Calculator
+  Zap, CheckCircle2, AlertCircle, Lock, Handshake, Package, X,
+  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp
 } from "lucide-react";
 
 type PlanKey = "solo" | "trio" | "full" | "premium";
@@ -87,6 +88,16 @@ const RANDOM_SCENARIOS = [
   { avant: { phone: "+221 76 111 11 11", text: "Tu peux me refaire le devis j'ai perdu la feuille !", tag: "Vente", issue: "Temps perdu" }, apres: { tag: "Devis OK", title: "Vente & Stock", text: "Devis #1042 accepté & payé en ligne.", sub: "Stock mis à jour automatiquement." } },
   { avant: { phone: "+221 78 222 22 22", text: "Le livreur ne répond pas 😡", tag: "Logistique", issue: "Clients fâchés" }, apres: { tag: "En route", title: "Logistique Tiak", text: "Commande #402 localisée en temps réel.", sub: "Le client suit le livreur sur WhatsApp." } }
 ];
+
+const PaymentMethods = () => (
+  <div className="flex flex-wrap items-center justify-center gap-6 mt-6">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-6 md:h-8 object-contain" />
+    <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-6 md:h-8 object-contain" />
+    <div className="h-6 md:h-8 px-4 bg-black text-white rounded-lg flex items-center justify-center font-black italic text-[10px] md:text-xs tracking-widest shadow-md">
+      <span className="text-[#39FF14]">YAS</span> MONEY
+    </div>
+  </div>
+);
 
 export default function OnyxOpsElite() {
   const router = useRouter();
@@ -236,16 +247,6 @@ export default function OnyxOpsElite() {
     if (scrollId) { setTimeout(() => { const el = document.getElementById(scrollId); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); } 
     else { window.scrollTo({ top: 0, behavior: 'smooth' }); }
   };
-
-  const PaymentMethods = () => (
-    <div className="flex flex-wrap items-center justify-center gap-6 mt-6">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-6 md:h-8 object-contain" />
-      <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-6 md:h-8 object-contain" />
-      <div className="h-6 md:h-8 px-4 bg-black text-white rounded-lg flex items-center justify-center font-black italic text-[10px] md:text-xs tracking-widest shadow-md">
-        <span className="text-[#39FF14]">YAS</span> MONEY
-      </div>
-    </div>
-  );
 
   return (
     <div className={`${inter.className} min-h-screen bg-white text-black overflow-x-hidden pt-20 relative`}>
@@ -503,7 +504,7 @@ export default function OnyxOpsElite() {
                     Postuler au Programme
                   </button>
                   <button onClick={() => setShowSimulator(!showSimulator)} className="border-2 border-black text-black px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black hover:text-[#39FF14] transition flex items-center justify-center gap-2">
-                    <Calculator size={18}/> {showSimulator ? "Fermer Simulateur" : "Simuler mes gains"}
+                    <TrendingUp size={18}/> {showSimulator ? "Fermer Simulateur" : "Simuler mes gains"}
                   </button>
                 </div>
 
@@ -545,9 +546,8 @@ export default function OnyxOpsElite() {
                   </div>
                 )}
                 
-                {/* Explication du système (démo dashboard fictive accessible en "Tricheur" ou si validé) */}
                 <div className="mt-12 pt-12 border-t border-zinc-200">
-                   <button onClick={() => setPartnerStep('dashboard')} className="text-[10px] text-zinc-400 uppercase font-black hover:text-black transition">👉 Voir à quoi ressemble le Dashboard Partenaire une fois validé (Demo)</button>
+                   <button onClick={() => setPartnerStep('dashboard')} className="text-[10px] text-zinc-400 uppercase font-black hover:text-black transition">👉 Voir le Dashboard Partenaire de Démo</button>
                 </div>
               </div>
             )}
