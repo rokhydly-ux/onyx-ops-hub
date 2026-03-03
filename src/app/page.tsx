@@ -473,18 +473,28 @@ export default function OnyxOpsElite() {
               </div>
             </header>
 
+            {/* --- SECTION FINI LE BRICOLAGE (AVEC VIDEOS YOUTUBE NÉON) --- */}
             <section className="py-16 px-6 max-w-6xl mx-auto mb-10">
               <div className="text-center mb-12">
                 <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>Fini le Bricolage. <span className="text-[#39FF14]">Passez au niveau supérieur.</span></h2>
               </div>
+              
               <div className="grid md:grid-cols-2 gap-8 items-center h-full">
-                {/* AVANT ONYX AVEC IMAGE DETOUREE */}
+                
+                {/* CARTE : AVANT ONYX (CHAOS) */}
                 <div className="bg-red-50/50 border border-red-100 rounded-[3rem] p-8 h-auto min-h-[500px] flex flex-col relative overflow-hidden transition-all duration-500">
                   <div className="absolute top-0 right-0 bg-red-500 text-white px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avant Onyx</div>
                   <h3 className="font-black text-red-800 text-xl mb-6 z-10 relative">Le Chaos sur WhatsApp</h3>
                   
-                  <div className="w-full h-56 mb-6 relative overflow-hidden flex items-center justify-center">
-                     <img src="https://i.ibb.co/Q7Phwxr4/1772554378765-5733beb2-1941-4af1-8955-5e8f1438e6dd.png" alt="Le Chaos" className="absolute w-[120%] h-auto object-cover opacity-90 mix-blend-multiply" />
+                  {/* VIDEO YOUTUBE AVANT (NÉON ROUGE) */}
+                  <div className="w-full aspect-video mb-6 relative overflow-hidden rounded-2xl border-2 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] z-10 bg-black">
+                     <iframe 
+                       src="https://www.youtube.com/embed/h-vsWYxskvU?controls=0&rel=0&modestbranding=1" 
+                       title="Le Chaos Avant Onyx"
+                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                       allowFullScreen
+                       className="absolute top-0 left-0 w-full h-full object-cover"
+                     ></iframe>
                   </div>
                   
                   <div className="flex-1 flex flex-col justify-end relative z-10">
@@ -499,13 +509,20 @@ export default function OnyxOpsElite() {
                   </div>
                 </div>
 
-                {/* APRES ONYX AVEC IMAGE DETOUREE */}
+                {/* CARTE : AVEC ONYX (SÉRÉNITÉ) */}
                 <div className="bg-black rounded-[3rem] p-8 h-auto min-h-[500px] flex flex-col relative shadow-[0_15px_40px_rgba(57,255,20,0.15)] border border-[#39FF14]/30">
                   <div className="absolute top-0 right-0 bg-[#39FF14] text-black px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avec OnyxOps</div>
                   <h3 className="font-black text-white text-xl mb-6 flex items-center gap-2 z-10 relative"><CheckCircle className="text-[#39FF14] w-6 h-6"/> Automatisation Parfaite</h3>
                   
-                  <div className="w-full h-56 mb-6 relative overflow-hidden flex items-center justify-center">
-                     <img src="https://i.ibb.co/1YQ4pyQn/1772554429161-4a21ad58-c412-4592-91e3-433ddfccd6fd.png" alt="La Solution" className="absolute w-[120%] h-auto object-cover opacity-90" />
+                  {/* VIDEO YOUTUBE APRES (NÉON VERT) */}
+                  <div className="w-full aspect-video mb-6 relative overflow-hidden rounded-2xl border-2 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.5)] z-10 bg-black">
+                     <iframe 
+                       src="https://www.youtube.com/embed/acFsObjm2E0?controls=0&rel=0&modestbranding=1" 
+                       title="La Solution Onyx"
+                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                       allowFullScreen
+                       className="absolute top-0 left-0 w-full h-full object-cover"
+                     ></iframe>
                   </div>
                   
                   <div className="flex-1 flex flex-col justify-end relative z-10">
@@ -523,6 +540,7 @@ export default function OnyxOpsElite() {
                     <span className="flex items-center gap-1"><Zap className="w-4 h-4 fill-[#39FF14]" /> Business sous contrôle</span>
                   </div>
                 </div>
+
               </div>
             </section>
 
