@@ -1,4 +1,3 @@
-ACCUEUIL 
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -6,11 +5,9 @@ import Image from "next/image";
 import { Space_Grotesk, Inter } from "next/font/google";
 import { useRouter } from "next/navigation";
 
-// ⚠️ IMPORT SUPABASE : L'alias "@/" est le standard Next.js pour pointer vers le dossier racine/src.
-// Si tu as toujours une erreur sur cette ligne, remplace par : import { supabase } from "../lib/supabaseClient";
+// ⚠️ IMPORT SUPABASE
 import { supabase } from "@/lib/supabaseClient";
 
-// ⚠️ ICÔNES SÉCURISÉES : CheckCircle2 a été retiré pour éviter les crashs de versionnement.
 import { 
   Smartphone, Truck, Box, Utensils, Calendar, 
   ArrowRight, Users, Target, 
@@ -210,13 +207,21 @@ export default function OnyxOpsElite() {
   const saveLead = async (data: { source?: string; intent: string; contact?: string; message?: string }) => {
     try {
       await supabase.from('leads').insert({
-        source: data.source ?? 'Site',
+        source: data.source ?? 'Site Web',
         intent: data.intent,
         status: 'Nouveau',
-        contact: data.contact ?? '',
+        contact: data.contact ?? 'Clic WhatsApp',
         ...(data.message && { message: data.message })
       });
     } catch (e) {}
+  };
+
+  // NOUVEAU : Fonction de tracking universelle pour les clics WhatsApp
+  const handleWaClick = async (intent: string, msg: string) => {
+    // 1. On enregistre en base silencieusement
+    saveLead({ source: 'Bouton WhatsApp', intent: intent, message: msg });
+    // 2. On redirige vers WhatsApp
+    window.open(getWaLink(msg), "_blank");
   };
 
   const handleBotAction = async (msg: string, intent: string) => {
@@ -242,7 +247,7 @@ export default function OnyxOpsElite() {
        await supabase.from('leads').insert({
          source: 'Live Chat Site',
          intent: 'Message Chat',
-         contact: newMsg,
+         contact: 'Live Chat',
          status: 'Nouveau',
          message: newMsg
        });
@@ -303,7 +308,7 @@ export default function OnyxOpsElite() {
                  </div>
                </div>
             ) : (
-               <button onClick={() => window.open(getWaLink("Je souhaite me connecter au Hub Onyx."), "_blank")} className="bg-black text-[#39FF14] px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-md">
+               <button onClick={() => handleWaClick("Connexion Hub", "Je souhaite me connecter au Hub Onyx.")} className="bg-black text-[#39FF14] px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-md">
                  Accès Hub
                </button>
             )}
@@ -315,7 +320,7 @@ export default function OnyxOpsElite() {
                    <img src={currentUser.avatar_url || "https://ui-avatars.com/api/?name=User"} alt="" className="w-8 h-8 rounded-full object-cover shadow-sm border border-[#39FF14]" />
                 </div>
              ) : (
-                <button onClick={() => window.open(getWaLink("Je souhaite me connecter au Hub Onyx."), "_blank")} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest">Hub</button>
+                <button onClick={() => handleWaClick("Connexion Hub Mobile", "Je souhaite me connecter au Hub Onyx.")} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest">Hub</button>
              )}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2.5 bg-zinc-100 rounded-full text-black">
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -467,9 +472,13 @@ export default function OnyxOpsElite() {
                         <button onClick={() => navigateTo('home', 'quiz-section')} className="w-full text-center border border-zinc-700 text-zinc-400 py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition mb-3 flex items-center justify-center gap-2">
                           <Target className="w-3 h-3"/> Est-ce fait pour moi ?
                         </button>
-                        <a href={getWaLink(`Bonjour Onyx, je veux COMMENCER avec l'offre ${pack.label} à ${pack.price.toLocaleString()}F.`)} target="_blank" rel="noopener noreferrer" className={`block text-center py-4 rounded-2xl font-black text-sm transition uppercase tracking-tighter ${pack.id === 'trio' ? 'bg-[#39FF14] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#39FF14]'}`}>
+                        {/* 🚨 ICI : Bouton mis à jour pour tracker le lead */}
+                        <button 
+                          onClick={() => handleWaClick("Achat Tarifs", `Bonjour Onyx, je veux COMMENCER avec l'offre ${pack.label} à ${pack.price.toLocaleString()}F.`)} 
+                          className={`w-full block text-center py-4 rounded-2xl font-black text-sm transition uppercase tracking-tighter ${pack.id === 'trio' ? 'bg-[#39FF14] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#39FF14]'}`}
+                        >
                           Commencer
-                        </a>
+                        </button>
                       </div>
                     );
                   })}
@@ -522,7 +531,13 @@ export default function OnyxOpsElite() {
                           {activeProfiles.includes('Premium') ? 'Onyx Premium (75.000F)' : activeProfiles.includes('Restaurant') ? 'Pack Full (30.000F)' : activeProfiles.includes('Boutique') ? 'Pack Trio (17.500F)' : 'Onyx Solo (7.500F)'}
                         </h4>
                         <p className="text-sm text-zinc-600 mb-6 font-medium leading-relaxed">Solution recommandée en fonction de vos sélections actuelles. Digitalisez vos opérations dès maintenant.</p>
-                        <a href={getWaLink(`Je veux verrouiller mon offre basée sur mon profil.`)} target="_blank" rel="noopener noreferrer" className="block text-center bg-black text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-xl">Commander cette solution</a>
+                        {/* 🚨 ICI : Bouton mis à jour pour tracker le lead */}
+                        <button 
+                          onClick={() => handleWaClick("Lead Quiz Profil", "Je veux verrouiller mon offre basée sur mon profil.")}
+                          className="w-full block text-center bg-black text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-xl"
+                        >
+                          Commander cette solution
+                        </button>
                       </div>
                     )}
                   </div>
@@ -760,7 +775,13 @@ export default function OnyxOpsElite() {
 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button onClick={() => navigateTo('home')} className="flex-1 bg-black text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-xl text-center">Voir les Solutions</button>
-                  <a href={getWaLink("Bonjour, je vous contacte depuis la page À Propos.")} target="_blank" rel="noopener noreferrer" className="flex-1 border-2 border-black text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-black hover:text-[#39FF14] transition text-center">Contact WhatsApp</a>
+                  {/* 🚨 ICI : Bouton mis à jour pour tracker le lead */}
+                  <button 
+                    onClick={() => handleWaClick("Contact Propos", "Bonjour, je vous contacte depuis la page À Propos.")}
+                    className="flex-1 border-2 border-black text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-black hover:text-[#39FF14] transition text-center"
+                  >
+                    Contact WhatsApp
+                  </button>
                 </div>
               </div>
             </div>
@@ -844,8 +865,8 @@ export default function OnyxOpsElite() {
                         <p className="text-sm font-bold text-zinc-800 mb-4">J&apos;achète <span className="text-[#39FF14]">{selectedSaaS.id}</span> uniquement.</p>
                         <button
                           onClick={() => {
-                            saveLead({ intent: "Choix SaaS individuel", message: `${selectedSaaS.id} | ${saasMetier}` });
-                            window.open(getWaLink(`Bonjour, je suis en activité ${saasMetier}. Je veux acheter ${selectedSaaS.id} uniquement.`), "_blank");
+                            // 🚨 ICI : Utilisation du tracker
+                            handleWaClick("Choix SaaS individuel", `Bonjour, je suis en activité ${saasMetier}. Je veux acheter ${selectedSaaS.id} uniquement.`);
                           }}
                           className="w-full bg-black text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-[#39FF14] hover:text-black transition"
                         >
@@ -859,8 +880,8 @@ export default function OnyxOpsElite() {
                         <p className="text-xs font-bold text-zinc-800 leading-relaxed mb-4">En tant que <span className="underline">{saasMetier}</span>, sécurisez votre cash. Passez au pack supérieur.</p>
                         <button
                           onClick={() => {
-                            saveLead({ intent: "Choix Upsell Pack", message: `${selectedSaaS.upsellName} | ${saasMetier}` });
-                            window.open(getWaLink(`Bonjour, je suis en activité ${saasMetier}. Je veux passer au ${selectedSaaS.upsellName}.`), "_blank");
+                            // 🚨 ICI : Utilisation du tracker
+                            handleWaClick("Choix Upsell Pack", `Bonjour, je suis en activité ${saasMetier}. Je veux passer au ${selectedSaaS.upsellName}.`);
                           }}
                           className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition"
                         >
@@ -885,7 +906,11 @@ export default function OnyxOpsElite() {
               </div>
               <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black mb-8 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
               <div className="text-zinc-700 font-medium leading-relaxed space-y-4 mb-10 text-sm whitespace-pre-wrap">{selectedArticle.content}</div>
-              <button onClick={() => window.open(getWaLink(`Bonjour Onyx, j'ai lu votre article "${selectedArticle.title}" et j'aimerais en savoir plus.`), "_blank")} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition">
+              {/* 🚨 ICI : Bouton mis à jour pour tracker le lead */}
+              <button 
+                onClick={() => handleWaClick("Lead Blog", `Bonjour Onyx, j'ai lu votre article "${selectedArticle.title}" et j'aimerais en savoir plus.`)} 
+                className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition"
+              >
                 Discuter de cette stratégie avec un expert
               </button>
             </div>
