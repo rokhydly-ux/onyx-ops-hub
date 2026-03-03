@@ -9,7 +9,6 @@ import {
   BarChart3, CreditCard, CalendarClock, PhoneCall, Key, ChevronLeft, ShieldCheck, Mail
 } from "lucide-react";
 
-// CORRECTION DU CRASH BUILD : On garde strictement les poids supportés par Google Fonts
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -124,7 +123,7 @@ export default function AdminBentoTerminal() {
     else { if (data?.user) setUser(data.user); alert("Profil mis à jour."); setShowProfileModal(false); }
   };
 
-  // ================= SAUVEGARDE DB (FIX UUID) =================
+  // ================= SAUVEGARDE DB =================
   const saveClient = async () => {
     if(!newClient.full_name) return;
     const avatar_url = newClient.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(newClient.full_name)}`;
@@ -134,8 +133,9 @@ export default function AdminBentoTerminal() {
       const { error } = await supabase.from('clients').update(clientData).eq('id', newClient.id);
       if(!error) setUsersList(usersList.map(u => u.id === newClient.id ? { ...u, ...clientData } : u));
     } else {
-      delete clientData.id; // FIX STRICT DE L'ERREUR UUID
-      const { data, error } = await supabase.from('clients').insert(clientData).select().single();
+      // SOLUTION TYPESCRIPT STRICTE : On extrait l'ID avec la déstructuration
+      const { id, ...insertData } = clientData;
+      const { data, error } = await supabase.from('clients').insert(insertData).select().single();
       if(!error && data) setUsersList([data, ...usersList]);
     }
     setShowAddClientModal(false);
@@ -149,8 +149,9 @@ export default function AdminBentoTerminal() {
       const { error } = await supabase.from('articles').update(dataToSave).eq('id', dataToSave.id);
       if(!error) setArticlesList(articlesList.map(a => a.id === dataToSave.id ? { ...a, ...dataToSave } : a));
     } else {
-      delete dataToSave.id; // FIX STRICT
-      const { data, error } = await supabase.from('articles').insert(dataToSave).select().single();
+      // SOLUTION TYPESCRIPT STRICTE
+      const { id, ...insertData } = dataToSave;
+      const { data, error } = await supabase.from('articles').insert(insertData).select().single();
       if(!error && data) setArticlesList([data, ...articlesList]);
     }
     setShowArticleModal(null);
