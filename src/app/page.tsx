@@ -205,13 +205,29 @@ export default function OnyxOpsElite() {
     return () => { clearInterval(proofInterval); clearInterval(payoutInterval); clearInterval(scenarioInterval); };
   }, []);
 
-  // --- ACTIONS SUPABASE (LEADS & PARTNERS) ---
+  // --- CAPTURE LEADS (solution, modal, bot) ---
+  const saveLead = async (data: { source?: string; intent: string; contact?: string; message?: string }) => {
+    try {
+      await supabase.from('leads').insert({
+        source: data.source ?? 'Site',
+        intent: data.intent,
+        status: 'Nouveau',
+        contact: data.contact ?? '',
+        ...(data.message && { message: data.message })
+      });
+    } catch (e) {}
+  };
+
   const handleBotAction = async (msg: string, intent: string) => {
     try {
-       await supabase.from('leads').insert({ 
-         source: 'Bot Site', intent: intent, status: 'Nouveau', contact: 'Clic Rapide'
-       });
-    } catch(e) {}
+      await supabase.from('leads').insert({
+        source: 'Bot Site',
+        intent,
+        status: 'Nouveau',
+        contact: 'Clic Rapide',
+        message: msg
+      });
+    } catch (e) {}
     window.open(getWaLink(msg), "_blank");
     setIsBotOpen(false);
   };
@@ -221,17 +237,20 @@ export default function OnyxOpsElite() {
      const newMsg = userReply;
      setChatMessages([...chatMessages, { sender: 'client', text: newMsg }]);
      setUserReply("");
-     
      try {
-       await supabase.from('leads').insert({ 
-         source: 'Live Chat Site', intent: 'Message Chat', contact: newMsg, status: 'Nouveau'
+       await supabase.from('leads').insert({
+         source: 'Live Chat Site',
+         intent: 'Message Chat',
+         contact: newMsg,
+         status: 'Nouveau',
+         message: newMsg
        });
-     } catch(e) {}
+     } catch (e) {}
 
      setTimeout(() => {
         setChatMessages(prev => [...prev, { sender: 'bot', text: "Un agent traite votre demande. Laissez-nous votre numéro WhatsApp :" }]);
      }, 1500);
-  }
+  };
 
   const submitPartnerForm = async () => {
      if(!partnerForm.full_name || !partnerForm.contact) return alert("Le nom et le contact sont obligatoires.");
@@ -387,21 +406,37 @@ export default function OnyxOpsElite() {
             <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto border-t border-zinc-100">
               <h2 className={`${spaceGrotesk.className} text-3xl font-black mb-4 text-center uppercase tracking-tighter`}>NOS 6 SOLUTIONS <span className="text-[#39FF14]">RADICALES</span></h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
-                {SOLUTIONS.map((s, i) => (
-                  <div key={i} onClick={() => { setSelectedSaaS(s); setSaasMetier(""); }} className="group bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-black hover:shadow-xl transition-all cursor-pointer">
-                    <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
-                      <s.icon className="w-6 h-6" />
+                {SOLUTIONS.map((s, i) => {
+                  const Icon = s.icon;
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        setSelectedSaaS(s);
+                        setSaasMetier("");
+                        saveLead({ intent: "Clic Solution", message: s.id });
+                      }}
+                      className="group relative overflow-hidden bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-[#39FF14]/50 hover:shadow-[0_0_25px_rgba(57,255,20,0.35)] transition-all duration-300 cursor-pointer"
+                    >
+                      <div className="absolute right-0 top-0 w-28 h-28 opacity-[0.07] pointer-events-none">
+                        <Icon className="w-full h-full text-black" />
+                      </div>
+                      <div className="relative">
+                        <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
+                          <Icon className="w-6 h-6" />
+                        </div>
+                        <h3 className={`${spaceGrotesk.className} text-xl font-black mb-4 italic uppercase flex justify-between items-center`}>
+                          {s.id} <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic tracking-widest group-hover:bg-[#39FF14] transition">+ Infos</span>
+                        </h3>
+                        <p className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-2 rounded-xl mb-4 line-clamp-2 border border-red-100">{s.pain}</p>
+                        <div className="bg-[#39FF14]/10 p-4 rounded-2xl border-l-4 border-[#39FF14]">
+                          <p className="text-[10px] font-black text-[#39FF14] uppercase mb-1">Solution Onyx</p>
+                          <p className="text-xs font-bold text-black">{s.solution}</p>
+                        </div>
+                      </div>
                     </div>
-                    <h3 className={`${spaceGrotesk.className} text-xl font-black mb-4 italic uppercase flex justify-between items-center`}>
-                      {s.id} <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic tracking-widest group-hover:bg-[#39FF14] transition">+ Infos</span>
-                    </h3>
-                    <p className="text-xs font-semibold text-zinc-600 mb-4 line-clamp-2">{s.pain}</p>
-                    <div className="bg-[#39FF14]/10 p-4 rounded-2xl border-l-4 border-[#39FF14]">
-                      <p className="text-[10px] font-black text-[#39FF14] uppercase mb-1">Solution Onyx</p>
-                      <p className="text-xs font-bold text-black">{s.solution}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
 
@@ -772,40 +807,72 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* --- MODALE SAAS UPSELL CLICABLE --- */}
-        {selectedSaaS && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in duration-300">
-              <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition" onClick={() => setSelectedSaaS(null)}><X size={20}/></button>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="bg-black text-[#39FF14] p-3 rounded-2xl"><selectedSaaS.icon size={24} /></div>
-                <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase italic tracking-tighter`}>{selectedSaaS.id}</h3>
-              </div>
-              <div className="space-y-6">
-                <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Quelle est votre activité ?</p>
-                <div className="grid grid-cols-1 gap-3">
-                  {["Boutique / Prêt-à-porter", "Restaurant / Fast-Food", "E-commerce", "Agence de Services"].map((metier) => (
-                    <button key={metier} onClick={() => setSaasMetier(metier)} className={`text-left p-4 rounded-2xl text-xs font-black uppercase transition-all border-2 ${saasMetier === metier ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 border-transparent hover:border-zinc-200'}`}>
-                      {metier}
-                    </button>
-                  ))}
+        {/* --- MODALE SAAS : DEUX CHOIX (individuel OU pack) + capture leads --- */}
+        {selectedSaaS && (() => {
+          const SaasIcon = selectedSaaS.icon;
+          return (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+              <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in duration-300">
+                <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition" onClick={() => setSelectedSaaS(null)}><X size={20}/></button>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="bg-black text-[#39FF14] p-3 rounded-2xl"><SaasIcon size={24} /></div>
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase italic tracking-tighter`}>{selectedSaaS.id}</h3>
                 </div>
-                {saasMetier && (
-                  <div className="pt-6 animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-[#39FF14]/10 p-6 rounded-[2rem] border-2 border-[#39FF14] relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4 opacity-10"><Flame size={40}/></div>
-                      <p className="text-[10px] font-black uppercase text-[#39FF14] mb-2 flex items-center gap-1"><Zap size={12}/> Bundle conseillé</p>
-                      <p className="text-xs font-bold text-zinc-800 leading-relaxed mb-4">En tant que <span className="underline">{saasMetier}</span>, sécurisez votre cash. Passez au pack supérieur.</p>
-                      <button onClick={() => window.open(getWaLink(`Bonjour, je suis en activité ${saasMetier}. Je veux passer au ${selectedSaaS.upsellName}.`))} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition">
-                        Passer au {selectedSaaS.upsellName}
+                <div className="space-y-6">
+                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Quelle est votre activité ?</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {["Boutique / Prêt-à-porter", "Restaurant / Fast-Food", "E-commerce", "Agence de Services"].map((metier) => (
+                      <button
+                        key={metier}
+                        onClick={() => {
+                          setSaasMetier(metier);
+                          saveLead({ intent: "Activité choisie", message: `${selectedSaaS.id} | ${metier}` });
+                        }}
+                        className={`text-left p-4 rounded-2xl text-xs font-black uppercase transition-all border-2 ${saasMetier === metier ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 border-transparent hover:border-zinc-200'}`}
+                      >
+                        {metier}
                       </button>
-                    </div>
+                    ))}
                   </div>
-                )}
+                  {saasMetier && (
+                    <div className="pt-6 animate-in slide-in-from-bottom-4 duration-500 space-y-4">
+                      <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Choisissez votre offre</p>
+                      {/* Choix 1 : SaaS individuel */}
+                      <div className="bg-zinc-50 p-5 rounded-[2rem] border-2 border-zinc-200 hover:border-black transition-colors">
+                        <p className="text-[10px] font-black uppercase text-zinc-600 mb-1">Solution seule</p>
+                        <p className="text-sm font-bold text-zinc-800 mb-4">J&apos;achète <span className="text-[#39FF14]">{selectedSaaS.id}</span> uniquement.</p>
+                        <button
+                          onClick={() => {
+                            saveLead({ intent: "Choix SaaS individuel", message: `${selectedSaaS.id} | ${saasMetier}` });
+                            window.open(getWaLink(`Bonjour, je suis en activité ${saasMetier}. Je veux acheter ${selectedSaaS.id} uniquement.`), "_blank");
+                          }}
+                          className="w-full bg-black text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-[#39FF14] hover:text-black transition"
+                        >
+                          Acheter {selectedSaaS.id} uniquement
+                        </button>
+                      </div>
+                      {/* Choix 2 : Pack (upsell) avec icône fond */}
+                      <div className="bg-[#39FF14]/10 p-6 rounded-[2rem] border-2 border-[#39FF14] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-20"><Flame size={40} className="text-[#39FF14]" /></div>
+                        <p className="text-[10px] font-black uppercase text-[#39FF14] mb-2 flex items-center gap-1"><Zap size={12}/> Bundle conseillé</p>
+                        <p className="text-xs font-bold text-zinc-800 leading-relaxed mb-4">En tant que <span className="underline">{saasMetier}</span>, sécurisez votre cash. Passez au pack supérieur.</p>
+                        <button
+                          onClick={() => {
+                            saveLead({ intent: "Choix Upsell Pack", message: `${selectedSaaS.upsellName} | ${saasMetier}` });
+                            window.open(getWaLink(`Bonjour, je suis en activité ${saasMetier}. Je veux passer au ${selectedSaaS.upsellName}.`), "_blank");
+                          }}
+                          className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition"
+                        >
+                          Passer au {selectedSaaS.upsellName}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* --- MODALE LECTURE D'ARTICLE DE BLOG --- */}
         {selectedArticle && (
