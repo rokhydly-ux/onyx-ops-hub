@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
   Settings, LogOut, TrendingUp, Search, Plus, Filter, Calendar, 
-  CheckCircle, Clock, AlertCircle, X, Sparkles, Phone, Mail, FileText, ChevronRight, BarChart3, CreditCard, PlayCircle, Star
+  CheckCircle, Clock, AlertCircle, X, Sparkles, Phone, Mail, FileText, ChevronRight, BarChart3, CreditCard, PlayCircle, Star, UserPlus
 } from "lucide-react";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
