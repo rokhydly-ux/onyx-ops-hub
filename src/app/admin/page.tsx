@@ -5,7 +5,7 @@ import { Space_Grotesk, Inter } from "next/font/google";
 import { 
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
   Search, Plus, CheckCircle, Clock, AlertCircle, X, Sparkles, 
-  FileText, ExternalLink, MessageSquare, LogIn, Send, Download, Edit3, UserPlus
+  ExternalLink, MessageSquare, LogIn, Send, Download, Edit3, UserPlus
 } from "lucide-react";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
@@ -25,7 +25,6 @@ type IAAction = {
 };
 
 export default function AdminDashboard() {
-  // Fix Hydratation & Crash Next.js (Rendu Client Uniquement)
   const [mounted, setMounted] = useState(false);
   const [todayStr, setTodayStr] = useState('');
 
@@ -119,7 +118,6 @@ export default function AdminDashboard() {
     ]);
   }, []);
 
-  // Coupe-circuit absolu pour empêcher le rendu serveur de crasher le client
   if (!mounted) return null;
 
   const handleOutsideClick = (setter: any, secondaryAction?: () => void) => (e: any) => {
@@ -184,7 +182,7 @@ export default function AdminDashboard() {
        isExpiringSub: false 
      };
      setContacts([newContact, ...contacts]);
-     alert(`${selectedPartner.full_name} a été ajouté en tant que Client dans le CRM ! Son statut Ambassadeur est conservé.`);
+     alert(`${selectedPartner?.full_name} a été ajouté en tant que Client dans le CRM ! Son statut Ambassadeur est conservé.`);
   };
 
   const runIAArticleSuggestion = () => {
@@ -223,7 +221,6 @@ export default function AdminDashboard() {
      setShowProfileModal(false);
   };
 
-  // Filtrage ultra-sécurisé avec Optional Chaining (?) pour empêcher les crashs
   const filteredActions = actionsIA.filter(a => {
      if(actionTabFilter === 'IA' && a.module === 'Marketing') return false;
      if(actionTabFilter === 'Marketing' && a.module !== 'Marketing') return false;
@@ -545,7 +542,6 @@ export default function AdminDashboard() {
                     {contacts.filter(c => {
                        if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
                        
-                       // Sécurisation extrême de la recherche
                        const search = crmSearch?.toLowerCase() || "";
                        if (search && !(c.full_name?.toLowerCase() || "").includes(search) && !(c.saas?.toLowerCase() || "").includes(search)) return false;
                        
