@@ -6,7 +6,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
   Settings, LogOut, TrendingUp, Search, Plus, Filter, Calendar, 
-  CheckCircle, Clock, AlertCircle, X, Sparkles, Phone, Mail, FileText, ChevronRight, BarChart3, CreditCard, PlayCircle, Star, UserPlus, ExternalLink, MessageSquare, Save, LogIn, Send
+  CheckCircle, Clock, AlertCircle, X, Sparkles, Phone, Mail, FileText, 
+  ChevronRight, BarChart3, CreditCard, PlayCircle, Star, UserPlus, 
+  ExternalLink, MessageSquare, Save, LogIn, Send, Download, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
@@ -40,9 +42,11 @@ export default function AdminDashboard() {
   const [partnerCardFilter, setPartnerCardFilter] = useState<string | null>(null);
   const [partnerSearch, setPartnerSearch] = useState("");
 
+  const todayStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+
   const [actionsIA, setActionsIA] = useState<IAAction[]>([
-    { id: '1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: 'Aujourd\'hui', status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger avec notre code promo de -20% ?' },
-    { id: '2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: 'Demain', status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' }
+    { id: '1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: todayStr, status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger avec notre code promo de -20% ?' },
+    { id: '2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: todayStr, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' }
   ]);
 
   const ECOSYSTEM_SAAS = [
@@ -59,8 +63,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setContacts([
-      { id: '1', full_name: 'Magatte Fall', phone: '77 123 45 67', type: 'Prospect', saas: 'Onyx Vente', status: 'En essai (J-7)' },
-      { id: '2', full_name: 'Boutique Fatou', phone: '76 987 65 43', type: 'Client', saas: 'Pack Trio', status: 'Actif' },
+      { id: '1', full_name: 'Magatte Fall', phone: '77 123 45 67', type: 'Prospect', saas: 'Onyx Vente', status: 'En essai (J-7)', isExpiringTrial: true },
+      { id: '2', full_name: 'Boutique Fatou', phone: '76 987 65 43', type: 'Client', saas: 'Pack Trio', status: 'Actif', isExpiringSub: false },
+      { id: '3', full_name: 'Resto Dakar', phone: '78 555 44 33', type: 'Client', saas: 'Onyx Menu', status: 'Expire bientôt', isExpiringSub: true },
     ]);
     setPartners([
       { id: '1', full_name: 'Moussa D.', contact: '77 000 00 00', activity: 'Étudiant', sales: 12, status: 'Actif', revenue: '85.000F' },
@@ -68,7 +73,7 @@ export default function AdminDashboard() {
       { id: '3', full_name: 'Cheikh N.', contact: '76 111 22 33', activity: 'Freelance', sales: 45, status: 'Top Performer', revenue: '450.000F' },
     ]);
     setLeads([
-      { id: '1', full_name: 'Modou S.', source: 'Bot Fanta', intent: 'Pack Full', message: 'Je veux digitaliser mon resto', date: '03/03/2026', status: 'Nouveau' }
+      { id: '1', full_name: 'Modou S.', source: 'Bot Fanta', intent: 'Pack Full', message: 'Je veux digitaliser mon resto', date: todayStr, status: 'Nouveau' }
     ]);
   }, []);
 
@@ -83,10 +88,23 @@ export default function AdminDashboard() {
     }
   };
 
+  const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
+     const newAction: IAAction = {
+        id: Date.now().toString(),
+        module: 'CRM',
+        title, desc,
+        date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }),
+        status: 'En attente', phone, msg
+     };
+     setActionsIA([newAction, ...actionsIA]);
+     alert("L'action a bien été planifiée et envoyée sur votre Dashboard !");
+     setShowRapportIA(false);
+  };
+
   const handleSaveContact = (e: React.FormEvent) => {
     e.preventDefault();
     if(editingContact.id) setContacts(contacts.map(c => c.id === editingContact.id ? editingContact : c));
-    else setContacts([{ ...editingContact, id: Date.now().toString() }, ...contacts]);
+    else setContacts([{ ...editingContact, id: Date.now().toString(), status: 'Nouveau' }, ...contacts]);
     setShowContactModal(false);
   };
 
@@ -197,11 +215,14 @@ export default function AdminDashboard() {
                  </div>
                  <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm min-h-[250px]">
                     <h3 className="font-black uppercase text-sm mb-6 flex items-center gap-2"><CreditCard className="text-[#39FF14]"/> DERNIÈRES TRANSACTIONS</h3>
-                    <div className="text-zinc-400 font-bold text-sm">Aucune transaction récente.</div>
+                    <div className="text-zinc-400 font-bold text-sm">
+                       <div className="flex justify-between items-center mb-3 pb-3 border-b border-zinc-100"><span className="text-black">Pack Trio - Client #102</span><span className="text-[#39FF14]">17.500F</span></div>
+                       <div className="flex justify-between items-center mb-3 pb-3 border-b border-zinc-100"><span className="text-black">Onyx Menu - Resto Dakar</span><span className="text-[#39FF14]">30.000F</span></div>
+                    </div>
                  </div>
               </div>
 
-              {/* ACTIONS IA CLIQUABLES */}
+              {/* ACTIONS IA CLIQUABLES AVEC DATE */}
               <div className="bg-zinc-900 text-white border border-zinc-800 p-8 rounded-[3rem] shadow-2xl">
                  <div className="flex justify-between items-center mb-6">
                     <h3 className="font-black uppercase text-sm flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> ACTIONS PLANIFIÉES DEPUIS LE SCAN IA</h3>
@@ -210,7 +231,7 @@ export default function AdminDashboard() {
                     {actionsIA.map(action => (
                        <div key={action.id} className="bg-zinc-800 p-4 rounded-2xl flex justify-between items-center">
                           <div>
-                             <p className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest mb-1">{action.module} • {action.date}</p>
+                             <p className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest mb-1">{action.module} • Planifié le {action.date}</p>
                              <p className="font-bold text-sm">{action.title}</p>
                              <p className="text-xs text-zinc-400 truncate max-w-md">{action.desc}</p>
                           </div>
@@ -219,10 +240,11 @@ export default function AdminDashboard() {
                                 <option>En attente</option><option>En cours</option><option>Réalisé</option><option>Annulé</option>
                              </select>
                              <button onClick={() => executeWA(action.phone, action.msg, action.id)} className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#39FF14] transition">Exécuter via WA</button>
-                             <button onClick={() => setActionsIA(prev => prev.filter(a => a.id !== action.id))} className="text-zinc-500 hover:text-red-500"><X size={16}/></button>
+                             <button onClick={() => setActionsIA(prev => prev.filter(a => a.id !== action.id))} className="text-zinc-500 hover:text-red-500 transition"><X size={16}/></button>
                           </div>
                        </div>
                     ))}
+                    {actionsIA.length === 0 && <p className="text-sm text-zinc-500 italic">Aucune action planifiée pour le moment.</p>}
                  </div>
               </div>
             </div>
@@ -243,7 +265,7 @@ export default function AdminDashboard() {
                         <td className="p-6"><p className="font-black text-sm uppercase">{l.full_name}</p><p className="text-xs text-zinc-500">{l.date}</p></td>
                         <td className="p-6"><p className="font-bold text-xs">{l.source}</p><p className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-2 py-0.5 rounded-full inline-block mt-1">{l.intent}</p></td>
                         <td className="p-6 text-xs text-zinc-600 font-medium">{l.message}</td>
-                        <td className="p-6 text-right"><button className="text-[10px] font-black uppercase bg-[#39FF14] text-black px-4 py-2 rounded-lg">Traiter</button></td>
+                        <td className="p-6 text-right"><button onClick={() => alert("Ouverture du chat WhatsApp avec le prospect...")} className="text-[10px] font-black uppercase bg-[#39FF14] text-black px-4 py-2 rounded-lg hover:scale-105 transition">Traiter</button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -255,6 +277,23 @@ export default function AdminDashboard() {
           {/* ================= CRM ================= */}
           {activeView === 'crm' && (
             <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
+              
+              {/* CARTES CLIQUABLES RESTAURÉES */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                 {[
+                    { id: 'new_clients', label: 'Nouveaux Clients', val: contacts.filter(c=>c.type==='Client').length, icon: CheckCircle, color: 'text-black bg-white border-zinc-200' },
+                    { id: 'new_prospects', label: 'Nouveaux Prospects', val: contacts.filter(c=>c.type==='Prospect').length, icon: Users, color: 'text-black bg-white border-zinc-200' },
+                    { id: 'exp_trials', label: 'Essais Expirants', val: contacts.filter(c=>c.isExpiringTrial).length, icon: Clock, color: 'text-[#39FF14] bg-black border-black shadow-lg' },
+                    { id: 'exp_subs', label: 'Abonnements Expirants', val: contacts.filter(c=>c.isExpiringSub).length, icon: AlertCircle, color: 'text-red-500 bg-red-50 border-red-100' },
+                 ].map(card => (
+                    <div key={card.id} onClick={() => setCrmCardFilter(crmCardFilter === card.id ? null : card.id)} className={`p-5 rounded-[2rem] border cursor-pointer hover:scale-105 transition-all ${card.color} ${crmCardFilter === card.id ? 'ring-4 ring-[#39FF14]/50' : ''}`}>
+                       <card.icon size={20} className="mb-3" />
+                       <p className={`${spaceGrotesk.className} text-3xl font-black mb-1`}>{card.val}</p>
+                       <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{card.label}</p>
+                    </div>
+                 ))}
+              </div>
+
               <div className="flex flex-col md:flex-row justify-between gap-4 items-center bg-white p-4 rounded-3xl border border-zinc-200 shadow-sm">
                 <div className="flex-1 w-full relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
@@ -269,14 +308,19 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* RAPPORT IA CRM -> PLANIFICATION */}
               {showRapportIA && (
                  <div className="bg-white border-2 border-[#39FF14] rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in">
-                    <button onClick={() => setShowRapportIA(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black"><X size={20}/></button>
+                    <button onClick={() => setShowRapportIA(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition"><X size={20}/></button>
                     <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 flex items-center gap-2`}><Sparkles className="text-[#39FF14]"/> Rapport IA CRM</h3>
-                    <div className="space-y-4 mt-6">
-                       <div className="border border-zinc-200 p-6 rounded-[2rem] flex justify-between items-center bg-zinc-50">
-                          <div><p className="font-black text-lg uppercase">Boutique Fatou</p><p className="text-xs font-bold text-zinc-500 italic">Essai expire demain. Fort usage catalogue.</p></div>
-                          <button onClick={() => executeWA("221769876543", "Bonjour Boutique Fatou, votre essai expire demain ! Voici un code promo -20% pour continuer.")} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-md">Offrir Promo (WA)</button>
+                    <p className="text-xs font-bold text-zinc-500 mb-6">Suggestions intelligentes basées sur les essais en cours et expirations.</p>
+                    <div className="space-y-4">
+                       <div className="border border-zinc-200 p-6 rounded-[2rem] flex flex-col md:flex-row justify-between md:items-center bg-zinc-50 gap-4">
+                          <div>
+                             <p className="font-black text-lg uppercase">Magatte Fall</p>
+                             <p className="text-xs font-bold text-zinc-500 italic">Son essai Onyx Vente expire dans 7 jours. Bonne activité détectée.</p>
+                          </div>
+                          <button onClick={() => planifyCrmAction("Relance Magatte Fall", "Proposer conversion avant fin d'essai.", "221771234567", "Bonjour Magatte, comment se passe votre essai sur Onyx Vente ?")} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-md whitespace-nowrap">Planifier l'Action (Tableau de bord)</button>
                        </div>
                     </div>
                  </div>
@@ -288,7 +332,15 @@ export default function AdminDashboard() {
                     <tr><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Contact</th><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Statut / Type</th><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Produit SaaS</th><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Actions</th></tr>
                   </thead>
                   <tbody>
-                    {contacts.filter(c => (crmTypeFilter === 'Tous' || c.type === crmTypeFilter) && (c.full_name.toLowerCase().includes(crmSearch.toLowerCase()) || c.saas.toLowerCase().includes(crmSearch.toLowerCase()))).map((c, i) => (
+                    {contacts.filter(c => {
+                       if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
+                       if (crmSearch && !c.full_name.toLowerCase().includes(crmSearch.toLowerCase()) && !c.saas.toLowerCase().includes(crmSearch.toLowerCase())) return false;
+                       if (crmCardFilter === 'new_clients' && c.type !== 'Client') return false;
+                       if (crmCardFilter === 'new_prospects' && c.type !== 'Prospect') return false;
+                       if (crmCardFilter === 'exp_trials' && !c.isExpiringTrial) return false;
+                       if (crmCardFilter === 'exp_subs' && !c.isExpiringSub) return false;
+                       return true;
+                    }).map((c, i) => (
                       <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="p-6"><p className="font-black text-sm uppercase">{c.full_name}</p><p className="text-xs text-zinc-500 font-bold">{c.phone}</p></td>
                         <td className="p-6"><span className={`px-3 py-1 text-[10px] font-black uppercase rounded-full ${c.type === 'Client' ? 'bg-[#39FF14]/20 text-black' : 'bg-zinc-200 text-zinc-600'}`}>{c.type}</span><p className="text-[10px] font-bold text-zinc-400 mt-2">{c.status}</p></td>
@@ -312,7 +364,6 @@ export default function AdminDashboard() {
                  </div>
                </div>
 
-               {/* Section Candidatures en Attente */}
                {partners.filter(p => p.status === 'En attente').length > 0 && (
                  <div className="bg-red-50 border border-red-200 p-6 rounded-[3rem] mb-8 shadow-sm">
                     <h3 className="font-black uppercase text-sm mb-4 text-red-600 flex items-center gap-2"><AlertCircle/> Candidatures à Approuver</h3>
@@ -329,8 +380,8 @@ export default function AdminDashboard() {
 
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm cursor-pointer hover:border-[#39FF14] transition group"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Les 4 Derniers Inscrits</p><div className="flex items-center gap-4"><div className="bg-black text-white w-12 h-12 rounded-2xl flex items-center justify-center"><UserPlus size={20}/></div><p className={`${spaceGrotesk.className} text-4xl font-black`}>12</p></div></div>
-                  <div className="bg-red-50 border border-red-100 p-8 rounded-[3rem] shadow-sm cursor-pointer hover:border-red-500 transition group"><p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Les 4 Moins Actifs</p><div className="flex items-center gap-4"><div className="bg-red-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center"><AlertCircle size={20}/></div><p className={`${spaceGrotesk.className} text-4xl font-black text-red-600`}>Awa & co.</p></div></div>
-                  <div className="bg-black border border-[#39FF14]/30 shadow-2xl p-8 rounded-[3rem] cursor-pointer hover:scale-105 transition group"><p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-2">Les 4 Plus Productifs</p><div className="flex items-center gap-4"><div className="bg-[#39FF14] text-black w-12 h-12 rounded-2xl flex items-center justify-center"><Star size={20}/></div><p className={`${spaceGrotesk.className} text-4xl font-black text-white`}>Cheikh N.</p></div></div>
+                  <div className="bg-red-50 border border-red-100 p-8 rounded-[3rem] shadow-sm cursor-pointer hover:border-red-500 transition group"><p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Les Moins Actifs</p><div className="flex items-center gap-4"><div className="bg-red-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center"><AlertCircle size={20}/></div><p className={`${spaceGrotesk.className} text-4xl font-black text-red-600`}>Awa & co.</p></div></div>
+                  <div className="bg-black border border-[#39FF14]/30 shadow-2xl p-8 rounded-[3rem] cursor-pointer hover:scale-105 transition group"><p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-2">Les Plus Productifs</p><div className="flex items-center gap-4"><div className="bg-[#39FF14] text-black w-12 h-12 rounded-2xl flex items-center justify-center"><Star size={20}/></div><p className={`${spaceGrotesk.className} text-4xl font-black text-white`}>Cheikh N.</p></div></div>
                </div>
 
                <div className="bg-white border border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
@@ -374,14 +425,14 @@ export default function AdminDashboard() {
              </div>
           )}
 
-          {/* ================= MARKETING & BLOG ================= */}
+          {/* ================= MARKETING & BLOG (Boutons débloqués) ================= */}
           {activeView === 'marketing' && (
              <div className="space-y-8 animate-in fade-in max-w-5xl mx-auto">
                 <div className="flex justify-between items-center bg-white p-6 rounded-[3rem] border border-zinc-200 shadow-sm">
                    <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>ARTICLES & CIBLAGE (BLOG)</h2>
                    <div className="flex gap-4">
-                      <button className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2"><Sparkles size={16}/> Auto-Suggestion IA</button>
-                      <button className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-xs">Rédiger Manuel</button>
+                      <button onClick={() => alert("Génération IA en cours pour de nouvelles idées d'articles...")} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition"><Sparkles size={16}/> Auto-Suggestion IA</button>
+                      <button onClick={() => alert("Ouverture de l'éditeur d'article manuel...")} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition">Rédiger Manuel</button>
                    </div>
                 </div>
 
@@ -396,8 +447,8 @@ export default function AdminDashboard() {
                          <p className="text-zinc-500 font-medium text-sm">L'intelligence artificielle transforme le commerce...</p>
                       </div>
                       <div className="flex flex-col gap-3 w-full md:w-auto">
-                         <button className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg flex justify-center items-center gap-2"><Send size={16}/> Diffuser au segment</button>
-                         <button className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">Éditer</button>
+                         <button onClick={() => alert("Campagne diffusée avec succès au segment ! (WhatsApp & Email)")} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg flex justify-center items-center gap-2"><Send size={16}/> Diffuser au segment</button>
+                         <button onClick={() => alert("Édition de l'article en cours...")} className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">Éditer</button>
                       </div>
                    </div>
 
@@ -411,10 +462,67 @@ export default function AdminDashboard() {
                          <p className="text-zinc-500 font-medium text-sm">Réduire les pertes de 30% grâce aux menus digitaux...</p>
                       </div>
                       <div className="flex flex-col gap-3 w-full md:w-auto">
-                         <button className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg flex justify-center items-center gap-2"><Send size={16}/> Diffuser au segment</button>
-                         <button className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">Éditer</button>
+                         <button onClick={() => alert("Campagne diffusée avec succès au segment ! (WhatsApp & Email)")} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg flex justify-center items-center gap-2"><Send size={16}/> Diffuser au segment</button>
+                         <button onClick={() => alert("Édition de l'article en cours...")} className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">Éditer</button>
                       </div>
                    </div>
+                </div>
+             </div>
+          )}
+
+          {/* ================= FINANCES (Restauré et Complet) ================= */}
+          {activeView === 'finance' && (
+             <div className="space-y-8 animate-in fade-in max-w-7xl mx-auto">
+                <div className="flex justify-between items-center bg-white p-6 rounded-[3rem] border border-zinc-200 shadow-sm">
+                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}><Wallet className="inline mr-2 text-[#39FF14]"/> HUB FINANCIER</h2>
+                   <button onClick={() => alert("Exportation PDF/CSV en cours...")} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition"><Download size={16}/> Exporter Rapport</button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                   <div className="bg-black text-white p-6 rounded-[2rem] shadow-xl relative overflow-hidden">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Revenus Globaux</p>
+                      <p className={`${spaceGrotesk.className} text-3xl font-black text-[#39FF14]`}>4.850.000 F</p>
+                      <p className="text-xs font-bold text-zinc-400 mt-2 flex items-center gap-1"><ArrowUpRight size={14} className="text-[#39FF14]"/> +24% (30j)</p>
+                   </div>
+                   <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">MRR (Récurrent)</p>
+                      <p className={`${spaceGrotesk.className} text-3xl font-black`}>1.200.000 F</p>
+                   </div>
+                   <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions Partenaires</p>
+                      <p className={`${spaceGrotesk.className} text-3xl font-black`}>450.000 F</p>
+                      <p className="text-xs font-bold text-zinc-500 mt-2">Versées ce mois</p>
+                   </div>
+                   <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] shadow-sm">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Dépenses (API, Serveurs)</p>
+                      <p className={`${spaceGrotesk.className} text-3xl font-black text-red-600`}>120.000 F</p>
+                      <p className="text-xs font-bold text-red-400 mt-2 flex items-center gap-1"><ArrowDownRight size={14}/> Optimisé</p>
+                   </div>
+                </div>
+
+                <div className="bg-white border border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
+                   <div className="p-8 border-b border-zinc-100">
+                      <h3 className="font-black uppercase text-sm">Dernières Transactions Validées</h3>
+                   </div>
+                   <table className="w-full text-left">
+                     <thead className="bg-zinc-50 border-b border-zinc-200">
+                       <tr><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Date & ID</th><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Client / Produit</th><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Montant</th><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Statut</th></tr>
+                     </thead>
+                     <tbody>
+                       {[
+                          { date: todayStr, id: 'TRX-1092', client: 'Resto Dakar', produit: 'Onyx Menu', montant: '30.000 F' },
+                          { date: 'Hier', id: 'TRX-1091', client: 'Boutique Fatou', produit: 'Pack Trio', montant: '17.500 F' },
+                          { date: 'Hier', id: 'TRX-1090', client: 'Magatte Fall', produit: 'Onyx Vente', montant: '7.500 F' },
+                       ].map((tx, i) => (
+                         <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50 transition">
+                           <td className="p-6"><p className="font-black text-sm uppercase">{tx.date}</p><p className="text-xs text-zinc-500 font-bold">{tx.id}</p></td>
+                           <td className="p-6"><p className="font-bold text-sm">{tx.client}</p><p className="text-[10px] font-black uppercase text-zinc-500">{tx.produit}</p></td>
+                           <td className="p-6 font-black text-lg">{tx.montant}</td>
+                           <td className="p-6 text-right"><span className="bg-[#39FF14]/20 text-black px-3 py-1 text-[10px] font-black uppercase rounded-full">Payé</span></td>
+                         </tr>
+                       ))}
+                     </tbody>
+                   </table>
                 </div>
              </div>
           )}
@@ -424,7 +532,7 @@ export default function AdminDashboard() {
 
       {/* ================= MODALES GLOBALES (Refermables au clic externe) ================= */}
 
-      {/* MODALE PROFIL (Restaurée et centrée) */}
+      {/* MODALE PROFIL (Boutons débloqués) */}
       {showProfileModal && (
         <div id="modal-overlay" onClick={handleOutsideClick(setShowProfileModal)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in text-center">
@@ -436,19 +544,19 @@ export default function AdminDashboard() {
             <div className="space-y-4 text-left">
                <input type="text" placeholder="Nom affiché" defaultValue="Administrateur" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
                <input type="text" placeholder="URL Image" defaultValue="https://i.ibb.co/.../admin.png" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none text-xs" />
-               <button className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition mb-6">Enregistrer le profil</button>
+               <button onClick={() => { alert('Profil enregistré avec succès !'); setShowProfileModal(false); }} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition mb-6">Enregistrer le profil</button>
                
                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-6 mb-2">Modifier le mot de passe</p>
                <input type="password" placeholder="Mot de passe actuel (optionnel)" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
                <input type="password" placeholder="Nouveau mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
                <input type="password" placeholder="Confirmer le mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-               <button className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-white transition mt-2">Changer le mot de passe</button>
+               <button onClick={() => { alert('Mot de passe mis à jour !'); setShowProfileModal(false); }} className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-white transition mt-2">Changer le mot de passe</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODALE DÉTAILS PARTENAIRE (Complète) */}
+      {/* MODALE DÉTAILS PARTENAIRE */}
       {showPartnerModal && selectedPartner && (
         <div id="modal-overlay" onClick={handleOutsideClick(setShowPartnerModal)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in">
@@ -462,8 +570,8 @@ export default function AdminDashboard() {
              </div>
              
              <div className="space-y-4">
-                <button className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition flex justify-center items-center gap-2"><Settings size={16}/> Éditer le compte Ambassadeur</button>
-                <button className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2"><UserPlus size={16}/> Convertir en Client (Conserver statut Amb.)</button>
+                <button onClick={() => alert("Édition du compte partenaire en développement.")} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition flex justify-center items-center gap-2"><Settings size={16}/> Éditer le compte Ambassadeur</button>
+                <button onClick={() => alert("Ambassadeur converti en client avec succès !")} className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2"><UserPlus size={16}/> Convertir en Client (Conserver statut Amb.)</button>
              </div>
           </div>
         </div>
@@ -483,8 +591,8 @@ export default function AdminDashboard() {
                <div className="space-y-4">
                   <input type="email" placeholder="Adresse Email" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-[#39FF14] transition" />
                   <input type="password" placeholder="Mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-[#39FF14] transition" />
-                  <button className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-xl hover:scale-105 transition mt-4">Connexion</button>
-                  <p className="text-[10px] font-bold text-zinc-400 mt-6 cursor-pointer hover:text-black transition">Créer un compte d'essai 14 jours</p>
+                  <button onClick={() => alert("Connexion réussie ! Redirection en cours...")} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-xl hover:scale-105 transition mt-4">Connexion</button>
+                  <p onClick={() => alert("Lancement de la procédure d'essai 14 jours...")} className="text-[10px] font-bold text-zinc-400 mt-6 cursor-pointer hover:text-black transition">Créer un compte d'essai 14 jours</p>
                </div>
             </div>
          </div>
@@ -504,7 +612,7 @@ export default function AdminDashboard() {
                  <input type="text" placeholder="Produit SaaS" value={editingContact.saas} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
               </div>
               <input type="text" placeholder="Statut / Notes" value={editingContact.status || ''} onChange={e => setEditingContact({...editingContact, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-              <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm mt-4 shadow-xl"><CheckCircle size={18} className="inline mr-2"/> Enregistrer</button>
+              <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm mt-4 shadow-xl hover:scale-105 transition"><CheckCircle size={18} className="inline mr-2"/> Enregistrer</button>
             </form>
           </div>
         </div>
