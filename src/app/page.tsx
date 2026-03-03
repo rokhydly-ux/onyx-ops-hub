@@ -110,7 +110,6 @@ export default function OnyxOpsElite() {
   // MODALES & SAAS
   const [selectedSaaS, setSelectedSaaS] = useState<any>(null);
   const [saasMetier, setSaasMetier] = useState("");
-  const [customMetier, setCustomMetier] = useState("");
   
   // LOGIQUE USER CONNECTÉ
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -124,7 +123,6 @@ export default function OnyxOpsElite() {
   // WIDGETS & AUTRES
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [scenarioIndex, setScenarioIndex] = useState(0);
 
   // BLOG DYNAMIQUE SUPABASE
@@ -133,11 +131,11 @@ export default function OnyxOpsElite() {
 
   // BOT WHATSAPP
   const [isBotOpen, setIsBotOpen] = useState(false);
-  const [chatSimulated, setChatSimulated] = useState(false); // Pour le live chat
+  const [chatSimulated, setChatSimulated] = useState(false); 
   const [chatMessages, setChatMessages] = useState([{ sender: 'bot', text: "Bonjour ! Je suis conseiller Onyx. Comment puis-je vous aider pour votre business ?" }]);
   const [userReply, setUserReply] = useState("");
 
-  // WIDGETS PREUVE SOCIALE (ALÉATOIRES INFINIS)
+  // WIDGETS PREUVE SOCIALE
   const [currentProof, setCurrentProof] = useState(generateRandomProof());
   const [showProof, setShowProof] = useState(false);
   const [currentPayout, setCurrentPayout] = useState(generateRandomPayout());
@@ -159,7 +157,7 @@ export default function OnyxOpsElite() {
     setTimeout(() => setCopiedLink(null), 2000);
   };
 
-  // CHECK USER & FETCH ARTICLES
+  // FETCH INIT & ARTICLES
   useEffect(() => {
     const initData = async () => {
       // 1. Auth Status
@@ -170,12 +168,12 @@ export default function OnyxOpsElite() {
         if (data?.role === 'admin') setIsAdmin(true);
       }
       
-      // 2. Fetch Blog Articles
-      const { data: dbArticles } = await supabase.from('articles').select('*').order('created_at', { ascending: false });
+      // 2. Fetch Blog Articles from Supabase
+      const { data: dbArticles, error } = await supabase.from('articles').select('*').order('created_at', { ascending: false });
       if (dbArticles && dbArticles.length > 0) {
          setArticles(dbArticles);
       } else {
-         // Fallback if empty (Local Mock)
+         console.error("Supabase Articles fetch err:", error);
          setArticles([
             { id: 1, title: "Comment doubler vos ventes WhatsApp en 2026", content: "Au Sénégal, 90% des ventes se font sur WhatsApp...", category: "Social Selling", pack_focus: "Onyx Solo" },
             { id: 2, title: "La fin des fraudes sur les chantiers", content: "Gérer le pointage est un cauchemar...", category: "Gestion d'Équipe", pack_focus: "Pack Full" }
@@ -188,31 +186,34 @@ export default function OnyxOpsElite() {
   // ESC KEY LISTENER
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { 
-      if (e.key === "Escape") { setSelectedPlan(null); setSelectedSaaS(null); setShowIncidentModal(false); setIsAuthModalOpen(false); setSelectedArticle(null); setIsBotOpen(false); }
+      if (e.key === "Escape") { setSelectedPlan(null); setSelectedSaaS(null); setIsAuthModalOpen(false); setSelectedArticle(null); setIsBotOpen(false); }
     };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  // BODY OVERFLOW
+  // BODY OVERFLOW FIX
   useEffect(() => {
-    document.body.style.overflow = (selectedPlan || selectedSaaS || showIncidentModal || isMobileMenuOpen || isAuthModalOpen || selectedArticle) ? "hidden" : "";
+    if (selectedPlan || selectedSaaS || isMobileMenuOpen || isAuthModalOpen || selectedArticle) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
     return () => { document.body.style.overflow = ""; };
-  }, [selectedPlan, selectedSaaS, showIncidentModal, isMobileMenuOpen, isAuthModalOpen, selectedArticle]);
+  }, [selectedPlan, selectedSaaS, isMobileMenuOpen, isAuthModalOpen, selectedArticle]);
 
-  // SOCIAL PROOF & PAYOUT TIMERS (RALENTIS ET ALÉATOIRES INFINIS)
+  // SOCIAL PROOF & PAYOUT TIMERS
   useEffect(() => {
     const proofInterval = setInterval(() => {
       setShowProof(false);
-      setTimeout(() => { setCurrentProof(generateRandomProof()); setShowProof(true); }, 1000); // 1s de pause invisible
-    }, 12000); // Défilement toutes les 12s
+      setTimeout(() => { setCurrentProof(generateRandomProof()); setShowProof(true); }, 1000);
+    }, 12000);
 
     const payoutInterval = setInterval(() => {
       setShowPayout(false);
       setTimeout(() => { setCurrentPayout(generateRandomPayout()); setShowPayout(true); }, 1000);
-    }, 15000); // Défilement toutes les 15s
+    }, 15000);
 
-    // Déclenchement initial
     setTimeout(() => setShowProof(true), 4000);
     setTimeout(() => setShowPayout(true), 6000);
 
@@ -228,16 +229,15 @@ export default function OnyxOpsElite() {
   // ROUTAGE INTELLIGENT BOT & ENREGISTREMENT DB
   const handleBotAction = async (msg: string, intent: string) => {
     const currentHour = new Date().getHours();
-    // On considère heures de bureau de 9h à 18h
     const isWorkHour = currentHour >= 9 && currentHour < 18;
 
-    // Enregistrer le Lead
     try {
        await supabase.from('leads').insert({ 
-         source: isWorkHour ? 'Bot Site (Live)' : 'WhatsApp (Hors ligne)', 
-         intent: intent 
+         source: isWorkHour ? 'Bot Site (Live)' : 'Bot Site (Hors ligne)', 
+         intent: intent,
+         status: 'Nouveau'
        });
-    } catch(e) { console.error(e) }
+    } catch(e) { console.error("Erreur insertion lead:", e) }
 
     if (isWorkHour) {
       setChatSimulated(true);
@@ -247,11 +247,22 @@ export default function OnyxOpsElite() {
     }
   };
 
-  const sendLiveChat = () => {
+  const sendLiveChat = async () => {
      if(!userReply.trim()) return;
-     setChatMessages([...chatMessages, { sender: 'client', text: userReply }]);
+     const newMsg = userReply;
+     setChatMessages([...chatMessages, { sender: 'client', text: newMsg }]);
      setUserReply("");
-     // Simulation de réponse admin 2sec plus tard
+     
+     // Sauvegarde dans Supabase si c'est un contact ou lead
+     try {
+       await supabase.from('leads').insert({ 
+         source: 'Live Chat', 
+         intent: 'Message Chat',
+         contact: newMsg,
+         status: 'Interaction'
+       });
+     } catch(e) {}
+
      setTimeout(() => {
         setChatMessages(prev => [...prev, { sender: 'bot', text: "Un agent traite votre demande. En attendant, merci de nous laisser votre numéro WhatsApp :" }]);
      }, 2000);
@@ -273,7 +284,7 @@ export default function OnyxOpsElite() {
   const navigateTo = (view: 'home' | 'about' | 'blog' | 'dashboard', scrollId?: string) => {
     setIsMobileMenuOpen(false);
     setActiveView(view);
-    if (view === 'dashboard' && partnerStep === 'landing') setPartnerStep('landing'); // Reset dashboard to landing
+    if (view === 'dashboard' && partnerStep === 'landing') setPartnerStep('landing'); 
     if (scrollId) {
       setTimeout(() => { const element = document.getElementById(scrollId); if (element) element.scrollIntoView({ behavior: 'smooth' }); }, 100);
     } else {
@@ -314,11 +325,11 @@ export default function OnyxOpsElite() {
             <button onClick={() => navigateTo('blog')} className={`${activeView === 'blog' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>Blog</button>
             <button onClick={() => navigateTo('about')} className={`${activeView === 'about' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>À Propos</button>
             
-            {/* LOGIQUE HEADER CONNECTÉ / ADMIN REDIRECT */}
+            {/* LOGIQUE HEADER CONNECTÉ / ADMIN REDIRECT STRICT */}
             {currentUser ? (
                <div 
                  onClick={() => {
-                   if(isAdmin) window.location.href = 'https://onyx-ops-hub.vercel.app/admin';
+                   if(isAdmin) window.location.href = '/admin'; // Ou ton URL absolue https://onyx-ops-hub.vercel.app/admin
                    else router.push('/dashboard');
                  }}
                  className="flex items-center gap-3 cursor-pointer bg-zinc-100 hover:bg-zinc-200 p-1.5 pr-4 rounded-full transition-colors shadow-sm"
@@ -339,7 +350,7 @@ export default function OnyxOpsElite() {
           <div className="flex lg:hidden items-center gap-4">
              {currentUser ? (
                 <div onClick={() => {
-                   if(isAdmin) window.location.href = 'https://onyx-ops-hub.vercel.app/admin';
+                   if(isAdmin) window.location.href = '/admin';
                    else router.push('/dashboard');
                 }} className="flex items-center cursor-pointer">
                    <img src={currentUser.avatar_url || "https://ui-avatars.com/api/?name=User"} alt="" className="w-8 h-8 rounded-full object-cover shadow-sm border border-[#39FF14]" />
@@ -371,7 +382,7 @@ export default function OnyxOpsElite() {
         {/* ------------------------------------------------------------------ */}
         {activeView === 'home' && (
           <div className="animate-in fade-in duration-500">
-            <header className="pt-10 pb-12 px-6 text-center max-w-5xl mx-auto">
+            <header className="pt-20 pb-12 px-6 text-center max-w-5xl mx-auto">
               <div className={`${spaceGrotesk.className} inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] mb-8`}>
                 <Zap className="w-3 h-3 text-[#39FF14] fill-[#39FF14]" /> DAKAR BUSINESS ECOSYSTEM
               </div>
@@ -444,43 +455,39 @@ export default function OnyxOpsElite() {
             </section>
 
             <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto">
-  <h2 className={`${spaceGrotesk.className} text-3xl font-bold mb-4 text-center`}>NOS 6 SOLUTIONS <span className="text-[#39FF14]">RADICALES</span></h2>
-  <p className="text-center text-zinc-500 font-bold text-xs uppercase tracking-widest mb-12">Cliquez sur un outil pour voir s'il est fait pour vous.</p>
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {SOLUTIONS.map((s, i) => (
-      <div 
-        key={i} 
-        onClick={() => { 
-          // On s'assure que l'objet s est bien passé pour déclencher le rendu de la modale
-          setSelectedSaaS(s); 
-          setSaasMetier(""); 
-        }}
-        className="group bg-white border border-zinc-100 p-8 rounded-[2.5rem] shadow-xl hover:border-[#39FF14] transition-all relative overflow-hidden cursor-pointer active:scale-95"
-      >
-        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition">
-          <s.icon className="w-24 h-24" />
-        </div>
-        <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
-          <s.icon className="w-6 h-6" />
-        </div>
-        <h3 className={`${spaceGrotesk.className} text-xl font-bold mb-4 italic uppercase flex justify-between items-center relative z-10`}>
-          {s.id} 
-          <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic tracking-widest">+ Infos</span>
-        </h3>
-        <div className="space-y-4 relative z-10">
-          <div className="bg-red-50 p-4 rounded-2xl border-l-4 border-red-500">
-            <p className="text-[10px] font-bold text-red-600 uppercase mb-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> La Douleur</p>
-            <p className="text-xs font-semibold text-zinc-700">{s.pain}</p>
-          </div>
-          <div className="bg-[#39FF14]/5 p-4 rounded-2xl border-l-4 border-[#39FF14]">
-            <p className="text-[10px] font-bold text-[#39FF14] uppercase mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Solution Onyx</p>
-            <p className="text-xs font-semibold text-zinc-800">{s.solution}</p>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-</section>
+              <h2 className={`${spaceGrotesk.className} text-3xl font-bold mb-4 text-center`}>NOS 6 SOLUTIONS <span className="text-[#39FF14]">RADICALES</span></h2>
+              <p className="text-center text-zinc-500 font-bold text-xs uppercase tracking-widest mb-12">Cliquez sur un outil pour voir s'il est fait pour vous.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {SOLUTIONS.map((s, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => { setSelectedSaaS(s); setSaasMetier(""); }}
+                    className="group bg-white border border-zinc-100 p-8 rounded-[2.5rem] shadow-xl hover:border-[#39FF14] transition-all relative overflow-hidden cursor-pointer active:scale-95"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition">
+                      <s.icon className="w-24 h-24" />
+                    </div>
+                    <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
+                      <s.icon className="w-6 h-6" />
+                    </div>
+                    <h3 className={`${spaceGrotesk.className} text-xl font-bold mb-4 italic uppercase flex justify-between items-center relative z-10`}>
+                      {s.id} 
+                      <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic tracking-widest">+ Infos</span>
+                    </h3>
+                    <div className="space-y-4 relative z-10">
+                      <div className="bg-red-50 p-4 rounded-2xl border-l-4 border-red-500">
+                        <p className="text-[10px] font-bold text-red-600 uppercase mb-1 flex items-center gap-1"><AlertCircle className="w-3 h-3"/> La Douleur</p>
+                        <p className="text-xs font-semibold text-zinc-700">{s.pain}</p>
+                      </div>
+                      <div className="bg-[#39FF14]/5 p-4 rounded-2xl border-l-4 border-[#39FF14]">
+                        <p className="text-[10px] font-bold text-[#39FF14] uppercase mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Solution Onyx</p>
+                        <p className="text-xs font-semibold text-zinc-800">{s.solution}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             <section id="tarifs" className="py-20 bg-black text-white rounded-[4rem] mx-4 px-6 relative overflow-hidden">
               <div className="max-w-7xl mx-auto relative z-10">
@@ -649,21 +656,59 @@ export default function OnyxOpsElite() {
         )}
 
         {/* ------------------------------------------------------------------ */}
-        {/* VUE : WORKFLOW PARTENAIRE (ONBOARDING & DASHBOARD)                 */}
+        {/* VUE : WORKFLOW PARTENAIRE (ONBOARDING & DASHBOARD & SIMULATEUR)    */}
         {/* ------------------------------------------------------------------ */}
         {activeView === 'dashboard' && (
           <div className="py-20 px-6 max-w-6xl mx-auto animate-in fade-in duration-500 min-h-[80vh]">
             
             {partnerStep === 'landing' && (
-              <div className="text-center max-w-3xl mx-auto">
+              <div className="text-center max-w-4xl mx-auto">
                 <div className={`${spaceGrotesk.className} inline-flex items-center gap-2 bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 px-4 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] mb-6 uppercase`}>Programme Ambassadeur Élite</div>
                 <h1 className={`${spaceGrotesk.className} text-5xl md:text-6xl font-black uppercase tracking-tighter mb-6`}>Générez une <span className="text-[#39FF14] italic">Rente Passive</span> au Sénégal.</h1>
                 <p className="text-zinc-500 font-medium mb-10 text-lg">Gagnez 30% en cash immédiat sur chaque vente, 10% de récurrent à vie, et 5% sur les ventes des affiliés que vous recrutez. Le système d'affiliation le plus puissant du pays.</p>
-                <button onClick={() => setPartnerStep('form')} className="bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-[0_15px_40px_rgba(57,255,20,0.3)] hover:scale-105">
+                <button onClick={() => setPartnerStep('form')} className="bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-[0_15px_40px_rgba(57,255,20,0.3)] hover:scale-105 mb-16">
                   Postuler au Programme
                 </button>
 
-                <div className="mt-20 text-left bg-zinc-50 p-8 rounded-[3rem] border border-zinc-200 shadow-inner">
+                {/* SIMULATEUR RESTAURÉ */}
+                <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-zinc-100 text-left mb-20 animate-in slide-in-from-bottom-8">
+                  <h3 className={`${spaceGrotesk.className} font-black text-3xl mb-8 uppercase flex items-center gap-3`}><Target className="text-[#39FF14] w-8 h-8"/> Simulateur de Gains</h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-12 items-center">
+                    <div className="space-y-6">
+                      {[
+                        { id: 'solo', label: 'Pack Solo (7.500F)', max: 50 },
+                        { id: 'trio', label: 'Pack Trio (17.500F)', max: 30 },
+                        { id: 'full', label: 'Pack Full (30.000F)', max: 20 },
+                        { id: 'premium', label: 'Premium (75.000F)', max: 10 }
+                      ].map(pack => (
+                        <div key={pack.id}>
+                          <div className="flex justify-between mb-2">
+                            <label className="text-xs font-bold uppercase tracking-widest">{pack.label}</label>
+                            <span className="font-black text-[#39FF14] bg-black px-2 py-0.5 rounded-md text-xs">{packCounts[pack.id as PlanKey]} ventes</span>
+                          </div>
+                          <input type="range" min="0" max={pack.max} value={packCounts[pack.id as PlanKey]} onChange={(e) => setPackCounts({...packCounts, [pack.id]: parseInt(e.target.value)})} className="w-full accent-black h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer" />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="bg-black text-white p-8 rounded-[2rem] relative overflow-hidden shadow-2xl">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/20 blur-3xl rounded-full"></div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Gain Immédiat (Ce mois)</p>
+                      <p className={`${spaceGrotesk.className} text-4xl font-black text-[#39FF14] mb-6`}>{commissionM1.toLocaleString()} F</p>
+                      
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Rente Passive (Tous les mois)</p>
+                      <p className={`${spaceGrotesk.className} text-2xl font-black text-white mb-6`}>+ {recurrentPerMonth.toLocaleString()} F / mois</p>
+
+                      <div className="pt-6 border-t border-zinc-800">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Projection sur 6 mois</p>
+                        <p className={`${spaceGrotesk.className} text-3xl font-black text-white`}>{commissionM6.toLocaleString()} F</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-left bg-zinc-50 p-8 rounded-[3rem] border border-zinc-200 shadow-inner">
                   <h3 className="font-black text-xl mb-6 uppercase">La Règle des 5% (Le Système Multi-Niveaux)</h3>
                   <div className="flex gap-4 items-start">
                     <div className="bg-white p-4 rounded-2xl border-2 border-black flex-1"><p className="text-xs font-bold text-zinc-500 mb-2">1. Vous recrutez</p><p className="font-black">Mamadou rejoint Onyx grâce à votre lien recruteur.</p></div>
@@ -1006,7 +1051,7 @@ export default function OnyxOpsElite() {
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></div>
-                  <span className="font-black text-xs uppercase text-black">Conseiller Onyx</span>
+                  <span className="font-black text-xs uppercase tracking-widest text-black">Conseiller Onyx</span>
                 </div>
                 <button onClick={() => setIsBotOpen(false)} className="text-zinc-400 hover:text-black transition"><X className="w-4 h-4"/></button>
               </div>
@@ -1014,12 +1059,12 @@ export default function OnyxOpsElite() {
               <div className="space-y-2">
                 <button onClick={() => handleBotAction("Bonjour, c'est quoi le Pack Solo ?", "Demande Info Solo")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold p-3 rounded-xl transition">🤖 C'est quoi le Pack Solo ?</button>
                 <button onClick={() => handleBotAction("Bonjour, comment marche le pointage GPS ?", "Demande Info RH")} className="block w-full text-left bg-zinc-100 hover:bg-zinc-200 text-xs font-bold p-3 rounded-xl transition">🤖 Le pointage GPS, comment ça marche ?</button>
-                <button onClick={() => handleBotAction("Bonjour, je veux parler à un humain pour mon business.", "Contact Humain")} className="block w-full text-center bg-black text-[#39FF14] text-xs font-black p-3 rounded-xl transition mt-4 uppercase shadow-lg">🗣️ Parler à un conseiller</button>
+                <button onClick={() => handleBotAction("Bonjour, je veux parler à un humain pour mon business.", "Contact Humain")} className="block w-full text-center bg-black text-[#39FF14] text-xs font-black p-3 rounded-xl transition mt-4 uppercase tracking-widest shadow-lg">🗣️ Parler à un conseiller</button>
               </div>
             </div>
           )}
 
-          {/* FENÊTRE LIVE CHAT SIMULÉE */}
+          {/* FENÊTRE LIVE CHAT SIMULÉE AVEC SAUVEGARDE DB */}
           {chatSimulated && (
             <div className="bg-white rounded-[2rem] shadow-2xl border border-[#39FF14] p-0 mb-4 w-[320px] h-[400px] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
                <div className="bg-black p-4 flex justify-between items-center">
@@ -1060,6 +1105,63 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
+        {/* MODALE DE QUALIFICATION & UPSELL RÉPARÉE */}
+        {selectedSaaS && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in duration-300">
+              <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition" onClick={() => setSelectedSaaS(null)}>
+                <X size={20}/>
+              </button>
+              
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-black text-[#39FF14] p-3 rounded-2xl">
+                  <selectedSaaS.icon size={24} />
+                </div>
+                <h3 className="text-2xl font-black uppercase italic">{selectedSaaS.id}</h3>
+              </div>
+        
+              <div className="space-y-6">
+                <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Quelle est votre activité ?</p>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  {["Boutique / Prêt-à-porter", "Restaurant / Fast-Food", "E-commerce / Instagram", "BTP / Agence de Services"].map((metier) => (
+                    <button 
+                      key={metier}
+                      onClick={() => setSaasMetier(metier)}
+                      className={`text-left p-4 rounded-2xl text-xs font-black uppercase transition-all border-2 ${saasMetier === metier ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 border-transparent hover:border-zinc-200'}`}
+                    >
+                      {metier}
+                    </button>
+                  ))}
+                </div>
+        
+                {saasMetier && (
+                  <div className="pt-6 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-[#39FF14]/10 p-6 rounded-[2rem] border-2 border-[#39FF14] relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-10"><Flame size={40}/></div>
+                      <p className="text-[10px] font-black uppercase text-[#39FF14] mb-2 flex items-center gap-1"><Zap size={12}/> Bundle d'urgence conseillé</p>
+                      <p className="text-xs font-bold text-zinc-800 leading-relaxed mb-4">
+                        En tant que <span className="underline">{saasMetier}</span>, si vous vendez mais ne suivez pas vos livreurs (Tiak), vous perdez 20% de votre cash. 
+                      </p>
+                      <button 
+                        onClick={() => window.open(getWaLink(`Bonjour, je suis en activité ${saasMetier}. Je veux passer au ${selectedSaaS.upsellName} pour sécuriser mon cash.`))}
+                        className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition"
+                      >
+                        Passer au {selectedSaaS.upsellName} (+{selectedSaaS.upsellPrice})
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => window.open(getWaLink(`Bonjour, je veux rester sur ${selectedSaaS.id} pour mon activité ${saasMetier}.`))}
+                      className="w-full text-center mt-4 text-[9px] font-black uppercase text-zinc-400 hover:text-black transition underline underline-offset-4"
+                    >
+                      Garder uniquement {selectedSaaS.id}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
