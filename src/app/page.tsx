@@ -177,6 +177,7 @@ export default function OnyxOpsElite() {
   };
 
   // --- BOT FANTA LOGIC ---
+  // --- BOT FANTA LOGIC (MISE À JOUR) ---
   const processBotReply = async (reply: string) => {
     if(!reply.trim()) return;
     const newMsgs = [...botMessages, { sender: 'client', text: reply }];
@@ -186,52 +187,93 @@ export default function OnyxOpsElite() {
     let currentData = { ...botUserData };
 
     if (botStep === 0) {
-      // Catch Name & Phone
+      // 1. Demande du Nom
       currentData.name = reply;
       setBotUserData(currentData);
-      saveLead({ source: 'Bot Fanta', intent: 'Démarrage Bot', contact: reply, full_name: reply });
       
       setTimeout(() => {
-        setBotMessages(prev => [...prev, { sender: 'bot', text: `Enchantée ${reply.split(' ')[0]} ! Quel est votre secteur d'activité actuel ?`, options: ["Boutique / Vente en ligne", "Restaurant / Fast Food", "Prestataire de services", "Autre"] }]);
+        setBotMessages(prev => [...prev, { sender: 'bot', text: `Enchantée ${reply.split(' ')[0]} ! Pourrions-nous avoir votre numéro WhatsApp pour vous recontacter si besoin ? (Ex: 77 123 45 67)` }]);
         setBotStep(1);
       }, 1000);
     } 
     else if (botStep === 1) {
-      // Catch Sector
-      currentData.sector = reply;
+      // 2. Demande du Numéro WhatsApp
+      currentData.phone = reply;
       setBotUserData(currentData);
-      saveLead({ source: 'Bot Fanta', intent: `Secteur: ${reply}`, contact: currentData.name, full_name: currentData.name });
+      saveLead({ source: 'Bot Fanta', intent: 'Démarrage Bot', contact: currentData.phone, full_name: currentData.name });
 
       setTimeout(() => {
-        let msg = "";
-        if(reply.includes("Boutique")) msg = "Excellent. Pour une boutique, voici nos 3 solutions phares :\n1. Onyx Vente (Catalogue)\n2. Onyx Stock (Inventaire)\n3. Pack Trio (Le tout combiné)\n\nTapez le numéro qui vous intéresse le plus :";
-        else if(reply.includes("Restaurant")) msg = "Parfait. Pour la restauration :\n1. Onyx Menu (Menu QR)\n2. Onyx Staff (Paie & Pointage)\n3. Pack Full\n\nTapez le numéro de votre choix :";
-        else msg = "D'accord. La solution idéale pour vous est souvent le Pack Full ou Onyx Vente.\n1. Onyx Vente\n2. Pack Full\n\nTapez 1 ou 2 :";
-        
-        setBotMessages(prev => [...prev, { sender: 'bot', text: msg }]);
+        setBotMessages(prev => [...prev, { sender: 'bot', text: `Merci ! Quel est votre secteur d'activité actuel ?`, options: ["Boutique / Vente en ligne", "Restaurant / Fast Food", "Prestataire de services", "Autre (Précisez)"] }]);
         setBotStep(2);
       }, 1000);
     }
     else if (botStep === 2) {
+      // 3. Demande du Secteur et Analyse IA
+      currentData.sector = reply;
+      setBotUserData(currentData);
+      saveLead({ source: 'Bot Fanta', intent: `Secteur: ${reply}`, contact: currentData.phone, full_name: currentData.name });
+
+      setTimeout(() => {
+        let msg = "";
+        let options = [];
+        if(reply.includes("Boutique")) {
+           msg = "Excellent. Pour une boutique, voici nos 3 solutions phares :\n1. Onyx Vente (Catalogue)\n2. Onyx Stock (Inventaire)\n3. Pack Trio (Le tout combiné)\n\nLaquelle vous intéresse le plus ?";
+           options = ["Onyx Vente", "Onyx Stock", "Pack Trio"];
+        }
+        else if(reply.includes("Restaurant")) {
+           msg = "Parfait. Pour la restauration :\n1. Onyx Menu (Menu QR)\n2. Onyx Staff (Paie & Pointage)\n3. Pack Full\n\nQue choisissez-vous ?";
+           options = ["Onyx Menu", "Onyx Staff", "Pack Full"];
+        }
+        else if(reply.includes("Autre")) {
+           msg = "Je vois ! Expliquez-moi brièvement ce que vous faites et ce que vous aimeriez améliorer, je vais analyser ça pour vous proposer l'outil parfait.";
+           // On le fait passer à une étape spéciale d'analyse "Autre"
+           setBotMessages(prev => [...prev, { sender: 'bot', text: msg }]);
+           setBotStep(2.5);
+           return;
+        }
+        else {
+           msg = "D'accord. La solution idéale pour vous est souvent le Pack Full ou Onyx Vente.\n\nLequel préférez-vous ?";
+           options = ["Onyx Vente", "Pack Full"];
+        }
+        
+        setBotMessages(prev => [...prev, { sender: 'bot', text: msg, options }]);
+        setBotStep(3);
+      }, 1000);
+    }
+    else if (botStep === 2.5) {
+       // 3.5 Analyse IA basique de la réponse libre ("Autre")
+       saveLead({ source: 'Bot Fanta', intent: `Besoins spécifiques: ${reply}`, contact: currentData.phone, full_name: currentData.name });
+       setTimeout(() => {
+          setBotMessages(prev => [...prev, { 
+             sender: 'bot', 
+             text: `D'après ce que vous me dites, je vous recommande vivement le **Pack Full**. Il s'adapte à 100% à votre activité en digitalisant vos ventes et votre gestion interne.\n\nSouhaitez-vous en discuter avec moi sur WhatsApp pour une démo personnalisée ?`,
+             options: ["Parler à Fanta (WhatsApp)"] 
+          }]);
+          setBotStep(4);
+       }, 1500);
+    }
+    else if (botStep === 3) {
+      // 4. Choix du produit
       currentData.product = reply;
       setBotUserData(currentData);
-      saveLead({ source: 'Bot Fanta', intent: `Intéressé par l'option ${reply} (${currentData.sector})`, contact: currentData.name, full_name: currentData.name });
+      saveLead({ source: 'Bot Fanta', intent: `Intéressé par l'option ${reply} (${currentData.sector})`, contact: currentData.phone, full_name: currentData.name });
 
       setTimeout(() => {
         setBotMessages(prev => [...prev, { 
           sender: 'bot', 
-          text: "Très bon choix ! Cette solution digitalise entièrement votre gestion via WhatsApp et sécurise vos encaissements.\n\nAvez-vous une question précise ou souhaitez-vous en discuter directement avec moi sur WhatsApp ?",
+          text: `Très bon choix ! ${reply} digitalise entièrement votre gestion via WhatsApp.\n\nAvez-vous une question précise ou souhaitez-vous finaliser ça directement avec moi sur WhatsApp ?`,
           options: ["Parler à Fanta (WhatsApp)"] 
         }]);
-        setBotStep(3);
+        setBotStep(4);
       }, 1500);
     }
-    else if (botStep === 3) {
+    else if (botStep === 4) {
+      // 5. Redirection finale
       if(reply === "Parler à Fanta (WhatsApp)") {
-        saveLead({ source: 'Bot Fanta', intent: `Redirection WhatsApp`, contact: currentData.name, full_name: currentData.name });
-        window.open(getWaLink(`Bonjour Fanta, je m'appelle ${currentData.name}. Je suis dans le secteur ${currentData.sector} et l'option ${currentData.product} m'intéresse.`), "_blank");
+        saveLead({ source: 'Bot Fanta', intent: `Redirection WhatsApp`, contact: currentData.phone, full_name: currentData.name });
+        window.open(getWaLink(`Bonjour Fanta, je m'appelle ${currentData.name} (${currentData.phone}). Je suis dans le secteur ${currentData.sector} et je suis intéressé(e) par vos solutions.`), "_blank");
       } else {
-        saveLead({ source: 'Bot Fanta', intent: `Question Bot: ${reply}`, contact: currentData.name, full_name: currentData.name, message: reply });
+        saveLead({ source: 'Bot Fanta', intent: `Question Bot: ${reply}`, contact: currentData.phone, full_name: currentData.name, message: reply });
         setTimeout(() => {
           setBotMessages(prev => [...prev, { sender: 'bot', text: "Message bien reçu dans notre système ! Un expert va analyser votre demande. Je vous invite à cliquer sur 'Parler à Fanta' pour finaliser sur WhatsApp.", options: ["Parler à Fanta (WhatsApp)"] }]);
         }, 1000);

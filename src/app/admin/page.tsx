@@ -1,497 +1,493 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
-import { useRouter } from "next/navigation";
+
+import React, { useState, useEffect } from "react";
 import { Space_Grotesk, Inter } from "next/font/google";
+import { supabase } from "@/lib/supabaseClient";
 import { 
-  Users, Wallet, LayoutDashboard, LogOut, TrendingUp, CheckCircle, 
-  MessageSquare, UserPlus, X, Send, Edit3, Home, Target, Globe, Box, Sparkles,
-  BarChart3, CreditCard, CalendarClock, PhoneCall, Key, ChevronLeft, ShieldCheck, Mail, Zap, Flame, Smartphone, Check
+  LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
+  Settings, LogOut, TrendingUp, Search, Plus, Filter, Calendar, 
+  CheckCircle, Clock, AlertCircle, X, Sparkles, Phone, Mail, FileText, ChevronRight, BarChart3, CreditCard, PlayCircle, Star
 } from "lucide-react";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700"] });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
-// --- LES 9 SAAS DE L'ÉCOSYSTÈME (PRIX HARMONISÉS) ---
-const ECOSYSTEM_SAAS = [
-  { id: "vente", name: "Onyx Vente", price: "8.900 F", type: "Social Selling", users: 142, icon: "🛍️", color: "bg-blue-100 text-blue-600", desc: "Digitalisation des ventes et devis PDF via WhatsApp." },
-  { id: "tiak", name: "Onyx Tiak", price: "8.900 F", type: "Logistique", users: 89, icon: "🛵", color: "bg-orange-100 text-orange-600", desc: "Suivi des livreurs et sécurisation des encaissements." },
-  { id: "stock", name: "Onyx Stock", price: "8.900 F", type: "Inventaire", users: 112, icon: "📦", color: "bg-purple-100 text-purple-600", desc: "Gestion des stocks par scan et alertes ruptures." },
-  { id: "menu", name: "Onyx Menu", price: "8.900 F", type: "Restauration", users: 45, icon: "🍔", color: "bg-red-100 text-red-600", desc: "Menu QR interactif et prise de commande directe." },
-  { id: "booking", name: "Onyx Booking", price: "8.900 F", type: "Réservation", users: 28, icon: "📅", color: "bg-teal-100 text-teal-600", desc: "Planning et acompte pour services et prestataires." },
-  { id: "staff", name: "Onyx Staff", price: "8.900 F", type: "RH & Paie", users: 34, icon: "👥", color: "bg-yellow-100 text-yellow-600", desc: "Pointage GPS et gestion automatisée de la paie." },
-  { id: "fit", name: "Onyx Fit", price: "5.900 F", type: "Coaching", users: 56, icon: "💪", color: "bg-indigo-100 text-indigo-600", desc: "Suivi client et programmes sportifs personnalisés." },
-  { id: "tontine", name: "Onyx Tontine", price: "5.900 F", type: "Finance", users: 19, icon: "💰", color: "bg-[#39FF14]/20 text-green-700", desc: "Gestion sécurisée des épargnes et cotisations." },
-  { id: "academy", name: "Onyx Academy", price: "5.900 F", type: "E-learning", users: 210, icon: "🎓", color: "bg-pink-100 text-pink-600", desc: "Plateforme de formation et vente de cours en ligne." },
-];
+// --- TYPES ---
+type ViewType = 'dashboard' | 'crm' | 'ecosystem' | 'finance' | 'partners' | 'marketing';
+type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: 'Planifié' | 'En cours' | 'Fait' };
 
-export default function AdminBentoTerminal() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+export default function AdminDashboard() {
+  const [activeView, setActiveView] = useState<ViewType>('dashboard');
+  const [currentUser, setCurrentUser] = useState<any>(null);
   
-  // DATA STATES
-  const [usersList, setUsersList] = useState<any[]>([]);
-  const [articlesList, setArticlesList] = useState<any[]>([]);
-  const [partnersList, setPartnersList] = useState<any[]>([]);
-  const [leadsList, setLeadsList] = useState<any[]>([]);
-  const [transactionsList, setTransactionsList] = useState<any[]>([]);
+  // --- STATES GLOBALES ---
+  const [globalFilterDate, setGlobalFilterDate] = useState('Ce Mois');
+  const [actionsIA, setActionsIA] = useState<IAAction[]>([
+    { id: '1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: 'Aujourd\'hui', status: 'Planifié' },
+    { id: '2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script de vente promo.', date: 'Demain', status: 'Planifié' }
+  ]);
 
-  // NAVIGATION & MODALS
-  const [selectedSaaS, setSelectedSaaS] = useState<any>(null);
-  const [showAddClientModal, setShowAddClientModal] = useState(false);
-  const [showPartnerConfirm, setShowPartnerConfirm] = useState<any>(null);
-  const [showScannerModal, setShowScannerModal] = useState(false);
-  const [showArticleModal, setShowArticleModal] = useState<any>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  // --- STATES CRM ---
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [crmSearch, setCrmSearch] = useState("");
+  const [crmTypeFilter, setCrmTypeFilter] = useState("Tous");
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [editingContact, setEditingContact] = useState<any>(null);
+  const [showRapportIA, setShowRapportIA] = useState(false);
+  const [crmCardFilter, setCrmCardFilter] = useState<string | null>(null);
 
-  // FORMS
-  const [newClient, setNewClient] = useState({ id: "", full_name: "", contact: "", saas: "Onyx Vente", role: "prospect", expire: "En essai (J-7)", is_partner: false });
-  const [articleForm, setArticleForm] = useState({ id: "", title: "", category: "Social Selling", pack_focus: "Pack Full", content: "" });
+  // --- STATES PARTENAIRES ---
+  const [partners, setPartners] = useState<any[]>([]);
+  const [partnerCardFilter, setPartnerCardFilter] = useState<string | null>(null);
+  const [showPartnerIAScan, setShowPartnerIAScan] = useState(false);
 
-  useEffect(() => { fetchInitData(); }, []);
+  // --- INIT DATA ---
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  async function fetchInitData() {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    setUser(authUser || { full_name: "Admin Onyx", email: "admin@onyxops.com" });
-    try {
-      const [c, a, l, p, tx] = await Promise.all([
-        supabase.from('clients').select('*').order('created_at', { ascending: false }),
-        supabase.from('articles').select('*').order('created_at', { ascending: false }),
-        supabase.from('leads').select('*').order('created_at', { ascending: false }),
-        supabase.from('partners').select('*').order('created_at', { ascending: false }),
-        supabase.from('transactions').select('*').order('created_at', { ascending: false })
-      ]);
-      if (c.data) setUsersList(c.data);
-      if (a.data) setArticlesList(a.data);
-      if (l.data) setLeadsList(l.data);
-      if (p.data) setPartnersList(p.data);
-      if (tx.data) setTransactionsList(tx.data);
-    } catch (e) { console.error(e); }
-    setLoading(false);
-  }
+  const fetchData = async () => {
+    // Simulation de récupération pour démo, remplace par tes requêtes Supabase réelles
+    setContacts([
+      { id: '1', full_name: 'Magatte Fall', phone: '77 123 45 67', type: 'Prospect', saas: 'Onyx Vente', trial_end: '2026-03-05', sub_end: null, status: 'En essai (J-7)', created_at: '2026-03-01' },
+      { id: '2', full_name: 'Boutique Fatou', phone: '76 987 65 43', type: 'Client', saas: 'Pack Trio', trial_end: null, sub_end: '2026-03-04', status: 'Actif', created_at: '2025-12-01' },
+      { id: '3', full_name: 'Resto Dakar', phone: '78 555 44 33', type: 'Client', saas: 'Onyx Menu', trial_end: null, sub_end: '2026-04-10', status: 'Actif', created_at: '2026-01-15' },
+    ]);
+    setPartners([
+      { id: '1', full_name: 'Moussa D.', contact: '77 000 00 00', activity: 'Étudiant', objective: '10/mois', sales: 12, status: 'Actif', created_at: '2026-02-28' },
+      { id: '2', full_name: 'Cheikh N.', contact: '76 111 22 33', activity: 'Freelance', objective: '20/mois', sales: 45, status: 'Top Performer', created_at: '2025-11-10' },
+      { id: '3', full_name: 'Awa C.', contact: '78 999 88 77', activity: 'Commerçante', objective: '5/mois', sales: 0, status: 'Inactif', created_at: '2026-03-01' },
+    ]);
+  };
 
-  // --- LOGIQUE CAPTURE LEADS & ACTIONS ---
-  const saveClient = async () => {
-    if (!newClient.full_name) return;
-    const { id, ...data } = newClient;
-    if (id) {
-      const { error } = await supabase.from('clients').update(data).eq('id', id);
-      if (!error) setUsersList(usersList.map(u => u.id === id ? { ...u, ...data } : u));
+  // --- LOGIC CRM : SAUVEGARDE & CONVERSION ---
+  const handleSaveContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Optimistic UI Update
+    if(editingContact.id) {
+      setContacts(contacts.map(c => c.id === editingContact.id ? editingContact : c));
     } else {
-      const newId = crypto.randomUUID();
-      const { data: res, error } = await supabase.from('clients').insert([{ ...data, id: newId }]).select().single();
-      if (!error && res) setUsersList([res, ...usersList]);
+      setContacts([{ ...editingContact, id: Date.now().toString(), created_at: new Date().toISOString().split('T')[0] }, ...contacts]);
     }
-    setShowAddClientModal(false);
+    setShowContactModal(false);
+    
+    // Logique Supabase réelle à décommenter
+    /* try {
+      if(editingContact.id) {
+        await supabase.from('leads').update(editingContact).eq('id', editingContact.id);
+      } else {
+        await supabase.from('leads').insert([editingContact]);
+      }
+    } catch(err) { console.error(err); }
+    */
   };
 
-  const approvePartner = async (partner: any) => {
-    const pwd = Math.random().toString(36).slice(-8).toUpperCase() + "!";
-    const msg = `Bonjour ${partner.full_name}, votre compte Partenaire OnyxOps est actif ! ✅\n\nIdentifiants :\nLien : https://onyxops.com/login\nContact : ${partner.contact}\nMot de passe : ${pwd}\n\nAccédez au Hub pour gérer vos commissions et votre lien parrain.`;
-    const { error } = await supabase.from('partners').update({ status: 'Approuvé' }).eq('id', partner.id);
-    if (!error) {
-      setPartnersList(partnersList.map(p => p.id === partner.id ? { ...p, status: 'Approuvé' } : p));
-      window.open(`https://wa.me/${partner.contact.replace(/\s/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-  };
-
-  const confirmPartnerTransition = async (client: any) => {
-    const { error } = await supabase.from('clients').update({ is_partner: true }).eq('id', client.id);
-    if (!error) {
-      setUsersList(usersList.map(u => u.id === client.id ? { ...u, is_partner: true } : u));
-      setShowPartnerConfirm(null);
-    }
-  };
-
-  const generateArticleAI = () => {
-    setIsGenerating(true);
+  // --- SCANS IA ---
+  const runCrmScan = () => {
+    setShowRapportIA(true);
     setTimeout(() => {
-      const expertArticles = [
-        { id: "ia1", title: "ROI : Pourquoi digitaliser votre boutique à Dakar en 2026 ?", category: "Social Selling", pack_focus: "Onyx Solo", content: "L'analyse du marché sénégalais montre que la vente directe via catalogue WhatsApp réduit le temps de négociation de 40%... (Expert Onyx)" },
-        { id: "ia2", title: "Étude de Cas : Doubler ses ventes via le Social Selling", category: "Marketing", pack_focus: "Pack Trio", content: "Comment une boutique de cosmétiques a automatisé ses devis et ses relances pour augmenter son ROI de 25%..." },
-        { id: "ia3", title: "Infographie : Le coût réel d'un stock mal géré", category: "Gestion", pack_focus: "Pack Full", content: "Les pertes liées aux ruptures de stock non détectées représentent 15% du CA des PME. Onyx Stock résout cela via le scan QR." }
-      ];
-      setArticlesList([...expertArticles, ...articlesList]);
-      setIsGenerating(false);
+      setActionsIA(prev => [{ id: Date.now().toString(), module: 'CRM', title: 'Relance Expiration', desc: 'Boutique Fatou expire demain.', date: 'Aujourd\'hui', status: 'Planifié' }, ...prev]);
     }, 1500);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white font-black text-3xl italic animate-pulse">TERMINAL ONYX...</div>;
+  const runPartnerScan = () => {
+    setShowPartnerIAScan(true);
+    setTimeout(() => {
+      setActionsIA(prev => [{ id: Date.now().toString(), module: 'Partenaires', title: 'Coaching Awa C.', desc: 'Nouveau partenaire à former sur l\'argumentaire Pack Trio.', date: 'Demain', status: 'Planifié' }, ...prev]);
+      setShowPartnerIAScan(false);
+      alert("Scan Partenaires terminé. Nouvelles actions ajoutées au planning.");
+    }, 2000);
+  };
 
+  // --- RENDERERS ---
   return (
-    <div className={`${inter.className} min-h-screen bg-[#F8F9FA] text-black flex overflow-hidden`}>
-      {/* SIDEBAR */}
-      <nav className="w-64 bg-white border-r border-zinc-200 p-6 flex flex-col justify-between hidden lg:flex shadow-sm z-10">
-        <div>
-          <div className="mb-12 flex items-center gap-2 cursor-pointer" onClick={() => window.location.href = '/'}>
-            <span className={`${spaceGrotesk.className} font-black text-4xl tracking-tighter uppercase`}>ONYX<span className="text-[#39FF14]">OPS</span></span>
+    <div className={`flex h-screen bg-zinc-50 ${inter.className} text-black overflow-hidden`}>
+      
+      {/* --- SIDEBAR --- */}
+      <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col z-20 shadow-sm hidden md:flex">
+        <div className="p-6">
+          <h1 className={`${spaceGrotesk.className} text-3xl font-black tracking-tighter uppercase`}>ONYX<span className="text-[#39FF14]">OPS</span></h1>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 space-y-8">
+          <div>
+            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3 pl-2">Menu Principal</p>
+            <nav className="space-y-1">
+              {[
+                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+                { id: 'crm', icon: Users, label: 'Membres & CRM' },
+                { id: 'ecosystem', icon: Box, label: 'Écosystème (9 SaaS)' },
+                { id: 'finance', icon: Wallet, label: 'Finances' },
+                { id: 'partners', icon: Handshake, label: 'Partenaires' },
+              ].map(item => (
+                <button key={item.id} onClick={() => setActiveView(item.id as ViewType)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeView === item.id ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-600 hover:bg-zinc-100 hover:text-black'}`}>
+                  <item.icon size={18} /> {item.label}
+                </button>
+              ))}
+            </nav>
           </div>
-          <div className="space-y-2">
-            <NavBtn icon={<LayoutDashboard size={20}/>} label="Terminal" active={activeTab === 'overview'} onClick={() => {setActiveTab('overview'); setSelectedSaaS(null);}} />
-            <NavBtn icon={<Users size={20}/>} label="CRM Hub" active={activeTab === 'users'} onClick={() => {setActiveTab('users'); setSelectedSaaS(null);}} />
-            <NavBtn icon={<Box size={20}/>} label="Écosystème" active={activeTab === 'ecosystem'} onClick={() => setActiveTab('ecosystem')} />
-            <NavBtn icon={<Wallet size={20}/>} label="Finances" active={activeTab === 'finances'} onClick={() => {setActiveTab('finances'); setSelectedSaaS(null);}} />
-            <NavBtn icon={<MessageSquare size={20}/>} label="Inbox Leads" active={activeTab === 'chat'} onClick={() => {setActiveTab('chat'); setSelectedSaaS(null);}} />
-            <NavBtn icon={<Target size={20}/>} label="Partenaires" active={activeTab === 'partners'} onClick={() => {setActiveTab('partners'); setSelectedSaaS(null);}} />
-            <NavBtn icon={<Globe size={20}/>} label="Marketing" active={activeTab === 'marketing'} onClick={() => {setActiveTab('marketing'); setSelectedSaaS(null);}} />
+          <div>
+            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3 pl-2">Marketing & Ventes</p>
+            <button onClick={() => setActiveView('marketing')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-600 hover:bg-zinc-100 hover:text-black'}`}>
+              <Megaphone size={18} /> Marketing & Blog
+            </button>
           </div>
         </div>
-      </nav>
+      </aside>
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className="h-20 bg-white border-b border-zinc-200 px-8 flex justify-between items-center z-10">
-          <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter italic`}>{selectedSaaS ? selectedSaaS.name : activeTab}</h1>
+      {/* --- MAIN CONTENT --- */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden">
+        
+        {/* TOPBAR */}
+        <header className="bg-white border-b border-zinc-200 h-20 flex items-center justify-between px-8 shrink-0 z-10">
+          <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>
+            {activeView === 'dashboard' ? 'Terminal' : activeView === 'crm' ? 'CRM & Contacts' : activeView === 'partners' ? 'Ambassadeurs' : activeView}
+          </h2>
           <div className="flex items-center gap-6">
-            <button onClick={() => window.location.href = '/'} className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-black transition"><Home size={16}/> Voir site</button>
-            <div className="flex items-center gap-3 p-1.5 pr-4 bg-zinc-50 rounded-full border border-zinc-200 cursor-pointer" onClick={() => setActiveTab('overview')}>
-              <div className="w-8 h-8 rounded-full bg-black text-[#39FF14] flex items-center justify-center font-black text-xs italic">AD</div>
-              <p className="text-[10px] font-black uppercase">Admin Hub</p>
+            {activeView === 'dashboard' && (
+              <div className="flex items-center bg-zinc-100 p-1 rounded-xl">
+                {['Aujourd\'hui', 'Ce Mois', 'Année'].map(filter => (
+                   <button key={filter} onClick={() => setGlobalFilterDate(filter)} className={`px-4 py-2 rounded-lg text-xs font-black uppercase transition ${globalFilterDate === filter ? 'bg-white shadow-sm text-black' : 'text-zinc-500 hover:text-black'}`}>
+                     {filter}
+                   </button>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 p-1.5 pr-4 rounded-full cursor-pointer hover:bg-zinc-100 transition">
+              <img src="https://ui-avatars.com/api/?name=Admin&background=000&color=39FF14" className="w-8 h-8 rounded-full" alt="Admin" />
+              <div className="text-left hidden sm:block">
+                <p className="text-[10px] font-black uppercase leading-none text-black">ADMINISTRATEUR</p>
+                <p className="text-[8px] font-bold text-zinc-500 uppercase">Profil & Réglages</p>
+              </div>
             </div>
-            <button onClick={() => router.push('/')} className="text-zinc-400 hover:text-red-500 transition"><LogOut size={20}/></button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 scroll-smooth">
-          {/* ================= 1. DASHBOARD (TERMINAL) ================= */}
-          {activeTab === 'overview' && !selectedSaaS && (
-            <div className="space-y-8 animate-in fade-in">
+        {/* CONTENU DYNAMIQUE */}
+        <div className="flex-1 overflow-y-auto p-8">
+          
+          {/* ========================================================= */}
+          {/* VUE : DASHBOARD ACCUEIL (Avec Histogramme et Top 3)       */}
+          {/* ========================================================= */}
+          {activeView === 'dashboard' && (
+            <div className="space-y-8 animate-in fade-in max-w-7xl mx-auto">
+              {/* KPI GLOBALES */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div onClick={() => setActiveTab('finances')} className="p-8 rounded-[3rem] border border-zinc-200 bg-black text-white shadow-2xl cursor-pointer hover:scale-105 transition-transform">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-2">Chiffre d&apos;affaires</p>
-                  <p className={`${spaceGrotesk.className} text-5xl font-black tracking-tighter italic`}>3.850.000 F</p>
-                  <p className="text-[10px] font-black uppercase text-[#39FF14] mt-4 flex items-center gap-1"><TrendingUp size={12}/> +12% vs mois dernier</p>
+                <div className="bg-black text-white p-6 rounded-[2rem] shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet size={64}/></div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Chiffre d'Affaires ({globalFilterDate})</p>
+                  <p className={`${spaceGrotesk.className} text-4xl font-black text-[#39FF14]`}>1.245.000 F</p>
+                  <p className="text-xs font-bold text-zinc-400 mt-2 flex items-center gap-1"><TrendingUp size={14} className="text-[#39FF14]"/> +15% vs période préc.</p>
                 </div>
-                <div onClick={() => setActiveTab('chat')} className="bg-white p-8 rounded-[3rem] border border-zinc-200 shadow-sm cursor-pointer hover:border-black transition flex flex-col justify-center text-center">
-                   <p className="text-[10px] font-black uppercase text-zinc-400 mb-2">Leads Capturés</p>
-                   <p className={`${spaceGrotesk.className} text-6xl font-black tracking-tighter italic`}>{leadsList.length}</p>
+                <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Leads & Nouveaux Contacts</p>
+                  <p className={`${spaceGrotesk.className} text-4xl font-black`}>142</p>
+                  <p className="text-xs font-bold text-zinc-500 mt-2">En attente de traitement : 12</p>
                 </div>
-                <div onClick={() => setActiveTab('marketing')} className="bg-white p-8 rounded-[3rem] border border-zinc-200 shadow-sm cursor-pointer hover:border-[#39FF14] transition flex flex-col justify-center text-center">
-                   <p className="text-[10px] font-black uppercase text-zinc-400 mb-2">Blog Impact</p>
-                   <p className={`${spaceGrotesk.className} text-6xl font-black tracking-tighter italic`}>{articlesList.length}</p>
+                <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 p-6 rounded-[2rem]">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-2 flex items-center gap-2"><Sparkles size={12}/> Vues Articles Blog</p>
+                  <p className={`${spaceGrotesk.className} text-4xl font-black`}>8.405</p>
+                  <p className="text-xs font-bold text-zinc-600 mt-2">Meilleur : "Digitalisation 2026"</p>
                 </div>
               </div>
 
-              {/* HISTOGRAMME INTERACTIF */}
-              <div className="bg-white p-8 rounded-[3rem] border border-zinc-200 shadow-sm">
-                <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl mb-6 flex items-center gap-2`}><BarChart3 className="text-[#39FF14]"/> Ventes par jour (7j)</h3>
-                <div className="flex items-end justify-between gap-4 h-48">
-                  {[1200, 1900, 1500, 2100, 2400, 1800, 2200].map((val, i) => (
-                    <div key={i} onClick={() => setActiveTab('finances')} className="flex-1 flex flex-col items-center gap-3 cursor-pointer group">
-                      <div className="w-full bg-zinc-100 rounded-t-2xl relative overflow-hidden h-32 flex items-end">
-                        <div className="w-full bg-[#39FF14] rounded-t-2xl group-hover:brightness-110 transition-all" style={{ height: `${(val / 2500) * 100}%` }} />
-                        <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase text-zinc-400 group-hover:text-black transition-colors">J-{6 - i}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= 2. ÉCOSYSTÈME (LES 9 SAAS) ================= */}
-          {activeTab === 'ecosystem' && !selectedSaaS && (
-             <div className="animate-in fade-in">
-                <h3 className={`${spaceGrotesk.className} font-black uppercase text-3xl mb-8`}>La Suite OnyxOps</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {ECOSYSTEM_SAAS.map(saas => (
-                      <div key={saas.id} onClick={() => setSelectedSaaS(saas)} className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm hover:shadow-xl hover:border-black transition cursor-pointer group">
-                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-6 ${saas.color}`}>{saas.icon}</div>
-                         <h4 className={`${spaceGrotesk.className} font-black text-2xl uppercase mb-1 group-hover:text-[#39FF14] transition`}>{saas.name}</h4>
-                         <p className="text-xs font-bold text-zinc-400 mb-6">{saas.type}</p>
-                         <div className="flex justify-between items-center pt-4 border-t border-zinc-100">
-                            <span className="text-[10px] font-black uppercase text-zinc-400">{saas.users} Clients</span>
-                            <span className="bg-black text-white px-3 py-1 rounded-full text-[10px] font-black italic">{saas.price}/m</span>
-                         </div>
-                      </div>
-                   ))}
-                </div>
-             </div>
-          )}
-
-          {/* PAGE INDIVIDUELLE SAAS */}
-          {selectedSaaS && (
-            <div className="animate-in slide-in-from-right-8">
-              <button onClick={() => setSelectedSaaS(null)} className="mb-6 flex items-center gap-2 text-xs font-black uppercase text-zinc-400 hover:text-black transition"><ChevronLeft size={16}/> Retour</button>
-              <div className="bg-black text-white p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden mb-12">
-                <div className="absolute right-10 top-1/2 transform -translate-y-1/2 text-[10rem] opacity-5">{selectedSaaS.icon}</div>
-                <div className="relative z-10">
-                  <h2 className={`${spaceGrotesk.className} text-5xl font-black uppercase italic mb-4 tracking-tighter`}>{selectedSaaS.name}</h2>
-                  <p className="text-zinc-400 font-bold max-w-lg mb-10 italic">{selectedSaaS.desc}</p>
-                  <div className="flex gap-4">
-                    <button onClick={() => window.open(`https://${selectedSaaS.id}.onyxops.com/login`, '_blank')} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition shadow-lg"><Key size={18}/> Login Client</button>
-                    <button onClick={() => { setNewClient({ ...newClient, saas: selectedSaaS.name, role: 'prospect', expire: 'En essai (J-7)' }); setShowAddClientModal(true); }} className="bg-zinc-800 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white hover:text-black transition">Activer Essai Gratuit</button>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white p-8 rounded-[3rem] border border-zinc-200">
-                <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl mb-6 italic`}>Base Clients {selectedSaaS.name}</h3>
-                <div className="text-center p-12 bg-zinc-50 rounded-[2rem] border-2 border-dashed border-zinc-100 font-bold uppercase text-zinc-400 italic">
-                  Instance Database : {usersList.filter(u => u.saas === selectedSaaS.name).length} utilisateurs connectés
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= 3. CRM HUB & SCANNER ================= */}
-          {activeTab === 'users' && !selectedSaaS && (
-            <div className="space-y-6 animate-in fade-in">
-              <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-200">
-                 <h3 className={`${spaceGrotesk.className} font-black uppercase text-2xl tracking-tighter flex items-center gap-3`}><Users className="text-[#39FF14]"/> CRM Hub</h3>
-                 <div className="flex gap-4">
-                   <button onClick={() => setShowScannerModal(true)} className="bg-black text-[#39FF14] px-6 py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition flex items-center gap-2"><Sparkles size={16}/> Scanner IA</button>
-                   <button onClick={() => { setNewClient({ id: "", full_name: "", contact: "", saas: "Onyx Vente", role: "prospect", expire: "En essai (J-7)", is_partner: false }); setShowAddClientModal(true); }} className="bg-zinc-100 text-black px-6 py-4 rounded-xl font-black text-[10px] uppercase border border-zinc-200 hover:bg-black hover:text-white transition flex items-center gap-2"><UserPlus size={16}/> Ajouter</button>
-                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {usersList.map((u) => (
-                  <div key={u.id} className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm hover:border-black transition flex flex-col justify-between group relative overflow-hidden">
-                    {u.is_partner && <div className="absolute top-0 right-0 bg-[#39FF14] text-black px-3 py-1 text-[9px] font-black uppercase italic rounded-bl-xl">Partenaire</div>}
-                    <div>
-                      <div className="flex justify-between items-start mb-4">
-                        <img src={`https://ui-avatars.com/api/?name=${u.full_name}&background=random`} className="w-12 h-12 rounded-full border-2 border-zinc-100 shadow-sm" alt="" />
-                        <button onClick={() => { setNewClient(u); setShowAddClientModal(true); }} className="p-2 bg-zinc-50 rounded-lg hover:bg-black hover:text-white transition opacity-0 group-hover:opacity-100"><Edit3 size={14}/></button>
-                      </div>
-                      <p className="font-black text-xl mb-1 uppercase tracking-tighter italic">{u.full_name}</p>
-                      <p className="text-xs font-bold text-zinc-400 mb-6">{u.contact}</p>
-                      <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-4">
-                        <div className="flex justify-between items-center text-[10px] font-black"><span className="text-zinc-400 uppercase">SaaS Actif</span><span className="uppercase">{u.saas}</span></div>
-                      </div>
-                    </div>
-                    {!u.is_partner && (
-                      <button onClick={() => setShowPartnerConfirm(u)} className="w-full text-center py-2 border border-dashed border-zinc-200 text-zinc-400 rounded-xl text-[10px] font-black uppercase hover:border-[#39FF14] hover:text-[#39FF14] transition">Convertir Partenaire</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ================= 4. FINANCES (VALIDATION PAIEMENTS) ================= */}
-          {activeTab === 'finances' && !selectedSaaS && (
-            <div className="space-y-8 animate-in fade-in">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="bg-white p-10 rounded-[3rem] border border-zinc-200 shadow-sm">
-                  <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl mb-8 flex items-center gap-2`}><Wallet className="text-orange-500"/> En attente de validation</h3>
-                  <div className="space-y-4">
-                    {transactionsList.filter(t => t.status !== 'success').map(tx => (
-                      <div key={tx.id} className="p-5 bg-zinc-50 rounded-2xl border border-zinc-100 flex justify-between items-center">
-                        <div>
-                          <p className="font-black text-sm uppercase">{tx.client_name || "Client Onyx"}</p>
-                          <p className="text-[10px] font-bold text-zinc-400 uppercase italic">Wave/OM • {tx.amount ?? 8900} F</p>
-                        </div>
-                        <button onClick={() => alert('Paiement Validé - Abonnement activé.')} className="bg-[#39FF14] text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-md hover:scale-105 transition">Valider</button>
-                      </div>
+              {/* HISTOGRAMME : VENTES PAR JOUR */}
+              <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm">
+                 <h3 className="font-black uppercase text-sm mb-8 flex items-center gap-2"><BarChart3 className="text-[#39FF14]"/> VENTES PAR JOUR (7 DERNIERS JOURS)</h3>
+                 <div className="h-48 flex items-end justify-between gap-4">
+                    {[40, 60, 45, 80, 95, 70, 85].map((val, i) => (
+                       <div key={i} className="flex-1 bg-zinc-100 rounded-t-xl relative group h-full flex items-end">
+                          <div style={{ height: `${val}%` }} className="w-full bg-[#39FF14] rounded-t-xl transition-all duration-500 group-hover:bg-black"></div>
+                          <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-zinc-400">J-{6-i}</span>
+                       </div>
                     ))}
-                  </div>
-                </div>
-                <div className="bg-black text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
-                  <TrendingUp className="absolute right-[-20px] bottom-[-20px] text-[#39FF14] opacity-5" size={200} />
-                  <p className="text-[10px] font-black uppercase text-[#39FF14] tracking-widest mb-2">Objectif Cash M1</p>
-                  <p className={`${spaceGrotesk.className} text-[60px] font-black italic text-white tracking-tighter`}>77%</p>
-                  <div className="mt-8 space-y-4 relative z-10">
-                    <div className="flex justify-between border-b border-zinc-800 pb-2 text-xs font-bold uppercase"><span className="text-zinc-500">Moyenne/Client</span><span>8.900 F</span></div>
-                    <div className="flex justify-between border-b border-zinc-800 pb-2 text-xs font-bold uppercase"><span className="text-zinc-500">Retrait Partenaires</span><span className="text-red-500">- 420.000 F</span></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= 5. INBOX LEADS (CAPTURE WHATSAPP/BOT) ================= */}
-          {activeTab === 'chat' && !selectedSaaS && (
-            <div className="flex gap-6 h-[78vh] animate-in fade-in">
-              <div className="w-1/3 bg-white rounded-[3rem] border border-zinc-200 shadow-sm flex flex-col overflow-hidden">
-                <div className="p-6 border-b bg-zinc-50/50"><h3 className="font-black uppercase text-sm italic">Capture Leads Directs</h3></div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {leadsList.map(lead => (
-                    <div key={lead.id} className="p-5 rounded-[2rem] border border-zinc-50 bg-zinc-50 hover:border-black cursor-pointer transition-all">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[8px] bg-[#39FF14] text-black px-2 py-0.5 rounded-full font-black uppercase tracking-widest">{lead.source}</span>
-                        <span className="text-[8px] font-black text-zinc-400">J-0</span>
-                      </div>
-                      <p className="font-black text-sm uppercase">{lead.full_name || "Prospect Web"}</p>
-                      <p className="text-[10px] font-bold text-zinc-500 italic truncate">"{lead.intent}"</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="flex-1 bg-white rounded-[3rem] border border-zinc-200 shadow-sm flex flex-col overflow-hidden">
-                 <div className="p-8 flex flex-col items-center justify-center flex-1 opacity-20">
-                   <MessageSquare size={64} className="mb-4" />
-                   <p className={`${spaceGrotesk.className} font-black uppercase text-xl italic`}>CRM Messagerie</p>
-                   <p className="text-xs font-bold uppercase">Sélectionnez un lead pour répondre</p>
                  </div>
-                 <div className="p-6 border-t border-zinc-100 flex gap-4">
-                    <input type="text" placeholder="Répondre via WhatsApp CRM..." className="flex-1 bg-zinc-50 border-none rounded-2xl px-6 text-sm font-bold focus:ring-0 outline-none" />
-                    <button className="bg-black text-[#39FF14] p-4 rounded-2xl shadow-xl hover:scale-110 transition"><Send size={20}/></button>
+              </div>
+
+              {/* TOP 3 & TRANSACTIONS (RESTAURÉ SOUS L'HISTOGRAMME) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm flex flex-col justify-center">
+                    <h3 className="font-black uppercase text-sm mb-6 flex items-center gap-2"><TrendingUp className="text-[#39FF14]"/> TOP 3 PRODUITS</h3>
+                    <div className="space-y-4">
+                       <div className="flex justify-between items-center font-black text-sm"><span className="text-zinc-500">#1 Pack Trio</span><span>89 ventes</span></div>
+                       <div className="flex justify-between items-center font-black text-sm"><span className="text-zinc-500">#2 Onyx Solo</span><span>142 ventes</span></div>
+                       <div className="flex justify-between items-center font-black text-sm"><span className="text-zinc-500">#3 Pack Full</span><span>45 ventes</span></div>
+                    </div>
+                    <button className="mt-8 text-[10px] font-black uppercase text-zinc-400 hover:text-black transition tracking-widest text-left">CLIQUEZ POUR VOIR L'ÉCOSYSTÈME</button>
+                 </div>
+                 <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm min-h-[250px]">
+                    <h3 className="font-black uppercase text-sm mb-6 flex items-center gap-2"><CreditCard className="text-[#39FF14]"/> DERNIÈRES TRANSACTIONS</h3>
+                    <div className="text-zinc-400 font-bold text-sm">
+                       Aucune transaction récente.
+                    </div>
+                 </div>
+              </div>
+
+              {/* ACTIONS PLANIFIÉES IA (NOUVEAU) */}
+              <div className="bg-zinc-900 text-white border border-zinc-800 p-8 rounded-[3rem] shadow-2xl">
+                 <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-black uppercase text-sm flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> ACTIONS PLANIFIÉES DEPUIS LE SCAN IA</h3>
+                    <span className="bg-[#39FF14] text-black px-3 py-1 rounded-full text-[10px] font-black uppercase">{actionsIA.length} en attente</span>
+                 </div>
+                 <div className="space-y-3">
+                    {actionsIA.map(action => (
+                       <div key={action.id} className="bg-zinc-800 p-4 rounded-2xl flex justify-between items-center group hover:bg-black hover:border-[#39FF14] border border-transparent transition cursor-pointer">
+                          <div>
+                             <p className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest mb-1">{action.module} • {action.date}</p>
+                             <p className="font-bold text-sm">{action.title}</p>
+                             <p className="text-xs text-zinc-400 truncate max-w-md">{action.desc}</p>
+                          </div>
+                          <button className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase opacity-0 group-hover:opacity-100 transition">Exécuter</button>
+                       </div>
+                    ))}
                  </div>
               </div>
             </div>
           )}
 
-          {/* ================= 6. MARKETING (SÉQUENCES & BLOG) ================= */}
-          {activeTab === 'marketing' && !selectedSaaS && (
-            <div className="space-y-12 animate-in fade-in">
-              {/* SÉQUENCES AUTOMATIQUES */}
-              <div className="bg-black text-white p-10 rounded-[3.5rem] shadow-xl relative overflow-hidden">
-                <div className="absolute right-0 top-0 p-10 opacity-5"><CalendarClock size={200}/></div>
-                <h3 className={`${spaceGrotesk.className} font-black uppercase text-3xl mb-8 relative z-10 flex items-center gap-3`}><Sparkles className="text-[#39FF14]"/> Séquences Automatisation</h3>
-                <div className="grid md:grid-cols-3 gap-6 relative z-10">
-                  <div className="bg-zinc-900 border-l-4 border-white p-6 rounded-2xl">
-                    <span className="bg-white text-black px-3 py-1 rounded-full text-[10px] font-black uppercase mb-4 inline-block">J0 - Inscription</span>
-                    <p className="font-bold text-sm mb-2 italic">Bienvenue + Tuto Vidéo</p>
-                    <p className="text-xs text-zinc-400">Pousse l'utilisateur à configurer son catalogue immédiatement.</p>
-                  </div>
-                  <div className="bg-zinc-900 border-l-4 border-yellow-400 p-6 rounded-2xl">
-                    <span className="bg-yellow-400 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase mb-4 inline-block">J+7 - Milieu Essai</span>
-                    <p className="font-bold text-sm mb-2 italic">Relance "Expert Call"</p>
-                    <p className="text-xs text-zinc-400">Propose un diagnostic gratuit de 10 min pour convertir l'essai.</p>
-                  </div>
-                  <div className="bg-[#39FF14]/10 border border-[#39FF14] border-l-4 p-6 rounded-2xl">
-                    <span className="bg-[#39FF14] text-black px-3 py-1 rounded-full text-[10px] font-black uppercase mb-4 inline-block">J-1 - Expiration</span>
-                    <p className="font-bold text-sm mb-2 text-white italic">Offre Irrésistible (-20%)</p>
-                    <p className="text-xs text-zinc-300">Dernière chance avant fermeture de l'instance et perte des données.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* BLOG EXPERT */}
-              <div className="bg-white p-8 rounded-[3rem] border border-zinc-200">
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className={`${spaceGrotesk.className} font-black uppercase text-2xl italic tracking-tighter`}>Blog Expertise ROI</h3>
-                  <button onClick={generateArticleAI} disabled={isGenerating} className="bg-black text-[#39FF14] px-6 py-4 rounded-xl font-black text-xs uppercase shadow-lg hover:scale-105 transition flex items-center gap-2">
-                    {isGenerating ? "Génération Stratégique..." : <><Sparkles size={16}/> Auto-suggestion IA (3)</>}
-                  </button>
-                </div>
-                <div className="grid gap-6">
-                  {articlesList.map(article => (
-                    <div key={article.id} className="bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-6 hover:border-black transition group">
-                      <div className="flex-1">
-                        <div className="flex gap-2 mb-4">
-                          <span className="text-[9px] font-black uppercase bg-black text-[#39FF14] px-3 py-1 rounded-md italic">Expert Onyx</span>
-                          <span className="text-[9px] font-black uppercase bg-zinc-100 border border-zinc-200 px-3 py-1 rounded-md text-zinc-500">{article.category}</span>
-                        </div>
-                        <h4 className={`${spaceGrotesk.className} font-black text-2xl uppercase italic group-hover:text-[#39FF14] transition`}>{article.title}</h4>
-                        <p className="text-xs font-medium text-zinc-500 line-clamp-2 italic">"{article.content}"</p>
-                      </div>
-                      <div className="flex flex-col gap-3 w-full md:w-auto">
-                        <button onClick={() => alert('Diffusé via WhatsApp & Mail.')} className="w-full px-6 py-3 bg-[#39FF14] text-black font-black text-[10px] uppercase rounded-xl hover:scale-105 transition shadow-md flex items-center justify-center gap-2"><Send size={14}/> Diffuser</button>
-                        <button onClick={() => { setArticleForm(article); setShowArticleModal(article); }} className="w-full px-6 py-3 bg-white text-black font-black text-[10px] uppercase border border-zinc-200 rounded-xl hover:bg-black hover:text-white transition flex items-center justify-center gap-2"><Edit3 size={14}/> Éditer</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= 7. PARTENAIRES ================= */}
-          {activeTab === 'partners' && !selectedSaaS && (
-             <div className="space-y-6 animate-in fade-in">
-               <h3 className={`${spaceGrotesk.className} font-black uppercase text-2xl tracking-tighter mb-8 italic`}>Validation Ambassadeurs Hub</h3>
-               <div className="grid gap-6">
-                 {partnersList.map(partner => (
-                    <div key={partner.id} className="bg-white p-8 rounded-[3rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
-                       <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                             <h4 className={`${spaceGrotesk.className} font-black text-2xl uppercase italic`}>{partner.full_name}</h4>
-                             <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">{partner.activity}</span>
-                          </div>
-                          <p className="text-xs font-bold text-zinc-400 mb-6 italic">📞 {partner.contact} | 📍 {partner.city}</p>
-                          <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100 grid md:grid-cols-2 gap-6">
-                             <div><p className="text-[9px] font-black text-zinc-400 uppercase mb-1">Objectif Anti-Touriste :</p><p className="text-xs font-bold italic text-zinc-700">"{partner.objective || "Non précisé"}"</p></div>
-                             <div><p className="text-[9px] font-black text-zinc-400 uppercase mb-1">YouTube / Réseaux :</p><p className="text-xs font-bold text-blue-600 truncate">{partner.youtube_link || partner.prospection || "Non précisé"}</p></div>
-                          </div>
-                       </div>
-                       <div>
-                          {partner.status === 'En attente' ? (
-                             <button onClick={() => approvePartner(partner)} className="bg-black text-[#39FF14] px-8 py-4 rounded-2xl text-xs font-black uppercase hover:scale-105 transition shadow-2xl">Activer Hub & WA</button>
-                          ) : (
-                             <span className="text-green-600 bg-green-50 px-6 py-4 rounded-2xl font-black uppercase text-xs flex items-center gap-2 border border-green-200"><ShieldCheck size={18}/> Hub Actif</span>
-                          )}
-                       </div>
+          {/* ========================================================= */}
+          {/* VUE : CRM & CONTACTS (Filtres Avancés & Conversion)       */}
+          {/* ========================================================= */}
+          {activeView === 'crm' && (
+            <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
+              
+              {/* CARTES CLIQUABLES (NOUVEAU) */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                 {[
+                    { id: 'new_clients', label: 'Nouveaux Clients', val: 12, icon: CheckCircle, color: 'text-black bg-white border-zinc-200' },
+                    { id: 'new_prospects', label: 'Nouveaux Prospects', val: 45, icon: Users, color: 'text-black bg-white border-zinc-200' },
+                    { id: 'exp_trials', label: 'Essais Expirants', val: 8, icon: Clock, color: 'text-[#39FF14] bg-black border-black shadow-lg' },
+                    { id: 'exp_subs', label: 'Abonnements Expirants', val: 3, icon: AlertCircle, color: 'text-red-500 bg-red-50 border-red-100' },
+                 ].map(card => (
+                    <div key={card.id} onClick={() => setCrmCardFilter(crmCardFilter === card.id ? null : card.id)} className={`p-5 rounded-[2rem] border cursor-pointer hover:scale-105 transition-all ${card.color} ${crmCardFilter === card.id ? 'ring-4 ring-[#39FF14]/50' : ''}`}>
+                       <card.icon size={20} className="mb-3" />
+                       <p className={`${spaceGrotesk.className} text-3xl font-black mb-1`}>{card.val}</p>
+                       <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{card.label}</p>
                     </div>
                  ))}
+              </div>
+
+              {/* BARRE D'OUTILS & RECHERCHE AVANCÉE */}
+              <div className="flex flex-col md:flex-row justify-between gap-4 items-center bg-white p-4 rounded-3xl border border-zinc-200 shadow-sm">
+                <div className="flex-1 w-full relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
+                  <input type="text" placeholder="Rechercher par nom, téléphone, SaaS..." value={crmSearch} onChange={(e) => setCrmSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-zinc-50 border-none rounded-2xl outline-none font-bold text-sm focus:ring-2 focus:ring-[#39FF14]/50 transition" />
+                </div>
+                <select value={crmTypeFilter} onChange={(e) => setCrmTypeFilter(e.target.value)} className="px-4 py-3 bg-zinc-50 rounded-2xl font-bold text-sm outline-none border-none cursor-pointer w-full md:w-auto">
+                  <option>Tous</option><option>Client</option><option>Prospect</option><option>Partenaire</option>
+                </select>
+                <div className="flex gap-2 w-full md:w-auto">
+                   <button onClick={runCrmScan} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs hover:scale-105 transition shadow-lg">
+                     <Sparkles size={16} /> Scan IA
+                   </button>
+                   <button onClick={() => { setEditingContact({ full_name: '', phone: '', type: 'Prospect', saas: '' }); setShowContactModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#39FF14] text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg">
+                     <Plus size={16} /> Nouveau
+                   </button>
+                </div>
+              </div>
+
+              {/* MODALE RAPPORT IA CRM */}
+              {showRapportIA && (
+                 <div className="bg-white border-2 border-[#39FF14] rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in">
+                    <button onClick={() => setShowRapportIA(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black"><X size={20}/></button>
+                    <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 flex items-center gap-2`}><Sparkles className="text-[#39FF14]"/> Rapport IA CRM</h3>
+                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-6">Analyse effectuée sur les expirations et prospects chauds.</p>
+                    
+                    <div className="space-y-4">
+                       <div className="border border-zinc-200 p-6 rounded-[2rem] flex justify-between items-center bg-zinc-50">
+                          <div>
+                             <p className="font-black text-lg uppercase">Boutique Fatou</p>
+                             <p className="text-xs font-bold text-zinc-500 italic">Essai expire demain. Fort usage catalogue.</p>
+                          </div>
+                          <button className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-md">Offrir Promo (WhatsApp)</button>
+                       </div>
+                       <div className="border border-zinc-200 p-6 rounded-[2rem] flex justify-between items-center bg-zinc-50">
+                          <div>
+                             <p className="font-black text-lg uppercase">Resto Dakar</p>
+                             <p className="text-xs font-bold text-zinc-500 italic">Client Menu depuis 6 mois. Pas de logiciel RH.</p>
+                          </div>
+                          <button className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-md">Upsell Onyx Staff</button>
+                       </div>
+                    </div>
+                 </div>
+              )}
+
+              {/* TABLEAU DES CONTACTS */}
+              <div className="bg-white border border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
+                <table className="w-full text-left">
+                  <thead className="bg-zinc-50 border-b border-zinc-200">
+                    <tr>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Contact</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Statut / Type</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Produit SaaS</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contacts.filter(c => 
+                       (crmTypeFilter === 'Tous' || c.type === crmTypeFilter) &&
+                       (c.full_name.toLowerCase().includes(crmSearch.toLowerCase()) || c.saas.toLowerCase().includes(crmSearch.toLowerCase()) || c.phone.includes(crmSearch))
+                    ).map((c, i) => (
+                      <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50 transition group">
+                        <td className="p-6">
+                          <p className="font-black text-sm uppercase">{c.full_name}</p>
+                          <p className="text-xs text-zinc-500 font-bold">{c.phone}</p>
+                        </td>
+                        <td className="p-6">
+                          <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-full ${c.type === 'Client' ? 'bg-[#39FF14]/20 text-black' : c.type === 'Partenaire' ? 'bg-black text-[#39FF14]' : 'bg-zinc-200 text-zinc-600'}`}>{c.type}</span>
+                          <p className="text-[10px] font-bold text-zinc-400 mt-2">{c.status}</p>
+                        </td>
+                        <td className="p-6 font-bold text-sm">{c.saas || '-'}</td>
+                        <td className="p-6 text-right">
+                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="text-[10px] font-black uppercase bg-white border border-zinc-200 px-4 py-2 rounded-lg hover:border-black transition">Éditer Fiche</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* VUE : PARTENAIRES & AMBASSADEURS (Avec IA & 3 Cartes)     */}
+          {/* ========================================================= */}
+          {activeView === 'partners' && (
+             <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
+               
+               {/* CARTES CLIQUABLES (NOUVEAU) */}
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div onClick={() => setPartnerCardFilter('last')} className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm cursor-pointer hover:border-[#39FF14] transition group">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Les 4 Derniers Inscrits</p>
+                     <div className="flex items-center gap-4">
+                        <div className="bg-black text-white w-12 h-12 rounded-2xl flex items-center justify-center"><UserPlus size={20}/></div>
+                        <p className={`${spaceGrotesk.className} text-4xl font-black`}>12 <span className="text-sm font-normal text-zinc-500">ce mois</span></p>
+                     </div>
+                  </div>
+                  <div onClick={() => setPartnerCardFilter('inactive')} className="bg-red-50 border border-red-100 p-8 rounded-[3rem] shadow-sm cursor-pointer hover:border-red-500 transition group">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Les 4 Moins Actifs (À Relancer)</p>
+                     <div className="flex items-center gap-4">
+                        <div className="bg-red-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center"><AlertCircle size={20}/></div>
+                        <p className={`${spaceGrotesk.className} text-4xl font-black text-red-600`}>Awa & co.</p>
+                     </div>
+                  </div>
+                  <div onClick={() => setPartnerCardFilter('top')} className="bg-black border border-[#39FF14]/30 shadow-[0_10px_30px_rgba(57,255,20,0.15)] p-8 rounded-[3rem] cursor-pointer hover:scale-105 transition group">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-2">Les 4 Plus Productifs</p>
+                     <div className="flex items-center gap-4">
+                        <div className="bg-[#39FF14] text-black w-12 h-12 rounded-2xl flex items-center justify-center"><Star size={20}/></div>
+                        <p className={`${spaceGrotesk.className} text-4xl font-black text-white`}>Cheikh N.</p>
+                     </div>
+                  </div>
+               </div>
+
+               {/* BARRE D'OUTILS IA */}
+               <div className="bg-[#39FF14]/10 border border-[#39FF14] p-6 rounded-[2rem] flex justify-between items-center mb-8">
+                  <div>
+                     <h3 className="font-black uppercase text-sm flex items-center gap-2"><Sparkles size={16}/> Gestion IA Ambassadeurs</h3>
+                     <p className="text-xs font-bold text-zinc-600">L'IA analyse vos 3 cartes (Nouveaux, Inactifs, Top) et génère des actions personnalisées.</p>
+                  </div>
+                  <button onClick={runPartnerScan} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-md whitespace-nowrap">
+                     Lancer le Scan Global IA
+                  </button>
+               </div>
+
+               {/* TABLEAU AMBASSADEURS */}
+               <div className="bg-white border border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
+                 <table className="w-full text-left">
+                   <thead className="bg-zinc-50 border-b border-zinc-200">
+                     <tr>
+                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Ambassadeur</th>
+                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Activité / Statut</th>
+                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">Ventes Réalisées</th>
+                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Actions</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {partners.map((p, i) => (
+                       <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50 transition">
+                         <td className="p-6">
+                           <p className="font-black text-sm uppercase">{p.full_name}</p>
+                           <p className="text-xs text-zinc-500 font-bold">{p.contact}</p>
+                         </td>
+                         <td className="p-6">
+                           <span className="px-3 py-1 text-[10px] font-black uppercase rounded-full bg-zinc-200 text-black">{p.activity}</span>
+                           <p className={`text-[10px] font-black uppercase mt-2 ${p.status === 'Top Performer' ? 'text-[#39FF14]' : p.status === 'Inactif' ? 'text-red-500' : 'text-zinc-500'}`}>{p.status}</p>
+                         </td>
+                         <td className="p-6 text-center font-black text-xl">{p.sales}</td>
+                         <td className="p-6 text-right">
+                           <button className="text-[10px] font-black uppercase bg-black text-white px-4 py-2 rounded-lg hover:bg-[#39FF14] hover:text-black transition">Détails</button>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
                </div>
              </div>
           )}
-        </div>
 
-        <footer className="mt-8 pt-6 border-t border-zinc-200 flex justify-between items-center px-8 text-[10px] font-black uppercase tracking-widest text-zinc-300">
-           <p>OnyxOps Admin Hub © 2026</p>
-           <p>Security Active - Dakar Center</p>
-        </footer>
+          {/* ========================================================= */}
+          {/* VUE : Ecosystème, Finance, Marketing (Restent basiques pour démo) */}
+          {/* ========================================================= */}
+          {(activeView === 'ecosystem' || activeView === 'finance' || activeView === 'marketing') && (
+             <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-in zoom-in">
+                <LayoutDashboard size={64} className="text-zinc-200 mb-6" />
+                <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Module en construction</h2>
+                <p className="text-zinc-500 font-bold max-w-md">L'intégration complète de ce module est en cours de développement pour la V2 de l'interface admin.</p>
+             </div>
+          )}
+
+        </div>
       </main>
 
-      {/* ================= MODALES ================= */}
-      
-      {/* SCANNER IA */}
-      {showScannerModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in">
-          <div className="bg-white w-full max-w-2xl rounded-[3.5rem] p-12 shadow-2xl relative animate-in zoom-in">
-            <button onClick={() => setShowScannerModal(false)} className="absolute top-8 right-8 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={18}/></button>
-            <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 italic tracking-tighter flex items-center gap-2`}><Sparkles className="text-[#39FF14]"/> Rapport IA CRM</h2>
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-8">Scan effectué sur {usersList.length} clients</p>
-            <div className="space-y-4">
-               {[
-                 { n: "Boutique Fatou", i: "Essai expire (J-1). Fort usage catalogue.", a: "Offrir Promo (WhatsApp)" },
-                 { n: "Resto Dakar", i: "Client Menu depuis 6 mois. Pas de logiciel RH.", a: "Upsell Onyx Staff" }
-               ].map((o, idx) => (
-                  <div key={idx} className="bg-zinc-50 border border-zinc-200 p-5 rounded-3xl flex justify-between items-center hover:border-black transition cursor-default">
-                    <div><p className="font-black uppercase text-sm">{o.n}</p><p className="text-xs font-medium text-zinc-500 italic mt-0.5">{o.i}</p></div>
-                    <button onClick={() => alert('Action lancée.')} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition">{o.a}</button>
-                  </div>
-               ))}
-            </div>
+      {/* ================= MODALE : EDITION FICHE CLIENT AVANCÉE ================= */}
+      {showContactModal && editingContact && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white p-10 rounded-[3.5rem] max-w-lg w-full relative shadow-2xl animate-in zoom-in">
+            <button onClick={() => setShowContactModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
+            
+            <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-8`}>
+              {editingContact.id ? 'Éditer Fiche' : 'Nouveau Contact'}
+            </h2>
+
+            <form onSubmit={handleSaveContact} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 pl-2">Nom Complet</label>
+                <input type="text" required value={editingContact.full_name} onChange={e => setEditingContact({...editingContact, full_name: e.target.value})} className="w-full mt-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 pl-2">Téléphone WhatsApp</label>
+                <input type="tel" required value={editingContact.phone} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full mt-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 pl-2">Type (Conversion)</label>
+                   <select value={editingContact.type} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className="w-full mt-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
+                     <option value="Prospect">Prospect</option>
+                     <option value="Client">Client</option>
+                     <option value="Partenaire">Partenaire</option>
+                   </select>
+                 </div>
+                 <div>
+                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 pl-2">Produit d'intérêt / Actif</label>
+                   <input type="text" value={editingContact.saas} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full mt-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" placeholder="Ex: Onyx Vente" />
+                 </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 pl-2">Statut / Notes</label>
+                <input type="text" value={editingContact.status || ''} onChange={e => setEditingContact({...editingContact, status: e.target.value})} className="w-full mt-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" placeholder="Ex: À relancer, Actif..." />
+              </div>
+
+              <div className="pt-6">
+                <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition shadow-xl flex justify-center items-center gap-2">
+                  <CheckCircle size={18}/> Enregistrer la fiche
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* CONFIRMATION AVANTAGES PARTENAIRE */}
-      {showPartnerConfirm && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6 animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative animate-in zoom-in text-center">
-            <div className="w-20 h-20 bg-[#39FF14]/10 rounded-full flex items-center justify-center mx-auto mb-6"><ShieldCheck size={40} className="text-[#39FF14]" /></div>
-            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 italic`}>Activer statut Partenaire ?</h2>
-            <div className="space-y-4 text-left mb-8">
-               <div className="flex gap-3 text-xs font-bold text-zinc-600 uppercase italic"><Check size={16} className="text-[#39FF14]"/> -30% immédiat sur ses abonnements.</div>
-               <div className="flex gap-3 text-xs font-bold text-zinc-600 uppercase italic"><Check size={16} className="text-[#39FF14]"/> Lien d'affiliation actif dans son Hub.</div>
-               <div className="flex gap-3 text-xs font-bold text-zinc-600 uppercase italic"><Check size={16} className="text-[#39FF14]"/> 20% de commission par vente validée.</div>
-            </div>
-            <button onClick={() => confirmPartnerTransition(showPartnerConfirm)} className="w-full py-4 bg-black text-[#39FF14] font-black text-xs uppercase rounded-xl shadow-xl hover:scale-105 transition">Confirmer & Activer Hub</button>
-            <button onClick={() => setShowPartnerConfirm(null)} className="w-full mt-2 py-2 text-zinc-400 font-black text-[10px] uppercase hover:text-black transition">Annuler</button>
-          </div>
-        </div>
-      )}
-
-      {/* MODALE AJOUT CLIENT / ESSAI */}
-      {showAddClientModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] p-12 shadow-2xl relative animate-in zoom-in">
-            <button onClick={() => setShowAddClientModal(false)} className="absolute top-8 right-8 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={18}/></button>
-            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-8 italic tracking-tighter`}>{newClient.id ? 'Modifier' : 'Ajouter / Essai Gratuit'}</h2>
-            <div className="space-y-4">
-              <input type="text" placeholder="Nom Complet" value={newClient.full_name} onChange={e => setNewClient({...newClient, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
-              <input type="text" placeholder="WhatsApp / Email" value={newClient.contact} onChange={e => setNewClient({...newClient, contact: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
-              <select value={newClient.saas} onChange={e => setNewClient({...newClient, saas: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
-                 {ECOSYSTEM_SAAS.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
-              </select>
-            </div>
-            <button onClick={saveClient} className="w-full py-5 bg-[#39FF14] text-black font-black text-sm uppercase rounded-2xl mt-8 shadow-xl hover:scale-105 transition">Enregistrer</button>
-          </div>
-        </div>
-      )}
     </div>
-  );
-}
-
-function NavBtn({ icon, label, active, onClick }: any) {
-  return (
-    <button onClick={onClick} className={`w-full flex items-center gap-4 p-4 mx-2 rounded-2xl transition-all font-bold text-sm italic ${active ? 'bg-black text-[#39FF14] shadow-xl translate-x-1' : 'text-zinc-400 hover:bg-zinc-100 hover:text-black'}`}>
-      <div className={`${active ? 'text-[#39FF14]' : 'text-zinc-300'}`}>{icon}</div>{label}
-    </button>
   );
 }
