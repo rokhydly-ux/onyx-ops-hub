@@ -2,20 +2,20 @@
 
 import React, { useState, useEffect } from "react";
 import { Space_Grotesk, Inter } from "next/font/google";
-import { supabase } from "@/lib/supabaseClient";
 import { 
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
   Settings, LogOut, TrendingUp, Search, Plus, Filter, Calendar, 
   CheckCircle, Clock, AlertCircle, X, Sparkles, Phone, Mail, FileText, 
   ChevronRight, BarChart3, CreditCard, PlayCircle, Star, UserPlus, 
-  ExternalLink, MessageSquare, Save, LogIn, Send, Download, ArrowUpRight, ArrowDownRight
+  ExternalLink, MessageSquare, Save, LogIn, Send, Download, ArrowUpRight, ArrowDownRight, Edit3
 } from "lucide-react";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 type ViewType = 'dashboard' | 'crm' | 'leads' | 'ecosystem' | 'finance' | 'partners' | 'marketing';
-type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: 'En attente' | 'En cours' | 'Réalisé' | 'Annulé'; phone: string; msg: string };
+type ActionModule = 'CRM' | 'Partenaires' | 'Marketing';
+type IAAction = { id: string; module: ActionModule; title: string; desc: string; date: string; status: 'En attente' | 'En cours' | 'Réalisé' | 'Annulé'; phone?: string; msg?: string };
 
 export default function AdminDashboard() {
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
@@ -27,15 +27,25 @@ export default function AdminDashboard() {
   const [showRapportIA, setShowRapportIA] = useState(false);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [showSaasLogin, setShowSaasLogin] = useState<any>(null);
+  const [showDiffusionModal, setShowDiffusionModal] = useState<any>(null); // Contient l'article à diffuser
   
   // Data States
   const [editingContact, setEditingContact] = useState<any>(null);
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
+  const [isEditingPartner, setIsEditingPartner] = useState(false);
+  const [editPartnerForm, setEditPartnerForm] = useState<any>(null);
+  const [selectedContactsForDiffusion, setSelectedContactsForDiffusion] = useState<string[]>([]);
+
   const [contacts, setContacts] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
+  const [marketingArticles, setMarketingArticles] = useState<any[]>([]);
   
-  // Filtres
+  // Filtres Dashboard Actions
+  const [actionTabFilter, setActionTabFilter] = useState<'All' | 'IA' | 'Marketing'>('All');
+  const [actionSearchFilter, setActionSearchFilter] = useState("");
+
+  // Filtres CRM / Partenaires
   const [crmSearch, setCrmSearch] = useState("");
   const [crmTypeFilter, setCrmTypeFilter] = useState("Tous");
   const [crmCardFilter, setCrmCardFilter] = useState<string | null>(null);
@@ -46,7 +56,8 @@ export default function AdminDashboard() {
 
   const [actionsIA, setActionsIA] = useState<IAAction[]>([
     { id: '1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: todayStr, status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger avec notre code promo de -20% ?' },
-    { id: '2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: todayStr, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' }
+    { id: '2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: todayStr, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' },
+    { id: '3', module: 'Marketing', title: 'Newsletter : L\'ère du Digital', desc: 'Diffusion automatique programmée pour les prospects Restauration.', date: 'Demain', status: 'En attente' }
   ]);
 
   const ECOSYSTEM_SAAS = [
@@ -66,38 +77,35 @@ export default function AdminDashboard() {
       { id: '1', full_name: 'Magatte Fall', phone: '77 123 45 67', type: 'Prospect', saas: 'Onyx Vente', status: 'En essai (J-7)', isExpiringTrial: true },
       { id: '2', full_name: 'Boutique Fatou', phone: '76 987 65 43', type: 'Client', saas: 'Pack Trio', status: 'Actif', isExpiringSub: false },
       { id: '3', full_name: 'Resto Dakar', phone: '78 555 44 33', type: 'Client', saas: 'Onyx Menu', status: 'Expire bientôt', isExpiringSub: true },
+      { id: '4', full_name: 'Modou S.', phone: '77 444 55 66', type: 'Prospect', saas: 'Pack Full', status: 'Nouveau', isExpiringTrial: false },
     ]);
     setPartners([
-      { id: '1', full_name: 'Moussa D.', contact: '77 000 00 00', activity: 'Étudiant', sales: 12, status: 'Actif', revenue: '85.000F' },
-      { id: '2', full_name: 'Awa C.', contact: '78 999 88 77', activity: 'Commerçante', sales: 0, status: 'En attente', revenue: '0F' },
-      { id: '3', full_name: 'Cheikh N.', contact: '76 111 22 33', activity: 'Freelance', sales: 45, status: 'Top Performer', revenue: '450.000F' },
+      { id: 'p1', full_name: 'Moussa D.', contact: '77 000 00 00', activity: 'Étudiant', sales: 12, status: 'Actif', revenue: '85.000F' },
+      { id: 'p2', full_name: 'Awa C.', contact: '78 999 88 77', activity: 'Commerçante', sales: 0, status: 'En attente', revenue: '0F' },
+      { id: 'p3', full_name: 'Cheikh N.', contact: '76 111 22 33', activity: 'Freelance', sales: 45, status: 'Top Performer', revenue: '450.000F' },
     ]);
     setLeads([
-      { id: '1', full_name: 'Modou S.', source: 'Bot Fanta', intent: 'Pack Full', message: 'Je veux digitaliser mon resto', date: todayStr, status: 'Nouveau' }
+      { id: 'l1', full_name: 'Alioune G.', source: 'Bot Fanta', intent: 'Pack Full', message: 'Je veux digitaliser mon resto', date: todayStr, status: 'Nouveau' }
+    ]);
+    setMarketingArticles([
+       { id: 'm1', title: 'DIGITALISATION 2026 : POURQUOI DAKAR EXPLOSE', desc: 'L\'intelligence artificielle transforme le commerce...', category: 'Social Selling', cible: 'Pack Full' },
+       { id: 'm2', title: 'COMMENT LE DIGITAL TRANSFORME LES RESTAURANTS', desc: 'Réduire les pertes de 30% grâce aux menus digitaux...', category: 'Restauration', cible: 'Onyx Menu' }
     ]);
   }, []);
 
-  const handleOutsideClick = (setter: any) => (e: any) => {
-    if (e.target.id === "modal-overlay") setter(false);
+  const handleOutsideClick = (setter: any, secondaryAction?: () => void) => (e: any) => {
+    if (e.target.id === "modal-overlay") { setter(false); if(secondaryAction) secondaryAction(); }
   };
 
-  const executeWA = (phone: string, msg: string, idIA?: string) => {
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-    if (idIA) {
-      setActionsIA(prev => prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
-    }
+  const executeWA = (phone: string | undefined, msg: string | undefined, idIA?: string) => {
+    if(phone && msg) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    if (idIA) setActionsIA(prev => prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
   };
 
   const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
-     const newAction: IAAction = {
-        id: Date.now().toString(),
-        module: 'CRM',
-        title, desc,
-        date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }),
-        status: 'En attente', phone, msg
-     };
+     const newAction: IAAction = { id: Date.now().toString(), module: 'CRM', title, desc, date: todayStr, status: 'En attente', phone, msg };
      setActionsIA([newAction, ...actionsIA]);
-     alert("L'action a bien été planifiée et envoyée sur votre Dashboard !");
+     alert("L'action a bien été planifiée sur votre Dashboard !");
      setShowRapportIA(false);
   };
 
@@ -112,9 +120,50 @@ export default function AdminDashboard() {
     setPartners(partners.map(p => p.id === id ? { ...p, status: 'Actif' } : p));
   };
 
+  // ACTIONS PARTENAIRE (EDITION & CONVERSION)
+  const handleSavePartner = () => {
+     setPartners(partners.map(p => p.id === editPartnerForm.id ? editPartnerForm : p));
+     setSelectedPartner(editPartnerForm);
+     setIsEditingPartner(false);
+  };
+
+  const handleConvertPartnerToClient = () => {
+     const newContact = { id: Date.now().toString(), full_name: selectedPartner.full_name, phone: selectedPartner.contact, type: 'Client', saas: 'À définir', status: 'Converti depuis Ambassadeur', isExpiringTrial: false, isExpiringSub: false };
+     setContacts([newContact, ...contacts]);
+     alert(`${selectedPartner.full_name} a été ajouté en tant que Client dans le CRM ! Son statut Ambassadeur est conservé.`);
+  };
+
+  // ACTIONS MARKETING
+  const runIAArticleSuggestion = () => {
+     const newArt = { id: Date.now().toString(), title: 'BOOSTER SES VENTES WHATSAPP AVEC L\'IA', desc: 'Découvrez les 3 scripts générés par IA qui convertissent à 80%...', category: 'Vente', cible: 'Tous' };
+     setMarketingArticles([newArt, ...marketingArticles]);
+     alert("Un nouvel article a été généré par l'IA et ajouté à votre liste !");
+  };
+
+  const scheduleMarketingDiffusion = () => {
+     if(selectedContactsForDiffusion.length === 0) return alert("Veuillez sélectionner au moins un contact.");
+     const newAction: IAAction = {
+        id: Date.now().toString(), module: 'Marketing', title: `Diffusion : ${showDiffusionModal.title}`,
+        desc: `Envoi programmé à ${selectedContactsForDiffusion.length} contacts sélectionnés.`,
+        date: todayStr, status: 'En attente'
+     };
+     setActionsIA([newAction, ...actionsIA]);
+     setShowDiffusionModal(null);
+     setSelectedContactsForDiffusion([]);
+     alert("La diffusion a bien été planifiée sur le Dashboard !");
+  };
+
+  // FILTRES ACTIONS DASHBOARD
+  const filteredActions = actionsIA.filter(a => {
+     if(actionTabFilter === 'IA' && a.module === 'Marketing') return false;
+     if(actionTabFilter === 'Marketing' && a.module !== 'Marketing') return false;
+     if(actionSearchFilter && !a.title.toLowerCase().includes(actionSearchFilter.toLowerCase()) && !a.desc.toLowerCase().includes(actionSearchFilter.toLowerCase())) return false;
+     return true;
+  });
+  const displayedActions = (actionTabFilter === 'All' && !actionSearchFilter) ? filteredActions.slice(0, 5) : filteredActions;
+
   return (
     <div className={`flex h-screen bg-zinc-50 ${inter.className} text-black overflow-hidden`}>
-      
       {/* SIDEBAR */}
       <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col z-20 shadow-sm hidden md:flex">
         <div className="p-6">
@@ -192,46 +241,27 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm">
-                 <h3 className="font-black uppercase text-sm mb-8 flex items-center gap-2"><BarChart3 className="text-[#39FF14]"/> VENTES PAR JOUR (7 DERNIERS JOURS)</h3>
-                 <div className="h-48 flex items-end justify-between gap-4">
-                    {[40, 60, 45, 80, 95, 70, 85].map((val, i) => (
-                       <div key={i} className="flex-1 bg-zinc-100 rounded-t-xl relative group h-full flex items-end">
-                          <div style={{ height: `${val}%` }} className="w-full bg-[#39FF14] rounded-t-xl transition-all duration-500 group-hover:bg-black"></div>
-                          <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-zinc-400">J-{6-i}</span>
-                       </div>
-                    ))}
-                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm flex flex-col justify-center">
-                    <h3 className="font-black uppercase text-sm mb-6 flex items-center gap-2"><TrendingUp className="text-[#39FF14]"/> TOP 3 PRODUITS</h3>
-                    <div className="space-y-4">
-                       <div className="flex justify-between items-center font-black text-sm"><span className="text-zinc-500">#1 Pack Trio</span><span>89 ventes</span></div>
-                       <div className="flex justify-between items-center font-black text-sm"><span className="text-zinc-500">#2 Onyx Solo</span><span>142 ventes</span></div>
-                       <div className="flex justify-between items-center font-black text-sm"><span className="text-zinc-500">#3 Pack Full</span><span>45 ventes</span></div>
-                    </div>
-                 </div>
-                 <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm min-h-[250px]">
-                    <h3 className="font-black uppercase text-sm mb-6 flex items-center gap-2"><CreditCard className="text-[#39FF14]"/> DERNIÈRES TRANSACTIONS</h3>
-                    <div className="text-zinc-400 font-bold text-sm">
-                       <div className="flex justify-between items-center mb-3 pb-3 border-b border-zinc-100"><span className="text-black">Pack Trio - Client #102</span><span className="text-[#39FF14]">17.500F</span></div>
-                       <div className="flex justify-between items-center mb-3 pb-3 border-b border-zinc-100"><span className="text-black">Onyx Menu - Resto Dakar</span><span className="text-[#39FF14]">30.000F</span></div>
-                    </div>
-                 </div>
-              </div>
-
-              {/* ACTIONS IA CLIQUABLES AVEC DATE */}
+              {/* ACTIONS PLANIFIÉES AVEC ONGLETS ET RECHERCHE */}
               <div className="bg-zinc-900 text-white border border-zinc-800 p-8 rounded-[3rem] shadow-2xl">
-                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-black uppercase text-sm flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> ACTIONS PLANIFIÉES DEPUIS LE SCAN IA</h3>
+                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+                    <h3 className="font-black uppercase text-sm flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> PLANIFICATEUR D'ACTIONS</h3>
+                    <div className="flex gap-2 bg-zinc-800 p-1 rounded-xl">
+                       <button onClick={() => setActionTabFilter('All')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'All' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Tout ({actionsIA.length})</button>
+                       <button onClick={() => setActionTabFilter('IA')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'IA' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Actions IA</button>
+                       <button onClick={() => setActionTabFilter('Marketing')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'Marketing' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Marketing</button>
+                    </div>
                  </div>
+
+                 <div className="mb-6 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+                    <input type="text" placeholder="Rechercher une action..." value={actionSearchFilter} onChange={e => setActionSearchFilter(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-2xl outline-none font-bold text-sm text-white focus:border-[#39FF14] transition" />
+                 </div>
+
                  <div className="space-y-3">
-                    {actionsIA.map(action => (
-                       <div key={action.id} className="bg-zinc-800 p-4 rounded-2xl flex justify-between items-center">
+                    {displayedActions.map(action => (
+                       <div key={action.id} className="bg-zinc-800 p-4 rounded-2xl flex flex-col md:flex-row justify-between md:items-center gap-4">
                           <div>
-                             <p className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest mb-1">{action.module} • Planifié le {action.date}</p>
+                             <p className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest mb-1">{action.module} • Date : {action.date}</p>
                              <p className="font-bold text-sm">{action.title}</p>
                              <p className="text-xs text-zinc-400 truncate max-w-md">{action.desc}</p>
                           </div>
@@ -239,18 +269,26 @@ export default function AdminDashboard() {
                              <select value={action.status} onChange={e => setActionsIA(prev => prev.map(a => a.id === action.id ? {...a, status: e.target.value as any} : a))} className="bg-zinc-900 text-[10px] font-black uppercase text-white p-2 rounded-lg border border-zinc-700 outline-none cursor-pointer">
                                 <option>En attente</option><option>En cours</option><option>Réalisé</option><option>Annulé</option>
                              </select>
-                             <button onClick={() => executeWA(action.phone, action.msg, action.id)} className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#39FF14] transition">Exécuter via WA</button>
+                             {action.phone && (
+                                <button onClick={() => executeWA(action.phone, action.msg, action.id)} className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#39FF14] transition">Exécuter via WA</button>
+                             )}
+                             {!action.phone && (
+                                <button onClick={() => setActionsIA(prev => prev.map(a => a.id === action.id ? { ...a, status: 'Réalisé' } : a))} className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#39FF14] transition"><CheckCircle size={14} className="inline"/> Valider</button>
+                             )}
                              <button onClick={() => setActionsIA(prev => prev.filter(a => a.id !== action.id))} className="text-zinc-500 hover:text-red-500 transition"><X size={16}/></button>
                           </div>
                        </div>
                     ))}
-                    {actionsIA.length === 0 && <p className="text-sm text-zinc-500 italic">Aucune action planifiée pour le moment.</p>}
+                    {displayedActions.length === 0 && <p className="text-sm text-zinc-500 italic">Aucune action trouvée.</p>}
+                    {actionTabFilter === 'All' && !actionSearchFilter && actionsIA.length > 5 && (
+                       <p className="text-center text-xs font-bold text-[#39FF14] mt-4 cursor-pointer hover:underline" onClick={() => setActionSearchFilter(" ")}>Voir toutes les actions (+{actionsIA.length - 5})</p>
+                    )}
                  </div>
               </div>
             </div>
           )}
 
-          {/* ================= LEADS & BOT ================= */}
+          {/* ================= LEADS ================= */}
           {activeView === 'leads' && (
             <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
               <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-8`}><MessageSquare className="inline text-[#39FF14] mr-2"/> Leads Capturés</h2>
@@ -277,8 +315,6 @@ export default function AdminDashboard() {
           {/* ================= CRM ================= */}
           {activeView === 'crm' && (
             <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
-              
-              {/* CARTES CLIQUABLES RESTAURÉES */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                  {[
                     { id: 'new_clients', label: 'Nouveaux Clients', val: contacts.filter(c=>c.type==='Client').length, icon: CheckCircle, color: 'text-black bg-white border-zinc-200' },
@@ -297,7 +333,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col md:flex-row justify-between gap-4 items-center bg-white p-4 rounded-3xl border border-zinc-200 shadow-sm">
                 <div className="flex-1 w-full relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-                  <input type="text" placeholder="Rechercher global (Nom, Tel, Produit)..." value={crmSearch} onChange={(e) => setCrmSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-zinc-50 border-none rounded-2xl outline-none font-bold text-sm focus:ring-2 focus:ring-[#39FF14]/50 transition" />
+                  <input type="text" placeholder="Rechercher global..." value={crmSearch} onChange={(e) => setCrmSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-zinc-50 border-none rounded-2xl outline-none font-bold text-sm focus:ring-2 focus:ring-[#39FF14]/50 transition" />
                 </div>
                 <select value={crmTypeFilter} onChange={(e) => setCrmTypeFilter(e.target.value)} className="px-4 py-3 bg-zinc-50 rounded-2xl font-bold text-sm outline-none border-none cursor-pointer w-full md:w-auto">
                   <option>Tous</option><option>Client</option><option>Prospect</option>
@@ -308,7 +344,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* RAPPORT IA CRM -> PLANIFICATION */}
+              {/* RAPPORT IA CRM */}
               {showRapportIA && (
                  <div className="bg-white border-2 border-[#39FF14] rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in">
                     <button onClick={() => setShowRapportIA(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition"><X size={20}/></button>
@@ -318,9 +354,9 @@ export default function AdminDashboard() {
                        <div className="border border-zinc-200 p-6 rounded-[2rem] flex flex-col md:flex-row justify-between md:items-center bg-zinc-50 gap-4">
                           <div>
                              <p className="font-black text-lg uppercase">Magatte Fall</p>
-                             <p className="text-xs font-bold text-zinc-500 italic">Son essai Onyx Vente expire dans 7 jours. Bonne activité détectée.</p>
+                             <p className="text-xs font-bold text-zinc-500 italic">Son essai Onyx Vente expire dans 7 jours.</p>
                           </div>
-                          <button onClick={() => planifyCrmAction("Relance Magatte Fall", "Proposer conversion avant fin d'essai.", "221771234567", "Bonjour Magatte, comment se passe votre essai sur Onyx Vente ?")} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-md whitespace-nowrap">Planifier l'Action (Tableau de bord)</button>
+                          <button onClick={() => planifyCrmAction("Relance Magatte Fall", "Proposer conversion avant fin d'essai.", "221771234567", "Bonjour Magatte, comment se passe votre essai sur Onyx Vente ?")} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-md">Planifier l'Action (Dashboard)</button>
                        </div>
                     </div>
                  </div>
@@ -378,12 +414,6 @@ export default function AdminDashboard() {
                  </div>
                )}
 
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm cursor-pointer hover:border-[#39FF14] transition group"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Les 4 Derniers Inscrits</p><div className="flex items-center gap-4"><div className="bg-black text-white w-12 h-12 rounded-2xl flex items-center justify-center"><UserPlus size={20}/></div><p className={`${spaceGrotesk.className} text-4xl font-black`}>12</p></div></div>
-                  <div className="bg-red-50 border border-red-100 p-8 rounded-[3rem] shadow-sm cursor-pointer hover:border-red-500 transition group"><p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Les Moins Actifs</p><div className="flex items-center gap-4"><div className="bg-red-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center"><AlertCircle size={20}/></div><p className={`${spaceGrotesk.className} text-4xl font-black text-red-600`}>Awa & co.</p></div></div>
-                  <div className="bg-black border border-[#39FF14]/30 shadow-2xl p-8 rounded-[3rem] cursor-pointer hover:scale-105 transition group"><p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-2">Les Plus Productifs</p><div className="flex items-center gap-4"><div className="bg-[#39FF14] text-black w-12 h-12 rounded-2xl flex items-center justify-center"><Star size={20}/></div><p className={`${spaceGrotesk.className} text-4xl font-black text-white`}>Cheikh N.</p></div></div>
-               </div>
-
                <div className="bg-white border border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
                  <table className="w-full text-left">
                    <thead className="bg-zinc-50 border-b border-zinc-200">
@@ -395,7 +425,7 @@ export default function AdminDashboard() {
                          <td className="p-6"><p className="font-black text-sm uppercase">{p.full_name}</p><p className="text-xs text-zinc-500 font-bold">{p.contact}</p></td>
                          <td className="p-6"><span className="px-3 py-1 text-[10px] font-black uppercase rounded-full bg-zinc-200 text-black">{p.activity}</span><p className="text-[10px] font-black uppercase mt-2 text-[#39FF14]">{p.status}</p></td>
                          <td className="p-6 text-center font-black text-xl">{p.sales}</td>
-                         <td className="p-6 text-right"><button onClick={() => { setSelectedPartner(p); setShowPartnerModal(true); }} className="text-[10px] font-black uppercase bg-black text-white px-4 py-2 rounded-lg hover:bg-[#39FF14] hover:text-black transition">Détails Complets</button></td>
+                         <td className="p-6 text-right"><button onClick={() => { setSelectedPartner(p); setIsEditingPartner(false); setShowPartnerModal(true); }} className="text-[10px] font-black uppercase bg-black text-white px-4 py-2 rounded-lg hover:bg-[#39FF14] hover:text-black transition">Détails Complets</button></td>
                        </tr>
                      ))}
                    </tbody>
@@ -425,104 +455,50 @@ export default function AdminDashboard() {
              </div>
           )}
 
-          {/* ================= MARKETING & BLOG (Boutons débloqués) ================= */}
+          {/* ================= MARKETING & BLOG ================= */}
           {activeView === 'marketing' && (
              <div className="space-y-8 animate-in fade-in max-w-5xl mx-auto">
                 <div className="flex justify-between items-center bg-white p-6 rounded-[3rem] border border-zinc-200 shadow-sm">
                    <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>ARTICLES & CIBLAGE (BLOG)</h2>
                    <div className="flex gap-4">
-                      <button onClick={() => alert("Génération IA en cours pour de nouvelles idées d'articles...")} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition"><Sparkles size={16}/> Auto-Suggestion IA</button>
+                      <button onClick={runIAArticleSuggestion} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition"><Sparkles size={16}/> Auto-Suggestion IA</button>
                       <button onClick={() => alert("Ouverture de l'éditeur d'article manuel...")} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition">Rédiger Manuel</button>
                    </div>
                 </div>
 
                 <div className="space-y-6">
-                   <div className="bg-white p-8 rounded-[3rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
-                      <div className="flex-1">
-                         <div className="flex gap-2 mb-4">
-                            <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">Social Selling</span>
-                            <span className="bg-zinc-100 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase">Cible : Pack Full</span>
+                   {marketingArticles.map(article => (
+                      <div key={article.id} className="bg-white p-8 rounded-[3rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+                         <div className="flex-1">
+                            <div className="flex gap-2 mb-4">
+                               <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">{article.category}</span>
+                               <span className="bg-zinc-100 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase">Cible : {article.cible}</span>
+                            </div>
+                            <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2`}>{article.title}</h3>
+                            <p className="text-zinc-500 font-medium text-sm">{article.desc}</p>
                          </div>
-                         <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2`}>DIGITALISATION 2026 : POURQUOI DAKAR EXPLOSE</h3>
-                         <p className="text-zinc-500 font-medium text-sm">L'intelligence artificielle transforme le commerce...</p>
-                      </div>
-                      <div className="flex flex-col gap-3 w-full md:w-auto">
-                         <button onClick={() => alert("Campagne diffusée avec succès au segment ! (WhatsApp & Email)")} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg flex justify-center items-center gap-2"><Send size={16}/> Diffuser au segment</button>
-                         <button onClick={() => alert("Édition de l'article en cours...")} className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">Éditer</button>
-                      </div>
-                   </div>
-
-                   <div className="bg-white p-8 rounded-[3rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
-                      <div className="flex-1">
-                         <div className="flex gap-2 mb-4">
-                            <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">Restauration</span>
-                            <span className="bg-zinc-100 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase">Cible : Pack Full</span>
+                         <div className="flex flex-col gap-3 w-full md:w-auto">
+                            <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg flex justify-center items-center gap-2"><Send size={16}/> Diffuser au segment</button>
+                            <button onClick={() => alert("Édition de l'article en cours...")} className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">Éditer</button>
                          </div>
-                         <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2`}>COMMENT LE DIGITAL TRANSFORME LES RESTAURANTS</h3>
-                         <p className="text-zinc-500 font-medium text-sm">Réduire les pertes de 30% grâce aux menus digitaux...</p>
                       </div>
-                      <div className="flex flex-col gap-3 w-full md:w-auto">
-                         <button onClick={() => alert("Campagne diffusée avec succès au segment ! (WhatsApp & Email)")} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg flex justify-center items-center gap-2"><Send size={16}/> Diffuser au segment</button>
-                         <button onClick={() => alert("Édition de l'article en cours...")} className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">Éditer</button>
-                      </div>
-                   </div>
+                   ))}
                 </div>
              </div>
           )}
 
-          {/* ================= FINANCES (Restauré et Complet) ================= */}
+          {/* ================= FINANCES ================= */}
           {activeView === 'finance' && (
              <div className="space-y-8 animate-in fade-in max-w-7xl mx-auto">
                 <div className="flex justify-between items-center bg-white p-6 rounded-[3rem] border border-zinc-200 shadow-sm">
                    <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}><Wallet className="inline mr-2 text-[#39FF14]"/> HUB FINANCIER</h2>
                    <button onClick={() => alert("Exportation PDF/CSV en cours...")} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition"><Download size={16}/> Exporter Rapport</button>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                   <div className="bg-black text-white p-6 rounded-[2rem] shadow-xl relative overflow-hidden">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Revenus Globaux</p>
-                      <p className={`${spaceGrotesk.className} text-3xl font-black text-[#39FF14]`}>4.850.000 F</p>
-                      <p className="text-xs font-bold text-zinc-400 mt-2 flex items-center gap-1"><ArrowUpRight size={14} className="text-[#39FF14]"/> +24% (30j)</p>
-                   </div>
-                   <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">MRR (Récurrent)</p>
-                      <p className={`${spaceGrotesk.className} text-3xl font-black`}>1.200.000 F</p>
-                   </div>
-                   <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions Partenaires</p>
-                      <p className={`${spaceGrotesk.className} text-3xl font-black`}>450.000 F</p>
-                      <p className="text-xs font-bold text-zinc-500 mt-2">Versées ce mois</p>
-                   </div>
-                   <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] shadow-sm">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Dépenses (API, Serveurs)</p>
-                      <p className={`${spaceGrotesk.className} text-3xl font-black text-red-600`}>120.000 F</p>
-                      <p className="text-xs font-bold text-red-400 mt-2 flex items-center gap-1"><ArrowDownRight size={14}/> Optimisé</p>
-                   </div>
-                </div>
-
-                <div className="bg-white border border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
-                   <div className="p-8 border-b border-zinc-100">
-                      <h3 className="font-black uppercase text-sm">Dernières Transactions Validées</h3>
-                   </div>
-                   <table className="w-full text-left">
-                     <thead className="bg-zinc-50 border-b border-zinc-200">
-                       <tr><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Date & ID</th><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Client / Produit</th><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Montant</th><th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Statut</th></tr>
-                     </thead>
-                     <tbody>
-                       {[
-                          { date: todayStr, id: 'TRX-1092', client: 'Resto Dakar', produit: 'Onyx Menu', montant: '30.000 F' },
-                          { date: 'Hier', id: 'TRX-1091', client: 'Boutique Fatou', produit: 'Pack Trio', montant: '17.500 F' },
-                          { date: 'Hier', id: 'TRX-1090', client: 'Magatte Fall', produit: 'Onyx Vente', montant: '7.500 F' },
-                       ].map((tx, i) => (
-                         <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50 transition">
-                           <td className="p-6"><p className="font-black text-sm uppercase">{tx.date}</p><p className="text-xs text-zinc-500 font-bold">{tx.id}</p></td>
-                           <td className="p-6"><p className="font-bold text-sm">{tx.client}</p><p className="text-[10px] font-black uppercase text-zinc-500">{tx.produit}</p></td>
-                           <td className="p-6 font-black text-lg">{tx.montant}</td>
-                           <td className="p-6 text-right"><span className="bg-[#39FF14]/20 text-black px-3 py-1 text-[10px] font-black uppercase rounded-full">Payé</span></td>
-                         </tr>
-                       ))}
-                     </tbody>
-                   </table>
+                   <div className="bg-black text-white p-6 rounded-[2rem] shadow-xl relative overflow-hidden"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Revenus Globaux</p><p className={`${spaceGrotesk.className} text-3xl font-black text-[#39FF14]`}>4.850.000 F</p></div>
+                   <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">MRR (Récurrent)</p><p className={`${spaceGrotesk.className} text-3xl font-black`}>1.200.000 F</p></div>
+                   <div className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm"><p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions Partenaires</p><p className={`${spaceGrotesk.className} text-3xl font-black`}>450.000 F</p></div>
+                   <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] shadow-sm"><p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Dépenses</p><p className={`${spaceGrotesk.className} text-3xl font-black text-red-600`}>120.000 F</p></div>
                 </div>
              </div>
           )}
@@ -530,49 +506,86 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* ================= MODALES GLOBALES (Refermables au clic externe) ================= */}
+      {/* ================= MODALES GLOBALES ================= */}
 
-      {/* MODALE PROFIL (Boutons débloqués) */}
-      {showProfileModal && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowProfileModal)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in text-center">
-            <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
-            <img src="https://ui-avatars.com/api/?name=Admin&background=000&color=39FF14" className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-black" alt="" />
-            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-1`}>ADMINISTRATEUR</h2>
-            <p className="text-xs font-bold text-zinc-400 mb-8">contact@onyxops.com</p>
+      {/* MODALE DIFFUSION MARKETING (NOUVEAU) */}
+      {showDiffusionModal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowDiffusionModal, () => setSelectedContactsForDiffusion([]))} className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in max-h-[90vh] flex flex-col">
+            <button onClick={() => { setShowDiffusionModal(null); setSelectedContactsForDiffusion([]); }} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
+            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2`}>Planifier la diffusion</h2>
+            <p className="text-xs font-bold text-zinc-500 mb-6">Article cible : <span className="text-black">{showDiffusionModal.title}</span></p>
 
-            <div className="space-y-4 text-left">
-               <input type="text" placeholder="Nom affiché" defaultValue="Administrateur" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-               <input type="text" placeholder="URL Image" defaultValue="https://i.ibb.co/.../admin.png" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none text-xs" />
-               <button onClick={() => { alert('Profil enregistré avec succès !'); setShowProfileModal(false); }} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition mb-6">Enregistrer le profil</button>
-               
-               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-6 mb-2">Modifier le mot de passe</p>
-               <input type="password" placeholder="Mot de passe actuel (optionnel)" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-               <input type="password" placeholder="Nouveau mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-               <input type="password" placeholder="Confirmer le mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-               <button onClick={() => { alert('Mot de passe mis à jour !'); setShowProfileModal(false); }} className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-white transition mt-2">Changer le mot de passe</button>
+            <div className="flex-1 overflow-y-auto mb-6 border border-zinc-200 rounded-3xl p-4 bg-zinc-50">
+               <div className="flex justify-between items-center mb-4 pb-2 border-b border-zinc-200">
+                  <p className="text-[10px] font-black uppercase tracking-widest">Sélectionner les contacts CRM</p>
+                  <button onClick={() => setSelectedContactsForDiffusion(contacts.map(c=>c.id))} className="text-[10px] font-bold text-[#39FF14] bg-black px-3 py-1 rounded-full">Tout Sélectionner</button>
+               </div>
+               <div className="space-y-2">
+                  {contacts.map(c => (
+                     <label key={c.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-zinc-200 cursor-pointer hover:border-black">
+                        <input type="checkbox" checked={selectedContactsForDiffusion.includes(c.id)} onChange={(e) => {
+                           if(e.target.checked) setSelectedContactsForDiffusion([...selectedContactsForDiffusion, c.id]);
+                           else setSelectedContactsForDiffusion(selectedContactsForDiffusion.filter(id => id !== c.id));
+                        }} className="w-5 h-5 accent-black" />
+                        <div>
+                           <p className="font-bold text-sm uppercase">{c.full_name}</p>
+                           <p className="text-[10px] font-bold text-zinc-500 uppercase">{c.type} • {c.saas}</p>
+                        </div>
+                     </label>
+                  ))}
+               </div>
             </div>
+
+            <button onClick={scheduleMarketingDiffusion} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition flex justify-center items-center gap-2">
+               <Send size={16}/> Planifier l'envoi ({selectedContactsForDiffusion.length} sélectionnés)
+            </button>
           </div>
         </div>
       )}
 
-      {/* MODALE DÉTAILS PARTENAIRE */}
+      {/* MODALE DÉTAILS / EDITION PARTENAIRE (ENRICHIE) */}
       {showPartnerModal && selectedPartner && (
         <div id="modal-overlay" onClick={handleOutsideClick(setShowPartnerModal)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in">
+          <div className="bg-white p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in max-h-[90vh] overflow-y-auto">
              <button onClick={() => setShowPartnerModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
-             <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{selectedPartner.full_name}</h2>
-             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-8 flex items-center gap-2"><span className="w-2 h-2 bg-[#39FF14] rounded-full"></span> Statut : {selectedPartner.status}</p>
              
-             <div className="grid grid-cols-2 gap-6 mb-8">
-                <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200"><p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Gains Générés</p><p className={`${spaceGrotesk.className} text-3xl font-black text-[#39FF14]`}>{selectedPartner.revenue}</p></div>
-                <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200"><p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Ventes Réussies</p><p className={`${spaceGrotesk.className} text-3xl font-black`}>{selectedPartner.sales}</p></div>
-             </div>
-             
-             <div className="space-y-4">
-                <button onClick={() => alert("Édition du compte partenaire en développement.")} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition flex justify-center items-center gap-2"><Settings size={16}/> Éditer le compte Ambassadeur</button>
-                <button onClick={() => alert("Ambassadeur converti en client avec succès !")} className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2"><UserPlus size={16}/> Convertir en Client (Conserver statut Amb.)</button>
-             </div>
+             {!isEditingPartner ? (
+                <>
+                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{selectedPartner.full_name}</h2>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-8 flex items-center gap-2"><span className="w-2 h-2 bg-[#39FF14] rounded-full"></span> Statut : {selectedPartner.status}</p>
+                   
+                   <div className="grid grid-cols-2 gap-6 mb-8">
+                      <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200"><p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Gains Générés</p><p className={`${spaceGrotesk.className} text-3xl font-black text-[#39FF14]`}>{selectedPartner.revenue}</p></div>
+                      <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200"><p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Ventes Réussies</p><p className={`${spaceGrotesk.className} text-3xl font-black`}>{selectedPartner.sales}</p></div>
+                   </div>
+                   
+                   <div className="space-y-4">
+                      <button onClick={() => { setEditPartnerForm(selectedPartner); setIsEditingPartner(true); }} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition flex justify-center items-center gap-2"><Edit3 size={16}/> Éditer le compte Ambassadeur</button>
+                      <button onClick={handleConvertPartnerToClient} className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2"><UserPlus size={16}/> Convertir en Client (Conserver statut Amb.)</button>
+                   </div>
+                </>
+             ) : (
+                <>
+                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-8`}>Édition Partenaire</h2>
+                   <div className="space-y-4 mb-8">
+                      <input type="text" placeholder="Nom Complet" value={editPartnerForm.full_name} onChange={e => setEditPartnerForm({...editPartnerForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                      <input type="text" placeholder="Contact" value={editPartnerForm.contact} onChange={e => setEditPartnerForm({...editPartnerForm, contact: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                      <input type="text" placeholder="Activité" value={editPartnerForm.activity} onChange={e => setEditPartnerForm({...editPartnerForm, activity: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                      <div className="grid grid-cols-2 gap-4">
+                         <input type="number" placeholder="Ventes" value={editPartnerForm.sales} onChange={e => setEditPartnerForm({...editPartnerForm, sales: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                         <input type="text" placeholder="Revenus" value={editPartnerForm.revenue} onChange={e => setEditPartnerForm({...editPartnerForm, revenue: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                      </div>
+                      <select value={editPartnerForm.status} onChange={e => setEditPartnerForm({...editPartnerForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
+                         <option>Actif</option><option>Top Performer</option><option>En attente</option><option>Inactif</option>
+                      </select>
+                   </div>
+                   <div className="flex gap-4">
+                      <button onClick={() => setIsEditingPartner(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition">Annuler</button>
+                      <button onClick={handleSavePartner} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg">Enregistrer</button>
+                   </div>
+                </>
+             )}
           </div>
         </div>
       )}
@@ -618,6 +631,29 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* MODALE PROFIL (Boutons débloqués) */}
+      {showProfileModal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowProfileModal)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in text-center">
+            <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
+            <img src="https://ui-avatars.com/api/?name=Admin&background=000&color=39FF14" className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-black" alt="" />
+            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-1`}>ADMINISTRATEUR</h2>
+            <p className="text-xs font-bold text-zinc-400 mb-8">contact@onyxops.com</p>
+
+            <div className="space-y-4 text-left">
+               <input type="text" placeholder="Nom affiché" defaultValue="Administrateur" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+               <input type="text" placeholder="URL Image" defaultValue="https://i.ibb.co/.../admin.png" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none text-xs" />
+               <button onClick={() => { alert('Profil enregistré avec succès !'); setShowProfileModal(false); }} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition mb-6">Enregistrer le profil</button>
+               
+               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-6 mb-2">Modifier le mot de passe</p>
+               <input type="password" placeholder="Mot de passe actuel (optionnel)" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+               <input type="password" placeholder="Nouveau mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+               <input type="password" placeholder="Confirmer le mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+               <button onClick={() => { alert('Mot de passe mis à jour !'); setShowProfileModal(false); }} className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-white transition mt-2">Changer le mot de passe</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

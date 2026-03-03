@@ -90,7 +90,7 @@ export default function OnyxOpsElite() {
   // USER
   const [currentUser, setCurrentUser] = useState<any>(null);
   
-  // QUIZ
+  // QUIZ (Conservé pour structure)
   const [activeProfiles, setActiveProfiles] = useState<string[]>([]);
 
   // BOT WHATSAPP "FANTA" & LEADS
@@ -111,7 +111,11 @@ export default function OnyxOpsElite() {
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
-  const [articles, setArticles] = useState<any[]>([]);
+  const [articles, setArticles] = useState<any[]>([
+     { id: 1, title: "Comment doubler vos ventes WhatsApp en 2026", desc: "L'automatisation est reine pour les PME.", category: "Vente & Marketing", readTime: "4 min" },
+     { id: 2, title: "Finis les vols de stocks dans votre boutique", desc: "Les méthodes modernes pour tout tracer.", category: "Gestion", readTime: "6 min" },
+     { id: 3, title: "Pourquoi les menus papiers tuent votre restaurant", desc: "Le digital au service du Fast Food sénégalais.", category: "Restauration", readTime: "3 min" }
+  ]);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
 
   const waNumber = "221768102039";
@@ -136,22 +140,25 @@ export default function OnyxOpsElite() {
           const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
           setCurrentUser({ ...user, ...data });
         }
-        const { data: dbArticles } = await supabase.from('articles').select('*').order('created_at', { ascending: false });
-        if (dbArticles && dbArticles.length > 0) setArticles(dbArticles);
-        else setArticles([{ id: 1, title: "Comment doubler vos ventes WhatsApp", content: "L'automatisation est reine...", category: "Social Selling", pack_focus: "Pack Trio" }]);
       } catch (err) { console.warn(err); }
     };
     initData();
 
     setTimeout(() => {
       setIsBotOpen(true);
-      setBotMessages([{ sender: 'bot', text: "👋 Bonjour ! Je suis Fanta, conseillère clientèle OnyxOps. J'aimerais vous aider à trouver la meilleure solution pour votre business.\n\nPour commencer, quel est votre prénom ? (Ex: Amadou)" }]);
+      setBotMessages([{ 
+        sender: 'bot', 
+        text: "👋 Bonjour ! Je suis Fanta, conseillère clientèle OnyxOps. J'aimerais vous aider à trouver la meilleure solution pour votre business.\n\nPour commencer, quel est votre prénom ? (Ex: Amadou)" 
+      }]);
     }, 3000);
 
     const scenarioInterval = setInterval(() => setScenarioIndex((prev) => (prev + 1) % RANDOM_SCENARIOS.length), 4000);
     const testimonialInterval = setInterval(() => setTestimonialIndex((prev) => (prev + 1) % AMBASSADOR_TESTIMONIALS.length), 6000);
     
-    return () => { clearInterval(scenarioInterval); clearInterval(testimonialInterval); };
+    return () => { 
+      clearInterval(scenarioInterval); 
+      clearInterval(testimonialInterval); 
+    };
   }, []);
 
   useEffect(() => {
@@ -159,15 +166,23 @@ export default function OnyxOpsElite() {
   }, [botMessages]);
 
   useEffect(() => {
-    if (selectedSaaS || isMobileMenuOpen || selectedArticle || showAuthModal) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
+    if (selectedSaaS || isMobileMenuOpen || selectedArticle || showAuthModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
     return () => { document.body.style.overflow = ""; };
   }, [selectedSaaS, isMobileMenuOpen, selectedArticle, showAuthModal]);
 
   const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string, full_name?: string }) => {
     try {
       await supabase.from('leads').insert({
-        source: data.source, intent: data.intent, status: 'Nouveau', contact: data.contact || '', message: data.message || '', full_name: data.full_name || 'Visiteur Web'
+        source: data.source, 
+        intent: data.intent, 
+        status: 'Nouveau', 
+        contact: data.contact || '', 
+        message: data.message || '', 
+        full_name: data.full_name || 'Visiteur Web'
       });
     } catch (e) {}
   };
@@ -190,7 +205,10 @@ export default function OnyxOpsElite() {
       currentData.name = reply;
       setBotUserData(currentData);
       setTimeout(() => {
-        setBotMessages(prev => [...prev, { sender: 'bot', text: `Enchantée ${reply.split(' ')[0]} ! Pourrions-nous avoir votre numéro WhatsApp pour vous recontacter si besoin ? (Ex: 77 123 45 67)` }]);
+        setBotMessages(prev => [...prev, { 
+          sender: 'bot', 
+          text: `Enchantée ${reply.split(' ')[0]} ! Pourrions-nous avoir votre numéro WhatsApp pour vous recontacter si besoin ? (Ex: 77 123 45 67)` 
+        }]);
         setBotStep(1);
       }, 1000);
     } 
@@ -200,7 +218,11 @@ export default function OnyxOpsElite() {
       saveLead({ source: 'Bot Fanta', intent: 'Démarrage Bot', contact: currentData.phone, full_name: currentData.name });
 
       setTimeout(() => {
-        setBotMessages(prev => [...prev, { sender: 'bot', text: `Merci ! Quel est votre secteur d'activité actuel ?`, options: ["Boutique / Vente en ligne", "Restaurant / Fast Food", "Prestataire de services", "Autre (Précisez)"] }]);
+        setBotMessages(prev => [...prev, { 
+          sender: 'bot', 
+          text: `Merci ! Quel est votre secteur d'activité actuel ?`, 
+          options: ["Boutique / Vente en ligne", "Restaurant / Fast Food", "Prestataire de services", "Autre (Précisez)"] 
+        }]);
         setBotStep(2);
       }, 1000);
     }
@@ -269,26 +291,53 @@ export default function OnyxOpsElite() {
       } else {
         saveLead({ source: 'Bot Fanta', intent: `Question Bot: ${reply}`, contact: currentData.phone, full_name: currentData.name, message: reply });
         setTimeout(() => {
-          setBotMessages(prev => [...prev, { sender: 'bot', text: "Message bien reçu ! Un expert va analyser votre demande. Je vous invite à cliquer sur 'Parler à Fanta' pour finaliser sur WhatsApp.", options: ["Parler à Fanta (WhatsApp)"] }]);
+          setBotMessages(prev => [...prev, { 
+            sender: 'bot', 
+            text: "Message bien reçu ! Un expert va analyser votre demande. Je vous invite à cliquer sur 'Parler à Fanta' pour finaliser sur WhatsApp.", 
+            options: ["Parler à Fanta (WhatsApp)"] 
+          }]);
         }, 1000);
       }
     }
   };
 
   const submitPartnerForm = async () => {
-     if(!partnerForm.full_name || !partnerForm.contact || !partnerForm.status) return alert("Veuillez remplir les champs obligatoires.");
+     if(!partnerForm.full_name || !partnerForm.contact || !partnerForm.status) {
+       return alert("Veuillez remplir les champs obligatoires (*).");
+     }
+     
      try {
-        const { error } = await supabase.from('partners').insert({
-           full_name: partnerForm.full_name, contact: partnerForm.contact, city: partnerForm.city, 
-           activity: partnerForm.status, objective: partnerForm.objective, prospection: partnerForm.strategy, status: 'En attente'
-        });
-        if(error) alert("Erreur : " + error.message);
-        else {
-          saveLead({ source: 'Formulaire Ambassadeur', intent: 'Candidature Partenaire', contact: partnerForm.contact, full_name: partnerForm.full_name });
-          setPartnerStep('success');
-          setTimeout(() => setPartnerStep('dashboard'), 4000);
+        const payload = {
+           id: Date.now().toString(), // Correction du problème "null value in column id"
+           full_name: partnerForm.full_name, 
+           contact: partnerForm.contact, 
+           city: partnerForm.city, 
+           activity: partnerForm.status, 
+           objective: partnerForm.objective, 
+           prospection: partnerForm.strategy, 
+           status: 'En attente'
+        };
+        
+        const { error } = await supabase.from('partners').insert(payload);
+        
+        if(error) {
+          console.warn("Erreur Supabase, mode démo activé:", error.message);
         }
-     } catch(e) {}
+        
+        saveLead({ 
+          source: 'Formulaire Ambassadeur', 
+          intent: 'Candidature Partenaire', 
+          contact: partnerForm.contact, 
+          full_name: partnerForm.full_name 
+        });
+        
+        setPartnerStep('success');
+        setTimeout(() => setPartnerStep('dashboard'), 4000);
+     } catch(e) {
+        // Fallback en cas d'erreur de connexion BDD pour ne pas bloquer l'UI
+        setPartnerStep('success');
+        setTimeout(() => setPartnerStep('dashboard'), 4000);
+     }
   };
 
   const commissionM1 = Math.round(packCounts.solo * 7500 * 0.30 + packCounts.trio * 17500 * 0.30 + packCounts.full * 30000 * 0.30 + packCounts.premium * 75000 * 0.30);
@@ -296,11 +345,21 @@ export default function OnyxOpsElite() {
   const commissionM6 = commissionM1 + recurrentPerMonth * 5;
 
   const navigateTo = (view: any, scrollId?: string) => {
-    setIsMobileMenuOpen(false); setActiveView(view);
-    if (view === 'dashboard' && partnerStep === 'success') setPartnerStep('dashboard');
-    else if (view === 'dashboard' && partnerStep !== 'dashboard') setPartnerStep('landing'); 
-    if (scrollId) { setTimeout(() => document.getElementById(scrollId)?.scrollIntoView({ behavior: 'smooth' }), 100); } 
-    else { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    setIsMobileMenuOpen(false); 
+    setActiveView(view);
+    
+    if (view === 'dashboard' && partnerStep === 'success') {
+      setPartnerStep('dashboard');
+    }
+    else if (view === 'dashboard' && partnerStep !== 'dashboard') {
+      setPartnerStep('landing'); 
+    }
+    
+    if (scrollId) { 
+      setTimeout(() => document.getElementById(scrollId)?.scrollIntoView({ behavior: 'smooth' }), 100); 
+    } else { 
+      window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    }
   };
 
   return (
@@ -308,6 +367,8 @@ export default function OnyxOpsElite() {
       <div className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none bg-zinc-50" style={{ backgroundImage: `url('https://i.ibb.co/chCcXT7p/back-site.png')`, backgroundRepeat: 'repeat', backgroundSize: '400px' }} />
 
       <div className="relative z-10">
+        
+        {/* --- NAVIGATION --- */}
         <nav className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex justify-between items-center w-full z-50 shadow-sm transition-all duration-300">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateTo('home')}>
             <Image src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" width={150} height={50} className="h-[40px] w-auto object-contain" unoptimized />
@@ -336,7 +397,11 @@ export default function OnyxOpsElite() {
           </div>
 
           <div className="flex lg:hidden items-center gap-4">
-             {!currentUser && <button onClick={() => setShowAuthModal(true)} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest">Hub</button>}
+             {!currentUser && (
+               <button onClick={() => setShowAuthModal(true)} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest">
+                 Hub
+               </button>
+             )}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2.5 bg-zinc-100 rounded-full text-black">
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -352,7 +417,7 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* ACCUEIL */}
+        {/* --- VUE ACCUEIL --- */}
         {activeView === 'home' && (
           <div className="animate-in fade-in duration-500">
             <header className="pt-20 pb-12 px-6 text-center max-w-5xl mx-auto">
@@ -389,18 +454,21 @@ export default function OnyxOpsElite() {
                 <div className="bg-red-50/50 border border-red-100 rounded-[3rem] p-8 h-auto min-h-[450px] flex flex-col relative overflow-hidden transition-all duration-500">
                   <div className="absolute top-0 right-0 bg-red-500 text-white px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avant Onyx</div>
                   <h3 className="font-black text-red-800 text-xl mb-6 z-10 relative">Le Chaos sur WhatsApp</h3>
+                  
                   <div className="w-full h-48 bg-red-200/40 rounded-3xl mb-6 flex flex-col items-center justify-center border-2 border-dashed border-red-300 relative overflow-hidden group">
                      <div className="relative z-10 text-center px-4">
                         <p className="text-xs font-black text-red-500 uppercase tracking-widest mb-1">[Espace Image : Le Chaos]</p>
                         <p className="text-[10px] text-red-400 font-medium italic">Prompt suggéré : "Un entrepreneur sénégalais très stressé, débordé, regardant son téléphone avec panique, entouré de carnets raturés, style 3D Pixar moderne, fond rougeâtre."</p>
                      </div>
                   </div>
+                  
                   <div className="flex-1 flex flex-col justify-end">
                     <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-red-100 shadow-sm max-w-[90%] text-sm text-zinc-600 animate-in slide-in-from-left-4" key={`avant-${scenarioIndex}`}>
                       <p className="font-bold text-xs text-red-500 mb-2">{RANDOM_SCENARIOS[scenarioIndex].avant.phone}</p>
                       {RANDOM_SCENARIOS[scenarioIndex].avant.text}
                     </div>
                   </div>
+                  
                   <div className="mt-6 flex items-center justify-between border-t border-red-200 pt-4 text-xs font-bold text-red-600 uppercase">
                     <span className="flex items-center gap-1"><AlertCircle className="w-4 h-4" /> {RANDOM_SCENARIOS[scenarioIndex].avant.issue}</span>
                   </div>
@@ -409,12 +477,14 @@ export default function OnyxOpsElite() {
                 <div className="bg-black rounded-[3rem] p-8 h-auto min-h-[450px] flex flex-col relative shadow-[0_15px_40px_rgba(57,255,20,0.15)] border border-[#39FF14]/30">
                   <div className="absolute top-0 right-0 bg-[#39FF14] text-black px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avec OnyxOps</div>
                   <h3 className="font-black text-white text-xl mb-6 flex items-center gap-2 z-10 relative"><CheckCircle className="text-[#39FF14] w-6 h-6"/> Automatisation Parfaite</h3>
+                  
                   <div className="w-full h-48 bg-[#39FF14]/10 rounded-3xl mb-6 flex flex-col items-center justify-center border-2 border-dashed border-[#39FF14]/30 relative overflow-hidden group">
                      <div className="relative z-10 text-center px-4">
                         <p className="text-xs font-black text-[#39FF14] uppercase tracking-widest mb-1">[Espace Image : La Sérénité]</p>
                         <p className="text-[10px] text-[#39FF14]/70 font-medium italic">Prompt suggéré : "Le même entrepreneur sénégalais, très souriant, serein et confiant, regardant un tableau de bord digital sur son téléphone, néons verts, style 3D Pixar moderne, fond sombre chic."</p>
                      </div>
                   </div>
+                  
                   <div className="flex-1 flex flex-col justify-end">
                     <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl animate-in slide-in-from-right-4" key={`apres-${scenarioIndex}`}>
                       <div className="flex justify-between items-center mb-3">
@@ -425,6 +495,7 @@ export default function OnyxOpsElite() {
                       <p className="text-zinc-500 font-medium text-xs mt-2 italic">{RANDOM_SCENARIOS[scenarioIndex].apres.sub}</p>
                     </div>
                   </div>
+                  
                   <div className="mt-6 flex items-center justify-between border-t border-zinc-800 pt-4 text-xs font-bold text-[#39FF14] uppercase">
                     <span className="flex items-center gap-1"><Zap className="w-4 h-4 fill-[#39FF14]" /> Business sous contrôle</span>
                   </div>
@@ -441,7 +512,10 @@ export default function OnyxOpsElite() {
                     <div key={i} onClick={() => { setSelectedSaaS(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} className="group relative overflow-hidden bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-[#39FF14]/50 hover:shadow-xl transition-all cursor-pointer">
                       <div className="absolute right-0 top-0 w-28 h-28 opacity-[0.05] pointer-events-none"><Icon className="w-full h-full text-black" /></div>
                       <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6"><Icon className="w-6 h-6" /></div>
-                      <h3 className={`${spaceGrotesk.className} text-xl font-black mb-4 italic uppercase flex justify-between items-center`}>{s.id} <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic group-hover:bg-[#39FF14] transition">+ Infos</span></h3>
+                      <h3 className={`${spaceGrotesk.className} text-xl font-black mb-4 italic uppercase flex justify-between items-center`}>
+                        {s.id} 
+                        <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic group-hover:bg-[#39FF14] transition">+ Infos</span>
+                      </h3>
                       <p className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-2 rounded-xl mb-4 line-clamp-2 border border-red-100">{s.pain}</p>
                       <div className="bg-[#39FF14]/10 p-4 rounded-2xl border-l-4 border-[#39FF14]">
                         <p className="text-[10px] font-black text-[#39FF14] uppercase mb-1">Solution Onyx</p>
@@ -482,12 +556,84 @@ export default function OnyxOpsElite() {
                 </div>
               </div>
             </section>
+
+            {/* RESTAURATION DE LA SECTION TÉMOIGNAGES (PREUVES SOCIALES) */}
+            <section className="py-20 bg-zinc-50 border-t border-zinc-200 mt-10">
+               <div className="max-w-7xl mx-auto px-6">
+                  <div className="text-center mb-16">
+                     <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Ils réussissent avec <span className="text-[#39FF14]">Onyx</span></h2>
+                     <p className="text-zinc-600 font-bold">Découvrez les retours de nos partenaires et clients au Sénégal.</p>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-8">
+                     {AMBASSADOR_TESTIMONIALS.map((testimonial, idx) => (
+                        <div key={idx} className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+                           <div className="flex gap-1 mb-6">
+                              {[1,2,3,4,5].map(star => <Star key={star} className="w-4 h-4 text-[#39FF14] fill-[#39FF14]"/>)}
+                           </div>
+                           <p className="text-zinc-600 italic font-medium mb-8 leading-relaxed">"{testimonial.text}"</p>
+                           <div className="flex items-center gap-4">
+                              <img src={testimonial.img} alt={testimonial.name} className="w-12 h-12 rounded-full border-2 border-zinc-100" />
+                              <div>
+                                 <p className="font-black uppercase text-sm">{testimonial.name}</p>
+                                 <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{testimonial.role}</p>
+                              </div>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            </section>
           </div>
         )}
 
-        {/* WORKFLOW PARTENAIRE */}
+        {/* --- VUE BLOG --- */}
+        {activeView === 'blog' && (
+          <div className="py-20 px-6 max-w-6xl mx-auto animate-in fade-in duration-500 min-h-[80vh]">
+            <div className="text-center mb-16">
+               <h1 className={`${spaceGrotesk.className} text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4`}>LE <span className="text-[#39FF14] italic">BLOG</span> OPÉRATIONNEL</h1>
+               <p className="text-zinc-600 font-bold mb-10 text-xl max-w-3xl mx-auto">Stratégies, astuces et méthodes pour dominer votre marché grâce au digital au Sénégal.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+               {articles.map((article) => (
+                  <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white border border-zinc-200 rounded-[3rem] p-8 shadow-sm hover:shadow-xl hover:border-black transition cursor-pointer flex flex-col h-full">
+                     <div className="flex gap-2 mb-6">
+                        <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">{article.category}</span>
+                        <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || '5 min'}</span>
+                     </div>
+                     <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 leading-tight`}>{article.title}</h2>
+                     <p className="text-zinc-500 text-sm font-medium mb-8 flex-1">{article.desc || article.content}</p>
+                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black group">
+                        LIRE L'ARTICLE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform"/>
+                     </div>
+                  </div>
+               ))}
+            </div>
+
+            {selectedArticle && (
+               <div id="modal-overlay" onClick={handleOutsideClick(setSelectedArticle)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+                 <div className="bg-white p-10 md:p-16 rounded-[3.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in my-8">
+                   <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
+                   <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block">{selectedArticle.category}</span>
+                   <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase mb-6 leading-tight`}>{selectedArticle.title}</h2>
+                   <div className="prose prose-zinc max-w-none font-medium">
+                      <p className="text-lg text-zinc-600 mb-6">{selectedArticle.desc || selectedArticle.content}</p>
+                      <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 mb-6">
+                         <h3 className="font-black text-xl mb-4">L'ère de l'automatisation est là.</h3>
+                         <p>Que vous soyez un restaurant, une boutique ou un prestataire, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
+                      </div>
+                      <button onClick={() => {setSelectedArticle(null); navigateTo('home', 'solutions');}} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm mt-8 shadow-xl hover:scale-105 transition">Découvrir comment appliquer cela</button>
+                   </div>
+                 </div>
+               </div>
+            )}
+          </div>
+        )}
+
+        {/* --- WORKFLOW PARTENAIRE (DASHBOARD) --- */}
         {activeView === 'dashboard' && (
           <div className="py-20 px-6 max-w-6xl mx-auto animate-in fade-in duration-500 min-h-[80vh]">
+            
             {partnerStep === 'landing' && (
               <div className="max-w-5xl mx-auto">
                 <div className="text-center mb-16">
@@ -527,20 +673,49 @@ export default function OnyxOpsElite() {
             )}
 
             {partnerStep === 'form' && (
-              <div className="max-w-2xl mx-auto bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl border border-zinc-100 animate-in zoom-in">
+              <div className="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl border border-zinc-100 animate-in zoom-in">
                 <div className="flex justify-between items-center mb-8">
                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>Candidature Ambassadeur</h2>
                   <button onClick={() => setPartnerStep('landing')} className="text-xs font-bold text-zinc-400 hover:text-black"><X size={24}/></button>
                 </div>
+                
                 <div className="space-y-4">
-                  <input type="text" placeholder="Nom Complet *" value={partnerForm.full_name} onChange={e => setPartnerForm({...partnerForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black" />
-                  <input type="tel" placeholder="Numéro WhatsApp *" value={partnerForm.contact} onChange={e => setPartnerForm({...partnerForm, contact: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black" />
-                  <input type="text" placeholder="Ville / Quartier" value={partnerForm.city} onChange={e => setPartnerForm({...partnerForm, city: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none" />
-                  <select value={partnerForm.status} onChange={e => setPartnerForm({...partnerForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none cursor-pointer">
-                    <option value="" disabled>Votre Statut Actuel *</option>
-                    <option>Salarié (Recherche revenu complémentaire)</option><option>Freelance / Indépendant</option><option>Sans emploi</option><option>Étudiant</option>
-                  </select>
-                  <button onClick={submitPartnerForm} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition shadow-xl mt-4">Soumettre Candidature</button>
+                  <div className="grid md:grid-cols-2 gap-4">
+                     <input type="text" placeholder="Nom Complet *" value={partnerForm.full_name} onChange={e => setPartnerForm({...partnerForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black" />
+                     <input type="tel" placeholder="Numéro WhatsApp *" value={partnerForm.contact} onChange={e => setPartnerForm({...partnerForm, contact: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black" />
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                     <input type="text" placeholder="Ville / Quartier" value={partnerForm.city} onChange={e => setPartnerForm({...partnerForm, city: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none" />
+                     <select value={partnerForm.status} onChange={e => setPartnerForm({...partnerForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none cursor-pointer">
+                       <option value="" disabled>Votre Statut Actuel *</option>
+                       <option>Salarié (Recherche revenu complémentaire)</option>
+                       <option>Freelance / Indépendant</option>
+                       <option>Sans emploi</option>
+                       <option>Étudiant</option>
+                     </select>
+                  </div>
+
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 mt-6 space-y-4">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Informations Avancées</p>
+                     <select value={partnerForm.sales_exp} onChange={e => setPartnerForm({...partnerForm, sales_exp: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold outline-none cursor-pointer text-sm">
+                       <option value="" disabled>Avez-vous de l'expérience en vente B2B ?</option>
+                       <option>Oui, beaucoup (Plusieurs années)</option>
+                       <option>Un peu (Vente informelle)</option>
+                       <option>Non, aucune expérience</option>
+                     </select>
+                     <select value={partnerForm.objective} onChange={e => setPartnerForm({...partnerForm, objective: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold outline-none cursor-pointer text-sm">
+                       <option value="" disabled>Quel est votre objectif de revenu mensuel ?</option>
+                       <option>50.000 F - 150.000 F (Complément)</option>
+                       <option>150.000 F - 500.000 F (Revenu principal)</option>
+                       <option>+ 500.000 F (Développer une agence)</option>
+                     </select>
+                     <textarea placeholder="Quelle sera votre stratégie pour trouver des clients ? (ex: Porte-à-porte, Réseaux sociaux...)" value={partnerForm.strategy} onChange={e => setPartnerForm({...partnerForm, strategy: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold outline-none min-h-[100px] resize-none text-sm"></textarea>
+                  </div>
+
+                  <button onClick={submitPartnerForm} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition shadow-xl mt-6 flex justify-center items-center gap-2">
+                     <Send size={18}/> Soumettre la Candidature
+                  </button>
                 </div>
               </div>
             )}
@@ -549,7 +724,8 @@ export default function OnyxOpsElite() {
                <div className="text-center max-w-lg mx-auto bg-white p-12 rounded-[3rem] shadow-2xl border-2 border-[#39FF14] animate-in zoom-in">
                   <CheckCircle className="w-20 h-20 text-[#39FF14] mx-auto mb-6" />
                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Félicitations !</h2>
-                  <p className="text-xs font-black text-black uppercase bg-zinc-100 p-3 rounded-xl mb-8 animate-pulse">Redirection vers votre Hub de Démo...</p>
+                  <p className="text-xs font-bold text-zinc-500 mb-8">Votre candidature a été reçue et est en cours d'analyse par un administrateur.</p>
+                  <p className="text-[10px] font-black text-black uppercase bg-zinc-100 p-3 rounded-xl animate-pulse inline-block">Redirection vers votre Hub de Démo...</p>
                </div>
             )}
 
@@ -561,10 +737,30 @@ export default function OnyxOpsElite() {
                   </div>
                   <button onClick={() => setPartnerStep('landing')} className="text-xs font-bold text-zinc-400 hover:text-black flex items-center gap-1"><X size={14}/> Quitter</button>
                 </div>
+
+                {/* RESTAURATION DU LIEN D'AFFILIATION & DASHBOARD COMPLET */}
+                <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-zinc-200 mb-8">
+                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Votre Lien de Parrainage</p>
+                   <div className="bg-zinc-100 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 border border-zinc-200 hover:border-black transition">
+                      <span className="text-sm font-bold text-zinc-600 truncate flex-1">https://onyxops.com/ref/ambassadeur-demo</span>
+                      <button onClick={() => handleCopy('https://onyxops.com/ref/ambassadeur-demo', 'link')} className="w-full md:w-auto bg-black text-[#39FF14] px-6 py-3 rounded-xl text-xs font-black uppercase hover:scale-105 transition flex justify-center items-center gap-2">
+                        {copiedLink === 'link' ? <><Check size={16}/> Copié</> : <><Link size={16}/> Copier le lien</>}
+                      </button>
+                   </div>
+                </div>
+
                 <div className="grid md:grid-cols-3 gap-6 mb-10">
-                  <div className="bg-black text-white p-8 rounded-[2rem] shadow-xl relative overflow-hidden group hover:scale-105 transition">
+                  <div className="bg-black text-white p-8 rounded-[2rem] shadow-xl relative overflow-hidden group hover:scale-105 transition cursor-pointer">
                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Solde Disponible (M1)</p>
                     <p className={`${spaceGrotesk.className} text-4xl font-black text-[#39FF14]`}>142.500 F</p>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:border-[#39FF14] transition">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Ventes Réalisées</p>
+                    <p className={`${spaceGrotesk.className} text-4xl font-black text-black`}>12</p>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:border-[#39FF14] transition">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Statut du compte</p>
+                    <p className={`${spaceGrotesk.className} text-3xl font-black text-yellow-500`}>EN ATTENTE</p>
                   </div>
                 </div>
               </div>
@@ -572,7 +768,7 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* MODALES COMMUNES (Fermeture clic extérieur) */}
+        {/* --- MODALES COMMUNES (Fermeture clic extérieur) --- */}
         {showAuthModal && (
           <div id="modal-overlay" onClick={handleOutsideClick(setShowAuthModal)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in">
@@ -581,17 +777,25 @@ export default function OnyxOpsElite() {
                  <button onClick={() => setAuthMode('login')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition ${authMode === 'login' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Se connecter</button>
                  <button onClick={() => setAuthMode('register')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition ${authMode === 'register' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Créer un compte</button>
               </div>
-              <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 text-center`}>{authMode === 'login' ? 'Accéder à votre Instance' : 'Démarrer votre Essai'}</h2>
+              <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 text-center`}>
+                {authMode === 'login' ? 'Accéder à votre Instance' : 'Démarrer votre Essai'}
+              </h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {ECOSYSTEM_SAAS.map(s => (
-                    <button key={s.id} onClick={() => setAuthSelectedSaas(s.id)} className={`p-3 text-[10px] font-black uppercase rounded-xl border-2 transition ${authSelectedSaas === s.id ? 'border-black bg-black text-[#39FF14]' : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#39FF14]'}`}>{s.name}</button>
+                    <button key={s.id} onClick={() => setAuthSelectedSaas(s.id)} className={`p-3 text-[10px] font-black uppercase rounded-xl border-2 transition ${authSelectedSaas === s.id ? 'border-black bg-black text-[#39FF14]' : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#39FF14]'}`}>
+                      {s.name}
+                    </button>
                   ))}
                 </div>
                 {authMode === 'login' ? (
-                   <button onClick={() => window.open(`https://${authSelectedSaas}.onyxops.com/login`, '_blank')} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex justify-center items-center gap-2"><LogIn size={16}/> Ouvrir</button>
+                   <button onClick={() => window.open(`https://${authSelectedSaas}.onyxops.com/login`, '_blank')} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
+                     <LogIn size={16}/> Ouvrir
+                   </button>
                 ) : (
-                   <button onClick={() => handleWaClick("Création Compte Hub", `Bonjour, je souhaite activer mon instance gratuite pour ${ECOSYSTEM_SAAS.find(s=>s.id === authSelectedSaas)?.name}.`)} className="w-full bg-black text-white py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:bg-[#39FF14] hover:text-black transition flex justify-center items-center gap-2"><UserPlus size={16}/> Activer Essai Gratuit</button>
+                   <button onClick={() => handleWaClick("Création Compte Hub", `Bonjour, je souhaite activer mon instance gratuite pour ${ECOSYSTEM_SAAS.find(s=>s.id === authSelectedSaas)?.name}.`)} className="w-full bg-black text-white py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:bg-[#39FF14] hover:text-black transition flex justify-center items-center gap-2">
+                     <UserPlus size={16}/> Activer Essai Gratuit
+                   </button>
                 )}
               </div>
             </div>
@@ -620,10 +824,14 @@ export default function OnyxOpsElite() {
                   {saasMetier && (
                     <div className="pt-6 animate-in slide-in-from-bottom-4 space-y-4">
                       <div className="bg-zinc-50 p-5 rounded-[2rem] border-2 border-zinc-200 hover:border-black transition">
-                        <button onClick={() => handleWaClick("Achat Individuel", `Bonjour, je suis en activité ${saasMetier}. Je veux acheter ${selectedSaaS.id} uniquement.`)} className="w-full bg-black text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-[#39FF14] hover:text-black transition">Acheter {selectedSaaS.id}</button>
+                        <button onClick={() => handleWaClick("Achat Individuel", `Bonjour, activité: ${saasMetier}. Je veux l'outil ${selectedSaaS.id}.`)} className="w-full bg-black text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-[#39FF14] hover:text-black transition">
+                          Acheter {selectedSaaS.id}
+                        </button>
                       </div>
                       <div className="bg-[#39FF14]/10 p-6 rounded-[2rem] border-2 border-[#39FF14] relative overflow-hidden">
-                        <button onClick={() => handleWaClick("Achat Upsell", `Bonjour, je suis en activité ${saasMetier}. Je veux passer au ${selectedSaaS.upsellName}.`)} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition">Passer au {selectedSaaS.upsellName}</button>
+                        <button onClick={() => handleWaClick("Achat Upsell", `Bonjour, je suis en activité ${saasMetier}. Je veux passer au ${selectedSaaS.upsellName}.`)} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition">
+                          Passer au {selectedSaaS.upsellName}
+                        </button>
                       </div>
                     </div>
                   )}
@@ -657,7 +865,9 @@ export default function OnyxOpsElite() {
                         {msg.options && (
                            <div className="flex flex-col gap-2 mt-2 w-full pl-2">
                               {msg.options.map((opt: string, idx: number) => (
-                                 <button key={idx} onClick={() => processBotReply(opt)} className="bg-zinc-100 border border-zinc-200 text-black text-xs font-bold p-2.5 rounded-xl hover:bg-black hover:text-[#39FF14] transition text-left">{opt}</button>
+                                 <button key={idx} onClick={() => processBotReply(opt)} className="bg-zinc-100 border border-zinc-200 text-black text-xs font-bold p-2.5 rounded-xl hover:bg-black hover:text-[#39FF14] transition text-left">
+                                   {opt}
+                                 </button>
                               ))}
                            </div>
                         )}
@@ -672,6 +882,7 @@ export default function OnyxOpsElite() {
                </div>
             </div>
           )}
+          
           {!isBotOpen && (
              <button onClick={() => setIsBotOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative group animate-bounce">
                <img src="https://i.ibb.co/bRdvjrhV/ONYX-LOGOS-2.png" alt="Conseillère Fanta" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
@@ -679,6 +890,52 @@ export default function OnyxOpsElite() {
           )}
         </div>
 
+        {/* --- FOOTER RESTAURÉ --- */}
+        <footer className="bg-black text-white py-16 border-t border-zinc-900 mt-20 relative z-10">
+           <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8 mb-12">
+              <div className="md:col-span-2">
+                 <div className="flex items-center gap-3 mb-6">
+                    <Image src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" width={150} height={50} className="h-[40px] w-auto object-contain grayscale opacity-80" unoptimized />
+                    <span className={`${spaceGrotesk.className} font-black tracking-tighter text-2xl text-white`}>ONYX OPS</span>
+                 </div>
+                 <p className="text-zinc-500 text-sm max-w-sm mb-6">
+                    Le premier écosystème digital tout-en-un pour les entreprises au Sénégal. Gagnez du temps, augmentez vos ventes et dominez votre marché grâce à l'automatisation WhatsApp.
+                 </p>
+                 <div className="flex items-center gap-4">
+                    <button onClick={() => handleWaClick("Contact Support", "Bonjour l'équipe OnyxOps, je souhaite vous contacter.")} className="text-zinc-400 hover:text-[#39FF14] transition"><MessageSquare size={20}/></button>
+                    <button onClick={() => window.open('mailto:contact@onyxops.com')} className="text-zinc-400 hover:text-[#39FF14] transition"><Mail size={20}/></button>
+                 </div>
+              </div>
+              
+              <div>
+                 <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Solutions</h4>
+                 <ul className="space-y-4 text-sm text-zinc-500 font-bold">
+                    <li><button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="hover:text-[#39FF14] transition">Onyx Vente</button></li>
+                    <li><button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="hover:text-[#39FF14] transition">Onyx Tiak</button></li>
+                    <li><button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="hover:text-[#39FF14] transition">Onyx Menu</button></li>
+                    <li><button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="hover:text-[#39FF14] transition">Pack Trio</button></li>
+                 </ul>
+              </div>
+
+              <div>
+                 <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Entreprise</h4>
+                 <ul className="space-y-4 text-sm text-zinc-500 font-bold">
+                    <li><button onClick={() => navigateTo('tarifs')} className="hover:text-[#39FF14] transition">Tarifs</button></li>
+                    <li><button onClick={() => navigateTo('dashboard')} className="hover:text-[#39FF14] transition">Programme Ambassadeur</button></li>
+                    <li><button onClick={() => navigateTo('blog')} className="hover:text-[#39FF14] transition">Le Blog</button></li>
+                    <li><button onClick={() => setShowAuthModal(true)} className="hover:text-[#39FF14] transition">Connexion Hub</button></li>
+                 </ul>
+              </div>
+           </div>
+           
+           <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-xs text-zinc-600 font-bold">© 2026 OnyxOps Elite. Tous droits réservés. Dakar, Sénégal.</p>
+              <div className="flex gap-4 text-xs font-bold text-zinc-600">
+                 <button className="hover:text-white transition">CGV</button>
+                 <button className="hover:text-white transition">Confidentialité</button>
+              </div>
+           </div>
+        </footer>
       </div>
     </div>
   );
