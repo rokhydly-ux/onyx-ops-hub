@@ -4,10 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Space_Grotesk, Inter } from "next/font/google";
 import { 
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
-  Settings, LogOut, TrendingUp, Search, Plus, Filter, Calendar, 
-  CheckCircle, Clock, AlertCircle, X, Sparkles, Phone, Mail, FileText, 
-  ChevronRight, BarChart3, CreditCard, PlayCircle, Star, UserPlus, 
-  ExternalLink, MessageSquare, Save, LogIn, Send, Download, ArrowUpRight, ArrowDownRight, Edit3
+  Search, Plus, CheckCircle, Clock, AlertCircle, X, Sparkles, 
+  FileText, ExternalLink, MessageSquare, LogIn, Send, Download, Edit3, UserPlus
 } from "lucide-react";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
@@ -27,7 +25,7 @@ type IAAction = {
 };
 
 export default function AdminDashboard() {
-  // Fix Hydratation Next.js
+  // Fix Hydratation robuste
   const [isMounted, setIsMounted] = useState(false);
   const [todayStr, setTodayStr] = useState('');
 
@@ -121,7 +119,14 @@ export default function AdminDashboard() {
     ]);
   }, []);
 
-  if (!isMounted) return null; // FIX HYDRATATION ABSOLU
+  // Composant de chargement pour éviter les erreurs d'hydratation côté client
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const handleOutsideClick = (setter: any, secondaryAction?: () => void) => (e: any) => {
     if (e.target.id === "modal-overlay") { 
@@ -254,15 +259,18 @@ export default function AdminDashboard() {
                 { id: 'ecosystem', icon: Box, label: 'Écosystème (9 SaaS)' },
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
-              ].map(item => (
-                <button 
-                  key={item.id} 
-                  onClick={() => setActiveView(item.id as ViewType)} 
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeView === item.id ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-600 hover:bg-zinc-100 hover:text-black'}`}
-                >
-                  <item.icon size={18} /> {item.label}
-                </button>
-              ))}
+              ].map(item => {
+                const Icon = item.icon; // FIX REACT RENDERING POUR LES ICONES
+                return (
+                  <button 
+                    key={item.id} 
+                    onClick={() => setActiveView(item.id as ViewType)} 
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeView === item.id ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-600 hover:bg-zinc-100 hover:text-black'}`}
+                  >
+                    <Icon size={18} /> {item.label}
+                  </button>
+                )
+              })}
             </nav>
           </div>
           
@@ -459,17 +467,20 @@ export default function AdminDashboard() {
                     { id: 'new_prospects', label: 'Nouveaux Prospects', val: contacts.filter(c=>c.type==='Prospect').length, icon: Users, color: 'text-black bg-white border-zinc-200' },
                     { id: 'exp_trials', label: 'Essais Expirants', val: contacts.filter(c=>c.isExpiringTrial).length, icon: Clock, color: 'text-[#39FF14] bg-black border-black shadow-lg' },
                     { id: 'exp_subs', label: 'Abonnements Expirants', val: contacts.filter(c=>c.isExpiringSub).length, icon: AlertCircle, color: 'text-red-500 bg-red-50 border-red-100' },
-                 ].map(card => (
-                    <div 
-                      key={card.id} 
-                      onClick={() => setCrmCardFilter(crmCardFilter === card.id ? null : card.id)} 
-                      className={`p-5 rounded-[2rem] border cursor-pointer hover:scale-105 transition-all ${card.color} ${crmCardFilter === card.id ? 'ring-4 ring-[#39FF14]/50' : ''}`}
-                    >
-                       <card.icon size={20} className="mb-3" />
-                       <p className={`${spaceGrotesk.className} text-3xl font-black mb-1`}>{card.val}</p>
-                       <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{card.label}</p>
-                    </div>
-                 ))}
+                 ].map(card => {
+                    const CardIcon = card.icon; // FIX REACT RENDERING POUR LES ICONES
+                    return (
+                      <div 
+                        key={card.id} 
+                        onClick={() => setCrmCardFilter(crmCardFilter === card.id ? null : card.id)} 
+                        className={`p-5 rounded-[2rem] border cursor-pointer hover:scale-105 transition-all ${card.color} ${crmCardFilter === card.id ? 'ring-4 ring-[#39FF14]/50' : ''}`}
+                      >
+                         <CardIcon size={20} className="mb-3" />
+                         <p className={`${spaceGrotesk.className} text-3xl font-black mb-1`}>{card.val}</p>
+                         <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{card.label}</p>
+                      </div>
+                    )
+                 })}
               </div>
 
               <div className="flex flex-col md:flex-row justify-between gap-4 items-center bg-white p-4 rounded-3xl border border-zinc-200 shadow-sm">
@@ -880,7 +891,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODALE PROFIL ADMIN (Correction URL & Persistance) */}
+      {/* MODALE PROFIL ADMIN */}
       {showProfileModal && (
         <div id="modal-overlay" onClick={handleOutsideClick(setShowProfileModal)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in text-center">
