@@ -58,7 +58,7 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
   },
 };
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700", "900"] });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
 const SOLUTIONS = [

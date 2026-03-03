@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 // POLICES EXACTEMENT COMME LE SITE PUBLIC POUR LE DESIGN "EMPIRE/TERMINAL"
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700", "900"] });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700", "900"] });
 
 export default function AdminBentoTerminal() {
