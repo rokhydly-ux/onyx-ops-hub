@@ -10,7 +10,7 @@ import {
   Smartphone, Truck, Box, Utensils, Calendar, 
   ArrowRight, Users, Target, 
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
-  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus
+  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles
 } from "lucide-react";
 
 type PlanKey = "solo" | "trio" | "full" | "premium";
@@ -605,7 +605,7 @@ export default function OnyxOpsElite() {
                <div className="text-center max-w-lg mx-auto bg-white p-12 rounded-[3rem] shadow-2xl border-2 border-[#39FF14] animate-in zoom-in">
                   <CheckCircle className="w-20 h-20 text-[#39FF14] mx-auto mb-6" />
                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Félicitations !</h2>
-                  <p className="text-zinc-600 mb-6 font-medium text-sm leading-relaxed">Votre profil a été enregistré avec succès. Nos équipes vont valider votre accès en moins de 24h et vous recevrez vos séquences de démarrage sur WhatsApp.</p>
+                  <p className="text-zinc-600 mb-6 font-medium text-sm leading-relaxed">Votre profil a été enregistré avec succès. Nos équipes vont valider votre accès en moins de 24h et vous receivez vos séquences de démarrage sur WhatsApp.</p>
                   <p className="text-xs font-black text-black uppercase bg-zinc-100 p-3 rounded-xl mb-8 animate-pulse">Redirection vers votre Hub de Démo...</p>
                </div>
             )}
