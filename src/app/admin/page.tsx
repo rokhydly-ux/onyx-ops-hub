@@ -9,8 +9,9 @@ import {
   BarChart3, CreditCard, CalendarClock, PhoneCall, Key, ChevronLeft, ShieldCheck, Mail
 } from "lucide-react";
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700", "900"] });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700", "900"] });
+// CORRECTION DU CRASH BUILD : On garde strictement les poids supportés par Google Fonts
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
 // --- LES 9 SAAS DE L'ÉCOSYSTÈME ---
 const ECOSYSTEM_SAAS = [
