@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [globalFilterDate, setGlobalFilterDate] = useState('Ce Mois');
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
-  const [isRefreshing, setIsRefreshing] = useState(false); // Pour animer le changement de filtre
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // --- MODALES UI ---
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -72,7 +72,7 @@ export default function AdminDashboard() {
   const [histogramData, setHistogramData] = useState([
     { day: 'Lun', ca: 150000, date: '02 Mar', active: false },
     { day: 'Mar', ca: 300000, date: '03 Mar', active: false },
-    { day: 'Mer', ca: 850000, date: '04 Mar', active: true }, // Aujourd'hui Pikine
+    { day: 'Mer', ca: 850000, date: '04 Mar', active: true },
     { day: 'Jeu', ca: 0, date: '05 Mar', active: false },
     { day: 'Ven', ca: 0, date: '06 Mar', active: false },
     { day: 'Sam', ca: 0, date: '07 Mar', active: false },
@@ -223,6 +223,25 @@ export default function AdminDashboard() {
      setShowSaasLogin(null);
      setSaasCreateForm({ prospectId: '', name: '', phone: '', password: '' });
      window.open(`https://wa.me/${targetPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  // --- FONCTION AJOUTÉE : Auto-suggestion IA Marketing ---
+  const runIAArticleSuggestion = () => {
+     const newArt = { 
+       id: Date.now().toString(), 
+       title: 'BOOSTER SES VENTES WHATSAPP AVEC L\'IA', 
+       desc: 'Découvrez les 3 scripts générés par IA qui convertissent à 80%...', 
+       category: 'Vente', 
+       cible: 'Tous' 
+     };
+     setMarketingArticles([newArt, ...(marketingArticles || [])]);
+     alert("Un nouvel article a été généré par l'IA et ajouté à votre liste !");
+  };
+
+  const saveAdminProfile = () => {
+     setAdminProfile(tempAdminProfile);
+     alert("Profil mis à jour avec succès !");
+     setShowProfileModal(false);
   };
 
   const filteredActions = (actionsIA || []).filter(a => {
@@ -460,7 +479,7 @@ export default function AdminDashboard() {
                  </div>
               </div>
 
-              {/* ACTIONS PLANIFIÉES (GARDÉES ET SÉCURISÉES) */}
+              {/* ACTIONS PLANIFIÉES */}
               <div className="bg-zinc-900 text-white border border-zinc-800 p-8 rounded-[3rem] shadow-2xl">
                  <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                     <h3 className="font-black uppercase text-sm flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> PLANIFICATEUR D'ACTIONS</h3>
