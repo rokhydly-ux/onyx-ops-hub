@@ -73,7 +73,7 @@ const PACKS: Array<{ id: PlanKey; name: string; price: number; label: string; ra
 const AMBASSADOR_TESTIMONIALS = [
   { name: "Moussa D.", role: "Étudiant", img: "https://ui-avatars.com/api/?name=Moussa+D&background=000&color=39FF14", text: "Fini les fins de mois difficiles. Je paie mon loyer juste avec mes commissions de renouvellement." },
   { name: "Fatou B.", role: "Commerciale", img: "https://ui-avatars.com/api/?name=Fatou+B&background=000&color=39FF14", text: "Je propose Onyx aux boutiques que je visite. L'argumentaire est si fort que ça se vend tout seul." },
-  { name: "Cheikh N.", role: "Freelance", img: "https://ui-avatars.com/api/?name=Cheikh+N&background=000&color=39FF14", text: "La rente passive c'est du sérieux. J'ai 15 clients réguliers, l'argent tombe chaque mois sans rien faire." },
+  { name: "Cheikh N.", role: "Freelance", img: "https://ui-avatars.com/api/?name=Cheikh+N&background=000&color=39FF14", text: "La rente passive cest du sérieux. J'ai 15 clients réguliers, l'argent tombe chaque mois sans rien faire." },
   { name: "Awa C.", role: "Gérante Boutique", img: "https://ui-avatars.com/api/?name=Awa+C&background=000&color=39FF14", text: "J'utilise Onyx et j'en ai parlé à 3 amies commerçantes. Leurs abonnements me rapportent de l'argent tous les mois !" },
   { name: "Ibrahima Fall", role: "Consultant Digital", img: "https://ui-avatars.com/api/?name=Ibrahima+F&background=000&color=39FF14", text: "Le meilleur programme d'affiliation au Sénégal. Transparence totale et paiements toujours à l'heure via Wave." }
 ];
@@ -326,6 +326,24 @@ export default function OnyxOpsElite() {
     setShowExitIntent(false);
 
     alert(`Merci ${leadData.name} ! Vos informations sont enregistrées.\nVous allez être redirigé vers notre équipe WhatsApp pour l'activation immédiate de votre espace.`);
+    window.open(getWaLink(msg), "_blank");
+  };
+
+  // --- NOUVELLE FONCTION: GESTION EXIT INTENT DIRECTE ---
+  const submitExitIntentLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${leadData.phone}\n\n_Le client souhaite un diagnostic gratuit._`;
+
+    await saveLead({
+       source: 'Exit Intent',
+       intent: `Diagnostic Gratuit`,
+       contact: leadData.phone,
+       full_name: leadData.name || 'Visiteur',
+       message: 'Demande de diagnostic gratuit'
+    });
+
+    setShowExitIntent(false);
+    alert(`Merci ! Votre demande est enregistrée.\nNous allons vous rediriger vers notre équipe WhatsApp pour votre diagnostic gratuit.`);
     window.open(getWaLink(msg), "_blank");
   };
 
@@ -1220,20 +1238,35 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* --- MODALE : EXIT INTENT POPUP --- */}
+        {/* --- MODALE EXIT INTENT REVISITÉE AVEC FORMULAIRE & BÉNÉFICES CHIFFRÉS --- */}
         {showExitIntent && (
           <div id="modal-overlay" onClick={handleOutsideClick(setShowExitIntent)} className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
-            <div className="bg-white p-12 rounded-[4rem] max-w-lg w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in text-center border-t-8 border-black">
+            <div className="bg-white p-10 md:p-12 rounded-[4rem] max-w-lg w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in text-center border-t-8 border-black">
               <button onClick={() => setShowExitIntent(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
+              
               <div className="w-20 h-20 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-bounce">
                  <Zap className="text-black w-10 h-10" />
               </div>
-              <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Vous partez déjà ?</h2>
-              <p className="text-zinc-600 font-medium mb-8 text-sm">Ne passez pas à côté de l'automatisation de vos ventes. Récupérez votre diagnostic WhatsApp gratuit 100% personnalisé.</p>
-              <button onClick={() => { setShowExitIntent(false); setLeadData(prev => ({ ...prev, saas: 'Diagnostic' })); setShowOnboarding(true); }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition">
-                Obtenir mon diagnostic gratuit
-              </button>
-              <button onClick={() => setShowExitIntent(false)} className="mt-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-black transition">Non merci, je préfère tout faire manuellement</button>
+              
+              <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter mb-4`}>Vous partez déjà ?</h2>
+              <p className="text-zinc-600 font-medium mb-6 text-sm">Ne laissez pas vos concurrents vous dépasser. Obtenez un <span className="font-black text-black">diagnostic gratuit 100% personnalisé</span>.</p>
+
+              <div className="text-left bg-zinc-50 p-6 rounded-3xl border border-zinc-200 mb-6 space-y-3">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Sans engagement, découvrez comment :</p>
+                 <div className="flex items-center gap-3 text-sm font-bold"><CheckCircle size={16} className="text-[#39FF14] flex-shrink-0"/> <span>Gagner <span className="bg-[#39FF14]/20 px-2 py-0.5 rounded">10h/semaine</span> d'automatisation</span></div>
+                 <div className="flex items-center gap-3 text-sm font-bold"><CheckCircle size={16} className="text-[#39FF14] flex-shrink-0"/> <span>Réduire vos pertes de stock de <span className="bg-[#39FF14]/20 px-2 py-0.5 rounded">-30%</span></span></div>
+                 <div className="flex items-center gap-3 text-sm font-bold"><CheckCircle size={16} className="text-[#39FF14] flex-shrink-0"/> <span>Augmenter vos commandes de <span className="bg-[#39FF14]/20 px-2 py-0.5 rounded">+50%</span></span></div>
+              </div>
+
+              <form onSubmit={submitExitIntentLead} className="space-y-4">
+                 <input type="text" placeholder="Votre Prénom" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+                 <input type="tel" placeholder="Numéro WhatsApp (ex: +221 77...)" required value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+                 <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
+                   Recevoir mon diagnostic <ArrowRight size={18}/>
+                 </button>
+              </form>
+
+              <button onClick={() => setShowExitIntent(false)} className="mt-6 text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-black transition">Non merci, je préfère tout faire manuellement</button>
             </div>
           </div>
         )}
