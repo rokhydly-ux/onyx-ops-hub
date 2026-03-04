@@ -182,6 +182,10 @@ export default function AdminDashboard() {
     const payload = { ...editingContact };
     const isNew = !payload.id;
     
+    // NETTOYAGE IMPORTANT : Retirer les champs qui ne sont pas dans la BDD
+    delete payload.isExpiringTrial;
+    delete payload.isExpiringSub;
+
     // Si c'est nouveau, on laisse Supabase générer l'ID UUID automatiquement
     if (isNew) {
       delete payload.id;
@@ -192,7 +196,7 @@ export default function AdminDashboard() {
 
     if (error) {
       console.error("Erreur Supabase:", error);
-      alert(`Erreur de sauvegarde : ${error.message}\n(Vérifie que tes colonnes Supabase correspondent bien au formulaire)`);
+      alert(`Erreur de sauvegarde : ${error.message}`);
       return;
     }
 
@@ -1107,7 +1111,14 @@ export default function AdminDashboard() {
                    <option value="Prospect">Prospect</option>
                    <option value="Client">Client</option>
                  </select>
-                 <input type="text" placeholder="Produit SaaS" value={editingContact?.saas || ""} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                 
+                 {/* MENU DÉROULANT SAAS AJOUTÉ ICI */}
+                 <select value={editingContact?.saas || ""} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
+                   <option value="" disabled>Sélectionner un Produit</option>
+                   <option value="À définir">À définir</option>
+                   {ECOSYSTEM_SAAS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                 </select>
+
               </div>
               <input type="text" placeholder="Statut / Notes" value={editingContact?.status || ''} onChange={e => setEditingContact({...editingContact, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
               <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm mt-4 shadow-xl hover:scale-105 transition">
