@@ -25,6 +25,7 @@ type IAAction = {
 };
 
 export default function AdminDashboard() {
+  // Fix Hydratation & Crash Next.js (Rendu Client Sécurisé)
   const [mounted, setMounted] = useState(false);
   const [todayStr, setTodayStr] = useState('');
 
@@ -54,7 +55,7 @@ export default function AdminDashboard() {
   });
   const [tempAdminProfile, setTempAdminProfile] = useState({ ...adminProfile });
 
-  // Data Mocks
+  // Data Mocks (Toujours initialisés en tableaux vides par sécurité)
   const [contacts, setContacts] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
@@ -90,9 +91,9 @@ export default function AdminDashboard() {
     setTodayStr(currentDate);
 
     setActionsIA([
-       { id: '1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: currentDate, status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger avec notre code promo de -20% ?' },
-       { id: '2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: currentDate, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' },
-       { id: '3', module: 'Marketing', title: 'Newsletter : L\'ère du Digital', desc: 'Diffusion automatique programmée pour les prospects Restauration.', date: 'Demain', status: 'En attente' }
+       { id: 'a1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: currentDate, status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger avec notre code promo de -20% ?' },
+       { id: 'a2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: currentDate, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' },
+       { id: 'a3', module: 'Marketing', title: 'Newsletter : L\'ère du Digital', desc: 'Diffusion automatique programmée pour les prospects Restauration.', date: 'Demain', status: 'En attente' }
     ]);
 
     setContacts([
@@ -118,7 +119,17 @@ export default function AdminDashboard() {
     ]);
   }, []);
 
-  if (!mounted) return null;
+  // Coupe-circuit sécurisé (remplace `return null` pour éviter les erreurs d'invariance React)
+  if (!mounted) {
+    return (
+      <div className={`flex h-screen w-full bg-zinc-50 items-center justify-center ${inter.className}`}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Initialisation de l'espace Admin...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleOutsideClick = (setter: any, secondaryAction?: () => void) => (e: any) => {
     if (e.target.id === "modal-overlay") { 
@@ -130,7 +141,7 @@ export default function AdminDashboard() {
   const executeWA = (phone: string | undefined, msg: string | undefined, idIA?: string) => {
     if(phone && msg) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
     if (idIA) {
-      setActionsIA(prev => prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
+      setActionsIA(prev => (prev || []).map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
     }
   };
 
@@ -138,51 +149,53 @@ export default function AdminDashboard() {
      const newAction: IAAction = { 
        id: Date.now().toString(), 
        module: 'CRM', 
-       title, 
-       desc, 
-       date: todayStr, 
+       title: title || "", 
+       desc: desc || "", 
+       date: todayStr || "", 
        status: 'En attente', 
-       phone, 
-       msg 
+       phone: phone || "", 
+       msg: msg || "" 
      };
-     setActionsIA([newAction, ...actionsIA]);
+     setActionsIA([newAction, ...(actionsIA || [])]);
      alert("L'action a bien été planifiée sur votre Dashboard !");
      setShowRapportIA(false);
   };
 
   const handleSaveContact = (e: React.FormEvent) => {
     e.preventDefault();
-    if(editingContact.id) {
-      setContacts(contacts.map(c => c.id === editingContact.id ? editingContact : c));
+    if(editingContact?.id) {
+      setContacts((contacts || []).map(c => c.id === editingContact.id ? editingContact : c));
     } else {
-      setContacts([{ ...editingContact, id: Date.now().toString(), status: 'Nouveau' }, ...contacts]);
+      setContacts([{ ...editingContact, id: Date.now().toString(), status: 'Nouveau' }, ...(contacts || [])]);
     }
     setShowContactModal(false);
   };
 
   const approvePartner = (id: string) => {
-    setPartners(partners.map(p => p.id === id ? { ...p, status: 'Actif' } : p));
+    setPartners((partners || []).map(p => p.id === id ? { ...p, status: 'Actif' } : p));
   };
 
   const handleSavePartner = () => {
-     setPartners(partners.map(p => p.id === editPartnerForm.id ? editPartnerForm : p));
+     if(!editPartnerForm) return;
+     setPartners((partners || []).map(p => p.id === editPartnerForm.id ? editPartnerForm : p));
      setSelectedPartner(editPartnerForm);
      setIsEditingPartner(false);
   };
 
   const handleConvertPartnerToClient = () => {
+     if(!selectedPartner) return;
      const newContact = { 
        id: Date.now().toString(), 
-       full_name: selectedPartner.full_name, 
-       phone: selectedPartner.contact, 
+       full_name: selectedPartner.full_name || "Nouveau", 
+       phone: selectedPartner.contact || "", 
        type: 'Client', 
        saas: 'À définir', 
        status: 'Converti depuis Ambassadeur', 
        isExpiringTrial: false, 
        isExpiringSub: false 
      };
-     setContacts([newContact, ...contacts]);
-     alert(`${selectedPartner?.full_name} a été ajouté en tant que Client dans le CRM ! Son statut Ambassadeur est conservé.`);
+     setContacts([newContact, ...(contacts || [])]);
+     alert(`${selectedPartner.full_name} a été ajouté en tant que Client dans le CRM ! Son statut Ambassadeur est conservé.`);
   };
 
   const runIAArticleSuggestion = () => {
@@ -193,23 +206,25 @@ export default function AdminDashboard() {
        category: 'Vente', 
        cible: 'Tous' 
      };
-     setMarketingArticles([newArt, ...marketingArticles]);
+     setMarketingArticles([newArt, ...(marketingArticles || [])]);
      alert("Un nouvel article a été généré par l'IA et ajouté à votre liste !");
   };
 
   const scheduleMarketingDiffusion = () => {
-     if(selectedContactsForDiffusion.length === 0) return alert("Veuillez sélectionner au moins un contact.");
+     if(!selectedContactsForDiffusion || selectedContactsForDiffusion.length === 0) {
+        return alert("Veuillez sélectionner au moins un contact.");
+     }
      
      const newAction: IAAction = {
         id: Date.now().toString(), 
         module: 'Marketing', 
-        title: `Diffusion : ${showDiffusionModal.title}`,
+        title: `Diffusion : ${showDiffusionModal?.title || "Article"}`,
         desc: `Envoi programmé à ${selectedContactsForDiffusion.length} contacts sélectionnés.`,
         date: todayStr, 
         status: 'En attente'
      };
      
-     setActionsIA([newAction, ...actionsIA]);
+     setActionsIA([newAction, ...(actionsIA || [])]);
      setShowDiffusionModal(null);
      setSelectedContactsForDiffusion([]);
      alert("La diffusion a bien été planifiée sur le Dashboard !");
@@ -221,7 +236,8 @@ export default function AdminDashboard() {
      setShowProfileModal(false);
   };
 
-  const filteredActions = actionsIA.filter(a => {
+  // Filtrage ultra-sécurisé pour empêcher les crashs (avec Optional Chaining ?)
+  const filteredActions = (actionsIA || []).filter(a => {
      if(actionTabFilter === 'IA' && a.module === 'Marketing') return false;
      if(actionTabFilter === 'Marketing' && a.module !== 'Marketing') return false;
      
@@ -239,7 +255,9 @@ export default function AdminDashboard() {
       {/* SIDEBAR */}
       <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col z-20 shadow-sm hidden md:flex">
         <div className="p-6">
-          <h1 className={`${spaceGrotesk.className} text-3xl font-black tracking-tighter uppercase`}>ONYX<span className="text-[#39FF14]">OPS</span></h1>
+          <h1 className={`${spaceGrotesk.className} text-3xl font-black tracking-tighter uppercase cursor-pointer`} onClick={() => window.location.href = '/'}>
+            ONYX<span className="text-[#39FF14]">OPS</span>
+          </h1>
         </div>
         
         <div className="flex-1 overflow-y-auto px-4 space-y-8">
@@ -294,16 +312,16 @@ export default function AdminDashboard() {
             </button>
             
             <div onClick={() => setShowProfileModal(true)} className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 p-1.5 pr-4 rounded-full cursor-pointer hover:bg-zinc-100 transition shadow-sm hover:scale-105">
-              <img src={adminProfile.avatar} className="w-8 h-8 rounded-full object-cover" alt="Admin" />
+              <img src={adminProfile?.avatar} className="w-8 h-8 rounded-full object-cover" alt="Admin" />
               <div className="text-left hidden sm:block">
-                <p className="text-[10px] font-black uppercase leading-none text-black">{adminProfile.name}</p>
+                <p className="text-[10px] font-black uppercase leading-none text-black">{adminProfile?.name}</p>
                 <p className="text-[8px] font-bold text-zinc-500 uppercase">Profil & Réglages</p>
               </div>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-8 relative">
           
           {/* ================= DASHBOARD ================= */}
           {activeView === 'dashboard' && (
@@ -341,7 +359,7 @@ export default function AdminDashboard() {
                  <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                     <h3 className="font-black uppercase text-sm flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> PLANIFICATEUR D'ACTIONS</h3>
                     <div className="flex gap-2 bg-zinc-800 p-1 rounded-xl">
-                       <button onClick={() => setActionTabFilter('All')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'All' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Tout ({actionsIA.length})</button>
+                       <button onClick={() => setActionTabFilter('All')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'All' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Tout ({actionsIA?.length || 0})</button>
                        <button onClick={() => setActionTabFilter('IA')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'IA' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Actions IA</button>
                        <button onClick={() => setActionTabFilter('Marketing')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'Marketing' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Marketing</button>
                     </div>
@@ -368,14 +386,14 @@ export default function AdminDashboard() {
                           </div>
                           <div className="flex items-center gap-3">
                              <select 
-                               value={action.status} 
-                               onChange={e => setActionsIA(prev => prev.map(a => a.id === action.id ? {...a, status: e.target.value as any} : a))} 
+                               value={action.status || 'En attente'} 
+                               onChange={e => setActionsIA(prev => (prev || []).map(a => a.id === action.id ? {...a, status: e.target.value as any} : a))} 
                                className="bg-zinc-900 text-[10px] font-black uppercase text-white p-2 rounded-lg border border-zinc-700 outline-none cursor-pointer"
                              >
-                                <option>En attente</option>
-                                <option>En cours</option>
-                                <option>Réalisé</option>
-                                <option>Annulé</option>
+                                <option value="En attente">En attente</option>
+                                <option value="En cours">En cours</option>
+                                <option value="Réalisé">Réalisé</option>
+                                <option value="Annulé">Annulé</option>
                              </select>
                              
                              {action.phone && (
@@ -385,12 +403,12 @@ export default function AdminDashboard() {
                              )}
                              
                              {!action.phone && (
-                                <button onClick={() => setActionsIA(prev => prev.map(a => a.id === action.id ? { ...a, status: 'Réalisé' } : a))} className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#39FF14] transition">
-                                  <CheckCircle size={14} className="inline"/> Valider
+                                <button onClick={() => setActionsIA(prev => (prev || []).map(a => a.id === action.id ? { ...a, status: 'Réalisé' } : a))} className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#39FF14] transition">
+                                  <CheckCircle size={14} className="inline mr-1"/> Valider
                                 </button>
                              )}
                              
-                             <button onClick={() => setActionsIA(prev => prev.filter(a => a.id !== action.id))} className="text-zinc-500 hover:text-red-500 transition">
+                             <button onClick={() => setActionsIA(prev => (prev || []).filter(a => a.id !== action.id))} className="text-zinc-500 hover:text-red-500 transition">
                                <X size={16}/>
                              </button>
                           </div>
@@ -421,7 +439,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {leads.map((l) => (
+                    {(leads || []).map((l) => (
                       <tr key={l.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="p-6">
                           <p className="font-black text-sm uppercase">{l.full_name}</p>
@@ -439,6 +457,9 @@ export default function AdminDashboard() {
                         </td>
                       </tr>
                     ))}
+                    {(!leads || leads.length === 0) && (
+                      <tr><td colSpan={4} className="p-6 text-center text-zinc-500 text-sm italic">Aucun lead pour le moment.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -450,10 +471,10 @@ export default function AdminDashboard() {
             <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                  {[
-                    { id: 'new_clients', label: 'Nouveaux Clients', val: contacts.filter(c=>c.type==='Client').length, icon: CheckCircle, color: 'text-black bg-white border-zinc-200' },
-                    { id: 'new_prospects', label: 'Nouveaux Prospects', val: contacts.filter(c=>c.type==='Prospect').length, icon: Users, color: 'text-black bg-white border-zinc-200' },
-                    { id: 'exp_trials', label: 'Essais Expirants', val: contacts.filter(c=>c.isExpiringTrial).length, icon: Clock, color: 'text-[#39FF14] bg-black border-black shadow-lg' },
-                    { id: 'exp_subs', label: 'Abonnements Expirants', val: contacts.filter(c=>c.isExpiringSub).length, icon: AlertCircle, color: 'text-red-500 bg-red-50 border-red-100' },
+                    { id: 'new_clients', label: 'Nouveaux Clients', val: (contacts || []).filter(c=>c?.type==='Client').length, icon: CheckCircle, color: 'text-black bg-white border-zinc-200' },
+                    { id: 'new_prospects', label: 'Nouveaux Prospects', val: (contacts || []).filter(c=>c?.type==='Prospect').length, icon: Users, color: 'text-black bg-white border-zinc-200' },
+                    { id: 'exp_trials', label: 'Essais Expirants', val: (contacts || []).filter(c=>c?.isExpiringTrial).length, icon: Clock, color: 'text-[#39FF14] bg-black border-black shadow-lg' },
+                    { id: 'exp_subs', label: 'Abonnements Expirants', val: (contacts || []).filter(c=>c?.isExpiringSub).length, icon: AlertCircle, color: 'text-red-500 bg-red-50 border-red-100' },
                  ].map(card => {
                     const CardIcon = card.icon; 
                     return (
@@ -487,9 +508,9 @@ export default function AdminDashboard() {
                   onChange={(e) => setCrmTypeFilter(e.target.value)} 
                   className="px-4 py-3 bg-zinc-50 rounded-2xl font-bold text-sm outline-none border-none cursor-pointer w-full md:w-auto"
                 >
-                  <option>Tous</option>
-                  <option>Client</option>
-                  <option>Prospect</option>
+                  <option value="Tous">Tous</option>
+                  <option value="Client">Client</option>
+                  <option value="Prospect">Prospect</option>
                 </select>
                 
                 <div className="flex gap-2 w-full md:w-auto">
@@ -507,7 +528,7 @@ export default function AdminDashboard() {
 
               {/* RAPPORT IA CRM */}
               {showRapportIA && (
-                 <div className="bg-white border-2 border-[#39FF14] rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in">
+                 <div className="bg-white border-2 border-[#39FF14] rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in mb-6">
                     <button onClick={() => setShowRapportIA(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition"><X size={20}/></button>
                     <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 flex items-center gap-2`}><Sparkles className="text-[#39FF14]"/> Rapport IA CRM</h3>
                     <p className="text-xs font-bold text-zinc-500 mb-6">Suggestions intelligentes basées sur les essais en cours et expirations.</p>
@@ -521,7 +542,7 @@ export default function AdminDashboard() {
                             onClick={() => planifyCrmAction("Relance Magatte Fall", "Proposer conversion avant fin d'essai.", "221771234567", "Bonjour Magatte, comment se passe votre essai sur Onyx Vente ?")} 
                             className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-md"
                           >
-                            Planifier l'Action (Dashboard)
+                            Planifier l'Action
                           </button>
                        </div>
                     </div>
@@ -539,7 +560,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {contacts.filter(c => {
+                    {(contacts || []).filter(c => {
                        if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
                        
                        const search = crmSearch?.toLowerCase() || "";
@@ -566,11 +587,14 @@ export default function AdminDashboard() {
                             onClick={() => { setEditingContact(c); setShowContactModal(true); }} 
                             className="text-[10px] font-black uppercase bg-white border border-zinc-200 px-4 py-2 rounded-lg hover:border-black transition"
                           >
-                            Éditer Fiche
+                            Éditer
                           </button>
                         </td>
                       </tr>
                     ))}
+                    {(!contacts || contacts.length === 0) && (
+                       <tr><td colSpan={4} className="p-6 text-center text-zinc-500 text-sm italic">Aucun contact trouvé.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -593,11 +617,11 @@ export default function AdminDashboard() {
                  </div>
                </div>
 
-               {partners.filter(p => p.status === 'En attente').length > 0 && (
+               {(partners || []).filter(p => p.status === 'En attente').length > 0 && (
                  <div className="bg-red-50 border border-red-200 p-6 rounded-[3rem] mb-8 shadow-sm">
                     <h3 className="font-black uppercase text-sm mb-4 text-red-600 flex items-center gap-2"><AlertCircle/> Candidatures à Approuver</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       {partners.filter(p => p.status === 'En attente').map(p => (
+                       {(partners || []).filter(p => p.status === 'En attente').map(p => (
                           <div key={p.id} className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
                              <div>
                                <p className="font-black text-sm uppercase">{p.full_name}</p>
@@ -621,7 +645,7 @@ export default function AdminDashboard() {
                      </tr>
                    </thead>
                    <tbody>
-                     {partners.filter(p => {
+                     {(partners || []).filter(p => {
                        const search = partnerSearch?.toLowerCase() || "";
                        return (p.full_name?.toLowerCase() || "").includes(search) && p.status !== 'En attente';
                      }).map((p) => (
@@ -640,11 +664,14 @@ export default function AdminDashboard() {
                              onClick={() => { setSelectedPartner(p); setIsEditingPartner(false); setShowPartnerModal(true); }} 
                              className="text-[10px] font-black uppercase bg-black text-white px-4 py-2 rounded-lg hover:bg-[#39FF14] hover:text-black transition"
                            >
-                             Détails Complets
+                             Détails
                            </button>
                          </td>
                        </tr>
                      ))}
+                     {(!partners || partners.length === 0) && (
+                       <tr><td colSpan={4} className="p-6 text-center text-zinc-500 text-sm italic">Aucun partenaire trouvé.</td></tr>
+                     )}
                    </tbody>
                  </table>
                </div>
@@ -656,7 +683,7 @@ export default function AdminDashboard() {
              <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
                <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-8`}>Écosystème <span className="text-[#39FF14]">OnyxOps</span></h2>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 {ECOSYSTEM_SAAS.map(saas => (
+                 {(ECOSYSTEM_SAAS || []).map(saas => (
                     <div key={saas.id} className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm hover:border-black transition group flex flex-col justify-between min-h-[250px]">
                        <div>
                           <div className={`w-12 h-12 rounded-2xl mb-6 flex items-center justify-center text-white ${saas.color}`}><Box size={24}/></div>
@@ -676,19 +703,19 @@ export default function AdminDashboard() {
           {activeView === 'marketing' && (
              <div className="space-y-8 animate-in fade-in max-w-5xl mx-auto">
                 <div className="flex justify-between items-center bg-white p-6 rounded-[3rem] border border-zinc-200 shadow-sm">
-                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>ARTICLES & CIBLAGE (BLOG)</h2>
+                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>ARTICLES & CIBLAGE</h2>
                    <div className="flex gap-4">
                       <button onClick={runIAArticleSuggestion} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition">
                         <Sparkles size={16}/> Auto-Suggestion IA
                       </button>
-                      <button onClick={() => alert("Ouverture de l'éditeur d'article manuel...")} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition">
+                      <button onClick={() => alert("Ouverture de l'éditeur manuel...")} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition">
                         Rédiger Manuel
                       </button>
                    </div>
                 </div>
 
                 <div className="space-y-6">
-                   {marketingArticles.map(article => (
+                   {(marketingArticles || []).map(article => (
                       <div key={article.id} className="bg-white p-8 rounded-[3rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
                          <div className="flex-1">
                             <div className="flex gap-2 mb-4">
@@ -702,12 +729,15 @@ export default function AdminDashboard() {
                             <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg flex justify-center items-center gap-2">
                               <Send size={16}/> Diffuser au segment
                             </button>
-                            <button onClick={() => alert("Édition de l'article en cours...")} className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">
+                            <button onClick={() => alert("Édition en cours...")} className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">
                               Éditer
                             </button>
                          </div>
                       </div>
                    ))}
+                   {(!marketingArticles || marketingArticles.length === 0) && (
+                      <p className="text-center text-zinc-500 italic">Aucun article disponible.</p>
+                   )}
                 </div>
              </div>
           )}
@@ -752,19 +782,19 @@ export default function AdminDashboard() {
           <div className="bg-white p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in max-h-[90vh] flex flex-col">
             <button onClick={() => { setShowDiffusionModal(null); setSelectedContactsForDiffusion([]); }} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
             <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2`}>Planifier la diffusion</h2>
-            <p className="text-xs font-bold text-zinc-500 mb-6">Article cible : <span className="text-black">{showDiffusionModal.title}</span></p>
+            <p className="text-xs font-bold text-zinc-500 mb-6">Article cible : <span className="text-black">{showDiffusionModal?.title || ""}</span></p>
 
             <div className="flex-1 overflow-y-auto mb-6 border border-zinc-200 rounded-3xl p-4 bg-zinc-50">
                <div className="flex justify-between items-center mb-4 pb-2 border-b border-zinc-200">
                   <p className="text-[10px] font-black uppercase tracking-widest">Sélectionner les contacts CRM</p>
-                  <button onClick={() => setSelectedContactsForDiffusion(contacts.map(c=>c.id))} className="text-[10px] font-bold text-[#39FF14] bg-black px-3 py-1 rounded-full">Tout Sélectionner</button>
+                  <button onClick={() => setSelectedContactsForDiffusion((contacts || []).map(c=>c.id))} className="text-[10px] font-bold text-[#39FF14] bg-black px-3 py-1 rounded-full">Tout Sélectionner</button>
                </div>
                <div className="space-y-2">
-                  {contacts.map(c => (
+                  {(contacts || []).map(c => (
                      <label key={c.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-zinc-200 cursor-pointer hover:border-black">
-                        <input type="checkbox" checked={selectedContactsForDiffusion.includes(c.id)} onChange={(e) => {
-                           if(e.target.checked) setSelectedContactsForDiffusion([...selectedContactsForDiffusion, c.id]);
-                           else setSelectedContactsForDiffusion(selectedContactsForDiffusion.filter(id => id !== c.id));
+                        <input type="checkbox" checked={(selectedContactsForDiffusion || []).includes(c.id)} onChange={(e) => {
+                           if(e.target.checked) setSelectedContactsForDiffusion([...(selectedContactsForDiffusion || []), c.id]);
+                           else setSelectedContactsForDiffusion((selectedContactsForDiffusion || []).filter(id => id !== c.id));
                         }} className="w-5 h-5 accent-black" />
                         <div>
                            <p className="font-bold text-sm uppercase">{c.full_name}</p>
@@ -776,7 +806,7 @@ export default function AdminDashboard() {
             </div>
 
             <button onClick={scheduleMarketingDiffusion} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition flex justify-center items-center gap-2">
-               <Send size={16}/> Planifier l'envoi ({selectedContactsForDiffusion.length} sélectionnés)
+               <Send size={16}/> Planifier l'envoi ({(selectedContactsForDiffusion || []).length} sélectionnés)
             </button>
           </div>
         </div>
@@ -817,15 +847,15 @@ export default function AdminDashboard() {
                 <>
                    <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-8`}>Édition Partenaire</h2>
                    <div className="space-y-4 mb-8">
-                      <input type="text" placeholder="Nom Complet" value={editPartnerForm.full_name} onChange={e => setEditPartnerForm({...editPartnerForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                      <input type="text" placeholder="Contact" value={editPartnerForm.contact} onChange={e => setEditPartnerForm({...editPartnerForm, contact: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                      <input type="text" placeholder="Activité" value={editPartnerForm.activity} onChange={e => setEditPartnerForm({...editPartnerForm, activity: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                      <input type="text" placeholder="Nom Complet" value={editPartnerForm?.full_name || ""} onChange={e => setEditPartnerForm({...editPartnerForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                      <input type="text" placeholder="Contact" value={editPartnerForm?.contact || ""} onChange={e => setEditPartnerForm({...editPartnerForm, contact: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                      <input type="text" placeholder="Activité" value={editPartnerForm?.activity || ""} onChange={e => setEditPartnerForm({...editPartnerForm, activity: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
                       <div className="grid grid-cols-2 gap-4">
-                         <input type="number" placeholder="Ventes" value={editPartnerForm.sales} onChange={e => setEditPartnerForm({...editPartnerForm, sales: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                         <input type="text" placeholder="Revenus" value={editPartnerForm.revenue} onChange={e => setEditPartnerForm({...editPartnerForm, revenue: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                         <input type="number" placeholder="Ventes" value={editPartnerForm?.sales || 0} onChange={e => setEditPartnerForm({...editPartnerForm, sales: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                         <input type="text" placeholder="Revenus" value={editPartnerForm?.revenue || ""} onChange={e => setEditPartnerForm({...editPartnerForm, revenue: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
                       </div>
-                      <select value={editPartnerForm.status} onChange={e => setEditPartnerForm({...editPartnerForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
-                         <option>Actif</option><option>Top Performer</option><option>En attente</option><option>Inactif</option>
+                      <select value={editPartnerForm?.status || 'En attente'} onChange={e => setEditPartnerForm({...editPartnerForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
+                         <option value="Actif">Actif</option><option value="Top Performer">Top Performer</option><option value="En attente">En attente</option><option value="Inactif">Inactif</option>
                       </select>
                    </div>
                    <div className="flex gap-4">
@@ -844,9 +874,9 @@ export default function AdminDashboard() {
             <div className="bg-white p-12 rounded-[4rem] max-w-md w-full relative shadow-[0_0_60px_rgba(57,255,20,0.15)] animate-in zoom-in text-center border-t-4 border-[#39FF14]">
                <button onClick={() => setShowSaasLogin(null)} className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-black transition"><X size={20}/></button>
                <div className="mb-8 flex justify-center">
-                  <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center text-white ${showSaasLogin.color} shadow-lg`}><Box size={40}/></div>
+                  <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center text-white ${showSaasLogin?.color || 'bg-black'} shadow-lg`}><Box size={40}/></div>
                </div>
-               <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{showSaasLogin.name}</h2>
+               <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{showSaasLogin?.name || "SaaS"}</h2>
                <p className="text-xs font-bold text-zinc-500 mb-10">Accès sécurisé à votre instance.</p>
                
                <div className="space-y-4">
@@ -864,18 +894,18 @@ export default function AdminDashboard() {
         <div id="modal-overlay" onClick={handleOutsideClick(setShowContactModal)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white p-10 rounded-[3.5rem] max-w-lg w-full relative shadow-2xl animate-in zoom-in">
             <button onClick={() => setShowContactModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
-            <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-8`}>{editingContact.id ? 'Éditer Fiche' : 'Nouveau Contact'}</h2>
+            <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-8`}>{editingContact?.id ? 'Éditer Fiche' : 'Nouveau Contact'}</h2>
             <form onSubmit={handleSaveContact} className="space-y-4">
-              <input type="text" required placeholder="Nom Complet" value={editingContact.full_name} onChange={e => setEditingContact({...editingContact, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-              <input type="tel" required placeholder="Téléphone WhatsApp" value={editingContact.phone} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+              <input type="text" required placeholder="Nom Complet" value={editingContact?.full_name || ""} onChange={e => setEditingContact({...editingContact, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+              <input type="tel" required placeholder="Téléphone WhatsApp" value={editingContact?.phone || ""} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
               <div className="grid grid-cols-2 gap-4">
-                 <select value={editingContact.type} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
-                   <option>Prospect</option>
-                   <option>Client</option>
+                 <select value={editingContact?.type || 'Prospect'} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
+                   <option value="Prospect">Prospect</option>
+                   <option value="Client">Client</option>
                  </select>
-                 <input type="text" placeholder="Produit SaaS" value={editingContact.saas} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+                 <input type="text" placeholder="Produit SaaS" value={editingContact?.saas || ""} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
               </div>
-              <input type="text" placeholder="Statut / Notes" value={editingContact.status || ''} onChange={e => setEditingContact({...editingContact, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
+              <input type="text" placeholder="Statut / Notes" value={editingContact?.status || ''} onChange={e => setEditingContact({...editingContact, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
               <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm mt-4 shadow-xl hover:scale-105 transition">
                 <CheckCircle size={18} className="inline mr-2"/> Enregistrer
               </button>
@@ -890,7 +920,7 @@ export default function AdminDashboard() {
           <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in text-center">
             <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
             
-            <img src={tempAdminProfile.avatar} className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-black object-cover" alt="" />
+            <img src={tempAdminProfile?.avatar} className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-black object-cover" alt="" />
             <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-1`}>ADMINISTRATEUR</h2>
             <p className="text-xs font-bold text-zinc-400 mb-8">contact@onyxops.com</p>
 
@@ -898,14 +928,14 @@ export default function AdminDashboard() {
                <input 
                  type="text" 
                  placeholder="Nom affiché" 
-                 value={tempAdminProfile.name} 
+                 value={tempAdminProfile?.name || ""} 
                  onChange={e => setTempAdminProfile({...tempAdminProfile, name: e.target.value})} 
                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" 
                />
                <input 
                  type="text" 
                  placeholder="URL Image" 
-                 value={tempAdminProfile.avatar} 
+                 value={tempAdminProfile?.avatar || ""} 
                  onChange={e => setTempAdminProfile({...tempAdminProfile, avatar: e.target.value})} 
                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none text-xs" 
                />
