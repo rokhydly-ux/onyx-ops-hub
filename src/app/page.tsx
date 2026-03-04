@@ -249,14 +249,17 @@ export default function OnyxOpsElite() {
 
   const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string, full_name?: string }) => {
     try {
+      const currentDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
       const { error } = await supabase.from('leads').insert({
         source: data.source, 
         intent: data.intent, 
         status: 'Nouveau', 
-        contact: data.contact || '', 
+        phone: data.contact || '', // CORRECTION : 'phone' au lieu de 'contact'
         message: data.message || '', 
-        full_name: data.full_name || 'Visiteur Web'
+        full_name: data.full_name || 'Visiteur Web',
+        date: currentDate // AJOUT : pour que l'admin affiche bien la date
       });
+      
       if (error) {
         console.error("ERREUR SUPABASE (Leads) :", error.message);
       }
@@ -329,7 +332,6 @@ export default function OnyxOpsElite() {
     window.open(getWaLink(msg), "_blank");
   };
 
-  // --- NOUVELLE FONCTION: GESTION EXIT INTENT DIRECTE ---
   const submitExitIntentLead = async (e: React.FormEvent) => {
     e.preventDefault();
     const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${leadData.phone}\n\n_Le client souhaite un diagnostic gratuit._`;
