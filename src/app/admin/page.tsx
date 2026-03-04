@@ -2,12 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 import { Space_Grotesk, Inter } from "next/font/google";
+import { createClient } from "@supabase/supabase-js";
 import { 
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
   Search, Plus, CheckCircle, Clock, AlertCircle, X, Sparkles, 
   ExternalLink, MessageSquare, LogIn, Send, Download, Edit3, UserPlus,
   BarChart2, MapPin, Calendar, Lock, ChevronDown, List
 } from "lucide-react";
+
+// --- CONFIGURATION SUPABASE SÉCURISÉE ---
+// Les clés sont récupérées depuis le fichier .env.local
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
@@ -97,6 +104,7 @@ export default function AdminDashboard() {
     const currentDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
     setTodayStr(currentDate);
 
+    // Initialisation des données mockées (Tu pourras remplacer ceci par supabase.from('...').select('*') plus tard)
     setActionsIA([
        { id: 'a1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: currentDate, status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger ?' },
        { id: 'a2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: currentDate, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' },
@@ -225,7 +233,6 @@ export default function AdminDashboard() {
      window.open(`https://wa.me/${targetPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  // --- FONCTION AJOUTÉE : Auto-suggestion IA Marketing ---
   const runIAArticleSuggestion = () => {
      const newArt = { 
        id: Date.now().toString(), 
