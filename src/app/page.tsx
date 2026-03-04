@@ -10,7 +10,7 @@ import {
   Smartphone, Truck, Box, Utensils, Calendar, 
   ArrowRight, Users, Target, 
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
-  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText
+  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight
 } from "lucide-react";
 
 type PlanKey = "solo" | "trio" | "full" | "premium";
@@ -28,6 +28,14 @@ const ECOSYSTEM_SAAS = [
   { id: "staff", name: "Onyx Staff", type: "Pointage & Paie" },
   { id: "trio", name: "Pack Trio", type: "Vente + Stock + Tiak" },
   { id: "full", name: "Pack Full", type: "Ecosystème Complet" },
+];
+
+const ONBOARDING_CATEGORIES = [
+  "Restauration / Fast-Food",
+  "Boutique / Prêt-à-porter",
+  "E-commerce / Vente en ligne",
+  "Prestation de services",
+  "Autre"
 ];
 
 const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
@@ -94,11 +102,17 @@ export default function OnyxOpsElite() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // MODALES
-  const [selectedSaaS, setSelectedSaaS] = useState<any>(null);
-  const [saasMetier, setSaasMetier] = useState("");
+  const [showSaasChoice, setShowSaasChoice] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authSelectedSaas, setAuthSelectedSaas] = useState("vente");
+
+  // ONBOARDING (Maimouna Modal & Exit Intent)
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [leadData, setLeadData] = useState({ name: '', phone: '', category: '', customCategory: '', saas: '' });
+  const [showExitIntent, setShowExitIntent] = useState(false);
+  const [hasTriggeredExitIntent, setHasTriggeredExitIntent] = useState(false);
   
   // USER
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -175,30 +189,41 @@ export default function OnyxOpsElite() {
           setShowNotification(true);
        }, 500);
     }, 8000);
+
+    // EXIT INTENT
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0 && !hasTriggeredExitIntent) {
+        setShowExitIntent(true);
+        setHasTriggeredExitIntent(true);
+      }
+    };
+    document.addEventListener("mouseleave", handleMouseLeave);
     
     return () => { 
       clearInterval(scenarioInterval); 
       clearInterval(testimonialInterval); 
       clearInterval(notifInterval);
+      document.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, []);
+  }, [hasTriggeredExitIntent]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [botMessages]);
 
   useEffect(() => {
-    if (selectedSaaS || isMobileMenuOpen || selectedArticle || showAuthModal) {
+    if (showSaasChoice || isMobileMenuOpen || selectedArticle || showAuthModal || showOnboarding || showExitIntent) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [selectedSaaS, isMobileMenuOpen, selectedArticle, showAuthModal]);
+  }, [showSaasChoice, isMobileMenuOpen, selectedArticle, showAuthModal, showOnboarding, showExitIntent]);
 
+  // SAUVEGARDE ROBUSTE DES LEADS DANS SUPABASE
   const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string, full_name?: string }) => {
     try {
-      await supabase.from('leads').insert({
+      const { error } = await supabase.from('leads').insert({
         source: data.source, 
         intent: data.intent, 
         status: 'Nouveau', 
@@ -206,14 +231,42 @@ export default function OnyxOpsElite() {
         message: data.message || '', 
         full_name: data.full_name || 'Visiteur Web'
       });
-    } catch (e) {}
+      if (error) {
+        console.error("ERREUR SUPABASE (Leads) :", error.message);
+      }
+    } catch (e) {
+      console.error("ERREUR CATCH (Leads) :", e);
+    }
   };
 
   const handleWaClick = async (intent: string, msg: string) => {
-    saveLead({ source: 'Bouton Site', intent, message: msg });
+    await saveLead({ source: 'Bouton Site', intent, message: msg });
     window.open(getWaLink(msg), "_blank");
   };
 
+  // SOUMISSION DU FORMULAIRE ONBOARDING (MAIMOUNA)
+  const submitLeadForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
+    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${leadData.phone}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Full'}\n\n_Le client souhaite créer son compte gratuitement._`;
+
+    await saveLead({
+       source: 'Onboarding Site',
+       intent: `Création Compte (${leadData.saas || 'Pack Full'})`,
+       contact: leadData.phone,
+       full_name: leadData.name,
+       message: `Activité: ${finalCategory}`
+    });
+
+    setShowOnboarding(false);
+    setShowSaasChoice(null);
+    setShowExitIntent(false);
+
+    alert(`Merci ${leadData.name} ! Vos informations sont enregistrées.\nVous allez être redirigé vers notre équipe WhatsApp pour finaliser l'activation de votre espace.`);
+    window.open(getWaLink(msg), "_blank");
+  };
+
+  // BOT FANTA LOGIC
   const processBotReply = async (reply: string) => {
     if(!reply.trim()) return;
     const newMsgs = [...botMessages, { sender: 'client', text: reply }];
@@ -329,7 +382,6 @@ export default function OnyxOpsElite() {
      
      try {
         const payload = {
-           id: Date.now().toString(),
            full_name: partnerForm.full_name, 
            contact: partnerForm.contact, 
            city: partnerForm.city, 
@@ -341,13 +393,16 @@ export default function OnyxOpsElite() {
         
         const { error } = await supabase.from('partners').insert(payload);
         
-        if(error) console.warn("Mode Démo (BDD offline)", error.message);
+        if(error) {
+           console.error("ERREUR SUPABASE PARTNERS :", error.message);
+        }
         
-        saveLead({ source: 'Formulaire Ambassadeur', intent: 'Candidature Partenaire', contact: partnerForm.contact, full_name: partnerForm.full_name });
+        await saveLead({ source: 'Formulaire Ambassadeur', intent: 'Candidature Partenaire', contact: partnerForm.contact, full_name: partnerForm.full_name });
         
         setPartnerStep('success');
         setTimeout(() => setPartnerStep('dashboard'), 4000);
      } catch(e) {
+        console.error("ERREUR CATCH PARTNERS :", e);
         setPartnerStep('success');
         setTimeout(() => setPartnerStep('dashboard'), 4000);
      }
@@ -378,8 +433,8 @@ export default function OnyxOpsElite() {
     <div className={`${inter.className} min-h-screen bg-white text-black overflow-x-hidden pt-20 relative`}>
       <div className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none bg-zinc-50" style={{ backgroundImage: `url('https://i.ibb.co/chCcXT7p/back-site.png')`, backgroundRepeat: 'repeat', backgroundSize: '400px' }} />
 
-      {/* MODULE DE NOTIFICATIONS FLOTTANT (ACHATS / SAAS) */}
-      <div className={`fixed bottom-8 left-8 z-[100] transition-all duration-500 transform ${showNotification ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+      {/* MODULE DE NOTIFICATIONS FLOTTANT (ACHATS / SAAS) - Décalé sur mobile (bottom-28) */}
+      <div className={`fixed bottom-28 md:bottom-8 left-6 z-[100] transition-all duration-500 transform ${showNotification ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
          <div className="bg-white p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-center gap-4 max-w-[320px] cursor-pointer hover:scale-105 transition" onClick={() => navigateTo('home', 'tarifs')}>
             <div className="bg-black text-[#39FF14] p-3 rounded-xl flex-shrink-0">
                {React.createElement(RECENT_NOTIFICATIONS[notificationIndex].icon, { size: 24 })}
@@ -550,7 +605,7 @@ export default function OnyxOpsElite() {
                 {SOLUTIONS.map((s, i) => {
                   const Icon = s.icon;
                   return (
-                    <div key={i} onClick={() => { setSelectedSaaS(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} className="group relative overflow-hidden bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-[#39FF14]/50 hover:shadow-xl transition-all cursor-pointer">
+                    <div key={i} onClick={() => { setShowSaasChoice(s); setLeadData(prev => ({...prev, saas: s.id})); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} className="group relative overflow-hidden bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-[#39FF14]/50 hover:shadow-xl transition-all cursor-pointer">
                       <div className="absolute right-0 top-0 w-28 h-28 opacity-[0.05] pointer-events-none"><Icon className="w-full h-full text-black" /></div>
                       <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6"><Icon className="w-6 h-6" /></div>
                       <h3 className={`${spaceGrotesk.className} text-xl font-black mb-4 italic uppercase flex justify-between items-center`}>
@@ -613,7 +668,6 @@ export default function OnyxOpsElite() {
                         <button onClick={() => handleWaClick("Achat Tarif", `Bonjour, je veux COMMENCER l'offre ${pack.label} à ${pack.price}F.`)} className={`w-full block text-center py-4 rounded-2xl font-black text-sm uppercase ${pack.id === 'trio' ? 'bg-[#39FF14] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#39FF14]'}`}>
                           Commencer
                         </button>
-                        {/* BOUTON EST CE FAIT POUR MOI RESTAURÉ */}
                         <button onClick={() => document.getElementById('quiz-section')?.scrollIntoView({behavior: 'smooth'})} className="text-[10px] font-black uppercase tracking-widest underline text-zinc-500 hover:text-white mt-6 text-center block w-full transition">
                            Est-ce fait pour moi ?
                         </button>
@@ -864,7 +918,7 @@ export default function OnyxOpsElite() {
                      <LogIn size={16}/> Ouvrir
                    </button>
                 ) : (
-                   <button onClick={() => handleWaClick("Création Compte Hub", `Bonjour, je souhaite activer mon instance gratuite pour ${ECOSYSTEM_SAAS.find(s=>s.id === authSelectedSaas)?.name}.`)} className="w-full bg-black text-white py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:bg-[#39FF14] hover:text-black transition flex justify-center items-center gap-2">
+                   <button onClick={() => { setShowAuthModal(false); setLeadData(prev => ({ ...prev, saas: authSelectedSaas })); setShowOnboarding(true); }} className="w-full bg-black text-white py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:bg-[#39FF14] hover:text-black transition flex justify-center items-center gap-2">
                      <UserPlus size={16}/> Activer Essai Gratuit
                    </button>
                 )}
@@ -873,44 +927,132 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {selectedSaaS && (() => {
-          const SaasIcon = selectedSaaS.icon;
+        {/* --- NOUVELLE MODALE : CHOIX SAAS (Créer compte ou Contacter) --- */}
+        {showSaasChoice && (() => {
+          const SaasIcon = showSaasChoice.icon || Star;
           return (
-            <div id="modal-overlay" onClick={handleOutsideClick(setSelectedSaaS)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-              <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in">
-                <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition" onClick={() => setSelectedSaaS(null)}><X size={20}/></button>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="bg-black text-[#39FF14] p-3 rounded-2xl"><SaasIcon size={24} /></div>
-                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase italic tracking-tighter`}>{selectedSaaS.id}</h3>
+            <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasChoice)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
+              <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14]">
+                <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition" onClick={() => setShowSaasChoice(null)}><X size={20}/></button>
+                <div className="bg-black text-[#39FF14] w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <SaasIcon size={40} />
                 </div>
-                <div className="space-y-6">
-                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Quelle est votre activité ?</p>
-                  <div className="grid grid-cols-1 gap-3">
-                    {["Boutique / Prêt-à-porter", "Restaurant / Fast-Food", "E-commerce"].map((metier) => (
-                      <button key={metier} onClick={() => { setSaasMetier(metier); saveLead({ source: 'Site Web', intent: `Choix Métier SaaS: ${selectedSaaS.id} | ${metier}` }); }} className={`text-left p-4 rounded-2xl text-xs font-black uppercase transition-all border-2 ${saasMetier === metier ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 border-transparent hover:border-zinc-200'}`}>
-                        {metier}
-                      </button>
-                    ))}
-                  </div>
-                  {saasMetier && (
-                    <div className="pt-6 animate-in slide-in-from-bottom-4 space-y-4">
-                      <div className="bg-zinc-50 p-5 rounded-[2rem] border-2 border-zinc-200 hover:border-black transition">
-                        <button onClick={() => handleWaClick("Achat Individuel", `Bonjour, activité: ${saasMetier}. Je veux l'outil ${selectedSaaS.id}.`)} className="w-full bg-black text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-[#39FF14] hover:text-black transition">
-                          Acheter {selectedSaaS.id}
-                        </button>
-                      </div>
-                      <div className="bg-[#39FF14]/10 p-6 rounded-[2rem] border-2 border-[#39FF14] relative overflow-hidden">
-                        <button onClick={() => handleWaClick("Achat Upsell", `Bonjour, je suis en activité ${saasMetier}. Je veux passer au ${selectedSaaS.upsellName}.`)} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition">
-                          Passer au {selectedSaaS.upsellName}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{showSaasChoice.id}</h2>
+                <p className="text-sm font-bold text-zinc-500 mb-8">{showSaasChoice.solution}</p>
+
+                <div className="space-y-4">
+                   <button onClick={() => { setShowSaasChoice(null); setShowOnboarding(true); }} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-xl hover:scale-105 transition flex items-center justify-center gap-2">
+                      Créer mon compte gratuitement
+                   </button>
+                   <button onClick={() => { setShowSaasChoice(null); handleWaClick("Contact WhatsApp", `Bonjour, j'aimerais qu'on me crée un accès pour ${showSaasChoice.id}.`); }} className="w-full bg-zinc-100 text-black border border-zinc-200 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex items-center justify-center gap-2">
+                      Nous contacter sur WhatsApp
+                   </button>
                 </div>
               </div>
             </div>
           );
         })()}
+
+        {/* --- NOUVELLE MODALE : ONBOARDING CAPTURE LEAD (MAIMOUNA) --- */}
+        {showOnboarding && (
+          <div id="modal-overlay" onClick={handleOutsideClick(setShowOnboarding)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in overflow-y-auto">
+            <div className="bg-white rounded-[3rem] w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(57,255,20,0.15)] animate-in zoom-in min-h-[500px]">
+              <button onClick={() => setShowOnboarding(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
+
+              {/* Colonne Gauche : Image Conseillère (250x350 simulé via flex/cover) */}
+              <div className="w-full md:w-2/5 bg-zinc-900 relative hidden md:block">
+                 <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=600&h=800&fit=crop" alt="Maïmouna" className="w-full h-full object-cover opacity-80" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent flex flex-col justify-end p-8">
+                    <span className="bg-[#39FF14] text-black text-[10px] font-black uppercase px-3 py-1 rounded-full w-max mb-2">Conseillère Experte</span>
+                    <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase text-white mb-2`}>Maïmouna</h3>
+                    <p className="text-zinc-300 text-sm font-medium">"Je vais vous aider à configurer votre espace pour maximiser vos ventes."</p>
+                 </div>
+              </div>
+
+              {/* Colonne Droite : Formulaire */}
+              <div className="flex-1 p-8 sm:p-12 flex flex-col justify-center">
+                 {onboardingStep === 1 && (
+                   <div className="space-y-6 animate-in slide-in-from-right-8">
+                     <div className="mb-8">
+                        <span className="text-[#39FF14] font-black text-xs uppercase tracking-widest bg-black px-3 py-1 rounded-lg">Étape 1/2</span>
+                        <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mt-4`}>Quelle est votre <span className="text-[#39FF14] bg-black px-2 py-0.5 rounded-lg">activité</span> ?</h2>
+                     </div>
+
+                     <div className="space-y-3">
+                       {ONBOARDING_CATEGORIES.map(cat => (
+                         <button
+                           key={cat}
+                           onClick={() => { setLeadData({...leadData, category: cat}); if(cat !== 'Autre') setOnboardingStep(2); }}
+                           className={`w-full text-left p-4 rounded-2xl border-2 font-bold text-sm transition-all ${leadData.category === cat ? 'border-black bg-black text-[#39FF14]' : 'border-zinc-200 hover:border-black bg-zinc-50 text-zinc-700'}`}
+                         >
+                           {cat}
+                         </button>
+                       ))}
+                     </div>
+
+                     {leadData.category === 'Autre' && (
+                        <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                           <input
+                             type="text"
+                             placeholder="Ex: Agence immobilière, VTC..."
+                             value={leadData.customCategory}
+                             onChange={e => setLeadData({...leadData, customCategory: e.target.value})}
+                             className="w-full p-4 bg-zinc-50 border-2 border-black rounded-2xl font-bold outline-none mb-4"
+                           />
+                           <button disabled={!leadData.customCategory} onClick={() => setOnboardingStep(2)} className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition disabled:opacity-50">Continuer <ArrowRight size={14} className="inline ml-1"/></button>
+                        </div>
+                     )}
+                   </div>
+                 )}
+
+                 {onboardingStep === 2 && (
+                   <form onSubmit={submitLeadForm} className="space-y-6 animate-in slide-in-from-right-8">
+                     <div className="mb-8">
+                        <span className="text-[#39FF14] font-black text-xs uppercase tracking-widest bg-black px-3 py-1 rounded-lg">Étape 2/2</span>
+                        <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mt-4`}>Création de votre <span className="text-[#39FF14] bg-black px-2 py-0.5 rounded-lg">compte</span></h2>
+                     </div>
+
+                     <div className="space-y-4">
+                       <div>
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Nom ou Nom de la structure</label>
+                         <input type="text" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="Ex: Boutique Fatou" />
+                       </div>
+                       <div>
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Numéro WhatsApp</label>
+                         <input type="tel" required value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="+221 77 000 00 00" />
+                       </div>
+                     </div>
+
+                     <div className="flex gap-4 pt-4">
+                       <button type="button" onClick={() => setOnboardingStep(1)} className="bg-zinc-100 text-black px-6 py-4 rounded-2xl font-black text-xs uppercase hover:bg-zinc-200 transition">Retour</button>
+                       <button type="submit" className="flex-1 bg-black text-[#39FF14] py-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex items-center justify-center gap-2">
+                         <CheckCircle size={16}/> Terminer
+                       </button>
+                     </div>
+                   </form>
+                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- MODALE : EXIT INTENT POPUP --- */}
+        {showExitIntent && (
+          <div id="modal-overlay" onClick={handleOutsideClick(setShowExitIntent)} className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white p-12 rounded-[4rem] max-w-lg w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in text-center border-t-8 border-black">
+              <button onClick={() => setShowExitIntent(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
+              <div className="w-20 h-20 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-bounce">
+                 <Zap className="text-black w-10 h-10" />
+              </div>
+              <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Vous partez déjà ?</h2>
+              <p className="text-zinc-600 font-medium mb-8 text-sm">Ne passez pas à côté de l'automatisation de vos ventes. Récupérez votre diagnostic WhatsApp gratuit 100% personnalisé.</p>
+              <button onClick={() => { setShowExitIntent(false); setLeadData(prev => ({ ...prev, saas: 'Diagnostic' })); setShowOnboarding(true); }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition">
+                Obtenir mon diagnostic gratuit
+              </button>
+              <button onClick={() => setShowExitIntent(false)} className="mt-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-black transition">Non merci, je préfère tout faire manuellement</button>
+            </div>
+          </div>
+        )}
 
         {/* --- BOT FLOTTANT --- */}
         <div className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
