@@ -10,7 +10,7 @@ import {
   Smartphone, Truck, Box, Utensils, Calendar, 
   ArrowRight, Users, Target, 
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
-  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight
+  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search
 } from "lucide-react";
 
 type PlanKey = "solo" | "trio" | "full" | "premium";
@@ -26,6 +26,9 @@ const ECOSYSTEM_SAAS = [
   { id: "menu", name: "Onyx Menu", type: "Menu QR & Commandes" },
   { id: "booking", name: "Onyx Booking", type: "Réservations & Acomptes" },
   { id: "staff", name: "Onyx Staff", type: "Pointage & Paie" },
+  { id: "formation", name: "Onyx Formation", type: "Marketing & Ads" },
+  { id: "fit", name: "Onyx Fit", type: "Salles de Sport" },
+  { id: "tontine", name: "Onyx Tontine", type: "Finance & Tontine" },
   { id: "trio", name: "Pack Trio", type: "Vente + Stock + Tiak" },
   { id: "full", name: "Pack Full", type: "Ecosystème Complet" },
 ];
@@ -46,16 +49,19 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
 };
 
 const SOLUTIONS = [
-  { id: "Onyx Vente", icon: Smartphone, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "trio", upsellName: "Pack Trio" },
-  { id: "Onyx Tiak", icon: Truck, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "trio", upsellName: "Pack Trio" },
-  { id: "Onyx Stock", icon: Box, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "trio", upsellName: "Pack Trio" },
-  { id: "Onyx Menu", icon: Utensils, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "full", upsellName: "Pack Full" },
-  { id: "Onyx Booking", icon: Calendar, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "full", upsellName: "Pack Full" },
-  { id: "Onyx Staff", icon: Users, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Vente", icon: Smartphone, category: "Vente & Boutique", price: 8900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "formation", upsellName: "Pack Trio + Formation Marketing" },
+  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 8900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "trio", upsellName: "Pack Trio" },
+  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 8900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "trio", upsellName: "Pack Trio" },
+  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 8900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 8900, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 8900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 8900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "premium", upsellName: "Onyx Premium" },
+  { id: "Onyx Fit", icon: Flame, category: "Services", price: 6000, pain: "Abonnements non payés et gestion manuelle des membres.", solution: "Suivi des salles de sport, relances auto et pointage QR.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6000, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "full", upsellName: "Pack Full" },
 ];
 
 const PACKS: Array<{ id: PlanKey; name: string; price: number; label: string; rating: string; avis: number }> = [
-  { id: "solo", name: "Solo", price: 7500, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
+  { id: "solo", name: "Solo", price: 8900, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
   { id: "trio", name: "Pack Trio", price: 17500, label: "Pack Trio", rating: "5.0/5", avis: 89 },
   { id: "full", name: "Pack Full", price: 30000, label: "Pack Full", rating: "4.9/5", avis: 215 },
   { id: "premium", name: "Premium", price: 75000, label: "Onyx Premium", rating: "5.0/5", avis: 34 },
@@ -101,11 +107,20 @@ export default function OnyxOpsElite() {
   const [activeView, setActiveView] = useState<'home' | 'about' | 'blog' | 'dashboard'>('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // MODALES
+  // MODALES & FILTRES
   const [showSaasChoice, setShowSaasChoice] = useState<any>(null);
+  const [saasFilter, setSaasFilter] = useState("Tout");
+  const saasCategories = ["Tout", "Vente & Boutique", "Restauration", "Logistique", "Gestion & RH", "Services", "Finance", "Marketing"];
+  const filteredSolutions = saasFilter === "Tout" ? SOLUTIONS : SOLUTIONS.filter(s => s.category.includes(saasFilter));
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authSelectedSaas, setAuthSelectedSaas] = useState("vente");
+
+  // QUIZ INTERACTIF
+  const [quizAnswers, setQuizAnswers] = useState({ size: '', sector: '', customSector: '', marketing: '' });
+  const [quizStep, setQuizStep] = useState(0);
+  const [quizResult, setQuizResult] = useState<{packId: string, message: string} | null>(null);
 
   // ONBOARDING (Maimouna Modal & Exit Intent)
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -244,11 +259,50 @@ export default function OnyxOpsElite() {
     window.open(getWaLink(msg), "_blank");
   };
 
+  // LOGIQUE DU QUIZ INTERACTIF
+  const handleQuizSubmit = (field: string, value: string) => {
+    const newAns = { ...quizAnswers, [field]: value };
+    setQuizAnswers(newAns);
+
+    if (field === 'size') {
+        setQuizStep(1);
+    } else if (field === 'sector') {
+        if (value === 'Autre') return; 
+        setQuizStep(2);
+    } else if (field === 'customSector') {
+        setQuizStep(2);
+    } else if (field === 'marketing') {
+        let packId = 'solo';
+        let msg = '';
+        
+        if (value === 'Oui') { 
+           packId = 'premium'; 
+           msg = "En fonction de vos réponses (Besoin d'acquisition Client), Onyx Premium avec notre Studio IA et formation Marketing est la clé absolue de votre croissance (+100% de prospects visés)."; 
+        }
+        else if (newAns.sector === 'Restauration') { 
+           packId = 'full'; 
+           msg = "Pour un établissement de restauration, l'automatisation totale (Menu QR, Commandes, Caisses) est vitale. Le Pack Full vous épargnera 100% des erreurs de caisse."; 
+        }
+        else if (newAns.size !== 'Petit commerçant (1-3 employés)') { 
+           packId = 'full'; 
+           msg = "En tant que PME structurée, la centralisation RH, Paie et Logistique est obligatoire pour scaler sans stress de trésorerie."; 
+        }
+        else { 
+           packId = 'trio'; 
+           msg = "Pour démarrer efficacement, contrôler vos ventes, votre stock et vos livreurs est la priorité absolue. Le Pack Trio réduit vos ruptures et pertes à 0."; 
+        }
+
+        setQuizResult({ packId, message: msg });
+        setQuizStep(3);
+        setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 500);
+    }
+  };
+
   // SOUMISSION DU FORMULAIRE ONBOARDING (MAIMOUNA)
   const submitLeadForm = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${leadData.phone}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Full'}\n\n_Le client souhaite créer son compte gratuitement._`;
+    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${leadData.phone}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Full'}\n\n_Le client souhaite créer son compte._`;
 
     await saveLead({
        source: 'Onboarding Site',
@@ -262,7 +316,7 @@ export default function OnyxOpsElite() {
     setShowSaasChoice(null);
     setShowExitIntent(false);
 
-    alert(`Merci ${leadData.name} ! Vos informations sont enregistrées.\nVous allez être redirigé vers notre équipe WhatsApp pour finaliser l'activation de votre espace.`);
+    alert(`Merci ${leadData.name} ! Vos informations sont enregistrées.\nVous allez être redirigé vers notre équipe WhatsApp pour l'activation immédiate de votre espace.`);
     window.open(getWaLink(msg), "_blank");
   };
 
@@ -408,8 +462,8 @@ export default function OnyxOpsElite() {
      }
   };
 
-  const commissionM1 = Math.round(packCounts.solo * 7500 * 0.30 + packCounts.trio * 17500 * 0.30 + packCounts.full * 30000 * 0.30 + packCounts.premium * 75000 * 0.30);
-  const recurrentPerMonth = Math.round(packCounts.solo * 7500 * 0.10 + packCounts.trio * 17500 * 0.10 + packCounts.full * 30000 * 0.10 + packCounts.premium * 75000 * 0.10);
+  const commissionM1 = Math.round(packCounts.solo * 8900 * 0.30 + packCounts.trio * 17500 * 0.30 + packCounts.full * 30000 * 0.30 + packCounts.premium * 75000 * 0.30);
+  const recurrentPerMonth = Math.round(packCounts.solo * 8900 * 0.10 + packCounts.trio * 17500 * 0.10 + packCounts.full * 30000 * 0.10 + packCounts.premium * 75000 * 0.10);
 
   const navigateTo = (view: any, scrollId?: string) => {
     setIsMobileMenuOpen(false); 
@@ -433,7 +487,7 @@ export default function OnyxOpsElite() {
     <div className={`${inter.className} min-h-screen bg-white text-black overflow-x-hidden pt-20 relative`}>
       <div className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none bg-zinc-50" style={{ backgroundImage: `url('https://i.ibb.co/chCcXT7p/back-site.png')`, backgroundRepeat: 'repeat', backgroundSize: '400px' }} />
 
-      {/* MODULE DE NOTIFICATIONS FLOTTANT (ACHATS / SAAS) - Décalé sur mobile (bottom-28) */}
+      {/* MODULE DE NOTIFICATIONS FLOTTANT (ACHATS / SAAS) */}
       <div className={`fixed bottom-28 md:bottom-8 left-6 z-[100] transition-all duration-500 transform ${showNotification ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
          <div className="bg-white p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-center gap-4 max-w-[320px] cursor-pointer hover:scale-105 transition" onClick={() => navigateTo('home', 'tarifs')}>
             <div className="bg-black text-[#39FF14] p-3 rounded-xl flex-shrink-0">
@@ -528,20 +582,19 @@ export default function OnyxOpsElite() {
               </div>
             </header>
 
-            {/* --- SECTION FINI LE BRICOLAGE (AVEC VIDEOS YOUTUBE NÉON & AUTOPLAY) --- */}
+            {/* --- SECTION FINI LE BRICOLAGE --- */}
             <section className="py-16 px-6 max-w-6xl mx-auto mb-10">
               <div className="text-center mb-12">
                 <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>Fini le Bricolage. <span className="text-[#39FF14]">Passez au niveau supérieur.</span></h2>
               </div>
               
               <div className="grid md:grid-cols-2 gap-8 items-center h-full">
-                
                 {/* CARTE : AVANT ONYX (CHAOS) */}
                 <div className="bg-red-50/50 border border-red-100 rounded-[3rem] p-8 h-auto min-h-[500px] flex flex-col relative overflow-hidden transition-all duration-500">
                   <div className="absolute top-0 right-0 bg-red-500 text-white px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avant Onyx</div>
                   <h3 className="font-black text-red-800 text-xl mb-6 z-10 relative">Le Chaos sur WhatsApp</h3>
                   
-                  {/* VIDEO YOUTUBE AVANT (NÉON ROUGE - AUTOPLAY + SANS CONTROLES) */}
+                  {/* VIDEO YOUTUBE AVANT */}
                   <div className="w-full aspect-video mb-6 relative overflow-hidden rounded-2xl border-2 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] z-10 bg-black">
                      <iframe 
                        src="https://www.youtube.com/embed/h-vsWYxskvU?autoplay=1&mute=1&loop=1&playlist=h-vsWYxskvU&controls=0&rel=0&modestbranding=1&playsinline=1" 
@@ -569,7 +622,7 @@ export default function OnyxOpsElite() {
                   <div className="absolute top-0 right-0 bg-[#39FF14] text-black px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avec OnyxOps</div>
                   <h3 className="font-black text-white text-xl mb-6 flex items-center gap-2 z-10 relative"><CheckCircle className="text-[#39FF14] w-6 h-6"/> Automatisation Parfaite</h3>
                   
-                  {/* VIDEO YOUTUBE APRES (NÉON VERT - AUTOPLAY + SANS CONTROLES) */}
+                  {/* VIDEO YOUTUBE APRES */}
                   <div className="w-full aspect-video mb-6 relative overflow-hidden rounded-2xl border-2 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.5)] z-10 bg-black">
                      <iframe 
                        src="https://www.youtube.com/embed/acFsObjm2E0?autoplay=1&mute=1&loop=1&playlist=acFsObjm2E0&controls=0&rel=0&modestbranding=1&playsinline=1" 
@@ -599,20 +652,38 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
+            {/* --- SECTION : NOS SOLUTIONS RADICALES --- */}
             <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto border-t border-zinc-100">
-              <h2 className={`${spaceGrotesk.className} text-3xl font-black mb-12 text-center uppercase tracking-tighter`}>NOS 6 SOLUTIONS <span className="text-[#39FF14]">RADICALES</span></h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {SOLUTIONS.map((s, i) => {
+              <div className="text-center mb-10">
+                 <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter mb-4`}>NOS <span className="text-[#39FF14]">SOLUTIONS RADICALES</span></h2>
+                 <p className="text-zinc-600 font-bold max-w-2xl mx-auto mb-8">Découvrez nos outils sur-mesure pour automatiser chaque aspect de votre business. Filtrez par catégorie pour trouver votre solution idéale.</p>
+                 
+                 {/* FILTRES PAR ACTIVITÉ */}
+                 <div className="flex flex-wrap justify-center gap-3">
+                    {saasCategories.map(cat => (
+                       <button 
+                         key={cat} 
+                         onClick={() => setSaasFilter(cat)} 
+                         className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm border ${saasFilter === cat ? 'bg-black text-[#39FF14] border-black scale-105' : 'bg-white text-zinc-600 border-zinc-200 hover:border-black hover:text-black'}`}
+                       >
+                         {cat}
+                       </button>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
+                {filteredSolutions.map((s, i) => {
                   const Icon = s.icon;
                   return (
-                    <div key={i} onClick={() => { setShowSaasChoice(s); setLeadData(prev => ({...prev, saas: s.id})); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} className="group relative overflow-hidden bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-[#39FF14]/50 hover:shadow-xl transition-all cursor-pointer">
+                    <div key={i} onClick={() => { setShowSaasChoice(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} className="group relative overflow-hidden bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-[#39FF14]/50 hover:shadow-xl transition-all cursor-pointer flex flex-col h-full">
                       <div className="absolute right-0 top-0 w-28 h-28 opacity-[0.05] pointer-events-none"><Icon className="w-full h-full text-black" /></div>
                       <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6"><Icon className="w-6 h-6" /></div>
                       <h3 className={`${spaceGrotesk.className} text-xl font-black mb-4 italic uppercase flex justify-between items-center`}>
                         {s.id} 
                         <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic group-hover:bg-[#39FF14] transition">+ Infos</span>
                       </h3>
-                      <p className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-2 rounded-xl mb-4 line-clamp-2 border border-red-100">{s.pain}</p>
+                      <p className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-2 rounded-xl mb-4 line-clamp-2 border border-red-100 flex-1">{s.pain}</p>
                       <div className="bg-[#39FF14]/10 p-4 rounded-2xl border-l-4 border-[#39FF14]">
                         <p className="text-[10px] font-black text-[#39FF14] uppercase mb-1">Solution Onyx</p>
                         <p className="text-xs font-bold text-black">{s.solution}</p>
@@ -623,53 +694,114 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
-            {/* SECTION CONSEILLERE & PROFIL RESTAURÉE (Est-ce fait pour moi ?) */}
+            {/* --- SECTION QUIZ INTERACTIF --- */}
             <section id="quiz-section" className="py-24 bg-zinc-50 border-t border-zinc-200 mt-10">
                <div className="max-w-4xl mx-auto px-6 text-center">
-                  <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase mb-6`}>Vous ne savez pas par où commencer ?</h2>
-                  <p className="text-zinc-600 font-bold text-lg mb-12">Sélectionnez votre profil, notre conseillère Fanta vous guidera vers la meilleure solution sur-mesure.</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                     <button onClick={() => { setIsBotOpen(true); processBotReply("Boutique / Vente en ligne"); }} className="bg-white border-2 border-zinc-200 p-8 rounded-[2rem] hover:border-black hover:shadow-xl transition flex flex-col items-center gap-4 group">
-                        <div className="bg-zinc-100 p-6 rounded-full group-hover:bg-[#39FF14]/20 transition"><Smartphone size={32} className="text-black"/></div>
-                        <span className="font-black uppercase tracking-widest text-sm">Boutique & Retail</span>
-                     </button>
-                     <button onClick={() => { setIsBotOpen(true); processBotReply("Restaurant / Fast Food"); }} className="bg-white border-2 border-zinc-200 p-8 rounded-[2rem] hover:border-black hover:shadow-xl transition flex flex-col items-center gap-4 group">
-                        <div className="bg-zinc-100 p-6 rounded-full group-hover:bg-[#39FF14]/20 transition"><Utensils size={32} className="text-black"/></div>
-                        <span className="font-black uppercase tracking-widest text-sm">Restauration</span>
-                     </button>
-                     <button onClick={() => { setIsBotOpen(true); processBotReply("Prestataire de services"); }} className="bg-white border-2 border-zinc-200 p-8 rounded-[2rem] hover:border-black hover:shadow-xl transition flex flex-col items-center gap-4 group">
-                        <div className="bg-zinc-100 p-6 rounded-full group-hover:bg-[#39FF14]/20 transition"><Users size={32} className="text-black"/></div>
-                        <span className="font-black uppercase tracking-widest text-sm">Services & Agences</span>
-                     </button>
+                  <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase mb-4`}>Vous ne savez pas par où commencer ?</h2>
+                  <p className="text-zinc-600 font-bold text-lg mb-12">Laissez-nous vous guider vers la configuration parfaite en fonction de vos besoins réels.</p>
+                  
+                  <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-zinc-200 max-w-2xl mx-auto relative overflow-hidden transition-all duration-300">
+                     {quizStep === 0 && (
+                        <div className="animate-in slide-in-from-right-8">
+                           <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 1/3</span>
+                           <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Quelle est la taille de votre entreprise ?</h3>
+                           <div className="space-y-3">
+                              {["Petit commerçant (1-3 employés)", "Moyenne PME (4-10 employés)", "Grosse PME/Entreprise (+10 employés)"].map(size => (
+                                 <button key={size} onClick={() => handleQuizSubmit('size', size)} className="w-full bg-zinc-50 border-2 border-zinc-200 text-black p-4 rounded-2xl font-bold text-sm hover:border-black hover:bg-black hover:text-[#39FF14] transition text-left">
+                                    {size}
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                     )}
+
+                     {quizStep === 1 && (
+                        <div className="animate-in slide-in-from-right-8">
+                           <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 2/3</span>
+                           <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Quel est votre secteur d'activité ?</h3>
+                           <div className="space-y-3">
+                              {["Boutique/Retail", "Restauration", "Prestation de services", "Autre"].map(sector => (
+                                 <button key={sector} onClick={() => handleQuizSubmit('sector', sector)} className={`w-full border-2 text-left p-4 rounded-2xl font-bold text-sm transition ${quizAnswers.sector === sector ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                                    {sector}
+                                 </button>
+                              ))}
+                           </div>
+                           {quizAnswers.sector === 'Autre' && (
+                              <div className="mt-4 flex gap-2 animate-in fade-in">
+                                 <input type="text" placeholder="Précisez votre activité..." value={quizAnswers.customSector} onChange={e => setQuizAnswers({...quizAnswers, customSector: e.target.value})} className="flex-1 p-4 bg-zinc-50 border-2 border-black rounded-2xl font-bold outline-none text-sm" />
+                                 <button disabled={!quizAnswers.customSector} onClick={() => handleQuizSubmit('customSector', quizAnswers.customSector)} className="bg-[#39FF14] text-black px-6 rounded-2xl font-black uppercase text-xs hover:scale-105 transition disabled:opacity-50"><ArrowRight size={20}/></button>
+                              </div>
+                           )}
+                        </div>
+                     )}
+
+                     {quizStep === 2 && (
+                        <div className="animate-in slide-in-from-right-8">
+                           <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 3/3</span>
+                           <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Avez-vous besoin de formations en marketing digital, pub payante ou design ?</h3>
+                           <div className="grid grid-cols-2 gap-4">
+                              <button onClick={() => handleQuizSubmit('marketing', 'Oui')} className="bg-zinc-50 border-2 border-zinc-200 text-black p-6 rounded-2xl font-black uppercase text-lg hover:border-black hover:bg-black hover:text-[#39FF14] transition">Oui</button>
+                              <button onClick={() => handleQuizSubmit('marketing', 'Non')} className="bg-zinc-50 border-2 border-zinc-200 text-black p-6 rounded-2xl font-black uppercase text-lg hover:border-black hover:bg-black hover:text-[#39FF14] transition">Non</button>
+                           </div>
+                        </div>
+                     )}
+
+                     {quizStep === 3 && (
+                        <div className="animate-in zoom-in py-6">
+                           <div className="w-20 h-20 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-bounce">
+                              <CheckCircle className="text-black w-10 h-10" />
+                           </div>
+                           <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Analyse Terminée !</h3>
+                           <p className="text-zinc-600 font-bold mb-6">Nous avons généré votre recommandation sur-mesure.</p>
+                           <p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-4 py-2 rounded-xl inline-block animate-pulse">Redirection vers l'offre...</p>
+                        </div>
+                     )}
                   </div>
                </div>
             </section>
 
+            {/* --- SECTION TARIFS --- */}
             <section id="tarifs" className="py-20 bg-black text-white rounded-[4rem] mx-4 px-6 relative overflow-hidden">
               <div className="max-w-7xl mx-auto relative z-10">
                 <div className="text-center mb-10">
                   <h2 className={`${spaceGrotesk.className} text-4xl font-black mb-4 uppercase`}>OFFRES <span className="text-[#39FF14]">NO-LIMIT.</span></h2>
                   <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché.</p>
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {PACKS.map((pack) => {
                     const planDetails = PLAN_DETAILS[pack.id];
+                    const isRecommended = quizResult && quizResult.packId === pack.id;
+
                     return (
-                      <div key={pack.id} className={`${pack.id === 'trio' ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] scale-105 shadow-2xl' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition flex flex-col`}>
-                        <p className={`text-[10px] font-black tracking-[0.3em] ${pack.id === 'trio' ? 'text-[#39FF14]' : 'text-zinc-500'} mb-1 uppercase`}>{pack.label}</p>
+                      <div key={pack.id} className={`${pack.id === 'trio' || isRecommended ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] scale-105 shadow-[0_0_40px_rgba(57,255,20,0.3)] z-20' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition flex flex-col relative`}>
+                        
+                        {/* BADGE NÉON RECOMMANDÉ */}
+                        {isRecommended && (
+                           <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-1">
+                              <Sparkles size={12}/> Choix Idéal
+                           </div>
+                        )}
+
+                        <p className={`text-[10px] font-black tracking-[0.3em] ${pack.id === 'trio' || isRecommended ? 'text-[#39FF14]' : 'text-zinc-500'} mb-1 uppercase`}>{pack.label}</p>
                         <div className="flex items-center gap-1 mb-4">
                           {[...Array(5)].map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < 4 || pack.rating.startsWith('5') ? 'text-yellow-400 fill-yellow-400' : 'text-yellow-400/30 fill-yellow-400/30'}`} />))}
                           <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis})</span>
                         </div>
                         <div className={`text-3xl font-bold mb-6 italic ${pack.id === 'premium' ? 'text-red-500' : 'text-white'}`}>{pack.price.toLocaleString()}F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
-                        <ul className={`text-xs space-y-3 mb-8 flex-1 ${pack.id === 'trio' ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                        
+                        {/* TEXTE DYNAMIQUE DU QUIZ */}
+                        {isRecommended && (
+                           <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 p-4 rounded-2xl mb-6 text-xs text-[#39FF14] font-bold leading-relaxed shadow-inner">
+                              {quizResult.message}
+                           </div>
+                        )}
+
+                        <ul className={`text-xs space-y-3 mb-8 flex-1 ${pack.id === 'trio' || isRecommended ? 'text-zinc-300' : 'text-zinc-400'}`}>
                           {planDetails.benefits.map((ben, i) => <li key={i} className="flex gap-2">✔ {ben}</li>)}
                         </ul>
-                        <button onClick={() => handleWaClick("Achat Tarif", `Bonjour, je veux COMMENCER l'offre ${pack.label} à ${pack.price}F.`)} className={`w-full block text-center py-4 rounded-2xl font-black text-sm uppercase ${pack.id === 'trio' ? 'bg-[#39FF14] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#39FF14]'}`}>
+                        <button onClick={() => handleWaClick("Achat Tarif", `Bonjour, je veux COMMENCER l'offre ${pack.label} à ${pack.price}F.`)} className={`w-full block text-center py-4 rounded-2xl font-black text-sm uppercase ${pack.id === 'trio' || isRecommended ? 'bg-[#39FF14] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#39FF14]'}`}>
                           Commencer
-                        </button>
-                        <button onClick={() => document.getElementById('quiz-section')?.scrollIntoView({behavior: 'smooth'})} className="text-[10px] font-black uppercase tracking-widest underline text-zinc-500 hover:text-white mt-6 text-center block w-full transition">
-                           Est-ce fait pour moi ?
                         </button>
                       </div>
                     );
@@ -927,25 +1059,34 @@ export default function OnyxOpsElite() {
           </div>
         )}
 
-        {/* --- NOUVELLE MODALE : CHOIX SAAS (Créer compte ou Contacter) --- */}
+        {/* --- NOUVELLE MODALE : STRATÉGIE D'UPSELL --- */}
         {showSaasChoice && (() => {
           const SaasIcon = showSaasChoice.icon || Star;
           return (
             <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasChoice)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-              <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14]">
+              <div className="bg-white p-10 rounded-[3.5rem] max-w-lg w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14]">
                 <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition" onClick={() => setShowSaasChoice(null)}><X size={20}/></button>
+                
+                <span className="text-[10px] font-black uppercase tracking-widest bg-zinc-100 px-3 py-1 rounded-full text-zinc-500 mb-4 inline-block">Étape 1/2 : Sélection de l'offre</span>
+
                 <div className="bg-black text-[#39FF14] w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
                   <SaasIcon size={40} />
                 </div>
                 <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{showSaasChoice.id}</h2>
-                <p className="text-sm font-bold text-zinc-500 mb-8">{showSaasChoice.solution}</p>
+                <p className="text-sm font-bold text-zinc-500 mb-8 px-4">{showSaasChoice.solution}</p>
 
-                <div className="space-y-4">
-                   <button onClick={() => { setShowSaasChoice(null); setShowOnboarding(true); }} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-xl hover:scale-105 transition flex items-center justify-center gap-2">
-                      Créer mon compte gratuitement
+                <div className="grid md:grid-cols-2 gap-4">
+                   <button onClick={() => { setShowSaasChoice(null); setLeadData(prev => ({...prev, saas: showSaasChoice.id})); setShowOnboarding(true); }} className="w-full bg-zinc-50 text-black border-2 border-zinc-200 py-6 px-4 rounded-2xl hover:border-black transition flex flex-col items-center justify-center gap-2 group">
+                      <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Offre Basique</span>
+                      <span className="text-lg font-black">Seulement {showSaasChoice.price.toLocaleString()} F</span>
+                      <span className="text-[9px] font-black uppercase mt-2 opacity-0 group-hover:opacity-100 transition text-[#39FF14] bg-black px-3 py-1.5 rounded-full flex items-center gap-1">Sélectionner <ArrowRight size={10}/></span>
                    </button>
-                   <button onClick={() => { setShowSaasChoice(null); handleWaClick("Contact WhatsApp", `Bonjour, j'aimerais qu'on me crée un accès pour ${showSaasChoice.id}.`); }} className="w-full bg-zinc-100 text-black border border-zinc-200 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex items-center justify-center gap-2">
-                      Nous contacter sur WhatsApp
+                   
+                   <button onClick={() => { setShowSaasChoice(null); setLeadData(prev => ({...prev, saas: showSaasChoice.upsellName})); setShowOnboarding(true); }} className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-2xl shadow-xl hover:scale-105 transition flex flex-col items-center justify-center gap-2 border border-[#39FF14]/30 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 bg-[#39FF14] text-black text-[8px] px-2 py-0.5 rounded-bl-lg font-black uppercase">Recommandé</div>
+                      <span className="text-[10px] font-black uppercase text-white tracking-widest">Offre Complète</span>
+                      <span className="text-lg font-black leading-tight">Passer au <br/> {showSaasChoice.upsellName}</span>
+                      <span className="text-[9px] font-black uppercase mt-2 text-black bg-[#39FF14] px-3 py-1.5 rounded-full flex items-center gap-1">Voir l'offre spéciale <ArrowRight size={10}/></span>
                    </button>
                 </div>
               </div>
@@ -953,7 +1094,7 @@ export default function OnyxOpsElite() {
           );
         })()}
 
-        {/* --- NOUVELLE MODALE : ONBOARDING CAPTURE LEAD (MAIMOUNA) --- */}
+        {/* --- MODALE : ONBOARDING CAPTURE LEAD (MAIMOUNA) --- */}
         {showOnboarding && (
           <div id="modal-overlay" onClick={handleOutsideClick(setShowOnboarding)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in overflow-y-auto">
             <div className="bg-white rounded-[3rem] w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(57,255,20,0.15)] animate-in zoom-in min-h-[500px]">
@@ -974,7 +1115,7 @@ export default function OnyxOpsElite() {
                  {onboardingStep === 1 && (
                    <div className="space-y-6 animate-in slide-in-from-right-8">
                      <div className="mb-8">
-                        <span className="text-[#39FF14] font-black text-xs uppercase tracking-widest bg-black px-3 py-1 rounded-lg">Étape 1/2</span>
+                        <span className="text-[#39FF14] font-black text-xs uppercase tracking-widest bg-black px-3 py-1 rounded-lg">Étape Finale 1/2</span>
                         <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mt-4`}>Quelle est votre <span className="text-[#39FF14] bg-black px-2 py-0.5 rounded-lg">activité</span> ?</h2>
                      </div>
 
@@ -1008,8 +1149,8 @@ export default function OnyxOpsElite() {
                  {onboardingStep === 2 && (
                    <form onSubmit={submitLeadForm} className="space-y-6 animate-in slide-in-from-right-8">
                      <div className="mb-8">
-                        <span className="text-[#39FF14] font-black text-xs uppercase tracking-widest bg-black px-3 py-1 rounded-lg">Étape 2/2</span>
-                        <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mt-4`}>Création de votre <span className="text-[#39FF14] bg-black px-2 py-0.5 rounded-lg">compte</span></h2>
+                        <span className="text-[#39FF14] font-black text-xs uppercase tracking-widest bg-black px-3 py-1 rounded-lg">Étape Finale 2/2</span>
+                        <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mt-4`}>Activation de votre <span className="text-[#39FF14] bg-black px-2 py-0.5 rounded-lg">compte</span></h2>
                      </div>
 
                      <div className="space-y-4">
@@ -1026,7 +1167,7 @@ export default function OnyxOpsElite() {
                      <div className="flex gap-4 pt-4">
                        <button type="button" onClick={() => setOnboardingStep(1)} className="bg-zinc-100 text-black px-6 py-4 rounded-2xl font-black text-xs uppercase hover:bg-zinc-200 transition">Retour</button>
                        <button type="submit" className="flex-1 bg-black text-[#39FF14] py-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex items-center justify-center gap-2">
-                         <CheckCircle size={16}/> Terminer
+                         <CheckCircle size={16}/> Terminer & Activer
                        </button>
                      </div>
                    </form>
