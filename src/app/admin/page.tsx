@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 
 // --- CONFIGURATION SUPABASE SÉCURISÉE ---
-// Les clés sont récupérées depuis le fichier .env.local
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -55,7 +54,7 @@ export default function AdminDashboard() {
   const [adminProfile, setAdminProfile] = useState({ name: 'Administrateur', avatar: 'https://ui-avatars.com/api/?name=Admin&background=000&color=39FF14' });
   const [tempAdminProfile, setTempAdminProfile] = useState({ ...adminProfile });
 
-  // Mocks Données Principales
+  // Données
   const [contacts, setContacts] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
@@ -104,40 +103,38 @@ export default function AdminDashboard() {
     const currentDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
     setTodayStr(currentDate);
 
-    // Initialisation des données mockées (Tu pourras remplacer ceci par supabase.from('...').select('*') plus tard)
+    // Fonction pour récupérer les vraies données depuis Supabase
+    const fetchSupabaseData = async () => {
+      // 1. Clients (Contacts)
+      const { data: clientsData, error: clientsErr } = await supabase.from('clients').select('*');
+      if (clientsData && !clientsErr) setContacts(clientsData.reverse());
+
+      // 2. Leads
+      const { data: leadsData, error: leadsErr } = await supabase.from('leads').select('*');
+      if (leadsData && !leadsErr) setLeads(leadsData.reverse());
+
+      // 3. Partners
+      const { data: partnersData, error: partnersErr } = await supabase.from('partners').select('*');
+      if (partnersData && !partnersErr) setPartners(partnersData.reverse());
+
+      // 4. Articles
+      const { data: articlesData, error: articlesErr } = await supabase.from('articles').select('*');
+      if (articlesData && !articlesErr) setMarketingArticles(articlesData.reverse());
+    };
+
+    fetchSupabaseData();
+
+    // Fausses données conservées pour ce qui n'est pas encore en BDD
     setActionsIA([
        { id: 'a1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: currentDate, status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger ?' },
        { id: 'a2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: currentDate, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' },
        { id: 'a3', module: 'Marketing', title: 'Newsletter : L\'ère du Digital', desc: 'Diffusion automatique programmée pour les prospects Restauration.', date: 'Demain', status: 'En attente' }
     ]);
 
-    setContacts([
-      { id: 'c1', full_name: 'Magatte Fall', phone: '221771234567', type: 'Prospect', saas: 'Onyx Vente', status: 'En essai (J-7)', isExpiringTrial: true, isExpiringSub: false },
-      { id: 'c2', full_name: 'Boutique Fatou', phone: '221769876543', type: 'Client', saas: 'Pack Trio', status: 'Actif', isExpiringTrial: false, isExpiringSub: false },
-      { id: 'c3', full_name: 'Resto Dakar', phone: '221785554433', type: 'Client', saas: 'Onyx Menu', status: 'Expire bientôt', isExpiringTrial: false, isExpiringSub: true },
-      { id: 'c4', full_name: 'Modou S.', phone: '221774445566', type: 'Prospect', saas: 'Pack Full', status: 'Nouveau', isExpiringTrial: false, isExpiringSub: false },
-    ]);
-
-    setPartners([
-      { id: 'p1', full_name: 'Moussa D.', contact: '221770000000', activity: 'Étudiant', sales: 12, status: 'Actif', revenue: '85.000F' },
-      { id: 'p2', full_name: 'Awa C.', contact: '221789998877', activity: 'Commerçante', sales: 0, status: 'En attente', revenue: '0F' },
-      { id: 'p3', full_name: 'Cheikh N.', contact: '221761112233', activity: 'Freelance', sales: 45, status: 'Top Performer', revenue: '450.000F' },
-    ]);
-
-    setLeads([
-      { id: 'l1', full_name: 'Alioune G.', phone: '221781112233', source: 'Bot Fanta', intent: 'Pack Full', message: 'Je veux digitaliser mon resto', date: currentDate, status: 'Nouveau' },
-      { id: 'l2', full_name: 'Seydou B.', phone: '221764445566', source: 'Formulaire Site', intent: 'Onyx Menu', message: 'Quels sont vos tarifs exacts ?', date: 'Hier', status: 'Nouveau' }
-    ]);
-
     setTransactions([
       { id: 'tr1', date: currentDate, client: 'Boutique Fatou', amount: 17500, type: 'Abonnement Trio', status: 'Payé', ref: 'WAVE-10293' },
       { id: 'tr2', date: 'Hier', client: 'Resto Dakar', amount: 30000, type: 'Pack Full', status: 'En attente', ref: 'OM-99212' },
       { id: 'tr3', date: '01 Mar 2026', client: 'Cheikh N.', amount: -45000, type: 'Commission Ambassadeur', status: 'Versé', ref: 'PAY-4412' },
-    ]);
-
-    setMarketingArticles([
-       { id: 'm1', title: 'DIGITALISATION 2026 : POURQUOI DAKAR EXPLOSE', desc: 'L\'intelligence artificielle transforme le commerce...', category: 'Social Selling', cible: 'Pack Full' },
-       { id: 'm2', title: 'COMMENT LE DIGITAL TRANSFORME LES RESTAURANTS', desc: 'Réduire les pertes de 30% grâce aux menus digitaux...', category: 'Restauration', cible: 'Onyx Menu' }
     ]);
   }, []);
 
@@ -169,7 +166,7 @@ export default function AdminDashboard() {
 
   const replyToLead = (lead: any) => {
      const msg = `Bonjour ${lead.full_name}, je suis l'administrateur d'OnyxOps. J'ai bien reçu votre message : "${lead.message}". Comment puis-je vous aider ?`;
-     window.open(`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+     window.open(`https://wa.me/${lead.phone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
@@ -179,27 +176,84 @@ export default function AdminDashboard() {
      setShowRapportIA(false);
   };
 
-  const handleSaveContact = (e: React.FormEvent) => {
+  // --- SAUVEGARDE CLIENTS DANS SUPABASE ---
+  const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(editingContact?.id) setContacts((contacts || []).map(c => c.id === editingContact.id ? editingContact : c));
-    else setContacts([{ ...editingContact, id: Date.now().toString(), status: 'Nouveau' }, ...(contacts || [])]);
+    const payload = { ...editingContact };
+    const isNew = !payload.id;
+    
+    // Si c'est nouveau, on laisse Supabase générer l'ID UUID automatiquement
+    if (isNew) {
+      delete payload.id;
+      if (!payload.status) payload.status = 'Nouveau';
+    }
+
+    const { data, error } = await supabase.from('clients').upsert(payload).select().single();
+
+    if (error) {
+      console.error("Erreur Supabase:", error);
+      alert(`Erreur de sauvegarde : ${error.message}\n(Vérifie que tes colonnes Supabase correspondent bien au formulaire)`);
+      return;
+    }
+
+    if (data) {
+      if (isNew) setContacts([data, ...(contacts || [])]);
+      else setContacts((contacts || []).map(c => c.id === data.id ? data : c));
+    }
+    
     setShowContactModal(false);
   };
 
-  const approvePartner = (id: string) => setPartners((partners || []).map(p => p.id === id ? { ...p, status: 'Actif' } : p));
+  // --- APPROBATION PARTENAIRE SUPABASE ---
+  const approvePartner = async (id: string) => {
+    const { data, error } = await supabase.from('partners').update({ status: 'Actif' }).eq('id', id).select().single();
+    if (error) {
+      alert("Erreur lors de l'approbation : " + error.message);
+      return;
+    }
+    if (data) {
+      setPartners((partners || []).map(p => p.id === id ? data : p));
+    }
+  };
 
-  const handleSavePartner = () => {
+  // --- EDITION PARTENAIRE SUPABASE ---
+  const handleSavePartner = async () => {
      if(!editPartnerForm) return;
-     setPartners((partners || []).map(p => p.id === editPartnerForm.id ? editPartnerForm : p));
-     setSelectedPartner(editPartnerForm);
+     const payload = { ...editPartnerForm };
+     
+     const { data, error } = await supabase.from('partners').update(payload).eq('id', payload.id).select().single();
+     if (error) {
+       alert("Erreur de sauvegarde : " + error.message);
+       return;
+     }
+     if (data) {
+       setPartners((partners || []).map(p => p.id === data.id ? data : p));
+       setSelectedPartner(data);
+     }
      setIsEditingPartner(false);
   };
 
-  const handleConvertPartnerToClient = () => {
+  const handleConvertPartnerToClient = async () => {
      if(!selectedPartner) return;
-     const newContact = { id: Date.now().toString(), full_name: selectedPartner.full_name || "Nouveau", phone: selectedPartner.contact || "", type: 'Client', saas: 'À définir', status: 'Converti depuis Ambassadeur', isExpiringTrial: false, isExpiringSub: false };
-     setContacts([newContact, ...(contacts || [])]);
-     alert(`${selectedPartner.full_name} a été ajouté en tant que Client dans le CRM ! Son statut Ambassadeur est conservé.`);
+     // Sauvegarde dans la table clients
+     const newClientPayload = { 
+       full_name: selectedPartner.full_name || "Nouveau", 
+       phone: selectedPartner.contact || "", 
+       type: 'Client', 
+       saas: 'À définir', 
+       status: 'Converti depuis Ambassadeur'
+     };
+
+     const { data, error } = await supabase.from('clients').insert([newClientPayload]).select().single();
+     if (error) {
+       alert("Erreur lors de la conversion : " + error.message);
+       return;
+     }
+     
+     if (data) {
+       setContacts([data, ...(contacts || [])]);
+       alert(`${selectedPartner.full_name} a été ajouté en tant que Client dans le CRM ! Son statut Ambassadeur est conservé.`);
+     }
   };
 
   const scheduleMarketingDiffusion = () => {
@@ -230,7 +284,7 @@ export default function AdminDashboard() {
      const msg = `Félicitations ${targetName} ! Votre espace ${showSaasLogin.name} a été créé.\nLien : https://${showSaasLogin.id}.onyxops.com\nMot de passe : ${saasCreateForm.password}`;
      setShowSaasLogin(null);
      setSaasCreateForm({ prospectId: '', name: '', phone: '', password: '' });
-     window.open(`https://wa.me/${targetPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+     window.open(`https://wa.me/${targetPhone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const runIAArticleSuggestion = () => {
@@ -242,7 +296,7 @@ export default function AdminDashboard() {
        cible: 'Tous' 
      };
      setMarketingArticles([newArt, ...(marketingArticles || [])]);
-     alert("Un nouvel article a été généré par l'IA et ajouté à votre liste !");
+     alert("Un nouvel article a été généré par l'IA et ajouté à votre liste ! (Note: ceci est une simulation)");
   };
 
   const saveAdminProfile = () => {
@@ -929,17 +983,17 @@ export default function AdminDashboard() {
              
              {!isEditingPartner ? (
                 <>
-                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{selectedPartner.full_name}</h2>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-8 flex items-center gap-2"><span className="w-2 h-2 bg-[#39FF14] rounded-full"></span> Statut : {selectedPartner.status}</p>
+                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{selectedPartner?.full_name}</h2>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-8 flex items-center gap-2"><span className="w-2 h-2 bg-[#39FF14] rounded-full"></span> Statut : {selectedPartner?.status}</p>
                    
                    <div className="grid grid-cols-2 gap-6 mb-8">
                       <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
                         <p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Gains Générés</p>
-                        <p className={`${spaceGrotesk.className} text-3xl font-black text-[#39FF14]`}>{selectedPartner.revenue}</p>
+                        <p className={`${spaceGrotesk.className} text-3xl font-black text-[#39FF14]`}>{selectedPartner?.revenue}</p>
                       </div>
                       <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
                         <p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Ventes Réussies</p>
-                        <p className={`${spaceGrotesk.className} text-3xl font-black`}>{selectedPartner.sales}</p>
+                        <p className={`${spaceGrotesk.className} text-3xl font-black`}>{selectedPartner?.sales}</p>
                       </div>
                    </div>
                    
