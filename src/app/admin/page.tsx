@@ -7,16 +7,15 @@ import {
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
   Search, Plus, CheckCircle, Clock, AlertCircle, X, Sparkles, 
   ExternalLink, MessageSquare, LogIn, Send, Download, Edit3, UserPlus,
-  BarChart, MapPin, Calendar, Lock, ChevronDown, List, Trash2, Filter, 
-  RefreshCcw, FileText, Activity, TrendingUp, Layers, ArrowUpRight,
-  Settings, Bell, LogOut, Share2, Target, Zap
+  BarChart, MapPin, Lock, ChevronDown, Trash2, 
+  RefreshCcw, Activity, TrendingUp, Layers, ArrowUpRight,
+  Bell, LogOut, Zap
 } from "lucide-react";
 
 // --- CONFIGURATION SUPABASE SÉCURISÉE POUR LE BUILD ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
-// On n'appelle createClient que si les variables existent pour éviter l'erreur de build Vercel
 export const supabase = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
@@ -39,7 +38,6 @@ type IAAction = {
   msg?: string; 
 };
 
-// --- COMPOSANT PRINCIPAL ---
 export default function AdminDashboard() {
   const [mounted, setMounted] = useState(false);
   const [todayStr, setTodayStr] = useState('');
@@ -56,35 +54,43 @@ export default function AdminDashboard() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [showRapportIA, setShowRapportIA] = useState(false);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [showSaasLogin, setShowSaasLogin] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [showDiffusionModal, setShowDiffusionModal] = useState<any>(null);
   const [saasModalMode, setSaasModalMode] = useState<'login' | 'create'>('login');
   const [saasCreateType, setSaasCreateType] = useState<'prospect' | 'manual'>('prospect');
   const [saasCreateForm, setSaasCreateForm] = useState({ prospectId: '', name: '', phone: '', password: '' });
   
   // --- DATA STATES ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editingContact, setEditingContact] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
   const [isEditingPartner, setIsEditingPartner] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editPartnerForm, setEditPartnerForm] = useState<any>(null);
   const [selectedContactsForDiffusion, setSelectedContactsForDiffusion] = useState<string[]>([]);
 
-  // Profil Admin
   const [adminProfile, setAdminProfile] = useState({ 
     name: 'Onyx Administrator', 
     avatar: 'https://ui-avatars.com/api/?name=Admin&background=000&color=39FF14&bold=true' 
   });
   const [tempAdminProfile, setTempAdminProfile] = useState({ ...adminProfile });
 
-  // Données Supabase & Simulées
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [contacts, setContacts] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [leads, setLeads] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [partners, setPartners] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [marketingArticles, setMarketingArticles] = useState<any[]>([]);
   const [actionsIA, setActionsIA] = useState<IAAction[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [transactions, setTransactions] = useState<any[]>([]);
 
-  // --- FILTRES SPECIFIQUES ---
   const [actionTabFilter, setActionTabFilter] = useState<'All' | 'IA' | 'Marketing'>('All');
   const [actionSearchFilter, setActionSearchFilter] = useState("");
   const [crmSearch, setCrmSearch] = useState("");
@@ -95,7 +101,6 @@ export default function AdminDashboard() {
   const [financeTypeFilter, setFinanceTypeFilter] = useState("Tous");
   const [financeCardFilter, setFinanceCardFilter] = useState<string | null>(null);
 
-  // --- DASHBOARD CONSTANTS & DESIGN ---
   const [histogramData, setHistogramData] = useState([
     { day: 'Lun', ca: 150000, date: '02 Mar', active: false },
     { day: 'Mar', ca: 300000, date: '03 Mar', active: false },
@@ -119,9 +124,7 @@ export default function AdminDashboard() {
     { id: "premium", name: "Onyx Premium", desc: "IA & CRM Intégré", color: "bg-indigo-500", url: "https://premium.onyxops.com" },
   ];
 
-// --- INITIALISATION & DATA FETCHING ---
   const fetchSupabaseData = async () => {
-  // Sécurité indispensable pour le build Next.js
   if (!supabase) return;
 
     setIsRefreshing(true);
@@ -154,7 +157,6 @@ export default function AdminDashboard() {
     setTodayStr(currentDate);
     fetchSupabaseData();
 
-    // Simulation d'Actions IA dynamiques pour remplir le tableau de bord
     setActionsIA([
        { id: 'a1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: currentDate, status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger ?' },
        { id: 'a2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: currentDate, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' },
@@ -189,13 +191,13 @@ export default function AdminDashboard() {
     );
   }
 
-  // --- LOGIQUE METIER & ACTIONS ---
   const triggerFilterAnimation = (filterValue: string) => {
     setGlobalFilterDate(filterValue);
     setIsRefreshing(true);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleOutsideClick = (setter: any, secondaryAction?: () => void) => (e: any) => {
     if (e.target.id === "modal-overlay") { setter(false); if(secondaryAction) secondaryAction(); }
   };
@@ -205,6 +207,7 @@ export default function AdminDashboard() {
     if (idIA) setActionsIA(prev => prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const replyToLead = (lead: any) => {
      const msg = `Bonjour ${lead.full_name}, je suis l'administrateur d'OnyxOps. J'ai bien reçu votre demande concernant "${lead.intent}". Comment puis-je vous aider ?`;
      window.open(`https://wa.me/${lead.phone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -218,7 +221,7 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteItem = async (table: string, id: string) => {
-    if (!supabase) return; // Sécurité Build
+    if (!supabase) return; 
     if(!confirm("⚠️ Attention : Suppression irréversible. Confirmer ?")) return;
     const { error } = await supabase.from(table).delete().eq('id', id);
     if(error) alert("Erreur terminal : " + error.message);
@@ -227,7 +230,7 @@ export default function AdminDashboard() {
 
   const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) return; // Sécurité Build
+    if (!supabase) return; 
     const payload = { ...editingContact };
     const isNew = !payload.id;
     if (isNew) delete payload.id;
@@ -239,7 +242,7 @@ export default function AdminDashboard() {
   };
 
   const approvePartner = async (id: string) => {
-    if (!supabase) return; // Sécurité Build
+    if (!supabase) return; 
     const { error } = await supabase.from('partners').update({ status: 'Actif' }).eq('id', id);
     if (error) alert("Erreur terminal : " + error.message);
     else fetchSupabaseData();
@@ -265,7 +268,7 @@ export default function AdminDashboard() {
   };
 
   const handleCreateSaasAccount = async () => {
-     if (!supabase) return; // Sécurité Build
+     if (!supabase) return; 
      if (saasCreateType === 'manual' && (!saasCreateForm.name || !saasCreateForm.phone || !saasCreateForm.password)) return alert("Veuillez remplir tous les champs.");
      
      let targetPhone = saasCreateForm.phone;
@@ -277,7 +280,6 @@ export default function AdminDashboard() {
      
      const msg = `Félicitations ${targetName} ! Votre espace ${showSaasLogin.name} est actif.\nLien : https://${showSaasLogin.id}.onyxops.com\nIdentifiant : ${targetPhone}\nMot de passe : ${saasCreateForm.password}`;
      
-     // Logique d'insertion Supabase pour le nouveau client SaaS
      await supabase.from('clients').upsert({
         full_name: targetName,
         phone: targetPhone,
@@ -312,7 +314,6 @@ export default function AdminDashboard() {
       alert(`Diffusion planifiée avec succès pour ${selectedContactsForDiffusion.length} membres.`);
   };
 
-  // --- LOGIQUE DE FILTRES POUR LES VUES ---
   const filteredContacts = (contacts || []).filter(c => {
     if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
     const search = crmSearch.toLowerCase();
@@ -337,7 +338,6 @@ export default function AdminDashboard() {
       return a.title.toLowerCase().includes(search) || a.desc.toLowerCase().includes(search);
   });
 
-  // --- STRUCTURE DU DASHBOARD ---
   return (
     <div className={`flex h-screen bg-[#fafafa] ${inter.className} text-black overflow-hidden relative selection:bg-[#39FF14]/30`}>
       
@@ -455,7 +455,7 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                 <div onClick={() => setActiveView('finance')} className="bg-black p-10 rounded-[4rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden cursor-pointer hover:scale-[1.03] transition-all group border border-zinc-800">
                   <div className="absolute -top-12 -right-12 p-12 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 text-[#39FF14]"><Wallet size={200}/></div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d'Affaires Mensuel</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d&apos;Affaires Mensuel</p>
                   <div className="flex items-end gap-4">
                     <p className={`${spaceGrotesk.className} text-5xl lg:text-6xl font-black text-[#39FF14] tracking-tighter`}>1.245.000 <span className="text-2xl opacity-50 font-medium">F</span></p>
                     <div className="flex flex-col mb-2">
@@ -471,11 +471,11 @@ export default function AdminDashboard() {
                     <div className="flex -space-x-4">
                       {leads.slice(0, 5).map((l, i) => (
                         <div key={i} className="w-10 h-10 rounded-full border-[3px] border-white bg-zinc-100 overflow-hidden shadow-sm">
-                          <img src={`https://ui-avatars.com/api/?name=${l.full_name}&background=random&color=000&bold=true`} alt="" />
+                          <img src={`https://ui-avatars.com/api/?name=${l.full_name}&background=random&color=000&bold=true`} alt="Avatar Lead" />
                         </div>
                       ))}
                     </div>
-                    <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">+{leads.length > 5 ? leads.length - 5 : 0} nouveaux</span>
+                    <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">+{(leads.length || 0) > 5 ? leads.length - 5 : 0} nouveaux</span>
                   </div>
                 </div>
 
@@ -508,7 +508,6 @@ export default function AdminDashboard() {
                   </div>
                   
                   <div className="flex items-end justify-between h-72 gap-4 sm:gap-6 relative pt-10">
-                    {/* Grille de fond */}
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-[0.03] pt-14 pb-12">
                       {[1,2,3,4,5].map(line => <div key={line} className="border-t-2 border-black w-full"></div>)}
                     </div>
@@ -530,19 +529,16 @@ export default function AdminDashboard() {
                     <h3 className="font-black uppercase text-base text-white tracking-tighter">Zones de Capture</h3>
                   </div>
                   <div className="flex-1 relative rounded-[3rem] overflow-hidden border border-zinc-800 bg-zinc-800/30 w-full h-full">
-                    {/* Abstract Map SVG */}
                     <svg viewBox="0 0 100 100" className="w-full h-full opacity-10 absolute inset-0 text-[#39FF14] stroke-current group-hover:opacity-20 transition-all duration-700" fill="none" strokeWidth="0.8">
                       <path d="M20,30 Q40,20 60,40 T90,30 M15,50 Q40,60 60,50 T95,70 M10,80 Q50,95 70,70 T90,90" />
                       <circle cx="35" cy="35" r="1.5" fill="currentColor"/>
                       <circle cx="65" cy="55" r="1.5" fill="currentColor"/>
                       <circle cx="45" cy="75" r="1.5" fill="currentColor"/>
                     </svg>
-                    {/* Points Live (Animations) */}
                     <div className="absolute top-[35%] left-[35%] w-4 lg:w-5 h-4 lg:h-5 bg-[#39FF14] rounded-full shadow-[0_0_30px_#39FF14] animate-pulse"></div>
                     <div className="absolute top-[55%] left-[65%] w-3 lg:w-4 h-3 lg:h-4 bg-[#39FF14] rounded-full shadow-[0_0_20px_#39FF14] animate-ping"></div>
                     <div className="absolute top-[75%] left-[45%] w-2 lg:w-3 h-2 lg:h-3 bg-yellow-400 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse"></div>
                     
-                    {/* Tooltip Map */}
                     <div className="absolute bottom-6 left-6 right-6 bg-black/60 backdrop-blur-xl p-5 rounded-[2rem] border border-zinc-800/50 shadow-2xl transform group-hover:translate-y-[-5px] transition-transform">
                        <p className="text-[10px] font-black uppercase text-[#39FF14] mb-1 tracking-widest flex items-center gap-2"><Layers size={12}/> Focus : Dakar Plateaux</p>
                        <p className="text-[9px] font-bold text-zinc-400 uppercase leading-relaxed">Forte densité de conversion (82%) • Peak : 18h00</p>
@@ -666,7 +662,7 @@ export default function AdminDashboard() {
                                   </div>
                                </td>
                                <td className="p-6 lg:p-8">
-                                  <p className="text-xs text-zinc-600 font-medium italic max-w-xs leading-relaxed opacity-80 border-l-2 border-zinc-200 pl-4 py-1">"{l.message}"</p>
+                                  <p className="text-xs text-zinc-600 font-medium italic max-w-xs leading-relaxed opacity-80 border-l-2 border-zinc-200 pl-4 py-1">&quot;{l.message}&quot;</p>
                                </td>
                                <td className="p-6 lg:p-8 text-right space-x-4">
                                   <button onClick={() => replyToLead(l)} className="bg-[#39FF14] text-black px-5 py-3 rounded-[1.25rem] text-[10px] font-black uppercase shadow-xl hover:bg-black hover:text-[#39FF14] transition-all active:scale-95 flex items-center justify-end gap-2 ml-auto">
@@ -1028,7 +1024,7 @@ export default function AdminDashboard() {
                                <Send size={16} className="lg:w-[18px] lg:h-[18px]"/> Diffuser Segment
                             </button>
                             <button onClick={() => handleDeleteItem('articles', article.id)} className="flex-1 lg:flex-none bg-zinc-50 text-red-500 py-3 lg:py-4 rounded-[1.75rem] lg:rounded-[2rem] text-[9px] lg:text-[10px] font-black uppercase hover:bg-red-50 transition-all flex items-center justify-center gap-2 active:scale-95 border border-transparent hover:border-red-100">
-                               <Trash2 size={14} className="lg:w-4 lg:h-4"/> Supprimer l'article
+                               <Trash2 size={14} className="lg:w-4 lg:h-4"/> Supprimer l&apos;article
                             </button>
                          </div>
                       </div>
@@ -1054,7 +1050,7 @@ export default function AdminDashboard() {
                <div className="text-center mb-10 sm:mb-14 mt-4 sm:mt-0">
                   <div className={`w-20 sm:w-24 h-20 sm:h-24 rounded-[2rem] sm:rounded-[2.75rem] flex items-center justify-center text-white ${showSaasLogin?.color} shadow-2xl mx-auto mb-6 sm:mb-8 animate-bounce-slow`}><Box size={40} className="sm:w-12 sm:h-12"/></div>
                   <h2 className={`${spaceGrotesk.className} text-3xl sm:text-4xl font-black uppercase text-black tracking-tighter leading-none`}>Activer {showSaasLogin?.name}</h2>
-                  <p className="text-[10px] sm:text-xs font-bold text-zinc-400 mt-2 sm:mt-3 uppercase tracking-[0.2em] sm:tracking-[0.3em]">Générateur d'Accès Terminal SaaS</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-zinc-400 mt-2 sm:mt-3 uppercase tracking-[0.2em] sm:tracking-[0.3em]">Générateur d&apos;Accès Terminal SaaS</p>
                </div>
                
                <div className="space-y-8 sm:space-y-10">
@@ -1148,7 +1144,7 @@ export default function AdminDashboard() {
               <button onClick={() => setShowDiffusionModal(null)} className="absolute top-6 sm:top-10 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
               <div className="mb-8 sm:mb-10 mt-2 sm:mt-0">
                  <h2 className={`${spaceGrotesk.className} text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter`}>Planifier la Diffusion</h2>
-                 <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1 sm:mt-2 italic line-clamp-2">"{showDiffusionModal?.title}"</p>
+                 <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1 sm:mt-2 italic line-clamp-2">&quot;{showDiffusionModal?.title}&quot;</p>
               </div>
 
               <div className="flex-1 overflow-y-auto mb-8 sm:mb-10 pr-2 sm:pr-4 space-y-3 sm:space-y-4 custom-scrollbar">
@@ -1229,7 +1225,7 @@ export default function AdminDashboard() {
             <button onClick={() => setShowProfileModal(false)} className="absolute top-6 sm:top-10 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20} className="sm:w-6 sm:h-6"/></button>
             
             <div className="relative w-32 sm:w-40 h-32 sm:h-40 mx-auto mb-8 sm:mb-10 mt-4 sm:mt-0">
-               <img src={tempAdminProfile?.avatar} className="w-full h-full rounded-full object-cover border-[4px] sm:border-[6px] border-black p-1 sm:p-1.5 shadow-2xl" alt="" />
+               <img src={tempAdminProfile?.avatar} className="w-full h-full rounded-full object-cover border-[4px] sm:border-[6px] border-black p-1 sm:p-1.5 shadow-2xl" alt="Profil Administrateur" />
                <div className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 bg-[#39FF14] p-2.5 sm:p-3 rounded-full border-[4px] sm:border-[6px] border-white shadow-2xl shadow-[#39FF14]/50 group cursor-pointer hover:scale-110 transition-transform"><Edit3 size={16} className="text-black sm:w-[18px] sm:h-[18px]"/></div>
             </div>
             
@@ -1276,7 +1272,7 @@ export default function AdminDashboard() {
                        <div className="flex-1 w-full">
                           <p className="font-black text-lg sm:text-xl uppercase text-black tracking-tighter leading-none mb-2">{c.full_name}</p>
                           <p className="text-[10px] sm:text-xs text-zinc-400 font-bold uppercase tracking-widest">Score de Conversion : <span className="text-[#39FF14]">85%</span></p>
-                          <p className="text-[10px] sm:text-[11px] text-zinc-500 mt-3 sm:mt-4 leading-relaxed italic opacity-80">"L'IA suggère de proposer le Pack Trio basé sur l'activité de ce prospect et ses récents clics sur le blog."</p>
+                          <p className="text-[10px] sm:text-[11px] text-zinc-500 mt-3 sm:mt-4 leading-relaxed italic opacity-80">&quot;L&apos;IA suggère de proposer le Pack Trio basé sur l&apos;activité de ce prospect et ses récents clics sur le blog.&quot;</p>
                        </div>
                        <button onClick={() => planifyCrmAction(`Conversion : ${c.full_name}`, "Démonstration Pack Trio à domicile.", c.phone, `Bonjour ${c.full_name}, nous avons une offre spéciale Trio...`)} className="bg-black text-[#39FF14] px-6 sm:px-8 py-3.5 sm:py-4 rounded-[1.75rem] sm:rounded-[2rem] text-[10px] sm:text-[11px] font-black uppercase shadow-2xl hover:scale-105 active:scale-95 transition-all w-full md:w-max shrink-0">Planifier</button>
                     </div>
