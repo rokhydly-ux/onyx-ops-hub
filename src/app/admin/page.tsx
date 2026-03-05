@@ -3,7 +3,6 @@
 /* eslint-disable */
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Space_Grotesk, Inter } from "next/font/google";
 import { createClient } from "@supabase/supabase-js";
 import { 
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
@@ -14,16 +13,13 @@ import {
   Bell, LogOut, Zap
 } from "lucide-react";
 
-// --- CONFIGURATION SUPABASE SÉCURISÉ POUR LE BUILD ---
+// --- CONFIGURATION SUPABASE SÉCURISÉE POUR LE BUILD ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 export const supabase = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
-
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700", "900"] });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
 
 // --- TYPES & INTERFACES ---
 type ViewType = 'dashboard' | 'crm' | 'leads' | 'ecosystem' | 'finance' | 'partners' | 'marketing';
@@ -171,23 +167,17 @@ export default function AdminDashboard() {
 
   if (!mounted) {
     return (
-      <div className={`flex h-screen w-full bg-black items-center justify-center ${inter.className}`}>
+      <div className={`flex h-screen w-full bg-black items-center justify-center font-sans`}>
         <div className="flex flex-col items-center gap-6">
           <div className="w-16 h-16 border-t-4 border-l-4 border-[#39FF14] rounded-full animate-spin shadow-[0_0_20px_#39FF14]"></div>
           <div className="text-center">
-            <h1 className={`${spaceGrotesk.className} text-2xl font-black text-white uppercase tracking-[0.5em]`}>OnyxOps</h1>
+            <h1 className={`font-sans text-2xl font-black text-white uppercase tracking-[0.5em]`}>OnyxOps</h1>
             <p className="text-[10px] font-bold text-[#39FF14] uppercase tracking-widest mt-2 animate-pulse">Initialisation du Terminal de Contrôle...</p>
           </div>
         </div>
       </div>
     );
   }
-
-  const triggerFilterAnimation = (filterValue: string) => {
-    setGlobalFilterDate(filterValue);
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
 
   const handleOutsideClick = (setter: any, secondaryAction?: () => void) => (e: any) => {
     if (e.target.id === "modal-overlay") { setter(false); if(secondaryAction) secondaryAction(); }
@@ -236,13 +226,6 @@ export default function AdminDashboard() {
     const { error } = await supabase.from('partners').update({ status: 'Actif' }).eq('id', id);
     if (error) alert("Erreur terminal : " + error.message);
     else fetchSupabaseData();
-  };
-
-  const handleSavePartner = async () => {
-     if(!editPartnerForm || !supabase) return;
-     const { error } = await supabase.from('partners').update(editPartnerForm).eq('id', editPartnerForm.id);
-     if (error) alert("Erreur terminal : " + error.message);
-     else { fetchSupabaseData(); setIsEditingPartner(false); setShowPartnerModal(false); }
   };
 
   const handleConvertPartnerToClient = async () => {
@@ -329,12 +312,12 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className={`flex h-screen bg-[#fafafa] ${inter.className} text-black overflow-hidden relative selection:bg-[#39FF14]/30`}>
+    <div className={`flex h-screen bg-[#fafafa] font-sans text-black overflow-hidden relative selection:bg-[#39FF14]/30`}>
       
       {/* ================= SIDEBAR GAUCHE ================= */}
       <aside className="w-72 bg-white border-r border-zinc-200 flex flex-col z-30 shadow-sm hidden md:flex transition-all">
         <div className="p-10">
-          <h1 className={`${spaceGrotesk.className} text-3xl font-black tracking-tighter uppercase cursor-pointer group`} onClick={() => setActiveView('dashboard')}>
+          <h1 className={`font-sans text-3xl font-black tracking-tighter uppercase cursor-pointer group`} onClick={() => setActiveView('dashboard')}>
             ONYX<span className="text-[#39FF14] group-hover:drop-shadow-[0_0_8px_rgba(57,255,20,0.6)] transition-all">OPS</span>
           </h1>
           <div className="mt-2 flex items-center gap-2">
@@ -400,7 +383,7 @@ export default function AdminDashboard() {
         {/* HEADER GÉANT */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200 h-28 flex items-center justify-between px-8 lg:px-12 shrink-0 z-20">
           <div className="flex flex-col">
-            <h2 className={`${spaceGrotesk.className} text-3xl lg:text-4xl font-black uppercase tracking-tighter text-black`}>
+            <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter text-black`}>
                {activeView === 'dashboard' ? 'Terminal Central' : activeView.replace('-', ' ')}
             </h2>
             <div className="flex items-center gap-3 mt-1">
@@ -447,7 +430,7 @@ export default function AdminDashboard() {
                   <div className="absolute -top-12 -right-12 p-12 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 text-[#39FF14]"><Wallet size={200}/></div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d&apos;Affaires Mensuel</p>
                   <div className="flex items-end gap-4">
-                    <p className={`${spaceGrotesk.className} text-5xl lg:text-6xl font-black text-[#39FF14] tracking-tighter`}>1.245.000 <span className="text-2xl opacity-50 font-medium">F</span></p>
+                    <p className={`font-sans text-5xl lg:text-6xl font-black text-[#39FF14] tracking-tighter`}>1.245.000 <span className="text-2xl opacity-50 font-medium">F</span></p>
                     <div className="flex flex-col mb-2">
                        <span className="text-[10px] font-black text-[#39FF14] bg-[#39FF14]/10 px-2 py-1 rounded-lg flex items-center gap-1"><ArrowUpRight size={12}/> +12.4%</span>
                     </div>
@@ -456,7 +439,7 @@ export default function AdminDashboard() {
 
                 <div onClick={() => setActiveView('leads')} className="bg-white border border-zinc-200 p-10 rounded-[4rem] shadow-sm cursor-pointer hover:border-black hover:shadow-2xl transition-all group relative overflow-hidden">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Flux de Leads (24h)</p>
-                  <p className={`${spaceGrotesk.className} text-5xl lg:text-6xl font-black text-black tracking-tighter`}>{leads.length}</p>
+                  <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>{leads.length}</p>
                   <div className="flex items-center gap-3 mt-6">
                     <div className="flex -space-x-4">
                       {leads.slice(0, 5).map((l, i) => (
@@ -472,7 +455,7 @@ export default function AdminDashboard() {
                 <div onClick={() => setActiveView('marketing')} className="bg-[#39FF14] p-10 rounded-[4rem] shadow-xl cursor-pointer hover:scale-[1.03] transition-all group relative overflow-hidden border border-[#32E612]">
                    <div className="absolute -bottom-10 -right-10 opacity-10 text-black group-hover:rotate-[-15deg] transition-all duration-700"><Megaphone size={180}/></div>
                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/40 mb-4">Portée Marketing Blog</p>
-                   <p className={`${spaceGrotesk.className} text-5xl lg:text-6xl font-black text-black tracking-tighter`}>8.405</p>
+                   <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>8.405</p>
                    <div className="mt-6 flex items-center gap-2">
                       <div className="px-3 py-1 bg-black text-[#39FF14] rounded-full text-[10px] font-black uppercase shadow-lg">Live Analytics</div>
                    </div>
@@ -615,7 +598,7 @@ export default function AdminDashboard() {
                    <div className="flex items-center gap-6">
                       <div className="w-16 h-16 bg-black rounded-[1.75rem] flex items-center justify-center text-[#39FF14] shadow-2xl animate-pulse"><MessageSquare size={32}/></div>
                       <div>
-                         <h2 className={`${spaceGrotesk.className} text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Flux de Leads</h2>
+                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Flux de Leads</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Capture en temps réel • Hub WhatsApp : 78 533 84 17</p>
                       </div>
                    </div>
@@ -689,7 +672,7 @@ export default function AdminDashboard() {
                     >
                        <card.icon size={26} className="mb-4 opacity-80" />
                        <div>
-                         <p className={`${spaceGrotesk.className} text-4xl lg:text-5xl font-black mb-1 tracking-tighter`}>{card.val}</p>
+                         <p className={`font-sans text-4xl lg:text-5xl font-black mb-1 tracking-tighter`}>{card.val}</p>
                          <p className="text-[9px] lg:text-[11px] font-black uppercase tracking-[0.2em] opacity-60 leading-none">{card.label}</p>
                        </div>
                     </div>
@@ -788,7 +771,7 @@ export default function AdminDashboard() {
                    <div className="flex items-center gap-6 lg:gap-8 relative z-10">
                       <div className="p-5 lg:p-6 bg-black rounded-[1.5rem] lg:rounded-[2rem] text-[#39FF14] shadow-2xl shadow-[#39FF14]/10"><Wallet size={32} className="lg:w-10 lg:h-10"/></div>
                       <div>
-                         <h2 className={`${spaceGrotesk.className} text-3xl lg:text-5xl font-black uppercase tracking-tighter`}>Hub Financier</h2>
+                         <h2 className={`font-sans text-3xl lg:text-5xl font-black uppercase tracking-tighter`}>Hub Financier</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Registre des Revenus & Commissions 2026</p>
                       </div>
                    </div>
@@ -811,7 +794,7 @@ export default function AdminDashboard() {
                          <card.icon size={24} className="opacity-40" />
                          <div>
                             <p className="text-[10px] lg:text-[11px] font-black uppercase tracking-widest opacity-60 mb-2 lg:mb-3">{card.label}</p>
-                            <p className={`${spaceGrotesk.className} text-3xl lg:text-4xl font-black tracking-tighter`}>{card.val}</p>
+                            <p className={`font-sans text-3xl lg:text-4xl font-black tracking-tighter`}>{card.val}</p>
                          </div>
                       </div>
                    ))}
@@ -881,7 +864,7 @@ export default function AdminDashboard() {
              <div className="space-y-16 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto pt-6 lg:pt-10">
                 <div className="text-center space-y-4 lg:space-y-6 max-w-4xl mx-auto px-4">
                    <div className="inline-block px-4 py-1.5 bg-black text-[#39FF14] rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.3em] mb-2 lg:mb-4 shadow-2xl shadow-[#39FF14]/20">Terminal Écosystème</div>
-                   <h2 className={`${spaceGrotesk.className} text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-black leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
+                   <h2 className={`font-sans text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-black leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
                    <p className="text-xs lg:text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] lg:tracking-[0.4em] leading-relaxed">Déploiement & Gouvernance du Catalogue SaaS • 9 Solutions Prêtes</p>
                 </div>
                 
@@ -891,7 +874,7 @@ export default function AdminDashboard() {
                          <div className={`absolute top-0 right-0 w-40 lg:w-48 h-40 lg:h-48 ${saas.color} opacity-[0.03] translate-x-16 lg:translate-x-20 -translate-y-16 lg:-translate-y-20 rounded-full group-hover:scale-150 transition-transform duration-1000`}></div>
                          <div className="relative z-10">
                             <div className={`w-16 lg:w-20 h-16 lg:h-20 rounded-[1.75rem] lg:rounded-[2.25rem] mb-8 lg:mb-10 flex items-center justify-center text-white shadow-2xl ${saas.color} group-hover:rotate-12 transition-transform duration-500`}><Box size={32} className="lg:w-10 lg:h-10"/></div>
-                            <h3 className={`${spaceGrotesk.className} text-2xl lg:text-3xl font-black uppercase text-black tracking-tighter`}>{saas.name}</h3>
+                            <h3 className={`font-sans text-2xl lg:text-3xl font-black uppercase text-black tracking-tighter`}>{saas.name}</h3>
                             <p className="text-sm lg:text-base font-bold text-zinc-400 mt-3 lg:mt-4 leading-relaxed group-hover:text-zinc-600 transition-colors">{saas.desc}</p>
                          </div>
                          <div className="mt-10 lg:mt-14 flex flex-col gap-3 lg:gap-4 relative z-10">
@@ -913,13 +896,13 @@ export default function AdminDashboard() {
                    <div className="flex items-center gap-6 lg:gap-8 relative z-10">
                       <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Handshake size={32} className="lg:w-[38px] lg:h-[38px]"/></div>
                       <div>
-                         <h2 className={`${spaceGrotesk.className} text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
+                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Génération de Revenus & Croissance Réseau</p>
                       </div>
                    </div>
                    <div className="bg-[#39FF14]/10 border border-[#39FF14]/20 px-6 lg:px-8 py-4 lg:py-5 rounded-[1.5rem] lg:rounded-[2rem] flex flex-col items-center w-full md:w-auto">
                       <p className="text-[9px] lg:text-[10px] font-black uppercase text-black tracking-widest opacity-60">Total Commissions</p>
-                      <p className={`${spaceGrotesk.className} text-2xl lg:text-3xl font-black text-black mt-1`}>1.820.000 F</p>
+                      <p className={`font-sans text-2xl lg:text-3xl font-black text-black mt-1`}>1.820.000 F</p>
                    </div>
                 </div>
 
@@ -965,7 +948,7 @@ export default function AdminDashboard() {
                                   </div>
                                </td>
                                <td className="p-8 lg:p-10 text-center">
-                                  <p className={`${spaceGrotesk.className} text-3xl lg:text-4xl font-black text-black tracking-tighter`}>{p.sales || 0}</p>
+                                  <p className={`font-sans text-3xl lg:text-4xl font-black text-black tracking-tighter`}>{p.sales || 0}</p>
                                   <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 uppercase mt-1">Ventes Clôturées</p>
                                </td>
                                <td className="p-8 lg:p-10 text-right">
@@ -989,7 +972,7 @@ export default function AdminDashboard() {
                    <div className="flex items-center gap-6 lg:gap-8 relative z-10">
                       <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl group-hover:rotate-12 transition-all shrink-0"><Megaphone size={32} className="lg:w-[36px] lg:h-[36px]"/></div>
                       <div>
-                         <h2 className={`${spaceGrotesk.className} text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Hub Marketing</h2>
+                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Hub Marketing</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Articles de Blog & Stratégies de Capture IA</p>
                       </div>
                    </div>
@@ -1006,7 +989,7 @@ export default function AdminDashboard() {
                                <span className="bg-black text-[#39FF14] px-3 lg:px-4 py-1.5 rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em]">{article.category || 'Stratégie'}</span>
                                <span className="bg-zinc-100 text-zinc-500 px-3 lg:px-4 py-1.5 rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em]">Cible : {article.cible || 'Tous'}</span>
                             </div>
-                            <h3 className={`${spaceGrotesk.className} text-2xl lg:text-3xl font-black uppercase text-black tracking-tighter mb-3 lg:mb-4 group-hover:text-[#39FF14] transition-colors leading-tight`}>{article.title}</h3>
+                            <h3 className={`font-sans text-2xl lg:text-3xl font-black uppercase text-black tracking-tighter mb-3 lg:mb-4 group-hover:text-[#39FF14] transition-colors leading-tight`}>{article.title}</h3>
                             <p className="text-zinc-500 font-medium text-sm lg:text-base leading-relaxed max-w-2xl opacity-80">{article.desc}</p>
                          </div>
                          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:gap-4 w-full lg:w-max">
@@ -1039,7 +1022,7 @@ export default function AdminDashboard() {
                
                <div className="text-center mb-10 sm:mb-14 mt-4 sm:mt-0">
                   <div className={`w-20 sm:w-24 h-20 sm:h-24 rounded-[2rem] sm:rounded-[2.75rem] flex items-center justify-center text-white ${showSaasLogin?.color} shadow-2xl mx-auto mb-6 sm:mb-8 animate-bounce-slow`}><Box size={40} className="sm:w-12 sm:h-12"/></div>
-                  <h2 className={`${spaceGrotesk.className} text-3xl sm:text-4xl font-black uppercase text-black tracking-tighter leading-none`}>Activer {showSaasLogin?.name}</h2>
+                  <h2 className={`font-sans text-3xl sm:text-4xl font-black uppercase text-black tracking-tighter leading-none`}>Activer {showSaasLogin?.name}</h2>
                   <p className="text-[10px] sm:text-xs font-bold text-zinc-400 mt-2 sm:mt-3 uppercase tracking-[0.2em] sm:tracking-[0.3em]">Générateur d&apos;Accès Terminal SaaS</p>
                </div>
                
@@ -1083,7 +1066,7 @@ export default function AdminDashboard() {
           <div className="bg-white p-8 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 duration-500 border-t-[8px] sm:border-t-[12px] border-black my-auto">
             <button onClick={() => setShowContactModal(false)} className="absolute top-6 sm:top-12 right-6 sm:right-12 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
             
-            <h2 className={`${spaceGrotesk.className} text-3xl sm:text-4xl font-black uppercase tracking-tighter mb-10 sm:mb-14 text-black mt-2 sm:mt-0`}>{editingContact?.id ? 'Modifier Fiche' : 'Nouveau Membre CRM'}</h2>
+            <h2 className={`font-sans text-3xl sm:text-4xl font-black uppercase tracking-tighter mb-10 sm:mb-14 text-black mt-2 sm:mt-0`}>{editingContact?.id ? 'Modifier Fiche' : 'Nouveau Membre CRM'}</h2>
             
             <form onSubmit={handleSaveContact} className="space-y-6 sm:space-y-8">
               <div className="space-y-2">
@@ -1133,7 +1116,7 @@ export default function AdminDashboard() {
            <div className="bg-white p-8 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[85vh] sm:max-h-[85vh] flex flex-col border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
               <button onClick={() => setShowDiffusionModal(null)} className="absolute top-6 sm:top-10 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
               <div className="mb-8 sm:mb-10 mt-2 sm:mt-0">
-                 <h2 className={`${spaceGrotesk.className} text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter`}>Planifier la Diffusion</h2>
+                 <h2 className={`font-sans text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter`}>Planifier la Diffusion</h2>
                  <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1 sm:mt-2 italic line-clamp-2">&quot;{showDiffusionModal?.title}&quot;</p>
               </div>
 
@@ -1178,18 +1161,18 @@ export default function AdminDashboard() {
                
                <div className="mb-10 sm:mb-14 text-center mt-4 sm:mt-0">
                   <div className="w-20 sm:w-24 h-20 sm:h-24 bg-zinc-100 rounded-[2rem] sm:rounded-[2.75rem] mx-auto mb-6 sm:mb-8 flex items-center justify-center font-black text-2xl sm:text-3xl shadow-xl text-black">{selectedPartner?.full_name?.charAt(0)}</div>
-                  <h2 className={`${spaceGrotesk.className} text-3xl sm:text-4xl font-black uppercase text-black tracking-tighter leading-none`}>{selectedPartner?.full_name}</h2>
+                  <h2 className={`font-sans text-3xl sm:text-4xl font-black uppercase text-black tracking-tighter leading-none`}>{selectedPartner?.full_name}</h2>
                   <p className="text-[10px] sm:text-xs font-bold text-[#39FF14] bg-black px-4 py-1.5 rounded-full inline-block mt-3 sm:mt-4 uppercase tracking-[0.2em] sm:tracking-[0.3em] shadow-lg">Console Ambassadeur Officiel</p>
                </div>
 
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 mb-10 sm:mb-14">
                   <div className="bg-zinc-50 p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-zinc-100 flex flex-col items-center">
                      <p className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 tracking-widest mb-2 sm:mb-3">Ventes Actives</p>
-                     <p className={`${spaceGrotesk.className} text-5xl sm:text-6xl font-black text-black tracking-tighter`}>{selectedPartner?.sales || 0}</p>
+                     <p className={`font-sans text-5xl sm:text-6xl font-black text-black tracking-tighter`}>{selectedPartner?.sales || 0}</p>
                   </div>
                   <div className="bg-[#39FF14]/5 p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-[#39FF14]/10 flex flex-col items-center">
                      <p className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 tracking-widest mb-2 sm:mb-3">Gains (Commissions)</p>
-                     <p className={`${spaceGrotesk.className} text-4xl sm:text-5xl font-black text-black tracking-tighter`}>{selectedPartner?.revenue || '0 F'}</p>
+                     <p className={`font-sans text-4xl sm:text-5xl font-black text-black tracking-tighter`}>{selectedPartner?.revenue || '0 F'}</p>
                   </div>
                </div>
 
@@ -1219,7 +1202,7 @@ export default function AdminDashboard() {
                <div className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 bg-[#39FF14] p-2.5 sm:p-3 rounded-full border-[4px] sm:border-[6px] border-white shadow-2xl shadow-[#39FF14]/50 group cursor-pointer hover:scale-110 transition-transform"><Edit3 size={16} className="text-black sm:w-[18px] sm:h-[18px]"/></div>
             </div>
             
-            <h2 className={`${spaceGrotesk.className} text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter leading-none`}>Admin Profile</h2>
+            <h2 className={`font-sans text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter leading-none`}>Admin Profile</h2>
             <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 mb-8 sm:mb-12 uppercase tracking-[0.2em] sm:tracking-[0.3em] mt-2">Console Maître Dakar Hub</p>
 
             <div className="space-y-6 text-left">
@@ -1251,7 +1234,7 @@ export default function AdminDashboard() {
                <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-6 mb-10 sm:mb-14 mt-4 sm:mt-0">
                   <div className="w-16 sm:w-20 h-16 sm:h-20 bg-black rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Sparkles size={32} className="animate-pulse sm:w-[38px] sm:h-[38px]"/></div>
                   <div>
-                     <h3 className={`${spaceGrotesk.className} text-3xl sm:text-4xl font-black uppercase text-black tracking-tighter leading-none`}>Scan IA CRM</h3>
+                     <h3 className={`font-sans text-3xl sm:text-4xl font-black uppercase text-black tracking-tighter leading-none`}>Scan IA CRM</h3>
                      <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Analyse Prédictive des Opportunités</p>
                   </div>
                </div>
