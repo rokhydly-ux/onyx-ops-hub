@@ -9,15 +9,14 @@ import {
   ExternalLink, MessageSquare, LogIn, Send, Download, Edit3, UserPlus,
   BarChart, MapPin, Calendar, Lock, ChevronDown, List, Trash2, Filter, 
   RefreshCcw, FileText, Activity, TrendingUp, Layers, ArrowUpRight,
-  Settings, Bell, LogOut, Share2, Target, Zap, ChevronRight, Menu
+  Settings, Bell, LogOut, Share2, Target, Zap
 } from "lucide-react";
 
-// --- CONFIGURATION SUPABASE SÉCURISÉE ---
+// --- CONFIGURATION SUPABASE SÉCURISÉE POUR LE BUILD ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
-// On n'initialise le client que si les variables sont présentes
-// Cela évite l'erreur "Module not found" ou les crashs au build
+// On n'appelle createClient que si les variables existent pour éviter l'erreur de build
 export const supabase = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
