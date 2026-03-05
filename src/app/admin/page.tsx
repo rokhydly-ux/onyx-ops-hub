@@ -7,16 +7,20 @@ import {
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
   Search, Plus, CheckCircle, Clock, AlertCircle, X, Sparkles, 
   ExternalLink, MessageSquare, LogIn, Send, Download, Edit3, UserPlus,
-  BarChart2, MapPin, Calendar, Lock, ChevronDown, List, Trash2, Filter, 
-  RefreshCcw, FileText, PieChart, Activity, TrendingUp, Layers, ArrowUpRight,
-  Settings, Bell, LogOut, Share2, Target, Zap
+  BarChart, MapPin, Calendar, Lock, ChevronDown, List, Trash2, Filter, 
+  RefreshCcw, FileText, Activity, TrendingUp, Layers, ArrowUpRight,
+  Settings, Bell, LogOut, Share2, Target, Zap, ChevronRight, Menu
 } from "lucide-react";
 
-// --- CONFIGURATION SUPABASE ---
-// Assure-toi que ces variables sont bien dans ton .env.local
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// --- CONFIGURATION SUPABASE SÉCURISÉE ---
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+// On n'initialise le client que si les variables sont présentes
+// Cela évite l'erreur "Module not found" ou les crashs au build
+export const supabase = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey) 
+  : null;
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700", "900"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
@@ -113,29 +117,34 @@ export default function AdminDashboard() {
     { id: "premium", name: "Onyx Premium", desc: "IA & CRM Intégré", color: "bg-indigo-500", url: "https://premium.onyxops.com" },
   ];
 
-  // --- INITIALISATION & DATA FETCHING ---
-  const fetchSupabaseData = async () => {
-    setIsRefreshing(true);
-    setLoading(true);
-    try {
-      const [clientsRes, leadsRes, partnersRes, articlesRes] = await Promise.all([
-        supabase.from('clients').select('*'),
-        supabase.from('leads').select('*'),
-        supabase.from('partners').select('*'),
-        supabase.from('articles').select('*')
-      ]);
+// --- INITIALISATION & DATA FETCHING ---
+  const fetchSupabaseData = async () => {
+  // Sécurité indispensable pour le build Next.js
+  if (!supabase) return;
 
-      if (clientsRes.data) setContacts(clientsRes.data.reverse());
-      if (leadsRes.data) setLeads(leadsRes.data.reverse());
-      if (partnersRes.data) setPartners(partnersRes.data.reverse());
-      if (articlesRes.data) setMarketingArticles(articlesRes.data.reverse());
-    } catch (err) {
-      console.error("Erreur de synchronisation terminal:", err);
-    } finally {
-      setLoading(false);
-      setTimeout(() => setIsRefreshing(false), 800);
-    }
-  };
+    setIsRefreshing(true);
+    setLoading(true);
+
+    try {
+      const [clientsRes, leadsRes, partnersRes, articlesRes] = await Promise.all([
+        supabase.from('clients').select('*'),
+        supabase.from('leads').select('*'),
+        supabase.from('partners').select('*'),
+        supabase.from('articles').select('*')
+      ]);
+
+      if (clientsRes?.data) setContacts(clientsRes.data.reverse());
+      if (leadsRes?.data) setLeads(leadsRes.data.reverse());
+      if (partnersRes?.data) setPartners(partnersRes.data.reverse());
+      if (articlesRes?.data) setMarketingArticles(articlesRes.data.reverse());
+    
+    } catch (err) {
+      console.error("Erreur de synchronisation terminal:", err);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setIsRefreshing(false), 800);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
