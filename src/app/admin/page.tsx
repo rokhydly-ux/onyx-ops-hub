@@ -1,30 +1,46 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Space_Grotesk, Inter } from "next/font/google";
 import { createClient } from "@supabase/supabase-js";
 import { 
   LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
   Search, Plus, CheckCircle, Clock, AlertCircle, X, Sparkles, 
   ExternalLink, MessageSquare, LogIn, Send, Download, Edit3, UserPlus,
-  BarChart2, MapPin, Calendar, Lock, ChevronDown, List
+  BarChart2, MapPin, Calendar, Lock, ChevronDown, List, Trash2, Filter, 
+  RefreshCcw, FileText, PieChart, Activity, TrendingUp, Layers, ArrowUpRight,
+  Settings, Bell, LogOut, Share2, Target, Zap
 } from "lucide-react";
 
-// --- CONFIGURATION SUPABASE SÉCURISÉE ---
+// --- CONFIGURATION SUPABASE ---
+// Assure-toi que ces variables sont bien dans ton .env.local
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700", "900"] });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
 
+// --- TYPES & INTERFACES ---
 type ViewType = 'dashboard' | 'crm' | 'leads' | 'ecosystem' | 'finance' | 'partners' | 'marketing';
-type ActionModule = 'CRM' | 'Partenaires' | 'Marketing';
-type IAAction = { id: string; module: ActionModule; title: string; desc: string; date: string; status: 'En attente' | 'En cours' | 'Réalisé' | 'Annulé'; phone?: string; msg?: string; };
+type ActionModule = 'CRM' | 'Partenaires' | 'Marketing' | 'SaaS';
 
+type IAAction = { 
+  id: string; 
+  module: ActionModule; 
+  title: string; 
+  desc: string; 
+  date: string; 
+  status: 'En attente' | 'En cours' | 'Réalisé' | 'Annulé'; 
+  phone?: string; 
+  msg?: string; 
+};
+
+// --- COMPOSANT PRINCIPAL ---
 export default function AdminDashboard() {
   const [mounted, setMounted] = useState(false);
   const [todayStr, setTodayStr] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // --- NAVIGATION & FILTRES GLOBAUX ---
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
@@ -51,7 +67,7 @@ export default function AdminDashboard() {
   const [selectedContactsForDiffusion, setSelectedContactsForDiffusion] = useState<string[]>([]);
 
   // Profil Admin
-  const [adminProfile, setAdminProfile] = useState({ name: 'Administrateur', avatar: 'https://ui-avatars.com/api/?name=Admin&background=000&color=39FF14' });
+  const [adminProfile, setAdminProfile] = useState({ name: 'Onyx Administrator', avatar: 'https://ui-avatars.com/api/?name=Admin&background=000&color=39FF14&bold=true' });
   const [tempAdminProfile, setTempAdminProfile] = useState({ ...adminProfile });
 
   // Données
@@ -68,87 +84,97 @@ export default function AdminDashboard() {
   const [crmSearch, setCrmSearch] = useState("");
   const [crmTypeFilter, setCrmTypeFilter] = useState("Tous");
   const [crmCardFilter, setCrmCardFilter] = useState<string | null>(null);
-  const [partnerCardFilter, setPartnerCardFilter] = useState<string | null>(null);
   const [partnerSearch, setPartnerSearch] = useState("");
   const [financeSearch, setFinanceSearch] = useState("");
   const [financeTypeFilter, setFinanceTypeFilter] = useState("Tous");
   const [financeCardFilter, setFinanceCardFilter] = useState<string | null>(null);
 
-  // --- DONNÉES HISTOGRAMME DASHBOARD ---
+  // --- DASHBOARD CONSTANTS & DESIGN ---
   const [histogramData, setHistogramData] = useState([
     { day: 'Lun', ca: 150000, date: '02 Mar', active: false },
     { day: 'Mar', ca: 300000, date: '03 Mar', active: false },
     { day: 'Mer', ca: 850000, date: '04 Mar', active: true },
-    { day: 'Jeu', ca: 0, date: '05 Mar', active: false },
-    { day: 'Ven', ca: 0, date: '06 Mar', active: false },
-    { day: 'Sam', ca: 0, date: '07 Mar', active: false },
-    { day: 'Dim', ca: 0, date: '08 Mar', active: false },
+    { day: 'Jeu', ca: 120000, date: '05 Mar', active: false },
+    { day: 'Ven', ca: 450000, date: '06 Mar', active: false },
+    { day: 'Sam', ca: 900000, date: '07 Mar', active: false },
+    { day: 'Dim', ca: 200000, date: '08 Mar', active: false },
   ]);
-  const maxCa = Math.max(...histogramData.map(d => d.ca)) || 1;
+  const maxCa = useMemo(() => Math.max(...histogramData.map(d => d.ca)) || 1, [histogramData]);
 
   const ECOSYSTEM_SAAS = [
-    { id: "vente", name: "Onyx Vente", desc: "Catalogue & Devis WhatsApp", color: "bg-blue-500" },
-    { id: "tiak", name: "Onyx Tiak", desc: "Logistique & Livreurs", color: "bg-orange-500" },
-    { id: "stock", name: "Onyx Stock", desc: "Gestion d'Inventaire", color: "bg-purple-500" },
-    { id: "menu", name: "Onyx Menu", desc: "Menu QR & Commandes", color: "bg-red-500" },
-    { id: "booking", name: "Onyx Booking", desc: "Réservations & Acomptes", color: "bg-pink-500" },
-    { id: "staff", name: "Onyx Staff", desc: "Pointage & Paie", color: "bg-cyan-500" },
-    { id: "trio", name: "Pack Trio", desc: "Vente + Stock + Tiak", color: "bg-emerald-500" },
-    { id: "full", name: "Pack Full", desc: "Écosystème Complet", color: "bg-black" },
-    { id: "premium", name: "Onyx Premium", desc: "IA & CRM Intégré", color: "bg-indigo-500" },
+    { id: "vente", name: "Onyx Vente", desc: "Catalogue & Devis WhatsApp", color: "bg-blue-500", url: "https://vente.onyxops.com" },
+    { id: "tiak", name: "Onyx Tiak", desc: "Logistique & Livreurs", color: "bg-orange-500", url: "https://tiak.onyxops.com" },
+    { id: "stock", name: "Onyx Stock", desc: "Gestion d'Inventaire", color: "bg-purple-500", url: "https://stock.onyxops.com" },
+    { id: "menu", name: "Onyx Menu", desc: "Menu QR & Commandes", color: "bg-red-500", url: "https://menu.onyxops.com" },
+    { id: "booking", name: "Onyx Booking", desc: "Réservations & Acomptes", color: "bg-pink-500", url: "https://booking.onyxops.com" },
+    { id: "staff", name: "Onyx Staff", desc: "Pointage & Paie", color: "bg-cyan-500", url: "https://staff.onyxops.com" },
+    { id: "trio", name: "Pack Trio", desc: "Vente + Stock + Tiak", color: "bg-emerald-500", url: "https://trio.onyxops.com" },
+    { id: "full", name: "Pack Full", desc: "Écosystème Complet", color: "bg-black", url: "https://full.onyxops.com" },
+    { id: "premium", name: "Onyx Premium", desc: "IA & CRM Intégré", color: "bg-indigo-500", url: "https://premium.onyxops.com" },
   ];
+
+  // --- INITIALISATION & DATA FETCHING ---
+  const fetchSupabaseData = async () => {
+    setIsRefreshing(true);
+    setLoading(true);
+    try {
+      const [clientsRes, leadsRes, partnersRes, articlesRes] = await Promise.all([
+        supabase.from('clients').select('*'),
+        supabase.from('leads').select('*'),
+        supabase.from('partners').select('*'),
+        supabase.from('articles').select('*')
+      ]);
+
+      if (clientsRes.data) setContacts(clientsRes.data.reverse());
+      if (leadsRes.data) setLeads(leadsRes.data.reverse());
+      if (partnersRes.data) setPartners(partnersRes.data.reverse());
+      if (articlesRes.data) setMarketingArticles(articlesRes.data.reverse());
+    } catch (err) {
+      console.error("Erreur de synchronisation terminal:", err);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setIsRefreshing(false), 800);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
     const currentDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
     setTodayStr(currentDate);
-
-    // Fonction pour récupérer les vraies données depuis Supabase
-    const fetchSupabaseData = async () => {
-      // 1. Clients (Contacts)
-      const { data: clientsData, error: clientsErr } = await supabase.from('clients').select('*');
-      if (clientsData && !clientsErr) setContacts(clientsData.reverse());
-
-      // 2. Leads
-      const { data: leadsData, error: leadsErr } = await supabase.from('leads').select('*');
-      if (leadsData && !leadsErr) setLeads(leadsData.reverse());
-
-      // 3. Partners
-      const { data: partnersData, error: partnersErr } = await supabase.from('partners').select('*');
-      if (partnersData && !partnersErr) setPartners(partnersData.reverse());
-
-      // 4. Articles
-      const { data: articlesData, error: articlesErr } = await supabase.from('articles').select('*');
-      if (articlesData && !articlesErr) setMarketingArticles(articlesData.reverse());
-    };
-
     fetchSupabaseData();
 
-    // Fausses données conservées pour ce qui n'est pas encore en BDD
+    // Simulation d'Actions IA dynamiques
     setActionsIA([
        { id: 'a1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: currentDate, status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger ?' },
        { id: 'a2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: currentDate, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' },
-       { id: 'a3', module: 'Marketing', title: 'Newsletter : L\'ère du Digital', desc: 'Diffusion automatique programmée pour les prospects Restauration.', date: 'Demain', status: 'En attente' }
+       { id: 'a3', module: 'Marketing', title: 'Newsletter : L\'ère du Digital', desc: 'Diffusion automatique programmée pour les prospects Restauration.', date: 'Demain', status: 'En attente' },
+       { id: 'a4', module: 'SaaS', title: 'Maintenance Stock', desc: 'Optimisation de la base de données pour Onyx Stock.', date: 'Ce soir', status: 'En cours' }
     ]);
 
     setTransactions([
       { id: 'tr1', date: currentDate, client: 'Boutique Fatou', amount: 17500, type: 'Abonnement Trio', status: 'Payé', ref: 'WAVE-10293' },
       { id: 'tr2', date: 'Hier', client: 'Resto Dakar', amount: 30000, type: 'Pack Full', status: 'En attente', ref: 'OM-99212' },
       { id: 'tr3', date: '01 Mar 2026', client: 'Cheikh N.', amount: -45000, type: 'Commission Ambassadeur', status: 'Versé', ref: 'PAY-4412' },
+      { id: 'tr4', date: '02 Mar 2026', client: 'Auto-Ecole Plus', amount: 50000, type: 'Pack Full', status: 'Payé', ref: 'WAVE-8821' },
+      { id: 'tr5', date: '03 Mar 2026', client: 'Boutique Z', amount: 10000, type: 'Onyx Vente', status: 'Payé', ref: 'OM-1102' },
     ]);
   }, []);
 
   if (!mounted) {
     return (
-      <div className={`flex h-screen w-full bg-zinc-50 items-center justify-center ${inter.className}`}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Initialisation de l'espace Admin...</p>
+      <div className={`flex h-screen w-full bg-black items-center justify-center ${inter.className}`}>
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 border-t-4 border-l-4 border-[#39FF14] rounded-full animate-spin shadow-[0_0_20px_#39FF14]"></div>
+          <div className="text-center">
+            <h1 className={`${spaceGrotesk.className} text-2xl font-black text-white uppercase tracking-[0.5em]`}>OnyxOps</h1>
+            <p className="text-[10px] font-bold text-[#39FF14] uppercase tracking-widest mt-2 animate-pulse">Initialisation du Terminal de Contrôle...</p>
+          </div>
         </div>
       </div>
     );
   }
 
+  // --- LOGIQUE METIER & ACTIONS ---
   const triggerFilterAnimation = (filterValue: string) => {
     setGlobalFilterDate(filterValue);
     setIsRefreshing(true);
@@ -161,473 +187,575 @@ export default function AdminDashboard() {
 
   const executeWA = (phone: string | undefined, msg: string | undefined, idIA?: string) => {
     if(phone && msg) window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-    if (idIA) setActionsIA(prev => (prev || []).map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
+    if (idIA) setActionsIA(prev => prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
   };
 
   const replyToLead = (lead: any) => {
-     const msg = `Bonjour ${lead.full_name}, je suis l'administrateur d'OnyxOps. J'ai bien reçu votre message : "${lead.message}". Comment puis-je vous aider ?`;
+     const msg = `Bonjour ${lead.full_name}, je suis l'administrateur d'OnyxOps. J'ai bien reçu votre demande concernant "${lead.intent}". Comment puis-je vous aider ?`;
      window.open(`https://wa.me/${lead.phone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
-     const newAction: IAAction = { id: Date.now().toString(), module: 'CRM', title: title || "", desc: desc || "", date: todayStr || "", status: 'En attente', phone: phone || "", msg: msg || "" };
-     setActionsIA([newAction, ...(actionsIA || [])]);
-     alert("L'action a bien été planifiée sur votre Dashboard !");
+     const newAction: IAAction = { id: Date.now().toString(), module: 'CRM', title, desc, date: todayStr, status: 'En attente', phone, msg };
+     setActionsIA([newAction, ...actionsIA]);
+     alert("Action planifiée sur le dashboard !");
      setShowRapportIA(false);
   };
 
-  // --- SAUVEGARDE CLIENTS DANS SUPABASE ---
+  const handleDeleteItem = async (table: string, id: string) => {
+    if(!confirm("⚠️ Attention : Suppression irréversible. Confirmer ?")) return;
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if(error) alert("Erreur terminal : " + error.message);
+    else fetchSupabaseData();
+  };
+
   const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = { ...editingContact };
     const isNew = !payload.id;
+    if (isNew) delete payload.id;
     
-    // NETTOYAGE IMPORTANT : Retirer les champs qui ne sont pas dans la BDD
-    delete payload.isExpiringTrial;
-    delete payload.isExpiringSub;
-
-    // Si c'est nouveau, on laisse Supabase générer l'ID UUID automatiquement
-    if (isNew) {
-      delete payload.id;
-      if (!payload.status) payload.status = 'Nouveau';
-    }
-
-    const { data, error } = await supabase.from('clients').upsert(payload).select().single();
-
-    if (error) {
-      console.error("Erreur Supabase:", error);
-      alert(`Erreur de sauvegarde : ${error.message}`);
-      return;
-    }
-
-    if (data) {
-      if (isNew) setContacts([data, ...(contacts || [])]);
-      else setContacts((contacts || []).map(c => c.id === data.id ? data : c));
-    }
-    
+    const { error } = await supabase.from('clients').upsert(payload);
+    if (error) { alert(`Erreur base de données : ${error.message}`); return; }
+    fetchSupabaseData();
     setShowContactModal(false);
   };
 
-  // --- APPROBATION PARTENAIRE SUPABASE ---
   const approvePartner = async (id: string) => {
-    const { data, error } = await supabase.from('partners').update({ status: 'Actif' }).eq('id', id).select().single();
-    if (error) {
-      alert("Erreur lors de l'approbation : " + error.message);
-      return;
-    }
-    if (data) {
-      setPartners((partners || []).map(p => p.id === id ? data : p));
-    }
+    const { error } = await supabase.from('partners').update({ status: 'Actif' }).eq('id', id);
+    if (error) alert("Erreur terminal : " + error.message);
+    else fetchSupabaseData();
   };
 
-  // --- EDITION PARTENAIRE SUPABASE ---
   const handleSavePartner = async () => {
      if(!editPartnerForm) return;
-     const payload = { ...editPartnerForm };
-     
-     const { data, error } = await supabase.from('partners').update(payload).eq('id', payload.id).select().single();
-     if (error) {
-       alert("Erreur de sauvegarde : " + error.message);
-       return;
-     }
-     if (data) {
-       setPartners((partners || []).map(p => p.id === data.id ? data : p));
-       setSelectedPartner(data);
-     }
-     setIsEditingPartner(false);
+     const { error } = await supabase.from('partners').update(editPartnerForm).eq('id', editPartnerForm.id);
+     if (error) alert("Erreur terminal : " + error.message);
+     else { fetchSupabaseData(); setIsEditingPartner(false); setShowPartnerModal(false); }
   };
 
   const handleConvertPartnerToClient = async () => {
-     if(!selectedPartner) return;
-     // Sauvegarde dans la table clients
-     const newClientPayload = { 
-       full_name: selectedPartner.full_name || "Nouveau", 
-       phone: selectedPartner.contact || "", 
-       type: 'Client', 
-       saas: 'À définir', 
-       status: 'Converti depuis Ambassadeur'
-     };
-
-     const { data, error } = await supabase.from('clients').insert([newClientPayload]).select().single();
-     if (error) {
-       alert("Erreur lors de la conversion : " + error.message);
-       return;
-     }
-     
-     if (data) {
-       setContacts([data, ...(contacts || [])]);
-       alert(`${selectedPartner.full_name} a été ajouté en tant que Client dans le CRM ! Son statut Ambassadeur est conservé.`);
-     }
+      if(!selectedPartner) return;
+      const { error } = await supabase.from('clients').insert({
+        full_name: selectedPartner.full_name,
+        phone: selectedPartner.contact,
+        type: 'Client',
+        status: 'Converti Ambassadeur'
+      });
+      if(error) alert(error.message);
+      else { alert("Ambassadeur ajouté au CRM Clients !"); fetchSupabaseData(); }
   };
 
-  const scheduleMarketingDiffusion = () => {
-     if(!selectedContactsForDiffusion || selectedContactsForDiffusion.length === 0) return alert("Veuillez sélectionner au moins un contact.");
-     const newAction: IAAction = { id: Date.now().toString(), module: 'Marketing', title: `Diffusion : ${showDiffusionModal?.title || "Article"}`, desc: `Envoi programmé à ${selectedContactsForDiffusion.length} contacts sélectionnés.`, date: todayStr, status: 'En attente' };
-     setActionsIA([newAction, ...(actionsIA || [])]);
-     setShowDiffusionModal(null); setSelectedContactsForDiffusion([]);
-     alert("La diffusion a bien été planifiée sur le Dashboard !");
-  };
-
-  const handleCreateSaasAccount = () => {
-     if (saasCreateType === 'manual' && (!saasCreateForm.name || !saasCreateForm.phone || !saasCreateForm.password)) {
-        return alert("Veuillez remplir tous les champs manuels.");
-     }
-     if (saasCreateType === 'prospect' && (!saasCreateForm.prospectId || !saasCreateForm.password)) {
-        return alert("Veuillez sélectionner un prospect et définir un mot de passe.");
-     }
-     alert(`Compte ${showSaasLogin.name} créé avec succès !\nUn message contenant les accès va être envoyé via WhatsApp.`);
+  const handleCreateSaasAccount = async () => {
+     if (saasCreateType === 'manual' && (!saasCreateForm.name || !saasCreateForm.phone || !saasCreateForm.password)) return alert("Veuillez remplir tous les champs.");
      
      let targetPhone = saasCreateForm.phone;
      let targetName = saasCreateForm.name;
-     
      if (saasCreateType === 'prospect') {
         const p = contacts.find(c => c.id === saasCreateForm.prospectId);
         if(p) { targetPhone = p.phone; targetName = p.full_name; }
      }
      
-     const msg = `Félicitations ${targetName} ! Votre espace ${showSaasLogin.name} a été créé.\nLien : https://${showSaasLogin.id}.onyxops.com\nMot de passe : ${saasCreateForm.password}`;
-     setShowSaasLogin(null);
-     setSaasCreateForm({ prospectId: '', name: '', phone: '', password: '' });
-     window.open(`https://wa.me/${targetPhone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
-  };
+     const msg = `Félicitations ${targetName} ! Votre espace ${showSaasLogin.name} est actif.\nLien : https://${showSaasLogin.id}.onyxops.com\nIdentifiant : ${targetPhone}\nMot de passe : ${saasCreateForm.password}`;
+     
+     // Logique d'insertion Supabase pour le nouveau client SaaS
+     await supabase.from('clients').upsert({
+        full_name: targetName,
+        phone: targetPhone,
+        type: 'Client',
+        saas: showSaasLogin.name,
+        status: 'Compte Créé'
+     }, { onConflict: 'phone' });
 
-  const runIAArticleSuggestion = () => {
-     const newArt = { 
-       id: Date.now().toString(), 
-       title: 'BOOSTER SES VENTES WHATSAPP AVEC L\'IA', 
-       desc: 'Découvrez les 3 scripts générés par IA qui convertissent à 80%...', 
-       category: 'Vente', 
-       cible: 'Tous' 
-     };
-     setMarketingArticles([newArt, ...(marketingArticles || [])]);
-     alert("Un nouvel article a été généré par l'IA et ajouté à votre liste ! (Note: ceci est une simulation)");
+     alert(`Compte ${showSaasLogin.name} créé et enregistré !`);
+     setShowSaasLogin(null);
+     fetchSupabaseData();
+     window.open(`https://wa.me/${targetPhone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const saveAdminProfile = () => {
      setAdminProfile(tempAdminProfile);
-     alert("Profil mis à jour avec succès !");
+     alert("Profil synchronisé !");
      setShowProfileModal(false);
   };
 
-  const filteredActions = (actionsIA || []).filter(a => {
-     if(actionTabFilter === 'IA' && a.module === 'Marketing') return false;
-     if(actionTabFilter === 'Marketing' && a.module !== 'Marketing') return false;
-     const search = actionSearchFilter?.toLowerCase() || "";
-     if(search && !(a.title?.toLowerCase() || "").includes(search) && !(a.desc?.toLowerCase() || "").includes(search)) return false;
+  const runIAArticleSuggestion = () => {
+      const newArt = { id: Date.now().toString(), title: 'BOOSTER SES VENTES WHATSAPP AVEC L\'IA', desc: 'Scripts de vente générés par IA pour augmenter vos taux de conversion.', category: 'Stratégie', cible: 'Tous' };
+      setMarketingArticles([newArt, ...marketingArticles]);
+      alert("IA : Nouvel article suggéré et ajouté.");
+  };
+
+  const scheduleMarketingDiffusion = () => {
+      if(selectedContactsForDiffusion.length === 0) return alert("Sélectionnez au moins un contact.");
+      const newAction: IAAction = { id: Date.now().toString(), module: 'Marketing', title: `Diffusion : ${showDiffusionModal?.title}`, desc: `Envoi à ${selectedContactsForDiffusion.length} contacts.`, date: todayStr, status: 'En attente' };
+      setActionsIA([newAction, ...actionsIA]);
+      setShowDiffusionModal(null);
+      alert("Diffusion planifiée.");
+  };
+
+  // --- LOGIQUE DE FILTRES ---
+  const filteredContacts = (contacts || []).filter(c => {
+    if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
+    const search = crmSearch.toLowerCase();
+    if (search && !c.full_name?.toLowerCase().includes(search) && !c.phone?.includes(search)) return false;
+    if (crmCardFilter === 'new_clients' && c.type !== 'Client') return false;
+    return true;
+  });
+
+  const filteredTransactions = (transactions || []).filter(t => {
+     const search = financeSearch.toLowerCase();
+     if (search && !t.client?.toLowerCase().includes(search) && !t.ref?.toLowerCase().includes(search)) return false;
+     if (financeTypeFilter === 'Entrée' && t.amount <= 0) return false;
+     if (financeTypeFilter === 'Sortie' && t.amount > 0) return false;
      return true;
   });
-  
-  const displayedActions = (actionTabFilter === 'All' && !actionSearchFilter) ? filteredActions.slice(0, 5) : filteredActions;
 
+  const filteredActionsIA = (actionsIA || []).filter(a => {
+      if (actionTabFilter === 'IA' && a.module === 'Marketing') return false;
+      if (actionTabFilter === 'Marketing' && a.module !== 'Marketing') return false;
+      const search = actionSearchFilter.toLowerCase();
+      return a.title.toLowerCase().includes(search) || a.desc.toLowerCase().includes(search);
+  });
+
+  // --- STRUCTURE DU DASHBOARD ---
   return (
-    <div className={`flex h-screen bg-zinc-50 ${inter.className} text-black overflow-hidden`}>
+    <div className={`flex h-screen bg-[#fafafa] ${inter.className} text-black overflow-hidden relative selection:bg-[#39FF14]/30`}>
       
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-zinc-200 flex flex-col z-20 shadow-sm hidden md:flex">
-        <div className="p-6">
-          <h1 className={`${spaceGrotesk.className} text-3xl font-black tracking-tighter uppercase cursor-pointer`} onClick={() => window.location.href = '/'}>
-            ONYX<span className="text-[#39FF14]">OPS</span>
+      {/* ================= SIDEBAR ================= */}
+      <aside className="w-72 bg-white border-r border-zinc-200 flex flex-col z-30 shadow-sm hidden md:flex transition-all">
+        <div className="p-10">
+          <h1 className={`${spaceGrotesk.className} text-3xl font-black tracking-tighter uppercase cursor-pointer group`} onClick={() => setActiveView('dashboard')}>
+            ONYX<span className="text-[#39FF14] group-hover:drop-shadow-[0_0_8px_rgba(57,255,20,0.6)] transition-all">OPS</span>
           </h1>
+          <div className="mt-2 flex items-center gap-2">
+             <div className="w-1.5 h-1.5 bg-[#39FF14] rounded-full animate-pulse"></div>
+             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Admin Hub 2026</p>
+          </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto px-4 space-y-8">
+        <div className="flex-1 overflow-y-auto px-6 space-y-10">
           <div>
-            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3 pl-2">Menu Principal</p>
+            <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] mb-4 pl-4">Terminal Principal</p>
             <nav className="space-y-1">
               {[
-                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Accueil' },
-                { id: 'leads', icon: MessageSquare, label: 'Leads & Messages' },
-                { id: 'crm', icon: Users, label: 'Membres & CRM' },
-                { id: 'ecosystem', icon: Box, label: 'Écosystème (9 SaaS)' },
+                { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de Bord' },
+                { id: 'leads', icon: MessageSquare, label: 'Leads & Flux' },
+                { id: 'crm', icon: Users, label: 'CRM & Membres' },
+                { id: 'ecosystem', icon: Box, label: '9 SaaS Onyx' },
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
-              ].map(item => {
-                const Icon = item.icon; 
-                return (
-                  <button 
-                    key={item.id} 
-                    onClick={() => setActiveView(item.id as ViewType)} 
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeView === item.id ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-600 hover:bg-zinc-100 hover:text-black'}`}
-                  >
-                    <Icon size={18} /> {item.label}
-                  </button>
-                )
-              })}
+              ].map(item => (
+                <button 
+                  key={item.id} 
+                  onClick={() => setActiveView(item.id as ViewType)} 
+                  className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === item.id ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}
+                >
+                  <item.icon size={20} className={activeView === item.id ? 'text-[#39FF14]' : ''} /> 
+                  {item.label}
+                  {item.id === 'leads' && leads.length > 0 && (
+                     <span className="ml-auto bg-[#39FF14] text-black text-[10px] font-black px-2 py-0.5 rounded-full">{leads.length}</span>
+                  )}
+                </button>
+              ))}
             </nav>
           </div>
           
           <div>
-            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3 pl-2">Marketing & Ventes</p>
-            <button 
-              onClick={() => setActiveView('marketing')} 
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-600 hover:bg-zinc-100 hover:text-black'}`}
-            >
-              <Megaphone size={18} /> Marketing & Blog
-            </button>
+            <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] mb-4 pl-4">Stratégie & Ventes</p>
+            <nav className="space-y-1">
+               <button onClick={() => setActiveView('marketing')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
+                 <Megaphone size={20} /> Marketing & Blog
+               </button>
+               <button onClick={() => setShowRapportIA(true)} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all">
+                 <Sparkles size={20} className="text-[#39FF14]" /> Scan Intelligence
+               </button>
+            </nav>
           </div>
+        </div>
+
+        <div className="p-6 border-t border-zinc-100">
+           <div className="bg-black rounded-2xl p-4 flex items-center gap-4 border border-zinc-800">
+              <div className="w-10 h-10 bg-[#39FF14]/10 rounded-xl flex items-center justify-center text-[#39FF14]"><Activity size={20}/></div>
+              <div>
+                 <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">Status Serveur</p>
+                 <p className="text-[9px] font-bold text-zinc-500 uppercase mt-1">Dakar Hub : Optimsé</p>
+              </div>
+           </div>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* ================= MAIN AREA ================= */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#fafafa]">
         
-        {/* HEADER */}
-        <header className="bg-white border-b border-zinc-200 h-20 flex items-center justify-between px-8 shrink-0 z-10">
-          <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>
-            {activeView === 'dashboard' ? 'Terminal Central' : activeView === 'crm' ? 'CRM & Contacts' : activeView === 'partners' ? 'Ambassadeurs' : activeView}
-          </h2>
+        {/* HEADER GÉANT */}
+        <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200 h-28 flex items-center justify-between px-12 shrink-0 z-20">
+          <div className="flex flex-col">
+            <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter text-black`}>
+               {activeView === 'dashboard' ? 'Terminal Central' : activeView.replace('-', ' ')}
+            </h2>
+            <div className="flex items-center gap-3 mt-1">
+               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.3em]">{todayStr}</span>
+               <span className="w-1 h-1 bg-zinc-300 rounded-full"></span>
+               <span className="text-[10px] font-black text-[#39FF14] uppercase bg-black px-2 py-0.5 rounded-md">Live Session</span>
+            </div>
+          </div>
           
-          <div className="flex items-center gap-6">
-            <button onClick={() => window.location.href = '/'} className="hidden md:flex items-center gap-2 text-xs font-black uppercase text-zinc-400 hover:text-black transition">
-              <ExternalLink size={14}/> Retour au site
-            </button>
+          <div className="flex items-center gap-10">
+            <div className="hidden lg:flex items-center gap-8 pr-10 border-r border-zinc-200">
+               <button onClick={fetchSupabaseData} className={`text-zinc-400 hover:text-black transition-all ${isRefreshing ? 'animate-spin text-[#39FF14]' : ''}`}>
+                  <RefreshCcw size={22}/>
+               </button>
+               <div className="relative cursor-pointer group">
+                  <Bell size={22} className="text-zinc-400 group-hover:text-black transition-colors"/>
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">3</span>
+               </div>
+            </div>
             
-            <div onClick={() => setShowProfileModal(true)} className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 p-1.5 pr-4 rounded-full cursor-pointer hover:bg-zinc-100 transition shadow-sm hover:scale-105">
-              <img src={adminProfile?.avatar} className="w-8 h-8 rounded-full object-cover" alt="Admin" />
-              <div className="text-left hidden sm:block">
-                <p className="text-[10px] font-black uppercase leading-none text-black">{adminProfile?.name}</p>
-                <p className="text-[8px] font-bold text-zinc-500 uppercase">Profil & Réglages</p>
+            <div onClick={() => setShowProfileModal(true)} className="flex items-center gap-5 bg-white border border-zinc-200 p-2.5 pr-8 rounded-full cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-1 group active:scale-95">
+              <div className="relative">
+                <img src={adminProfile?.avatar} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md ring-2 ring-zinc-50" alt="Admin" />
+                <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#39FF14] border-[3px] border-white rounded-full"></div>
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-black uppercase leading-none text-black group-hover:text-[#39FF14] transition-colors">{adminProfile?.name}</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1 tracking-widest">Contrôleur Onyx</p>
               </div>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 relative">
+        {/* CONTENU DYNAMIQUE */}
+        <div className="flex-1 overflow-y-auto p-12 scroll-smooth">
           
-          {/* ================= DASHBOARD ================= */}
+          {/* ================= VUE DASHBOARD ================= */}
           {activeView === 'dashboard' && (
-            <div className={`space-y-8 max-w-7xl mx-auto transition-opacity duration-300 ${isRefreshing ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+            <div className={`space-y-12 max-w-[1600px] mx-auto transition-all duration-700 ${isRefreshing ? 'opacity-30 scale-[0.98] grayscale' : 'opacity-100 scale-100 grayscale-0'}`}>
               
-              {/* FILTRES GLOBAUX DASHBOARD */}
-              <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-2 rounded-2xl w-max shadow-sm border border-zinc-200">
-                <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
-                   {['Aujourd\'hui', 'Ce Mois', 'Année', 'Personnalisé'].map(filter => (
-                      <button 
-                        key={filter} 
-                        onClick={() => triggerFilterAnimation(filter)} 
-                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition ${globalFilterDate === filter ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}
-                      >
-                        {filter}
-                      </button>
-                   ))}
+              {/* STATS PRINCIPALES */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <div onClick={() => setActiveView('finance')} className="bg-black p-10 rounded-[4rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden cursor-pointer hover:scale-[1.03] transition-all group border border-zinc-800">
+                  <div className="absolute -top-12 -right-12 p-12 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 text-[#39FF14]"><Wallet size={200}/></div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d'Affaires Mensuel</p>
+                  <div className="flex items-end gap-4">
+                    <p className={`${spaceGrotesk.className} text-6xl font-black text-[#39FF14] tracking-tighter`}>1.245.000 <span className="text-2xl opacity-50 font-medium">F</span></p>
+                    <div className="flex flex-col mb-2">
+                       <span className="text-[10px] font-black text-[#39FF14] bg-[#39FF14]/10 px-2 py-1 rounded-lg flex items-center gap-1"><ArrowUpRight size={12}/> +12.4%</span>
+                    </div>
+                  </div>
                 </div>
-                {globalFilterDate === 'Personnalisé' && (
-                   <div className="flex items-center gap-2 px-2 animate-in fade-in slide-in-from-left-4">
-                      <input type="date" value={customDateRange.start} onChange={e=>setCustomDateRange({...customDateRange, start: e.target.value})} className="bg-zinc-100 border border-zinc-200 text-xs font-bold p-2 rounded-lg outline-none" />
-                      <span className="text-zinc-400 font-bold">-</span>
-                      <input type="date" value={customDateRange.end} onChange={e=>setCustomDateRange({...customDateRange, end: e.target.value})} className="bg-zinc-100 border border-zinc-200 text-xs font-bold p-2 rounded-lg outline-none" />
-                      <button className="bg-[#39FF14] text-black px-3 py-2 rounded-lg text-xs font-black uppercase hover:bg-black hover:text-[#39FF14] transition"><Search size={14}/></button>
+
+                <div onClick={() => setActiveView('leads')} className="bg-white border border-zinc-200 p-10 rounded-[4rem] shadow-sm cursor-pointer hover:border-black hover:shadow-2xl transition-all group relative overflow-hidden">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Flux de Leads (24h)</p>
+                  <p className={`${spaceGrotesk.className} text-6xl font-black text-black tracking-tighter`}>{leads.length}</p>
+                  <div className="flex items-center gap-3 mt-6">
+                    <div className="flex -space-x-4">
+                      {leads.slice(0, 5).map((l, i) => (
+                        <div key={i} className="w-10 h-10 rounded-full border-[3px] border-white bg-zinc-100 overflow-hidden shadow-sm">
+                          <img src={`https://ui-avatars.com/api/?name=${l.full_name}&background=random&color=000&bold=true`} alt="" />
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">+{leads.length > 5 ? leads.length - 5 : 0} nouveaux</span>
+                  </div>
+                </div>
+
+                <div onClick={() => setActiveView('marketing')} className="bg-[#39FF14] p-10 rounded-[4rem] shadow-xl cursor-pointer hover:scale-[1.03] transition-all group relative overflow-hidden border border-[#32E612]">
+                   <div className="absolute -bottom-10 -right-10 opacity-10 text-black group-hover:rotate-[-15deg] transition-all duration-700"><Megaphone size={180}/></div>
+                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/40 mb-4">Portée Marketing Blog</p>
+                   <p className={`${spaceGrotesk.className} text-6xl font-black text-black tracking-tighter`}>8.405</p>
+                   <div className="mt-6 flex items-center gap-2">
+                      <div className="px-3 py-1 bg-black text-[#39FF14] rounded-full text-[10px] font-black uppercase">Live Analytics</div>
                    </div>
-                )}
-              </div>
-
-              {/* 3 CARTES CLIQUABLES */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div onClick={() => setActiveView('finance')} className="bg-black text-white p-6 rounded-[2rem] shadow-xl relative overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform group">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 group-hover:opacity-20 transition"><Wallet size={64}/></div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Chiffre d'Affaires ({globalFilterDate})</p>
-                  <p className={`${spaceGrotesk.className} text-4xl font-black text-[#39FF14]`}>1.245.000 F</p>
-                </div>
-                <div onClick={() => setActiveView('leads')} className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm cursor-pointer hover:border-black hover:scale-[1.02] transition-all group">
-                  <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:scale-110 transition text-black"><MessageSquare size={64}/></div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Nouveaux Leads</p>
-                  <p className={`${spaceGrotesk.className} text-4xl font-black`}>142</p>
-                </div>
-                <div onClick={() => setActiveView('marketing')} className="bg-[#39FF14]/10 border border-[#39FF14]/30 p-6 rounded-[2rem] cursor-pointer hover:border-[#39FF14] hover:scale-[1.02] transition-all group">
-                  <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:scale-110 transition text-[#39FF14]"><Megaphone size={64}/></div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-2">Vues Blog / Clics</p>
-                  <p className={`${spaceGrotesk.className} text-4xl font-black`}>8.405</p>
                 </div>
               </div>
 
-              {/* HISTOGRAMME ET CARTE */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                 {/* HISTOGRAMME VERT */}
-                 <div className="lg:col-span-2 bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm">
-                    <div className="flex justify-between items-center mb-8">
-                       <h3 className="font-black uppercase text-sm flex items-center gap-2"><BarChart2 className="text-[#39FF14]"/> Évolution des Revenus</h3>
-                       <span className="text-[10px] font-black uppercase tracking-widest bg-zinc-100 px-3 py-1 rounded-full text-zinc-500">Mars 2026</span>
-                    </div>
-                    
-                    <div className="flex items-end justify-between h-48 gap-2 relative">
-                       {/* Lignes de repère */}
-                       <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
-                          <div className="border-t border-zinc-300 w-full"></div>
-                          <div className="border-t border-zinc-300 w-full"></div>
-                          <div className="border-t border-zinc-300 w-full"></div>
-                       </div>
-                       
-                       {histogramData.map((d, i) => {
-                          const heightPct = Math.max((d.ca / maxCa) * 100, 5); // 5% minimum height for empty days
-                          return (
-                             <div 
-                               key={i} 
-                               onClick={() => setHistogramData(histogramData.map((data, idx) => ({ ...data, active: idx === i })))}
-                               className="relative flex flex-col items-center flex-1 h-full justify-end group cursor-pointer"
-                             >
-                                <div className={`w-full max-w-[40px] rounded-t-xl transition-all duration-300 ${d.active || d.ca > 0 ? 'bg-black hover:bg-[#39FF14]' : 'bg-zinc-200 hover:bg-zinc-300'} ${d.active ? 'ring-2 ring-[#39FF14] ring-offset-2' : ''}`} style={{ height: `${heightPct}%` }}></div>
-                                
-                                {/* Tooltip Hover/Active */}
-                                <div className={`absolute bottom-[calc(100%+10px)] bg-black text-white p-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap z-10 transition-opacity ${d.active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} pointer-events-none shadow-xl before:content-[''] before:absolute before:top-full before:left-1/2 before:-translate-x-1/2 before:border-4 before:border-transparent before:border-t-black`}>
-                                   {d.date} : <span className="text-[#39FF14]">{d.ca.toLocaleString()} F</span>
-                                </div>
-                                
-                                <span className={`mt-3 text-[10px] font-black uppercase ${d.active ? 'text-black' : 'text-zinc-400'}`}>{d.day}</span>
-                             </div>
-                          )
-                       })}
-                    </div>
-                 </div>
-
-                 {/* CARTE DAKAR / CONNEXIONS */}
-                 <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[3rem] shadow-xl relative overflow-hidden flex flex-col">
-                    <h3 className="font-black uppercase text-sm text-white mb-2 flex items-center gap-2 relative z-10"><MapPin className="text-[#39FF14]"/> Carte d'Activité</h3>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-6 relative z-10">Localisation: Pikine & Alentours</p>
-                    
-                    <div className="flex-1 relative rounded-2xl overflow-hidden border border-zinc-700 bg-zinc-800/50 flex items-center justify-center">
-                       {/* Fausse Carte Stylisée Vectorielle SVG avec points clignotants */}
-                       <svg viewBox="0 0 100 100" className="w-full h-full opacity-30 absolute inset-0 text-zinc-600 stroke-current" fill="none" strokeWidth="0.5">
-                          <path d="M10,20 Q30,10 50,30 T90,20 M10,40 Q30,50 50,40 T90,60 M10,70 Q40,90 60,60 T90,80" />
-                          <circle cx="30" cy="25" r="2" fill="currentColor"/>
-                          <circle cx="70" cy="45" r="3" fill="currentColor"/>
-                          <circle cx="45" cy="75" r="2" fill="currentColor"/>
-                       </svg>
-                       {/* Points Actifs (Néon) */}
-                       <div className="absolute top-[25%] left-[30%] w-3 h-3 bg-[#39FF14] rounded-full shadow-[0_0_15px_rgba(57,255,20,0.8)] animate-pulse"></div>
-                       <div className="absolute top-[45%] left-[70%] w-2 h-2 bg-yellow-400 rounded-full shadow-[0_0_10px_rgba(250,204,21,0.8)] animate-ping"></div>
-                       <div className="absolute top-[75%] left-[45%] w-4 h-4 bg-[#39FF14] rounded-full shadow-[0_0_20px_rgba(57,255,20,1)] animate-pulse"></div>
-                       
-                       <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-sm p-2 rounded-lg text-[9px] font-black uppercase text-white border border-zinc-700">
-                          <span className="text-[#39FF14]">+12 Hubs</span> actifs
+              {/* GRAPHIQUES ET MAP */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                {/* HISTOGRAMME NÉON */}
+                <div className="lg:col-span-2 bg-white border border-zinc-200 p-12 rounded-[4.5rem] shadow-sm relative overflow-hidden">
+                  <div className="flex justify-between items-center mb-12">
+                    <div className="flex items-center gap-5">
+                       <div className="p-4 bg-zinc-100 rounded-[1.5rem] text-black"><BarChart2 size={24}/></div>
+                       <div>
+                          <h3 className="font-black uppercase text-base tracking-tighter text-black">Flux de Revenus Hebdomadaire</h3>
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Mars 2026 • Terminal Dakar</p>
                        </div>
                     </div>
-                 </div>
-              </div>
-
-              {/* LISTES: NOUVEAUX CLIENTS & DERNIERS AMBASSADEURS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Nouveaux Clients */}
-                 <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                       <h3 className="font-black uppercase text-sm flex items-center gap-2"><CheckCircle className="text-[#39FF14]"/> Nouveaux Clients</h3>
-                       <button onClick={() => setActiveView('crm')} className="text-[10px] font-black uppercase text-zinc-400 hover:text-black transition">Voir Tout</button>
+                    <div className="flex gap-3 bg-zinc-50 p-2 rounded-[1.5rem]">
+                       <button className="px-6 py-2.5 bg-white border border-zinc-100 rounded-xl text-[11px] font-black uppercase text-zinc-400 shadow-sm">Semaine</button>
+                       <button className="px-6 py-2.5 bg-black rounded-xl text-[11px] font-black uppercase text-[#39FF14] shadow-xl">Mois</button>
                     </div>
-                    <div className="space-y-3">
-                       {(contacts || []).filter(c => c.type === 'Client').slice(0, 4).map(c => (
-                          <div key={c.id} className="flex justify-between items-center p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
-                             <div>
-                                <p className="font-bold text-sm uppercase">{c.full_name}</p>
-                                <p className="text-[10px] font-bold text-zinc-500">{c.saas}</p>
-                             </div>
-                             <span className="bg-[#39FF14]/20 text-black text-[9px] font-black uppercase px-2 py-1 rounded-md">Actif</span>
-                          </div>
-                       ))}
+                  </div>
+                  
+                  <div className="flex items-end justify-between h-72 gap-6 relative pt-10">
+                    {/* Grille de fond */}
+                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-[0.03] pt-14 pb-12">
+                      {[1,2,3,4,5].map(line => <div key={line} className="border-t-2 border-black w-full"></div>)}
                     </div>
-                 </div>
-
-                 {/* Derniers Ambassadeurs */}
-                 <div className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                       <h3 className="font-black uppercase text-sm flex items-center gap-2"><Handshake className="text-[#39FF14]"/> Derniers Ambassadeurs</h3>
-                       <button onClick={() => setActiveView('partners')} className="text-[10px] font-black uppercase text-zinc-400 hover:text-black transition">Voir Tout</button>
-                    </div>
-                    <div className="space-y-3">
-                       {(partners || []).slice(0, 4).map(p => (
-                          <div key={p.id} className="flex justify-between items-center p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
-                             <div>
-                                <p className="font-bold text-sm uppercase">{p.full_name}</p>
-                                <p className="text-[10px] font-bold text-zinc-500">{p.activity}</p>
-                             </div>
-                             <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-md ${p.status === 'En attente' ? 'bg-red-100 text-red-600' : 'bg-zinc-200 text-black'}`}>{p.status}</span>
-                          </div>
-                       ))}
-                    </div>
-                 </div>
-              </div>
-
-              {/* ACTIONS PLANIFIÉES */}
-              <div className="bg-zinc-900 text-white border border-zinc-800 p-8 rounded-[3rem] shadow-2xl">
-                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                    <h3 className="font-black uppercase text-sm flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> PLANIFICATEUR D'ACTIONS</h3>
-                    <div className="flex gap-2 bg-zinc-800 p-1 rounded-xl">
-                       <button onClick={() => setActionTabFilter('All')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'All' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Tout ({actionsIA?.length || 0})</button>
-                       <button onClick={() => setActionTabFilter('IA')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'IA' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Actions IA</button>
-                       <button onClick={() => setActionTabFilter('Marketing')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition ${actionTabFilter === 'Marketing' ? 'bg-[#39FF14] text-black' : 'text-zinc-400 hover:text-white'}`}>Marketing</button>
-                    </div>
-                 </div>
-
-                 <div className="mb-6 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
-                    <input type="text" placeholder="Rechercher une action..." value={actionSearchFilter} onChange={e => setActionSearchFilter(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-2xl outline-none font-bold text-sm text-white focus:border-[#39FF14] transition" />
-                 </div>
-
-                 <div className="space-y-3">
-                    {displayedActions.map(action => (
-                       <div key={action.id} className="bg-zinc-800 p-4 rounded-2xl flex flex-col md:flex-row justify-between md:items-center gap-4">
-                          <div>
-                             <p className="text-[10px] font-black text-[#39FF14] uppercase tracking-widest mb-1">{action.module} • Date : {action.date}</p>
-                             <p className="font-bold text-sm">{action.title}</p>
-                             <p className="text-xs text-zinc-400 truncate max-w-md">{action.desc}</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                             <select value={action.status || 'En attente'} onChange={e => setActionsIA(prev => (prev || []).map(a => a.id === action.id ? {...a, status: e.target.value as any} : a))} className="bg-zinc-900 text-[10px] font-black uppercase text-white p-2 rounded-lg border border-zinc-700 outline-none cursor-pointer">
-                                <option value="En attente">En attente</option><option value="En cours">En cours</option><option value="Réalisé">Réalisé</option><option value="Annulé">Annulé</option>
-                             </select>
-                             {action.phone && <button onClick={() => executeWA(action.phone, action.msg, action.id)} className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#39FF14] transition">Exécuter via WA</button>}
-                             {!action.phone && <button onClick={() => setActionsIA(prev => (prev || []).map(a => a.id === action.id ? { ...a, status: 'Réalisé' } : a))} className="bg-white text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#39FF14] transition"><CheckCircle size={14} className="inline mr-1"/> Valider</button>}
-                             <button onClick={() => setActionsIA(prev => (prev || []).filter(a => a.id !== action.id))} className="text-zinc-500 hover:text-red-500 transition"><X size={16}/></button>
-                          </div>
-                       </div>
+                    {histogramData.map((d, i) => (
+                      <div key={i} className="relative flex flex-col items-center flex-1 h-full justify-end group cursor-pointer" onClick={() => setHistogramData(histogramData.map((data, idx) => ({ ...data, active: idx === i })))}>
+                        <div className={`w-full max-w-[55px] rounded-[1.25rem] transition-all duration-700 relative z-10 ${d.active ? 'bg-black shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]' : 'bg-[#39FF14] hover:bg-black hover:scale-110 active:scale-95'}`} style={{ height: `${(d.ca / maxCa) * 100}%` }}>
+                           {d.active && <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-4 py-2 rounded-xl text-xs font-black shadow-2xl whitespace-nowrap animate-in slide-in-from-bottom-2">{d.ca.toLocaleString()} F</div>}
+                        </div>
+                        <span className={`mt-6 text-[11px] font-black uppercase tracking-tighter ${d.active ? 'text-black' : 'text-zinc-400'}`}>{d.day}</span>
+                      </div>
                     ))}
-                    {displayedActions.length === 0 && <p className="text-sm text-zinc-500 italic">Aucune action trouvée.</p>}
+                  </div>
+                </div>
+
+                {/* ACTIVITY MAP SENEGAL */}
+                <div className="bg-zinc-900 p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden flex flex-col border border-zinc-800 group">
+                  <div className="flex items-center gap-4 mb-10 relative z-10">
+                    <div className="p-3 bg-[#39FF14]/10 rounded-2xl"><MapPin className="text-[#39FF14]" size={22}/></div>
+                    <h3 className="font-black uppercase text-base text-white tracking-tighter">Zones de Capture</h3>
+                  </div>
+                  <div className="flex-1 relative rounded-[3rem] overflow-hidden border border-zinc-800 bg-zinc-800/30">
+                    <svg viewBox="0 0 100 100" className="w-full h-full opacity-10 absolute inset-0 text-[#39FF14] stroke-current group-hover:opacity-20 transition-all duration-700" fill="none" strokeWidth="0.8">
+                      <path d="M20,30 Q40,20 60,40 T90,30 M15,50 Q40,60 60,50 T95,70 M10,80 Q50,95 70,70 T90,90" />
+                      <circle cx="35" cy="35" r="1.5" fill="currentColor"/>
+                      <circle cx="65" cy="55" r="1.5" fill="currentColor"/>
+                      <circle cx="45" cy="75" r="1.5" fill="currentColor"/>
+                    </svg>
+                    {/* Points Live */}
+                    <div className="absolute top-[35%] left-[35%] w-5 h-5 bg-[#39FF14] rounded-full shadow-[0_0_30px_#39FF14] animate-pulse"></div>
+                    <div className="absolute top-[55%] left-[65%] w-4 h-4 bg-[#39FF14] rounded-full shadow-[0_0_20px_#39FF14] animate-ping"></div>
+                    <div className="absolute top-[75%] left-[45%] w-3 h-3 bg-yellow-400 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse"></div>
+                    
+                    <div className="absolute bottom-8 left-8 right-8 bg-black/60 backdrop-blur-xl p-6 rounded-[2rem] border border-zinc-800/50 shadow-2xl transform group-hover:translate-y-[-5px] transition-transform">
+                       <p className="text-[11px] font-black uppercase text-[#39FF14] mb-1 tracking-widest flex items-center gap-2"><Layers size={12}/> Focus : Dakar Plateaux</p>
+                       <p className="text-[10px] font-bold text-zinc-500 uppercase leading-relaxed">Forte densité de conversion (82%) • Peak : 18h00</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* LISTES DE DONNÉES DASHBOARD */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                 {/* DERNIERS MEMBRES CRM */}
+                 <div className="bg-white border border-zinc-200 p-12 rounded-[4.5rem] shadow-sm group hover:shadow-xl transition-all">
+                    <div className="flex justify-between items-center mb-10">
+                       <div className="flex items-center gap-5">
+                          <div className="w-14 h-14 bg-zinc-100 rounded-[1.75rem] flex items-center justify-center text-black group-hover:bg-black group-hover:text-[#39FF14] transition-all"><TrendingUp size={28}/></div>
+                          <div>
+                            <h3 className="font-black uppercase text-base tracking-tighter">Nouveaux Membres CRM</h3>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Derniers enregistrements base</p>
+                          </div>
+                       </div>
+                       <button onClick={() => setActiveView('crm')} className="text-[11px] font-black uppercase text-[#39FF14] bg-black px-6 py-3 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all">Gérer le CRM</button>
+                    </div>
+                    <div className="space-y-5">
+                       {contacts.filter(c => c.type === 'Client').slice(0, 4).map(c => (
+                          <div key={c.id} className="flex justify-between items-center p-6 bg-zinc-50 rounded-[2.5rem] border border-zinc-100 group/item hover:border-[#39FF14] hover:bg-white transition-all">
+                             <div className="flex items-center gap-5">
+                                <div className="w-12 h-12 rounded-2xl bg-black text-[#39FF14] flex items-center justify-center font-black text-sm shadow-lg">{c.full_name?.charAt(0)}</div>
+                                <div>
+                                   <p className="font-black text-sm uppercase text-black">{c.full_name}</p>
+                                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{c.saas || 'Solution Active'}</p>
+                                </div>
+                             </div>
+                             <div className="flex items-center gap-4">
+                                <span className="bg-[#39FF14]/10 text-black text-[9px] font-black uppercase px-3 py-1.5 rounded-xl border border-[#39FF14]/20">Activé</span>
+                                <button className="text-zinc-300 hover:text-black transition-colors"><ChevronDown size={18}/></button>
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+
+                 {/* ACTIONS IA INTELLIGENTES */}
+                 <div className="bg-zinc-900 p-12 rounded-[4.5rem] shadow-2xl border border-zinc-800 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-12 opacity-[0.03] text-[#39FF14] pointer-events-none"><Sparkles size={120}/></div>
+                    <div className="flex justify-between items-center mb-10 relative z-10">
+                       <h3 className="font-black uppercase text-base text-white tracking-tighter flex items-center gap-4"><Sparkles className="text-[#39FF14] shadow-[0_0_10px_#39FF14]"/> Planificateur IA</h3>
+                       <span className="text-[11px] font-black text-zinc-500 uppercase bg-zinc-800/80 px-4 py-2 rounded-xl border border-zinc-700">{actionsIA.length} tâches actives</span>
+                    </div>
+                    <div className="space-y-4 relative z-10">
+                       {actionsIA.slice(0, 4).map(action => (
+                          <div key={action.id} className="bg-zinc-800/40 backdrop-blur-md p-6 rounded-[2.5rem] border border-zinc-800 flex flex-col md:flex-row justify-between md:items-center gap-6 group hover:bg-zinc-800 hover:border-zinc-700 transition-all">
+                             <div>
+                                <p className="text-[10px] font-black text-[#39FF14] uppercase mb-1.5 tracking-[0.2em] flex items-center gap-2">
+                                   <div className={`w-1.5 h-1.5 rounded-full ${action.status === 'En attente' ? 'bg-[#39FF14]' : 'bg-yellow-400 animate-pulse'}`}></div>
+                                   {action.module} • {action.date}
+                                </p>
+                                <p className="font-bold text-sm text-white uppercase tracking-tight">{action.title}</p>
+                                <p className="text-[11px] text-zinc-500 mt-1.5 font-medium italic opacity-70">{action.desc}</p>
+                             </div>
+                             <div className="flex items-center gap-3">
+                                {action.phone ? (
+                                   <button onClick={() => executeWA(action.phone, action.msg, action.id)} className="bg-white text-black px-6 py-3.5 rounded-[1.25rem] text-[10px] font-black uppercase hover:bg-[#39FF14] transition-all shadow-xl active:scale-95">Exécuter WA</button>
+                                ) : (
+                                   <button className="bg-zinc-700 text-white px-6 py-3.5 rounded-[1.25rem] text-[10px] font-black uppercase hover:bg-zinc-600 transition-all border border-zinc-600">Détails</button>
+                                )}
+                             </div>
+                          </div>
+                       ))}
+                    </div>
                  </div>
               </div>
             </div>
           )}
 
-          {/* ================= LEADS & MESSAGES ================= */}
+          {/* ================= VUE LEADS (FLUX RÉEL) ================= */}
           {activeView === 'leads' && (
-            <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
-              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
-                 <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>
-                   <MessageSquare className="inline text-[#39FF14] mr-2"/> Leads & Messages
-                 </h2>
-                 <div className="bg-zinc-100 border border-zinc-200 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
-                    <span className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></span>
-                    N° Réception Actif : <span className="font-black">78 533 84 17</span>
-                 </div>
+             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 max-w-[1400px] mx-auto">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-8 bg-white p-10 rounded-[4rem] border border-zinc-200 shadow-sm">
+                   <div className="flex items-center gap-6">
+                      <div className="w-16 h-16 bg-black rounded-[1.75rem] flex items-center justify-center text-[#39FF14] shadow-2xl animate-pulse"><MessageSquare size={32}/></div>
+                      <div>
+                         <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter`}>Flux de Leads</h2>
+                         <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Capture en temps réel • Hub WhatsApp : 78 533 84 17</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-4">
+                      <div className="bg-zinc-50 border border-zinc-100 px-6 py-4 rounded-2xl flex items-center gap-3">
+                         <span className="w-2 h-2 bg-[#39FF14] rounded-full animate-ping"></span>
+                         <span className="text-[11px] font-black uppercase text-zinc-500">Flux Connecté</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="bg-white border border-zinc-200 rounded-[4.5rem] overflow-hidden shadow-sm">
+                   <table className="w-full text-left">
+                      <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                         <tr>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Origine & Contact</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Intention / Produit</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Message Reçu</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Traitement</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-50">
+                         {leads.map(l => (
+                            <tr key={l.id} className="hover:bg-zinc-50/50 transition-all group">
+                               <td className="p-8">
+                                  <p className="font-black text-sm uppercase text-black">{l.full_name}</p>
+                                  <p className="text-xs text-[#39FF14] font-black mt-1">{l.phone}</p>
+                                  <p className="text-[10px] text-zinc-400 font-bold uppercase mt-1 opacity-60">Source : {l.source || 'Site Web'}</p>
+                               </td>
+                               <td className="p-8">
+                                  <div className="flex flex-col gap-2">
+                                     <span className="bg-black text-[#39FF14] text-[10px] font-black px-3 py-1.5 rounded-xl uppercase inline-block shadow-lg w-max tracking-widest">{l.intent}</span>
+                                     <p className="text-[10px] font-bold text-zinc-400 uppercase ml-2">{l.created_at ? new Date(l.created_at).toLocaleDateString() : todayStr}</p>
+                                  </div>
+                               </td>
+                               <td className="p-8">
+                                  <p className="text-xs text-zinc-600 font-medium italic max-w-xs leading-relaxed opacity-80">"{l.message}"</p>
+                               </td>
+                               <td className="p-8 text-right space-x-4">
+                                  <button onClick={() => replyToLead(l)} className="bg-[#39FF14] text-black px-6 py-3.5 rounded-[1.25rem] text-[11px] font-black uppercase shadow-xl hover:bg-black hover:text-[#39FF14] transition-all active:scale-95 flex items-center justify-end gap-2 ml-auto">
+                                     <Send size={16}/> Répondre
+                                  </button>
+                               </td>
+                            </tr>
+                         ))}
+                         {leads.length === 0 && (
+                            <tr><td colSpan={4} className="p-32 text-center text-zinc-300 font-black uppercase text-sm tracking-widest italic opacity-50">Aucun lead actif dans le flux pour le moment.</td></tr>
+                         )}
+                      </tbody>
+                   </table>
+                </div>
+             </div>
+          )}
+
+          {/* ================= VUE CRM & MEMBRES ================= */}
+          {activeView === 'crm' && (
+            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 max-w-[1600px] mx-auto">
+              {/* CARTES STATS CRM */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                  {[
+                    { id: 'all', label: 'Membres CRM', val: contacts.length, icon: Users, color: 'bg-white border-zinc-200' },
+                    { id: 'new_clients', label: 'Clients Actifs', val: contacts.filter(c=>c.type==='Client').length, icon: CheckCircle, color: 'bg-black text-[#39FF14] shadow-2xl' },
+                    { id: 'new_prospects', label: 'Prospects Froids', val: contacts.filter(c=>c.type==='Prospect').length, icon: Clock, color: 'bg-white border-zinc-200' },
+                    { id: 'trials', label: 'Essais Onyx', val: 5, icon: Zap, color: 'bg-[#39FF14] text-black shadow-lg border-[#32E612]' },
+                  ].map(card => (
+                    <div 
+                      key={card.id} 
+                      onClick={() => setCrmCardFilter(crmCardFilter === card.id ? null : card.id)} 
+                      className={`p-10 rounded-[3.5rem] border cursor-pointer hover:scale-[1.04] transition-all ${card.color} ${crmCardFilter === card.id ? 'ring-[6px] ring-[#39FF14]/30 scale-105' : ''}`}
+                    >
+                       <card.icon size={26} className="mb-6 opacity-80" />
+                       <p className={`${spaceGrotesk.className} text-5xl font-black mb-1 tracking-tighter`}>{card.val}</p>
+                       <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-60 leading-none">{card.label}</p>
+                    </div>
+                  ))}
               </div>
-              
-              <div className="bg-white border border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
+
+              {/* BARRE DE RECHERCHE CRM */}
+              <div className="flex flex-col md:flex-row justify-between gap-8 items-center bg-white p-8 rounded-[4rem] border border-zinc-200 shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-2 h-full bg-[#39FF14] opacity-0 group-hover:opacity-100 transition-all"></div>
+                <div className="flex-1 w-full relative">
+                  <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-zinc-400 w-6 h-6 transition-all group-focus-within:text-[#39FF14]" />
+                  <input 
+                    type="text" 
+                    placeholder="Filtrer par nom, téléphone, statut ou service..." 
+                    value={crmSearch} 
+                    onChange={(e) => setCrmSearch(e.target.value)} 
+                    className="w-full pl-20 pr-8 py-5 bg-zinc-50 border-none rounded-[2rem] outline-none font-black text-sm text-black focus:ring-[6px] focus:ring-[#39FF14]/10 transition-all uppercase placeholder:text-zinc-300" 
+                  />
+                </div>
+                
+                <div className="flex gap-4 w-full md:w-auto">
+                   <select 
+                     value={crmTypeFilter} 
+                     onChange={(e) => setCrmTypeFilter(e.target.value)} 
+                     className="px-8 py-5 bg-zinc-50 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.15em] outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black transition-colors"
+                   >
+                      <option value="Tous">Base Complète</option>
+                      <option value="Client">Clients Officiels</option>
+                      <option value="Prospect">Prospects Leads</option>
+                   </select>
+                   <button 
+                     onClick={() => { setEditingContact({ full_name: '', phone: '', type: 'Prospect', saas: '' }); setShowContactModal(true); }} 
+                     className="flex items-center justify-center gap-4 bg-[#39FF14] text-black px-12 py-5 rounded-[2rem] font-black uppercase text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-2xl hover:-translate-y-1 active:scale-95"
+                   >
+                      <Plus size={20} /> Ajouter Nouveau
+                   </button>
+                </div>
+              </div>
+
+              {/* TABLEAU CRM */}
+              <div className="bg-white border border-zinc-200 rounded-[5rem] overflow-hidden shadow-sm relative">
                 <table className="w-full text-left">
-                  <thead className="bg-zinc-50 border-b border-zinc-200">
+                  <thead className="bg-zinc-50/50 border-b border-zinc-100">
                     <tr>
-                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Nom & Date</th>
-                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Source / Produit</th>
-                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Message</th>
-                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Action (Répondre)</th>
+                      <th className="p-10 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Identité & WhatsApp</th>
+                      <th className="p-10 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Segment Terminal</th>
+                      <th className="p-10 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Services Actifs</th>
+                      <th className="p-10 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {(leads || []).map((l) => (
-                      <tr key={l.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                        <td className="p-6">
-                          <p className="font-black text-sm uppercase">{l.full_name}</p>
-                          <p className="text-xs text-zinc-500">{l.date} • <span className="font-bold">{l.phone}</span></p>
+                  <tbody className="divide-y divide-zinc-50">
+                    {filteredContacts.map((c) => (
+                      <tr key={c.id} className="hover:bg-zinc-50/50 transition-all group">
+                        <td className="p-10">
+                          <div className="flex items-center gap-6">
+                             <div className="w-16 h-16 bg-zinc-100 rounded-[1.75rem] flex items-center justify-center font-black text-lg text-black group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm">{c.full_name?.charAt(0)}</div>
+                             <div>
+                                <p className="font-black text-base uppercase text-black tracking-tight">{c.full_name}</p>
+                                <p className="text-xs text-[#39FF14] font-black mt-1">{c.phone}</p>
+                             </div>
+                          </div>
                         </td>
-                        <td className="p-6">
-                          <p className="font-bold text-xs">{l.source}</p>
-                          <p className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-2 py-0.5 rounded-full inline-block mt-1">{l.intent}</p>
+                        <td className="p-10">
+                          <div className="flex flex-col gap-2">
+                             <span className={`px-4 py-2 text-[10px] font-black uppercase rounded-2xl w-max tracking-widest ${c.type === 'Client' ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20' : 'bg-zinc-100 text-zinc-400'}`}>{c.type}</span>
+                             <p className="text-[10px] font-bold text-zinc-300 mt-1 uppercase ml-2">{c.status || 'Non catégorisé'}</p>
+                          </div>
                         </td>
-                        <td className="p-6 text-xs text-zinc-600 font-medium">{l.message}</td>
-                        <td className="p-6 text-right">
-                          <button onClick={() => replyToLead(l)} className="text-[10px] font-black uppercase bg-[#39FF14] text-black px-4 py-3 rounded-xl hover:bg-black hover:text-[#39FF14] transition shadow-md flex items-center justify-end gap-2 ml-auto">
-                            <Send size={14}/> Traiter sur WA
-                          </button>
+                        <td className="p-10">
+                           <div className="flex items-center gap-4">
+                              <div className={`w-3 h-3 rounded-full ${c.saas ? 'bg-[#39FF14] shadow-[0_0_10px_#39FF14]' : 'bg-zinc-200'}`}></div>
+                              <p className="font-black text-sm text-black uppercase tracking-tighter">{c.saas || 'À définir'}</p>
+                           </div>
+                        </td>
+                        <td className="p-10 text-right space-x-4">
+                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-4 text-zinc-300 hover:text-black hover:bg-zinc-100 rounded-2xl transition-all shadow-sm"><Edit3 size={20}/></button>
+                          <button onClick={() => handleDeleteItem('clients', c.id)} className="p-4 text-zinc-200 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"><Trash2 size={20}/></button>
                         </td>
                       </tr>
                     ))}
-                    {(!leads || leads.length === 0) && (
-                      <tr><td colSpan={4} className="p-6 text-center text-zinc-500 text-sm italic">Aucun lead pour le moment.</td></tr>
+                    {filteredContacts.length === 0 && (
+                      <tr><td colSpan={4} className="p-32 text-center text-zinc-300 font-black uppercase text-sm tracking-[0.3em] opacity-50">Base CRM filtrée : Aucun résultat trouvé</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -635,300 +763,90 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ================= CRM ================= */}
-          {activeView === 'crm' && (
-            <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                 {[
-                    { id: 'new_clients', label: 'Nouveaux Clients', val: (contacts || []).filter(c=>c?.type==='Client').length, icon: CheckCircle, color: 'text-black bg-white border-zinc-200' },
-                    { id: 'new_prospects', label: 'Nouveaux Prospects', val: (contacts || []).filter(c=>c?.type==='Prospect').length, icon: Users, color: 'text-black bg-white border-zinc-200' },
-                    { id: 'exp_trials', label: 'Essais Expirants', val: (contacts || []).filter(c=>c?.isExpiringTrial).length, icon: Clock, color: 'text-[#39FF14] bg-black border-black shadow-lg' },
-                    { id: 'exp_subs', label: 'Abonnements Expirants', val: (contacts || []).filter(c=>c?.isExpiringSub).length, icon: AlertCircle, color: 'text-red-500 bg-red-50 border-red-100' },
-                 ].map(card => {
-                    const CardIcon = card.icon; 
-                    return (
-                      <div 
-                        key={card.id} 
-                        onClick={() => setCrmCardFilter(crmCardFilter === card.id ? null : card.id)} 
-                        className={`p-5 rounded-[2rem] border cursor-pointer hover:scale-105 transition-all ${card.color} ${crmCardFilter === card.id ? 'ring-4 ring-[#39FF14]/50' : ''}`}
-                      >
-                         <CardIcon size={20} className="mb-3" />
-                         <p className={`${spaceGrotesk.className} text-3xl font-black mb-1`}>{card.val}</p>
-                         <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{card.label}</p>
+          {/* ================= VUE FINANCES (FULL) ================= */}
+          {activeView === 'finance' && (
+             <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto">
+                <div className="flex flex-col md:flex-row justify-between items-center bg-white p-10 rounded-[4.5rem] border border-zinc-200 shadow-sm gap-8 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-40 h-40 bg-zinc-50 opacity-40 translate-x-20 -translate-y-20 rounded-full"></div>
+                   <div className="flex items-center gap-8 relative z-10">
+                      <div className="p-6 bg-black rounded-[2rem] text-[#39FF14] shadow-2xl shadow-[#39FF14]/10"><Wallet size={40}/></div>
+                      <div>
+                         <h2 className={`${spaceGrotesk.className} text-5xl font-black uppercase tracking-tighter`}>Hub Financier</h2>
+                         <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Registre des Revenus & Commissions 2026</p>
                       </div>
-                    )
-                 })}
-              </div>
-
-              <div className="flex flex-col md:flex-row justify-between gap-4 items-center bg-white p-4 rounded-3xl border border-zinc-200 shadow-sm">
-                <div className="flex-1 w-full relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-                  <input type="text" placeholder="Rechercher global..." value={crmSearch} onChange={(e) => setCrmSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-zinc-50 border-none rounded-2xl outline-none font-bold text-sm focus:ring-2 focus:ring-[#39FF14]/50 transition" />
-                </div>
-                
-                <select value={crmTypeFilter} onChange={(e) => setCrmTypeFilter(e.target.value)} className="px-4 py-3 bg-zinc-50 rounded-2xl font-bold text-sm outline-none border-none cursor-pointer w-full md:w-auto">
-                  <option value="Tous">Tous</option><option value="Client">Client</option><option value="Prospect">Prospect</option>
-                </select>
-                
-                <div className="flex gap-2 w-full md:w-auto">
-                   <button onClick={() => setShowRapportIA(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs hover:scale-105 transition shadow-lg"><Sparkles size={16} /> Scan IA CRM</button>
-                   <button onClick={() => { setEditingContact({ full_name: '', phone: '', type: 'Prospect', saas: '' }); setShowContactModal(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#39FF14] text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg"><Plus size={16} /> Nouveau</button>
-                </div>
-              </div>
-
-              {/* RAPPORT IA CRM */}
-              {showRapportIA && (
-                 <div className="bg-white border-2 border-[#39FF14] rounded-[3rem] p-8 shadow-2xl relative animate-in zoom-in mb-6">
-                    <button onClick={() => setShowRapportIA(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition"><X size={20}/></button>
-                    <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 flex items-center gap-2`}><Sparkles className="text-[#39FF14]"/> Rapport IA CRM</h3>
-                    <p className="text-xs font-bold text-zinc-500 mb-6">Suggestions intelligentes basées sur les essais en cours et expirations.</p>
-                    <div className="space-y-4">
-                       <div className="border border-zinc-200 p-6 rounded-[2rem] flex flex-col md:flex-row justify-between md:items-center bg-zinc-50 gap-4">
-                          <div>
-                             <p className="font-black text-lg uppercase">Magatte Fall</p>
-                             <p className="text-xs font-bold text-zinc-500 italic">Son essai Onyx Vente expire dans 7 jours.</p>
-                          </div>
-                          <button onClick={() => planifyCrmAction("Relance Magatte Fall", "Proposer conversion avant fin d'essai.", "221771234567", "Bonjour Magatte, comment se passe votre essai sur Onyx Vente ?")} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-md">Planifier l'Action</button>
-                       </div>
-                    </div>
-                 </div>
-              )}
-
-              <div className="bg-white border border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
-                <table className="w-full text-left">
-                  <thead className="bg-zinc-50 border-b border-zinc-200">
-                    <tr>
-                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Contact</th>
-                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Statut / Type</th>
-                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Produit SaaS</th>
-                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(contacts || []).filter(c => {
-                       if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
-                       const search = crmSearch?.toLowerCase() || "";
-                       if (search && !(c.full_name?.toLowerCase() || "").includes(search) && !(c.saas?.toLowerCase() || "").includes(search)) return false;
-                       if (crmCardFilter === 'new_clients' && c.type !== 'Client') return false;
-                       if (crmCardFilter === 'new_prospects' && c.type !== 'Prospect') return false;
-                       if (crmCardFilter === 'exp_trials' && !c.isExpiringTrial) return false;
-                       if (crmCardFilter === 'exp_subs' && !c.isExpiringSub) return false;
-                       return true;
-                    }).map((c) => (
-                      <tr key={c.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                        <td className="p-6">
-                          <p className="font-black text-sm uppercase">{c.full_name}</p>
-                          <p className="text-xs text-zinc-500 font-bold">{c.phone}</p>
-                        </td>
-                        <td className="p-6">
-                          <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-full ${c.type === 'Client' ? 'bg-[#39FF14]/20 text-black' : 'bg-zinc-200 text-zinc-600'}`}>{c.type}</span>
-                          <p className="text-[10px] font-bold text-zinc-400 mt-2">{c.status}</p>
-                        </td>
-                        <td className="p-6 font-bold text-sm">{c.saas || '-'}</td>
-                        <td className="p-6 text-right">
-                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="text-[10px] font-black uppercase bg-white border border-zinc-200 px-4 py-2 rounded-lg hover:border-black transition">Éditer</button>
-                        </td>
-                      </tr>
-                    ))}
-                    {(!contacts || contacts.length === 0) && (<tr><td colSpan={4} className="p-6 text-center text-zinc-500 text-sm italic">Aucun contact trouvé.</td></tr>)}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ================= PARTENAIRES ================= */}
-          {activeView === 'partners' && (
-             <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
-               <div className="flex gap-4 items-center bg-white p-4 rounded-3xl border border-zinc-200 shadow-sm mb-8">
-                 <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-                    <input type="text" placeholder="Rechercher un ambassadeur..." value={partnerSearch} onChange={e => setPartnerSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-zinc-50 border-none rounded-2xl outline-none font-bold text-sm focus:ring-2 focus:ring-[#39FF14]/50" />
-                 </div>
-               </div>
-
-               {(partners || []).filter(p => p.status === 'En attente').length > 0 && (
-                 <div className="bg-red-50 border border-red-200 p-6 rounded-[3rem] mb-8 shadow-sm">
-                    <h3 className="font-black uppercase text-sm mb-4 text-red-600 flex items-center gap-2"><AlertCircle/> Candidatures à Approuver</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       {(partners || []).filter(p => p.status === 'En attente').map(p => (
-                          <div key={p.id} className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
-                             <div>
-                               <p className="font-black text-sm uppercase">{p.full_name}</p>
-                               <p className="text-xs font-bold text-zinc-500">{p.contact} • {p.activity}</p>
-                             </div>
-                             <button onClick={() => approvePartner(p.id)} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition">Approuver</button>
-                          </div>
-                       ))}
-                    </div>
-                 </div>
-               )}
-
-               <div className="bg-white border border-zinc-200 rounded-[3rem] overflow-hidden shadow-sm">
-                 <table className="w-full text-left">
-                   <thead className="bg-zinc-50 border-b border-zinc-200">
-                     <tr>
-                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Ambassadeur</th>
-                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500">Activité / Statut</th>
-                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">Ventes</th>
-                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Actions</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {(partners || []).filter(p => {
-                       const search = partnerSearch?.toLowerCase() || "";
-                       return (p.full_name?.toLowerCase() || "").includes(search) && p.status !== 'En attente';
-                     }).map((p) => (
-                       <tr key={p.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                         <td className="p-6">
-                           <p className="font-black text-sm uppercase">{p.full_name}</p>
-                           <p className="text-xs text-zinc-500 font-bold">{p.contact}</p>
-                         </td>
-                         <td className="p-6">
-                           <span className="px-3 py-1 text-[10px] font-black uppercase rounded-full bg-zinc-200 text-black">{p.activity}</span>
-                           <p className="text-[10px] font-black uppercase mt-2 text-[#39FF14]">{p.status}</p>
-                         </td>
-                         <td className="p-6 text-center font-black text-xl">{p.sales}</td>
-                         <td className="p-6 text-right">
-                           <button onClick={() => { setSelectedPartner(p); setIsEditingPartner(false); setShowPartnerModal(true); }} className="text-[10px] font-black uppercase bg-black text-white px-4 py-2 rounded-lg hover:bg-[#39FF14] hover:text-black transition">Détails</button>
-                         </td>
-                       </tr>
-                     ))}
-                     {(!partners || partners.length === 0) && (<tr><td colSpan={4} className="p-6 text-center text-zinc-500 text-sm italic">Aucun partenaire trouvé.</td></tr>)}
-                   </tbody>
-                 </table>
-               </div>
-             </div>
-          )}
-
-          {/* ================= ECOSYSTEME (9 SAAS) ================= */}
-          {activeView === 'ecosystem' && (
-             <div className="space-y-6 animate-in fade-in max-w-7xl mx-auto">
-               <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-8`}>Écosystème <span className="text-[#39FF14]">OnyxOps</span></h2>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 {(ECOSYSTEM_SAAS || []).map(saas => (
-                    <div key={saas.id} className="bg-white border border-zinc-200 p-8 rounded-[3rem] shadow-sm hover:border-black transition group flex flex-col justify-between min-h-[250px]">
-                       <div>
-                          <div className={`w-12 h-12 rounded-2xl mb-6 flex items-center justify-center text-white ${saas.color}`}><Box size={24}/></div>
-                          <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase`}>{saas.name}</h3>
-                          <p className="text-sm font-bold text-zinc-500 mt-2">{saas.desc}</p>
-                       </div>
-                       <div className="mt-8 flex gap-2">
-                          <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('login'); }} className="flex-1 bg-black text-[#39FF14] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition shadow-lg">Login / Demo</button>
-                          <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('create'); }} className="flex-1 bg-zinc-100 text-black py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition">Créer Accès</button>
-                       </div>
-                    </div>
-                 ))}
-               </div>
-             </div>
-          )}
-
-          {/* ================= MARKETING & BLOG ================= */}
-          {activeView === 'marketing' && (
-             <div className="space-y-8 animate-in fade-in max-w-5xl mx-auto">
-                <div className="flex justify-between items-center bg-white p-6 rounded-[3rem] border border-zinc-200 shadow-sm">
-                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>ARTICLES & CIBLAGE</h2>
-                   <div className="flex gap-4">
-                      <button onClick={runIAArticleSuggestion} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition"><Sparkles size={16}/> Auto-Suggestion IA</button>
-                      <button onClick={() => alert("Ouverture de l'éditeur manuel...")} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition">Rédiger Manuel</button>
+                   </div>
+                   <div className="flex gap-4 relative z-10">
+                      <button onClick={() => alert("Génération registre PDF...")} className="bg-black text-[#39FF14] px-10 py-5 rounded-[2rem] font-black uppercase text-[11px] tracking-widest flex items-center gap-3 hover:scale-105 transition-all shadow-2xl active:scale-95">
+                         <Download size={18}/> Exporter Rapport
+                      </button>
                    </div>
                 </div>
-
-                <div className="space-y-6">
-                   {(marketingArticles || []).map(article => (
-                      <div key={article.id} className="bg-white p-8 rounded-[3rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
-                         <div className="flex-1">
-                            <div className="flex gap-2 mb-4">
-                               <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">{article.category}</span>
-                               <span className="bg-zinc-100 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase">Cible : {article.cible}</span>
-                            </div>
-                            <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2`}>{article.title}</h3>
-                            <p className="text-zinc-500 font-medium text-sm">{article.desc}</p>
-                         </div>
-                         <div className="flex flex-col gap-3 w-full md:w-auto">
-                            <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg flex justify-center items-center gap-2"><Send size={16}/> Diffuser au segment</button>
-                            <button onClick={() => alert("Édition en cours...")} className="bg-zinc-100 text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">Éditer</button>
+                
+                {/* GRID FINANCIÈRE */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                   {[
+                      { label: 'Revenus Globaux', val: '4.850.000 F', color: 'bg-black text-[#39FF14]', icon: TrendingUp },
+                      { label: 'MRR (Récurrent)', val: '1.200.000 F', color: 'bg-white text-black', icon: RefreshCcw },
+                      { label: 'Commissions Dues', val: '450.000 F', color: 'bg-white text-black', icon: Handshake },
+                      { label: 'Sorties Opé', val: '120.000 F', color: 'bg-red-50 text-red-600 border-red-100', icon: TrendingUp },
+                   ].map((card, i) => (
+                      <div key={i} className={`p-10 rounded-[3.5rem] shadow-sm flex flex-col justify-between h-56 border border-zinc-100 transition-all hover:translate-y-[-5px] ${card.color}`}>
+                         <card.icon size={24} className="opacity-40" />
+                         <div>
+                            <p className="text-[11px] font-black uppercase tracking-widest opacity-60 mb-3">{card.label}</p>
+                            <p className={`${spaceGrotesk.className} text-4xl font-black tracking-tighter`}>{card.val}</p>
                          </div>
                       </div>
                    ))}
-                   {(!marketingArticles || marketingArticles.length === 0) && (<p className="text-center text-zinc-500 italic">Aucun article disponible.</p>)}
-                </div>
-             </div>
-          )}
-
-          {/* ================= FINANCES ================= */}
-          {activeView === 'finance' && (
-             <div className="space-y-8 animate-in fade-in max-w-7xl mx-auto">
-                <div className="flex justify-between items-center bg-white p-6 rounded-[3rem] border border-zinc-200 shadow-sm">
-                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}><Wallet className="inline mr-2 text-[#39FF14]"/> HUB FINANCIER</h2>
-                   <button onClick={() => alert("Exportation PDF/CSV en cours...")} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition"><Download size={16}/> Exporter Rapport</button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                   <div onClick={() => setFinanceCardFilter(financeCardFilter === 'revenus' ? null : 'revenus')} className={`bg-black text-white p-6 rounded-[2rem] shadow-xl relative overflow-hidden cursor-pointer hover:scale-105 transition ${financeCardFilter === 'revenus' ? 'ring-4 ring-[#39FF14]' : ''}`}>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Revenus Globaux</p>
-                     <p className={`${spaceGrotesk.className} text-3xl font-black text-[#39FF14]`}>4.850.000 F</p>
-                   </div>
-                   <div onClick={() => setFinanceCardFilter(financeCardFilter === 'mrr' ? null : 'mrr')} className={`bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm cursor-pointer hover:scale-105 transition ${financeCardFilter === 'mrr' ? 'ring-4 ring-[#39FF14]' : ''}`}>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">MRR (Récurrent)</p>
-                     <p className={`${spaceGrotesk.className} text-3xl font-black`}>1.200.000 F</p>
-                   </div>
-                   <div onClick={() => setFinanceCardFilter(financeCardFilter === 'com' ? null : 'com')} className={`bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm cursor-pointer hover:scale-105 transition ${financeCardFilter === 'com' ? 'ring-4 ring-[#39FF14]' : ''}`}>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions Partenaires</p>
-                     <p className={`${spaceGrotesk.className} text-3xl font-black`}>450.000 F</p>
-                   </div>
-                   <div onClick={() => setFinanceCardFilter(financeCardFilter === 'dep' ? null : 'dep')} className={`bg-red-50 border border-red-100 p-6 rounded-[2rem] shadow-sm cursor-pointer hover:scale-105 transition ${financeCardFilter === 'dep' ? 'ring-4 ring-red-500' : ''}`}>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-2">Dépenses</p>
-                     <p className={`${spaceGrotesk.className} text-3xl font-black text-red-600`}>120.000 F</p>
-                   </div>
                 </div>
 
-                <div className="bg-white border border-zinc-200 rounded-[3rem] p-8 shadow-sm">
-                   <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-2`}><List className="text-[#39FF14]"/> Registre des Transactions</h3>
-                   
-                   <div className="flex flex-col md:flex-row gap-4 mb-6">
+                {/* TABLEAU TRANSACTIONS */}
+                <div className="bg-white border border-zinc-200 rounded-[5rem] p-12 shadow-sm">
+                   <div className="flex flex-col md:flex-row gap-8 mb-12">
                       <div className="flex-1 relative">
-                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-                         <input type="text" placeholder="Recherche par Client, Réf, Montant..." value={financeSearch} onChange={e => setFinanceSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none font-bold text-sm focus:border-black transition" />
+                         <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-zinc-400 w-6 h-6" />
+                         <input 
+                           type="text" 
+                           placeholder="Recherche transactionnelle : Client, Réf, Montant..." 
+                           value={financeSearch} 
+                           onChange={e => setFinanceSearch(e.target.value)} 
+                           className="w-full pl-20 pr-8 py-5 bg-zinc-50 border-none rounded-[2rem] outline-none font-black text-sm uppercase transition-all focus:ring-[6px] focus:ring-[#39FF14]/5" 
+                         />
                       </div>
-                      <select value={financeTypeFilter} onChange={e => setFinanceTypeFilter(e.target.value)} className="px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none cursor-pointer">
-                         <option value="Tous">Tous les types</option><option value="Entrée">Entrées d'argent</option><option value="Sortie">Sorties d'argent</option>
+                      <select value={financeTypeFilter} onChange={e => setFinanceTypeFilter(e.target.value)} className="px-8 py-5 bg-zinc-50 border-none rounded-[2rem] font-black text-[11px] uppercase tracking-widest cursor-pointer appearance-none text-zinc-500 hover:text-black">
+                         <option value="Tous">Base Transactions</option>
+                         <option value="Entrée">Entrées (+) </option>
+                         <option value="Sortie">Sorties (-) </option>
                       </select>
                    </div>
 
-                   <table className="w-full text-left border-collapse">
-                      <thead className="bg-zinc-50 border-b border-zinc-200">
+                   <table className="w-full text-left">
+                      <thead className="bg-zinc-50/50 border-b border-zinc-100">
                          <tr>
-                            <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500">Date & Réf</th>
-                            <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500">Client / Motif</th>
-                            <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500">Montant</th>
-                            <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Statut</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Date & Référence</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Désignation</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Flux Monétaire</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Statut Terminal</th>
                          </tr>
                       </thead>
-                      <tbody>
-                         {(transactions || []).filter(t => {
-                            const search = financeSearch?.toLowerCase() || "";
-                            if (search && !(t.client?.toLowerCase() || "").includes(search) && !(t.ref?.toLowerCase() || "").includes(search) && !t.amount.toString().includes(search)) return false;
-                            if (financeTypeFilter === 'Entrée' && t.amount <= 0) return false;
-                            if (financeTypeFilter === 'Sortie' && t.amount > 0) return false;
-                            return true;
-                         }).map(t => (
-                            <tr key={t.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition">
-                               <td className="p-4">
-                                  <p className="font-bold text-sm">{t.date}</p>
-                                  <p className="text-[10px] font-black text-zinc-400">{t.ref}</p>
+                      <tbody className="divide-y divide-zinc-50">
+                         {filteredTransactions.map(t => (
+                            <tr key={t.id} className="hover:bg-zinc-50 transition-all group">
+                               <td className="p-8">
+                                  <p className="font-black text-sm text-black">{t.date}</p>
+                                  <p className="text-[10px] font-black text-zinc-400 tracking-[0.15em] uppercase mt-1">{t.ref}</p>
                                </td>
-                               <td className="p-4">
-                                  <p className="font-black text-sm uppercase">{t.client}</p>
-                                  <p className="text-xs font-bold text-zinc-500">{t.type}</p>
+                               <td className="p-8">
+                                  <p className="font-black text-base uppercase text-black tracking-tighter">{t.client}</p>
+                                  <p className="text-[11px] font-bold text-zinc-400 mt-1">{t.type}</p>
                                </td>
-                               <td className="p-4">
-                                  <p className={`font-black text-lg ${t.amount > 0 ? 'text-[#39FF14] bg-black px-3 py-1 rounded-lg inline-block' : 'text-red-500 bg-red-50 px-3 py-1 rounded-lg inline-block'}`}>
-                                     {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} F
-                                  </p>
+                               <td className="p-8">
+                                  <div className={`flex items-center gap-3 font-black text-2xl tracking-tighter ${t.amount > 0 ? 'text-[#39FF14]' : 'text-red-500'}`}>
+                                     {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} <span className="text-[10px] uppercase opacity-60">F CFA</span>
+                                  </div>
                                </td>
-                               <td className="p-4 text-right">
-                                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-md ${t.status === 'Payé' ? 'bg-[#39FF14]/20 text-black' : t.status === 'En attente' ? 'bg-yellow-100 text-yellow-700' : 'bg-zinc-200 text-black'}`}>{t.status}</span>
+                               <td className="p-8 text-right">
+                                  <span className={`text-[10px] font-black uppercase px-5 py-2.5 rounded-2xl shadow-sm ${t.status === 'Payé' ? 'bg-[#39FF14]/10 text-black border border-[#39FF14]/20' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>{t.status}</span>
                                </td>
                             </tr>
                          ))}
@@ -938,238 +856,398 @@ export default function AdminDashboard() {
              </div>
           )}
 
+          {/* ================= VUE ECOSYSTEME (9 SAAS) ================= */}
+          {activeView === 'ecosystem' && (
+             <div className="space-y-16 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto pt-10">
+                <div className="text-center space-y-6 max-w-4xl mx-auto">
+                   <div className="inline-block px-4 py-1.5 bg-black text-[#39FF14] rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-4 shadow-2xl shadow-[#39FF14]/20">Terminal Écosystème</div>
+                   <h2 className={`${spaceGrotesk.className} text-7xl font-black uppercase tracking-tighter text-black leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
+                   <p className="text-sm font-bold text-zinc-400 uppercase tracking-[0.4em] leading-relaxed">Déploiement & Gouvernance du Catalogue SaaS • 9 Solutions Prêtes</p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                   {ECOSYSTEM_SAAS.map(saas => (
+                      <div key={saas.id} className="bg-white border border-zinc-200 p-12 rounded-[5rem] shadow-sm hover:border-black hover:shadow-2xl transition-all group flex flex-col justify-between min-h-[420px] relative overflow-hidden">
+                         <div className={`absolute top-0 right-0 w-48 h-48 ${saas.color} opacity-[0.03] translate-x-20 -translate-y-20 rounded-full group-hover:scale-150 transition-transform duration-1000`}></div>
+                         <div className="relative z-10">
+                            <div className={`w-20 h-20 rounded-[2.25rem] mb-10 flex items-center justify-center text-white shadow-2xl ${saas.color} group-hover:rotate-12 transition-transform duration-500`}><Box size={40}/></div>
+                            <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>{saas.name}</h3>
+                            <p className="text-base font-bold text-zinc-400 mt-4 leading-relaxed group-hover:text-zinc-600 transition-colors">{saas.desc}</p>
+                         </div>
+                         <div className="mt-14 flex flex-col gap-4 relative z-10">
+                            <button onClick={() => window.open(saas.url, '_blank')} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.03] transition-all shadow-2xl flex items-center justify-center gap-3 group/btn active:scale-95">
+                               Accéder à la Démo <ExternalLink size={16} className="group-hover/btn:translate-x-1 transition-transform"/>
+                            </button>
+                            <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('create'); }} className="w-full bg-zinc-100 text-black py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-zinc-200 transition-all active:scale-95">Générer Accès Client</button>
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             </div>
+          )}
+
+          {/* ================= VUE AMBASSADEURS ================= */}
+          {activeView === 'partners' && (
+             <div className="space-y-12 animate-in fade-in max-w-[1400px] mx-auto">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-10 bg-white p-10 rounded-[4.5rem] border border-zinc-200 shadow-sm relative overflow-hidden">
+                   <div className="flex items-center gap-8 relative z-10">
+                      <div className="w-20 h-20 bg-black rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl"><Handshake size={38}/></div>
+                      <div>
+                         <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
+                         <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Génération de Revenus & Croissance Réseau</p>
+                      </div>
+                   </div>
+                   <div className="bg-[#39FF14]/10 border border-[#39FF14]/20 px-8 py-5 rounded-[2rem] flex flex-col items-center">
+                      <p className="text-[10px] font-black uppercase text-black tracking-widest opacity-60">Total Commissions</p>
+                      <p className={`${spaceGrotesk.className} text-3xl font-black text-black`}>1.820.000 F</p>
+                   </div>
+                </div>
+
+                {/* CANDIDATURES EN ATTENTE */}
+                {partners.filter(p => p.status === 'En attente').length > 0 && (
+                   <div className="bg-red-50 border-2 border-red-100 p-10 rounded-[4rem] animate-pulse">
+                      <h3 className="font-black uppercase text-xs text-red-600 mb-6 flex items-center gap-3 tracking-[0.2em]"><AlertCircle size={18}/> Dossiers en attente de validation</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         {partners.filter(p => p.status === 'En attente').map(p => (
+                            <div key={p.id} className="bg-white p-6 rounded-[2.25rem] flex justify-between items-center shadow-sm border border-red-100 group">
+                               <div>
+                                  <p className="font-black text-sm uppercase text-black">{p.full_name}</p>
+                                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{p.contact} • {p.activity}</p>
+                               </div>
+                               <button onClick={() => approvePartner(p.id)} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-xl">Valider</button>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+                )}
+
+                <div className="bg-white border border-zinc-200 rounded-[5rem] overflow-hidden shadow-sm">
+                   <table className="w-full text-left">
+                      <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                         <tr>
+                            <th className="p-10 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Ambassadeur & Contact</th>
+                            <th className="p-10 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Secteur / Statut</th>
+                            <th className="p-10 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Volume Ventes</th>
+                            <th className="p-10 text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-50">
+                         {partners.filter(p => p.status !== 'En attente').map(p => (
+                            <tr key={p.id} className="hover:bg-zinc-50 transition-all">
+                               <td className="p-10">
+                                  <p className="font-black text-base uppercase text-black tracking-tighter">{p.full_name}</p>
+                                  <p className="text-xs text-[#39FF14] font-black mt-1">{p.contact}</p>
+                               </td>
+                               <td className="p-10">
+                                  <div className="flex flex-col gap-2">
+                                     <span className="bg-zinc-100 text-black px-4 py-1.5 rounded-xl text-[10px] font-black uppercase w-max tracking-widest">{p.activity}</span>
+                                     <p className="text-[10px] font-black text-[#39FF14] uppercase ml-2">{p.status}</p>
+                                  </div>
+                               </td>
+                               <td className="p-10 text-center">
+                                  <p className={`${spaceGrotesk.className} text-4xl font-black text-black tracking-tighter`}>{p.sales || 0}</p>
+                                  <p className="text-[10px] font-bold text-zinc-300 uppercase mt-1">Ventes Clôturées</p>
+                               </td>
+                               <td className="p-10 text-right">
+                                  <button onClick={() => { setSelectedPartner(p); setShowPartnerModal(true); }} className="bg-black text-white px-8 py-4 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-all shadow-xl active:scale-95">Console Détails</button>
+                               </td>
+                            </tr>
+                         ))}
+                      </tbody>
+                   </table>
+                </div>
+             </div>
+          )}
+
+          {/* ================= VUE MARKETING ================= */}
+          {activeView === 'marketing' && (
+             <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1200px] mx-auto">
+                <div className="flex flex-col md:flex-row justify-between items-center bg-white p-10 rounded-[4.5rem] border border-zinc-200 shadow-sm relative overflow-hidden group">
+                   <div className="flex items-center gap-8 relative z-10">
+                      <div className="w-20 h-20 bg-black rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl group-hover:rotate-12 transition-all"><Megaphone size={36}/></div>
+                      <div>
+                         <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter`}>Hub Marketing</h2>
+                         <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Articles de Blog & Stratégies de Capture IA</p>
+                      </div>
+                   </div>
+                   <button onClick={runIAArticleSuggestion} className="bg-black text-[#39FF14] px-10 py-5 rounded-[2rem] font-black uppercase text-[11px] tracking-widest flex items-center gap-3 shadow-2xl hover:scale-105 transition-all relative z-10">
+                      <Sparkles size={18}/> Suggestion IA Article
+                   </button>
+                </div>
+
+                <div className="space-y-8">
+                   {marketingArticles.map(article => (
+                      <div key={article.id} className="bg-white p-12 rounded-[5rem] border border-zinc-200 shadow-sm flex flex-col lg:flex-row justify-between items-center gap-10 hover:border-black transition-all group">
+                         <div className="flex-1">
+                            <div className="flex gap-4 mb-6">
+                               <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">{article.category || 'Stratégie'}</span>
+                               <span className="bg-zinc-100 text-zinc-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Cible : {article.cible || 'Tous'}</span>
+                            </div>
+                            <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter mb-4 group-hover:text-[#39FF14] transition-colors`}>{article.title}</h3>
+                            <p className="text-zinc-500 font-medium text-base leading-relaxed max-w-2xl opacity-80">{article.desc}</p>
+                         </div>
+                         <div className="flex flex-col gap-4 w-full lg:w-max">
+                            <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="bg-[#39FF14] text-black px-10 py-5 rounded-[2rem] font-black uppercase text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95">
+                               <Send size={18}/> Diffuser Segment
+                            </button>
+                            <button onClick={() => handleDeleteItem('articles', article.id)} className="bg-zinc-50 text-red-500 py-4 rounded-[2rem] text-[10px] font-black uppercase hover:bg-red-50 transition-all flex items-center justify-center gap-2">
+                               <Trash2 size={16}/> Supprimer l'article
+                            </button>
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             </div>
+          )}
+
         </div>
       </main>
 
-      {/* ================= MODALES GLOBALES ================= */}
+      {/* ================= MODALES TERMINAL ================= */}
 
-      {/* MODALE DIFFUSION MARKETING */}
-      {showDiffusionModal && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowDiffusionModal, () => setSelectedContactsForDiffusion([]))} className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in max-h-[90vh] flex flex-col">
-            <button onClick={() => { setShowDiffusionModal(null); setSelectedContactsForDiffusion([]); }} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
-            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2`}>Planifier la diffusion</h2>
-            <p className="text-xs font-bold text-zinc-500 mb-6">Article cible : <span className="text-black">{showDiffusionModal?.title || ""}</span></p>
-
-            <div className="flex-1 overflow-y-auto mb-6 border border-zinc-200 rounded-3xl p-4 bg-zinc-50">
-               <div className="flex justify-between items-center mb-4 pb-2 border-b border-zinc-200">
-                  <p className="text-[10px] font-black uppercase tracking-widest">Sélectionner les contacts CRM</p>
-                  <button onClick={() => setSelectedContactsForDiffusion((contacts || []).map(c=>c.id))} className="text-[10px] font-bold text-[#39FF14] bg-black px-3 py-1 rounded-full">Tout Sélectionner</button>
-               </div>
-               <div className="space-y-2">
-                  {(contacts || []).map(c => (
-                     <label key={c.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-zinc-200 cursor-pointer hover:border-black">
-                        <input type="checkbox" checked={(selectedContactsForDiffusion || []).includes(c.id)} onChange={(e) => {
-                           if(e.target.checked) setSelectedContactsForDiffusion([...(selectedContactsForDiffusion || []), c.id]);
-                           else setSelectedContactsForDiffusion((selectedContactsForDiffusion || []).filter(id => id !== c.id));
-                        }} className="w-5 h-5 accent-black" />
-                        <div>
-                           <p className="font-bold text-sm uppercase">{c.full_name}</p>
-                           <p className="text-[10px] font-bold text-zinc-500 uppercase">{c.type} • {c.saas}</p>
-                        </div>
-                     </label>
-                  ))}
-               </div>
-            </div>
-
-            <button onClick={scheduleMarketingDiffusion} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition flex justify-center items-center gap-2">
-               <Send size={16}/> Planifier l'envoi ({(selectedContactsForDiffusion || []).length} sélectionnés)
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODALE DÉTAILS / EDITION PARTENAIRE */}
-      {showPartnerModal && selectedPartner && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowPartnerModal)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in max-h-[90vh] overflow-y-auto">
-             <button onClick={() => setShowPartnerModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
-             
-             {!isEditingPartner ? (
-                <>
-                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{selectedPartner?.full_name}</h2>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-8 flex items-center gap-2"><span className="w-2 h-2 bg-[#39FF14] rounded-full"></span> Statut : {selectedPartner?.status}</p>
-                   
-                   <div className="grid grid-cols-2 gap-6 mb-8">
-                      <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
-                        <p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Gains Générés</p>
-                        <p className={`${spaceGrotesk.className} text-3xl font-black text-[#39FF14]`}>{selectedPartner?.revenue}</p>
-                      </div>
-                      <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
-                        <p className="text-[10px] font-black uppercase text-zinc-500 mb-2">Ventes Réussies</p>
-                        <p className={`${spaceGrotesk.className} text-3xl font-black`}>{selectedPartner?.sales}</p>
-                      </div>
-                   </div>
-                   
-                   <div className="space-y-4">
-                      <button onClick={() => { setEditPartnerForm(selectedPartner); setIsEditingPartner(true); }} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition flex justify-center items-center gap-2">
-                        <Edit3 size={16}/> Éditer le compte Ambassadeur
-                      </button>
-                      <button onClick={handleConvertPartnerToClient} className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition flex justify-center items-center gap-2">
-                        <UserPlus size={16}/> Convertir en Client (Conserver statut Amb.)
-                      </button>
-                   </div>
-                </>
-             ) : (
-                <>
-                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-8`}>Édition Partenaire</h2>
-                   <div className="space-y-4 mb-8">
-                      <input type="text" placeholder="Nom Complet" value={editPartnerForm?.full_name || ""} onChange={e => setEditPartnerForm({...editPartnerForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                      <input type="text" placeholder="Contact" value={editPartnerForm?.contact || ""} onChange={e => setEditPartnerForm({...editPartnerForm, contact: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                      <input type="text" placeholder="Activité" value={editPartnerForm?.activity || ""} onChange={e => setEditPartnerForm({...editPartnerForm, activity: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                      <div className="grid grid-cols-2 gap-4">
-                         <input type="number" placeholder="Ventes" value={editPartnerForm?.sales || 0} onChange={e => setEditPartnerForm({...editPartnerForm, sales: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                         <input type="text" placeholder="Revenus" value={editPartnerForm?.revenue || ""} onChange={e => setEditPartnerForm({...editPartnerForm, revenue: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                      </div>
-                      <select value={editPartnerForm?.status || 'En attente'} onChange={e => setEditPartnerForm({...editPartnerForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
-                         <option value="Actif">Actif</option><option value="Top Performer">Top Performer</option><option value="En attente">En attente</option><option value="Inactif">Inactif</option>
-                      </select>
-                   </div>
-                   <div className="flex gap-4">
-                      <button onClick={() => setIsEditingPartner(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition">Annuler</button>
-                      <button onClick={handleSavePartner} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg">Enregistrer</button>
-                   </div>
-                </>
-             )}
-          </div>
-        </div>
-      )}
-
-      {/* MODALE SAAS: LOGIN & CREATION (Combiné) */}
-      {showSaasLogin && (
-         <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasLogin)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
-            <div className="bg-white p-10 rounded-[4rem] max-w-lg w-full relative shadow-[0_0_60px_rgba(57,255,20,0.15)] animate-in zoom-in border-t-4 border-[#39FF14] max-h-[90vh] overflow-y-auto">
-               <button onClick={() => setShowSaasLogin(null)} className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-black transition z-10"><X size={20}/></button>
+      {/* MODALE SAAS: ACTIVATION & WhatsApp */}
+      {showSaasLogin && saasModalMode === 'create' && (
+         <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasLogin)} className="fixed inset-0 z-[100] flex items-center justify-center p-10 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500">
+            <div className="bg-white p-16 rounded-[5.5rem] max-w-xl w-full relative shadow-[0_0_120px_rgba(57,255,20,0.15)] animate-in zoom-in-95 duration-500 border-t-[12px] border-[#39FF14]">
+               <button onClick={() => setShowSaasLogin(null)} className="absolute top-12 right-12 p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all active:scale-90"><X size={26}/></button>
                
-               <div className="flex justify-center gap-2 mb-8 bg-zinc-100 p-1.5 rounded-2xl w-max mx-auto">
-                  <button onClick={() => setSaasModalMode('login')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${saasModalMode === 'login' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Se Connecter</button>
-                  <button onClick={() => setSaasModalMode('create')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${saasModalMode === 'create' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Créer un Accès</button>
-               </div>
-
-               <div className="text-center mb-8">
-                  <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center text-white ${showSaasLogin?.color || 'bg-black'} shadow-lg mx-auto mb-4`}><Box size={32}/></div>
-                  <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase`}>{showSaasLogin?.name || "SaaS"}</h2>
-                  <p className="text-xs font-bold text-zinc-500 mt-1">{saasModalMode === 'login' ? 'Connexion à votre espace d\'administration.' : 'Générer un accès client pour cet outil.'}</p>
+               <div className="text-center mb-14">
+                  <div className={`w-24 h-24 rounded-[2.75rem] flex items-center justify-center text-white ${showSaasLogin?.color} shadow-2xl mx-auto mb-8 animate-bounce-slow`}><Box size={48}/></div>
+                  <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase text-black tracking-tighter leading-none`}>Activer {showSaasLogin?.name}</h2>
+                  <p className="text-xs font-bold text-zinc-400 mt-3 uppercase tracking-[0.3em]">Générateur d'Accès Terminal SaaS</p>
                </div>
                
-               {saasModalMode === 'login' ? (
-                  <div className="space-y-4">
-                     <input type="email" placeholder="Adresse Email" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
-                     <input type="password" placeholder="Mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
-                     <button onClick={() => alert("Connexion réussie ! Redirection en cours...")} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-xl hover:scale-105 transition mt-4 flex items-center justify-center gap-2"><LogIn size={16}/> Connexion</button>
+               <div className="space-y-10">
+                  <div className="flex gap-4 p-2 bg-zinc-100 rounded-[2.25rem]">
+                     <button onClick={() => setSaasCreateType('prospect')} className={`flex-1 py-4 text-[11px] font-black uppercase rounded-[1.75rem] transition-all ${saasCreateType === 'prospect' ? 'bg-black text-[#39FF14] shadow-2xl' : 'text-zinc-400'}`}>Sélection CRM</button>
+                     <button onClick={() => setSaasCreateType('manual')} className={`flex-1 py-4 text-[11px] font-black uppercase rounded-[1.75rem] transition-all ${saasCreateType === 'manual' ? 'bg-black text-[#39FF14] shadow-2xl' : 'text-zinc-400'}`}>Saisie Manuelle</button>
                   </div>
-               ) : (
-                  <div className="space-y-6">
-                     <div className="flex gap-4">
-                        <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
-                           <input type="radio" name="createType" checked={saasCreateType === 'prospect'} onChange={() => setSaasCreateType('prospect')} className="accent-black" /> Depuis CRM (Prospect)
-                        </label>
-                        <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
-                           <input type="radio" name="createType" checked={saasCreateType === 'manual'} onChange={() => setSaasCreateType('manual')} className="accent-black" /> Saisie Manuelle
-                        </label>
-                     </div>
 
-                     {saasCreateType === 'prospect' ? (
-                        <select value={saasCreateForm.prospectId} onChange={e => setSaasCreateForm({...saasCreateForm, prospectId: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
-                           <option value="" disabled>-- Sélectionner un Prospect CRM --</option>
-                           {(contacts || []).filter(c => c.type === 'Prospect').map(c => (
-                              <option key={c.id} value={c.id}>{c.full_name} ({c.phone})</option>
-                           ))}
+                  {saasCreateType === 'prospect' ? (
+                     <div className="space-y-3">
+                        <label className="text-[11px] font-black uppercase text-zinc-400 ml-6 tracking-widest">Prospect Identifié</label>
+                        <select value={saasCreateForm.prospectId} onChange={e => setSaasCreateForm({...saasCreateForm, prospectId: e.target.value})} className="w-full p-6 bg-zinc-50 border-none rounded-[2.25rem] font-black text-sm uppercase outline-none focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all appearance-none cursor-pointer">
+                           <option value="">-- Sélectionner un Prospect --</option>
+                           {contacts.filter(c => c.type === 'Prospect').map(c => <option key={c.id} value={c.id}>{c.full_name} ({c.phone})</option>)}
                         </select>
-                     ) : (
-                        <div className="space-y-4">
-                           <input type="text" placeholder="Nom complet du client" value={saasCreateForm.name} onChange={e => setSaasCreateForm({...saasCreateForm, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                           <input type="tel" placeholder="Numéro WhatsApp (ex: 2217...)" value={saasCreateForm.phone} onChange={e => setSaasCreateForm({...saasCreateForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-                        </div>
-                     )}
-
-                     <div className="relative">
-                        <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                        <input type="text" placeholder="Générer un mot de passe d'accès" value={saasCreateForm.password} onChange={e => setSaasCreateForm({...saasCreateForm, password: e.target.value})} className="w-full pl-10 pr-4 py-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
                      </div>
+                  ) : (
+                     <div className="space-y-5">
+                        <input type="text" placeholder="NOM COMPLET CLIENT" value={saasCreateForm.name} onChange={e => setSaasCreateForm({...saasCreateForm, name: e.target.value})} className="w-full p-6 bg-zinc-50 border-none rounded-[2.25rem] font-black text-sm uppercase outline-none focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all" />
+                        <input type="tel" placeholder="NUMÉRO WHATSAPP (EX: 22177...)" value={saasCreateForm.phone} onChange={e => setSaasCreateForm({...saasCreateForm, phone: e.target.value})} className="w-full p-6 bg-zinc-50 border-none rounded-[2.25rem] font-black text-sm outline-none focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all" />
+                     </div>
+                  )}
 
-                     <button onClick={handleCreateSaasAccount} className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-xs shadow-xl hover:bg-black hover:text-[#39FF14] transition flex items-center justify-center gap-2">
-                        <UserPlus size={16}/> Créer & Notifier par WhatsApp
-                     </button>
+                  <div className="relative group">
+                     <Lock size={20} className="absolute left-8 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-[#39FF14] transition-colors" />
+                     <input type="text" placeholder="MOT DE PASSE D'ACCÈS" value={saasCreateForm.password} onChange={e => setSaasCreateForm({...saasCreateForm, password: e.target.value})} className="w-full pl-20 pr-8 py-6 bg-zinc-50 border-none rounded-[2.25rem] font-black text-sm outline-none focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all tracking-[0.1em]" />
                   </div>
-               )}
+
+                  <button onClick={handleCreateSaasAccount} className="w-full bg-[#39FF14] text-black py-7 rounded-[2.5rem] font-black uppercase text-sm shadow-[0_30px_60px_-15px_rgba(57,255,20,0.4)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 group">
+                     <UserPlus size={24} className="group-hover:rotate-12 transition-transform"/> Activer & Notifier Client (WhatsApp)
+                  </button>
+               </div>
             </div>
          </div>
       )}
 
-      {/* MODALE EDITION CRM */}
+      {/* MODALE CRM EDIT / NEW */}
       {showContactModal && editingContact && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowContactModal)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white p-10 rounded-[3.5rem] max-w-lg w-full relative shadow-2xl animate-in zoom-in">
-            <button onClick={() => setShowContactModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
-            <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-8`}>{editingContact?.id ? 'Éditer Fiche' : 'Nouveau Contact'}</h2>
-            <form onSubmit={handleSaveContact} className="space-y-4">
-              <input type="text" required placeholder="Nom Complet" value={editingContact?.full_name || ""} onChange={e => setEditingContact({...editingContact, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-              <input type="tel" required placeholder="Téléphone WhatsApp" value={editingContact?.phone || ""} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-              <div className="grid grid-cols-2 gap-4">
-                 <select value={editingContact?.type || 'Prospect'} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
-                   <option value="Prospect">Prospect</option>
-                   <option value="Client">Client</option>
-                 </select>
-                 
-                 {/* MENU DÉROULANT SAAS AJOUTÉ ICI */}
-                 <select value={editingContact?.saas || ""} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none cursor-pointer">
-                   <option value="" disabled>Sélectionner un Produit</option>
-                   <option value="À définir">À définir</option>
-                   {ECOSYSTEM_SAAS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                 </select>
-
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowContactModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-10 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="bg-white p-16 rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 duration-500 border-t-[12px] border-black">
+            <button onClick={() => setShowContactModal(false)} className="absolute top-12 right-12 p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={24}/></button>
+            
+            <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-14 text-black`}>{editingContact?.id ? 'Modifier Fiche' : 'Nouveau Membre CRM'}</h2>
+            
+            <form onSubmit={handleSaveContact} className="space-y-8">
+              <div className="space-y-2">
+                 <label className="text-[11px] font-black uppercase text-zinc-400 ml-6 tracking-widest">Désignation Membre</label>
+                 <input type="text" required value={editingContact?.full_name || ""} onChange={e => setEditingContact({...editingContact, full_name: e.target.value})} className="w-full p-6 bg-zinc-50 border-none rounded-[2.25rem] font-black text-sm uppercase outline-none focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="NOM COMPLET / ENTREPRISE" />
               </div>
-              <input type="text" placeholder="Statut / Notes" value={editingContact?.status || ''} onChange={e => setEditingContact({...editingContact, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-              <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm mt-4 shadow-xl hover:scale-105 transition">
-                <CheckCircle size={18} className="inline mr-2"/> Enregistrer
+              
+              <div className="space-y-2">
+                 <label className="text-[11px] font-black uppercase text-zinc-400 ml-6 tracking-widest">Terminal Mobile (WhatsApp)</label>
+                 <input type="tel" required value={editingContact?.phone || ""} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-6 bg-zinc-50 border-none rounded-[2.25rem] font-black text-sm outline-none focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="+221 ..." />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                 <div className="space-y-2">
+                    <label className="text-[11px] font-black uppercase text-zinc-400 ml-6 tracking-widest">Catégorie</label>
+                    <select value={editingContact?.type || 'Prospect'} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className="w-full p-6 bg-zinc-50 border-none rounded-[2.25rem] font-black text-xs uppercase outline-none cursor-pointer appearance-none transition-all focus:ring-[8px] focus:ring-[#39FF14]/10">
+                      <option value="Prospect">Prospect Lead</option>
+                      <option value="Client">Client Actif</option>
+                    </select>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[11px] font-black uppercase text-zinc-400 ml-6 tracking-widest">Logiciel Déployé</label>
+                    <select value={editingContact?.saas || ""} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-6 bg-zinc-50 border-none rounded-[2.25rem] font-black text-xs uppercase outline-none cursor-pointer appearance-none transition-all focus:ring-[8px] focus:ring-[#39FF14]/10">
+                      <option value="" disabled>Choisir un SaaS</option>
+                      <option value="À définir">À définir</option>
+                      {ECOSYSTEM_SAAS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    </select>
+                 </div>
+              </div>
+
+              <div className="space-y-2">
+                 <label className="text-[11px] font-black uppercase text-zinc-400 ml-6 tracking-widest">Notes de Suivi</label>
+                 <input type="text" value={editingContact?.status || ''} onChange={e => setEditingContact({...editingContact, status: e.target.value})} className="w-full p-6 bg-zinc-50 border-none rounded-[2.25rem] font-black text-sm uppercase outline-none focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all" placeholder="EX: EN TEST JUSQU'AU 15/03" />
+              </div>
+
+              <button type="submit" className="w-full bg-black text-[#39FF14] py-7 rounded-[2.5rem] font-black uppercase text-sm mt-8 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] hover:scale-[1.02] transition-all flex items-center justify-center gap-4 active:scale-95">
+                <CheckCircle size={24} className="text-[#39FF14]"/> Synchroniser la base CRM
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODALE PROFIL ADMIN */}
-      {showProfileModal && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowProfileModal)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in text-center">
-            <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
-            
-            <img src={tempAdminProfile?.avatar} className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-black object-cover" alt="" />
-            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-1`}>ADMINISTRATEUR</h2>
-            <p className="text-xs font-bold text-zinc-400 mb-8">contact@onyxops.com</p>
+      {/* MODALE DIFFUSION MARKETING */}
+      {showDiffusionModal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowDiffusionModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-10 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
+           <div className="bg-white p-16 rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[85vh] flex flex-col border-t-[12px] border-[#39FF14]">
+              <button onClick={() => setShowDiffusionModal(null)} className="absolute top-10 right-10 p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={24}/></button>
+              <div className="mb-10">
+                 <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Planifier la Diffusion</h2>
+                 <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-2 italic">"{showDiffusionModal?.title}"</p>
+              </div>
 
-            <div className="space-y-4 text-left">
-               <input 
-                 type="text" 
-                 placeholder="Nom affiché" 
-                 value={tempAdminProfile?.name || ""} 
-                 onChange={e => setTempAdminProfile({...tempAdminProfile, name: e.target.value})} 
-                 className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" 
-               />
-               <input 
-                 type="text" 
-                 placeholder="URL Image" 
-                 value={tempAdminProfile?.avatar || ""} 
-                 onChange={e => setTempAdminProfile({...tempAdminProfile, avatar: e.target.value})} 
-                 className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none text-xs" 
-               />
+              <div className="flex-1 overflow-y-auto mb-10 pr-4 space-y-4 custom-scrollbar">
+                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-zinc-100 sticky top-0 bg-white z-10">
+                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.2em]">SÉLECTION DES DESTINATAIRES</p>
+                    <button onClick={() => setSelectedContactsForDiffusion(contacts.map(c=>c.id))} className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-4 py-2 rounded-xl shadow-lg">Tout Sélectionner</button>
+                 </div>
+                 <div className="grid grid-cols-1 gap-3">
+                    {contacts.map(c => (
+                       <label key={c.id} className={`flex items-center gap-5 p-5 rounded-[1.75rem] border cursor-pointer transition-all ${selectedContactsForDiffusion.includes(c.id) ? 'bg-[#39FF14]/5 border-[#39FF14] shadow-md shadow-[#39FF14]/5' : 'bg-zinc-50 border-zinc-100 hover:border-black'}`}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedContactsForDiffusion.includes(c.id)} 
+                            onChange={() => {
+                               if(selectedContactsForDiffusion.includes(c.id)) setSelectedContactsForDiffusion(selectedContactsForDiffusion.filter(id => id !== c.id));
+                               else setSelectedContactsForDiffusion([...selectedContactsForDiffusion, c.id]);
+                            }} 
+                            className="w-6 h-6 accent-black rounded-lg" 
+                          />
+                          <div className="flex-1">
+                             <p className="font-black text-sm uppercase text-black tracking-tighter">{c.full_name}</p>
+                             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{c.phone} • {c.type}</p>
+                          </div>
+                       </label>
+                    ))}
+                 </div>
+              </div>
+
+              <button onClick={scheduleMarketingDiffusion} className="w-full bg-black text-[#39FF14] py-7 rounded-[2.25rem] font-black uppercase text-sm shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4">
+                 <Zap size={22}/> Lancer la Campagne ({selectedContactsForDiffusion.length} membres)
+              </button>
+           </div>
+        </div>
+      )}
+
+      {/* MODALE DÉTAILS PARTENAIRE */}
+      {showPartnerModal && selectedPartner && (
+         <div id="modal-overlay" onClick={handleOutsideClick(setShowPartnerModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-10 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
+            <div className="bg-white p-16 rounded-[5.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto border-t-[12px] border-black">
+               <button onClick={() => setShowPartnerModal(false)} className="absolute top-10 right-10 p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={24}/></button>
                
-               <button onClick={saveAdminProfile} className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:scale-105 transition mb-6">
-                 Enregistrer le profil
+               <div className="mb-14 text-center">
+                  <div className="w-24 h-24 bg-zinc-100 rounded-[2.75rem] mx-auto mb-8 flex items-center justify-center font-black text-3xl shadow-xl">{selectedPartner?.full_name?.charAt(0)}</div>
+                  <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase text-black tracking-tighter leading-none`}>{selectedPartner?.full_name}</h2>
+                  <p className="text-xs font-bold text-[#39FF14] bg-black px-4 py-1.5 rounded-full inline-block mt-4 uppercase tracking-[0.3em] shadow-lg">Console Ambassadeur Officiel</p>
+               </div>
+
+               <div className="grid grid-cols-2 gap-8 mb-14">
+                  <div className="bg-zinc-50 p-10 rounded-[3rem] border border-zinc-100 flex flex-col items-center">
+                     <p className="text-[11px] font-black uppercase text-zinc-400 tracking-widest mb-3">Ventes Actives</p>
+                     <p className={`${spaceGrotesk.className} text-6xl font-black text-black tracking-tighter`}>{selectedPartner?.sales || 0}</p>
+                  </div>
+                  <div className="bg-[#39FF14]/5 p-10 rounded-[3rem] border border-[#39FF14]/10 flex flex-col items-center">
+                     <p className="text-[11px] font-black uppercase text-zinc-400 tracking-widest mb-3">Gains (Commissions)</p>
+                     <p className={`${spaceGrotesk.className} text-5xl font-black text-black tracking-tighter`}>{selectedPartner?.revenue || '0 F'}</p>
+                  </div>
+               </div>
+
+               <div className="space-y-4">
+                  <button onClick={() => alert("Edition partenaire...")} className="w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase text-[11px] tracking-widest shadow-xl hover:bg-[#39FF14] hover:text-black transition-all active:scale-95 flex items-center justify-center gap-4">
+                     <Edit3 size={18}/> Modifier les informations
+                  </button>
+                  <button onClick={handleConvertPartnerToClient} className="w-full bg-zinc-100 text-black py-6 rounded-[2rem] font-black uppercase text-[11px] tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-4 active:scale-95">
+                     <UserPlus size={18}/> Enregistrer en tant que Client
+                  </button>
+                  <button onClick={() => handleDeleteItem('partners', selectedPartner.id)} className="w-full text-red-500 font-black uppercase text-[10px] tracking-widest pt-4 opacity-50 hover:opacity-100 transition-opacity">Révoquer le statut Ambassadeur</button>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* MODALE PROFIL TERMINAL */}
+      {showProfileModal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowProfileModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-10 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="bg-white p-16 rounded-[5.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in-95 text-center border-t-[12px] border-[#39FF14]">
+            <button onClick={() => setShowProfileModal(false)} className="absolute top-10 right-10 p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={24}/></button>
+            
+            <div className="relative w-40 h-40 mx-auto mb-10">
+               <img src={tempAdminProfile?.avatar} className="w-full h-full rounded-full object-cover border-[6px] border-black p-1.5 shadow-2xl" alt="" />
+               <div className="absolute bottom-2 right-2 bg-[#39FF14] p-3 rounded-full border-[6px] border-white shadow-2xl shadow-[#39FF14]/50 group cursor-pointer hover:scale-110 transition-transform"><Edit3 size={18} className="text-black"/></div>
+            </div>
+            
+            <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter leading-none`}>Admin Profile</h2>
+            <p className="text-[11px] font-bold text-zinc-400 mb-12 uppercase tracking-[0.3em]">Console Maître Dakar Hub</p>
+
+            <div className="space-y-6 text-left">
+               <div className="space-y-2 ml-6">
+                  <label className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Identifiant Terminal</label>
+                  <input type="text" value={tempAdminProfile?.name || ""} onChange={e => setTempAdminProfile({...tempAdminProfile, name: e.target.value})} className="w-full p-5 bg-zinc-50 border-none rounded-[2rem] font-black text-sm uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10 transition-all" />
+               </div>
+               
+               <button onClick={saveAdminProfile} className="w-full bg-black text-[#39FF14] py-6 rounded-[2.25rem] font-black uppercase text-[11px] tracking-[0.2em] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] hover:scale-[1.03] transition-all active:scale-95 mb-10">
+                  Sauvegarder les Changements
                </button>
                
-               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-6 mb-2">Modifier le mot de passe</p>
-               <input type="password" placeholder="Mot de passe actuel (optionnel)" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-               <input type="password" placeholder="Nouveau mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-               <input type="password" placeholder="Confirmer le mot de passe" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none" />
-               <button onClick={() => { alert('Mot de passe mis à jour !'); setShowProfileModal(false); }} className="w-full bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-black hover:text-white transition mt-2">
-                 Changer le mot de passe
-               </button>
+               <div className="pt-10 border-t border-zinc-100 space-y-6">
+                  <button onClick={() => { alert('Session terminée.'); window.location.href='/'; }} className="w-full flex items-center justify-center gap-4 text-red-500 py-4 bg-red-50 rounded-[2rem] font-black uppercase text-[10px] tracking-[0.2em] hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                     <LogOut size={18}/> Quitter le Terminal
+                  </button>
+               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* MODALE RAPPORT IA (SCAN INTELLIGENCE) */}
+      {showRapportIA && (
+         <div id="modal-overlay" onClick={handleOutsideClick(setShowRapportIA)} className="fixed inset-0 z-[100] flex items-center justify-center p-10 bg-black/95 backdrop-blur-3xl animate-in fade-in duration-500">
+            <div className="bg-white p-16 rounded-[6rem] max-w-2xl w-full relative shadow-[0_0_150px_rgba(57,255,20,0.2)] animate-in zoom-in-95 duration-700 border-t-[14px] border-[#39FF14]">
+               <button onClick={() => setShowRapportIA(false)} className="absolute top-12 right-12 p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all active:scale-90"><X size={24}/></button>
+               
+               <div className="flex items-center gap-6 mb-14">
+                  <div className="w-20 h-20 bg-black rounded-[2.5rem] flex items-center justify-center text-[#39FF14] shadow-2xl"><Sparkles size={38} className="animate-pulse"/></div>
+                  <div>
+                     <h3 className={`${spaceGrotesk.className} text-4xl font-black uppercase text-black tracking-tighter leading-none`}>Scan IA CRM</h3>
+                     <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Analyse Prédictive des Opportunités</p>
+                  </div>
+               </div>
+
+               <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-4 custom-scrollbar">
+                  {contacts.filter(c => c.type === 'Prospect').slice(0, 3).map((c, i) => (
+                    <div key={i} className="p-8 bg-zinc-50 rounded-[3rem] border border-zinc-100 flex flex-col md:flex-row justify-between items-center group hover:border-[#39FF14] hover:bg-white transition-all gap-8">
+                       <div className="flex-1">
+                          <p className="font-black text-xl uppercase text-black tracking-tighter leading-none mb-2">{c.full_name}</p>
+                          <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest">Score de Conversion : <span className="text-[#39FF14]">85%</span></p>
+                          <p className="text-[11px] text-zinc-500 mt-4 leading-relaxed italic opacity-80">"L'IA suggère de proposer le Pack Trio basé sur l'activité de ce prospect et ses récents clics sur le blog."</p>
+                       </div>
+                       <button onClick={() => planifyCrmAction(`Conversion : ${c.full_name}`, "Démonstration Pack Trio à domicile.", c.phone, `Bonjour ${c.full_name}, nous avons une offre spéciale Trio...`)} className="bg-black text-[#39FF14] px-8 py-4 rounded-[2rem] text-[11px] font-black uppercase shadow-2xl hover:scale-105 active:scale-95 transition-all w-full md:w-max">Planifier Conversion</button>
+                    </div>
+                  ))}
+               </div>
+
+               <div className="mt-14 pt-10 border-t border-zinc-100 text-center">
+                  <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.3em]">Algorithme Onyx-Scan v2.4 (Mars 2026)</p>
+               </div>
+            </div>
+         </div>
+      )}
+
     </div>
   );
 }
