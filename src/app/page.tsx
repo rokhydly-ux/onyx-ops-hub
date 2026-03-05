@@ -13,7 +13,7 @@ import {
   Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search
 } from "lucide-react";
 
-type PlanKey = "solo" | "duo" | "trio" | "full" | "premium";
+type PlanKey = "solo" | "duo" | "trio" | "full" | "premium" | "master";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
 const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700"] });
@@ -31,7 +31,7 @@ const ECOSYSTEM_SAAS = [
   { id: "tontine", name: "Onyx Tontine", type: "Finance & Tontine" },
   { id: "duo", name: "Pack Duo", type: "Vente + Stock" },
   { id: "trio", name: "Pack Trio", type: "Vente + Stock + Tiak" },
-  { id: "full", name: "Pack Full", type: "Ecosystème Complet" },
+  { id: "master", name: "Onyx Master", type: "Formation + SaaS" },
 ];
 
 const ONBOARDING_CATEGORIES = [
@@ -43,31 +43,31 @@ const ONBOARDING_CATEGORIES = [
 ];
 
 const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
-  solo: { title: "Onyx Solo", desc: "Digitalisez votre boutique en 24h.", benefits: ["Catalogue interactif & Devis", "Lien de commande unique", "Fidélisation automatique"], why: "Gagner 2h par jour.", cible: "Vendeurs WhatsApp", avantage: "Fini les devis raturés.", chiffreCle: "+15% de ventes" },
-  duo: { title: "Pack Duo", desc: "Vente + Stock automatisé.", benefits: ["Catalogue pro interactif", "Inventaire mis à jour", "Alertes WhatsApp ruptures"], why: "Sécuriser vos ventes.", cible: "Boutiques en ligne", avantage: "Stop aux vols et oublis.", chiffreCle: "Marge +20%" },
-  trio: { title: "Pack Trio", desc: "Vente + Stock + Logistique (Tiak).", benefits: ["Inventaire temps réel", "Facturation pro", "Suivi livreurs"], why: "Contrôle total du cash.", cible: "Boutiques, Grossistes", avantage: "Maîtrise du stock.", chiffreCle: "0 rupture" },
+  solo: { title: "Onyx Solo", desc: "La porte d'entrée pour digitaliser.", benefits: ["Catalogue interactif & Devis", "Lien de commande unique", "Fidélisation automatique"], why: "Gagner 2h par jour.", cible: "Vendeurs WhatsApp", avantage: "Fini les devis raturés.", chiffreCle: "+15% de ventes" },
+  duo: { title: "Pack Duo", desc: "Vente + Stock automatisé (Phydigital).", benefits: ["Catalogue pro interactif", "Inventaire mis à jour", "Alertes WhatsApp ruptures"], why: "Sécuriser vos ventes.", cible: "Boutiques physiques", avantage: "Stop aux vols et oublis.", chiffreCle: "Marge +20%" },
+  trio: { title: "Pack Trio", desc: "Vente + Stock + Logistique (Tiak).", benefits: ["Inventaire temps réel", "Facturation pro", "Suivi livreurs"], why: "Contrôle total du cash.", cible: "E-commerçants", avantage: "Maîtrise complète.", chiffreCle: "0 rupture" },
   full: { title: "Pack Full", desc: "Les 6 SaaS Onyx ensemble.", benefits: ["RH, Paie & Logistique", "Menu QR & Réservations", "Rapports hebdo"], why: "Pour scaler rapidement.", cible: "PME & Agences", avantage: "Digitalisation 360°.", chiffreCle: "Gain de 10h/sem" },
   premium: { title: "Onyx Premium", desc: "IA et Marketing.", benefits: ["Studio Créatif IA", "CRM & Relance auto", "Conseiller dédié"], why: "Pour dominer le marché.", cible: "Franchises", avantage: "IA intégrée.", chiffreCle: "Croissance X2" },
+  master: { title: "Onyx Master", desc: "Formation + 1 Mois Solo Offert.", benefits: ["Formation complète", "1 mois d'Onyx Solo offert", "Support prioritaire"], why: "Pour partir de zéro.", cible: "Débutants & Nouveaux", avantage: "L'offre ultime.", chiffreCle: "Lancement réussi" },
 };
 
 const SOLUTIONS = [
-  { id: "Onyx Vente", icon: Smartphone, category: "Vente & Boutique", price: 8900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "duo", upsellName: "Pack Duo" },
-  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 8900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "trio", upsellName: "Pack Trio" },
-  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 8900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "trio", upsellName: "Pack Trio" },
-  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 8900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "full", upsellName: "Pack Full" },
-  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 8900, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "full", upsellName: "Pack Full" },
-  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 8900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "full", upsellName: "Pack Full" },
-  { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 8900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "premium", upsellName: "Onyx Premium" },
+  { id: "Onyx Vente", icon: Smartphone, category: "Vente & Boutique", price: 9900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "duo", upsellName: "Pack Duo" },
+  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 9900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "trio", upsellName: "Pack Trio" },
+  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 9900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "trio", upsellName: "Pack Trio" },
+  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 9900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 9900, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 9900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 9900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "master", upsellName: "Onyx Master" },
   { id: "Onyx Fit", icon: Flame, category: "Services", price: 6000, pain: "Suivi diététique brouillon et perte de motivation des clientes.", solution: "Rééquilibrage alimentaire à l'africaine avec la coach Amina, suivi interactif et relances auto.", upsellPack: "full", upsellName: "Pack Full" },
   { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6000, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "full", upsellName: "Pack Full" },
 ];
 
-const PACKS: Array<{ id: PlanKey; name: string; price: number; label: string; rating: string; avis: number }> = [
-  { id: "solo", name: "Solo", price: 8900, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
-  { id: "duo", name: "Pack Duo", price: 12500, label: "Pack Duo", rating: "4.8/5", avis: 95 },
-  { id: "trio", name: "Pack Trio", price: 17500, label: "Pack Trio", rating: "5.0/5", avis: 89 },
-  { id: "full", name: "Pack Full", price: 30000, label: "Pack Full", rating: "4.9/5", avis: 215 },
-  { id: "premium", name: "Premium", price: 75000, label: "Onyx Premium", rating: "5.0/5", avis: 34 },
+const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: string; rating: string; avis: number; isUnique?: boolean }> = [
+  { id: "solo", name: "Solo", price: 9900, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
+  { id: "duo", name: "Pack Duo", price: 17500, label: "Pack Duo", rating: "4.8/5", avis: 95 },
+  { id: "trio", name: "Pack Trio", price: 24900, label: "Pack Trio", rating: "5.0/5", avis: 89 },
+  { id: "master", name: "Onyx Master", price: 39900, label: "Bundle Master", rating: "5.0/5", avis: 215, isUnique: true },
 ];
 
 const AMBASSADOR_TESTIMONIALS = [
@@ -247,17 +247,15 @@ export default function OnyxOpsElite() {
     return () => { document.body.style.overflow = ""; };
   }, [showSaasChoice, isMobileMenuOpen, selectedArticle, showAuthModal, showOnboarding, showExitIntent]);
 
+  // CORRECTION : REQUÊTE LEAD ÉPURÉE POUR ÉVITER LES ERREURS DE SCHEMA DB
   const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string, full_name?: string }) => {
     try {
-      const currentDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
       const { error } = await supabase.from('leads').insert({
-        source: data.source, 
-        intent: data.intent, 
-        status: 'Nouveau', 
-        phone: data.contact || '', // CORRECTION : 'phone' au lieu de 'contact'
+        source: data.source || 'Site Web', 
+        intent: data.intent || 'Contact', 
+        phone: data.contact || '', // Mappé sur la colonne phone attendue
         message: data.message || '', 
-        full_name: data.full_name || 'Visiteur Web',
-        date: currentDate // AJOUT : pour que l'admin affiche bien la date
+        full_name: data.full_name || 'Visiteur Web'
       });
       
       if (error) {
@@ -289,20 +287,20 @@ export default function OnyxOpsElite() {
         let msg = '';
         
         if (value === 'Oui') { 
-           packId = 'premium'; 
-           msg = "En fonction de vos réponses (Besoin d'acquisition Client), Onyx Premium avec notre Studio IA et formation Marketing est la clé absolue de votre croissance (+100% de prospects visés)."; 
+           packId = 'master'; 
+           msg = "En fonction de vos réponses, Onyx Master avec notre formation complète est la clé absolue de votre croissance (+100% de prospects visés)."; 
         }
         else if (newAns.sector === 'Restauration') { 
-           packId = 'full'; 
-           msg = "Pour un établissement de restauration, l'automatisation totale (Menu QR, Commandes, Caisses) est vitale. Le Pack Full vous épargnera 100% des erreurs de caisse."; 
+           packId = 'trio'; 
+           msg = "Pour un établissement de restauration, l'automatisation de vos encaissements et livraisons est vitale. Le Pack Trio est parfait."; 
         }
         else if (newAns.size !== 'Petit commerçant (1-3 employés)') { 
-           packId = 'full'; 
-           msg = "En tant que PME structurée, la centralisation RH, Paie et Logistique est obligatoire pour scaler sans stress de trésorerie."; 
+           packId = 'trio'; 
+           msg = "En tant que PME structurée, la centralisation des stocks et de la logistique est obligatoire pour scaler sans stress."; 
         }
         else { 
-           packId = 'trio'; 
-           msg = "Pour démarrer efficacement, contrôler vos ventes, votre stock et vos livreurs est la priorité absolue. Le Pack Trio réduit vos ruptures et pertes à 0."; 
+           packId = 'duo'; 
+           msg = "Pour démarrer efficacement, contrôler vos ventes et votre stock est la priorité absolue. Le Pack Duo réduit vos ruptures à 0."; 
         }
 
         setQuizResult({ packId, message: msg });
@@ -314,11 +312,11 @@ export default function OnyxOpsElite() {
   const submitLeadForm = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${leadData.phone}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Full'}\n\n_Le client souhaite créer son compte._`;
+    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${leadData.phone}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte._`;
 
     await saveLead({
        source: 'Onboarding Site',
-       intent: `Création Compte (${leadData.saas || 'Pack Full'})`,
+       intent: `Création Compte (${leadData.saas || 'Pack Trio'})`,
        contact: leadData.phone,
        full_name: leadData.name,
        message: `Activité: ${finalCategory}`
@@ -395,8 +393,8 @@ export default function OnyxOpsElite() {
            options = ["1. Pack Trio", "2. Onyx Vente"];
         }
         else if(reply.includes("Restaurant")) {
-           msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : Pack Full (Tout inclus)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
-           options = ["1. Pack Full", "2. Onyx Menu"];
+           msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : Pack Trio (Encaissement & Stock)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
+           options = ["1. Pack Trio", "2. Onyx Menu"];
         }
         else if(reply.includes("Autre")) {
            msg = "Je vois ! Expliquez-moi brièvement ce que vous faites et ce que vous aimeriez améliorer, je vais analyser ça pour vous proposer l'outil parfait.";
@@ -405,8 +403,8 @@ export default function OnyxOpsElite() {
            return;
         }
         else {
-           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : Pack Full\n💰 L'Essentiel moins cher : Onyx Vente\n\nQue choisissez-vous ?";
-           options = ["1. Pack Full", "2. Onyx Vente"];
+           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : Pack Trio\n💰 L'Essentiel moins cher : Onyx Vente\n\nQue choisissez-vous ?";
+           options = ["1. Pack Trio", "2. Onyx Vente"];
         }
         
         setBotMessages(prev => [...prev, { sender: 'bot', text: msg, options }]);
@@ -418,10 +416,10 @@ export default function OnyxOpsElite() {
        setTimeout(() => {
           setBotMessages(prev => [...prev, { 
              sender: 'bot', 
-             text: `D'après ce que vous me dites, je vous recommande vivement le **Pack Full**. Il s'adapte à 100% à votre activité.\n\nSouhaitez-vous en discuter avec moi sur WhatsApp pour une démo ?`,
+             text: `D'après ce que vous me dites, je vous recommande vivement le **Pack Duo**. Il s'adapte à 100% à votre activité.\n\nSouhaitez-vous en discuter avec moi sur WhatsApp pour une démo ?`,
              options: ["Parler à Fanta (WhatsApp)"] 
           }]);
-          setBotUserData({...currentData, product: 'Pack Full'});
+          setBotUserData({...currentData, product: 'Pack Duo'});
           setBotStep(4);
        }, 1500);
     }
@@ -457,6 +455,7 @@ export default function OnyxOpsElite() {
     }
   };
 
+  // CORRECTION : REQUÊTE PARTENAIRE ÉPURÉE POUR ÉVITER LES ERREURS DE SCHEMA DB
   const submitPartnerForm = async () => {
      if(!partnerForm.full_name || !partnerForm.contact || !partnerForm.status) {
        return alert("Veuillez remplir les champs obligatoires (*).");
@@ -466,11 +465,9 @@ export default function OnyxOpsElite() {
         const payload = {
            full_name: partnerForm.full_name, 
            contact: partnerForm.contact, 
-           city: partnerForm.city, 
-           activity: partnerForm.status, 
-           objective: partnerForm.objective, 
-           prospection: partnerForm.strategy, 
-           status: 'En attente'
+           activity: partnerForm.status, // le statut du formulaire (Ex: Etudiant) devient l'activité
+           status: 'En attente', // C'est le statut d'approbation attendu par l'admin
+           sales: 0
         };
         
         const { error } = await supabase.from('partners').insert(payload);
@@ -490,8 +487,9 @@ export default function OnyxOpsElite() {
      }
   };
 
-  const commissionM1 = Math.round(packCounts.solo * 8900 * 0.30 + packCounts.duo * 12500 * 0.30 + packCounts.trio * 17500 * 0.30 + packCounts.full * 30000 * 0.30 + packCounts.premium * 75000 * 0.30);
-  const recurrentPerMonth = Math.round(packCounts.solo * 8900 * 0.10 + packCounts.duo * 12500 * 0.10 + packCounts.trio * 17500 * 0.10 + packCounts.full * 30000 * 0.10 + packCounts.premium * 75000 * 0.10);
+  // Mises à jour des tarifs sur la simulation des commissions
+  const commissionM1 = Math.round(packCounts.solo * 9900 * 0.30 + packCounts.duo * 17500 * 0.30 + packCounts.trio * 24900 * 0.30 + packCounts.full * 30000 * 0.30 + packCounts.premium * 39900 * 0.30);
+  const recurrentPerMonth = Math.round(packCounts.solo * 9900 * 0.10 + packCounts.duo * 17500 * 0.10 + packCounts.trio * 24900 * 0.10 + packCounts.full * 30000 * 0.10 + packCounts.premium * 39900 * 0.10);
 
   const navigateTo = (view: any, scrollId?: string) => {
     setIsMobileMenuOpen(false); 
@@ -795,7 +793,7 @@ export default function OnyxOpsElite() {
                   <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché.</p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
                   {PACKS.map((pack) => {
                     const planDetails = PLAN_DETAILS[pack.id];
                     const isRecommended = quizResult && quizResult.packId === pack.id;
@@ -815,7 +813,7 @@ export default function OnyxOpsElite() {
                           {[...Array(5)].map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < 4 || pack.rating.startsWith('5') ? 'text-yellow-400 fill-yellow-400' : 'text-yellow-400/30 fill-yellow-400/30'}`} />))}
                           <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis})</span>
                         </div>
-                        <div className={`text-2xl font-bold mb-6 italic ${pack.id === 'premium' ? 'text-red-500' : 'text-white'}`}>{pack.price.toLocaleString()}F <span className="text-xs text-zinc-500 font-normal">/ mois</span></div>
+                        <div className={`text-2xl font-bold mb-6 italic ${pack.id === 'master' ? 'text-red-500' : 'text-white'}`}>{pack.price.toLocaleString()}F <span className="text-xs text-zinc-500 font-normal">{pack.isUnique ? ' (Unique)' : '/ mois'}</span></div>
                         
                         {/* TEXTE DYNAMIQUE DU QUIZ */}
                         {isRecommended && (
@@ -936,14 +934,14 @@ export default function OnyxOpsElite() {
                         { id: 'solo', label: 'Pack Solo (Vendus/mois)', max: 50 },
                         { id: 'duo', label: 'Pack Duo (Vendus/mois)', max: 40 },
                         { id: 'trio', label: 'Pack Trio (Vendus/mois)', max: 30 },
-                        { id: 'full', label: 'Pack Full (Vendus/mois)', max: 20 },
+                        { id: 'master', label: 'Onyx Master (Vendus/mois)', max: 20 },
                       ].map(pack => (
                         <div key={pack.id}>
                           <div className="flex justify-between mb-2">
                             <label className="text-xs font-bold uppercase tracking-widest text-zinc-600">{pack.label}</label>
-                            <span className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-md text-xs">{packCounts[pack.id as PlanKey]}</span>
+                            <span className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-md text-xs">{packCounts[pack.id as PlanKey] || 0}</span>
                           </div>
-                          <input type="range" min="0" max={pack.max} value={packCounts[pack.id as PlanKey]} onChange={(e) => setPackCounts({...packCounts, [pack.id]: parseInt(e.target.value)})} className="w-full accent-black h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer" />
+                          <input type="range" min="0" max={pack.max} value={packCounts[pack.id as PlanKey] || 0} onChange={(e) => setPackCounts({...packCounts, [pack.id]: parseInt(e.target.value)})} className="w-full accent-black h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer" />
                         </div>
                       ))}
                     </div>
@@ -1091,11 +1089,11 @@ export default function OnyxOpsElite() {
         {showSaasChoice && (() => {
           const SaasIcon = showSaasChoice.icon || Star;
           
-          let upsellNormalPrice = 17800; // Duo calculation
-          let upsellDiscountPrice = 12500;
-          if (showSaasChoice.upsellName.includes("Trio")) { upsellNormalPrice = 26700; upsellDiscountPrice = 17500; }
-          else if (showSaasChoice.upsellName.includes("Full")) { upsellNormalPrice = 53400; upsellDiscountPrice = 30000; }
-          else if (showSaasChoice.upsellName.includes("Premium")) { upsellNormalPrice = 100000; upsellDiscountPrice = 75000; }
+          let upsellNormalPrice = 17500; // Duo calculation
+          let upsellDiscountPrice = 17500;
+          if (showSaasChoice.upsellName.includes("Trio")) { upsellNormalPrice = 24900; upsellDiscountPrice = 24900; }
+          else if (showSaasChoice.upsellName.includes("Full")) { upsellNormalPrice = 30000; upsellDiscountPrice = 30000; }
+          else if (showSaasChoice.upsellName.includes("Master")) { upsellNormalPrice = 39900; upsellDiscountPrice = 39900; }
 
           return (
             <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasChoice)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
@@ -1137,7 +1135,6 @@ export default function OnyxOpsElite() {
                          <span className="text-[10px] font-black uppercase text-white tracking-widest mb-1">Offre Complète</span>
                          <span className="text-lg font-black leading-tight mb-2 text-white">Passer au <br/> {showSaasChoice.upsellName}</span>
                          <div className="flex flex-col items-center bg-[#39FF14]/10 w-full rounded-2xl py-3 border border-[#39FF14]/20 mb-4">
-                            <span className="text-xs text-red-400 line-through font-bold mb-1">{upsellNormalPrice.toLocaleString()} F</span>
                             <span className="text-3xl font-black text-[#39FF14]">{upsellDiscountPrice.toLocaleString()} F</span>
                          </div>
                       </div>
@@ -1163,7 +1160,7 @@ export default function OnyxOpsElite() {
             <div className="bg-white rounded-[3rem] w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(57,255,20,0.15)] animate-in zoom-in min-h-[500px]">
               <button onClick={() => setShowOnboarding(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
 
-              {/* Colonne Gauche : Image Conseillère (250x350 simulé via flex/cover) */}
+              {/* Colonne Gauche : Image Conseillère */}
               <div className="w-full md:w-2/5 bg-zinc-900 relative hidden md:block">
                  <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=600&h=800&fit=crop" alt="Maïmouna" className="w-full h-full object-cover opacity-80" />
                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent flex flex-col justify-end p-8">
@@ -1372,8 +1369,3 @@ export default function OnyxOpsElite() {
     </div>
   );
 }
-
-
-
-
-
