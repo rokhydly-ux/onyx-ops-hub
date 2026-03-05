@@ -14,7 +14,7 @@ import {
   Bell, LogOut, Zap
 } from "lucide-react";
 
-// --- CONFIGURATION SUPABASE SÉCURISÉE POUR LE BUILD ---
+// --- CONFIGURATION SUPABASE SÉCURISÉ POUR LE BUILD ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
