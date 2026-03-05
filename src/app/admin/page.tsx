@@ -211,15 +211,17 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteItem = async (table: string, id: string) => {
-    if(!confirm("⚠️ Attention : Suppression irréversible. Confirmer ?")) return;
-    const { error } = await supabase.from(table).delete().eq('id', id);
-    if(error) alert("Erreur terminal : " + error.message);
-    else fetchSupabaseData();
-  };
+    if (!supabase) return; // AJOUTER CETTE LIGNE
+    if(!confirm("⚠️ Attention : Suppression irréversible. Confirmer ?")) return;
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if(error) alert("Erreur terminal : " + error.message);
+    else fetchSupabaseData();
+  };
 
-  const handleSaveContact = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const payload = { ...editingContact };
+  const handleSaveContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return; // AJOUTER CETTE LIGNE
+    const payload = { ...editingContact };
     const isNew = !payload.id;
     if (isNew) delete payload.id;
     
@@ -482,13 +484,14 @@ export default function AdminDashboard() {
                 {/* HISTOGRAMME NÉON */}
                 <div className="lg:col-span-2 bg-white border border-zinc-200 p-12 rounded-[4.5rem] shadow-sm relative overflow-hidden">
                   <div className="flex justify-between items-center mb-12">
-                    <div className="flex items-center gap-5">
-                       <div className="p-4 bg-zinc-100 rounded-[1.5rem] text-black"><BarChart2 size={24}/></div>
-                       <div>
-                          <h3 className="font-black uppercase text-base tracking-tighter text-black">Flux de Revenus Hebdomadaire</h3>
-                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Mars 2026 • Terminal Dakar</p>
-                       </div>
-                    </div>
+                  <div className="flex items-center gap-5">
+   {/* CHANGE BarChart2 par BarChart ci-dessous */}
+   <div className="p-4 bg-zinc-100 rounded-[1.5rem] text-black"><BarChart size={24}/></div>
+   <div>
+      <h3 className="font-black uppercase text-base tracking-tighter text-black">Flux de Revenus Hebdomadaire</h3>
+      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Mars 2026 • Terminal Dakar</p>
+   </div>
+</div>
                     <div className="flex gap-3 bg-zinc-50 p-2 rounded-[1.5rem]">
                        <button className="px-6 py-2.5 bg-white border border-zinc-100 rounded-xl text-[11px] font-black uppercase text-zinc-400 shadow-sm">Semaine</button>
                        <button className="px-6 py-2.5 bg-black rounded-xl text-[11px] font-black uppercase text-[#39FF14] shadow-xl">Mois</button>
