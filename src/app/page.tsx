@@ -2,14 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Space_Grotesk, Inter } from "next/font/google";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-
-// Initialisation directe pour éviter les erreurs de build
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 import { 
   Smartphone, Truck, Box, Utensils, Calendar, 
@@ -18,13 +12,14 @@ import {
   Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search
 } from "lucide-react";
 
-import { createClient } from "@supabase/supabase-js";
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
-s
-type PlanKey = "solo" | "duo" | "trio" | "full" | "premium" | "master";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "500", "700"] });
-const inter = Inter({ subsets: ["latin"], weight: ["400", "600", "700"] });
+const spaceGrotesk = { className: "font-sans" };
+const inter = { className: "" };
+
+type PlanKey = "solo" | "duo" | "trio" | "full" | "premium" | "master";
 
 // --- DATA ---
 const ECOSYSTEM_SAAS = [
@@ -160,7 +155,7 @@ export default function OnyxOpsElite() {
 
   // WORKFLOW PARTENAIRE
   const [partnerStep, setPartnerStep] = useState<'landing' | 'form' | 'success' | 'dashboard'>('landing');
-  const [packCounts, setPackCounts] = useState({ solo: 2, duo: 1, trio: 1, full: 0, premium: 0 });
+  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, duo: 1, trio: 1, full: 0, premium: 0, master: 0 });
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
