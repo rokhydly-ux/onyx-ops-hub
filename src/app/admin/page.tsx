@@ -1,168 +1,147 @@
 "use client";
-// @ts-nocheck
-/* eslint-disable */
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { 
-  LayoutDashboard, Users, Box, Wallet, Handshake, Megaphone, 
-  Search, Plus, CheckCircle, Clock, AlertCircle, X, Sparkles, 
-  ExternalLink, MessageSquare, Send, Download, Edit3, UserPlus,
-  BarChart, MapPin, Lock, ChevronDown, Trash2, 
-  RefreshCcw, Activity, TrendingUp, Layers, ArrowUpRight,
-  Bell, LogOut, Zap
+  LayoutDashboard, Users, Target, Handshake, Settings, LogOut, 
+  Search, Plus, Filter, MoreVertical, Edit2, Trash2, Mail, 
+  Phone, Calendar, ArrowUpRight, ArrowDownRight, CheckCircle, 
+  XCircle, Clock, FileText, Zap, Shield, Image as ImageIcon, MapPin, ArrowLeft,
+  MessageSquare, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
+  BarChart, TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
+  AlertCircle, UserPlus, X, Edit3, Lock as LockIcon
 } from "lucide-react";
 
-// --- CONFIGURATION SUPABASE SÉCURISÉE POUR LE BUILD ---
+// --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : null;
+// --- 2. HACK ANTI-CRASH POLICES ---
+const spaceGrotesk = { className: "font-sans" };
+const inter = { className: "" };
 
-// --- TYPES & INTERFACES ---
-type ViewType = 'dashboard' | 'crm' | 'leads' | 'ecosystem' | 'finance' | 'partners' | 'marketing';
-type ActionModule = 'CRM' | 'Partenaires' | 'Marketing' | 'SaaS';
-
-type IAAction = { 
-  id: string; 
-  module: ActionModule; 
-  title: string; 
-  desc: string; 
-  date: string; 
-  status: 'En attente' | 'En cours' | 'Réalisé' | 'Annulé'; 
-  phone?: string; 
-  msg?: string; 
+// --- 3. MISE À JOUR DU TYPE CONTACT (Ajout Adresse & Pays & SaaS) ---
+type Contact = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  address?: string;
+  country?: string;
+  status: string;
+  type: string;
+  source: string;
+  created_at: string;
+  saas?: string;
 };
 
+type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs";
+type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
+
+const ECOSYSTEM_SAAS = [
+  { id: "onyx-vente", name: "Onyx Vente", desc: "CRM & Ventes", color: "bg-[#39FF14]", url: "https://onyxvente.com" },
+  { id: "onyx-stock", name: "Onyx Stock", desc: "Gestion stock", color: "bg-blue-500", url: "https://onyxstock.com" },
+  { id: "onyx-tiak", name: "Onyx Tiak Pro", desc: "Restauration", color: "bg-amber-500", url: "https://onyxtiak.com" },
+  { id: "onyx-formation", name: "Onyx Formation", desc: "Formation", color: "bg-purple-500", url: "https://onyxformation.com" },
+  { id: "onyx-blog", name: "Onyx Blog", desc: "Marketing", color: "bg-pink-500", url: "https://onyxblog.com" },
+  { id: "onyx-ecole", name: "Onyx Auto-École", desc: "Auto-école", color: "bg-cyan-500", url: "https://onyxecole.com" },
+  { id: "onyx-beaute", name: "Onyx Beauté", desc: "Salon", color: "bg-rose-500", url: "https://onyxbeaute.com" },
+  { id: "onyx-resto", name: "Onyx Resto", desc: "Restauration", color: "bg-orange-500", url: "https://onyxresto.com" },
+  { id: "onyx-trio", name: "Pack Trio", desc: "Bundle 3 apps", color: "bg-zinc-800", url: "https://onyxops.com" },
+];
+
 export default function AdminDashboard() {
-  const [mounted, setMounted] = useState(false);
-  const [todayStr, setTodayStr] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  // --- NAVIGATION & FILTRES GLOBAUX ---
-  const [activeView, setActiveView] = useState<ViewType>('dashboard');
-  const [globalFilterDate, setGlobalFilterDate] = useState('Ce Mois');
-  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  // --- MODALES UI ---
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [showRapportIA, setShowRapportIA] = useState(false);
-  const [showPartnerModal, setShowPartnerModal] = useState(false);
-  
-  const [showSaasLogin, setShowSaasLogin] = useState<any>(null);
-  const [showDiffusionModal, setShowDiffusionModal] = useState<any>(null);
-  const [saasModalMode, setSaasModalMode] = useState<'login' | 'create'>('login');
-  const [saasCreateType, setSaasCreateType] = useState<'prospect' | 'manual'>('prospect');
-  const [saasCreateForm, setSaasCreateForm] = useState({ prospectId: '', name: '', phone: '', password: '' });
-  
-  // --- DATA STATES ---
-  const [editingContact, setEditingContact] = useState<any>(null);
-  const [selectedPartner, setSelectedPartner] = useState<any>(null);
-  const [isEditingPartner, setIsEditingPartner] = useState(false);
-  const [editPartnerForm, setEditPartnerForm] = useState<any>(null);
-  const [selectedContactsForDiffusion, setSelectedContactsForDiffusion] = useState<string[]>([]);
-
-  const [adminProfile, setAdminProfile] = useState({ 
-    name: 'Onyx Administrator', 
-    avatar: 'https://ui-avatars.com/api/?name=Admin&background=000&color=39FF14&bold=true' 
-  });
-  const [tempAdminProfile, setTempAdminProfile] = useState({ ...adminProfile });
-
-  const [contacts, setContacts] = useState<any[]>([]);
+   const router = useRouter();
+ 
+   // --- 4. ÉTATS DE NAVIGATION ET RECHERCHE ---
+   const [activeView, setActiveView] = useState("dashboard");
+   const [searchTerm, setSearchTerm] = useState("");
+   const [isLoading, setIsLoading] = useState(true);
+   const [mounted, setMounted] = useState(false); // AJOUTÉ
+   const [todayStr, setTodayStr] = useState("");   // AJOUTÉ
+ 
+   // --- 5. SUPPRESSION DES DONNÉES FICTIVES (On part de zéro) ---
+   const [contacts, setContacts] = useState<Contact[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
-  const [marketingArticles, setMarketingArticles] = useState<any[]>([]);
-  const [actionsIA, setActionsIA] = useState<IAAction[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [stats, setStats] = useState({ revenue: 0, activeClients: 0, pendingLeads: 0, newPartners: 0 });
 
-  const [actionTabFilter, setActionTabFilter] = useState<'All' | 'IA' | 'Marketing'>('All');
-  const [actionSearchFilter, setActionSearchFilter] = useState("");
-  const [crmSearch, setCrmSearch] = useState("");
+  // --- 6. ÉTATS DES MODALES ---
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
+  const [adminProfile, setAdminProfile] = useState({ 
+    name: "Cruella Ly", 
+    email: "rokhydly@gmail.com", 
+    avatar: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg" 
+  });
+  
+  // Nouveaux états pour le mot de passe dans le profil
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // NOUVEAU : État pour la modale de la carte des Hubs
+  const [selectedHub, setSelectedHub] = useState<string | null>(null);
+  const [actionsIA, setActionsIA] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [showRapportIA, setShowRapportIA] = useState(false);
+  const [showSaasLogin, setShowSaasLogin] = useState<{ id: string; name: string; color: string } | null>(null);
+  const [saasModalMode, setSaasModalMode] = useState<"create" | "login">("create");
+  const [saasCreateType, setSaasCreateType] = useState<"manual" | "prospect">("manual");
+  const [saasCreateForm, setSaasCreateForm] = useState<{ name: string; phone: string; password: string; prospectId?: string }>({ name: "", phone: "", password: "" });
   const [crmTypeFilter, setCrmTypeFilter] = useState("Tous");
+  const [crmSearch, setCrmSearch] = useState("");
   const [crmCardFilter, setCrmCardFilter] = useState<string | null>(null);
-  const [partnerSearch, setPartnerSearch] = useState("");
   const [financeSearch, setFinanceSearch] = useState("");
   const [financeTypeFilter, setFinanceTypeFilter] = useState("Tous");
-  const [financeCardFilter, setFinanceCardFilter] = useState<string | null>(null);
-
-  const [histogramData, setHistogramData] = useState([
-    { day: 'Lun', ca: 150000, date: '02 Mar', active: false },
-    { day: 'Mar', ca: 300000, date: '03 Mar', active: false },
-    { day: 'Mer', ca: 850000, date: '04 Mar', active: true },
-    { day: 'Jeu', ca: 120000, date: '05 Mar', active: false },
-    { day: 'Ven', ca: 450000, date: '06 Mar', active: false },
-    { day: 'Sam', ca: 900000, date: '07 Mar', active: false },
-    { day: 'Dim', ca: 200000, date: '08 Mar', active: false },
+  const [actionTabFilter, setActionTabFilter] = useState("IA");
+  const [actionSearchFilter, setActionSearchFilter] = useState("");
+  const [marketingArticles, setMarketingArticles] = useState<any[]>([]);
+  const [showDiffusionModal, setShowDiffusionModal] = useState<any>(null);
+  const [selectedContactsForDiffusion, setSelectedContactsForDiffusion] = useState<string[]>([]);
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<any>(null);
+  const [tempAdminProfile, setTempAdminProfile] = useState(adminProfile);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [histogramData, setHistogramData] = useState<{ day: string; ca: number; active?: boolean }[]>([
+    { day: "Lun", ca: 180000, active: false }, { day: "Mar", ca: 220000, active: false },
+    { day: "Mer", ca: 190000, active: false }, { day: "Jeu", ca: 250000, active: true },
+    { day: "Ven", ca: 210000, active: false }, { day: "Sam", ca: 195000, active: false },
   ]);
-  const maxCa = useMemo(() => Math.max(...histogramData.map(d => d.ca)) || 1, [histogramData]);
+  const maxCa = Math.max(...histogramData.map(d => d.ca), 1);
+  const [showHubsMap, setShowHubsMap] = useState(false);
 
-  const ECOSYSTEM_SAAS = [
-    { id: "vente", name: "Onyx Vente", desc: "Catalogue & Devis WhatsApp", color: "bg-blue-500", url: "https://vente.onyxops.com" },
-    { id: "tiak", name: "Onyx Tiak", desc: "Logistique & Livreurs", color: "bg-orange-500", url: "https://tiak.onyxops.com" },
-    { id: "stock", name: "Onyx Stock", desc: "Gestion d'Inventaire", color: "bg-purple-500", url: "https://stock.onyxops.com" },
-    { id: "menu", name: "Onyx Menu", desc: "Menu QR & Commandes", color: "bg-red-500", url: "https://menu.onyxops.com" },
-    { id: "booking", name: "Onyx Booking", desc: "Réservations & Acomptes", color: "bg-pink-500", url: "https://booking.onyxops.com" },
-    { id: "staff", name: "Onyx Staff", desc: "Pointage & Paie", color: "bg-cyan-500", url: "https://staff.onyxops.com" },
-    { id: "trio", name: "Pack Trio", desc: "Vente + Stock + Tiak", color: "bg-emerald-500", url: "https://trio.onyxops.com" },
-    { id: "full", name: "Pack Full", desc: "Écosystème Complet", color: "bg-black", url: "https://full.onyxops.com" },
-    { id: "premium", name: "Onyx Premium", desc: "IA & CRM Intégré", color: "bg-indigo-500", url: "https://premium.onyxops.com" },
-  ];
-
+  // --- CHARGEMENT DES DONNÉES (Supabase uniquement, pas de données fictives) ---
   const fetchSupabaseData = async () => {
-  if (!supabase) return;
-
+    setIsLoading(true);
     setIsRefreshing(true);
-    setLoading(true);
-
     try {
-      const [clientsRes, leadsRes, partnersRes, articlesRes] = await Promise.all([
-        supabase.from('clients').select('*'),
-        supabase.from('leads').select('*'),
-        supabase.from('partners').select('*'),
-        supabase.from('articles').select('*')
-      ]);
-
-      if (clientsRes?.data) setContacts(clientsRes.data.reverse());
-      if (leadsRes?.data) setLeads(leadsRes.data.reverse());
-      if (partnersRes?.data) setPartners(partnersRes.data.reverse());
-      if (articlesRes?.data) setMarketingArticles(articlesRes.data.reverse());
-    
-    } catch (err) {
-      console.error("Erreur de synchronisation terminal:", err);
+      const { data: contactsData } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
+      const { data: leadsData } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+      const { data: partnersData } = await supabase.from('partners').select('*').order('created_at', { ascending: false });
+      if (contactsData) setContacts(contactsData);
+      if (leadsData) setLeads(leadsData);
+      if (partnersData) setPartners(partnersData);
+      setStats({
+        revenue: contactsData?.length ? contactsData.length * 9900 : 0,
+        activeClients: contactsData?.length || 0,
+        pendingLeads: leadsData?.length || 0,
+        newPartners: partnersData?.length || 0
+      });
+    } catch (error) {
+      console.error("Erreur de chargement:", error);
     } finally {
-      setLoading(false);
-      setTimeout(() => setIsRefreshing(false), 800);
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     setMounted(true);
-    const currentDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
-    setTodayStr(currentDate);
+    setTodayStr(new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }));
     fetchSupabaseData();
-
-    setActionsIA([
-       { id: 'a1', module: 'CRM', title: 'Relance Essai - Boutique Fatou', desc: 'Essai Onyx Vente expire demain.', date: currentDate, status: 'En attente', phone: '221769876543', msg: 'Bonjour Boutique Fatou, votre essai Onyx Vente expire demain. Souhaitez-vous le prolonger ?' },
-       { id: 'a2', module: 'Partenaires', title: 'Booster Moussa D.', desc: 'Aucune vente depuis 15 jours. Lui envoyer le script.', date: currentDate, status: 'En attente', phone: '221770000000', msg: 'Salut Moussa, voici un nouveau script de vente qui marche très bien en ce moment pour vendre le Pack Trio.' },
-       { id: 'a3', module: 'Marketing', title: 'Newsletter : L\'ère du Digital', desc: 'Diffusion automatique programmée pour les prospects Restauration.', date: 'Demain', status: 'En attente' },
-       { id: 'a4', module: 'SaaS', title: 'Maintenance Stock', desc: 'Optimisation de la base de données pour Onyx Stock.', date: 'Ce soir', status: 'En cours' },
-       { id: 'a5', module: 'CRM', title: 'Féliciter Nouveaux Clients', desc: 'Message de bienvenue pour les conversions du jour.', date: currentDate, status: 'Réalisé' }
-    ]);
-
-    setTransactions([
-      { id: 'tr1', date: currentDate, client: 'Boutique Fatou', amount: 17500, type: 'Abonnement Trio', status: 'Payé', ref: 'WAVE-10293' },
-      { id: 'tr2', date: 'Hier', client: 'Resto Dakar', amount: 30000, type: 'Pack Full', status: 'En attente', ref: 'OM-99212' },
-      { id: 'tr3', date: '01 Mar 2026', client: 'Cheikh N.', amount: -45000, type: 'Commission Ambassadeur', status: 'Versé', ref: 'PAY-4412' },
-      { id: 'tr4', date: '02 Mar 2026', client: 'Auto-Ecole Plus', amount: 50000, type: 'Pack Full', status: 'Payé', ref: 'WAVE-8821' },
-      { id: 'tr5', date: '03 Mar 2026', client: 'Boutique Z', amount: 10000, type: 'Onyx Vente', status: 'Payé', ref: 'OM-1102' },
-      { id: 'tr6', date: '04 Mar 2026', client: 'Fatou Diop', amount: 8900, type: 'Formation Onyx', status: 'Payé', ref: 'WAVE-7721' },
-      { id: 'tr7', date: '04 Mar 2026', client: 'Alioune S.', amount: 15000, type: 'Onyx Tiak Pro', status: 'Payé', ref: 'WAVE-6651' },
-      { id: 'tr8', date: '05 Mar 2026', client: 'Maison de la Beauté', amount: -15000, type: 'Remboursement', status: 'Versé', ref: 'REFUND-001' },
-    ]);
   }, []);
 
   if (!mounted) {
@@ -210,15 +189,28 @@ export default function AdminDashboard() {
 
   const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) return; 
-    const payload = { ...editingContact };
+    if (!editingContact.full_name || !editingContact.phone) return alert("Nom et Téléphone requis");
+    const phoneClean = (editingContact.phone || "").replace(/\s+/g, "");
+    const isSenegal = !editingContact.country || editingContact.country === "Sénégal";
+    if (isSenegal) {
+      const regexSenegal = /^(?:\+221|00221|221)?(7[05678]\d{7})$/;
+      if (!regexSenegal.test(phoneClean)) {
+        return alert("Format Sénégal invalide (7x xxx xx xx). Ex: +221 77 123 45 67");
+      }
+    }
+    if (!supabase) return;
+    const payload = { ...editingContact, phone: phoneClean, updated_at: new Date().toISOString() };
     const isNew = !payload.id;
     if (isNew) delete payload.id;
-    
-    const { error } = await supabase.from('clients').upsert(payload);
-    if (error) { alert(`Erreur base de données : ${error.message}`); return; }
-    fetchSupabaseData();
-    setShowContactModal(false);
+    try {
+      const { error } = await supabase.from('clients').upsert(payload);
+      if (error) throw error;
+      setShowContactModal(false);
+      fetchSupabaseData();
+      alert("Enregistré avec succès !");
+    } catch (err: any) {
+      alert("Erreur Supabase: " + (err?.message || err));
+    }
   };
 
   const approvePartner = async (id: string) => {
@@ -241,7 +233,7 @@ export default function AdminDashboard() {
   };
 
   const handleCreateSaasAccount = async () => {
-     if (!supabase) return; 
+     if (!supabase || !showSaasLogin) return; 
      if (saasCreateType === 'manual' && (!saasCreateForm.name || !saasCreateForm.phone || !saasCreateForm.password)) return alert("Veuillez remplir tous les champs.");
      
      let targetPhone = saasCreateForm.phone;
@@ -267,10 +259,28 @@ export default function AdminDashboard() {
      window.open(`https://wa.me/${targetPhone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  const saveAdminProfile = () => {
-     setAdminProfile(tempAdminProfile);
-     alert("Profil synchronisé avec succès dans le terminal !");
-     setShowProfileModal(false);
+  const saveAdminProfile = async () => {
+     if (newPassword && newPassword !== confirmPassword) {
+       alert("Les mots de passe ne correspondent pas.");
+       return;
+     }
+     if (newPassword && newPassword.length < 6) {
+       alert("Le mot de passe doit contenir au moins 6 caractères.");
+       return;
+     }
+     try {
+       if (newPassword) {
+         const { error } = await supabase.auth.updateUser({ password: newPassword });
+         if (error) throw error;
+         setNewPassword("");
+         setConfirmPassword("");
+       }
+       setAdminProfile({ ...tempAdminProfile });
+       alert("Profil synchronisé avec succès dans le terminal !");
+       setShowProfileModal(false);
+     } catch (err: any) {
+       alert("Erreur : " + (err?.message || err));
+     }
   };
 
   const runIAArticleSuggestion = () => {
@@ -316,7 +326,7 @@ export default function AdminDashboard() {
       
       {/* ================= SIDEBAR GAUCHE ================= */}
       <aside className="w-72 bg-white border-r border-zinc-200 flex flex-col z-30 shadow-sm hidden md:flex transition-all">
-        <div className="p-10">
+        <div className="p-6">
           <h1 className={`font-sans text-3xl font-black tracking-tighter uppercase cursor-pointer group`} onClick={() => setActiveView('dashboard')}>
             ONYX<span className="text-[#39FF14] group-hover:drop-shadow-[0_0_8px_rgba(57,255,20,0.6)] transition-all">OPS</span>
           </h1>
@@ -362,6 +372,9 @@ export default function AdminDashboard() {
                <button onClick={() => setShowRapportIA(true)} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all">
                  <Sparkles size={20} className="text-[#39FF14]" /> Scan Intelligence
                </button>
+               <button onClick={() => setShowHubsMap(true)} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all">
+                 <MapPin size={20} className="text-[#39FF14]" /> Carte des Hubs
+               </button>
             </nav>
           </div>
         </div>
@@ -393,8 +406,8 @@ export default function AdminDashboard() {
             </div>
           </div>
           
-          <div className="flex items-center gap-6 lg:gap-10">
-            <div className="hidden lg:flex items-center gap-8 pr-10 border-r border-zinc-200">
+          <div className="flex items-center gap-6 lg:gap-6">
+            <div className="hidden lg:flex items-center gap-5 pr-10 border-r border-zinc-200">
                <button onClick={fetchSupabaseData} className={`text-zinc-400 hover:text-black transition-all ${isRefreshing ? 'animate-spin text-[#39FF14]' : ''}`} title="Rafraîchir les données">
                   <RefreshCcw size={22}/>
                </button>
@@ -404,7 +417,7 @@ export default function AdminDashboard() {
                </div>
             </div>
             
-            <div onClick={() => setShowProfileModal(true)} className="flex items-center gap-5 bg-white border border-zinc-200 p-2.5 pr-8 rounded-full cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-1 group active:scale-95">
+            <div onClick={() => { setTempAdminProfile({ ...adminProfile }); setShowProfileModal(true); }} className="flex items-center gap-5 bg-white border border-zinc-200 p-2.5 pr-8 rounded-full cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-1 group active:scale-95">
               <div className="relative">
                 <img src={adminProfile?.avatar} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md ring-2 ring-zinc-50" alt="Admin" />
                 <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#39FF14] border-[3px] border-white rounded-full"></div>
@@ -425,8 +438,8 @@ export default function AdminDashboard() {
             <div className={`space-y-12 max-w-[1600px] mx-auto transition-all duration-700 ${isRefreshing ? 'opacity-30 scale-[0.98] grayscale' : 'opacity-100 scale-100 grayscale-0'}`}>
               
               {/* STATS PRINCIPALES */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                <div onClick={() => setActiveView('finance')} className="bg-black p-10 rounded-[4rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden cursor-pointer hover:scale-[1.03] transition-all group border border-zinc-800">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div onClick={() => setActiveView('finance')} className="bg-black p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden cursor-pointer hover:scale-[1.03] transition-all group border border-zinc-800">
                   <div className="absolute -top-12 -right-12 p-12 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 text-[#39FF14]"><Wallet size={200}/></div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d&apos;Affaires Mensuel</p>
                   <div className="flex items-end gap-4">
@@ -437,7 +450,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div onClick={() => setActiveView('leads')} className="bg-white border border-zinc-200 p-10 rounded-[4rem] shadow-sm cursor-pointer hover:border-black hover:shadow-2xl transition-all group relative overflow-hidden">
+                <div onClick={() => setActiveView('leads')} className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:border-black hover:shadow-2xl transition-all group relative overflow-hidden">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Flux de Leads (24h)</p>
                   <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>{leads.length}</p>
                   <div className="flex items-center gap-3 mt-6">
@@ -452,7 +465,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div onClick={() => setActiveView('marketing')} className="bg-[#39FF14] p-10 rounded-[4rem] shadow-xl cursor-pointer hover:scale-[1.03] transition-all group relative overflow-hidden border border-[#32E612]">
+                <div onClick={() => setActiveView('marketing')} className="bg-[#39FF14] p-6 rounded-3xl shadow-xl cursor-pointer hover:scale-[1.03] transition-all group relative overflow-hidden border border-[#32E612]">
                    <div className="absolute -bottom-10 -right-10 opacity-10 text-black group-hover:rotate-[-15deg] transition-all duration-700"><Megaphone size={180}/></div>
                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/40 mb-4">Portée Marketing Blog</p>
                    <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>8.405</p>
@@ -463,9 +476,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* GRAPHIQUES ET MAP */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* HISTOGRAMME NÉON */}
-                <div className="lg:col-span-2 bg-white border border-zinc-200 p-8 lg:p-12 rounded-[4.5rem] shadow-sm relative overflow-hidden">
+                <div className="lg:col-span-2 bg-white border border-zinc-200 p-5 lg:p-12 rounded-3xl shadow-sm relative overflow-hidden">
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-6 mb-12">
                     <div className="flex items-center gap-5">
                        <div className="p-4 bg-zinc-100 rounded-[1.5rem] text-black"><BarChart size={24}/></div>
@@ -495,8 +508,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* ACTIVITY MAP SENEGAL */}
-                <div className="bg-zinc-900 p-8 lg:p-12 rounded-[4.5rem] shadow-2xl relative overflow-hidden flex flex-col border border-zinc-800 group min-h-[400px]">
+                {/* ACTIVITY MAP SENEGAL — cliquable → Carte des Hubs */}
+                <div onClick={() => setShowHubsMap(true)} className="bg-zinc-900 p-5 lg:p-12 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col border border-zinc-800 group min-h-[400px] cursor-pointer hover:border-[#39FF14]/50 transition-all">
                   <div className="flex items-center gap-4 mb-10 relative z-10">
                     <div className="p-3 bg-[#39FF14]/10 rounded-2xl"><MapPin className="text-[#39FF14]" size={22}/></div>
                     <h3 className="font-black uppercase text-base text-white tracking-tighter">Zones de Capture</h3>
@@ -521,9 +534,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* LISTES DE DONNÉES DASHBOARD (CRM Récent & IA Actions) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  {/* DERNIERS MEMBRES CRM */}
-                 <div className="bg-white border border-zinc-200 p-8 lg:p-12 rounded-[4.5rem] shadow-sm group hover:shadow-xl transition-all">
+                 <div className="bg-white border border-zinc-200 p-5 lg:p-12 rounded-3xl shadow-sm group hover:shadow-xl transition-all">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-6 mb-10">
                        <div className="flex items-center gap-5">
                           <div className="w-14 h-14 bg-zinc-100 rounded-[1.75rem] flex items-center justify-center text-black group-hover:bg-black group-hover:text-[#39FF14] transition-all"><TrendingUp size={28}/></div>
@@ -551,13 +564,13 @@ export default function AdminDashboard() {
                           </div>
                        ))}
                        {contacts.filter(c => c.type === 'Client').length === 0 && (
-                          <div className="p-10 text-center text-zinc-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed border-zinc-100 rounded-[2rem]">Aucun client récent</div>
+                          <div className="p-6 text-center text-zinc-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed border-zinc-100 rounded-[2rem]">Aucun client récent</div>
                        )}
                     </div>
                  </div>
 
                  {/* ACTIONS IA INTELLIGENTES */}
-                 <div className="bg-zinc-900 p-8 lg:p-12 rounded-[4.5rem] shadow-2xl border border-zinc-800 relative overflow-hidden flex flex-col h-full">
+                 <div className="bg-zinc-900 p-5 lg:p-12 rounded-3xl shadow-2xl border border-zinc-800 relative overflow-hidden flex flex-col h-full">
                     <div className="absolute top-0 right-0 p-12 opacity-[0.03] text-[#39FF14] pointer-events-none"><Sparkles size={120}/></div>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-6 mb-10 relative z-10">
                        <h3 className="font-black uppercase text-base text-white tracking-tighter flex items-center gap-4"><Sparkles className="text-[#39FF14] shadow-[0_0_10px_#39FF14]"/> Planificateur IA</h3>
@@ -594,7 +607,7 @@ export default function AdminDashboard() {
           {/* ================= VUE LEADS (FLUX RÉEL) ================= */}
           {activeView === 'leads' && (
              <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 max-w-[1400px] mx-auto">
-                <div className="flex flex-col md:flex-row justify-between md:items-center gap-8 bg-white p-8 lg:p-10 rounded-[4rem] border border-zinc-200 shadow-sm">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 bg-white p-5 lg:p-6 rounded-3xl border border-zinc-200 shadow-sm">
                    <div className="flex items-center gap-6">
                       <div className="w-16 h-16 bg-black rounded-[1.75rem] flex items-center justify-center text-[#39FF14] shadow-2xl animate-pulse"><MessageSquare size={32}/></div>
                       <div>
@@ -610,34 +623,34 @@ export default function AdminDashboard() {
                    </div>
                 </div>
 
-                <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-[4.5rem] overflow-hidden shadow-sm overflow-x-auto">
+                <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto">
                    <table className="w-full text-left min-w-[800px]">
                       <thead className="bg-zinc-50/50 border-b border-zinc-100">
                          <tr>
-                            <th className="p-6 lg:p-8 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Origine & Contact</th>
-                            <th className="p-6 lg:p-8 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Intention / Produit</th>
-                            <th className="p-6 lg:p-8 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Message Reçu</th>
-                            <th className="p-6 lg:p-8 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Traitement</th>
+                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Origine & Contact</th>
+                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Intention / Produit</th>
+                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Message Reçu</th>
+                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Traitement</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
                          {leads.map(l => (
                             <tr key={l.id} className="hover:bg-zinc-50/50 transition-all group">
-                               <td className="p-6 lg:p-8">
+                               <td className="p-6 lg:p-5">
                                   <p className="font-black text-sm uppercase text-black">{l.full_name}</p>
                                   <p className="text-xs text-[#39FF14] font-black mt-1">{l.phone}</p>
                                   <p className="text-[9px] text-zinc-400 font-bold uppercase mt-1.5 opacity-80">Source : {l.source || 'Site Web'}</p>
                                </td>
-                               <td className="p-6 lg:p-8">
+                               <td className="p-6 lg:p-5">
                                   <div className="flex flex-col gap-2">
                                      <span className="bg-black text-[#39FF14] text-[9px] lg:text-[10px] font-black px-3 py-1.5 rounded-xl uppercase inline-block shadow-lg w-max tracking-widest">{l.intent}</span>
                                      <p className="text-[9px] font-bold text-zinc-400 uppercase ml-2 mt-1">{l.created_at ? new Date(l.created_at).toLocaleDateString() : todayStr}</p>
                                   </div>
                                </td>
-                               <td className="p-6 lg:p-8">
+                               <td className="p-6 lg:p-5">
                                   <p className="text-xs text-zinc-600 font-medium italic max-w-xs leading-relaxed opacity-80 border-l-2 border-zinc-200 pl-4 py-1">&quot;{l.message}&quot;</p>
                                </td>
-                               <td className="p-6 lg:p-8 text-right space-x-4">
+                               <td className="p-6 lg:p-5 text-right space-x-4">
                                   <button onClick={() => replyToLead(l)} className="bg-[#39FF14] text-black px-5 py-3 rounded-[1.25rem] text-[10px] font-black uppercase shadow-xl hover:bg-black hover:text-[#39FF14] transition-all active:scale-95 flex items-center justify-end gap-2 ml-auto">
                                      <Send size={16}/> Répondre
                                   </button>
@@ -658,7 +671,7 @@ export default function AdminDashboard() {
             <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 max-w-[1600px] mx-auto">
               
               {/* CARTES STATS CRM */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-5">
                  {[
                     { id: 'all', label: 'Membres CRM', val: contacts.length, icon: Users, color: 'bg-white border-zinc-200' },
                     { id: 'new_clients', label: 'Clients Actifs', val: contacts.filter(c=>c.type==='Client').length, icon: CheckCircle, color: 'bg-black text-[#39FF14] shadow-2xl border-black' },
@@ -668,7 +681,7 @@ export default function AdminDashboard() {
                     <div 
                       key={card.id} 
                       onClick={() => setCrmCardFilter(crmCardFilter === card.id ? null : card.id)} 
-                      className={`p-8 lg:p-10 rounded-[3rem] lg:rounded-[3.5rem] border cursor-pointer hover:scale-[1.04] transition-all flex flex-col justify-between min-h-[180px] ${card.color} ${crmCardFilter === card.id ? 'ring-[6px] ring-[#39FF14]/30 scale-[1.02]' : ''}`}
+                      className={`p-5 lg:p-6 rounded-[3rem] lg:rounded-[3.5rem] border cursor-pointer hover:scale-[1.04] transition-all flex flex-col justify-between min-h-[180px] ${card.color} ${crmCardFilter === card.id ? 'ring-[6px] ring-[#39FF14]/30 scale-[1.02]' : ''}`}
                     >
                        <card.icon size={26} className="mb-4 opacity-80" />
                        <div>
@@ -680,7 +693,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* BARRE DE RECHERCHE CRM */}
-              <div className="flex flex-col xl:flex-row justify-between gap-6 xl:gap-8 items-center bg-white p-6 lg:p-8 rounded-[3rem] lg:rounded-[4rem] border border-zinc-200 shadow-sm relative overflow-hidden group">
+              <div className="flex flex-col xl:flex-row justify-between gap-6 xl:gap-5 items-center bg-white p-6 lg:p-5 rounded-[3rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-2 h-full bg-[#39FF14] opacity-0 group-hover:opacity-100 transition-all"></div>
                 <div className="flex-1 w-full relative">
                   <Search className="absolute left-6 lg:left-8 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5 lg:w-6 lg:h-6 transition-all group-focus-within:text-[#39FF14]" />
@@ -713,20 +726,20 @@ export default function AdminDashboard() {
               </div>
 
               {/* TABLEAU CRM */}
-              <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-[5rem] overflow-hidden shadow-sm relative overflow-x-auto">
+              <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm relative overflow-x-auto">
                 <table className="w-full text-left min-w-[800px]">
                   <thead className="bg-zinc-50/50 border-b border-zinc-100">
                     <tr>
-                      <th className="p-8 lg:p-10 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Identité & WhatsApp</th>
-                      <th className="p-8 lg:p-10 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Segment Terminal</th>
-                      <th className="p-8 lg:p-10 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Services Actifs</th>
-                      <th className="p-8 lg:p-10 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
+                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Identité & WhatsApp</th>
+                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Segment Terminal</th>
+                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Services Actifs</th>
+                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-50">
                     {filteredContacts.map((c) => (
                       <tr key={c.id} className="hover:bg-zinc-50/50 transition-all group">
-                        <td className="p-8 lg:p-10">
+                        <td className="p-5 lg:p-6">
                           <div className="flex items-center gap-4 lg:gap-6">
                              <div className="w-14 lg:w-16 h-14 lg:h-16 bg-zinc-100 rounded-[1.5rem] lg:rounded-[1.75rem] flex items-center justify-center font-black text-lg text-black group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm shrink-0">{c.full_name?.charAt(0)}</div>
                              <div>
@@ -735,19 +748,19 @@ export default function AdminDashboard() {
                              </div>
                           </div>
                         </td>
-                        <td className="p-8 lg:p-10">
+                        <td className="p-5 lg:p-6">
                           <div className="flex flex-col gap-2">
                              <span className={`px-4 py-2 text-[9px] lg:text-[10px] font-black uppercase rounded-2xl w-max tracking-widest ${c.type === 'Client' ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20' : 'bg-zinc-100 text-zinc-500'}`}>{c.type}</span>
                              <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 mt-1.5 uppercase ml-2">{c.status || 'Non catégorisé'}</p>
                           </div>
                         </td>
-                        <td className="p-8 lg:p-10">
+                        <td className="p-5 lg:p-6">
                            <div className="flex items-center gap-3 lg:gap-4">
                               <div className={`w-2.5 lg:w-3 h-2.5 lg:h-3 rounded-full shrink-0 ${c.saas ? 'bg-[#39FF14] shadow-[0_0_10px_#39FF14]' : 'bg-zinc-200'}`}></div>
                               <p className="font-black text-xs lg:text-sm text-black uppercase tracking-tighter">{c.saas || 'À définir'}</p>
                            </div>
                         </td>
-                        <td className="p-8 lg:p-10 text-right space-x-2 lg:space-x-4">
+                        <td className="p-5 lg:p-6 text-right space-x-2 lg:space-x-4">
                           <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-3 lg:p-4 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-xl lg:rounded-2xl transition-all shadow-sm"><Edit3 size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => handleDeleteItem('clients', c.id)} className="p-3 lg:p-4 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl lg:rounded-2xl transition-all"><Trash2 size={18} className="lg:w-5 lg:h-5"/></button>
                         </td>
@@ -766,9 +779,9 @@ export default function AdminDashboard() {
           {activeView === 'finance' && (
              <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto">
                 {/* HEADER FINANCE */}
-                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-8 lg:p-10 rounded-[3rem] lg:rounded-[4.5rem] border border-zinc-200 shadow-sm gap-8 relative overflow-hidden">
+                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-5 lg:p-6 rounded-[3rem] lg:rounded-3xl border border-zinc-200 shadow-sm gap-5 relative overflow-hidden">
                    <div className="absolute top-0 right-0 w-40 h-40 bg-zinc-50 opacity-40 translate-x-20 -translate-y-20 rounded-full"></div>
-                   <div className="flex items-center gap-6 lg:gap-8 relative z-10">
+                   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
                       <div className="p-5 lg:p-6 bg-black rounded-[1.5rem] lg:rounded-[2rem] text-[#39FF14] shadow-2xl shadow-[#39FF14]/10"><Wallet size={32} className="lg:w-10 lg:h-10"/></div>
                       <div>
                          <h2 className={`font-sans text-3xl lg:text-5xl font-black uppercase tracking-tighter`}>Hub Financier</h2>
@@ -783,14 +796,14 @@ export default function AdminDashboard() {
                 </div>
                 
                 {/* GRID FINANCIÈRE */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-5">
                    {[
                       { label: 'Revenus Globaux', val: '4.850.000 F', color: 'bg-black text-[#39FF14]', icon: TrendingUp },
                       { label: 'MRR (Récurrent)', val: '1.200.000 F', color: 'bg-white text-black border-zinc-200', icon: RefreshCcw },
                       { label: 'Commissions Dues', val: '450.000 F', color: 'bg-white text-black border-zinc-200', icon: Handshake },
                       { label: 'Sorties Opé', val: '120.000 F', color: 'bg-red-50 text-red-600 border-red-100', icon: TrendingUp },
                    ].map((card, i) => (
-                      <div key={i} className={`p-8 lg:p-10 rounded-[3rem] lg:rounded-[3.5rem] shadow-sm flex flex-col justify-between h-48 lg:h-56 border transition-all hover:translate-y-[-5px] ${card.color}`}>
+                      <div key={i} className={`p-5 lg:p-6 rounded-[3rem] lg:rounded-[3.5rem] shadow-sm flex flex-col justify-between h-48 lg:h-56 border transition-all hover:translate-y-[-5px] ${card.color}`}>
                          <card.icon size={24} className="opacity-40" />
                          <div>
                             <p className="text-[10px] lg:text-[11px] font-black uppercase tracking-widest opacity-60 mb-2 lg:mb-3">{card.label}</p>
@@ -801,8 +814,8 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* TABLEAU TRANSACTIONS */}
-                <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-[5rem] p-8 lg:p-12 shadow-sm overflow-x-auto">
-                   <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 mb-10 lg:mb-12">
+                <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl p-5 lg:p-12 shadow-sm overflow-x-auto">
+                   <div className="flex flex-col lg:flex-row gap-6 lg:gap-5 mb-10 lg:mb-12">
                       <div className="flex-1 relative min-w-[300px]">
                          <Search className="absolute left-6 lg:left-8 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5 lg:w-6 lg:h-6" />
                          <input 
@@ -823,29 +836,29 @@ export default function AdminDashboard() {
                    <table className="w-full text-left min-w-[800px]">
                       <thead className="bg-zinc-50/50 border-b border-zinc-100">
                          <tr>
-                            <th className="p-6 lg:p-8 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Date & Référence</th>
-                            <th className="p-6 lg:p-8 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Désignation</th>
-                            <th className="p-6 lg:p-8 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Flux Monétaire</th>
-                            <th className="p-6 lg:p-8 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Statut Terminal</th>
+                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Date & Référence</th>
+                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Désignation</th>
+                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Flux Monétaire</th>
+                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Statut Terminal</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
                          {filteredTransactions.map(t => (
                             <tr key={t.id} className="hover:bg-zinc-50 transition-all group">
-                               <td className="p-6 lg:p-8">
+                               <td className="p-6 lg:p-5">
                                   <p className="font-black text-xs lg:text-sm text-black">{t.date}</p>
                                   <p className="text-[9px] lg:text-[10px] font-black text-zinc-400 tracking-[0.15em] uppercase mt-1">{t.ref}</p>
                                </td>
-                               <td className="p-6 lg:p-8">
+                               <td className="p-6 lg:p-5">
                                   <p className="font-black text-sm lg:text-base uppercase text-black tracking-tighter">{t.client}</p>
                                   <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 mt-1">{t.type}</p>
                                </td>
-                               <td className="p-6 lg:p-8">
+                               <td className="p-6 lg:p-5">
                                   <div className={`flex items-baseline gap-2 font-black text-xl lg:text-2xl tracking-tighter ${t.amount > 0 ? 'text-[#39FF14]' : 'text-red-500'}`}>
                                      {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} <span className="text-[9px] lg:text-[10px] uppercase opacity-60">F CFA</span>
                                   </div>
                                </td>
-                               <td className="p-6 lg:p-8 text-right">
+                               <td className="p-6 lg:p-5 text-right">
                                   <span className={`text-[9px] lg:text-[10px] font-black uppercase px-4 lg:px-5 py-2 lg:py-2.5 rounded-2xl shadow-sm ${t.status === 'Payé' || t.status === 'Versé' ? 'bg-[#39FF14]/10 text-black border border-[#39FF14]/20' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>{t.status}</span>
                                </td>
                             </tr>
@@ -868,9 +881,9 @@ export default function AdminDashboard() {
                    <p className="text-xs lg:text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] lg:tracking-[0.4em] leading-relaxed">Déploiement & Gouvernance du Catalogue SaaS • 9 Solutions Prêtes</p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
                    {ECOSYSTEM_SAAS.map(saas => (
-                      <div key={saas.id} className="bg-white border border-zinc-200 p-10 lg:p-12 rounded-[4rem] lg:rounded-[5rem] shadow-sm hover:border-black hover:shadow-2xl transition-all group flex flex-col justify-between min-h-[380px] lg:min-h-[420px] relative overflow-hidden">
+                      <div key={saas.id} className="bg-white border border-zinc-200 p-6 lg:p-12 rounded-3xl lg:rounded-3xl shadow-sm hover:border-black hover:shadow-2xl transition-all group flex flex-col justify-between min-h-[380px] lg:min-h-[420px] relative overflow-hidden">
                          <div className={`absolute top-0 right-0 w-40 lg:w-48 h-40 lg:h-48 ${saas.color} opacity-[0.03] translate-x-16 lg:translate-x-20 -translate-y-16 lg:-translate-y-20 rounded-full group-hover:scale-150 transition-transform duration-1000`}></div>
                          <div className="relative z-10">
                             <div className={`w-16 lg:w-20 h-16 lg:h-20 rounded-[1.75rem] lg:rounded-[2.25rem] mb-8 lg:mb-10 flex items-center justify-center text-white shadow-2xl ${saas.color} group-hover:rotate-12 transition-transform duration-500`}><Box size={32} className="lg:w-10 lg:h-10"/></div>
@@ -892,8 +905,8 @@ export default function AdminDashboard() {
           {/* ================= VUE AMBASSADEURS ================= */}
           {activeView === 'partners' && (
              <div className="space-y-12 animate-in fade-in max-w-[1400px] mx-auto">
-                <div className="flex flex-col md:flex-row justify-between md:items-center gap-8 lg:gap-10 bg-white p-8 lg:p-10 rounded-[3.5rem] lg:rounded-[4.5rem] border border-zinc-200 shadow-sm relative overflow-hidden">
-                   <div className="flex items-center gap-6 lg:gap-8 relative z-10">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 lg:gap-6 bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden">
+                   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
                       <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Handshake size={32} className="lg:w-[38px] lg:h-[38px]"/></div>
                       <div>
                          <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
@@ -908,7 +921,7 @@ export default function AdminDashboard() {
 
                 {/* CANDIDATURES EN ATTENTE */}
                 {partners.filter(p => p.status === 'En attente').length > 0 && (
-                   <div className="bg-red-50 border-2 border-red-100 p-8 lg:p-10 rounded-[3.5rem] lg:rounded-[4rem] animate-pulse">
+                   <div className="bg-red-50 border-2 border-red-100 p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl animate-pulse">
                       <h3 className="font-black uppercase text-xs lg:text-sm text-red-600 mb-6 flex items-center gap-3 tracking-[0.2em]"><AlertCircle size={18} className="lg:w-5 lg:h-5"/> Dossiers en attente de validation</h3>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                          {partners.filter(p => p.status === 'En attente').map(p => (
@@ -924,34 +937,34 @@ export default function AdminDashboard() {
                    </div>
                 )}
 
-                <div className="bg-white border border-zinc-200 rounded-[3.5rem] lg:rounded-[5rem] overflow-hidden shadow-sm overflow-x-auto">
+                <div className="bg-white border border-zinc-200 rounded-[3.5rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto">
                    <table className="w-full text-left min-w-[800px]">
                       <thead className="bg-zinc-50/50 border-b border-zinc-100">
                          <tr>
-                            <th className="p-8 lg:p-10 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Ambassadeur & Contact</th>
-                            <th className="p-8 lg:p-10 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Secteur / Statut</th>
-                            <th className="p-8 lg:p-10 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Volume Ventes</th>
-                            <th className="p-8 lg:p-10 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Ambassadeur & Contact</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Secteur / Statut</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Volume Ventes</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
                          {partners.filter(p => p.status !== 'En attente').map(p => (
                             <tr key={p.id} className="hover:bg-zinc-50 transition-all">
-                               <td className="p-8 lg:p-10">
+                               <td className="p-5 lg:p-6">
                                   <p className="font-black text-sm lg:text-base uppercase text-black tracking-tighter leading-tight">{p.full_name}</p>
                                   <p className="text-xs text-[#39FF14] font-black mt-1">{p.contact}</p>
                                </td>
-                               <td className="p-8 lg:p-10">
+                               <td className="p-5 lg:p-6">
                                   <div className="flex flex-col gap-2">
                                      <span className="bg-zinc-100 text-black px-4 py-1.5 rounded-xl text-[9px] lg:text-[10px] font-black uppercase w-max tracking-widest">{p.activity}</span>
                                      <p className="text-[9px] lg:text-[10px] font-black text-[#39FF14] uppercase ml-2 mt-1">{p.status}</p>
                                   </div>
                                </td>
-                               <td className="p-8 lg:p-10 text-center">
+                               <td className="p-5 lg:p-6 text-center">
                                   <p className={`font-sans text-3xl lg:text-4xl font-black text-black tracking-tighter`}>{p.sales || 0}</p>
                                   <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 uppercase mt-1">Ventes Clôturées</p>
                                </td>
-                               <td className="p-8 lg:p-10 text-right">
+                               <td className="p-5 lg:p-6 text-right">
                                   <button onClick={() => { setSelectedPartner(p); setShowPartnerModal(true); }} className="bg-black text-white px-6 lg:px-8 py-3 lg:py-4 rounded-[1.25rem] lg:rounded-[1.5rem] text-[9px] lg:text-[11px] font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-all shadow-xl active:scale-95">Console Détails</button>
                                </td>
                             </tr>
@@ -968,8 +981,8 @@ export default function AdminDashboard() {
           {/* ================= VUE MARKETING ================= */}
           {activeView === 'marketing' && (
              <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1200px] mx-auto">
-                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-8 lg:p-10 rounded-[3.5rem] lg:rounded-[4.5rem] border border-zinc-200 shadow-sm relative overflow-hidden group gap-6">
-                   <div className="flex items-center gap-6 lg:gap-8 relative z-10">
+                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group gap-6">
+                   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
                       <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl group-hover:rotate-12 transition-all shrink-0"><Megaphone size={32} className="lg:w-[36px] lg:h-[36px]"/></div>
                       <div>
                          <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Hub Marketing</h2>
@@ -983,7 +996,7 @@ export default function AdminDashboard() {
 
                 <div className="space-y-6 lg:space-y-8">
                    {marketingArticles.map(article => (
-                      <div key={article.id} className="bg-white p-8 lg:p-12 rounded-[3.5rem] lg:rounded-[5rem] border border-zinc-200 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 lg:gap-10 hover:border-black transition-all group">
+                      <div key={article.id} className="bg-white p-5 lg:p-12 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 lg:gap-6 hover:border-black transition-all group">
                          <div className="flex-1 w-full">
                             <div className="flex flex-wrap gap-3 lg:gap-4 mb-4 lg:mb-6">
                                <span className="bg-black text-[#39FF14] px-3 lg:px-4 py-1.5 rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em]">{article.category || 'Stratégie'}</span>
@@ -1016,8 +1029,8 @@ export default function AdminDashboard() {
 
       {/* MODALE SAAS: ACTIVATION & WhatsApp */}
       {showSaasLogin && saasModalMode === 'create' && (
-         <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasLogin)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-10 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500 overflow-y-auto">
-            <div className="bg-white p-8 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-xl w-full relative shadow-[0_0_120px_rgba(57,255,20,0.15)] animate-in zoom-in-95 duration-500 border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
+         <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasLogin)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500 overflow-y-auto">
+            <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-xl w-full relative shadow-[0_0_120px_rgba(57,255,20,0.15)] animate-in zoom-in-95 duration-500 border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
                <button onClick={() => setShowSaasLogin(null)} className="absolute top-6 sm:top-12 right-6 sm:right-12 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all active:scale-90"><X size={20} className="sm:w-[26px] sm:h-[26px]"/></button>
                
                <div className="text-center mb-10 sm:mb-14 mt-4 sm:mt-0">
@@ -1048,7 +1061,7 @@ export default function AdminDashboard() {
                   )}
 
                   <div className="relative group">
-                     <Lock size={18} className="absolute left-6 sm:left-8 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-[#39FF14] transition-colors sm:w-5 sm:h-5" />
+                     <LockIcon size={18} className="absolute left-6 sm:left-8 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-[#39FF14] transition-colors sm:w-5 sm:h-5" />
                      <input type="text" placeholder="MOT DE PASSE D'ACCÈS" value={saasCreateForm.password} onChange={e => setSaasCreateForm({...saasCreateForm, password: e.target.value})} className="w-full pl-16 sm:pl-20 pr-6 sm:pr-8 py-5 sm:py-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all tracking-[0.1em]" />
                   </div>
 
@@ -1062,8 +1075,8 @@ export default function AdminDashboard() {
 
       {/* MODALE CRM EDIT / NEW */}
       {showContactModal && editingContact && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowContactModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-10 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-          <div className="bg-white p-8 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 duration-500 border-t-[8px] sm:border-t-[12px] border-black my-auto">
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowContactModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+          <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 duration-500 border-t-[8px] sm:border-t-[12px] border-black my-auto">
             <button onClick={() => setShowContactModal(false)} className="absolute top-6 sm:top-12 right-6 sm:right-12 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
             
             <h2 className={`font-sans text-3xl sm:text-4xl font-black uppercase tracking-tighter mb-10 sm:mb-14 text-black mt-2 sm:mt-0`}>{editingContact?.id ? 'Modifier Fiche' : 'Nouveau Membre CRM'}</h2>
@@ -1076,7 +1089,12 @@ export default function AdminDashboard() {
               
               <div className="space-y-2">
                  <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Terminal Mobile (WhatsApp)</label>
-                 <input type="tel" required value={editingContact?.phone || ""} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="+221 ..." />
+                 <input type="tel" required value={editingContact?.phone || ""} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="+221 7x xxx xx xx" />
+              </div>
+
+              <div className="space-y-2">
+                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Adresse</label>
+                 <input type="text" value={editingContact?.address || ""} onChange={e => setEditingContact({...editingContact, address: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="Adresse postale" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -1112,9 +1130,9 @@ export default function AdminDashboard() {
 
       {/* MODALE DIFFUSION MARKETING */}
       {showDiffusionModal && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowDiffusionModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-10 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-           <div className="bg-white p-8 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[85vh] sm:max-h-[85vh] flex flex-col border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
-              <button onClick={() => setShowDiffusionModal(null)} className="absolute top-6 sm:top-10 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowDiffusionModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+           <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[85vh] sm:max-h-[85vh] flex flex-col border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
+              <button onClick={() => setShowDiffusionModal(null)} className="absolute top-6 sm:top-6 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
               <div className="mb-8 sm:mb-10 mt-2 sm:mt-0">
                  <h2 className={`font-sans text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter`}>Planifier la Diffusion</h2>
                  <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1 sm:mt-2 italic line-clamp-2">&quot;{showDiffusionModal?.title}&quot;</p>
@@ -1155,9 +1173,9 @@ export default function AdminDashboard() {
 
       {/* MODALE DÉTAILS PARTENAIRE */}
       {showPartnerModal && selectedPartner && (
-         <div id="modal-overlay" onClick={handleOutsideClick(setShowPartnerModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-10 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-            <div className="bg-white p-8 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto border-t-[8px] sm:border-t-[12px] border-black custom-scrollbar my-auto">
-               <button onClick={() => setShowPartnerModal(false)} className="absolute top-6 sm:top-10 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20} className="sm:w-6 sm:h-6"/></button>
+         <div id="modal-overlay" onClick={handleOutsideClick(setShowPartnerModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+            <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto border-t-[8px] sm:border-t-[12px] border-black custom-scrollbar my-auto">
+               <button onClick={() => setShowPartnerModal(false)} className="absolute top-6 sm:top-6 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20} className="sm:w-6 sm:h-6"/></button>
                
                <div className="mb-10 sm:mb-14 text-center mt-4 sm:mt-0">
                   <div className="w-20 sm:w-24 h-20 sm:h-24 bg-zinc-100 rounded-[2rem] sm:rounded-[2.75rem] mx-auto mb-6 sm:mb-8 flex items-center justify-center font-black text-2xl sm:text-3xl shadow-xl text-black">{selectedPartner?.full_name?.charAt(0)}</div>
@@ -1165,12 +1183,12 @@ export default function AdminDashboard() {
                   <p className="text-[10px] sm:text-xs font-bold text-[#39FF14] bg-black px-4 py-1.5 rounded-full inline-block mt-3 sm:mt-4 uppercase tracking-[0.2em] sm:tracking-[0.3em] shadow-lg">Console Ambassadeur Officiel</p>
                </div>
 
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 mb-10 sm:mb-14">
-                  <div className="bg-zinc-50 p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-zinc-100 flex flex-col items-center">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-10 sm:mb-14">
+                  <div className="bg-zinc-50 p-6 sm:p-6 rounded-[2.5rem] sm:rounded-[3rem] border border-zinc-100 flex flex-col items-center">
                      <p className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 tracking-widest mb-2 sm:mb-3">Ventes Actives</p>
                      <p className={`font-sans text-5xl sm:text-6xl font-black text-black tracking-tighter`}>{selectedPartner?.sales || 0}</p>
                   </div>
-                  <div className="bg-[#39FF14]/5 p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-[#39FF14]/10 flex flex-col items-center">
+                  <div className="bg-[#39FF14]/5 p-6 sm:p-6 rounded-[2.5rem] sm:rounded-[3rem] border border-[#39FF14]/10 flex flex-col items-center">
                      <p className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 tracking-widest mb-2 sm:mb-3">Gains (Commissions)</p>
                      <p className={`font-sans text-4xl sm:text-5xl font-black text-black tracking-tighter`}>{selectedPartner?.revenue || '0 F'}</p>
                   </div>
@@ -1191,33 +1209,44 @@ export default function AdminDashboard() {
          </div>
       )}
 
-      {/* MODALE PROFIL TERMINAL */}
+      {/* --- MODALE PROFIL TERMINAL --- */}
       {showProfileModal && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowProfileModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-10 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-          <div className="bg-white p-8 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in-95 text-center border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
-            <button onClick={() => setShowProfileModal(false)} className="absolute top-6 sm:top-10 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20} className="sm:w-6 sm:h-6"/></button>
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowProfileModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+          <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in-95 text-center border-t-[12px] border-[#39FF14] my-auto">
+            <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
             
-            <div className="relative w-32 sm:w-40 h-32 sm:h-40 mx-auto mb-8 sm:mb-10 mt-4 sm:mt-0">
-               <img src={tempAdminProfile?.avatar} className="w-full h-full rounded-full object-cover border-[4px] sm:border-[6px] border-black p-1 sm:p-1.5 shadow-2xl" alt="Profil Administrateur" />
-               <div className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 bg-[#39FF14] p-2.5 sm:p-3 rounded-full border-[4px] sm:border-[6px] border-white shadow-2xl shadow-[#39FF14]/50 group cursor-pointer hover:scale-110 transition-transform"><Edit3 size={16} className="text-black sm:w-[18px] sm:h-[18px]"/></div>
+            <div className="relative w-32 h-32 mx-auto mb-6">
+               <img src={tempAdminProfile.avatar || ""} className="w-full h-full rounded-full object-cover border-[6px] border-black p-1.5 shadow-2xl" alt="Profil" />
             </div>
             
-            <h2 className={`font-sans text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter leading-none`}>Admin Profile</h2>
-            <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 mb-8 sm:mb-12 uppercase tracking-[0.2em] sm:tracking-[0.3em] mt-2">Console Maître Dakar Hub</p>
+            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase text-black tracking-tighter`}>Admin Profile</h2>
+            <p className="text-[10px] font-bold text-zinc-400 mb-6 uppercase tracking-widest mt-2">Console Maître Dakar Hub</p>
 
-            <div className="space-y-6 text-left">
-               <div className="space-y-2 ml-4 sm:ml-6">
-                  <label className="text-[10px] sm:text-[11px] font-black text-zinc-400 uppercase tracking-widest">Identifiant Terminal</label>
-                  <input type="text" value={tempAdminProfile?.name || ""} onChange={e => setTempAdminProfile({...tempAdminProfile, name: e.target.value})} className="w-full p-4 sm:p-5 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10 transition-all" />
+            <div className="space-y-5 text-left">
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">URL de la photo</label>
+                  <input type="url" value={tempAdminProfile.avatar || ""} onChange={e => setTempAdminProfile({...tempAdminProfile, avatar: e.target.value})} className="w-full p-4 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs outline-none focus:ring-4 focus:ring-[#39FF14]/10" placeholder="https://..." />
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Identifiant Terminal</label>
+                  <input type="text" value={tempAdminProfile.name} onChange={e => setTempAdminProfile({...tempAdminProfile, name: e.target.value})} className="w-full p-4 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10" />
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Nouveau mot de passe</label>
+                  <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full p-4 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs outline-none focus:ring-4 focus:ring-[#39FF14]/10" placeholder="••••••••" />
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Confirmer mot de passe</label>
+                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full p-4 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs outline-none focus:ring-4 focus:ring-[#39FF14]/10" placeholder="••••••••" />
                </div>
                
-               <button onClick={saveAdminProfile} className="w-full bg-black text-[#39FF14] py-5 sm:py-6 rounded-[2rem] sm:rounded-[2.25rem] font-black uppercase text-[10px] sm:text-[11px] tracking-[0.15em] sm:tracking-[0.2em] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)] sm:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] hover:scale-[1.03] transition-all active:scale-95 mb-8 sm:mb-10">
+               <button onClick={saveAdminProfile} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest hover:scale-[1.03] transition-all">
                  Sauvegarder
                </button>
                
-               <div className="pt-8 sm:pt-10 border-t border-zinc-100 space-y-4 sm:space-y-6">
-                  <button onClick={() => { alert('Session terminée. Redirection...'); window.location.href='/'; }} className="w-full flex items-center justify-center gap-3 sm:gap-4 text-red-500 py-3 sm:py-4 bg-red-50 rounded-[1.75rem] sm:rounded-[2rem] font-black uppercase text-[9px] sm:text-[10px] tracking-[0.2em] hover:bg-red-500 hover:text-white transition-all shadow-sm">
-                     <LogOut size={16} className="sm:w-[18px] sm:h-[18px]"/> Quitter le Terminal
+               <div className="pt-6 border-t border-zinc-100">
+                  <button onClick={() => window.location.href='/'} className="w-full flex items-center justify-center gap-3 text-red-500 py-3 bg-red-50 rounded-[1.75rem] font-black uppercase text-[9px] tracking-widest hover:bg-red-500 hover:text-white transition-all">
+                     <LogOut size={16}/> Quitter le Terminal
                   </button>
                </div>
             </div>
@@ -1225,43 +1254,115 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODALE RAPPORT IA (SCAN INTELLIGENCE) */}
+      {/* --- MODALE RAPPORT IA --- */}
       {showRapportIA && (
-         <div id="modal-overlay" onClick={handleOutsideClick(setShowRapportIA)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-10 bg-black/95 backdrop-blur-3xl animate-in fade-in duration-500 overflow-y-auto">
-            <div className="bg-white p-8 sm:p-16 rounded-[4rem] sm:rounded-[6rem] max-w-2xl w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] sm:shadow-[0_0_150px_rgba(57,255,20,0.2)] animate-in zoom-in-95 duration-700 border-t-[10px] sm:border-t-[14px] border-[#39FF14] my-auto">
-               <button onClick={() => setShowRapportIA(false)} className="absolute top-6 sm:top-12 right-6 sm:right-12 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
-               
-               <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-6 mb-10 sm:mb-14 mt-4 sm:mt-0">
-                  <div className="w-16 sm:w-20 h-16 sm:h-20 bg-black rounded-[2rem] sm:rounded-[2.5rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Sparkles size={32} className="animate-pulse sm:w-[38px] sm:h-[38px]"/></div>
-                  <div>
-                     <h3 className={`font-sans text-3xl sm:text-4xl font-black uppercase text-black tracking-tighter leading-none`}>Scan IA CRM</h3>
-                     <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Analyse Prédictive des Opportunités</p>
-                  </div>
-               </div>
-
-               <div className="space-y-4 sm:space-y-6 max-h-[50vh] overflow-y-auto pr-2 sm:pr-4 custom-scrollbar">
-                  {contacts.filter(c => c.type === 'Prospect').slice(0, 3).map((c, i) => (
-                    <div key={i} className="p-6 sm:p-8 bg-zinc-50 rounded-[2.5rem] sm:rounded-[3rem] border border-zinc-100 flex flex-col md:flex-row justify-between items-start md:items-center group hover:border-[#39FF14] hover:bg-white transition-all gap-6 sm:gap-8">
-                       <div className="flex-1 w-full">
-                          <p className="font-black text-lg sm:text-xl uppercase text-black tracking-tighter leading-none mb-2">{c.full_name}</p>
-                          <p className="text-[10px] sm:text-xs text-zinc-400 font-bold uppercase tracking-widest">Score de Conversion : <span className="text-[#39FF14]">85%</span></p>
-                          <p className="text-[10px] sm:text-[11px] text-zinc-500 mt-3 sm:mt-4 leading-relaxed italic opacity-80">&quot;L&apos;IA suggère de proposer le Pack Trio basé sur l&apos;activité de ce prospect et ses récents clics sur le blog.&quot;</p>
-                       </div>
-                       <button onClick={() => planifyCrmAction(`Conversion : ${c.full_name}`, "Démonstration Pack Trio à domicile.", c.phone, `Bonjour ${c.full_name}, nous avons une offre spéciale Trio...`)} className="bg-black text-[#39FF14] px-6 sm:px-8 py-3.5 sm:py-4 rounded-[1.75rem] sm:rounded-[2rem] text-[10px] sm:text-[11px] font-black uppercase shadow-2xl hover:scale-105 active:scale-95 transition-all w-full md:w-max shrink-0">Planifier</button>
-                    </div>
-                  ))}
-                  {contacts.filter(c => c.type === 'Prospect').length === 0 && (
-                     <div className="p-10 text-center text-zinc-400 font-bold uppercase text-xs tracking-widest border border-dashed border-zinc-200 rounded-[2rem]">Aucune opportunité détectée</div>
-                  )}
-               </div>
-
-               <div className="mt-10 sm:mt-14 pt-8 sm:pt-10 border-t border-zinc-100 text-center">
-                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] sm:tracking-[0.3em]">Algorithme Onyx-Scan v2.4 (Mars 2026)</p>
-               </div>
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowRapportIA(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl animate-in fade-in duration-500 overflow-y-auto">
+          <div className="bg-white p-5 sm:p-16 rounded-3xl max-w-2xl w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in-95 border-t-[14px] border-[#39FF14] my-auto">
+            <button onClick={() => setShowRapportIA(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+            
+            <div className="flex items-center gap-6 mb-10">
+              <div className="w-16 h-16 bg-black rounded-[2rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Sparkles size={32} className="animate-pulse"/></div>
+              <div>
+                <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Scan IA CRM</h3>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Analyse Prédictive Onyx</p>
+              </div>
             </div>
-         </div>
+
+            <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+              {contacts.length > 0 ? (
+                contacts.slice(0, 3).map((c, i) => (
+                  <div key={i} className="p-6 bg-zinc-50 rounded-[2.5rem] border border-zinc-100 flex justify-between items-center group hover:border-[#39FF14] transition-all">
+                    <div>
+                      <p className="font-black text-lg uppercase text-black tracking-tighter">{c.full_name}</p>
+                      <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Score de Conversion : <span className="text-[#39FF14]">85%</span></p>
+                    </div>
+                    <button className="bg-black text-[#39FF14] px-6 py-3 rounded-full text-[10px] font-black uppercase">Planifier</button>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-zinc-400 font-bold uppercase text-xs tracking-widest border border-dashed border-zinc-200 rounded-[2rem]">
+                  Aucune donnée à analyser
+                </div>
+              )}
+            </div>
+
+            <div className="mt-10 pt-8 border-t border-zinc-100 text-center">
+              <p className="text-[9px] font-black uppercase text-zinc-300 tracking-[0.3em]">Algorithme Onyx-Scan v2.4 (Mars 2026)</p>
+            </div>
+          </div>
+        </div>
       )}
 
-    </div>
-  );
-}
+      {/* --- MODALE CARTE DES HUBS --- */}
+      {showHubsMap && (() => {
+        const HUBS_ZONES = [
+          { id: "dakar", label: "Dakar", x: 52, y: 38 },
+          { id: "thies", label: "Thiès", x: 38, y: 42 },
+          { id: "saint-louis", label: "Saint-Louis", x: 28, y: 28 },
+          { id: "ziguinchor", label: "Ziguinchor", x: 18, y: 78 },
+          { id: "mbour", label: "Mbour", x: 48, y: 52 },
+        ];
+        const getContactsForZone = (zoneId: string) => {
+          const zone = HUBS_ZONES.find(z => z.id === zoneId);
+          if (!zone) return [];
+          const label = zone.label.toLowerCase();
+          return contacts.filter(c =>
+            (c.address?.toLowerCase().includes(label) || c.country?.toLowerCase().includes(label))
+          );
+        };
+        const zoneContacts = selectedHub ? getContactsForZone(selectedHub) : [];
+        const currentZone = HUBS_ZONES.find(z => z.id === selectedHub);
+        return (
+          <div id="modal-overlay" onClick={(e: any) => e.target.id === "modal-overlay" && (setShowHubsMap(false), setSelectedHub(null))} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border-t-4 border-[#39FF14] my-auto flex flex-col">
+              <div className="p-6 border-b border-zinc-100 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-[#39FF14]/10 rounded-2xl"><MapPin className="text-[#39FF14]" size={24}/></div>
+                  <div>
+                    <h2 className="font-sans text-2xl font-black uppercase text-black tracking-tighter">Carte des Hubs</h2>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Sénégal • Points par zone</p>
+                  </div>
+                </div>
+                <button onClick={() => { setShowHubsMap(false); setSelectedHub(null); }} className="p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+              </div>
+              <div className="flex-1 flex flex-col sm:flex-row min-h-0">
+                <div className="flex-1 relative p-6 min-h-[280px] bg-zinc-900">
+                  <svg viewBox="0 0 100 100" className="w-full h-full text-[#39FF14] opacity-20" fill="none" stroke="currentColor" strokeWidth="0.6">
+                    <path d="M25,25 L75,25 L80,45 L70,70 L50,85 L30,75 L20,50 Z" />
+                  </svg>
+                  {HUBS_ZONES.map(zone => (
+                    <button
+                      key={zone.id}
+                      onClick={() => setSelectedHub(selectedHub === zone.id ? null : zone.id)}
+                      className="absolute w-4 h-4 rounded-full bg-[#39FF14] shadow-[0_0_20px_#39FF14] animate-pulse cursor-pointer hover:scale-150 transition-transform border-2 border-white"
+                      style={{ left: `${zone.x}%`, top: `${zone.y}%`, transform: "translate(-50%, -50%)" }}
+                      title={zone.label}
+                    />
+                  ))}
+                </div>
+                <div className="w-full sm:w-80 border-t sm:border-t-0 sm:border-l border-zinc-200 p-5 flex flex-col bg-zinc-50">
+                  <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3">
+                    {currentZone ? `Contacts • ${currentZone.label}` : "Cliquez sur un point"}
+                  </h3>
+                  <div className="flex-1 overflow-y-auto space-y-2 min-h-[120px]">
+                    {currentZone && zoneContacts.length === 0 && (
+                      <p className="text-xs font-bold text-zinc-400 uppercase">Aucun contact pour cette zone</p>
+                    )}
+                    {currentZone && zoneContacts.map(c => (
+                      <div key={c.id} className="p-3 bg-white rounded-xl border border-zinc-100">
+                        <p className="font-black text-sm uppercase text-black truncate">{c.full_name}</p>
+                        <p className="text-[10px] text-[#39FF14] font-bold mt-0.5">{c.phone}</p>
+                        {c.address && <p className="text-[9px] text-zinc-400 truncate mt-0.5">{c.address}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+    </div> // Ferme le div principal du return
+  ); // Ferme le retur
+} // Ferme la fonction AdminDashboard
