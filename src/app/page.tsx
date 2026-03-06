@@ -134,9 +134,20 @@ export default function OnyxOpsElite() {
   // ONBOARDING (Maimouna Modal & Exit Intent)
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
-  const [leadData, setLeadData] = useState({ name: '', phone: '', category: '', customCategory: '', saas: '' });
+  const [leadData, setLeadData] = useState({ name: '', phone: '', email: '', category: '', customCategory: '', saas: '' });
+  const [countryCode, setCountryCode] = useState("+221"); // NOUVEAU: Dropdown pays
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [hasTriggeredExitIntent, setHasTriggeredExitIntent] = useState(false);
+
+  // NOUVEAU: Fonction de validation stricte du téléphone
+  const validatePhone = (code: string, number: string) => {
+    const cleanNumber = number.replace(/\s+/g, '');
+    if (code === '+221') {
+      const regexSenegal = /^(7[05678]\d{7})$/; // Commence par 70, 75, 76, 77 ou 78 suivi de 7 chiffres
+      return regexSenegal.test(cleanNumber);
+    }
+    return cleanNumber.length >= 6; // Minimum syndical pour l'international
+  };
   
   // USER
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -314,15 +325,21 @@ export default function OnyxOpsElite() {
 
   const submitLeadForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validatePhone(countryCode, leadData.phone)) {
+      alert(countryCode === '+221' ? "Format invalide pour le Sénégal (ex: 77 123 45 67)" : "Numéro de téléphone invalide.");
+      return;
+    }
+
+    const finalPhone = `${countryCode} ${leadData.phone.replace(/\s+/g, '')}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${leadData.phone}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte._`;
+    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte._`;
 
     await saveLead({
        source: 'Onboarding Site',
        intent: `Création Compte (${leadData.saas || 'Pack Trio'})`,
-       contact: leadData.phone,
+       contact: finalPhone,
        full_name: leadData.name,
-       message: `Activité: ${finalCategory}`
+       message: `Activité: ${finalCategory} | Email: ${leadData.email}`
     });
 
     setShowOnboarding(false);
@@ -335,14 +352,20 @@ export default function OnyxOpsElite() {
 
   const submitExitIntentLead = async (e: React.FormEvent) => {
     e.preventDefault();
-    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${leadData.phone}\n\n_Le client souhaite un diagnostic gratuit._`;
+    if (!validatePhone(countryCode, leadData.phone)) {
+      alert(countryCode === '+221' ? "Format invalide pour le Sénégal (ex: 77 123 45 67)" : "Numéro de téléphone invalide.");
+      return;
+    }
+
+    const finalPhone = `${countryCode} ${leadData.phone.replace(/\s+/g, '')}`;
+    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n\n_Le client souhaite un diagnostic gratuit._`;
 
     await saveLead({
        source: 'Exit Intent',
        intent: `Diagnostic Gratuit`,
-       contact: leadData.phone,
+       contact: finalPhone,
        full_name: leadData.name || 'Visiteur',
-       message: 'Demande de diagnostic gratuit'
+       message: `Demande de diagnostic gratuit | Email: ${leadData.email}`
     });
 
     setShowExitIntent(false);
@@ -1242,12 +1265,39 @@ export default function OnyxOpsElite() {
 
                      <div className="space-y-4">
                        <div>
-                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Nom ou Nom de la structure</label>
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Nom ou Nom de la structure *</label>
                          <input type="text" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="Ex: Boutique Fatou" />
                        </div>
+                       
                        <div>
-                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Numéro WhatsApp</label>
-                         <input type="tel" required value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="+221 77 000 00 00" />
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Numéro WhatsApp *</label>
+                         <div className="flex gap-2">
+                           <select 
+                             value={countryCode} 
+                             onChange={(e) => setCountryCode(e.target.value)}
+                             className="bg-zinc-50 text-black border border-zinc-200 rounded-2xl px-3 py-4 font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition w-28 sm:w-32 cursor-pointer"
+                           >
+                             <option value="+221">🇸🇳 +221</option>
+                             <option value="+223">🇲🇱 +223</option>
+                             <option value="+225">🇨🇮 +225</option>
+                             <option value="+224">🇬🇳 +224</option>
+                             <option value="+241">🇬🇦 +241</option>
+                             <option value="+33">🇫🇷 +33</option>
+                           </select>
+                           <input 
+                             type="tel" 
+                             required 
+                             value={leadData.phone} 
+                             onChange={e => setLeadData({...leadData, phone: e.target.value})} 
+                             className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" 
+                             placeholder={countryCode === "+221" ? "77 123 45 67" : "Numéro sans indicatif"} 
+                           />
+                         </div>
+                       </div>
+
+                       <div>
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Adresse Email <span className="text-zinc-400 font-medium">(Optionnel)</span></label>
+                         <input type="email" value={leadData.email} onChange={e => setLeadData({...leadData, email: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="contact@monbusiness.com" />
                        </div>
                      </div>
 
@@ -1285,8 +1335,33 @@ export default function OnyxOpsElite() {
               </div>
 
               <form onSubmit={submitExitIntentLead} className="space-y-4">
-                 <input type="text" placeholder="Votre Prénom" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
-                 <input type="tel" placeholder="Numéro WhatsApp (ex: +221 77...)" required value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+                 <input type="text" placeholder="Votre Prénom *" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+                 
+                 <div className="flex gap-2">
+                   <select 
+                     value={countryCode} 
+                     onChange={(e) => setCountryCode(e.target.value)}
+                     className="bg-zinc-50 text-black border border-zinc-200 rounded-2xl px-3 py-4 font-bold outline-none focus:border-black transition w-28 sm:w-32 cursor-pointer"
+                   >
+                     <option value="+221">🇸🇳 +221</option>
+                     <option value="+223">🇲🇱 +223</option>
+                     <option value="+225">🇨🇮 +225</option>
+                     <option value="+224">🇬🇳 +224</option>
+                     <option value="+241">🇬🇦 +241</option>
+                     <option value="+33">🇫🇷 +33</option>
+                   </select>
+                   <input 
+                     type="tel" 
+                     placeholder={countryCode === "+221" ? "77 123 45 67 *" : "Numéro *"} 
+                     required 
+                     value={leadData.phone} 
+                     onChange={e => setLeadData({...leadData, phone: e.target.value})} 
+                     className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" 
+                   />
+                 </div>
+
+                 <input type="email" placeholder="Email (Optionnel)" value={leadData.email} onChange={e => setLeadData({...leadData, email: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+
                  <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
                    Recevoir mon diagnostic <ArrowRight size={18}/>
                  </button>
