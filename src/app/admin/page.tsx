@@ -71,6 +71,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ revenue: 0, activeClients: 0, pendingLeads: 0, newPartners: 0 });
 
   // --- 6. ÉTATS DES MODALES ---
+  const [showProductModal, setShowProductModal] = useState<{lead: any, type: string} | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
@@ -157,32 +158,35 @@ export default function AdminDashboard() {
     setTodayStr(new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }));
     fetchSupabaseData();
   }, []);
-  // --- LOGIQUE DE CRÉATION DE COMPTE (CORRIGE AUTH SESSION & DOUBLONS) ---
-  const handleCreateAccount = async (lead: any, type: 'client' | 'ambassadeur') => {
+  // --- LOGIQUE DE CRÉATION DE COMPTE (AVEC SÉLECTION SAAS) ---
+  const handleCreateAccount = async (lead: any, type: 'client' | 'ambassadeur', saasName?: string) => {
    const table = type === 'client' ? 'clients' : 'partners';
    const tempPass = "central2026";
    const phone = (lead.phone || '').replace(/\s+/g, '');
    const phoneColumn = type === 'client' ? 'phone' : 'contact';
 
    try {
-     // 1. On crée (ou met à jour) dans la table finale (Client ou Partenaire)
-     const { error: upsertError } = await supabase
-       .from(table)
-       .upsert({
-         full_name: lead.full_name,
-         [phoneColumn]: phone, 
-         password_temp: tempPass,
-         source: lead.source || 'Lead Admin',
-         status: type === 'client' ? 'Actif' : 'Approuvé',
-         updated_at: new Date().toISOString()
-       }, { onConflict: phoneColumn });
+     const payload: any = {
+       full_name: lead.full_name,
+       [phoneColumn]: phone, 
+       password_temp: tempPass,
+       source: lead.source || 'Lead Admin',
+       status: type === 'client' ? 'Actif' : 'Approuvé',
+       updated_at: new Date().toISOString()
+     };
 
-     if (upsertError) throw upsertError;
+     // Si c'est un client et qu'on a sélectionné un SaaS dans la modale, on l'ajoute
+     if (type === 'client' && saasName) {
+       payload.saas = saasName;
+     }
 
-     // 2. On SUPPRIME le lead de la table leads (pour qu'il s'efface de la vue)
+     const { error } = await supabase.from(table).upsert(payload, { onConflict: phoneColumn });
+
+     if (error) throw error;
+
+     // Nettoyage du flux
      await supabase.from('leads').delete().eq('id', lead.id);
 
-     // 3. Préparation WhatsApp
      const portal = type === 'client' ? 'onyxops.com/login' : 'onyxops.com/ambassadeurs';
      const welcomeMsg = `Félicitations ${lead.full_name} ! 🚀%0A%0A` +
                         `Ton compte ${type === 'client' ? 'Onyx' : 'Ambassadeur'} est prêt.%0A` +
@@ -192,11 +196,10 @@ export default function AdminDashboard() {
                         `Bienvenue dans l'écosystème Onyx !`;
 
      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${welcomeMsg}`, '_blank');
-     
-     alert(`Compte ${type} activé ! Le prospect a été déplacé.`);
-     fetchSupabaseData(); // Rafraîchit les listes
+     alert(`Compte ${type} activé avec succès !`);
+     fetchSupabaseData();
    } catch (err: any) {
-     alert("Erreur Terminal : " + err.message);
+     alert("Erreur : " + err.message);
    }
  };
   useEffect(() => {
@@ -270,7 +273,8 @@ export default function AdminDashboard() {
 
   const getLeadPriorityActions = (lead: any) => {
    const actions = {
-     client: { label: "Créer Compte Client", fn: () => handleCreateAccount(lead, 'client') },
+     // Au lieu de lancer direct, on ouvre la modale pour choisir le produit
+     client: { label: "Créer Compte Client", fn: () => setShowProductModal({ lead, type: 'client' }) },
      ambassador: { label: "Créer Compte Ambassadeur", fn: () => handleCreateAccount(lead, 'ambassadeur') },
      reply: { label: "Répondre (Simple)", fn: () => replyToLead(lead) }
    };
@@ -1589,6 +1593,38 @@ export default function AdminDashboard() {
         );
       })()}
 
-    </div> // Ferme le div principal du return
-  ); // Ferme le retur
-} // Ferme la fonction AdminDashboard
+      {/* --- MODALE SÉLECTION PRODUIT (CRÉATION CLIENT) --- */}
+      {showProductModal && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowProductModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="bg-white p-8 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[12px] border-[#39FF14] animate-in zoom-in-95 my-auto">
+            <button onClick={() => setShowProductModal(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+            
+            <h3 className="text-2xl font-black uppercase text-black tracking-tighter mb-2">Assigner un SaaS</h3>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-8">Pour : {showProductModal.lead?.full_name}</p>
+
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4">Sélectionner l'outil principal</label>
+              <select id="saas-select" className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10 cursor-pointer appearance-none">
+                <option value="">-- Aucun / À définir --</option>
+                {ECOSYSTEM_SAAS.map(s => (
+                  <option key={s.id} value={s.name}>{s.name} ({(s as any).price?.toLocaleString('fr-FR')} F)</option>
+                ))}
+              </select>
+            </div>
+
+            <button 
+              onClick={() => {
+                const selectEl = document.getElementById('saas-select') as HTMLSelectElement;
+                handleCreateAccount(showProductModal.lead, 'client', selectEl ? selectEl.value : undefined);
+                setShowProductModal(null);
+              }}
+              className="w-full mt-8 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-xs hover:scale-[1.03] transition-all active:scale-95 shadow-[0_20px_40px_rgba(57,255,20,0.15)] flex justify-center items-center gap-2"
+            >
+              <CheckCircle size={18}/> Confirmer & Envoyer Accès
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
