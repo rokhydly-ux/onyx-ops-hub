@@ -37,11 +37,11 @@ export default function AmbassadeursPage() {
 
   const handleLogin = async () => {
     const { data, error } = await supabase
-      .from('partners')
-      .select('*')
-      .eq('contact', phone)
-      .eq('password_temp', password) // On vérifie le mot de passe en texte
-      .single();
+    .from('partners')
+    .select('*')
+    .or(`contact.eq.${phone.trim()},contact.eq.${phone.replace(/\s+/g, '')}`) // Cherche avec ou sans espaces
+    .eq('password_temp', password.trim())
+    .maybeSingle();
   
     if (data) {
       // Connexion réussie
