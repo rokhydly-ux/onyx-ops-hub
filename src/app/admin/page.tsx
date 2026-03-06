@@ -35,22 +35,24 @@ type Contact = {
   source: string;
   created_at: string;
   saas?: string;
+  avatar_url?: string;
 };
 
 type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs";
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
 
 const ECOSYSTEM_SAAS = [
-  { id: "onyx-vente", name: "Onyx Vente", desc: "CRM & Ventes", color: "bg-[#39FF14]", url: "https://onyxvente.com" },
-  { id: "onyx-stock", name: "Onyx Stock", desc: "Gestion stock", color: "bg-blue-500", url: "https://onyxstock.com" },
-  { id: "onyx-tiak", name: "Onyx Tiak Pro", desc: "Restauration", color: "bg-amber-500", url: "https://onyxtiak.com" },
-  { id: "onyx-formation", name: "Onyx Formation", desc: "Formation", color: "bg-purple-500", url: "https://onyxformation.com" },
-  { id: "onyx-blog", name: "Onyx Blog", desc: "Marketing", color: "bg-pink-500", url: "https://onyxblog.com" },
-  { id: "onyx-ecole", name: "Onyx Auto-École", desc: "Auto-école", color: "bg-cyan-500", url: "https://onyxecole.com" },
-  { id: "onyx-beaute", name: "Onyx Beauté", desc: "Salon", color: "bg-rose-500", url: "https://onyxbeaute.com" },
-  { id: "onyx-resto", name: "Onyx Resto", desc: "Restauration", color: "bg-orange-500", url: "https://onyxresto.com" },
-  { id: "onyx-trio", name: "Pack Trio", desc: "Bundle 3 apps", color: "bg-zinc-800", url: "https://onyxops.com" },
+  { id: "vente", name: "Onyx Vente", desc: "Catalogue & Devis WhatsApp", price: 9900, color: "bg-[#39FF14]", url: "/vente" },
+  { id: "stock", name: "Onyx Stock", desc: "Gestion stock", price: 9900, color: "bg-blue-500", url: "https://onyxops.com" },
+  { id: "menu", name: "Onyx Menu", desc: "Menu QR & Commandes", price: 9900, color: "bg-amber-500", url: "https://onyxops.com" },
+  { id: "staff", name: "Onyx Staff", desc: "Pointage & Paie", price: 9900, color: "bg-cyan-500", url: "https://onyxops.com" },
+  { id: "booking", name: "Onyx Booking", desc: "Réservations", price: 9900, color: "bg-pink-500", url: "https://onyxops.com" },
+  { id: "tiak", name: "Onyx Tiak", desc: "Logistique", price: 9900, color: "bg-orange-500", url: "https://onyxops.com" },
+  { id: "formation", name: "Onyx Formation", desc: "Cours vidéo & Marketing", price: 29900, color: "bg-purple-500", url: "/formation" },
+  { id: "fit", name: "Onyx Fit", desc: "Rééquilibrage alimentaire", price: 6000, color: "bg-rose-500", url: "https://onyxops.com" },
+  { id: "tontine", name: "Onyx Tontine", desc: "Finance & Tontine", price: 6000, color: "bg-emerald-500", url: "https://onyxops.com" },
 ];
+const ONYX_ELITE = { id: "elite", name: "Onyx Elite", desc: "Pack Sans Limit CRM + Studio Créatif", price: 78900, color: "bg-zinc-800", url: "https://onyxops.com" };
 
 export default function AdminDashboard() {
    const router = useRouter();
@@ -170,6 +172,34 @@ export default function AdminDashboard() {
   const replyToLead = (lead: any) => {
      const msg = `Bonjour ${lead.full_name}, je suis l'administrateur d'OnyxOps. J'ai bien reçu votre demande concernant "${lead.intent}". Comment puis-je vous aider ?`;
      window.open(`https://wa.me/${lead.phone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const generateTempPassword = () => Math.random().toString(36).slice(-8) + Math.random().toString(36).toUpperCase().slice(-4);
+
+  const createAccountFromLead = async (lead: any, type: 'client' | 'ambassadeur') => {
+    const tempPass = generateTempPassword();
+    const phone = (lead.phone || '').replace(/\s+/g, '');
+    const table = type === 'client' ? 'clients' : 'partners';
+    const payload = type === 'client'
+      ? { full_name: lead.full_name || 'Client', phone, type: 'Client', status: 'Nouveau', source: lead.source || 'Admin', password_temp: tempPass }
+      : { full_name: lead.full_name || 'Ambassadeur', contact: phone, activity: 'Ambassadeur', status: 'En attente', sales: 0, password_temp: tempPass };
+    const { error } = await supabase.from(table).insert(payload);
+    if (error) { alert('Erreur : ' + error.message); return; }
+    fetchSupabaseData();
+    const portal = type === 'client' ? '/vente' : '/ambassadeurs';
+    const link = `${typeof window !== 'undefined' ? window.location.origin : ''}${portal}`;
+    const welcomeAmb = `Félicitations ${lead.full_name} ! Votre candidature ambassadeur Onyx est bien reçue. 🚀 On ne perd pas de temps : Votre accès au portail est en cours de validation. En attendant, voici vos identifiants pour vous connecter dès maintenant.\n\n*Portail :* ${link}\n*Identifiant :* ${phone}\n*Mot de passe temporaire :* ${tempPass}\n\nUn expert vous contacte pour activer votre lien de parrainage unique. Bienvenue dans l'écosystème Onyx !`;
+    const welcomeClient = `Félicitations ${lead.full_name} ! 🚀 Votre compte Onyx a été créé.\n\n*Portail :* ${link}\n*Identifiant :* ${phone}\n*Mot de passe temporaire :* ${tempPass}\n\nBienvenue dans l'écosystème Onyx ! Un conseiller vous contactera si besoin.`;
+    const msg = type === 'ambassadeur' ? welcomeAmb : welcomeClient;
+    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+    alert(type === 'client' ? 'Compte client créé. Mot de passe envoyé par WhatsApp.' : 'Compte ambassadeur créé. Mot de passe envoyé par WhatsApp.');
+  };
+
+  const notifyLeadByWhatsApp = (lead: any, portal: 'vente' | 'ambassadeurs', tempPass: string) => {
+    const phone = (lead.phone || '').replace(/\s+/g, '');
+    const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/${portal}`;
+    const msg = `Félicitations ${lead.full_name} ! 🚀 Bienvenue chez Onyx.\n\n*Accès portail :* ${link}\n*Identifiant :* ${phone}\n*Mot de passe :* ${tempPass}\n\nBienvenue dans l'écosystème Onyx ! Un conseiller vous contactera si besoin.`;
+    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
@@ -650,10 +680,16 @@ export default function AdminDashboard() {
                                <td className="p-6 lg:p-5">
                                   <p className="text-xs text-zinc-600 font-medium italic max-w-xs leading-relaxed opacity-80 border-l-2 border-zinc-200 pl-4 py-1">&quot;{l.message}&quot;</p>
                                </td>
-                               <td className="p-6 lg:p-5 text-right space-x-4">
-                                  <button onClick={() => replyToLead(l)} className="bg-[#39FF14] text-black px-5 py-3 rounded-[1.25rem] text-[10px] font-black uppercase shadow-xl hover:bg-black hover:text-[#39FF14] transition-all active:scale-95 flex items-center justify-end gap-2 ml-auto">
-                                     <Send size={16}/> Répondre
-                                  </button>
+                               <td className="p-6 lg:p-5 text-right">
+                                  <div className="flex flex-wrap items-center justify-end gap-2">
+                                     <button onClick={() => createAccountFromLead(l, 'client')} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all whitespace-nowrap">Créer Compte Client</button>
+                                     <button onClick={() => createAccountFromLead(l, 'ambassadeur')} className="bg-zinc-800 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all whitespace-nowrap">Créer Compte Ambassadeur</button>
+                                     <button onClick={() => { const p = generateTempPassword(); notifyLeadByWhatsApp(l, 'vente', p); }} className="bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all whitespace-nowrap" title="Lien /vente">Notifier WA (Vente)</button>
+                                     <button onClick={() => { const p = generateTempPassword(); notifyLeadByWhatsApp(l, 'ambassadeurs', p); }} className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all whitespace-nowrap" title="Lien /ambassadeurs">Notifier WA (Amb.)</button>
+                                     <button onClick={() => replyToLead(l)} className="bg-[#39FF14] text-black px-5 py-3 rounded-[1.25rem] text-[10px] font-black uppercase shadow-xl hover:bg-black hover:text-[#39FF14] transition-all active:scale-95 flex items-center gap-2">
+                                        <Send size={16}/> Répondre
+                                     </button>
+                                  </div>
                                </td>
                             </tr>
                          ))}
@@ -741,7 +777,7 @@ export default function AdminDashboard() {
                       <tr key={c.id} className="hover:bg-zinc-50/50 transition-all group">
                         <td className="p-5 lg:p-6">
                           <div className="flex items-center gap-4 lg:gap-6">
-                             <div className="w-14 lg:w-16 h-14 lg:h-16 bg-zinc-100 rounded-[1.5rem] lg:rounded-[1.75rem] flex items-center justify-center font-black text-lg text-black group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm shrink-0">{c.full_name?.charAt(0)}</div>
+                             {c.avatar_url ? <img src={c.avatar_url} alt="" className="w-14 lg:w-16 h-14 lg:h-16 rounded-[1.5rem] lg:rounded-[1.75rem] object-cover shadow-sm shrink-0" /> : <div className="w-14 lg:w-16 h-14 lg:h-16 bg-zinc-100 rounded-[1.5rem] lg:rounded-[1.75rem] flex items-center justify-center font-black text-lg text-black group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm shrink-0">{c.full_name?.charAt(0)}</div>}
                              <div>
                                 <p className="font-black text-sm lg:text-base uppercase text-black tracking-tight leading-tight">{c.full_name}</p>
                                 <p className="text-xs lg:text-sm text-[#39FF14] font-black mt-1">{c.phone}</p>
@@ -889,15 +925,29 @@ export default function AdminDashboard() {
                             <div className={`w-16 lg:w-20 h-16 lg:h-20 rounded-[1.75rem] lg:rounded-[2.25rem] mb-8 lg:mb-10 flex items-center justify-center text-white shadow-2xl ${saas.color} group-hover:rotate-12 transition-transform duration-500`}><Box size={32} className="lg:w-10 lg:h-10"/></div>
                             <h3 className={`font-sans text-2xl lg:text-3xl font-black uppercase text-black tracking-tighter`}>{saas.name}</h3>
                             <p className="text-sm lg:text-base font-bold text-zinc-400 mt-3 lg:mt-4 leading-relaxed group-hover:text-zinc-600 transition-colors">{saas.desc}</p>
+                            <p className="text-[10px] font-black text-[#39FF14] mt-2">{(saas as any).price?.toLocaleString()} F / mois</p>
                          </div>
                          <div className="mt-10 lg:mt-14 flex flex-col gap-3 lg:gap-4 relative z-10">
-                            <button onClick={() => window.open(saas.url, '_blank')} className="w-full bg-black text-[#39FF14] py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.03] transition-all shadow-2xl flex items-center justify-center gap-2 lg:gap-3 group/btn active:scale-95">
-                               Accéder à la Démo <ExternalLink size={16} className="group-hover/btn:translate-x-1 transition-transform"/>
+                            <button onClick={() => window.open(typeof saas.url === 'string' && saas.url.startsWith('/') ? saas.url : saas.url, saas.url?.startsWith('/') ? '_self' : '_blank')} className="w-full bg-black text-[#39FF14] py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.03] transition-all shadow-2xl flex items-center justify-center gap-2 lg:gap-3 group/btn active:scale-95">
+                               Accéder <ExternalLink size={16} className="group-hover/btn:translate-x-1 transition-transform"/>
                             </button>
                             <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('create'); }} className="w-full bg-zinc-100 text-black py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:bg-zinc-200 transition-all active:scale-95">Générer Accès Client</button>
                          </div>
                       </div>
                    ))}
+                   {/* Onyx Elite — Pack Sans Limit */}
+                   <div className="bg-gradient-to-br from-zinc-800 to-black border-2 border-[#39FF14] p-6 lg:p-12 rounded-3xl shadow-2xl hover:shadow-[0_0_40px_rgba(57,255,20,0.2)] transition-all group flex flex-col justify-between min-h-[380px] relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-40 h-40 bg-[#39FF14] opacity-[0.05] rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                      <div className="relative z-10">
+                         <div className="w-16 h-16 bg-[#39FF14] rounded-2xl flex items-center justify-center text-black shadow-2xl mb-6"><Box size={32}/></div>
+                         <h3 className="font-sans text-2xl font-black uppercase text-white tracking-tighter">Onyx Elite</h3>
+                         <p className="text-sm font-bold text-zinc-400 mt-3">{ONYX_ELITE.desc}</p>
+                         <p className="text-xl font-black text-[#39FF14] mt-2">78.900 F</p>
+                      </div>
+                      <button onClick={() => window.open(ONYX_ELITE.url, '_blank')} className="w-full bg-[#39FF14] text-black py-4 rounded-2xl text-[10px] font-black uppercase hover:scale-[1.03] transition-all mt-6">
+                         Offre Pack Sans Limit
+                      </button>
+                   </div>
                 </div>
              </div>
           )}
@@ -1093,8 +1143,12 @@ export default function AdminDashboard() {
               </div>
 
               <div className="space-y-2">
-                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Adresse</label>
-                 <input type="text" value={editingContact?.address || ""} onChange={e => setEditingContact({...editingContact, address: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="Adresse postale" />
+                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Quartier / Adresse</label>
+                 <input type="text" value={editingContact?.address || ""} onChange={e => setEditingContact({...editingContact, address: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="Quartier ou adresse postale" />
+              </div>
+              <div className="space-y-2">
+                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Photo de profil (URL)</label>
+                 <input type="url" value={editingContact?.avatar_url || ""} onChange={e => setEditingContact({...editingContact, avatar_url: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="https://..." />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">

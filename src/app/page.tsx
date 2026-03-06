@@ -19,7 +19,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
-type PlanKey = "solo" | "duo" | "trio" | "full" | "premium" | "master";
+type PlanKey = "solo" | "duo" | "trio" | "full" | "premium" | "master" | "elite";
 
 // --- DATA ---
 const ECOSYSTEM_SAAS = [
@@ -52,6 +52,7 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
   full: { title: "Pack Full", desc: "Les 6 SaaS Onyx ensemble.", benefits: ["RH, Paie & Logistique", "Menu QR & Réservations", "Rapports hebdo"], why: "Pour scaler rapidement.", cible: "PME & Agences", avantage: "Digitalisation 360°.", chiffreCle: "Gain de 10h/sem" },
   premium: { title: "Onyx Premium", desc: "IA et Marketing.", benefits: ["Studio Créatif IA", "CRM & Relance auto", "Conseiller dédié"], why: "Pour dominer le marché.", cible: "Franchises", avantage: "IA intégrée.", chiffreCle: "Croissance X2" },
   master: { title: "Onyx Master", desc: "Formation + 1 Mois Solo Offert.", benefits: ["Formation complète", "1 mois d'Onyx Solo offert", "Support prioritaire"], why: "Pour partir de zéro.", cible: "Débutants & Nouveaux", avantage: "L'offre ultime.", chiffreCle: "Lancement réussi" },
+  elite: { title: "Onyx Elite", desc: "Pack Sans Limit avec CRM + Studio Créatif.", benefits: ["CRM complet", "Studio Créatif IA", "Accès illimité aux 9 SaaS", "Conseiller dédié"], why: "Pour dominer le marché.", cible: "Franchises & Grandes structures", avantage: "Tout inclus.", chiffreCle: "Sans limite" },
 };
 
 const SOLUTIONS = [
@@ -66,10 +67,11 @@ const SOLUTIONS = [
   { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6000, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "full", upsellName: "Pack Full" },
 ];
 
-const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: string; rating: string; avis: number; isUnique?: boolean }> = [
+const PACKS: Array<{ id: PlanKey | "elite"; name: string; price: number | string; label: string; rating: string; avis: number; isUnique?: boolean }> = [
   { id: "solo", name: "Solo", price: 9900, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
   { id: "duo", name: "Pack Duo", price: 17500, label: "Pack Duo", rating: "4.8/5", avis: 95 },
   { id: "trio", name: "Pack Trio", price: 24900, label: "Pack Trio", rating: "5.0/5", avis: 89 },
+  { id: "elite", name: "Onyx Elite", price: 78900, label: "Onyx Elite", rating: "5.0/5", avis: 89, isUnique: true },
   { id: "master", name: "Onyx Master", price: 39900, label: "Bundle Master", rating: "5.0/5", avis: 215, isUnique: true },
 ];
 
@@ -155,8 +157,8 @@ export default function OnyxOpsElite() {
 
   // WORKFLOW PARTENAIRE
   const [partnerStep, setPartnerStep] = useState<'landing' | 'form' | 'success' | 'dashboard'>('landing');
-  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, duo: 1, trio: 1, full: 0, premium: 0, master: 0 });
-  const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", status: "", sales_exp: "", objective: "", strategy: "" });
+  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, duo: 1, trio: 1, full: 0, premium: 0, master: 0, elite: 0 });
+  const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", address: "", country: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
   const [articles, setArticles] = useState<any[]>([
@@ -250,23 +252,21 @@ export default function OnyxOpsElite() {
     return () => { document.body.style.overflow = ""; };
   }, [showSaasChoice, isMobileMenuOpen, selectedArticle, showAuthModal, showOnboarding, showExitIntent]);
 
-  // CORRECTION : REQUÊTE LEAD ÉPURÉE POUR ÉVITER LES ERREURS DE SCHEMA DB
-  const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string, full_name?: string }) => {
+  const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string; full_name?: string; address?: string; country?: string; [key: string]: any }) => {
     try {
-      const { error } = await supabase.from('leads').insert({
+      const extra = { city: data.city, address: data.address, country: data.country, status: data.status, sales_exp: data.sales_exp, objective: data.objective, strategy: data.strategy };
+      const payload: Record<string, any> = {
         source: data.source || 'Site Web', 
         intent: data.intent || 'Contact', 
-        phone: data.contact || '', // Mappé sur la colonne phone attendue
-        message: data.message || '', 
+        phone: data.contact || '', 
+        message: typeof data.message === 'string' ? data.message : JSON.stringify({ ...extra, ...data }) || '', 
         full_name: data.full_name || 'Visiteur Web'
-      });
-      
-      if (error) {
-        console.error("ERREUR SUPABASE (Leads) :", error.message);
-      }
-    } catch (e) {
-      console.error("ERREUR CATCH (Leads) :", e);
-    }
+      };
+      if (data.address) payload.address = data.address;
+      if (data.country) payload.country = data.country;
+      const { error } = await supabase.from('leads').insert(payload);
+      if (error) console.error("ERREUR SUPABASE (Leads) :", error.message);
+    } catch (e) { console.error("ERREUR CATCH (Leads) :", e); }
   };
 
   const handleWaClick = async (intent: string, msg: string) => {
@@ -458,28 +458,40 @@ export default function OnyxOpsElite() {
     }
   };
 
-  // CORRECTION : REQUÊTE PARTENAIRE ÉPURÉE POUR ÉVITER LES ERREURS DE SCHEMA DB
   const submitPartnerForm = async () => {
-     if(!partnerForm.full_name || !partnerForm.contact || !partnerForm.status) {
-       return alert("Veuillez remplir les champs obligatoires (*).");
+     if(!partnerForm.full_name || !partnerForm.contact || !partnerForm.status || !partnerForm.country) {
+       return alert("Veuillez remplir les champs obligatoires (*) : Nom, Téléphone, Statut, Pays.");
      }
      
      try {
-        const payload = {
+        const fullMessage = JSON.stringify({ city: partnerForm.city, address: partnerForm.address, country: partnerForm.country, status: partnerForm.status, sales_exp: partnerForm.sales_exp, objective: partnerForm.objective, strategy: partnerForm.strategy });
+        
+        await saveLead({ 
+           source: 'Formulaire Ambassadeur', 
+           intent: 'Candidature Partenaire', 
+           contact: partnerForm.contact, 
+           full_name: partnerForm.full_name,
+           message: fullMessage,
+           address: partnerForm.address,
+           country: partnerForm.country,
+           city: partnerForm.city,
+           status: partnerForm.status,
+           sales_exp: partnerForm.sales_exp,
+           objective: partnerForm.objective,
+           strategy: partnerForm.strategy
+        });
+        
+        const { error } = await supabase.from('partners').insert({
            full_name: partnerForm.full_name, 
            contact: partnerForm.contact, 
-           activity: partnerForm.status, // le statut du formulaire (Ex: Etudiant) devient l'activité
-           status: 'En attente', // C'est le statut d'approbation attendu par l'admin
+           city: partnerForm.city,
+           address: partnerForm.address,
+           country: partnerForm.country,
+           activity: partnerForm.status,
+           status: 'En attente',
            sales: 0
-        };
-        
-        const { error } = await supabase.from('partners').insert(payload);
-        
-        if(error) {
-           console.error("ERREUR SUPABASE PARTNERS :", error.message);
-        }
-        
-        await saveLead({ source: 'Formulaire Ambassadeur', intent: 'Candidature Partenaire', contact: partnerForm.contact, full_name: partnerForm.full_name });
+        });
+        if(error) console.error("ERREUR SUPABASE PARTNERS :", error.message);
         
         setPartnerStep('success');
         setTimeout(() => setPartnerStep('dashboard'), 4000);
@@ -973,8 +985,20 @@ export default function OnyxOpsElite() {
                   </div>
                   
                   <div className="grid md:grid-cols-2 gap-4">
-                     <input type="text" placeholder="Ville / Quartier" value={partnerForm.city} onChange={e => setPartnerForm({...partnerForm, city: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none" />
-                     <select value={partnerForm.status} onChange={e => setPartnerForm({...partnerForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none cursor-pointer">
+                     <input type="text" placeholder="Ville" value={partnerForm.city} onChange={e => setPartnerForm({...partnerForm, city: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black" />
+                     <select value={partnerForm.country} onChange={e => setPartnerForm({...partnerForm, country: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none cursor-pointer focus:border-black">
+                       <option value="" disabled>Pays *</option>
+                       <option value="Sénégal">Sénégal</option>
+                       <option value="Côte d'Ivoire">Côte d'Ivoire</option>
+                       <option value="Mali">Mali</option>
+                       <option value="Guinée">Guinée</option>
+                     </select>
+                  </div>
+                  <div>
+                     <input type="text" placeholder="Quartier / Adresse *" value={partnerForm.address} onChange={e => setPartnerForm({...partnerForm, address: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black" />
+                  </div>
+                  <div>
+                     <select value={partnerForm.status} onChange={e => setPartnerForm({...partnerForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none cursor-pointer focus:border-black">
                        <option value="" disabled>Votre Statut Actuel *</option>
                        <option>Salarié (Recherche revenu complémentaire)</option>
                        <option>Freelance / Indépendant</option>
@@ -1075,7 +1099,7 @@ export default function OnyxOpsElite() {
                   ))}
                 </div>
                 {authMode === 'login' ? (
-                   <button onClick={() => window.open(`https://${authSelectedSaas}.onyxops.com/login`, '_blank')} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
+                   <button onClick={() => { const url = authSelectedSaas === 'vente' ? '/vente' : authSelectedSaas === 'formation' ? '/formation' : `https://${authSelectedSaas}.onyxops.com/login`; window.open(url, url.startsWith('/') ? '_self' : '_blank'); }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
                      <LogIn size={16}/> Ouvrir
                    </button>
                 ) : (
