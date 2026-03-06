@@ -157,7 +157,42 @@ export default function AdminDashboard() {
     setTodayStr(new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }));
     fetchSupabaseData();
   }, []);
+  // --- LOGIQUE DE CRÉATION DE COMPTE (CORRIGE AUTH SESSION & DOUBLONS) ---
+  const handleCreateAccount = async (lead: any, type: 'client' | 'ambassadeur') => {
+   const table = type === 'client' ? 'clients' : 'partners';
+   const tempPass = "central2026";
+   const phone = (lead.phone || '').replace(/\s+/g, '');
+   const phoneColumn = type === 'client' ? 'phone' : 'contact';
 
+   try {
+     const { error } = await supabase
+       .from(table)
+       .upsert({
+         full_name: lead.full_name,
+         [phoneColumn]: phone, 
+         password_temp: tempPass,
+         source: lead.source || 'Lead Admin',
+         status: type === 'client' ? 'Actif' : 'En attente',
+         updated_at: new Date().toISOString()
+       }, { onConflict: phoneColumn });
+
+     if (error) throw error;
+
+     const portal = type === 'client' ? 'onyxops.com/login' : 'onyxops.com/ambassadeurs';
+     const welcomeMsg = `Félicitations ${lead.full_name} ! 🚀%0A%0A` +
+                        `Ton compte ${type === 'client' ? 'Onyx' : 'Ambassadeur'} est prêt.%0A` +
+                        `🔗 Accès : ${portal}%0A` +
+                        `📱 ID : ${phone}%0A` +
+                        `🔑 Pass : ${tempPass}%0A%0A` +
+                        `Bienvenue dans l'écosystème Onyx !`;
+
+     window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${welcomeMsg}`, '_blank');
+     alert(`Compte ${type} activé avec succès !`);
+     fetchSupabaseData();
+   } catch (err: any) {
+     alert("Erreur : " + err.message);
+   }
+ };
   useEffect(() => {
     const close = (e: MouseEvent) => { if (leadActionsOpen && !(e.target as HTMLElement).closest('.lead-actions-wrap')) setLeadActionsOpen(null); };
     document.addEventListener('click', close);
@@ -228,20 +263,18 @@ export default function AdminDashboard() {
   };
 
   const getLeadPriorityActions = (lead: any) => {
-    const i = (lead.intent || '').toLowerCase();
-    const all = [
-      { label: "Créer Compte Client", fn: () => createAccountFromLead(lead, 'client') },
-      { label: "Créer Compte Ambassadeur", fn: () => createAccountFromLead(lead, 'ambassadeur') },
-      { label: "Notifier WA (Vente)", fn: () => notifyLeadByWhatsApp(lead, 'vente', generateTempPassword()) },
-      { label: "Notifier WA (Amb.)", fn: () => notifyLeadByWhatsApp(lead, 'ambassadeurs', generateTempPassword()) },
-      { label: "Répondre", fn: () => replyToLead(lead) },
-    ];
-    if (i.includes('candidature') || i.includes('ambassadeur') || i.includes('partenaire'))
-      return [all[1], all[3], all[4], all[0], all[2]];
-    if (i.includes('client') || i.includes('achat') || i.includes('tarif') || i.includes('commander') || i.includes('vente'))
-      return [all[0], all[2], all[4], all[1], all[3]];
-    return [all[4], all[0], all[1], all[2], all[3]];
-  };
+   const actions = {
+     client: { label: "Créer Compte Client", fn: () => handleCreateAccount(lead, 'client') },
+     ambassador: { label: "Créer Compte Ambassadeur", fn: () => handleCreateAccount(lead, 'ambassadeur') },
+     reply: { label: "Répondre (Simple)", fn: () => replyToLead(lead) }
+   };
+
+   const intent = (lead.intent || '').toLowerCase();
+   if (intent.includes('ambassadeur') || intent.includes('partenaire')) {
+     return [actions.ambassador, actions.reply, actions.client];
+   }
+   return [actions.client, actions.reply, actions.ambassador];
+ };
 
   const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
      const newAction: IAAction = { id: Date.now().toString(), module: 'CRM', title, desc, date: todayStr, status: 'En attente', phone, msg };
