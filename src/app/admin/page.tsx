@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { 
   LayoutDashboard, Users, Target, Handshake, Settings, LogOut, 
-  Search, Plus, Filter, MoreVertical, Edit2, Trash2, Mail, 
+  Search, Plus, Filter, MoreVertical, MoreHorizontal, Edit2, Trash2, Mail, 
   Phone, Calendar, ArrowUpRight, ArrowDownRight, CheckCircle, 
   XCircle, Clock, FileText, Zap, Shield, Image as ImageIcon, MapPin, ArrowLeft,
   MessageSquare, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
@@ -107,13 +107,25 @@ export default function AdminDashboard() {
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
   const [tempAdminProfile, setTempAdminProfile] = useState(adminProfile);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [histogramData, setHistogramData] = useState<{ day: string; ca: number; active?: boolean }[]>([
-    { day: "Lun", ca: 180000, active: false }, { day: "Mar", ca: 220000, active: false },
-    { day: "Mer", ca: 190000, active: false }, { day: "Jeu", ca: 250000, active: true },
-    { day: "Ven", ca: 210000, active: false }, { day: "Sam", ca: 195000, active: false },
-  ]);
+  const [histogramActiveIdx, setHistogramActiveIdx] = useState<number | null>(null);
+  const histogramData = (() => {
+    const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    const today = new Date();
+    const arr: { day: string; ca: number; active: boolean }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today); d.setDate(d.getDate() - i);
+      const count = leads.filter(l => l.created_at && new Date(l.created_at).toDateString() === d.toDateString()).length;
+      arr.push({ day: jours[d.getDay()], ca: count * 9900, active: histogramActiveIdx === arr.length });
+    }
+    return arr;
+  })();
   const maxCa = Math.max(...histogramData.map(d => d.ca), 1);
   const [showHubsMap, setShowHubsMap] = useState(false);
+  const [leadSearch, setLeadSearch] = useState("");
+  const [partnerSearch, setPartnerSearch] = useState("");
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [leadActionsOpen, setLeadActionsOpen] = useState<string | null>(null);
+  const [partnerKpiFilter, setPartnerKpiFilter] = useState<'all' | 'nouveaux' | 'top' | 'moins' | 'gains'>('all');
 
   // --- CHARGEMENT DES DONNÉES (Supabase uniquement, pas de données fictives) ---
   const fetchSupabaseData = async () => {
@@ -145,6 +157,12 @@ export default function AdminDashboard() {
     setTodayStr(new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }));
     fetchSupabaseData();
   }, []);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (leadActionsOpen && !(e.target as HTMLElement).closest('.lead-actions-wrap')) setLeadActionsOpen(null); };
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [leadActionsOpen]);
 
   if (!mounted) {
     return (
@@ -200,6 +218,29 @@ export default function AdminDashboard() {
     const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/${portal}`;
     const msg = `Félicitations ${lead.full_name} ! 🚀 Bienvenue chez Onyx.\n\n*Accès portail :* ${link}\n*Identifiant :* ${phone}\n*Mot de passe :* ${tempPass}\n\nBienvenue dans l'écosystème Onyx ! Un conseiller vous contactera si besoin.`;
     window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const handleDeleteLead = async (id: string) => {
+    if (!confirm("Supprimer ce lead ?")) return;
+    const { error } = await supabase.from('leads').delete().eq('id', id);
+    if (error) alert("Erreur : " + error.message);
+    else { fetchSupabaseData(); setLeadActionsOpen(null); }
+  };
+
+  const getLeadPriorityActions = (lead: any) => {
+    const i = (lead.intent || '').toLowerCase();
+    const all = [
+      { label: "Créer Compte Client", fn: () => createAccountFromLead(lead, 'client') },
+      { label: "Créer Compte Ambassadeur", fn: () => createAccountFromLead(lead, 'ambassadeur') },
+      { label: "Notifier WA (Vente)", fn: () => notifyLeadByWhatsApp(lead, 'vente', generateTempPassword()) },
+      { label: "Notifier WA (Amb.)", fn: () => notifyLeadByWhatsApp(lead, 'ambassadeurs', generateTempPassword()) },
+      { label: "Répondre", fn: () => replyToLead(lead) },
+    ];
+    if (i.includes('candidature') || i.includes('ambassadeur') || i.includes('partenaire'))
+      return [all[1], all[3], all[4], all[0], all[2]];
+    if (i.includes('client') || i.includes('achat') || i.includes('tarif') || i.includes('commander') || i.includes('vente'))
+      return [all[0], all[2], all[4], all[1], all[3]];
+    return [all[4], all[0], all[1], all[2], all[3]];
   };
 
   const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
@@ -329,8 +370,8 @@ export default function AdminDashboard() {
 
   const filteredContacts = (contacts || []).filter(c => {
     if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
-    const search = crmSearch.toLowerCase();
-    if (search && !c.full_name?.toLowerCase().includes(search) && !c.phone?.includes(search)) return false;
+    const search = (globalSearch || crmSearch).toLowerCase();
+    if (search && !c.full_name?.toLowerCase().includes(search) && !c.phone?.includes(search) && !c.saas?.toLowerCase().includes(search)) return false;
     if (crmCardFilter === 'new_clients' && c.type !== 'Client') return false;
     if (crmCardFilter === 'new_prospects' && c.type !== 'Prospect') return false;
     return true;
@@ -436,14 +477,18 @@ export default function AdminDashboard() {
             </div>
           </div>
           
-          <div className="flex items-center gap-6 lg:gap-6">
+          <div className="flex items-center gap-4 lg:gap-6">
+            <div className="hidden lg:flex flex-1 max-w-md relative">
+               <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+               <input type="search" placeholder="Recherche globale (leads, CRM, ambassadeurs…)" value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full pl-12 pr-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
+            </div>
             <div className="hidden lg:flex items-center gap-5 pr-10 border-r border-zinc-200">
                <button onClick={fetchSupabaseData} className={`text-zinc-400 hover:text-black transition-all ${isRefreshing ? 'animate-spin text-[#39FF14]' : ''}`} title="Rafraîchir les données">
                   <RefreshCcw size={22}/>
                </button>
-               <div className="relative cursor-pointer group" title="Notifications">
+               <div className="relative cursor-pointer group" title="Leads en attente">
                   <Bell size={22} className="text-zinc-400 group-hover:text-black transition-colors"/>
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">3</span>
+                  {stats.pendingLeads > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">{stats.pendingLeads > 99 ? '99+' : stats.pendingLeads}</span>}
                </div>
             </div>
             
@@ -472,12 +517,7 @@ export default function AdminDashboard() {
                 <div onClick={() => setActiveView('finance')} className="bg-black p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden cursor-pointer hover:scale-[1.03] transition-all group border border-zinc-800">
                   <div className="absolute -top-12 -right-12 p-12 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 text-[#39FF14]"><Wallet size={200}/></div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d&apos;Affaires Mensuel</p>
-                  <div className="flex items-end gap-4">
-                    <p className={`font-sans text-5xl lg:text-6xl font-black text-[#39FF14] tracking-tighter`}>1.245.000 <span className="text-2xl opacity-50 font-medium">F</span></p>
-                    <div className="flex flex-col mb-2">
-                       <span className="text-[10px] font-black text-[#39FF14] bg-[#39FF14]/10 px-2 py-1 rounded-lg flex items-center gap-1"><ArrowUpRight size={12}/> +12.4%</span>
-                    </div>
-                  </div>
+                  <p className={`font-sans text-5xl lg:text-6xl font-black text-[#39FF14] tracking-tighter`}>{stats.revenue.toLocaleString('fr-FR')} <span className="text-2xl opacity-50 font-medium">F</span></p>
                 </div>
 
                 <div onClick={() => setActiveView('leads')} className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:border-black hover:shadow-2xl transition-all group relative overflow-hidden">
@@ -497,10 +537,10 @@ export default function AdminDashboard() {
 
                 <div onClick={() => setActiveView('marketing')} className="bg-[#39FF14] p-6 rounded-3xl shadow-xl cursor-pointer hover:scale-[1.03] transition-all group relative overflow-hidden border border-[#32E612]">
                    <div className="absolute -bottom-10 -right-10 opacity-10 text-black group-hover:rotate-[-15deg] transition-all duration-700"><Megaphone size={180}/></div>
-                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/40 mb-4">Portée Marketing Blog</p>
-                   <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>8.405</p>
+                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/40 mb-4">Contacts CRM & Leads</p>
+                   <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>{contacts.length + leads.length}</p>
                    <div className="mt-6 flex items-center gap-2">
-                      <div className="px-3 py-1 bg-black text-[#39FF14] rounded-full text-[10px] font-black uppercase shadow-lg">Live Analytics</div>
+                      <div className="px-3 py-1 bg-black text-[#39FF14] rounded-full text-[10px] font-black uppercase shadow-lg">Live</div>
                    </div>
                 </div>
               </div>
@@ -528,7 +568,7 @@ export default function AdminDashboard() {
                       {[1,2,3,4,5].map(line => <div key={line} className="border-t-2 border-black w-full"></div>)}
                     </div>
                     {histogramData.map((d, i) => (
-                      <div key={i} className="relative flex flex-col items-center flex-1 h-full justify-end group cursor-pointer" onClick={() => setHistogramData(histogramData.map((data, idx) => ({ ...data, active: idx === i })))}>
+                      <div key={i} className="relative flex flex-col items-center flex-1 h-full justify-end group cursor-pointer" onClick={() => setHistogramActiveIdx(histogramActiveIdx === i ? null : i)}>
                         <div className={`w-full max-w-[55px] rounded-[1.25rem] transition-all duration-700 relative z-10 ${d.active ? 'bg-black shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]' : 'bg-[#39FF14] hover:bg-black hover:scale-110 active:scale-95'}`} style={{ height: `${(d.ca / maxCa) * 100}%` }}>
                            {d.active && <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-4 py-2 rounded-xl text-xs font-black shadow-2xl whitespace-nowrap animate-in slide-in-from-bottom-2 z-20">{d.ca.toLocaleString()} F</div>}
                         </div>
@@ -556,8 +596,8 @@ export default function AdminDashboard() {
                     <div className="absolute top-[75%] left-[45%] w-2 lg:w-3 h-2 lg:h-3 bg-yellow-400 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-pulse"></div>
                     
                     <div className="absolute bottom-6 left-6 right-6 bg-black/60 backdrop-blur-xl p-5 rounded-[2rem] border border-zinc-800/50 shadow-2xl transform group-hover:translate-y-[-5px] transition-transform">
-                       <p className="text-[10px] font-black uppercase text-[#39FF14] mb-1 tracking-widest flex items-center gap-2"><Layers size={12}/> Focus : Dakar Plateaux</p>
-                       <p className="text-[9px] font-bold text-zinc-400 uppercase leading-relaxed">Forte densité de conversion (82%) • Peak : 18h00</p>
+                       <p className="text-[10px] font-black uppercase text-[#39FF14] mb-1 tracking-widest flex items-center gap-2"><Layers size={12}/> Carte des Hubs Sénégal</p>
+                       <p className="text-[9px] font-bold text-zinc-400 uppercase leading-relaxed">Cliquez pour voir les contacts par zone</p>
                     </div>
                   </div>
                 </div>
@@ -646,6 +686,7 @@ export default function AdminDashboard() {
                       </div>
                    </div>
                    <div className="flex items-center gap-4">
+                      <input type="search" placeholder="Rechercher un lead…" value={leadSearch} onChange={e => setLeadSearch(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium w-56 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
                       <div className="bg-zinc-50 border border-zinc-100 px-6 py-4 rounded-2xl flex items-center gap-3">
                          <span className="w-2 h-2 bg-[#39FF14] rounded-full animate-ping"></span>
                          <span className="text-[10px] lg:text-[11px] font-black uppercase text-zinc-500">Flux Connecté</span>
@@ -664,7 +705,7 @@ export default function AdminDashboard() {
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
-                         {leads.map(l => (
+                         {(leadSearch || globalSearch ? leads.filter(l => [l.full_name, l.phone, l.intent, l.message].some(v => String(v||'').toLowerCase().includes((globalSearch || leadSearch).toLowerCase()))) : leads).map(l => (
                             <tr key={l.id} className="hover:bg-zinc-50/50 transition-all group">
                                <td className="p-6 lg:p-5">
                                   <p className="font-black text-sm uppercase text-black">{l.full_name}</p>
@@ -682,18 +723,27 @@ export default function AdminDashboard() {
                                </td>
                                <td className="p-6 lg:p-5 text-right">
                                   <div className="flex flex-wrap items-center justify-end gap-2">
-                                     <button onClick={() => createAccountFromLead(l, 'client')} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all whitespace-nowrap">Créer Compte Client</button>
-                                     <button onClick={() => createAccountFromLead(l, 'ambassadeur')} className="bg-zinc-800 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all whitespace-nowrap">Créer Compte Ambassadeur</button>
-                                     <button onClick={() => { const p = generateTempPassword(); notifyLeadByWhatsApp(l, 'vente', p); }} className="bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all whitespace-nowrap" title="Lien /vente">Notifier WA (Vente)</button>
-                                     <button onClick={() => { const p = generateTempPassword(); notifyLeadByWhatsApp(l, 'ambassadeurs', p); }} className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all whitespace-nowrap" title="Lien /ambassadeurs">Notifier WA (Amb.)</button>
-                                     <button onClick={() => replyToLead(l)} className="bg-[#39FF14] text-black px-5 py-3 rounded-[1.25rem] text-[10px] font-black uppercase shadow-xl hover:bg-black hover:text-[#39FF14] transition-all active:scale-95 flex items-center gap-2">
-                                        <Send size={16}/> Répondre
-                                     </button>
+                                     <div className="relative lead-actions-wrap">
+                                        <button onClick={(e) => { e.stopPropagation(); setLeadActionsOpen(leadActionsOpen === l.id ? null : l.id); }} className="bg-[#39FF14] text-black px-5 py-3 rounded-[1.25rem] text-[10px] font-black uppercase shadow-xl hover:bg-black hover:text-[#39FF14] transition-all active:scale-95 flex items-center gap-2">
+                                           <MoreHorizontal size={16}/> Actions
+                                        </button>
+                                        {leadActionsOpen === l.id && (
+                                           <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-50 py-2">
+                                              {getLeadPriorityActions(l).map((a, idx) => (
+                                                 <button key={idx} onClick={() => { a.fn(); setLeadActionsOpen(null); }} className="w-full text-left px-5 py-2.5 text-[10px] font-black uppercase hover:bg-zinc-50 transition-colors flex items-center gap-2">
+                                                    {idx === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-pulse"></span>}
+                                                    {a.label}
+                                                 </button>
+                                              ))}
+                                           </div>
+                                        )}
+                                     </div>
+                                     <button onClick={() => handleDeleteLead(l.id)} className="bg-red-500/10 text-red-600 px-4 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-red-500/20 transition-all" title="Supprimer">Supprimer</button>
                                   </div>
                                </td>
                             </tr>
                          ))}
-                         {leads.length === 0 && (
+                         {(leadSearch || globalSearch ? leads.filter(l => [l.full_name, l.phone, l.intent, l.message].some(v => String(v||'').toLowerCase().includes((globalSearch || leadSearch).toLowerCase()))) : leads).length === 0 && (
                             <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-widest italic opacity-50">Aucun lead actif dans le flux pour le moment.</td></tr>
                          )}
                       </tbody>
@@ -712,7 +762,7 @@ export default function AdminDashboard() {
                     { id: 'all', label: 'Membres CRM', val: contacts.length, icon: Users, color: 'bg-white border-zinc-200' },
                     { id: 'new_clients', label: 'Clients Actifs', val: contacts.filter(c=>c.type==='Client').length, icon: CheckCircle, color: 'bg-black text-[#39FF14] shadow-2xl border-black' },
                     { id: 'new_prospects', label: 'Prospects Froids', val: contacts.filter(c=>c.type==='Prospect').length, icon: Clock, color: 'bg-white border-zinc-200' },
-                    { id: 'trials', label: 'Essais Onyx', val: 5, icon: Zap, color: 'bg-[#39FF14] text-black shadow-lg border-[#32E612]' },
+                    { id: 'trials', label: 'Essais Onyx', val: contacts.filter(c => c.saas && c.type === 'Prospect').length || 0, icon: Zap, color: 'bg-[#39FF14] text-black shadow-lg border-[#32E612]' },
                  ].map(card => (
                     <div 
                       key={card.id} 
@@ -834,10 +884,10 @@ export default function AdminDashboard() {
                 {/* GRID FINANCIÈRE */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-5">
                    {[
-                      { label: 'Revenus Globaux', val: '4.850.000 F', color: 'bg-black text-[#39FF14]', icon: TrendingUp },
-                      { label: 'MRR (Récurrent)', val: '1.200.000 F', color: 'bg-white text-black border-zinc-200', icon: RefreshCcw },
-                      { label: 'Commissions Dues', val: '450.000 F', color: 'bg-white text-black border-zinc-200', icon: Handshake },
-                      { label: 'Sorties Opé', val: '120.000 F', color: 'bg-red-50 text-red-600 border-red-100', icon: TrendingUp },
+                      { label: 'Revenus Globaux', val: `${stats.revenue.toLocaleString('fr-FR')} F`, color: 'bg-black text-[#39FF14]', icon: TrendingUp },
+                      { label: 'MRR (Clients actifs)', val: `${stats.revenue.toLocaleString('fr-FR')} F`, color: 'bg-white text-black border-zinc-200', icon: RefreshCcw },
+                      { label: 'Commissions Dues', val: `${partners.filter(p => p.status !== 'En attente').reduce((s, p) => s + ((p.sales ?? 0) * 5000), 0).toLocaleString('fr-FR')} F`, color: 'bg-white text-black border-zinc-200', icon: Handshake },
+                      { label: 'Clients Actifs', val: String(stats.activeClients), color: 'bg-red-50 text-red-600 border-red-100', icon: TrendingUp },
                    ].map((card, i) => (
                       <div key={i} className={`p-5 lg:p-6 rounded-[3rem] lg:rounded-[3.5rem] shadow-sm flex flex-col justify-between h-48 lg:h-56 border transition-all hover:translate-y-[-5px] ${card.color}`}>
                          <card.icon size={24} className="opacity-40" />
@@ -963,11 +1013,43 @@ export default function AdminDashboard() {
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Génération de Revenus & Croissance Réseau</p>
                       </div>
                    </div>
-                   <div className="bg-[#39FF14]/10 border border-[#39FF14]/20 px-6 lg:px-8 py-4 lg:py-5 rounded-[1.5rem] lg:rounded-[2rem] flex flex-col items-center w-full md:w-auto">
-                      <p className="text-[9px] lg:text-[10px] font-black uppercase text-black tracking-widest opacity-60">Total Commissions</p>
-                      <p className={`font-sans text-2xl lg:text-3xl font-black text-black mt-1`}>1.820.000 F</p>
-                   </div>
+                   <input type="search" placeholder="Rechercher ambassadeur…" value={partnerSearch} onChange={e => setPartnerSearch(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium w-56 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
                 </div>
+
+                {/* KPIs cliquables */}
+                {(() => {
+                  const actifs = partners.filter(p => p.status !== 'En attente');
+                  const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                  const nouveaux = actifs.filter(p => p.created_at && new Date(p.created_at) >= thirtyDaysAgo);
+                  const bySales = [...actifs].sort((a, b) => ((b.sales ?? 0) - (a.sales ?? 0)));
+                  const top = bySales.slice(0, 5);
+                  const moins = bySales.slice(-5).reverse();
+                  const gainsAReverser = actifs.reduce((s, p) => s + ((p.sales ?? 0) * 5000), 0);
+                  return (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'nouveaux' ? 'all' : 'nouveaux')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'nouveaux' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
+                        <UserPlus size={24} className="mb-3"/>
+                        <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Nouveaux ambassadeurs</p>
+                        <p className={`font-sans text-2xl lg:text-3xl font-black mt-1`}>{nouveaux.length}</p>
+                      </button>
+                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'top' ? 'all' : 'top')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'top' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
+                        <TrendingUp size={24} className="mb-3"/>
+                        <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Top performers</p>
+                        <p className={`font-sans text-2xl lg:text-3xl font-black mt-1`}>{top.length}</p>
+                      </button>
+                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'moins' ? 'all' : 'moins')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'moins' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
+                        <ArrowDownRight size={24} className="mb-3"/>
+                        <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Moins performants</p>
+                        <p className={`font-sans text-2xl lg:text-3xl font-black mt-1`}>{moins.length}</p>
+                      </button>
+                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'gains' ? 'all' : 'gains')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'gains' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
+                        <Wallet size={24} className="mb-3"/>
+                        <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Gains à reverser</p>
+                        <p className={`font-sans text-2xl lg:text-3xl font-black mt-1`}>{gainsAReverser.toLocaleString()} F</p>
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {/* CANDIDATURES EN ATTENTE */}
                 {partners.filter(p => p.status === 'En attente').length > 0 && (
@@ -998,7 +1080,18 @@ export default function AdminDashboard() {
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
-                         {partners.filter(p => p.status !== 'En attente').map(p => (
+                         {(() => {
+                           const actifs = partners.filter(p => p.status !== 'En attente');
+                           const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                           const bySales = [...actifs].sort((a, b) => ((b.sales ?? 0) - (a.sales ?? 0)));
+                           let list = actifs;
+                           if (partnerKpiFilter === 'nouveaux') list = actifs.filter(p => p.created_at && new Date(p.created_at) >= thirtyDaysAgo);
+                           else if (partnerKpiFilter === 'top') list = bySales.slice(0, 5);
+                           else if (partnerKpiFilter === 'moins') list = bySales.slice(-5).reverse();
+                           else if (partnerKpiFilter === 'gains') list = actifs.filter(p => (p.sales ?? 0) > 0);
+                           if (partnerSearch || globalSearch) list = list.filter(p => [p.full_name, p.contact, p.activity].some(v => String(v||'').toLowerCase().includes((globalSearch || partnerSearch).toLowerCase())));
+                           return list;
+                         })().map(p => (
                             <tr key={p.id} className="hover:bg-zinc-50 transition-all">
                                <td className="p-5 lg:p-6">
                                   <p className="font-black text-sm lg:text-base uppercase text-black tracking-tighter leading-tight">{p.full_name}</p>
@@ -1019,8 +1112,19 @@ export default function AdminDashboard() {
                                </td>
                             </tr>
                          ))}
-                         {partners.filter(p => p.status !== 'En attente').length === 0 && (
-                            <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50">Aucun ambassadeur actif trouvé</td></tr>
+                         {(() => {
+                           const actifs = partners.filter(p => p.status !== 'En attente');
+                           const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                           const bySales = [...actifs].sort((a, b) => ((b.sales ?? 0) - (a.sales ?? 0)));
+                           let list = actifs;
+                           if (partnerKpiFilter === 'nouveaux') list = actifs.filter(p => p.created_at && new Date(p.created_at) >= thirtyDaysAgo);
+                           else if (partnerKpiFilter === 'top') list = bySales.slice(0, 5);
+                           else if (partnerKpiFilter === 'moins') list = bySales.slice(-5).reverse();
+                           else if (partnerKpiFilter === 'gains') list = actifs.filter(p => (p.sales ?? 0) > 0);
+                           if (partnerSearch || globalSearch) list = list.filter(p => [p.full_name, p.contact, p.activity].some(v => String(v||'').toLowerCase().includes((globalSearch || partnerSearch).toLowerCase())));
+                           return list.length === 0;
+                         })() && (
+                            <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50">Aucun ambassadeur trouvé</td></tr>
                          )}
                       </tbody>
                    </table>
@@ -1350,63 +1454,88 @@ export default function AdminDashboard() {
       {/* --- MODALE CARTE DES HUBS --- */}
       {showHubsMap && (() => {
         const HUBS_ZONES = [
-          { id: "dakar", label: "Dakar", x: 52, y: 38 },
-          { id: "thies", label: "Thiès", x: 38, y: 42 },
-          { id: "saint-louis", label: "Saint-Louis", x: 28, y: 28 },
-          { id: "ziguinchor", label: "Ziguinchor", x: 18, y: 78 },
-          { id: "mbour", label: "Mbour", x: 48, y: 52 },
+          { id: "dakar", label: "Dakar", x: 18, y: 48 },
+          { id: "thies", label: "Thiès", x: 32, y: 42 },
+          { id: "saint-louis", label: "Saint-Louis", x: 28, y: 22 },
+          { id: "ziguinchor", label: "Ziguinchor", x: 38, y: 82 },
+          { id: "mbour", label: "Mbour", x: 20, y: 62 },
+          { id: "international", label: "Hub International", x: 92, y: 50 },
         ];
+        const INTERNATIONAL_COUNTRIES = ['mali', 'côte d\'ivoire', 'cote d\'ivoire', 'côte d’ivoire', 'cote d’ivoire', 'guinée', 'guinee', 'mauritanie', 'gambie'];
+        const isInternational = (c: any) => !!(c.country && INTERNATIONAL_COUNTRIES.some(ic => String(c.country).toLowerCase().includes(ic)));
         const getContactsForZone = (zoneId: string) => {
+          if (zoneId === "international")
+            return contacts.filter(c => isInternational(c));
           const zone = HUBS_ZONES.find(z => z.id === zoneId);
           if (!zone) return [];
           const label = zone.label.toLowerCase();
-          return contacts.filter(c =>
-            (c.address?.toLowerCase().includes(label) || c.country?.toLowerCase().includes(label))
-          );
+          const labels = [label, label.replace(/-/g, ' '), label.replace(/ /g, '-')];
+          return contacts.filter(c => {
+            const addr = (c.address || '').toLowerCase();
+            const country = (c.country || '').toLowerCase();
+            return labels.some(l => addr.includes(l) || country.includes(l));
+          });
         };
         const zoneContacts = selectedHub ? getContactsForZone(selectedHub) : [];
         const currentZone = HUBS_ZONES.find(z => z.id === selectedHub);
+        const internationalCount = contacts.filter(c => isInternational(c)).length;
+        const senegalPath = "M12,18 L45,12 L55,28 L52,50 L48,72 L40,90 L25,92 L10,78 L5,55 L8,35 Z";
         return (
-          <div id="modal-overlay" onClick={(e: any) => e.target.id === "modal-overlay" && (setShowHubsMap(false), setSelectedHub(null))} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+          <div id="modal-overlay" onClick={(e: any) => (e.target as HTMLElement).id === "modal-overlay" && (setShowHubsMap(false), setSelectedHub(null))} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
             <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border-t-4 border-[#39FF14] my-auto flex flex-col">
               <div className="p-6 border-b border-zinc-100 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-[#39FF14]/10 rounded-2xl"><MapPin className="text-[#39FF14]" size={24}/></div>
                   <div>
                     <h2 className="font-sans text-2xl font-black uppercase text-black tracking-tighter">Carte des Hubs</h2>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Sénégal • Points par zone</p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Sénégal • Points cliquables</p>
                   </div>
                 </div>
                 <button onClick={() => { setShowHubsMap(false); setSelectedHub(null); }} className="p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
               </div>
               <div className="flex-1 flex flex-col sm:flex-row min-h-0">
-                <div className="flex-1 relative p-6 min-h-[280px] bg-zinc-900">
-                  <svg viewBox="0 0 100 100" className="w-full h-full text-[#39FF14] opacity-20" fill="none" stroke="currentColor" strokeWidth="0.6">
-                    <path d="M25,25 L75,25 L80,45 L70,70 L50,85 L30,75 L20,50 Z" />
+                <div className="flex-1 relative p-6 min-h-[320px] bg-zinc-900">
+                  <svg viewBox="0 0 100 100" className="w-full h-full absolute inset-0 p-4" preserveAspectRatio="xMidYMid meet">
+                    <path d={senegalPath} fill="none" stroke="#39FF14" strokeWidth="0.8" opacity="0.25" className="transition-opacity duration-300" />
                   </svg>
                   {HUBS_ZONES.map(zone => (
                     <button
                       key={zone.id}
-                      onClick={() => setSelectedHub(selectedHub === zone.id ? null : zone.id)}
-                      className="absolute w-4 h-4 rounded-full bg-[#39FF14] shadow-[0_0_20px_#39FF14] animate-pulse cursor-pointer hover:scale-150 transition-transform border-2 border-white"
-                      style={{ left: `${zone.x}%`, top: `${zone.y}%`, transform: "translate(-50%, -50%)" }}
-                      title={zone.label}
+                      onClick={(e) => { e.stopPropagation(); setSelectedHub(selectedHub === zone.id ? null : zone.id); }}
+                      className={`absolute rounded-full cursor-pointer transition-all duration-300 border-2 border-white z-10 ${selectedHub === zone.id ? 'w-6 h-6 shadow-[0_0_40px_#39FF14] scale-125' : 'w-4 h-4 hover:scale-125 hover:shadow-[0_0_35px_#39FF14]'} ${zone.id === 'international' ? 'bg-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.8)]' : 'bg-[#39FF14] shadow-[0_0_25px_#39FF14]'}`}
+                      style={{ left: `${zone.x}%`, top: `${zone.y}%`, transform: 'translate(-50%, -50%)' }}
+                      title={zone.label + (zone.id === 'international' ? ` (${internationalCount})` : '')}
                     />
                   ))}
                 </div>
                 <div className="w-full sm:w-80 border-t sm:border-t-0 sm:border-l border-zinc-200 p-5 flex flex-col bg-zinc-50">
                   <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3">
-                    {currentZone ? `Contacts • ${currentZone.label}` : "Cliquez sur un point"}
+                    {currentZone ? `Contacts • ${currentZone.label}` : "Cliquez sur un point (Dakar, Thiès…)"}
                   </h3>
+                  {internationalCount > 0 && !selectedHub && (
+                    <button onClick={() => setSelectedHub('international')} className="mb-3 px-4 py-2 rounded-xl bg-amber-500/20 text-amber-700 border border-amber-400/40 text-[10px] font-black uppercase hover:bg-amber-500/30 transition-all flex items-center gap-2 w-max">
+                      <Layers size={14}/> Hub International ({internationalCount})
+                    </button>
+                  )}
                   <div className="flex-1 overflow-y-auto space-y-2 min-h-[120px]">
                     {currentZone && zoneContacts.length === 0 && (
                       <p className="text-xs font-bold text-zinc-400 uppercase">Aucun contact pour cette zone</p>
                     )}
                     {currentZone && zoneContacts.map(c => (
-                      <div key={c.id} className="p-3 bg-white rounded-xl border border-zinc-100">
-                        <p className="font-black text-sm uppercase text-black truncate">{c.full_name}</p>
-                        <p className="text-[10px] text-[#39FF14] font-bold mt-0.5">{c.phone}</p>
-                        {c.address && <p className="text-[9px] text-zinc-400 truncate mt-0.5">{c.address}</p>}
+                      <div key={c.id} className="p-3 bg-white rounded-xl border border-zinc-100 group">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-black text-sm uppercase text-black truncate">{c.full_name}</p>
+                            <p className="text-[10px] text-[#39FF14] font-bold mt-0.5">{c.phone}</p>
+                            {c.address && <p className="text-[9px] text-zinc-400 truncate mt-0.5">{c.address}</p>}
+                            {c.country && <p className="text-[9px] text-zinc-500 mt-0.5">{c.country}</p>}
+                          </div>
+                          {isInternational(c) && (
+                            <button onClick={() => setSelectedHub('international')} className="shrink-0 px-2 py-1 rounded-lg bg-amber-500/20 text-amber-700 text-[8px] font-black uppercase border border-amber-400/40 hover:bg-amber-500/30 transition-all">
+                              Hub International
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
