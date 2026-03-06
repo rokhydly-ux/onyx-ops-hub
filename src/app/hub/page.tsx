@@ -2,12 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 import { 
   Smartphone, Truck, Utensils, Box, Lock, LogOut, 
-  Settings, User, GraduationCap, ArrowRight 
+  Settings, GraduationCap, ArrowRight 
 } from "lucide-react";
 
-// Mockup des applications disponibles dans l'écosystème OnyxOps
+// Initialisation Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
 const APPS = [
   { id: "vente", name: "Onyx Vente", icon: Smartphone, color: "bg-blue-600", route: "/vente", desc: "Catalogue & Devis" },
   { id: "stock", name: "Onyx Stock", icon: Box, color: "bg-emerald-600", route: "/stock", desc: "Gestion d'Inventaire" },
@@ -20,23 +25,39 @@ export default function OnyxHubPortal() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Dans un cas réel, cette liste viendrait de Supabase (ex: user.saas_purchased)
   const [unlockedApps, setUnlockedApps] = useState<string[]>([]);
 
   useEffect(() => {
-    // Simulation de récupération de l'utilisateur
-    const saved = localStorage.getItem("onyx_client_session");
-    if (saved) {
+    const checkUserAccess = async () => {
+      const saved = localStorage.getItem("onyx_client_session");
+      if (!saved) {
+        router.push("/");
+        return;
+      }
+
       const parsedUser = JSON.parse(saved);
       setUser(parsedUser);
-      // Simulation: l'utilisateur a accès à Vente et Formation
-      setUnlockedApps(["vente", "formation"]); 
-    } else {
-      // Rediriger vers le login global si non connecté
-      router.push("/");
-    }
-    setLoading(false);
+
+      // 🚀 Requête en temps réel vers Supabase pour récupérer les accès à jour
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('active_saas')
+          .eq('id', parsedUser.id)
+          .single();
+
+        if (error) throw error;
+        
+        // On met à jour le state avec le tableau provenant de la BDD
+        setUnlockedApps(data?.active_saas || []);
+      } catch (err) {
+        console.error("Erreur de récupération des accès :", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserAccess();
   }, [router]);
 
   const handleLogout = () => {
