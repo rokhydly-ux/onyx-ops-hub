@@ -1,226 +1,202 @@
-"use client"; // <--- TOUJOURS EN PREMIER
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { 
-  PlayCircle, BookOpen, FileText, ChevronRight, 
-  LogOut, Shield, Download, CheckCircle, Star 
-} from "lucide-react";
+import { Wallet, Trophy, Link2, Copy, Check, ShoppingBag, PlayCircle, Users, LogOut } from "lucide-react";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// --- TYPES ---
-type Course = { id: string; title: string; description: string; video_url: string; duration: string; order: number; };
-type Resource = { id: string; title: string; type: string; url: string; };
-
-const DEFAULT_COURSES: Course[] = [
-  { id: "1", title: "Introduction au Marketing Digital", description: "Les bases du marketing en Afrique", video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: "15 min", order: 1 },
-  { id: "2", title: "Publicité Facebook & TikTok", description: "Créer des campagnes efficaces", video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: "22 min", order: 2 },
-  { id: "3", title: "Design avec Canva", description: "Maîtriser les visuels pour vos posts", video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: "18 min", order: 3 },
-];
-
-export default function OnyxFormationPage() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+export default function AmbassadeursPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"cours" | "ressources">("cours");
-  const [progress, setProgress] = useState<Record<string, number>>({});
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(DEFAULT_COURSES[0]);
-  const [showCertificate, setShowCertificate] = useState(false);
+  const [partner, setPartner] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [myClients, setMyClients] = useState<any[]>([]);
 
-  // 1. CHARGEMENT SESSION LOCALE
+  const refLink = typeof window !== "undefined" ? `${window.location.origin}/?ref=${partner?.id || "amb"}` : "https://onyxops.com/?ref=amb";
+
   useEffect(() => {
-    const saved = localStorage.getItem("onyx_client_session");
-    if (saved) setUser(JSON.parse(saved));
-    setLoading(false);
+    const stored = typeof window !== "undefined" ? localStorage.getItem("ambassadeur_phone") : null;
+    if (stored) {
+      supabase.from("partners").select("*").eq("contact", stored).maybeSingle().then(({ data }) => {
+        setPartner(data || null);
+        setLoading(false);
+      });
+    } else setLoading(false);
   }, []);
 
-  // 2. CONNEXION MANUELLE (Table clients)
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('phone', phone.trim())
-      .eq('password_temp', password.trim())
-      .maybeSingle();
-
-    if (data) {
-      localStorage.setItem("onyx_client_session", JSON.stringify(data));
-      setUser(data);
-    } else {
-      alert("Identifiants incorrects. Utilisez votre numéro et le mot de passe fourni par l'admin.");
+  useEffect(() => {
+    if (partner?.id) {
+      supabase.from("clients").select("*").ilike("source", "%ambassadeur%").then(({ data }) => setMyClients(data || []));
     }
-    setAuthLoading(false);
+  }, [partner?.id]);
+
+  const handleLogin = async () => {
+    const { data, error } = await supabase
+    .from('partners')
+    .select('*')
+    .or(`contact.eq.${phone.trim()},contact.eq.${phone.replace(/\s+/g, '')}`) // Cherche avec ou sans espaces
+    .eq('password_temp', password.trim())
+    .maybeSingle();
+  
+    if (data) {
+      // Connexion réussie
+      localStorage.setItem('onyx_session', JSON.stringify(data));
+      window.location.href = '/ambassadeurs/dashboard';
+    } else {
+      alert("Identifiants incorrects ou compte non encore approuvé.");
+    }
   };
 
-  const markComplete = (courseId: string) => {
-    setProgress((prev) => ({ ...prev, [courseId]: 100 }));
+  const handleCopy = () => {
+    navigator.clipboard.writeText(refLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const totalProgress = Math.round(DEFAULT_COURSES.reduce((acc, c) => acc + (progress[c.id] || 0), 0) / DEFAULT_COURSES.length);
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-black"><div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin" /></div>;
-
-  // --- VUE LOGIN ---
-  if (!user) {
+  if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6 font-sans">
-        <div className="w-full max-w-md bg-zinc-900 rounded-[3rem] border border-zinc-800 p-10 shadow-2xl">
-          <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-6 shadow-xl shadow-purple-500/20">
-              <PlayCircle size={32} />
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+
+  if (!partner) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6 font-sans">
+        <div className="w-full max-w-md bg-zinc-900 rounded-3xl border border-[#39FF14]/30 shadow-[0_0_60px_rgba(57,255,20,0.1)] p-8">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-[#39FF14]/20 rounded-2xl flex items-center justify-center text-[#39FF14] mx-auto mb-4 border border-[#39FF14]/50">
+              <Trophy size={32} />
             </div>
-            <h1 className="text-3xl font-black uppercase text-white tracking-tighter italic">ONYX<span className="text-purple-500">FORMATION</span></h1>
-            <p className="text-[10px] font-bold text-zinc-500 mt-2 uppercase tracking-widest">Accès Étudiant • Terminal 2026</p>
+            <h1 className="text-2xl font-black uppercase tracking-tighter text-white">Portail Ambassadeur</h1>
+            <p className="text-sm text-zinc-400 mt-1">Connectez-vous pour accéder à votre hub</p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-5">
-            <input type="tel" placeholder="NUMÉRO DE TÉLÉPHONE" value={phone} onChange={(e) => setPhone(e.target.value)} required className="w-full p-5 bg-black border border-zinc-800 rounded-2xl font-bold text-white outline-none focus:border-purple-500 transition-all" />
-            <input type="password" placeholder="MOT DE PASSE" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full p-5 bg-black border border-zinc-800 rounded-2xl font-bold text-white outline-none focus:border-purple-500 transition-all" />
-            <button type="submit" disabled={authLoading} className="w-full bg-purple-600 text-white py-5 rounded-2xl font-black uppercase text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-900/20">
-              {authLoading ? "Vérification..." : "Entrer dans l'académie"}
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input type="tel" placeholder="Numéro de téléphone" value={phone} onChange={(e) => setPhone(e.target.value)} required className="w-full p-4 bg-zinc-800 border border-zinc-700 rounded-xl font-bold text-white outline-none focus:ring-2 focus:ring-[#39FF14] placeholder:text-zinc-500" />
+            <input type="password" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full p-4 bg-zinc-800 border border-zinc-700 rounded-xl font-bold text-white outline-none focus:ring-2 focus:ring-[#39FF14] placeholder:text-zinc-500" />
+            <button type="submit" disabled={authLoading} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:scale-[1.02] transition disabled:opacity-50 shadow-[0_0_30px_rgba(57,255,20,0.3)]">
+              {authLoading ? "Connexion..." : "Se connecter"}
             </button>
+            <div className="flex justify-between items-center mt-6 px-4">
+  <label className="flex items-center gap-2 cursor-pointer">
+    <input type="checkbox" className="accent-[#39FF14] w-4 h-4" />
+    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Rester connecté</span>
+  </label>
+  <button className="text-[10px] text-[#39FF14] font-black uppercase tracking-widest hover:underline">
+    Mot de passe oublié ?
+  </button>
+</div>
           </form>
         </div>
       </div>
     );
   }
 
-  // --- VUE DASHBOARD ---
+  const gainsJour = 12500;
+  const gainsMois = 142500;
+  const gainsAnnee = 1850000;
+  const rank = 3;
+  const ventes = partner.sales ?? 12;
+
   return (
-    <div className="min-h-screen bg-[#fafafa] font-sans">
-      <header className="bg-white border-b border-zinc-200 px-8 py-6 flex items-center justify-between sticky top-0 z-30">
-        <h1 className="text-2xl font-black uppercase tracking-tighter italic">ONYX<span className="text-purple-600">FORMATION</span></h1>
-        <div className="flex items-center gap-6">
-          <div className="text-right hidden sm:block">
-            <p className="text-[10px] font-black uppercase text-zinc-400">Progression</p>
-            <div className="flex items-center gap-2">
-               <div className="w-24 h-2 bg-zinc-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-purple-600 transition-all" style={{ width: `${totalProgress}%` }}></div>
-               </div>
-               <p className="text-sm font-black text-purple-600">{totalProgress}%</p>
-            </div>
-          </div>
-          <button onClick={() => { localStorage.removeItem("onyx_client_session"); window.location.reload(); }} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-red-500 transition-all">
-            <LogOut size={18} />
-          </button>
-        </div>
+    <div className="min-h-screen bg-zinc-950 text-white font-sans">
+      <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between bg-zinc-900/50">
+        <h1 className="text-xl font-black uppercase tracking-tighter text-[#39FF14]">Hub Ambassadeur</h1>
+        <button onClick={() => { setPartner(null); localStorage.removeItem("ambassadeur_phone"); }} className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-[#39FF14] transition">
+          <LogOut size={14} /> Déconnexion
+        </button>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6 lg:p-12">
-        {/* SECTION CERTIFICAT SI 100% */}
-        {totalProgress === 100 && (
-          <div className="mb-12 p-8 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-            <div className="flex items-center gap-6">
-               <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center"><Shield size={32}/></div>
-               <div>
-                  <h3 className="text-2xl font-black uppercase italic">Félicitations !</h3>
-                  <p className="text-sm opacity-80 font-bold uppercase tracking-widest">Vous avez validé l'ensemble de vos modules.</p>
-               </div>
-            </div>
-            <button 
-              onClick={() => setShowCertificate(true)}
-              className="px-8 py-4 bg-white text-purple-700 rounded-2xl font-black uppercase text-xs flex items-center gap-3 hover:scale-105 transition-all shadow-xl"
-            >
-              <Download size={18}/> Télécharger mon Certificat
+      <main className="max-w-6xl mx-auto p-6 space-y-8">
+        {/* Wallet Néon - Gains */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-zinc-900 border border-[#39FF14]/40 rounded-2xl p-6 shadow-[0_0_40px_rgba(57,255,20,0.15)] hover:shadow-[0_0_60px_rgba(57,255,20,0.2)] transition-all cursor-pointer animate-pulse">
+            <p className="text-[10px] font-black uppercase text-[#39FF14] tracking-widest mb-1">Gains du jour</p>
+            <p className="text-3xl font-black text-white">{gainsJour.toLocaleString()} F</p>
+          </div>
+          <div className="bg-zinc-900 border border-[#39FF14]/30 rounded-2xl p-6 hover:border-[#39FF14]/50 transition-all cursor-pointer">
+            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Ce mois</p>
+            <p className="text-3xl font-black text-[#39FF14]">{gainsMois.toLocaleString()} F</p>
+          </div>
+          <div className="bg-zinc-900 border border-[#39FF14]/30 rounded-2xl p-6 hover:border-[#39FF14]/50 transition-all cursor-pointer">
+            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Cette année</p>
+            <p className="text-3xl font-black text-[#39FF14]">{gainsAnnee.toLocaleString()} F</p>
+          </div>
+        </section>
+
+        {/* Leaderboard */}
+        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+          <h2 className="flex items-center gap-2 text-lg font-black uppercase text-[#39FF14] mb-4">
+            <Trophy size={22} /> Classement
+          </h2>
+          <p className="text-white font-bold">Tu es <span className="text-[#39FF14]">{rank}ème</span> à Dakar ce mois-ci — encore 2 ventes pour le bonus !</p>
+        </section>
+
+        {/* Lien de parrainage */}
+        <section className="bg-black border-2 border-[#39FF14] rounded-2xl p-6 shadow-[0_0_50px_rgba(57,255,20,0.2)]">
+          <h2 className="flex items-center gap-2 text-lg font-black uppercase text-[#39FF14] mb-4">
+            <Link2 size={22} /> Mon lien de parrainage
+          </h2>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input readOnly value={refLink} className="flex-1 p-4 bg-zinc-900 border border-zinc-700 rounded-xl text-sm font-mono text-zinc-300" />
+            <button onClick={handleCopy} className="flex items-center justify-center gap-2 bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-sm hover:scale-105 transition">
+              {copied ? <><Check size={18} /> Copié</> : <><Copy size={18} /> Copier mon lien</>}
             </button>
           </div>
-        )}
+        </section>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 space-y-4">
-             <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-4 pl-4">Liste des Modules</h3>
-            {DEFAULT_COURSES.map((c) => (
-              <div
-                key={c.id}
-                onClick={() => setSelectedCourse(c)}
-                className={`p-6 rounded-[2rem] border-2 cursor-pointer transition-all ${selectedCourse?.id === c.id ? "bg-white border-purple-600 shadow-xl" : "bg-white border-transparent hover:border-zinc-200"}`}
-              >
-                <div className="flex items-start justify-between">
-                   <div>
-                      <p className={`text-[10px] font-black uppercase mb-1 ${progress[c.id] === 100 ? "text-green-500" : "text-purple-600"}`}>
-                        {progress[c.id] === 100 ? "✓ Terminé" : `Module 0${c.id}`}
-                      </p>
-                      <h4 className="font-black text-sm uppercase leading-tight">{c.title}</h4>
-                      <p className="text-[10px] text-zinc-400 font-bold mt-2 uppercase">{c.duration}</p>
-                   </div>
-                   {progress[c.id] === 100 && <CheckCircle className="text-green-500" size={18}/>}
-                </div>
-              </div>
-            ))}
+        {/* Trousseau Ambassadeur */}
+        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+          <h2 className="text-lg font-black uppercase text-[#39FF14] mb-4">Trousseau de l&apos;Ambassadeur</h2>
+          <p className="text-zinc-400 text-sm mb-4">Félicitations ! Votre candidature est bien reçue. 🚀 Voici votre Trousseau de Démarrage (PDF) pour commencer à générer des commissions dès aujourd&apos;hui. Kit PDF et outils de démarchage.</p>
+          <div className="flex flex-wrap gap-3">
+            <a href="#" className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-[#39FF14] hover:text-black text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition">Télécharger le Kit PDF</a>
+            <a href="#" className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-[#39FF14] hover:text-black text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition">Scripts de vente</a>
           </div>
+        </section>
 
-          <div className="lg:col-span-2">
-            {selectedCourse && (
-              <div className="bg-white rounded-[3rem] border border-zinc-200 overflow-hidden shadow-sm">
-                <div className="aspect-video bg-black">
-                  <iframe src={selectedCourse.video_url} className="w-full h-full" allowFullScreen />
-                </div>
-                <div className="p-10">
-                  <h2 className="text-3xl font-black uppercase tracking-tighter">{selectedCourse.title}</h2>
-                  <p className="text-zinc-500 mt-4 leading-relaxed font-medium">{selectedCourse.description}</p>
-                  
-                  <div className="mt-10 flex flex-col sm:flex-row items-center gap-4">
-                    <button onClick={() => markComplete(selectedCourse.id)} className="w-full sm:w-auto bg-purple-600 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs hover:bg-black transition-all">
-                      Marquer comme terminé
-                    </button>
-                    <button className="w-full sm:w-auto border-2 border-zinc-100 text-zinc-400 px-10 py-5 rounded-2xl font-black uppercase text-xs">
-                      Télécharger les notes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Boutique -30% */}
+        <section className="bg-gradient-to-br from-zinc-900 to-black border border-[#39FF14]/40 rounded-2xl p-6">
+          <h2 className="flex items-center gap-2 text-lg font-black uppercase text-[#39FF14] mb-2">
+            <ShoppingBag size={22} /> La Boutique Ambassadeur
+          </h2>
+          <p className="text-zinc-400 text-sm mb-4">Tu veux Onyx Vente pour toi ? <span className="text-[#39FF14] font-black">-30% automatique</span> pour les ambassadeurs.</p>
+          <a href="/vente" className="inline-flex items-center gap-2 bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-sm hover:scale-105 transition">Accéder à Onyx Vente -30%</a>
+        </section>
+
+        {/* Module Formation */}
+        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+          <h2 className="flex items-center gap-2 text-lg font-black uppercase text-[#39FF14] mb-4">
+            <PlayCircle size={22} /> Module Formation
+          </h2>
+          <p className="text-zinc-400 text-sm mb-4">Micro-vidéos : &quot;Comment vendre Onyx à un restaurateur&quot; et plus.</p>
+          <a href="/formation" className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-[#39FF14] hover:text-black text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition">Accéder aux vidéos</a>
+        </section>
+
+        {/* Mes Clients */}
+        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+          <h2 className="flex items-center gap-2 text-lg font-black uppercase text-[#39FF14] mb-4">
+            <Users size={22} /> Mes clients
+          </h2>
+          {myClients.length === 0 ? (
+            <p className="text-zinc-500 text-sm">Aucun abonné recruté pour le moment. Partage ton lien de parrainage !</p>
+          ) : (
+            <ul className="space-y-3">
+              {myClients.map((c) => (
+                <li key={c.id} className="flex items-center justify-between p-3 bg-zinc-800 rounded-xl">
+                  <span className="font-bold">{c.full_name}</span>
+                  <span className="text-[10px] font-black uppercase px-2 py-1 rounded-lg bg-[#39FF14]/20 text-[#39FF14]">{c.status || "Actif"}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </main>
-
-      {/* FOOTER RÉCUPÉRÉ */}
-      <footer className="bg-white border-t border-zinc-100 py-12 px-6 mt-20 text-center">
-         <h2 className="font-black text-2xl tracking-tighter uppercase mb-2">ONYX<span className="text-[#39FF14]">OPS</span></h2>
-         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-relaxed">
-            Ecosystème Tech & Marketing • Sénégal<br/>
-            © 2026 Onyx Ops Terminal v2.4
-         </p>
-      </footer>
-
-      {/* MODALE CERTIFICAT IMPRIMABLE */}
-      {showCertificate && (
-        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center p-4">
-          <div className="bg-white p-12 border-[20px] border-zinc-100 shadow-2xl max-w-4xl w-full text-center relative print:m-0 print:border-0" id="certificate-print">
-            <button onClick={() => setShowCertificate(false)} className="absolute top-4 right-4 text-zinc-300 hover:text-black print:hidden"><LogOut/></button>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] rotate-12"><Shield size={500}/></div>
-            <h1 className="font-black text-4xl uppercase tracking-[0.3em] mb-4">Certificat de Réussite</h1>
-            <p className="text-zinc-400 font-bold uppercase tracking-widest text-xs mb-12">Onyx Academy • Dakar Hub</p>
-            <p className="text-zinc-500 italic mb-2">Ce document officiel atteste que</p>
-            <h2 className="text-4xl font-black uppercase text-black mb-8 underline decoration-purple-600 underline-offset-8">
-              {user?.full_name}
-            </h2>
-            <p className="text-zinc-600 max-w-md mx-auto leading-relaxed mb-12">
-              A validé avec succès l'ensemble des modules de la formation 
-              <span className="font-black"> MARKETING DIGITAL & ADS (FB/TIKTOK)</span>.
-            </p>
-            <div className="flex justify-between items-end mt-20 text-left">
-              <div>
-                <p className="text-[10px] font-black uppercase text-zinc-400">Date</p>
-                <p className="font-bold text-sm">{new Date().toLocaleDateString('fr-FR')}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-black uppercase text-zinc-400 mb-2">Signature</p>
-                <div className="font-serif italic text-2xl text-black">Coach OnyxFormation</div>
-                <div className="w-32 h-0.5 bg-black ml-auto mt-1"></div>
-              </div>
-            </div>
-            <button onClick={() => window.print()} className="mt-12 bg-black text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] print:hidden">Imprimer le certificat</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
