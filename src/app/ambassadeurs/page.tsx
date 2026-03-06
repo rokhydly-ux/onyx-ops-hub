@@ -35,15 +35,21 @@ export default function AmbassadeursPage() {
     }
   }, [partner?.id]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    const { data } = await supabase.from("partners").select("*").eq("contact", phone.replace(/\s+/g, "")).maybeSingle();
-    if (data && (data as any).password_temp === password) {
-      setPartner(data);
-      if (typeof window !== "undefined") localStorage.setItem("ambassadeur_phone", phone.replace(/\s+/g, ""));
-    } else alert("Identifiants incorrects ou compte en attente de validation.");
-    setAuthLoading(false);
+  const handleLogin = async () => {
+    const { data, error } = await supabase
+      .from('partners')
+      .select('*')
+      .eq('contact', phone)
+      .eq('password_temp', password) // On vérifie le mot de passe en texte
+      .single();
+  
+    if (data) {
+      // Connexion réussie
+      localStorage.setItem('onyx_session', JSON.stringify(data));
+      window.location.href = '/ambassadeurs/dashboard';
+    } else {
+      alert("Identifiants incorrects ou compte non encore approuvé.");
+    }
   };
 
   const handleCopy = () => {
@@ -76,6 +82,15 @@ export default function AmbassadeursPage() {
             <button type="submit" disabled={authLoading} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:scale-[1.02] transition disabled:opacity-50 shadow-[0_0_30px_rgba(57,255,20,0.3)]">
               {authLoading ? "Connexion..." : "Se connecter"}
             </button>
+            <div className="flex justify-between items-center mt-6 px-4">
+  <label className="flex items-center gap-2 cursor-pointer">
+    <input type="checkbox" className="accent-[#39FF14] w-4 h-4" />
+    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Rester connecté</span>
+  </label>
+  <button className="text-[10px] text-[#39FF14] font-black uppercase tracking-widest hover:underline">
+    Mot de passe oublié ?
+  </button>
+</div>
           </form>
         </div>
       </div>

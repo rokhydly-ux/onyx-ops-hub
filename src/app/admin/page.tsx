@@ -165,19 +165,24 @@ export default function AdminDashboard() {
    const phoneColumn = type === 'client' ? 'phone' : 'contact';
 
    try {
-     const { error } = await supabase
+     // 1. On crée (ou met à jour) dans la table finale (Client ou Partenaire)
+     const { error: upsertError } = await supabase
        .from(table)
        .upsert({
          full_name: lead.full_name,
          [phoneColumn]: phone, 
          password_temp: tempPass,
          source: lead.source || 'Lead Admin',
-         status: type === 'client' ? 'Actif' : 'En attente',
+         status: type === 'client' ? 'Actif' : 'Approuvé',
          updated_at: new Date().toISOString()
        }, { onConflict: phoneColumn });
 
-     if (error) throw error;
+     if (upsertError) throw upsertError;
 
+     // 2. On SUPPRIME le lead de la table leads (pour qu'il s'efface de la vue)
+     await supabase.from('leads').delete().eq('id', lead.id);
+
+     // 3. Préparation WhatsApp
      const portal = type === 'client' ? 'onyxops.com/login' : 'onyxops.com/ambassadeurs';
      const welcomeMsg = `Félicitations ${lead.full_name} ! 🚀%0A%0A` +
                         `Ton compte ${type === 'client' ? 'Onyx' : 'Ambassadeur'} est prêt.%0A` +
@@ -187,10 +192,11 @@ export default function AdminDashboard() {
                         `Bienvenue dans l'écosystème Onyx !`;
 
      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${welcomeMsg}`, '_blank');
-     alert(`Compte ${type} activé avec succès !`);
-     fetchSupabaseData();
+     
+     alert(`Compte ${type} activé ! Le prospect a été déplacé.`);
+     fetchSupabaseData(); // Rafraîchit les listes
    } catch (err: any) {
-     alert("Erreur : " + err.message);
+     alert("Erreur Terminal : " + err.message);
    }
  };
   useEffect(() => {
@@ -519,10 +525,14 @@ export default function AdminDashboard() {
                <button onClick={fetchSupabaseData} className={`text-zinc-400 hover:text-black transition-all ${isRefreshing ? 'animate-spin text-[#39FF14]' : ''}`} title="Rafraîchir les données">
                   <RefreshCcw size={22}/>
                </button>
-               <div className="relative cursor-pointer group" title="Leads en attente">
-                  <Bell size={22} className="text-zinc-400 group-hover:text-black transition-colors"/>
-                  {stats.pendingLeads > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-sm">{stats.pendingLeads > 99 ? '99+' : stats.pendingLeads}</span>}
-               </div>
+               <div className="relative cursor-pointer group" onClick={() => setActiveView('leads')}>
+  <Bell size={22} className={`${leads.length > 0 ? 'text-[#39FF14] animate-bounce' : 'text-zinc-400'}`}/>
+  {leads.length > 0 && (
+    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-white">
+      {leads.length}
+    </span>
+  )}
+</div>
             </div>
             
             <div onClick={() => { setTempAdminProfile({ ...adminProfile }); setShowProfileModal(true); }} className="flex items-center gap-5 bg-white border border-zinc-200 p-2.5 pr-8 rounded-full cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-1 group active:scale-95">
