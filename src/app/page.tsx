@@ -513,17 +513,17 @@ export default function OnyxOpsElite() {
            strategy: partnerForm.strategy
         });
         
-        const { error } = await supabase.from('partners').insert({
-           full_name: partnerForm.full_name, 
-           contact: partnerForm.contact, 
-           city: partnerForm.city,
-           address: partnerForm.address,
-           country: partnerForm.country,
-           activity: partnerForm.status,
-           status: 'En attente',
-           sales: 0
-        });
-        if(error) console.error("ERREUR SUPABASE PARTNERS :", error.message);
+        const { error } = await supabase.from('ambassadors').insert({
+          full_name: partnerForm.full_name, 
+          contact: partnerForm.contact, 
+          city: partnerForm.city,
+          address: partnerForm.address,
+          country: partnerForm.country,
+          activity: partnerForm.status,
+          status: 'En attente',
+          sales: 0
+       });
+       if(error) console.error("ERREUR SUPABASE AMBASSADORS :", error.message);
         
         setPartnerStep('success');
         setTimeout(() => setPartnerStep('dashboard'), 4000);
@@ -872,9 +872,15 @@ export default function OnyxOpsElite() {
                         <ul className={`text-xs space-y-3 mb-8 flex-1 ${pack.id === 'trio' || isRecommended ? 'text-zinc-300' : 'text-zinc-400'}`}>
                           {planDetails.benefits.map((ben, i) => <li key={i} className="flex gap-2">✔ {ben}</li>)}
                         </ul>
-                        <button onClick={() => handleWaClick("Achat Tarif", `Bonjour, je veux COMMENCER l'offre ${pack.label} à ${pack.price}F.`)} className={`w-full block text-center py-4 rounded-2xl font-black text-sm uppercase ${pack.id === 'trio' || isRecommended ? 'bg-[#39FF14] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#39FF14]'}`}>
-                          Commencer
-                        </button>
+                        <button 
+  onClick={() => { 
+    setLeadData(prev => ({ ...prev, saas: pack.label })); 
+    setShowOnboarding(true); 
+  }} 
+  className={`w-full block text-center py-4 rounded-2xl font-black text-sm uppercase ${pack.id === 'trio' || isRecommended ? 'bg-[#39FF14] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#39FF14]'}`}
+>
+  Commencer
+</button>
                       </div>
                     );
                   })}
