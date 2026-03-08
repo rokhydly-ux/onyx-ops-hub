@@ -74,7 +74,13 @@ export default function AdminDashboard() {
 
   // 👇 AJOUTE CES DEUX LIGNES JUSTE ICI 👇
   const [editingArticle, setEditingArticle] = useState<any>(null);
-  const [scannedLeadIds, setScannedLeadIds] = useState<string[]>([]);
+  const [scannedLeadIds, setScannedLeadIds] = useState<string[]>([]);const [scannedLeadIds, setScannedLeadIds] = useState<string[]>(() => {
+   if (typeof window !== 'undefined') {
+       const saved = localStorage.getItem('onyx_scanned_leads');
+       return saved ? JSON.parse(saved) : [];
+   }
+   return [];
+});
   // 👆 ================================= 👆
  
    // --- 5. SUPPRESSION DES DONNÉES FICTIVES (On part de zéro) ---
@@ -382,11 +388,16 @@ export default function AdminDashboard() {
   };
 
   const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
-     const newAction: IAAction = { id: Date.now().toString(), module: 'CRM', title, desc, date: todayStr, status: 'En attente', phone, msg };
-     setActionsIA([newAction, ...actionsIA]);
-     alert("Action planifiée sur le dashboard !");
-     setShowRapportIA(false);
-  };
+   const newAction: IAAction = { id: Date.now().toString(), module: 'CRM', title, desc, date: todayStr, status: 'En attente', phone, msg };
+   
+   setActionsIA(prev => {
+      const updated = [newAction, ...prev];
+      localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+      return updated;
+   });
+   
+   alert("Action planifiée avec succès dans le Journal IA !");
+};
 
   const handleDeleteItem = async (table: string, id: string) => {
     if (!supabase) return; 
@@ -677,9 +688,9 @@ export default function AdminDashboard() {
           <div>
             <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] mb-4 pl-4">Stratégie & Ventes</p>
             <nav className="space-y-1">
-               <button onClick={() => setActiveView('crm')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
-                 <Megaphone size={20} /> Marketing & Blog
-               </button>
+            <button onClick={() => setActiveView('marketing')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
+  <Megaphone size={20} /> Marketing & Blog
+</button>
                <button onClick={() => setShowRapportIA(true)} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all">
                  <Sparkles size={20} className="text-[#39FF14]" /> Scan Intelligence
                </button>
@@ -1916,7 +1927,11 @@ export default function AdminDashboard() {
                             msg
                         );
                         // CORRECTION : On cache ce prospect de la liste des suggestions
-                        setScannedLeadIds(prev => [...prev, c.id]);
+                        setScannedLeadIds(prev => [...prev, c.id]);setScannedLeadIds(prev => {
+                           const updated = [...prev, c.id];
+                           localStorage.setItem('onyx_scanned_leads', JSON.stringify(updated));
+                           return updated;
+                        });
                     }} className="bg-black text-[#39FF14] px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-xl hover:scale-105 transition-all">Planifier</button>
                   </div>
                 ))
