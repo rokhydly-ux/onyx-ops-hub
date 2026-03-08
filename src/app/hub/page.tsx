@@ -31,7 +31,7 @@ export default function OnyxHubPortal() {
     const checkUserAccess = async () => {
       const saved = localStorage.getItem("onyx_client_session");
       if (!saved) {
-        router.push("/");
+        router.push("/"); // 👈 On désactive le renvoi temporairement
         return;
       }
 
