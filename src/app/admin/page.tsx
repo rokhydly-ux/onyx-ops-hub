@@ -164,6 +164,8 @@ export default function AdminDashboard() {
   const [globalSearch, setGlobalSearch] = useState("");
   const [leadActionsOpen, setLeadActionsOpen] = useState<string | null>(null);
   const [partnerKpiFilter, setPartnerKpiFilter] = useState<'all' | 'nouveaux' | 'top' | 'moins' | 'gains'>('all');
+  const [marketingMaterials, setMarketingMaterials] = useState<any[]>([]);
+  const [newMaterial, setNewMaterial] = useState({ title: '', type: 'Canva', url: '' });
 
   // --- CHARGEMENT DES DONNÉES (Supabase uniquement) ---
   const fetchSupabaseData = async () => {
@@ -174,10 +176,12 @@ export default function AdminDashboard() {
      const { data: leadsData } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
      // CORRECTION ICI : On lit la table "ambassadors" et plus "partners"
      const { data: partnersData } = await supabase.from('ambassadors').select('*').order('created_at', { ascending: false });
+     const { data: materialsData } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
      
      if (contactsData) setContacts(contactsData);
      if (leadsData) setLeads(leadsData);
      if (partnersData) setPartners(partnersData);
+     if (materialsData) setMarketingMaterials(materialsData);
      
      setStats({
        revenue: contactsData?.length ? contactsData.length * 9900 : 0,
@@ -475,6 +479,33 @@ export default function AdminDashboard() {
       if(error) alert(error.message);
       else { alert("Ambassadeur ajouté au CRM Clients !"); fetchSupabaseData(); }
   };
+
+  const handleAddMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMaterial.title || !newMaterial.url) {
+        alert("Le titre et l'URL sont requis.");
+        return;
+    }
+    const { error } = await supabase.from('marketing_materials').insert([newMaterial]);
+    if (error) {
+        alert("Erreur lors de l'ajout de la ressource: " + error.message);
+    } else {
+        setNewMaterial({ title: '', type: 'Canva', url: '' });
+        fetchSupabaseData();
+        alert("Ressource ajoutée avec succès !");
+    }
+  };
+
+  const handleDeleteMaterial = async (id: string) => {
+    if (!confirm("Voulez-vous vraiment supprimer cette ressource ?")) return;
+    const { error } = await supabase.from('marketing_materials').delete().eq('id', id);
+    if (error) {
+        alert("Erreur lors de la suppression: " + error.message);
+    } else {
+        fetchSupabaseData();
+    }
+  };
+
   // NOUVEAU : Fonction pour ajouter un ambassadeur manuellement (Étape B)
   const handleAddPartner = async (e: React.FormEvent) => {
    e.preventDefault();
@@ -1658,6 +1689,67 @@ export default function AdminDashboard() {
                          )}
                       </tbody>
                    </table>
+                </div>
+
+                {/* MATÉRIEL MARKETING */}
+                <div className="mt-12 bg-white border border-zinc-200 rounded-[3.5rem] lg:rounded-3xl shadow-sm p-6 lg:p-12">
+                  <h3 className="text-xl font-black uppercase text-black mb-6">Matériel Marketing Ambassadeurs</h3>
+                  
+                  {/* Formulaire d'ajout */}
+                  <form onSubmit={handleAddMaterial} className="mb-8 p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <input 
+                        type="text"
+                        placeholder="Titre de la ressource"
+                        value={newMaterial.title}
+                        onChange={e => setNewMaterial({...newMaterial, title: e.target.value})}
+                        className="w-full p-3 bg-white border border-zinc-200 rounded-xl font-medium text-sm focus:outline-none focus:border-black"
+                      />
+                      <select 
+                        value={newMaterial.type}
+                        onChange={e => setNewMaterial({...newMaterial, type: e.target.value})}
+                        className="w-full p-3 bg-white border border-zinc-200 rounded-xl font-medium text-sm focus:outline-none focus:border-black"
+                      >
+                        <option>Canva</option>
+                        <option>PDF</option>
+                      </select>
+                      <input 
+                        type="url"
+                        placeholder="URL du lien"
+                        value={newMaterial.url}
+                        onChange={e => setNewMaterial({...newMaterial, url: e.target.value})}
+                        className="w-full p-3 bg-white border border-zinc-200 rounded-xl font-medium text-sm focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <button type="submit" className="w-full md:w-auto bg-black text-white px-8 py-3 rounded-xl text-xs font-black uppercase hover:bg-zinc-800 transition-all">
+                      Ajouter la ressource
+                    </button>
+                  </form>
+
+                  {/* Liste des ressources */}
+                  <div className="space-y-3">
+                    {marketingMaterials.map(material => (
+                      <div key={material.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                        <div className="flex items-center gap-4">
+                          <span className={`px-3 py-1 text-xs font-bold rounded-lg ${material.type === 'Canva' ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'}`}>
+                            {material.type}
+                          </span>
+                          <div>
+                            <p className="font-bold text-black">{material.title}</p>
+                            <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-500 hover:underline">{material.url}</a>
+                          </div>
+                        </div>
+                        <button onClick={() => handleDeleteMaterial(material.id)} className="p-2 text-zinc-400 hover:bg-red-100 hover:text-red-600 rounded-full transition-all">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                     {marketingMaterials.length === 0 && (
+                        <div className="p-10 text-center text-zinc-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed border-zinc-100 rounded-[2rem]">
+                          Aucun matériel marketing ajouté.
+                        </div>
+                      )}
+                  </div>
                 </div>
              </div>
           )}

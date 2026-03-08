@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Wallet, Trophy, Link2, Copy, Check, ShoppingBag, PlayCircle, Users, LogOut, FileText, Image as ImageIcon } from "lucide-react";
+import { Wallet, Trophy, Link2, Copy, Check, ShoppingBag, Users, LogOut, FileText, Image as ImageIcon, MessageCircle } from "lucide-react";
 
-// Mock Supabase client for this page
+// Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -17,42 +17,82 @@ export default function AmbassadeursPage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // Mock data for a logged-in ambassador
+  // States for dynamic data
+  const [prospects, setProspects] = useState<any[]>([]);
+  const [marketingMaterials, setMarketingMaterials] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Mock data for ambassador profile (can be fetched as well)
   const ambassador = {
     id: "amb_12345",
     name: "Onyx Alpha",
     referralCode: "ONYXALPHA26",
     revenue: {
-      generatedTurnover: 785000, // CA généré
-      pendingCommissions: 117750, // Commissions en attente
-    },
-    prospects: [
-      { id: 1, name: "Boutique de Mode 'Chic'", status: "En négociation" },
-      { id: 2, name: "Restaurant 'Le Délice'", status: "Démo planifiée" },
-      { id: 3, name: "Salon de Coiffure 'Élégance'", status: "Converti" },
-      { id: 4, name: "Épicerie 'Le Panier Frais'", status: "Contacté" },
-    ],
-    marketingMaterials: {
-      canvaVisuals: "https://www.canva.com/design/DAF-1a2b3c/view",
-      productSheets: "https://www.dropbox.com/scl/fi/abcde12345/Onyx-Fiches-Produits.pdf?rlkey=fedcba54321",
+      generatedTurnover: 785000,
+      pendingCommissions: 117750,
     },
   };
-
+  
   const referralLink = `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${ambassador.referralCode}`;
+
+  // Fetch data on login
+  useEffect(() => {
+    if (isLoggedIn) {
+      const fetchData = async () => {
+        setIsLoading(true);
+
+        // Fetch prospects assigned to the ambassador
+        const { data: leadsData, error: leadsError } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('ambassador_id', id);
+
+        if (leadsError) {
+          console.error("Error fetching prospects:", leadsError.message);
+        } else {
+          setProspects(leadsData || []);
+        }
+
+        // Fetch marketing materials
+        const { data: materialsData, error: materialsError } = await supabase
+          .from('marketing_materials')
+          .select('*');
+
+        if (materialsError) {
+          console.error("Error fetching marketing materials:", materialsError.message);
+        } else {
+          setMarketingMaterials(materialsData || []);
+        }
+        
+        setIsLoading(false);
+      };
+
+      fetchData();
+    }
+  }, [isLoggedIn, id]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     setError("");
 
-    // The setTimeout was likely causing a race condition or an issue with the render update.
-    // Removing it to make the state update synchronous with the event handler.
     if (id === "+221762237425" && password === "central2026") {
       setIsLoggedIn(true);
     } else {
       setError("Identifiant ou mot de passe incorrect.");
-      setAuthLoading(false); // Only set loading to false on error, as success will unmount the form.
+      setAuthLoading(false);
     }
+  };
+  
+  const handleContactProspect = (prospect: any) => {
+    // Ensure prospect.phone and prospect.name exist to avoid errors
+    if (!prospect.phone || !prospect.full_name) {
+      alert("Informations de contact du prospect manquantes.");
+      return;
+    }
+    const message = `Bonjour ${prospect.full_name}, je suis votre conseiller OnyxOps. J'ai vu que vous étiez intéressé par nos solutions. Comment puis-je vous aider aujourd'hui ?`;
+    const whatsappUrl = `https://wa.me/${prospect.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const handleCopy = () => {
@@ -63,9 +103,10 @@ export default function AmbassadeursPage() {
   
   const handleLogout = () => {
     setIsLoggedIn(false);
-    // Reset credentials for security, even if they are pre-filled for demo
     setId("+221762237425");
     setPassword("central2026");
+    setProspects([]);
+    setMarketingMaterials([]);
   };
 
   // Login Form Component
@@ -123,8 +164,12 @@ export default function AmbassadeursPage() {
         </button>
       </header>
 
+      {isLoading ? (
+        <div className="flex items-center justify-center h-[60vh]">
+            <div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
       <main className="max-w-5xl mx-auto p-6 space-y-8">
-
         {/* Section "Mes Revenus" */}
         <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
            <h2 className="flex items-center gap-3 text-lg font-black uppercase text-[#39FF14] mb-4">
@@ -162,48 +207,62 @@ export default function AmbassadeursPage() {
           </div>
         </section>
 
-        {/* Section "Mes Prospects" */}
+        {/* Section "Mes Prospects" (Dynamique) */}
         <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
           <h2 className="flex items-center gap-3 text-lg font-black uppercase text-[#39FF14] mb-4">
             <Users size={22} /> Mes Prospects
           </h2>
-          {ambassador.prospects.length === 0 ? (
-            <p className="text-zinc-500 text-sm">Aucun prospect pour le moment. Partagez votre lien !</p>
+          {prospects.length === 0 ? (
+            <p className="text-zinc-500 text-sm">Aucun prospect assigné pour le moment. Partagez votre lien !</p>
           ) : (
             <div className="space-y-3">
-              {ambassador.prospects.map((prospect) => (
-                <div key={prospect.id} className="flex items-center justify-between p-3 bg-zinc-800 rounded-xl">
-                  <span className="font-bold text-white">{prospect.name}</span>
-                  <span 
-                     className={`text-[10px] font-black uppercase px-2 py-1 rounded-md 
-                      ${prospect.status === "Converti" ? "bg-green-500/20 text-green-400" : 
-                       prospect.status === "Démo planifiée" ? "bg-blue-500/20 text-blue-400" :
-                       prospect.status === "En négociation" ? "bg-yellow-500/20 text-yellow-400" : "bg-zinc-700 text-zinc-300"}`}
-                  >
-                    {prospect.status}
-                  </span>
+              {prospects.map((prospect) => (
+                <div key={prospect.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-zinc-800 rounded-xl gap-4">
+                  <div>
+                    <p className="font-bold text-white">{prospect.full_name}</p>
+                    <p className="text-xs text-zinc-400">{prospect.phone}</p>
+                  </div>
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    <span className="text-[10px] font-black uppercase px-2 py-1 rounded-md bg-zinc-700 text-zinc-300">
+                      {prospect.status || 'Nouveau'}
+                    </span>
+                    <button onClick={() => handleContactProspect(prospect)} className="p-2 bg-[#25D366] text-white rounded-full hover:scale-110 transition-transform">
+                      <MessageCircle size={18} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </section>
         
-        {/* Section "Matériel Marketing" */}
+        {/* Section "Matériel Marketing" (Dynamique) */}
         <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
           <h2 className="flex items-center gap-3 text-lg font-black uppercase text-[#39FF14] mb-4">
             <ShoppingBag size={22} /> Matériel Marketing
           </h2>
           <p className="text-zinc-400 text-sm mb-4">Ressources pour booster vos ventes et présenter Onyx.</p>
-          <div className="flex flex-wrap gap-3">
-             <a href={ambassador.marketingMaterials.canvaVisuals} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-[#39FF14] hover:text-black text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition-colors">
-              <ImageIcon size={14}/> Visuels (Canva)
-            </a>
-            <a href={ambassador.marketingMaterials.productSheets} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-[#39FF14] hover:text-black text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition-colors">
-              <FileText size={14}/> Fiches Produits (PDF)
-            </a>
-          </div>
+          {marketingMaterials.length === 0 ? (
+             <p className="text-zinc-500 text-sm">Aucun matériel marketing disponible pour le moment.</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {marketingMaterials.map((material) => (
+                 <a 
+                   key={material.id}
+                   href={material.url} 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   className="inline-flex items-center gap-2 bg-zinc-800 hover:bg-[#39FF14] hover:text-black text-white px-5 py-3 rounded-xl font-black uppercase text-xs transition-colors"
+                 >
+                  {material.type.toLowerCase() === 'canva' ? <ImageIcon size={14}/> : <FileText size={14}/>}
+                  {material.type.toLowerCase() === 'canva' ? 'Ouvrir Canva' : 'Télécharger le PDF'}
+                </a>
+              ))}
+            </div>
+          )}
         </section>
       </main>
+      )}
     </div>
   );
 }
