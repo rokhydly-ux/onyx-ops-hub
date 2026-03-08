@@ -519,6 +519,23 @@ export default function AdminDashboard() {
       alert(`Diffusion planifiée avec succès pour ${selectedContactsForDiffusion.length} membres.`);
   };
 
+  // NOUVELLE FONCTION: Ouvre la modale pour un nouveau client avec date +14j par défaut
+  const openNewClientModal = () => {
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 14);
+    
+    setEditingContact({
+      full_name: "",
+      phone: "",
+      password_temp: "",
+      active_saas: [],
+      expiration_date: trialEndDate.toISOString().split('T')[0],
+      type: "Prospect",
+      saas: ""
+    });
+    setShowContactModal(true);
+  };
+
   // --- WIDGET EXPIRATIONS / RENOUVELLEMENTS CLIENTS ---
   const expiringClients = (contacts || []).filter((client) => {
     if (client.type !== 'Client') return false;
@@ -533,12 +550,18 @@ export default function AdminDashboard() {
   const sendRenewalReminder = (client: any) => {
     if (!client.expiration_date || !client.phone) return;
     const expDate = new Date(client.expiration_date);
-    const isExpired = expDate < new Date();
-    const formattedDate = expDate.toLocaleDateString('fr-FR');
-    const message = isExpired 
-      ? `Bonjour ${client.full_name}, votre abonnement OnyxOps a expiré le ${formattedDate}. Votre accès sera automatiquement suspendu dans quelques heures. Souhaitez-vous le renouveler maintenant pour éviter la coupure ?`
-      : `Bonjour ${client.full_name}, votre abonnement OnyxOps arrive à expiration le ${formattedDate}. Souhaitez-vous procéder au renouvellement ?`;
-
+    const today = new Date();
+    const diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    let message = "";
+    if (diffDays > 0) {
+      message = `Bonjour ${client.full_name}, nous espérons que vous appréciez vos outils OnyxOps ! 🚀\n\nVotre période d'essai (ou abonnement) prend fin dans *${diffDays} jours* (le ${expDate.toLocaleDateString('fr-FR')}). Souhaitez-vous valider votre compte pour éviter toute interruption ?`;
+    } else if (diffDays === 0) {
+      message = `🚨 Bonjour ${client.full_name}, c'est le grand jour ! Votre accès OnyxOps expire *aujourd'hui* à minuit. Contactez-nous pour renouveler et conserver votre accès au Hub.`;
+    } else {
+      message = `Bonjour ${client.full_name}, votre accès OnyxOps est suspendu depuis ${Math.abs(diffDays)} jours. 🔒\nVos données sont conservées en sécurité. Envoyez-nous un message pour réactiver vos applications instantanément !`;
+    }
+    
     const rawPhone = String(client.phone).replace(/\s+/g, '').replace(/[^0-9]/g, '');
     const phoneWithPrefix = rawPhone.startsWith('221') ? rawPhone : `221${rawPhone}`;
     window.open(`https://wa.me/${phoneWithPrefix}?text=${encodeURIComponent(message)}`, '_blank');
@@ -1001,7 +1024,7 @@ export default function AdminDashboard() {
                       <option value="Prospect">Prospects Leads</option>
                    </select>
                    <button 
-                     onClick={() => { setEditingContact({ full_name: '', phone: '', type: 'Prospect', saas: '' }); setShowContactModal(true); }} 
+                     onClick={openNewClientModal} 
                      className="flex items-center justify-center gap-3 bg-[#39FF14] text-black px-8 lg:px-12 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-2xl hover:-translate-y-1 active:scale-95"
                    >
                       <Plus size={18} /> Ajouter Nouveau
@@ -1589,7 +1612,8 @@ export default function AdminDashboard() {
                     <select value={editingContact?.saas || ""} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-[11px] sm:text-xs uppercase outline-none cursor-pointer appearance-none transition-all focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10">
                       <option value="" disabled>Choisir un SaaS</option>
                       <option value="À définir">À définir</option>
-                      {ECOSYSTEM_SAAS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                      <option value="Onyx Jaay">Onyx Jaay</option>
+                      {ECOSYSTEM_SAAS.filter(s => s.name !== "Onyx Jaay").map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                     </select>
                  </div>
               </div>
