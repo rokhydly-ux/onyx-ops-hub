@@ -438,7 +438,22 @@ export default function AdminDashboard() {
       }
     }
     if (!supabase) return;
+
     const payload: any = { ...editingContact, phone: phoneClean, updated_at: new Date().toISOString() };
+
+    // **NOUVEAU: Calcul de la date d'expiration**
+    const newExpiryDate = new Date();
+    if (payload.status === 'Essai') {
+      newExpiryDate.setDate(newExpiryDate.getDate() + 7);
+      payload.expiration_date = newExpiryDate.toISOString();
+    } else if (payload.status === 'Client') {
+      newExpiryDate.setDate(newExpiryDate.getDate() + 30);
+      payload.expiration_date = newExpiryDate.toISOString();
+    }
+    // Assurer que active_modules (active_saas) est dans le payload
+    payload.active_saas = editingContact.active_saas || [];
+
+
     const hasSaas =
       (Array.isArray(payload.active_saas) && payload.active_saas.length > 0) ||
       !!payload.saas;
@@ -1385,6 +1400,7 @@ export default function AdminDashboard() {
                       <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Identité & WhatsApp</th>
                       <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Segment Terminal</th>
                       <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Services Actifs</th>
+                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Fin d'Abo</th>
                       <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
                     </tr>
                   </thead>
@@ -1411,6 +1427,9 @@ export default function AdminDashboard() {
                               <div className={`w-2.5 lg:w-3 h-2.5 lg:h-3 rounded-full shrink-0 ${c.saas ? 'bg-[#39FF14] shadow-[0_0_10px_#39FF14]' : 'bg-zinc-200'}`}></div>
                               <p className="font-black text-xs lg:text-sm text-black uppercase tracking-tighter">{c.saas || 'À définir'}</p>
                            </div>
+                        </td>
+                        <td className="p-5 lg:p-6 font-bold text-xs">
+                          {c.expiration_date ? new Date(c.expiration_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'}
                         </td>
                         <td className="p-5 lg:p-6 text-right space-x-2 lg:space-x-4">
                           <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-3 lg:p-4 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-xl lg:rounded-2xl transition-all shadow-sm"><Edit3 size={18} className="lg:w-5 lg:h-5"/></button>

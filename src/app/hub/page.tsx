@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { 
   Smartphone, Truck, Utensils, Box, Lock, LogOut, 
   User, GraduationCap, ArrowRight, ShieldCheck 
@@ -10,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import AccountModal from "@/components/AccountModal"; // Import de la modale
 
 const APPS = [
-  { id: "vente", name: "Onyx Jaay", icon: Smartphone, color: "bg-blue-600", route: "/vente", desc: "Catalogue & Devis" },
+  { id: "vente", name: "Onyx Jaay", icon: Smartphone, color: "bg-blue-600", route: "/workspace/jaay", desc: "Catalogue & Devis" },
   { id: "stock", name: "Onyx Stock", icon: Box, color: "bg-emerald-600", route: "/stock", desc: "Gestion d'Inventaire" },
   { id: "tiak", name: "Onyx Tiak", icon: Truck, color: "bg-orange-600", route: "/tiak", desc: "Logistique & Livraisons" },
   { id: "menu", name: "Onyx Menu", icon: Utensils, color: "bg-red-600", route: "/menu", desc: "Menu QR & Commandes" },
@@ -54,9 +55,11 @@ export default function OnyxHubPortal() {
         
         const { data, error } = await supabase
           .from('clients')
-          .select('*')
+          .select('*, active_modules:active_saas, expiry_date') // Assurer la récupération
           .eq('id', parsedUser.id)
           .single();
+        
+        console.log("PROFIL CHARGÉ:", data); // DEBUG
 
         if (error) throw error;
         
@@ -148,6 +151,9 @@ export default function OnyxHubPortal() {
                  Bonjour, {clientData?.full_name?.split(' ')[0] || 'Gérant'} !
                </h2>
                <p className="text-zinc-500 font-medium">Sélectionnez une application pour commencer à travailler.</p>
+               <p className="text-sm text-gray-600 mt-2">
+                  Fin d'accès : {formatDate(clientData?.expiry_date)}
+                </p>
                {clientData?.expiry_date && (
                 <div className="mt-4 inline-flex items-center gap-2 bg-white border border-zinc-200 shadow-sm text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-full">
                   <ShieldCheck size={16} className={clientData.type === 'Client' ? 'text-green-500' : 'text-yellow-500'} />
@@ -162,14 +168,18 @@ export default function OnyxHubPortal() {
     
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 sm:gap-8">
               {APPS.map((app) => {
-                const isUnlocked = clientData?.active_saas?.includes(app.id);
+                // Condition d'activation ultra-permissive pour Onyx Jaay
+                const isOnyxJaay = app.id === 'vente';
+                const activeModulesString = JSON.stringify(clientData?.active_modules || '');
+                const isUnlocked = isOnyxJaay
+                  ? activeModulesString.includes('jaay') || activeModulesString.includes('onyxjaay')
+                  : clientData?.active_modules?.includes(app.id);
+
                 const AppIcon = app.icon;
-    
-                return (
+                
+                const cardContent = (
                   <div 
-                    key={app.id} 
-                    onClick={() => openApp(app.id, app.route)}
-                    className={`flex flex-col items-center gap-4 group transition-all duration-300 ${isUnlocked ? 'cursor-pointer hover:-translate-y-2' : 'opacity-60 grayscale'}`}
+                    className={`flex flex-col items-center gap-4 group transition-all duration-300 ${isUnlocked ? 'cursor-pointer hover:-translate-y-2' : 'opacity-50 grayscale'}`}
                   >
                     <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-3xl flex items-center justify-center relative shadow-xl transition-all duration-300 ${isUnlocked ? `${app.color} text-white group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]` : 'bg-zinc-200 text-zinc-400 border-2 border-zinc-300'}`}>
                        <AppIcon size={40} className={`transition-transform duration-300 ${isUnlocked ? 'group-hover:scale-110' : ''}`} />
@@ -185,6 +195,20 @@ export default function OnyxHubPortal() {
                        <h3 className="font-black text-sm uppercase text-zinc-800 tracking-tight">{app.name}</h3>
                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{app.desc}</p>
                     </div>
+                  </div>
+                );
+
+                if (isUnlocked) {
+                  return (
+                    <Link href={app.route} key={app.id}>
+                      {cardContent}
+                    </Link>
+                  )
+                }
+    
+                return (
+                  <div key={app.id} onClick={() => alert("Vous n'avez pas encore souscrit à cette application. Contactez le support sur WhatsApp pour l'activer !")}>
+                    {cardContent}
                   </div>
                 );
               })}
