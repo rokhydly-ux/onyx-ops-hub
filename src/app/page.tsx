@@ -495,16 +495,18 @@ export default function OnyxOpsElite() {
     }
     
     try {
-       // 1. On prépare l'objet pour la table 'ambassadors'
-       // On s'assure que 'referral_code' est généré si ta DB ne le fait pas par défaut
+       // 1. On prépare l'objet pour la table 'ambassadors' avec tous les champs
        const ambassadorPayload = {
           full_name: partnerForm.full_name, 
           contact: partnerForm.contact, 
           city: partnerForm.city || '',
           address: partnerForm.address || '',
           country: partnerForm.country,
-          activity: partnerForm.status, // Vérifie si ta colonne s'appelle 'activity' ou 'status'
-          status: 'En attente',
+          activity: partnerForm.status, // Statut pro (Etudiant, etc.)
+          sales_exp: partnerForm.sales_exp,
+          objective: partnerForm.objective,
+          strategy: partnerForm.strategy,
+          status: 'En attente', // Statut de la candidature
           sales: 0
        };
        
@@ -515,17 +517,18 @@ export default function OnyxOpsElite() {
 
        if (ambError) {
          console.error("ERREUR TABLE AMBASSADORS :", ambError.message);
-         throw new Error(ambError.message);
+         throw new Error(`Erreur Supabase: ${ambError.message}`);
        }
 
-       // 2. On crée AUSSI le lead pour qu'il apparaisse dans ton Kanban
+       // 2. On crée AUSSI le lead pour qu'il apparaisse dans le CRM
        await saveLead({ 
           source: 'Formulaire Ambassadeur', 
-          intent: 'Candidature Partenaire', 
+          intent: 'Candidature Ambassadeur', // Intent corrigé
           contact: partnerForm.contact, 
           full_name: partnerForm.full_name,
-          message: `Stratégie: ${partnerForm.strategy} | Objectif: ${partnerForm.objective}`,
-          status: 'Nouveau' // Pour qu'il apparaisse dans la première colonne
+          // Message enrichi avec toutes les données pour le CRM
+          message: `Statut pro: ${partnerForm.status} | Expérience: ${partnerForm.sales_exp} | Objectif: ${partnerForm.objective} | Stratégie: ${partnerForm.strategy} | Ville: ${partnerForm.city} | Adresse: ${partnerForm.address}`,
+          status: 'Nouveau' // Statut du lead dans le CRM
        });
        
        setPartnerStep('success');
