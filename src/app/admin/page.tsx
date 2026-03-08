@@ -461,11 +461,22 @@ export default function AdminDashboard() {
     }
   };
 
-  const approvePartner = async (id: string) => {
-    if (!supabase) return; 
-    const { error } = await supabase.from('partners').update({ status: 'Actif' }).eq('id', id);
-    if (error) alert("Erreur terminal : " + error.message);
-    else fetchSupabaseData();
+  const approveAmbassador = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('ambassadors')
+        .update({ status: 'Actif' })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Mise à jour de l'interface en temps réel
+      setPartners(prev => prev.map(amb => amb.id === id ? { ...amb, status: 'Actif' } : amb));
+      alert("Ambassadeur validé avec succès !");
+    } catch (error: any) {
+      console.error("Erreur validation:", error);
+      alert("Erreur lors de la validation.");
+    }
   };
 
   const handleConvertPartnerToClient = async () => {
@@ -1617,13 +1628,13 @@ export default function AdminDashboard() {
                    <div className="bg-red-50 border-2 border-red-100 p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl animate-pulse">
                       <h3 className="font-black uppercase text-xs lg:text-sm text-red-600 mb-6 flex items-center gap-3 tracking-[0.2em]"><AlertCircle size={18} className="lg:w-5 lg:h-5"/> Dossiers en attente de validation</h3>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                         {partners.filter(p => p.status === 'En attente').map(p => (
-                            <div key={p.id} className="bg-white p-5 lg:p-6 rounded-[2rem] lg:rounded-[2.25rem] flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm border border-red-100 group">
+                         {partners.filter(p => p.status === 'En attente').map(ambassador => (
+                            <div key={ambassador.id} className="bg-white p-5 lg:p-6 rounded-[2rem] lg:rounded-[2.25rem] flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm border border-red-100 group">
                                <div>
-                                  <p className="font-black text-xs lg:text-sm uppercase text-black">{p.full_name}</p>
-                                  <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{p.contact} • {p.activity}</p>
+                                  <p className="font-black text-xs lg:text-sm uppercase text-black">{ambassador.full_name}</p>
+                                  <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{ambassador.contact} • {ambassador.activity}</p>
                                </div>
-                               <button onClick={() => approvePartner(p.id)} className="bg-black text-[#39FF14] px-6 lg:px-8 py-3 lg:py-4 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95 w-full sm:w-auto">Valider</button>
+                               <button onClick={() => approveAmbassador(ambassador.id)} className="bg-black text-[#39FF14] px-6 lg:px-8 py-3 lg:py-4 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95 w-full sm:w-auto">Valider</button>
                             </div>
                          ))}
                       </div>
