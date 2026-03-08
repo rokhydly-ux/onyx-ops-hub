@@ -1974,7 +1974,7 @@ export default function AdminDashboard() {
               }}
               className="w-full mt-8 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-xs hover:scale-[1.03] transition-all active:scale-95 shadow-[0_20px_40px_rgba(57,255,20,0.15)] flex justify-center items-center gap-2"
             >
-              <CheckCircle size={18}/> Confirmer & Envoyer Accès
+              <CheckCircle size={18}/> Confirmer & Envoyer Accès Client
             </button>
           </div>
         </div>
