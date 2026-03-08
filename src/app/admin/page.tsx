@@ -113,6 +113,9 @@ export default function AdminDashboard() {
   const [selectedContactsForDiffusion, setSelectedContactsForDiffusion] = useState<string[]>([]);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
+  // NOUVEAU : États pour l'ajout manuel d'un ambassadeur
+  const [showAddPartnerModal, setShowAddPartnerModal] = useState(false);
+  const [newPartnerForm, setNewPartnerForm] = useState({ full_name: '', contact: '', activity: '' });
   const [tempAdminProfile, setTempAdminProfile] = useState(adminProfile);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [histogramActiveIdx, setHistogramActiveIdx] = useState<number | null>(null);
@@ -185,17 +188,17 @@ export default function AdminDashboard() {
     initAdmin();
   }, []);
 
-  // --- PERSISTANCE LOCALE DU JOURNAL IA ---
+  // --- PERSISTANCE LOCALE DES ARTICLES MARKETING ---
   useEffect(() => {
-    const savedIA = localStorage.getItem('onyx_actions_ia');
-    if (savedIA) setActionsIA(JSON.parse(savedIA));
-  }, []);
+   const savedArticles = localStorage.getItem('onyx_marketing_articles');
+   if (savedArticles) setMarketingArticles(JSON.parse(savedArticles));
+ }, []);
 
-  useEffect(() => {
-    if (actionsIA.length > 0) {
-      localStorage.setItem('onyx_actions_ia', JSON.stringify(actionsIA));
-    }
-  }, [actionsIA]);
+ useEffect(() => {
+   if (marketingArticles.length > 0) {
+     localStorage.setItem('onyx_marketing_articles', JSON.stringify(marketingArticles));
+   }
+ }, [marketingArticles]);
 
   const deleteActionIA = (id: string) => {
     setActionsIA(prev => {
@@ -437,7 +440,20 @@ export default function AdminDashboard() {
       if(error) alert(error.message);
       else { alert("Ambassadeur ajouté au CRM Clients !"); fetchSupabaseData(); }
   };
-
+  // NOUVEAU : Fonction pour ajouter un ambassadeur manuellement (Étape B)
+  const handleAddPartner = async (e: React.FormEvent) => {
+   e.preventDefault();
+   if(!supabase) return;
+   const payload = { ...newPartnerForm, status: 'Actif', source: 'Ajout Manuel', sales: 0 };
+   const { error } = await supabase.from('partners').insert([payload]);
+   if (error) alert("Erreur : " + error.message);
+   else {
+       setShowAddPartnerModal(false);
+       setNewPartnerForm({ full_name: '', contact: '', activity: '' });
+       fetchSupabaseData();
+       alert("Ambassadeur activé avec succès !");
+   }
+};
   const handleCreateSaasAccount = async () => {
      if (!supabase || !showSaasLogin) return; 
      if (saasCreateType === 'manual' && (!saasCreateForm.name || !saasCreateForm.phone || !saasCreateForm.password)) return alert("Veuillez remplir tous les champs.");
@@ -490,10 +506,23 @@ export default function AdminDashboard() {
   };
 
   const runIAArticleSuggestion = () => {
-      const newArt = { id: Date.now().toString(), title: 'BOOSTER SES VENTES WHATSAPP AVEC L\'IA', desc: 'Scripts de vente générés par IA pour augmenter vos taux de conversion en Afrique francophone.', category: 'Stratégie', cible: 'Tous' };
-      setMarketingArticles([newArt, ...marketingArticles]);
-      alert("Intelligence Artificielle : Nouvel article suggéré et ajouté au pipeline.");
-  };
+   const suggestions = [
+     { title: 'BOOSTER SES VENTES WHATSAPP AVEC L\'IA', desc: 'Scripts de vente générés par IA pour augmenter vos taux de conversion.', category: 'Stratégie', cible: 'Tous' },
+     { title: 'CRÉER L\'URGENCE SUR SES OFFRES (FOMO)', desc: 'Comment formuler des messages qui poussent à l\'achat immédiat.', category: 'Copywriting', cible: 'E-commerce' },
+     { title: 'RELANCER UN PROSPECT FROID', desc: 'Le modèle exact en 3 messages pour réactiver un contact inactif.', category: 'Relance', cible: 'Services' },
+     { title: 'AUTOMATISER SON SERVICE CLIENT', desc: 'Les 5 réponses automatiques pour gagner 2h par jour sur WhatsApp.', category: 'Automatisation', cible: 'SaaS' }
+   ];
+   
+   const randomIdea = suggestions[Math.floor(Math.random() * suggestions.length)];
+   const newArt = { id: Date.now().toString(), ...randomIdea };
+   
+   setMarketingArticles(prev => {
+     const updated = [newArt, ...prev];
+     localStorage.setItem('onyx_marketing_articles', JSON.stringify(updated));
+     return updated;
+   });
+   alert("Intelligence Artificielle : Nouvel article suggéré et ajouté au pipeline.");
+};
 
   const scheduleMarketingDiffusion = () => {
       if(selectedContactsForDiffusion.length === 0) return alert("Sélectionnez au moins un contact pour la diffusion.");
@@ -1283,15 +1312,20 @@ export default function AdminDashboard() {
           {activeView === 'partners' && (
              <div className="space-y-12 animate-in fade-in max-w-[1400px] mx-auto">
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 lg:gap-6 bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden">
-                   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
-                      <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Handshake size={32} className="lg:w-[38px] lg:h-[38px]"/></div>
-                      <div>
-                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
-                         <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Génération de Revenus & Croissance Réseau</p>
-                      </div>
-                   </div>
-                   <input type="search" placeholder="Rechercher ambassadeur…" value={partnerSearch} onChange={e => setPartnerSearch(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium w-56 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
-                </div>
+   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
+      <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Handshake size={32} className="lg:w-[38px] lg:h-[38px]"/></div>
+      <div>
+         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
+         <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Génération de Revenus & Croissance Réseau</p>
+      </div>
+   </div>
+   <div className="flex items-center gap-4 relative z-10">
+      <input type="search" placeholder="Rechercher..." value={partnerSearch} onChange={e => setPartnerSearch(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium w-48 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
+      <button onClick={() => setShowAddPartnerModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-5 py-3 rounded-2xl font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0">
+         <Plus size={16}/> Ajouter
+      </button>
+   </div>
+</div>
 
                 {/* KPIs cliquables */}
                 {(() => {
@@ -1440,9 +1474,13 @@ export default function AdminDashboard() {
                             <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="flex-1 lg:flex-none bg-[#39FF14] text-black px-6 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-xl flex items-center justify-center gap-2 lg:gap-3 active:scale-95">
                                <Send size={16} className="lg:w-[18px] lg:h-[18px]"/> Diffuser Segment
                             </button>
-                            <button onClick={() => handleDeleteItem('articles', article.id)} className="flex-1 lg:flex-none bg-zinc-50 text-red-500 py-3 lg:py-4 rounded-[1.75rem] lg:rounded-[2rem] text-[9px] lg:text-[10px] font-black uppercase hover:bg-red-50 transition-all flex items-center justify-center gap-2 active:scale-95 border border-transparent hover:border-red-100">
-                               <Trash2 size={14} className="lg:w-4 lg:h-4"/> Supprimer l&apos;article
-                            </button>
+                            <button onClick={() => {
+    const newArts = marketingArticles.filter(a => a.id !== article.id);
+    setMarketingArticles(newArts);
+    localStorage.setItem('onyx_marketing_articles', JSON.stringify(newArts));
+}} className="flex-1 lg:flex-none bg-zinc-50 text-red-500 py-3 lg:py-4 rounded-[1.75rem] lg:rounded-[2rem] text-[9px] lg:text-[10px] font-black uppercase hover:bg-red-50 transition-all flex items-center justify-center gap-2 active:scale-95 border border-transparent hover:border-red-100">
+    <Trash2 size={14} className="lg:w-4 lg:h-4"/> Supprimer l'article
+</button>
                          </div>
                       </div>
                    ))}
@@ -1517,7 +1555,7 @@ export default function AdminDashboard() {
                <div className="text-center mb-10 sm:mb-14 mt-4 sm:mt-0">
                   <div className={`w-20 sm:w-24 h-20 sm:h-24 rounded-[2rem] sm:rounded-[2.75rem] flex items-center justify-center text-white ${showSaasLogin?.color} shadow-2xl mx-auto mb-6 sm:mb-8 animate-bounce-slow`}><Box size={40} className="sm:w-12 sm:h-12"/></div>
                   <h2 className={`font-sans text-3xl sm:text-4xl font-black uppercase text-black tracking-tighter leading-none`}>Activer {showSaasLogin?.name}</h2>
-                  <p className="text-[10px] sm:text-xs font-bold text-zinc-400 mt-2 sm:mt-3 uppercase tracking-[0.2em] sm:tracking-[0.3em]">Générateur d&apos;Accès Terminal SaaS</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-zinc-400 mt-2 sm:mt-3 uppercase tracking-[0.2em] sm:tracking-[0.3em]">Générateur d'Accès Terminal SaaS</p>
                </div>
                
                <div className="space-y-8 sm:space-y-10">
@@ -1616,7 +1654,7 @@ export default function AdminDashboard() {
               {/* DATE D'EXPIRATION */}
               <div className="space-y-2 pt-4">
                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">
-                  Date de fin d&apos;abonnement / d&apos;essai
+                  Date de fin d'abonnement / d'essai
                 </label>
                 <input
                   type="date"
@@ -1835,7 +1873,15 @@ export default function AdminDashboard() {
                       <p className="font-black text-lg uppercase text-black tracking-tighter">{c.full_name}</p>
                       <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Score de Conversion : <span className="text-[#39FF14]">85%</span></p>
                     </div>
-                    <button onClick={() => planifyCrmAction(`Action CRM : Contacter ${c.full_name}`, "Recommandation IA : Relance ciblée pour augmentation du score de conversion.", c.phone || '', `Bonjour ${c.full_name}, suite à notre dernière interaction, je vous contacte pour...`)} className="bg-black text-[#39FF14] px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-xl hover:scale-105 transition-all">Planifier</button>
+                    <button onClick={() => {
+                        const msg = `Bonjour ${c.full_name}, c'est l'équipe OnyxOps. 🚀\n\nJ'ai remarqué que vous utilisez nos outils depuis un moment et j'aimerais vous proposer une optimisation rapide pour booster vos résultats.\n\nComment préférez-vous avancer ? Répondez juste avec un chiffre :\n\n1️⃣ Je veux un audit gratuit de mon compte.\n2️⃣ Je souhaite découvrir le pack supérieur.\n3️⃣ J'ai une question technique.\n4️⃣ Pas intéressé pour le moment.`;
+                        planifyCrmAction(
+                            `Action CRM : Contacter ${c.full_name}`, 
+                            "Relance ciblée avec CTA interactif (choix 1 à 4) pour forcer l'engagement.", 
+                            c.phone || '', 
+                            msg
+                        );
+                    }} className="bg-black text-[#39FF14] px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-xl hover:scale-105 transition-all">Planifier</button>
                   </div>
                 ))
               ) : (
@@ -1957,7 +2003,7 @@ export default function AdminDashboard() {
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-8">Pour : {showProductModal.lead?.full_name}</p>
 
             <div className="space-y-4">
-              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4">Sélectionner l&apos;outil principal</label>
+              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4">Sélectionner l'outil principal</label>
               <select id="saas-select" className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10 cursor-pointer appearance-none">
                 <option value="">-- Aucun / À définir --</option>
                 {ECOSYSTEM_SAAS.map(s => (
@@ -1979,6 +2025,34 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* 👇 NOUVELLE MODALE AJOUT AMBASSADEUR MANUEL (ÉTAPE D) 👇 */}
+      {showAddPartnerModal && (
+         <div id="modal-overlay" onClick={handleOutsideClick(setShowAddPartnerModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+           <div className="bg-white p-6 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-black my-auto">
+             <button onClick={() => setShowAddPartnerModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
+             <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter mb-8 text-black`}>Nouvel Ambassadeur</h2>
+             <form onSubmit={handleAddPartner} className="space-y-6">
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Nom Complet</label>
+                  <input type="text" required value={newPartnerForm.full_name} onChange={e => setNewPartnerForm({...newPartnerForm, full_name: e.target.value})} className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-sm uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10" placeholder="Ex: Rokhaya Ly" />
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Numéro WhatsApp</label>
+                  <input type="tel" required value={newPartnerForm.contact} onChange={e => setNewPartnerForm({...newPartnerForm, contact: e.target.value})} className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-sm outline-none focus:ring-4 focus:ring-[#39FF14]/10" placeholder="+221..." />
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Secteur / Activité</label>
+                  <input type="text" value={newPartnerForm.activity} onChange={e => setNewPartnerForm({...newPartnerForm, activity: e.target.value})} className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-sm uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10" placeholder="Ex: Influenceur, Commercial..." />
+               </div>
+               <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-xs mt-4 shadow-2xl hover:scale-[1.02] transition-all flex justify-center items-center gap-2">
+                 <CheckCircle size={18}/> Activer l'ambassadeur
+               </button>
+             </form>
+           </div>
+         </div>
+      )}
+
     </div>
   );
 }
