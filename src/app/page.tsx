@@ -263,22 +263,22 @@ export default function OnyxOpsElite() {
     return () => { document.body.style.overflow = ""; };
   }, [showSaasChoice, isMobileMenuOpen, selectedArticle, showAuthModal, showOnboarding, showExitIntent]);
 
-  const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string; full_name?: string; address?: string; country?: string; [key: string]: any }) => {
+  const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string; full_name?: string; name?: string; address?: string; country?: string; [key: string]: any }) => {
     try {
       const extra = { city: data.city, address: data.address, country: data.country, status: data.status, sales_exp: data.sales_exp, objective: data.objective, strategy: data.strategy };
+      
+      // On consolide le nom, peu importe comment il est appelé depuis le formulaire
+      const finalName = data.full_name || data.name || 'Visiteur Web';
+
       const payload: Record<string, any> = {
         source: data.source || 'Site Web', 
         intent: data.intent || 'Contact', 
         phone: data.contact || '', 
         message: typeof data.message === 'string' ? data.message : JSON.stringify({ ...extra, ...data }) || '', 
-        full_name: data.full_name || 'Visiteur Web'
+        name: finalName,       // <-- On alimente la colonne "name" attendue par le CRM
+        full_name: finalName  // <-- On garde "full_name" pour assurer la rétrocompatibilité
       };
       if (data.address) payload.address = data.address;
-      if (data.country) payload.country = data.country;
-      const { error } = await supabase.from('leads').insert(payload);
-      if (error) console.error("ERREUR SUPABASE (Leads) :", error.message);
-    } catch (e) { console.error("ERREUR CATCH (Leads) :", e); }
-  };
 
   const handleWaClick = async (intent: string, msg: string) => {
     await saveLead({ source: 'Bouton Site', intent, message: msg });

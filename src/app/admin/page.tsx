@@ -115,7 +115,7 @@ export default function AdminDashboard() {
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
   // NOUVEAU : États pour l'ajout manuel d'un ambassadeur
   const [showAddPartnerModal, setShowAddPartnerModal] = useState(false);
-  const [newPartnerForm, setNewPartnerForm] = useState({ full_name: '', contact: '', activity: '' });
+  const [newPartnerForm, setNewPartnerForm] = useState({ full_name: '', phone: '', city: 'Dakar', country: 'Sénégal', address: '', profession: '', experience: '', revenue_goal: '', strategy: '' });
   const [tempAdminProfile, setTempAdminProfile] = useState(adminProfile);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [histogramActiveIdx, setHistogramActiveIdx] = useState<number | null>(null);
@@ -444,14 +444,33 @@ export default function AdminDashboard() {
   const handleAddPartner = async (e: React.FormEvent) => {
    e.preventDefault();
    if(!supabase) return;
-   const payload = { ...newPartnerForm, status: 'Actif', source: 'Ajout Manuel', sales: 0 };
-   const { error } = await supabase.from('partners').insert([payload]);
-   if (error) alert("Erreur : " + error.message);
+   
+   // On prépare la donnée pour correspondre exactement à ta table Supabase
+   const payload = { 
+       full_name: newPartnerForm.full_name, 
+       phone: newPartnerForm.phone, 
+       city: newPartnerForm.city,
+       country: newPartnerForm.country,
+       address: newPartnerForm.address,
+       profession: newPartnerForm.profession,
+       experience: newPartnerForm.experience,
+       revenue_goal: newPartnerForm.revenue_goal,
+       strategy: newPartnerForm.strategy,
+       status: 'Actif', 
+       sales: 0,
+       revenue: '0 F'
+   };
+
+   // ATTENTION: On pointe bien vers la table "ambassadors" et plus "partners"
+   const { error } = await supabase.from('ambassadors').insert([payload]);
+   
+   if (error) alert("Erreur lors de l'enregistrement : " + error.message);
    else {
        setShowAddPartnerModal(false);
-       setNewPartnerForm({ full_name: '', contact: '', activity: '' });
-       fetchSupabaseData();
-       alert("Ambassadeur activé avec succès !");
+       // On reset le formulaire
+       setNewPartnerForm({ full_name: '', phone: '', city: 'Dakar', country: 'Sénégal', address: '', profession: '', experience: '', revenue_goal: '', strategy: '' });
+       fetchSupabaseData(); // Recharge la liste
+       alert("Ambassadeur activé et enregistré dans la base !");
    }
 };
   const handleCreateSaasAccount = async () => {
@@ -649,7 +668,7 @@ export default function AdminDashboard() {
           <div>
             <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] mb-4 pl-4">Stratégie & Ventes</p>
             <nav className="space-y-1">
-               <button onClick={() => setActiveView('marketing')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
+               <button onClick={() => setActiveView('crm')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
                  <Megaphone size={20} /> Marketing & Blog
                </button>
                <button onClick={() => setShowRapportIA(true)} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all">
@@ -2026,27 +2045,73 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 👇 NOUVELLE MODALE AJOUT AMBASSADEUR MANUEL (ÉTAPE D) 👇 */}
+      {/* --- MODALE AJOUT AMBASSADEUR MANUEL (COMPLÈTE) --- */}
       {showAddPartnerModal && (
          <div id="modal-overlay" onClick={handleOutsideClick(setShowAddPartnerModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-           <div className="bg-white p-6 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-black my-auto">
+           <div className="bg-white p-6 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[8px] border-black my-auto">
              <button onClick={() => setShowAddPartnerModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
-             <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter mb-8 text-black`}>Nouvel Ambassadeur</h2>
-             <form onSubmit={handleAddPartner} className="space-y-6">
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Nom Complet</label>
-                  <input type="text" required value={newPartnerForm.full_name} onChange={e => setNewPartnerForm({...newPartnerForm, full_name: e.target.value})} className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-sm uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10" placeholder="Ex: Rokhaya Ly" />
+             <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter mb-8 text-black`}>Candidature Ambassadeur</h2>
+             
+             <form onSubmit={handleAddPartner} className="space-y-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Nom Complet</label>
+                    <input type="text" required value={newPartnerForm.full_name} onChange={e => setNewPartnerForm({...newPartnerForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black" placeholder="Ex: Daba" />
+                 </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Téléphone</label>
+                    <input type="tel" required value={newPartnerForm.phone} onChange={e => setNewPartnerForm({...newPartnerForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black" placeholder="768103647" />
+                 </div>
                </div>
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Numéro WhatsApp</label>
-                  <input type="tel" required value={newPartnerForm.contact} onChange={e => setNewPartnerForm({...newPartnerForm, contact: e.target.value})} className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-sm outline-none focus:ring-4 focus:ring-[#39FF14]/10" placeholder="+221..." />
+
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Ville</label>
+                    <input type="text" value={newPartnerForm.city} onChange={e => setNewPartnerForm({...newPartnerForm, city: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black" placeholder="DAKAR" />
+                 </div>
+                 <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Pays</label>
+                    <select value={newPartnerForm.country} onChange={e => setNewPartnerForm({...newPartnerForm, country: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black appearance-none">
+                       <option value="Sénégal">Sénégal</option>
+                       <option value="Mali">Mali</option>
+                       <option value="Côte d'Ivoire">Côte d'Ivoire</option>
+                    </select>
+                 </div>
                </div>
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Secteur / Activité</label>
-                  <input type="text" value={newPartnerForm.activity} onChange={e => setNewPartnerForm({...newPartnerForm, activity: e.target.value})} className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-sm uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10" placeholder="Ex: Influenceur, Commercial..." />
+
+               <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Adresse / Quartier</label>
+                  <input type="text" value={newPartnerForm.address} onChange={e => setNewPartnerForm({...newPartnerForm, address: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black" placeholder="PARCELLES UNITE 26" />
                </div>
-               <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-xs mt-4 shadow-2xl hover:scale-[1.02] transition-all flex justify-center items-center gap-2">
-                 <CheckCircle size={18}/> Activer l'ambassadeur
+
+               <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Statut Pro</label>
+                  <select value={newPartnerForm.profession} onChange={e => setNewPartnerForm({...newPartnerForm, profession: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black appearance-none">
+                     <option value="">Sélectionner...</option>
+                     <option value="Salarié (Recherche revenu complémentaire)">Salarié (Recherche revenu complémentaire)</option>
+                     <option value="Étudiant">Étudiant</option>
+                     <option value="Indépendant">Indépendant / Entrepreneur</option>
+                  </select>
+               </div>
+
+               <div className="p-4 bg-zinc-50 rounded-[1.5rem] space-y-4 border border-zinc-100 mt-4">
+                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Informations Avancées</p>
+                 <select value={newPartnerForm.experience} onChange={e => setNewPartnerForm({...newPartnerForm, experience: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black appearance-none">
+                    <option value="">Expérience en vente ?</option>
+                    <option value="Oui, beaucoup (Plusieurs années)">Oui, beaucoup (Plusieurs années)</option>
+                    <option value="Un peu">Un peu</option>
+                    <option value="Débutant">Débutant</option>
+                 </select>
+                 <select value={newPartnerForm.revenue_goal} onChange={e => setNewPartnerForm({...newPartnerForm, revenue_goal: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black appearance-none">
+                    <option value="">Objectif de revenu mensuel ?</option>
+                    <option value="+ 500.000 F (Développer une agence)">+ 500.000 F (Développer une agence)</option>
+                    <option value="Entre 100.000 F et 300.000 F">Entre 100.000 F et 300.000 F</option>
+                 </select>
+                 <textarea value={newPartnerForm.strategy} onChange={e => setNewPartnerForm({...newPartnerForm, strategy: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black resize-none h-24" placeholder="Quelle sera votre stratégie pour trouver des clients ? (ex: Porte-à-porte, Réseaux sociaux...)"></textarea>
+               </div>
+
+               <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-xs mt-6 shadow-2xl hover:scale-[1.02] transition-all flex justify-center items-center gap-2">
+                 <CheckCircle size={18}/> Enregistrer l'Ambassadeur
                </button>
              </form>
            </div>
