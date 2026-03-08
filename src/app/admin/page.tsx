@@ -18,6 +18,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+
 // --- 2. HACK ANTI-CRASH POLICES ---
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
@@ -70,6 +71,11 @@ export default function AdminDashboard() {
   const [adminEmail, setAdminEmail] = useState("rokhydly@gmail.com");
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
   const [adminAuthLoading, setAdminAuthLoading] = useState(false);
+
+  // 👇 AJOUTE CES DEUX LIGNES JUSTE ICI 👇
+  const [editingArticle, setEditingArticle] = useState<any>(null);
+  const [scannedLeadIds, setScannedLeadIds] = useState<string[]>([]);
+  // 👆 ================================= 👆
  
    // --- 5. SUPPRESSION DES DONNÉES FICTIVES (On part de zéro) ---
    const [contacts, setContacts] = useState<Contact[]>([]);
@@ -115,7 +121,7 @@ export default function AdminDashboard() {
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
   // NOUVEAU : États pour l'ajout manuel d'un ambassadeur
   const [showAddPartnerModal, setShowAddPartnerModal] = useState(false);
-  const [newPartnerForm, setNewPartnerForm] = useState({ full_name: '', phone: '', city: 'Dakar', country: 'Sénégal', address: '', profession: '', experience: '', revenue_goal: '', strategy: '' });
+  const [newPartnerForm, setNewPartnerForm] = useState<any>({ full_name: '', phone: '', contact: '', city: 'Dakar', country: 'Sénégal', address: '', profession: '', experience: '', revenue_goal: '', strategy: '', status: '', activity: '' });
   const [tempAdminProfile, setTempAdminProfile] = useState(adminProfile);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [histogramActiveIdx, setHistogramActiveIdx] = useState<number | null>(null);
@@ -140,28 +146,31 @@ export default function AdminDashboard() {
 
   // --- CHARGEMENT DES DONNÉES (Supabase uniquement) ---
   const fetchSupabaseData = async () => {
-    setIsLoading(true);
-    setIsRefreshing(true);
-    try {
-      const { data: contactsData } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
-      const { data: leadsData } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
-      const { data: partnersData } = await supabase.from('partners').select('*').order('created_at', { ascending: false });
-      if (contactsData) setContacts(contactsData);
-      if (leadsData) setLeads(leadsData);
-      if (partnersData) setPartners(partnersData);
-      setStats({
-        revenue: contactsData?.length ? contactsData.length * 9900 : 0,
-        activeClients: contactsData?.length || 0,
-        pendingLeads: leadsData?.length || 0,
-        newPartners: partnersData?.length || 0
-      });
-    } catch (error) {
-      console.error("Erreur de chargement:", error);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  };
+   setIsLoading(true);
+   setIsRefreshing(true);
+   try {
+     const { data: contactsData } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
+     const { data: leadsData } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+     // CORRECTION ICI : On lit la table "ambassadors" et plus "partners"
+     const { data: partnersData } = await supabase.from('ambassadors').select('*').order('created_at', { ascending: false });
+     
+     if (contactsData) setContacts(contactsData);
+     if (leadsData) setLeads(leadsData);
+     if (partnersData) setPartners(partnersData);
+     
+     setStats({
+       revenue: contactsData?.length ? contactsData.length * 9900 : 0,
+       activeClients: contactsData?.length || 0,
+       pendingLeads: leadsData?.length || 0,
+       newPartners: partnersData?.length || 0
+     });
+   } catch (error) {
+     console.error("Erreur de chargement:", error);
+   } finally {
+     setIsLoading(false);
+     setIsRefreshing(false);
+   }
+ };
 
   useEffect(() => {
     setMounted(true);
@@ -792,14 +801,14 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div onClick={() => setActiveView('marketing')} className="bg-[#39FF14] p-6 rounded-3xl shadow-xl cursor-pointer hover:scale-[1.03] transition-all group relative overflow-hidden border border-[#32E612]">
-                   <div className="absolute -bottom-10 -right-10 opacity-10 text-black group-hover:rotate-[-15deg] transition-all duration-700"><Megaphone size={180}/></div>
-                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/40 mb-4">Contacts CRM & Leads</p>
-                   <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>{contacts.length + leads.length}</p>
-                   <div className="mt-6 flex items-center gap-2">
-                      <div className="px-3 py-1 bg-black text-[#39FF14] rounded-full text-[10px] font-black uppercase shadow-lg">Live</div>
-                   </div>
-                </div>
+                <div onClick={() => setActiveView('crm')} className="bg-[#39FF14] p-6 rounded-3xl shadow-xl cursor-pointer hover:scale-[1.03] transition-all group relative overflow-hidden border border-[#32E612]">
+   <div className="absolute -bottom-10 -right-10 opacity-10 text-black group-hover:rotate-[-15deg] transition-all duration-700"><Megaphone size={180}/></div>
+   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/40 mb-4">Contacts CRM & Leads</p>
+   <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>{contacts.length + leads.length}</p>
+   <div className="mt-6 flex items-center gap-2">
+      <div className="px-3 py-1 bg-black text-[#39FF14] rounded-full text-[10px] font-black uppercase shadow-lg">Live</div>
+   </div>
+</div>
               </div>
 
               {/* GRAPHIQUES ET MAP */}
@@ -1479,7 +1488,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-6 lg:space-y-8">
-                   {marketingArticles.map(article => (
+                   {marketingArticles.map((article: any) => (
                       <div key={article.id} className="bg-white p-5 lg:p-12 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 lg:gap-6 hover:border-black transition-all group">
                          <div className="flex-1 w-full">
                             <div className="flex flex-wrap gap-3 lg:gap-4 mb-4 lg:mb-6">
@@ -1493,13 +1502,19 @@ export default function AdminDashboard() {
                             <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="flex-1 lg:flex-none bg-[#39FF14] text-black px-6 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-xl flex items-center justify-center gap-2 lg:gap-3 active:scale-95">
                                <Send size={16} className="lg:w-[18px] lg:h-[18px]"/> Diffuser Segment
                             </button>
-                            <button onClick={() => {
-    const newArts = marketingArticles.filter(a => a.id !== article.id);
-    setMarketingArticles(newArts);
-    localStorage.setItem('onyx_marketing_articles', JSON.stringify(newArts));
-}} className="flex-1 lg:flex-none bg-zinc-50 text-red-500 py-3 lg:py-4 rounded-[1.75rem] lg:rounded-[2rem] text-[9px] lg:text-[10px] font-black uppercase hover:bg-red-50 transition-all flex items-center justify-center gap-2 active:scale-95 border border-transparent hover:border-red-100">
-    <Trash2 size={14} className="lg:w-4 lg:h-4"/> Supprimer l'article
-</button>
+                            
+                            <div className="flex gap-2">
+                               <button onClick={() => setEditingArticle(article)} className="flex-1 bg-zinc-100 text-black py-3 lg:py-4 rounded-2xl text-[9px] lg:text-[10px] font-black uppercase hover:bg-zinc-200 transition-all flex items-center justify-center gap-2">
+                                  <Edit3 size={14}/> Modifier
+                               </button>
+                               <button onClick={() => {
+                                   const newArts = marketingArticles.filter((a: any) => a.id !== article.id);
+                                   setMarketingArticles(newArts);
+                                   localStorage.setItem('onyx_marketing_articles', JSON.stringify(newArts));
+                               }} className="flex-1 bg-red-50 text-red-500 py-3 lg:py-4 rounded-2xl text-[9px] lg:text-[10px] font-black uppercase hover:bg-red-100 transition-all flex items-center justify-center gap-2">
+                                  <Trash2 size={14}/> Supprimer
+                               </button>
+                            </div>
                          </div>
                       </div>
                    ))}
@@ -1885,8 +1900,8 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-              {contacts.length > 0 ? (
-                contacts.slice(0, 3).map((c, i) => (
+            {contacts.filter(c => !scannedLeadIds.includes(c.id)).length > 0 ? (
+                contacts.filter(c => !scannedLeadIds.includes(c.id)).slice(0, 3).map((c, i) => (
                   <div key={i} className="p-6 bg-zinc-50 rounded-[2.5rem] border border-zinc-100 flex justify-between items-center group hover:border-[#39FF14] transition-all">
                     <div>
                       <p className="font-black text-lg uppercase text-black tracking-tighter">{c.full_name}</p>
@@ -1896,10 +1911,12 @@ export default function AdminDashboard() {
                         const msg = `Bonjour ${c.full_name}, c'est l'équipe OnyxOps. 🚀\n\nJ'ai remarqué que vous utilisez nos outils depuis un moment et j'aimerais vous proposer une optimisation rapide pour booster vos résultats.\n\nComment préférez-vous avancer ? Répondez juste avec un chiffre :\n\n1️⃣ Je veux un audit gratuit de mon compte.\n2️⃣ Je souhaite découvrir le pack supérieur.\n3️⃣ J'ai une question technique.\n4️⃣ Pas intéressé pour le moment.`;
                         planifyCrmAction(
                             `Action CRM : Contacter ${c.full_name}`, 
-                            "Relance ciblée avec CTA interactif (choix 1 à 4) pour forcer l'engagement.", 
+                            "Relance ciblée avec CTA interactif (choix 1 à 4).", 
                             c.phone || '', 
                             msg
                         );
+                        // CORRECTION : On cache ce prospect de la liste des suggestions
+                        setScannedLeadIds(prev => [...prev, c.id]);
                     }} className="bg-black text-[#39FF14] px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-xl hover:scale-105 transition-all">Planifier</button>
                   </div>
                 ))
@@ -2117,7 +2134,41 @@ export default function AdminDashboard() {
            </div>
          </div>
       )}
+{/* MODALE ÉDITION ARTICLE IA */}
+{editingArticle && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setEditingArticle, null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="bg-white p-8 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[12px] border-[#39FF14] animate-in zoom-in-95 my-auto">
+            <button onClick={() => setEditingArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+            
+            <h3 className="text-2xl font-black uppercase text-black tracking-tighter mb-6">Éditer l'Article</h3>
+            
+            <div className="space-y-4">
+              <input 
+                type="text" 
+                value={editingArticle.title} 
+                onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} 
+                className="w-full p-5 bg-zinc-50 border border-zinc-200 rounded-[1.75rem] font-black text-sm outline-none focus:border-black" 
+              />
+              <textarea 
+                value={editingArticle.desc} 
+                onChange={e => setEditingArticle({...editingArticle, desc: e.target.value})} 
+                className="w-full p-5 bg-zinc-50 border border-zinc-200 rounded-[1.75rem] font-bold text-sm outline-none focus:border-black min-h-[200px]"
+              />
+            </div>
 
+            <button 
+              onClick={() => {
+                const updatedArts = marketingArticles.map(a => a.id === editingArticle.id ? editingArticle : a);
+                setMarketingArticles(updatedArts);
+                setEditingArticle(null);
+              }}
+              className="w-full mt-6 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-xs hover:scale-[1.03] transition-all shadow-[0_20px_40px_rgba(57,255,20,0.15)] flex justify-center items-center gap-2"
+            >
+              <CheckCircle size={18}/> Sauvegarder
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

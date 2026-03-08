@@ -15,7 +15,6 @@ import {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
@@ -491,48 +490,51 @@ export default function OnyxOpsElite() {
   };
 
   const submitPartnerForm = async () => {
-     if(!partnerForm.full_name || !partnerForm.contact || !partnerForm.status || !partnerForm.country) {
-       return alert("Veuillez remplir les champs obligatoires (*) : Nom, Téléphone, Statut, Pays.");
-     }
-     
-     try {
-        const fullMessage = JSON.stringify({ city: partnerForm.city, address: partnerForm.address, country: partnerForm.country, status: partnerForm.status, sales_exp: partnerForm.sales_exp, objective: partnerForm.objective, strategy: partnerForm.strategy });
-        
-        await saveLead({ 
-           source: 'Formulaire Ambassadeur', 
-           intent: 'Candidature Partenaire', 
-           contact: partnerForm.contact, 
-           full_name: partnerForm.full_name,
-           message: fullMessage,
-           address: partnerForm.address,
-           country: partnerForm.country,
-           city: partnerForm.city,
-           status: partnerForm.status,
-           sales_exp: partnerForm.sales_exp,
-           objective: partnerForm.objective,
-           strategy: partnerForm.strategy
-        });
-        
-        const { error } = await supabase.from('ambassadors').insert({
+    if(!partnerForm.full_name || !partnerForm.contact || !partnerForm.status || !partnerForm.country) {
+      return alert("Veuillez remplir les champs obligatoires (*) : Nom, Téléphone, Statut, Pays.");
+    }
+    
+    try {
+       // 1. On prépare l'objet pour la table 'ambassadors'
+       // On s'assure que 'referral_code' est généré si ta DB ne le fait pas par défaut
+       const ambassadorPayload = {
           full_name: partnerForm.full_name, 
           contact: partnerForm.contact, 
-          city: partnerForm.city,
-          address: partnerForm.address,
+          city: partnerForm.city || '',
+          address: partnerForm.address || '',
           country: partnerForm.country,
-          activity: partnerForm.status,
+          activity: partnerForm.status, // Vérifie si ta colonne s'appelle 'activity' ou 'status'
           status: 'En attente',
           sales: 0
+       };
+       
+       const { data: ambData, error: ambError } = await supabase
+         .from('ambassadors')
+         .insert([ambassadorPayload])
+         .select();
+
+       if (ambError) {
+         console.error("ERREUR TABLE AMBASSADORS :", ambError.message);
+         throw new Error(ambError.message);
+       }
+
+       // 2. On crée AUSSI le lead pour qu'il apparaisse dans ton Kanban
+       await saveLead({ 
+          source: 'Formulaire Ambassadeur', 
+          intent: 'Candidature Partenaire', 
+          contact: partnerForm.contact, 
+          full_name: partnerForm.full_name,
+          message: `Stratégie: ${partnerForm.strategy} | Objectif: ${partnerForm.objective}`,
+          status: 'Nouveau' // Pour qu'il apparaisse dans la première colonne
        });
-       if(error) console.error("ERREUR SUPABASE AMBASSADORS :", error.message);
-        
-        setPartnerStep('success');
-        setTimeout(() => setPartnerStep('dashboard'), 4000);
-     } catch(e) {
-        console.error("ERREUR CATCH PARTNERS :", e);
-        setPartnerStep('success');
-        setTimeout(() => setPartnerStep('dashboard'), 4000);
+       
+       setPartnerStep('success');
+       setTimeout(() => setPartnerStep('dashboard'), 4000);
+      } catch (e: any) {
+        console.error("ERREUR GLOBALE :", e);
+        alert("Erreur lors de l'enregistrement : " + (e.message || "Erreur inconnue"));
      }
-  };
+};
 
   // Mises à jour des tarifs sur la simulation des commissions
   const commissionM1 = Math.round(packCounts.solo * 9900 * 0.30 + packCounts.duo * 17500 * 0.30 + packCounts.trio * 24900 * 0.30 + packCounts.full * 30000 * 0.30 + packCounts.premium * 39900 * 0.30);
