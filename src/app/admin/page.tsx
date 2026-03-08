@@ -8,9 +8,9 @@ import {
   Search, Plus, Filter, MoreVertical, MoreHorizontal, Edit2, Trash2, Mail, 
   Phone, Calendar, ArrowUpRight, ArrowDownRight, CheckCircle, 
   XCircle, Clock, FileText, Zap, Shield, Image as ImageIcon, MapPin, ArrowLeft,
-  MessageSquare, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
+  MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   BarChart, TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
-  AlertCircle, UserPlus, X, Edit3, Lock as LockIcon
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon
 } from "lucide-react";
 
 // --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
@@ -34,6 +34,8 @@ type Contact = {
   type: string;
   source: string;
   created_at: string;
+  expiration_date?: string | null;
+  active_saas?: string[] | null;
   saas?: string;
   avatar_url?: string;
 };
@@ -409,6 +411,31 @@ export default function AdminDashboard() {
       setActionsIA([newAction, ...actionsIA]);
       setShowDiffusionModal(null);
       alert(`Diffusion planifiée avec succès pour ${selectedContactsForDiffusion.length} membres.`);
+  };
+
+  // --- WIDGET EXPIRATIONS / RENOUVELLEMENTS CLIENTS ---
+  const expiringClients = (contacts || []).filter((client) => {
+    if (client.type !== 'Client') return false;
+    if (!client.expiration_date) return false;
+    const expDate = new Date(client.expiration_date);
+    const today = new Date();
+    const diffTime = expDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 5 && diffDays >= -3; // Entre J-5 et J+3
+  });
+
+  const sendRenewalReminder = (client: any) => {
+    if (!client.expiration_date || !client.phone) return;
+    const expDate = new Date(client.expiration_date);
+    const isExpired = expDate < new Date();
+    const formattedDate = expDate.toLocaleDateString('fr-FR');
+    const message = isExpired 
+      ? `Bonjour ${client.full_name}, votre abonnement OnyxOps a expiré le ${formattedDate}. Votre accès sera automatiquement suspendu dans quelques heures. Souhaitez-vous le renouveler maintenant pour éviter la coupure ?`
+      : `Bonjour ${client.full_name}, votre abonnement OnyxOps arrive à expiration le ${formattedDate}. Souhaitez-vous procéder au renouvellement ?`;
+
+    const rawPhone = String(client.phone).replace(/\s+/g, '').replace(/[^0-9]/g, '');
+    const phoneWithPrefix = rawPhone.startsWith('221') ? rawPhone : `221${rawPhone}`;
+    window.open(`https://wa.me/${phoneWithPrefix}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const filteredContacts = (contacts || []).filter(c => {
@@ -858,6 +885,67 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* WIDGET EXPIRATIONS / RENOUVELLEMENTS */}
+              {expiringClients.length > 0 && (
+                <div className="mb-8 bg-black rounded-[2rem] p-6 sm:p-8 shadow-xl border border-zinc-800 animate-in fade-in">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="bg-yellow-500/20 text-yellow-500 p-2 rounded-xl">
+                      <AlertTriangle size={20} />
+                    </div>
+                    <h2 className="text-xl font-black uppercase text-white">Renouvellements & Expirations</h2>
+                    <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      {expiringClients.length}
+                    </span>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {expiringClients.map((client) => {
+                      const expDate = new Date(client.expiration_date as string);
+                      const diffDays = Math.ceil(
+                        (expDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                      );
+                      const isGracePeriod = diffDays < 0 && diffDays >= -3;
+
+                      return (
+                        <div
+                          key={client.id}
+                          className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="font-bold text-white text-sm uppercase">
+                                {client.full_name}
+                              </h3>
+                              <span
+                                className={`text-[10px] font-black px-2 py-1 rounded-md uppercase ${
+                                  isGracePeriod
+                                    ? "bg-red-500/20 text-red-500"
+                                    : "bg-yellow-500/20 text-yellow-500"
+                                }`}
+                              >
+                                {isGracePeriod
+                                  ? `Expiré (J${diffDays})`
+                                  : `Dans ${diffDays}j`}
+                              </span>
+                            </div>
+                            <p className="text-xs text-zinc-400 font-medium mb-4 flex items-center gap-1">
+                              <Clock size={12} /> Fin :{" "}
+                              {expDate.toLocaleDateString("fr-FR")}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => sendRenewalReminder(client)}
+                            className="w-full bg-white text-black py-2.5 rounded-xl font-black text-[10px] uppercase hover:bg-[#39FF14] transition-all flex justify-center items-center gap-2"
+                          >
+                            <MessageCircle size={14} /> Relancer via WhatsApp
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* TABLEAU CRM */}
               <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm relative overflow-x-auto">
                 <table className="w-full text-left min-w-[800px]">
@@ -1291,6 +1379,68 @@ export default function AdminDashboard() {
               <div className="space-y-2">
                  <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Terminal Mobile (WhatsApp)</label>
                  <input type="tel" required value={editingContact?.phone || ""} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="+221 7x xxx xx xx" />
+              </div>
+
+              {/* GESTION DES ACCÈS SAAS */}
+              <div className="space-y-2 pt-4 border-t border-zinc-100">
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">
+                  Applications Débloquées
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {["vente", "stock", "tiak", "menu", "formation"].map((app) => (
+                    <label
+                      key={app}
+                      className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:border-black transition"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(editingContact.active_saas || []).includes(app)}
+                        onChange={(e) => {
+                          const currentSaas = editingContact.active_saas || [];
+                          if (e.target.checked) {
+                            setEditingContact({
+                              ...editingContact,
+                              active_saas: [...currentSaas, app],
+                            });
+                          } else {
+                            setEditingContact({
+                              ...editingContact,
+                              active_saas: currentSaas.filter(
+                                (s: string) => s !== app
+                              ),
+                            });
+                          }
+                        }}
+                        className="w-4 h-4 accent-black"
+                      />
+                      <span className="text-xs font-bold uppercase text-zinc-700">
+                        {app}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* DATE D'EXPIRATION */}
+              <div className="space-y-2 pt-4">
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">
+                  Date de fin d'abonnement / d'essai
+                </label>
+                <input
+                  type="date"
+                  value={
+                    editingContact.expiration_date
+                      ? String(editingContact.expiration_date).split("T")[0]
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setEditingContact({
+                      ...editingContact,
+                      expiration_date: e.target.value,
+                    })
+                  }
+                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-[1.5rem] font-bold text-sm outline-none focus:border-black transition-all"
+                />
               </div>
 
               <div className="space-y-2">
