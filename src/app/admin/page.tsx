@@ -4,10 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { 
-  LayoutDashboard, Users, Target, Handshake, Settings, LogOut, 
-  Search, Plus, Filter, MoreVertical, MoreHorizontal, Edit2, Trash2, Mail, 
-  Phone, Calendar, ArrowUpRight, ArrowDownRight, CheckCircle, 
-  XCircle, Clock, FileText, Zap, Shield, Image as ImageIcon, MapPin, ArrowLeft,
+  LayoutDashboard, Users, Handshake, Settings, LogOut, 
+  Search, Plus, MoreHorizontal, Trash2, 
+  ArrowDownRight, CheckCircle, 
+  Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   BarChart, TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
   AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon
@@ -74,13 +74,14 @@ export default function AdminDashboard() {
 
   // 👇 AJOUTE CES DEUX LIGNES JUSTE ICI 👇
   const [editingArticle, setEditingArticle] = useState<any>(null);
-  const [scannedLeadIds, setScannedLeadIds] = useState<string[]>([]);const [scannedLeadIds, setScannedLeadIds] = useState<string[]>(() => {
-   if (typeof window !== 'undefined') {
-       const saved = localStorage.getItem('onyx_scanned_leads');
-       return saved ? JSON.parse(saved) : [];
-   }
-   return [];
-});
+  
+  const [scannedLeadIds, setScannedLeadIds] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('onyx_scanned_leads');
+        return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
   // 👆 ================================= 👆
  
    // --- 5. SUPPRESSION DES DONNÉES FICTIVES (On part de zéro) ---
@@ -642,7 +643,7 @@ export default function AdminDashboard() {
       const search = actionSearchFilter.toLowerCase();
       return a.title.toLowerCase().includes(search) || a.desc.toLowerCase().includes(search);
   });
-
+  
   return (
     <div className={`flex h-screen bg-[#fafafa] font-sans text-black overflow-hidden relative selection:bg-[#39FF14]/30`}>
       
@@ -1927,7 +1928,7 @@ export default function AdminDashboard() {
                             msg
                         );
                         // CORRECTION : On cache ce prospect de la liste des suggestions
-                        setScannedLeadIds(prev => [...prev, c.id]);setScannedLeadIds(prev => {
+                        setScannedLeadIds(prev => {
                            const updated = [...prev, c.id];
                            localStorage.setItem('onyx_scanned_leads', JSON.stringify(updated));
                            return updated;
