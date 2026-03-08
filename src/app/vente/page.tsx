@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import { Package, Plus, Trash2, Edit2, Upload, Search } from "lucide-react";
+import { Package, Plus, Trash2, Edit2, Upload, Search, X, Save } from "lucide-react";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -20,7 +20,7 @@ type Product = {
   image_url: string | null;
 };
 
-export default function OnyxVentePage() {
+export default function OnyxJaayPage() {
   const router = useRouter();
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -73,10 +73,16 @@ export default function OnyxVentePage() {
     }
   };
 
-  const saveProduct = async () => {
+  const saveProduct = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!client?.id) return;
+    if (!formProduct.name || !formProduct.price) {
+      alert("Le nom et le prix sont obligatoires.");
+      return;
+    }
+
     const payload = {
-      name: formProduct.name?.trim() || "Produit",
+      name: formProduct.name.trim(),
       description: formProduct.description?.trim() || "",
       price: Number(formProduct.price) || 0,
       stock: Number(formProduct.stock) || 0,
@@ -84,15 +90,18 @@ export default function OnyxVentePage() {
       image_url: formProduct.image_url || null,
       client_id: client.id,
     };
+
     try {
       if (editingProduct) {
-        await supabase
+        const { error } = await supabase
           .from("products")
           .update(payload)
           .eq("id", editingProduct.id)
           .eq("client_id", client.id);
+        if (error) throw error;
       } else {
-        await supabase.from("products").insert(payload);
+        const { error } = await supabase.from("products").insert(payload);
+        if (error) throw error;
       }
       await loadProducts(client.id);
       setShowProductModal(false);
@@ -105,8 +114,8 @@ export default function OnyxVentePage() {
         category: "",
         image_url: "",
       });
-    } catch (err) {
-      alert("Erreur enregistrement produit.");
+    } catch (err: any) {
+      alert("Erreur enregistrement produit: " + err.message);
     }
   };
 
@@ -133,18 +142,17 @@ export default function OnyxVentePage() {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const text = (ev.target?.result as string) || "";
-      const lines = text
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean);
+      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
       if (lines.length <= 1) return;
+
+      // Détecter le séparateur (; ou , ou \t)
+      const separator = lines[0].includes(";") ? ";" : lines[0].includes("\t") ? "\t" : ",";
 
       const rows = lines
         .slice(1)
         .map((line) => {
-          const [nom, prix, stock, categorie] = line
-            .split(";")
-            .map((c) => c.trim());
+          const cols = line.split(separator).map((c) => c.replace(/^"|"$/g, "").trim());
+          const [nom, prix, stock, categorie] = cols;
           return {
             client_id: client.id,
             name: nom,
@@ -157,13 +165,17 @@ export default function OnyxVentePage() {
         })
         .filter((r) => r.name);
 
-      if (!rows.length) return;
+      if (!rows.length) {
+        alert("Aucun produit valide trouvé. Vérifiez les colonnes : Nom, Prix, Stock, Catégorie");
+        return;
+      }
       try {
-        await supabase.from("products").insert(rows);
+        const { error } = await supabase.from("products").insert(rows);
+        if (error) throw error;
         await loadProducts(client.id);
         alert(`${rows.length} produits importés avec succès.`);
-      } catch (err) {
-        alert("Erreur lors de l'import CSV.");
+      } catch (err: any) {
+        alert("Erreur lors de l'import CSV: " + err.message);
       }
     };
     reader.readAsText(file, "utf-8");
@@ -179,6 +191,9 @@ export default function OnyxVentePage() {
     );
   });
 
+  // Pour la liste déroulante des catégories manuelles
+  const uniqueCategories = Array.from(new Set(products.map(p => p.category)));
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-sans">
@@ -190,16 +205,21 @@ export default function OnyxVentePage() {
   return (
     <div className="min-h-screen bg-zinc-50 font-sans">
       <header className="bg-black text-white px-6 py-4 flex items-center justify-between shadow-md">
-        <div>
-          <h1 className="text-xl font-black uppercase tracking-tighter">
-            Onyx Jaay
-          </h1>
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.25em]">
-            Catalogue & Devis WhatsApp
-          </p>
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push("/hub")} className="p-2 bg-zinc-900 rounded-full hover:bg-zinc-800 transition">
+            <X size={18} className="rotate-45" /> {/* Symbole retour/fermer stylisé */}
+          </button>
+          <div>
+            <h1 className="text-xl font-black uppercase tracking-tighter text-[#39FF14]">
+              Onyx Jaay
+            </h1>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.25em]">
+              Catalogue & Devis
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs font-bold">
+          <span className="text-xs font-bold bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-800">
             {client?.full_name || "Ma Boutique"}
           </span>
         </div>
@@ -221,7 +241,7 @@ export default function OnyxVentePage() {
             />
           </div>
           <div className="flex gap-3">
-            <label className="flex items-center gap-2 bg-white border border-zinc-200 px-4 py-2 rounded-2xl text-[11px] font-black uppercase cursor-pointer hover:border-black">
+            <label className="flex items-center gap-2 bg-white border border-zinc-200 px-4 py-2 rounded-2xl text-[11px] font-black uppercase cursor-pointer hover:border-black transition">
               <Upload size={16} /> Import CSV
               <input
                 type="file"
@@ -243,7 +263,7 @@ export default function OnyxVentePage() {
                 });
                 setShowProductModal(true);
               }}
-              className="flex items-center gap-2 bg-black text-[#39FF14] px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase hover:scale-[1.02] transition"
+              className="flex items-center gap-2 bg-black text-[#39FF14] px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase hover:scale-[1.02] transition shadow-lg"
             >
               <Plus size={16} /> Nouveau
             </button>
@@ -254,7 +274,7 @@ export default function OnyxVentePage() {
           {filteredProducts.map((p) => (
             <div
               key={p.id}
-              className="bg-white rounded-3xl border border-zinc-200 p-5 flex flex-col gap-4 shadow-sm"
+              className="bg-white rounded-3xl border border-zinc-200 p-5 flex flex-col gap-4 shadow-sm hover:border-[#39FF14] transition-all"
             >
               <div className="flex items-center gap-4">
                 {p.image_url ? (
@@ -339,34 +359,35 @@ export default function OnyxVentePage() {
       </main>
 
       {showProductModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-[2.5rem] max-w-lg w-full p-6 relative">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-[2.5rem] max-w-lg w-full p-8 relative animate-in zoom-in">
             <button
               onClick={() => setShowProductModal(false)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-zinc-100 hover:bg-zinc-200"
+              className="absolute top-6 right-6 p-2 rounded-full bg-zinc-100 hover:bg-black hover:text-white transition"
             >
-              <Trash2 size={16} className="opacity-0" />
+              <X size={16} />
             </button>
-            <h2 className="text-xl font-black uppercase mb-4 flex items-center gap-2">
-              <Package size={18} />{" "}
+            <h2 className="text-xl font-black uppercase mb-6 flex items-center gap-2">
+              <Package size={20} className="text-[#39FF14]" />{" "}
               {editingProduct ? "Modifier le produit" : "Nouveau produit"}
             </h2>
-            <div className="space-y-3">
+            <form onSubmit={saveProduct} className="space-y-4">
               <div>
-                <label className="text-xs font-black uppercase text-zinc-500">
-                  Nom du produit
+                <label className="text-xs font-black uppercase text-zinc-500 mb-1 block">
+                  Nom du produit *
                 </label>
                 <input
                   type="text"
+                  required
                   value={formProduct.name || ""}
                   onChange={(e) =>
                     setFormProduct({ ...formProduct, name: e.target.value })
                   }
-                  className="w-full p-3 bg-zinc-50 rounded-xl font-bold outline-none focus:ring-2 focus:ring-[#39FF14]"
+                  className="w-full p-4 bg-zinc-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-black border border-zinc-200"
                 />
               </div>
               <div>
-                <label className="text-xs font-black uppercase text-zinc-500">
+                <label className="text-xs font-black uppercase text-zinc-500 mb-1 block">
                   Description
                 </label>
                 <textarea
@@ -377,51 +398,54 @@ export default function OnyxVentePage() {
                       description: e.target.value,
                     })
                   }
-                  className="w-full p-3 bg-zinc-50 rounded-xl font-bold outline-none focus:ring-2 focus:ring-[#39FF14]"
-                  rows={3}
+                  className="w-full p-4 bg-zinc-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-black border border-zinc-200 resize-none"
+                  rows={2}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black uppercase text-zinc-500">
-                    Prix (F CFA)
+                  <label className="text-xs font-black uppercase text-zinc-500 mb-1 block">
+                    Prix (F CFA) *
                   </label>
                   <input
                     type="number"
-                    value={formProduct.price ?? 0}
+                    required
+                    value={formProduct.price === 0 ? "" : formProduct.price}
                     onChange={(e) =>
                       setFormProduct({
                         ...formProduct,
                         price: Number(e.target.value),
                       })
                     }
-                    className="w-full p-3 bg-zinc-50 rounded-xl font-bold outline-none focus:ring-2 focus:ring-[#39FF14]"
+                    className="w-full p-4 bg-zinc-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-black border border-zinc-200"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-black uppercase text-zinc-500">
+                  <label className="text-xs font-black uppercase text-zinc-500 mb-1 block">
                     Stock
                   </label>
                   <input
                     type="number"
-                    value={formProduct.stock ?? 0}
+                    value={formProduct.stock === 0 ? "" : formProduct.stock}
                     onChange={(e) =>
                       setFormProduct({
                         ...formProduct,
                         stock: Number(e.target.value),
                       })
                     }
-                    className="w-full p-3 bg-zinc-50 rounded-xl font-bold outline-none focus:ring-2 focus:ring-[#39FF14]"
+                    className="w-full p-4 bg-zinc-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-black border border-zinc-200"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black uppercase text-zinc-500">
-                    Catégorie
+                  <label className="text-xs font-black uppercase text-zinc-500 mb-1 block">
+                    Catégorie (Libre)
                   </label>
                   <input
+                    list="categories"
                     type="text"
+                    placeholder="Ex: T-Shirt"
                     value={formProduct.category || ""}
                     onChange={(e) =>
                       setFormProduct({
@@ -429,15 +453,21 @@ export default function OnyxVentePage() {
                         category: e.target.value,
                       })
                     }
-                    className="w-full p-3 bg-zinc-50 rounded-xl font-bold outline-none focus:ring-2 focus:ring-[#39FF14]"
+                    className="w-full p-4 bg-zinc-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-black border border-zinc-200"
                   />
+                  <datalist id="categories">
+                    {uniqueCategories.map((cat: any) => (
+                      <option key={cat} value={cat} />
+                    ))}
+                  </datalist>
                 </div>
                 <div>
-                  <label className="text-xs font-black uppercase text-zinc-500">
+                  <label className="text-xs font-black uppercase text-zinc-500 mb-1 block">
                     Image (URL)
                   </label>
                   <input
                     type="url"
+                    placeholder="https://..."
                     value={formProduct.image_url || ""}
                     onChange={(e) =>
                       setFormProduct({
@@ -445,17 +475,17 @@ export default function OnyxVentePage() {
                         image_url: e.target.value,
                       })
                     }
-                    className="w-full p-3 bg-zinc-50 rounded-xl font-bold outline-none focus:ring-2 focus:ring-[#39FF14]"
+                    className="w-full p-4 bg-zinc-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-black border border-zinc-200"
                   />
                 </div>
               </div>
               <button
-                onClick={saveProduct}
-                className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 mt-2"
+                type="submit"
+                className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs hover:scale-[1.02] transition flex justify-center items-center gap-2 mt-4 shadow-xl"
               >
-                Enregistrer le produit
+                <Save size={16} /> Enregistrer
               </button>
-            </div>
+            </form>
           </div>
         </div>
       )}
