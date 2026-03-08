@@ -41,7 +41,7 @@ type Contact = {
   password_temp?: string | null;
 };
 
-type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs";
+type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia";
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
 
 const ECOSYSTEM_SAAS = [
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
   const [leadActionsOpen, setLeadActionsOpen] = useState<string | null>(null);
   const [partnerKpiFilter, setPartnerKpiFilter] = useState<'all' | 'nouveaux' | 'top' | 'moins' | 'gains'>('all');
 
-  // --- CHARGEMENT DES DONNÉES (Supabase uniquement, pas de données fictives) ---
+  // --- CHARGEMENT DES DONNÉES (Supabase uniquement) ---
   const fetchSupabaseData = async () => {
     setIsLoading(true);
     setIsRefreshing(true);
@@ -185,50 +185,61 @@ export default function AdminDashboard() {
     initAdmin();
   }, []);
 
-  // --- LOGIQUE DE CRÉATION DE COMPTE (AVEC SÉLECTION SAAS) ---
+  // --- PERSISTANCE LOCALE DU JOURNAL IA ---
+  useEffect(() => {
+    const savedIA = localStorage.getItem('onyx_actions_ia');
+    if (savedIA) setActionsIA(JSON.parse(savedIA));
+  }, []);
+
+  useEffect(() => {
+    if (actionsIA.length > 0) {
+      localStorage.setItem('onyx_actions_ia', JSON.stringify(actionsIA));
+    }
+  }, [actionsIA]);
+
+  const deleteActionIA = (id: string) => {
+    setActionsIA(prev => {
+      const updated = prev.filter(a => a.id !== id);
+      localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // --- LOGIQUE DE CRÉATION DE COMPTE MODIFIÉE (J+7, Identifiants de test Ambassadeur) ---
   const handleCreateAccount = async (lead: any, type: 'client' | 'ambassadeur', saasName?: string) => {
    const table = type === 'client' ? 'clients' : 'partners';
-   const tempPass = "central2026";
-   const phone = (lead.phone || '').replace(/\s+/g, '');
+   const tempPass = "central2026"; // Mot de passe fixe demandé
+   
+   // Forcer le numéro de test pour les ambassadeurs, sinon utiliser celui du lead
+   const phone = type === 'ambassadeur' ? '+221762237425' : (lead.phone || '').replace(/\s+/g, '');
    const phoneColumn = type === 'client' ? 'phone' : 'contact';
 
    try {
      const payload: any = {
-       full_name: lead.full_name,
+       full_name: lead.full_name || 'Test Ambassadeur',
        [phoneColumn]: phone, 
        password_temp: tempPass,
        source: lead.source || 'Lead Admin',
-       status: type === 'client' ? 'Actif' : 'Approuvé',
+       status: 'Actif', // Rendu 'Actif' au lieu de 'Approuvé' pour qu'il s'affiche direct
        updated_at: new Date().toISOString()
      };
 
-     // Si c'est un client et qu'on a sélectionné un SaaS dans la modale, on l'ajoute
-     if (type === 'client' && saasName) {
-       payload.saas = saasName;
-     }
+     if (type === 'client' && saasName) payload.saas = saasName;
 
      const { error } = await supabase.from(table).upsert(payload, { onConflict: phoneColumn });
-
      if (error) throw error;
 
-     // Nettoyage du flux
      await supabase.from('leads').delete().eq('id', lead.id);
 
      const portal = type === 'client' ? 'onyxops.com/login' : 'onyxops.com/ambassadeurs';
-     const welcomeMsg = `Félicitations ${lead.full_name} ! 🚀%0A%0A` +
-                        `Ton compte ${type === 'client' ? 'Onyx' : 'Ambassadeur'} est prêt.%0A` +
-                        `🔗 Accès : ${portal}%0A` +
-                        `📱 ID : ${phone}%0A` +
-                        `🔑 Pass : ${tempPass}%0A%0A` +
-                        `Bienvenue dans l'écosystème Onyx !`;
+     const welcomeMsg = `Félicitations ! Ton compte est prêt.\n🔗 Accès : ${portal}\n📱 ID : ${phone}\n🔑 Pass : ${tempPass}`;
 
-     window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${welcomeMsg}`, '_blank');
-     alert(`Compte ${type} activé avec succès !`);
+     window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(welcomeMsg)}`, '_blank');
      fetchSupabaseData();
    } catch (err: any) {
      alert("Erreur : " + err.message);
    }
- };
+  };
 
   useEffect(() => {
     const close = (e: MouseEvent) => { if (leadActionsOpen && !(e.target as HTMLElement).closest('.lead-actions-wrap')) setLeadActionsOpen(null); };
@@ -323,7 +334,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // Correction de la gestion des clics pour les modales
   const handleOutsideClick = (setter: any, val: any = false) => (e: any) => {
     if (e.target.id === "modal-overlay") { setter(val); }
   };
@@ -336,34 +346,6 @@ export default function AdminDashboard() {
   const replyToLead = (lead: any) => {
      const msg = `Bonjour ${lead.full_name}, je suis l'administrateur d'OnyxOps. J'ai bien reçu votre demande concernant "${lead.intent}". Comment puis-je vous aider ?`;
      window.open(`https://wa.me/${lead.phone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
-  };
-
-  const generateTempPassword = () => Math.random().toString(36).slice(-8) + Math.random().toString(36).toUpperCase().slice(-4);
-
-  const createAccountFromLead = async (lead: any, type: 'client' | 'ambassadeur') => {
-    const tempPass = generateTempPassword();
-    const phone = (lead.phone || '').replace(/\s+/g, '');
-    const table = type === 'client' ? 'clients' : 'partners';
-    const payload = type === 'client'
-      ? { full_name: lead.full_name || 'Client', phone, type: 'Client', status: 'Nouveau', source: lead.source || 'Admin', password_temp: tempPass }
-      : { full_name: lead.full_name || 'Ambassadeur', contact: phone, activity: 'Ambassadeur', status: 'En attente', sales: 0, password_temp: tempPass };
-    const { error } = await supabase.from(table).insert(payload);
-    if (error) { alert('Erreur : ' + error.message); return; }
-    fetchSupabaseData();
-    const portal = type === 'client' ? '/vente' : '/ambassadeurs';
-    const link = `${typeof window !== 'undefined' ? window.location.origin : ''}${portal}`;
-    const welcomeAmb = `Félicitations ${lead.full_name} ! Votre candidature ambassadeur Onyx est bien reçue. 🚀 On ne perd pas de temps : Votre accès au portail est en cours de validation. En attendant, voici vos identifiants pour vous connecter dès maintenant.\n\n*Portail :* ${link}\n*Identifiant :* ${phone}\n*Mot de passe temporaire :* ${tempPass}\n\nUn expert vous contacte pour activer votre lien de parrainage unique. Bienvenue dans l'écosystème Onyx !`;
-    const welcomeClient = `Félicitations ${lead.full_name} ! 🚀 Votre compte Onyx a été créé.\n\n*Portail :* ${link}\n*Identifiant :* ${phone}\n*Mot de passe temporaire :* ${tempPass}\n\nBienvenue dans l'écosystème Onyx ! Un conseiller vous contactera si besoin.`;
-    const msg = type === 'ambassadeur' ? welcomeAmb : welcomeClient;
-    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-    alert(type === 'client' ? 'Compte client créé. Mot de passe envoyé par WhatsApp.' : 'Compte ambassadeur créé. Mot de passe envoyé par WhatsApp.');
-  };
-
-  const notifyLeadByWhatsApp = (lead: any, portal: 'vente' | 'ambassadeurs', tempPass: string) => {
-    const phone = (lead.phone || '').replace(/\s+/g, '');
-    const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/${portal}`;
-    const msg = `Félicitations ${lead.full_name} ! 🚀 Bienvenue chez Onyx.\n\n*Accès portail :* ${link}\n*Identifiant :* ${phone}\n*Mot de passe :* ${tempPass}\n\nBienvenue dans l'écosystème Onyx ! Un conseiller vous contactera si besoin.`;
-    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const handleDeleteLead = async (id: string) => {
@@ -385,7 +367,7 @@ export default function AdminDashboard() {
      return [actions.ambassador, actions.reply, actions.client];
    }
    return [actions.client, actions.reply, actions.ambassador];
- };
+  };
 
   const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
      const newAction: IAAction = { id: Date.now().toString(), module: 'CRM', title, desc, date: todayStr, status: 'En attente', phone, msg };
@@ -521,10 +503,10 @@ export default function AdminDashboard() {
       alert(`Diffusion planifiée avec succès pour ${selectedContactsForDiffusion.length} membres.`);
   };
 
-  // NOUVELLE FONCTION: Ouvre la modale pour un nouveau client avec date +14j par défaut
+  // NOUVELLE FONCTION: Ouvre la modale pour un nouveau client avec date +7j par défaut
   const openNewClientModal = () => {
     const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 14);
+    trialEndDate.setDate(trialEndDate.getDate() + 7); // J+7
     
     setEditingContact({
       full_name: "",
@@ -643,6 +625,10 @@ export default function AdminDashboard() {
                </button>
                <button onClick={() => setShowRapportIA(true)} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all">
                  <Sparkles size={20} className="text-[#39FF14]" /> Scan Intelligence
+               </button>
+               {/* NOUVEL ONGLET JOURNAL IA */}
+               <button onClick={() => setActiveView('journal-ia' as ViewType)} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'journal-ia' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
+                 <FileText size={20} /> Journal & Actions IA
                </button>
                <button onClick={() => setShowHubsMap(true)} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all">
                  <MapPin size={20} className="text-[#39FF14]" /> Carte des Hubs
@@ -842,11 +828,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="space-y-4">
                        {contacts.filter(c => c.type === 'Client').slice(0, 4).map(c => (
-                          <div key={c.id} className="flex flex-col sm:flex-row justify-between sm:items-center p-5 lg:p-6 bg-zinc-50 rounded-[2.5rem] border border-zinc-100 group/item hover:border-[#39FF14] hover:bg-white transition-all gap-4">
+                          <div key={c.id} onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="flex flex-col sm:flex-row justify-between sm:items-center p-5 lg:p-6 bg-zinc-50 rounded-[2.5rem] border border-zinc-100 group/item hover:border-[#39FF14] hover:bg-white transition-all gap-4 cursor-pointer">
                              <div className="flex items-center gap-4 lg:gap-5">
                                 <div className="w-12 h-12 rounded-2xl bg-black text-[#39FF14] flex items-center justify-center font-black text-sm shadow-lg shrink-0">{c.full_name?.charAt(0)}</div>
                                 <div>
-                                   <p className="font-black text-sm uppercase text-black">{c.full_name}</p>
+                                   <p className="font-black text-sm uppercase text-black group-hover/item:text-[#39FF14] transition-colors">{c.full_name}</p>
                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{c.saas || 'Solution Active'}</p>
                                 </div>
                              </div>
@@ -870,7 +856,7 @@ export default function AdminDashboard() {
                        <span className="text-[10px] font-black text-zinc-400 uppercase bg-zinc-800/80 px-4 py-2 rounded-xl border border-zinc-700 w-max">{actionsIA.filter(a => a.status === 'En attente' || a.status === 'En cours').length} tâches actives</span>
                     </div>
                     <div className="space-y-4 relative z-10 flex-1">
-                       {actionsIA.slice(0, 4).map(action => (
+                       {actionsIA.slice(0, 8).map(action => (
                           <div key={action.id} className="bg-zinc-800/40 backdrop-blur-md p-5 lg:p-6 rounded-[2.5rem] border border-zinc-800 flex flex-col xl:flex-row justify-between xl:items-center gap-6 group hover:bg-zinc-800 hover:border-zinc-700 transition-all">
                              <div>
                                 <p className="text-[9px] font-black text-[#39FF14] uppercase mb-1.5 tracking-[0.2em] flex items-center gap-2">
@@ -882,15 +868,21 @@ export default function AdminDashboard() {
                              </div>
                              <div className="flex items-center gap-3 self-end xl:self-auto shrink-0">
                                 {action.phone && action.status !== 'Réalisé' ? (
-                                   <button onClick={() => executeWA(action.phone, action.msg, action.id)} className="bg-white text-black px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase hover:bg-[#39FF14] transition-all shadow-xl active:scale-95">Exécuter WA</button>
+                                   <button onClick={() => executeWA(action.phone, action.msg, action.id)} className="bg-white text-black px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase hover:bg-[#39FF14] transition-all shadow-xl active:scale-95">Exécuter</button>
                                 ) : action.status === 'Réalisé' ? (
                                    <button className="bg-zinc-800 text-zinc-500 px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase border border-zinc-700 cursor-default">Terminé</button>
                                 ) : (
                                    <button className="bg-zinc-700 text-white px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase hover:bg-zinc-600 transition-all border border-zinc-600 active:scale-95">Détails</button>
                                 )}
+                                {/* BOUTON SUPPRIMER IA */}
+                                <button onClick={() => deleteActionIA(action.id)} className="p-3 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={16}/></button>
                              </div>
                           </div>
                        ))}
+                       {actionsIA.length === 0 && (
+                          <div className="p-6 text-center text-zinc-500 text-xs font-bold uppercase tracking-widest">Planificateur vierge</div>
+                       )}
+                       <button onClick={() => setActiveView('journal-ia' as ViewType)} className="w-full text-center mt-4 text-[10px] text-zinc-400 uppercase font-black tracking-widest hover:text-white transition-colors">Voir tout le planning IA</button>
                     </div>
                  </div>
               </div>
@@ -1262,8 +1254,9 @@ export default function AdminDashboard() {
                             <p className="text-[10px] font-black text-[#39FF14] mt-2">{(saas as any).price?.toLocaleString()} F / mois</p>
                          </div>
                          <div className="mt-10 lg:mt-14 flex flex-col gap-3 lg:gap-4 relative z-10">
-                            <button onClick={() => window.open(typeof saas.url === 'string' && saas.url.startsWith('/') ? saas.url : saas.url, saas.url?.startsWith('/') ? '_self' : '_blank')} className="w-full bg-black text-[#39FF14] py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.03] transition-all shadow-2xl flex items-center justify-center gap-2 lg:gap-3 group/btn active:scale-95">
-                               Accéder <ExternalLink size={16} className="group-hover/btn:translate-x-1 transition-transform"/>
+                            {/* BOUTON ACCÉDER MODIFIÉ POUR L'ADMIN INTERNE */}
+                            <button onClick={() => router.push(`/admin/saas/${saas.id}`)} className="w-full bg-black text-[#39FF14] py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.03] transition-all shadow-2xl flex items-center justify-center gap-2 lg:gap-3 group/btn active:scale-95">
+                               Accéder Configuration Admin <ExternalLink size={16} className="group-hover/btn:translate-x-1 transition-transform"/>
                             </button>
                             <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('create'); }} className="w-full bg-zinc-100 text-black py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:bg-zinc-200 transition-all active:scale-95">Générer Accès Client</button>
                          </div>
@@ -1460,6 +1453,56 @@ export default function AdminDashboard() {
              </div>
           )}
 
+          {/* ================= VUE JOURNAL IA ================= */}
+          {activeView === 'journal-ia' && (
+             <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1200px] mx-auto">
+                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group gap-6">
+                   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
+                      <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><FileText size={32}/></div>
+                      <div>
+                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Journal & Actions IA</h2>
+                         <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Registre complet des tâches planifiées</p>
+                      </div>
+                   </div>
+                   <button onClick={() => setShowRapportIA(true)} className="w-full md:w-auto bg-[#39FF14] text-black px-8 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-black hover:text-[#39FF14] transition-all relative z-10 active:scale-95">
+                      <Sparkles size={16}/> Lancer Scan CRM
+                   </button>
+                </div>
+
+                <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl p-5 lg:p-12 shadow-sm">
+                   <div className="space-y-4">
+                      {actionsIA.map(action => (
+                         <div key={action.id} className="bg-zinc-50 p-5 lg:p-6 rounded-[2.5rem] border border-zinc-100 flex flex-col xl:flex-row justify-between xl:items-center gap-6 hover:border-black transition-all">
+                            <div>
+                               <p className="text-[9px] font-black text-zinc-500 uppercase mb-1.5 tracking-[0.2em] flex items-center gap-2">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${action.status === 'En attente' ? 'bg-[#39FF14]' : action.status === 'En cours' ? 'bg-yellow-400 animate-pulse' : 'bg-zinc-500'}`}></span>
+                                  {action.module} • {action.date}
+                               </p>
+                               <p className={`font-bold text-sm uppercase tracking-tight ${action.status === 'Réalisé' ? 'text-zinc-400 line-through' : 'text-black'}`}>{action.title}</p>
+                               <p className="text-[10px] text-zinc-500 mt-1 font-medium italic">{action.desc}</p>
+                            </div>
+                            <div className="flex items-center gap-3 self-end xl:self-auto shrink-0">
+                               {action.phone && action.status !== 'Réalisé' ? (
+                                  <button onClick={() => executeWA(action.phone, action.msg, action.id)} className="bg-black text-[#39FF14] px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95">Exécuter WA</button>
+                               ) : action.status === 'Réalisé' ? (
+                                  <button className="bg-zinc-200 text-zinc-500 px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase border border-transparent cursor-default">Terminé</button>
+                               ) : (
+                                  <button className="bg-zinc-200 text-black px-6 py-3 rounded-[1.25rem] text-[10px] font-black uppercase hover:bg-zinc-300 transition-all active:scale-95">Détails</button>
+                               )}
+                               <button onClick={() => deleteActionIA(action.id)} className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={16}/></button>
+                            </div>
+                         </div>
+                      ))}
+                      {actionsIA.length === 0 && (
+                         <div className="p-12 text-center text-zinc-400 font-bold uppercase text-xs tracking-widest border-2 border-dashed border-zinc-100 rounded-[2rem]">
+                            Le journal des actions IA est vide
+                         </div>
+                      )}
+                   </div>
+                </div>
+             </div>
+          )}
+
         </div>
       </main>
 
@@ -1494,7 +1537,7 @@ export default function AdminDashboard() {
                   ) : (
                      <div className="space-y-4 sm:space-y-5">
                         <input type="text" placeholder="NOM COMPLET CLIENT" value={saasCreateForm.name} onChange={e => setSaasCreateForm({...saasCreateForm, name: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all" />
-                        <input type="tel" placeholder="NUMÉRO WHATSAPP (EX: 22177...)" value={saasCreateForm.phone} onChange={e => setSaasCreateForm({...saasCreateForm, phone: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all" />
+                        <input type="tel" placeholder="NUMÉRO WHATSAPP (EX: +22177...)" value={saasCreateForm.phone} onChange={e => setSaasCreateForm({...saasCreateForm, phone: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all" />
                      </div>
                   )}
 
@@ -1792,7 +1835,7 @@ export default function AdminDashboard() {
                       <p className="font-black text-lg uppercase text-black tracking-tighter">{c.full_name}</p>
                       <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Score de Conversion : <span className="text-[#39FF14]">85%</span></p>
                     </div>
-                    <button className="bg-black text-[#39FF14] px-6 py-3 rounded-full text-[10px] font-black uppercase">Planifier</button>
+                    <button onClick={() => planifyCrmAction(`Action CRM : Contacter ${c.full_name}`, "Recommandation IA : Relance ciblée pour augmentation du score de conversion.", c.phone || '', `Bonjour ${c.full_name}, suite à notre dernière interaction, je vous contacte pour...`)} className="bg-black text-[#39FF14] px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-xl hover:scale-105 transition-all">Planifier</button>
                   </div>
                 ))
               ) : (
