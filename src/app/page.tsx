@@ -265,20 +265,29 @@ export default function OnyxOpsElite() {
 
   const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string; full_name?: string; name?: string; address?: string; country?: string; [key: string]: any }) => {
     try {
+      // Les données spécifiques au formulaire ambassadeur (dont le statut pro) sont compilées ici
       const extra = { city: data.city, address: data.address, country: data.country, status: data.status, sales_exp: data.sales_exp, objective: data.objective, strategy: data.strategy };
       
-      // On consolide le nom, peu importe comment il est appelé depuis le formulaire
       const finalName = data.full_name || data.name || 'Visiteur Web';
 
       const payload: Record<string, any> = {
         source: data.source || 'Site Web', 
         intent: data.intent || 'Contact', 
         phone: data.contact || '', 
+        // Le statut pro (étudiant, etc.) sera lisible dans la description du lead
         message: typeof data.message === 'string' ? data.message : JSON.stringify({ ...extra, ...data }) || '', 
-        name: finalName,       // <-- On alimente la colonne "name" attendue par le CRM
-        full_name: finalName  // <-- On garde "full_name" pour assurer la rétrocompatibilité
+        name: finalName,
+        full_name: finalName,
+        status: 'Nouveau' // <-- AJOUT : Force le CRM à placer ce lead dans la colonne "Nouveau"
       };
+      
       if (data.address) payload.address = data.address;
+      if (data.country) payload.country = data.country;
+      
+      const { error } = await supabase.from('leads').insert(payload);
+      if (error) console.error("ERREUR SUPABASE (Leads) :", error.message);
+    } catch (e) { console.error("ERREUR CATCH (Leads) :", e); }
+  };
 
   const handleWaClick = async (intent: string, msg: string) => {
     await saveLead({ source: 'Bouton Site', intent, message: msg });
