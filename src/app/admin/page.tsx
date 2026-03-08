@@ -45,7 +45,7 @@ type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partn
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
 
 const ECOSYSTEM_SAAS = [
-  { id: "vente", name: "Onyx Vente", desc: "Catalogue & Devis WhatsApp", price: 9900, color: "bg-[#39FF14]", url: "/vente" },
+  { id: "vente", name: "Onyx Jaay", desc: "Catalogue & Devis WhatsApp", price: 9900, color: "bg-[#39FF14]", url: "/vente" },
   { id: "stock", name: "Onyx Stock", desc: "Gestion stock", price: 9900, color: "bg-blue-500", url: "https://onyxops.com" },
   { id: "menu", name: "Onyx Menu", desc: "Menu QR & Commandes", price: 9900, color: "bg-amber-500", url: "https://onyxops.com" },
   { id: "staff", name: "Onyx Staff", desc: "Pointage & Paie", price: 9900, color: "bg-cyan-500", url: "https://onyxops.com" },
@@ -167,10 +167,14 @@ export default function AdminDashboard() {
     const initAdmin = async () => {
       try {
         const { data, error } = await supabase.auth.getUser();
-        if (!error && data?.user) {
+        const hasSessionFlag = typeof window !== 'undefined' && sessionStorage.getItem('onyx_admin_session') === '1';
+        if (!error && data?.user && hasSessionFlag) {
           setAdminUser(data.user);
           fetchSupabaseData();
         } else {
+          if (!error && data?.user && !hasSessionFlag) {
+            await supabase.auth.signOut();
+          }
           setIsLoading(false);
         }
       } catch {
@@ -243,6 +247,9 @@ export default function AdminDashboard() {
         setAdminUser(null);
       } else {
         setAdminUser(data.user);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('onyx_admin_session', '1');
+        }
         fetchSupabaseData();
       }
     } catch (err: any) {
@@ -660,6 +667,18 @@ export default function AdminDashboard() {
                  className="flex items-center gap-2 text-[11px] font-black uppercase text-zinc-500 hover:text-black"
                >
                  <Settings size={18} /> Paramètres
+               </button>
+               <button
+                 onClick={async () => {
+                   if (typeof window !== 'undefined') {
+                     sessionStorage.removeItem('onyx_admin_session');
+                   }
+                   await supabase.auth.signOut();
+                   setAdminUser(null);
+                 }}
+                 className="text-[11px] font-black uppercase text-red-500 hover:text-red-700"
+               >
+                 Forcer la déconnexion
                </button>
                <div className="relative cursor-pointer group" onClick={() => setActiveView('leads')}>
   <Bell size={22} className={`${leads.length > 0 ? 'text-[#39FF14] animate-bounce' : 'text-zinc-400'}`}/>

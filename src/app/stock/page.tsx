@@ -27,7 +27,8 @@ export default function OnyxStockPage() {
     const init = async () => {
       const saved =
         typeof window !== "undefined"
-          ? localStorage.getItem("onyx_client_session")
+          ? localStorage.getItem("onyx_client_session") ||
+            sessionStorage.getItem("onyx_client_session")
           : null;
       if (!saved) {
         router.push("/login");
@@ -212,7 +213,7 @@ export default function OnyxStockPage() {
                     className="px-6 py-16 text-center text-zinc-400 text-xs font-black uppercase tracking-[0.3em]"
                   >
                     Aucun produit trouvé. Configurez d&apos;abord votre
-                    catalogue dans Onyx Vente.
+                    catalogue dans Onyx Jaay.
                   </td>
                 </tr>
               )}

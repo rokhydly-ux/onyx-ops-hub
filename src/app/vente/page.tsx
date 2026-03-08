@@ -43,7 +43,8 @@ export default function OnyxVentePage() {
     const init = async () => {
       const saved =
         typeof window !== "undefined"
-          ? localStorage.getItem("onyx_client_session")
+          ? localStorage.getItem("onyx_client_session") ||
+            sessionStorage.getItem("onyx_client_session")
           : null;
       if (!saved) {
         router.push("/login");
@@ -191,7 +192,7 @@ export default function OnyxVentePage() {
       <header className="bg-black text-white px-6 py-4 flex items-center justify-between shadow-md">
         <div>
           <h1 className="text-xl font-black uppercase tracking-tighter">
-            Onyx Vente
+            Onyx Jaay
           </h1>
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.25em]">
             Catalogue & Devis WhatsApp

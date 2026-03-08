@@ -165,8 +165,8 @@ export default function AmbassadeursPage() {
           <h2 className="flex items-center gap-2 text-lg font-black uppercase text-[#39FF14] mb-2">
             <ShoppingBag size={22} /> La Boutique Ambassadeur
           </h2>
-          <p className="text-zinc-400 text-sm mb-4">Tu veux Onyx Vente pour toi ? <span className="text-[#39FF14] font-black">-30% automatique</span> pour les ambassadeurs.</p>
-          <a href="/vente" className="inline-flex items-center gap-2 bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-sm hover:scale-105 transition">Accéder à Onyx Vente -30%</a>
+          <p className="text-zinc-400 text-sm mb-4">Tu veux Onyx Jaay pour toi ? <span className="text-[#39FF14] font-black">-30% automatique</span> pour les ambassadeurs.</p>
+          <a href="/vente" className="inline-flex items-center gap-2 bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-sm hover:scale-105 transition">Accéder à Onyx Jaay -30%</a>
         </section>
 
         {/* Module Formation */}

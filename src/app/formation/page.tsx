@@ -43,7 +43,11 @@ export default function OnyxFormationPage() {
 
   // 1. CHARGEMENT SESSION & DONNÉES LOCALES
   useEffect(() => {
-    const saved = localStorage.getItem("onyx_client_session");
+    const saved =
+      typeof window !== "undefined"
+        ? localStorage.getItem("onyx_client_session") ||
+          sessionStorage.getItem("onyx_client_session")
+        : null;
     if (saved) {
       const parsedUser = JSON.parse(saved);
       setUser(parsedUser);

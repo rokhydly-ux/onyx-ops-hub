@@ -43,7 +43,7 @@ export default function Dashboard() {
             <h3 className="font-black uppercase mb-6">Mes Solutions</h3>
             <div className="space-y-4">
               <div className="p-4 bg-white rounded-2xl border border-zinc-100 flex justify-between items-center">
-                <span className="font-bold text-sm">Onyx Vente</span>
+                <span className="font-bold text-sm">Onyx Jaay</span>
                 <span className="text-[10px] font-black text-zinc-400 uppercase">Non activé</span>
               </div>
               <button className="w-full py-3 bg-black text-[#39FF14] rounded-xl font-bold text-xs uppercase">Acheter un pack</button>

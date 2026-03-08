@@ -14,7 +14,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const APPS = [
-  { id: "vente", name: "Onyx Vente", icon: Smartphone, color: "bg-blue-600", route: "/vente", desc: "Catalogue & Devis" },
+  { id: "vente", name: "Onyx Jaay", icon: Smartphone, color: "bg-blue-600", route: "/vente", desc: "Catalogue & Devis" },
   { id: "stock", name: "Onyx Stock", icon: Box, color: "bg-emerald-600", route: "/stock", desc: "Gestion d'Inventaire" },
   { id: "tiak", name: "Onyx Tiak", icon: Truck, color: "bg-orange-600", route: "/tiak", desc: "Logistique & Livraisons" },
   { id: "menu", name: "Onyx Menu", icon: Utensils, color: "bg-red-600", route: "/menu", desc: "Menu QR & Commandes" },
@@ -31,7 +31,11 @@ export default function OnyxHubPortal() {
   useEffect(() => {
     const checkUserAccess = async () => {
       setIsMounted(true);
-      const saved = localStorage.getItem("onyx_client_session");
+      const saved =
+        typeof window !== "undefined"
+          ? localStorage.getItem("onyx_client_session") ||
+            sessionStorage.getItem("onyx_client_session")
+          : null;
       if (!saved) {
         router.push("/login");
         return;
@@ -63,7 +67,10 @@ export default function OnyxHubPortal() {
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("onyx_client_session");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("onyx_client_session");
+      sessionStorage.removeItem("onyx_client_session");
+    }
     router.push("/");
   };
 

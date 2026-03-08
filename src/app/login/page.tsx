@@ -9,6 +9,7 @@ export default function ClientLoginPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +32,14 @@ export default function ClientLoginPage() {
       }
 
       if (typeof window !== "undefined") {
-        localStorage.setItem("onyx_client_session", JSON.stringify(data));
+        const serialized = JSON.stringify(data);
+        if (rememberMe) {
+          localStorage.setItem("onyx_client_session", serialized);
+          sessionStorage.removeItem("onyx_client_session");
+        } else {
+          sessionStorage.setItem("onyx_client_session", serialized);
+          localStorage.removeItem("onyx_client_session");
+        }
       }
       router.push("/hub");
     } catch (err: any) {
@@ -105,6 +113,20 @@ export default function ClientLoginPage() {
             >
               Mot de passe oublié ?
             </button>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-zinc-400 font-bold">
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-900 accent-[#39FF14]"
+              />
+              <span className="uppercase tracking-[0.2em]">
+                Rester connecté
+              </span>
+            </label>
           </div>
 
           <button

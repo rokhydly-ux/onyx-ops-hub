@@ -23,7 +23,7 @@ type PlanKey = "solo" | "duo" | "trio" | "full" | "premium" | "master" | "elite"
 
 // --- DATA ---
 const ECOSYSTEM_SAAS = [
-  { id: "vente", name: "Onyx Vente", type: "Catalogue & Devis WhatsApp" },
+  { id: "vente", name: "Onyx Jaay", type: "Catalogue & Devis WhatsApp" },
   { id: "tiak", name: "Onyx Tiak", type: "Logistique & Livreurs" },
   { id: "stock", name: "Onyx Stock", type: "Gestion d'Inventaire" },
   { id: "menu", name: "Onyx Menu", type: "Menu QR & Commandes" },
@@ -56,7 +56,7 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
 };
 
 const SOLUTIONS = [
-  { id: "Onyx Vente", icon: Smartphone, category: "Vente & Boutique", price: 9900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "duo", upsellName: "Pack Duo (Vente + Stock)" },
+  { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 9900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "duo", upsellName: "Pack Duo (Jaay + Stock)" },
   { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 9900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "trio", upsellName: "Pack Trio (Logistique incluse)" },
   { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 9900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "duo", upsellName: "Pack Duo (Vente + Stock)" },
   { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 9900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "trio", upsellName: "Pack Trio (Encaissements)" },
@@ -94,7 +94,7 @@ const RANDOM_SCENARIOS = [
 const RECENT_NOTIFICATIONS = [
   { name: "Aïcha S.", action: "vient de souscrire au", product: "Pack Trio", time: "à l'instant", icon: Package },
   { name: "Resto Dakar", action: "a activé", product: "Onyx Menu", time: "il y a 2 min", icon: Utensils },
-  { name: "Mamadou Fall", action: "a démarré son essai", product: "Onyx Vente", time: "il y a 5 min", icon: Smartphone },
+  { name: "Mamadou Fall", action: "a démarré son essai", product: "Onyx Jaay", time: "il y a 5 min", icon: Smartphone },
   { name: "Boutique Fanta", action: "a généré 45 devis avec", product: "Pack Solo", time: "il y a 12 min", icon: FileText },
   { name: "Ousmane D.", action: "est devenu partenaire", product: "Ambassadeur", time: "il y a 20 min", icon: Handshake },
   { name: "Agence Digital", action: "a acheté le", product: "Pack Full", time: "il y a 35 min", icon: Star },
@@ -415,8 +415,8 @@ export default function OnyxOpsElite() {
         let msg = "";
         let options: string[] = [];
         if(reply.includes("Boutique")) {
-           msg = "Excellent. Pour une boutique, voici mes recommandations :\n⭐ Le Meilleur : Pack Trio (Vente + Stock + Tiak)\n💰 L'Essentiel moins cher : Onyx Vente (Catalogue)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
-           options = ["1. Pack Trio", "2. Onyx Vente"];
+           msg = "Excellent. Pour une boutique, voici mes recommandations :\n⭐ Le Meilleur : Pack Trio (Vente + Stock + Tiak)\n💰 L'Essentiel moins cher : Onyx Jaay (Catalogue)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
+           options = ["1. Pack Trio", "2. Onyx Jaay"];
         }
         else if(reply.includes("Restaurant")) {
            msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : Pack Trio (Encaissement & Stock)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
@@ -429,8 +429,8 @@ export default function OnyxOpsElite() {
            return;
         }
         else {
-           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : Pack Trio\n💰 L'Essentiel moins cher : Onyx Vente\n\nQue choisissez-vous ?";
-           options = ["1. Pack Trio", "2. Onyx Vente"];
+           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : Pack Trio\n💰 L'Essentiel moins cher : Onyx Jaay\n\nQue choisissez-vous ?";
+           options = ["1. Pack Trio", "2. Onyx Jaay"];
         }
         
         setBotMessages(prev => [...prev, { sender: 'bot', text: msg, options }]);
@@ -450,7 +450,7 @@ export default function OnyxOpsElite() {
        }, 1500);
     }
     else if (botStep === 3) {
-      const selected = reply.includes("1") || reply.includes("Trio") || reply.includes("Full") ? (reply.includes("Full") ? "Pack Full" : "Pack Trio") : (reply.includes("Menu") ? "Onyx Menu" : "Onyx Vente");
+      const selected = reply.includes("1") || reply.includes("Trio") || reply.includes("Full") ? (reply.includes("Full") ? "Pack Full" : "Pack Trio") : (reply.includes("Menu") ? "Onyx Menu" : "Onyx Jaay");
       currentData.product = selected;
       setBotUserData(currentData);
       saveLead({ source: 'Bot Fanta', intent: `Choix Produit: ${selected} (${currentData.sector})`, contact: currentData.phone, full_name: currentData.name });
@@ -1438,10 +1438,10 @@ export default function OnyxOpsElite() {
                  </div>
               </div>
               
-              <div>
+             <div>
                  <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Solutions</h4>
                  <ul className="space-y-4 text-sm text-zinc-500 font-bold">
-                    <li><button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="hover:text-[#39FF14] transition">Onyx Vente</button></li>
+                    <li><button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="hover:text-[#39FF14] transition">Onyx Jaay</button></li>
                     <li><button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="hover:text-[#39FF14] transition">Onyx Tiak</button></li>
                     <li><button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="hover:text-[#39FF14] transition">Onyx Menu</button></li>
                     <li><button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="hover:text-[#39FF14] transition">Pack Trio</button></li>
