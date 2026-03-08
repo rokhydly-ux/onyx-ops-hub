@@ -502,7 +502,7 @@ export default function OnyxOpsElite() {
           city: partnerForm.city || '',
           address: partnerForm.address || '',
           country: partnerForm.country,
-          activity: partnerForm.status, // Statut pro (Etudiant, etc.)
+          status_pro: partnerForm.status, // CORRIGÉ: Renommé de 'activity' pour correspondre à la DB
           sales_exp: partnerForm.sales_exp,
           objective: partnerForm.objective,
           strategy: partnerForm.strategy,
