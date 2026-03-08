@@ -64,8 +64,8 @@ export default function AdminDashboard() {
    const [activeView, setActiveView] = useState("dashboard");
    const [searchTerm, setSearchTerm] = useState("");
    const [isLoading, setIsLoading] = useState(true);
-   const [mounted, setMounted] = useState(false); // AJOUTÉ
-   const [todayStr, setTodayStr] = useState("");   // AJOUTÉ
+   const [mounted, setMounted] = useState(false);
+   const [todayStr, setTodayStr] = useState("");
   const [adminUser, setAdminUser] = useState<any>(null);
   const [adminEmail, setAdminEmail] = useState("rokhydly@gmail.com");
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
@@ -184,6 +184,7 @@ export default function AdminDashboard() {
 
     initAdmin();
   }, []);
+
   // --- LOGIQUE DE CRÉATION DE COMPTE (AVEC SÉLECTION SAAS) ---
   const handleCreateAccount = async (lead: any, type: 'client' | 'ambassadeur', saasName?: string) => {
    const table = type === 'client' ? 'clients' : 'partners';
@@ -228,6 +229,7 @@ export default function AdminDashboard() {
      alert("Erreur : " + err.message);
    }
  };
+
   useEffect(() => {
     const close = (e: MouseEvent) => { if (leadActionsOpen && !(e.target as HTMLElement).closest('.lead-actions-wrap')) setLeadActionsOpen(null); };
     document.addEventListener('click', close);
@@ -321,8 +323,9 @@ export default function AdminDashboard() {
     );
   }
 
-  const handleOutsideClick = (setter: any, secondaryAction?: () => void) => (e: any) => {
-    if (e.target.id === "modal-overlay") { setter(false); if(secondaryAction) secondaryAction(); }
+  // Correction de la gestion des clics pour les modales
+  const handleOutsideClick = (setter: any, val: any = false) => (e: any) => {
+    if (e.target.id === "modal-overlay") { setter(val); }
   };
 
   const executeWA = (phone: string | undefined, msg: string | undefined, idIA?: string) => {
@@ -372,7 +375,6 @@ export default function AdminDashboard() {
 
   const getLeadPriorityActions = (lead: any) => {
    const actions = {
-     // Au lieu de lancer direct, on ouvre la modale pour choisir le produit
      client: { label: "Créer Compte Client", fn: () => setShowProductModal({ lead, type: 'client' }) },
      ambassador: { label: "Créer Compte Ambassadeur", fn: () => handleCreateAccount(lead, 'ambassadeur') },
      reply: { label: "Répondre (Simple)", fn: () => replyToLead(lead) }
@@ -1465,7 +1467,7 @@ export default function AdminDashboard() {
 
       {/* MODALE SAAS: ACTIVATION & WhatsApp */}
       {showSaasLogin && saasModalMode === 'create' && (
-         <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasLogin)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500 overflow-y-auto">
+         <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasLogin, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500 overflow-y-auto">
             <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-xl w-full relative shadow-[0_0_120px_rgba(57,255,20,0.15)] animate-in zoom-in-95 duration-500 border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
                <button onClick={() => setShowSaasLogin(null)} className="absolute top-6 sm:top-12 right-6 sm:right-12 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all active:scale-90"><X size={20} className="sm:w-[26px] sm:h-[26px]"/></button>
                
@@ -1511,7 +1513,7 @@ export default function AdminDashboard() {
 
       {/* MODALE CRM EDIT / NEW */}
       {showContactModal && editingContact && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowContactModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowContactModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
           <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 duration-500 border-t-[8px] sm:border-t-[12px] border-black my-auto">
             <button onClick={() => setShowContactModal(false)} className="absolute top-6 sm:top-12 right-6 sm:right-12 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
             
@@ -1571,7 +1573,7 @@ export default function AdminDashboard() {
               {/* DATE D'EXPIRATION */}
               <div className="space-y-2 pt-4">
                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">
-                  Date de fin d'abonnement / d'essai
+                  Date de fin d&apos;abonnement / d&apos;essai
                 </label>
                 <input
                   type="date"
@@ -1644,7 +1646,7 @@ export default function AdminDashboard() {
 
       {/* MODALE DIFFUSION MARKETING */}
       {showDiffusionModal && (
-        <div id="modal-overlay" onClick={handleOutsideClick(setShowDiffusionModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowDiffusionModal, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
            <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[85vh] sm:max-h-[85vh] flex flex-col border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
               <button onClick={() => setShowDiffusionModal(null)} className="absolute top-6 sm:top-6 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
               <div className="mb-8 sm:mb-10 mt-2 sm:mt-0">
@@ -1687,7 +1689,7 @@ export default function AdminDashboard() {
 
       {/* MODALE DÉTAILS PARTENAIRE */}
       {showPartnerModal && selectedPartner && (
-         <div id="modal-overlay" onClick={handleOutsideClick(setShowPartnerModal)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+         <div id="modal-overlay" onClick={handleOutsideClick(setShowPartnerModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
             <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto border-t-[8px] sm:border-t-[12px] border-black custom-scrollbar my-auto">
                <button onClick={() => setShowPartnerModal(false)} className="absolute top-6 sm:top-6 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20} className="sm:w-6 sm:h-6"/></button>
                
@@ -1912,7 +1914,7 @@ export default function AdminDashboard() {
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-8">Pour : {showProductModal.lead?.full_name}</p>
 
             <div className="space-y-4">
-              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4">Sélectionner l'outil principal</label>
+              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4">Sélectionner l&apos;outil principal</label>
               <select id="saas-select" className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10 cursor-pointer appearance-none">
                 <option value="">-- Aucun / À définir --</option>
                 {ECOSYSTEM_SAAS.map(s => (
