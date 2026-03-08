@@ -107,7 +107,20 @@ export default function AdminDashboard() {
 
   // NOUVEAU : État pour la modale de la carte des Hubs
   const [selectedHub, setSelectedHub] = useState<string | null>(null);
-  const [actionsIA, setActionsIA] = useState<any[]>([]);
+  const [actionsIA, setActionsIA] = useState<IAAction[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('onyx_actions_ia');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error("Erreur de parsing pour actionsIA depuis localStorage", e);
+          return [];
+        }
+      }
+    }
+    return [];
+  });
   const [transactions, setTransactions] = useState<any[]>([]);
   const [showRapportIA, setShowRapportIA] = useState(false);
   const [showSaasLogin, setShowSaasLogin] = useState<{ id: string; name: string; color: string } | null>(null);
@@ -567,7 +580,11 @@ export default function AdminDashboard() {
   const scheduleMarketingDiffusion = () => {
       if(selectedContactsForDiffusion.length === 0) return alert("Sélectionnez au moins un contact pour la diffusion.");
       const newAction: IAAction = { id: Date.now().toString(), module: 'Marketing', title: `Diffusion : ${showDiffusionModal?.title}`, desc: `Envoi programmé à ${selectedContactsForDiffusion.length} contacts via le canal WhatsApp.`, date: todayStr, status: 'En attente' };
-      setActionsIA([newAction, ...actionsIA]);
+      setActionsIA(prev => {
+        const updated = [newAction, ...prev];
+        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+        return updated;
+      });
       setShowDiffusionModal(null);
       alert(`Diffusion planifiée avec succès pour ${selectedContactsForDiffusion.length} membres.`);
   };
@@ -643,6 +660,85 @@ export default function AdminDashboard() {
       const search = actionSearchFilter.toLowerCase();
       return a.title.toLowerCase().includes(search) || a.desc.toLowerCase().includes(search);
   });
+
+  const exportFinanceReport = () => {
+    const reportWindow = window.open("", "_blank");
+    if (reportWindow) {
+      const tableRows = filteredTransactions
+        .map(
+          (t: any) => `
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 12px 15px;">${t.date}</td>
+          <td style="padding: 12px 15px;">${t.client}</td>
+          <td style="padding: 12px 15px;">${t.type}</td>
+          <td style="padding: 12px 15px; text-align: right; font-weight: bold; color: ${
+            t.amount > 0 ? "#2ecc71" : "#e74c3c"
+          };">${t.amount.toLocaleString("fr-FR")} F</td>
+          <td style="padding: 12px 15px;">
+            <span style="background-color: #ecf0f1; color: #7f8c8d; padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold;">
+              ${t.status}
+            </span>
+          </td>
+        </tr>
+      `
+        )
+        .join("");
+
+      reportWindow.document.write(`
+        <html>
+          <head>
+            <title>Registre Financier - OnyxOps</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f9fafb; color: #1f2937; }
+              .container { max-width: 1024px; margin: 0 auto; padding: 40px; }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 40px; }
+              .header h1 { font-size: 36px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -1.5px; }
+              .header p { margin: 0; color: #6b7280; font-size: 14px; }
+              .header img { height: 50px; }
+              table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); border-radius: 12px; overflow: hidden; }
+              th, td { text-align: left; padding: 16px 20px; }
+              thead { background-color: #f3f4f6; }
+              th { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; }
+              tbody tr:nth-child(even) { background-color: #f9fafb; }
+              .footer { margin-top: 40px; padding: 30px; background-color: #000; color: white; border-radius: 12px; text-align: center; }
+              .footer h2 { margin: 0; font-size: 18px; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 1px; }
+              .footer p { margin: 8px 0 0; font-size: 48px; font-weight: 900; color: #39FF14; letter-spacing: -2px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <div>
+                  <h1>Registre Financier</h1>
+                  <p>${todayStr}</p>
+                </div>
+                <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" />
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Client</th>
+                    <th>Type</th>
+                    <th style="text-align: right;">Montant</th>
+                    <th>Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+              <div class="footer">
+                <h2>Chiffre d'Affaires Global</h2>
+                <p>${stats.revenue.toLocaleString("fr-FR")} F</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      reportWindow.document.close();
+    }
+  };
   
   return (
     <div className={`flex h-screen bg-[#fafafa] font-sans text-black overflow-hidden relative selection:bg-[#39FF14]/30`}>
@@ -1220,7 +1316,7 @@ export default function AdminDashboard() {
                       </div>
                    </div>
                    <div className="flex gap-4 relative z-10">
-                      <button onClick={() => alert("Génération registre PDF...")} className="w-full md:w-auto bg-black text-[#39FF14] px-8 lg:px-10 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-2xl active:scale-95">
+                      <button onClick={exportFinanceReport} className="w-full md:w-auto bg-black text-[#39FF14] px-8 lg:px-10 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-2xl active:scale-95">
                          <Download size={18}/> Exporter Rapport
                       </button>
                    </div>
