@@ -38,50 +38,49 @@ export default function OnyxHubPortal() {
   }, []);
 
   useEffect(() => {
-    const checkUserAccess = async () => {
-      setIsMounted(true);
-      const savedSession =
-        typeof window !== "undefined"
-          ? localStorage.getItem("onyx_client_session") ||
-            sessionStorage.getItem("onyx_client_session")
-          : null;
-      if (!savedSession) {
-        router.push("/login");
+    const checkSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error("Erreur de session Supabase:", error);
+        setLoading(false);
+        router.push('/login');
+        return;
+      }
+      
+      if (!session) {
+        setLoading(false);
+        router.push('/login');
         return;
       }
 
+      // Session trouvée, on charge les données du client
       try {
-        const parsedUser = JSON.parse(savedSession);
-        
-        const { data, error } = await supabase
+        const { data: client, error: clientError } = await supabase
           .from('clients')
-          .select('*, active_modules:active_saas, expiry_date') // Assurer la récupération
-          .eq('id', parsedUser.id)
+          .select('*, active_modules:active_saas, expiry_date')
+          .eq('id', session.user.id)
           .single();
-        
-        console.log("PROFIL CHARGÉ:", data); // DEBUG
 
-        if (error) throw error;
+        if (clientError) throw clientError;
         
-        setClientData(data);
+        console.log("PROFIL CHARGÉ:", client);
+        setClientData(client);
       } catch (err) {
         console.error("Erreur de récupération des données client :", err);
-        await handleLogout();
+        await handleLogout(); // En cas d'erreur, on déconnecte
       } finally {
         setLoading(false);
       }
     };
-
-    checkUserAccess();
+    
+    setIsMounted(true);
+    checkSession();
   }, [router]);
 
   const handleLogout = async () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("onyx_client_session");
-      sessionStorage.removeItem("onyx_client_session");
-    }
     await supabase.auth.signOut();
-    router.push("/");
+    router.push("/"); // Redirige vers l'accueil après déconnexion
   };
   
   // Fonction pour mettre à jour les données du client dans l'état local
@@ -108,9 +107,7 @@ export default function OnyxHubPortal() {
 
     if (!isMounted || loading) {
       return (
-        <div className="min-h-screen bg-zinc-100 flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
-        </div>
+        <div className="text-white">Chargement sécurisé...</div>
       );
     }
 

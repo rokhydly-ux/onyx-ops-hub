@@ -15,33 +15,20 @@ export default function ClientLoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const phoneClean = phone.replace(/\s+/g, "");
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("phone", phoneClean)
-        .eq("password_temp", password.trim())
-        .maybeSingle();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        phone: phone.replace(/\s+/g, ""),
+        password: password.trim(),
+      });
 
       if (error) throw error;
-      if (!data) {
+      if (!data.session) {
         alert(
-          "Identifiants incorrects. Vérifiez votre numéro et le mot de passe fourni par Onyx."
+          "La session n'a pas pu être créée. Contactez le support."
         );
         return;
       }
 
-      if (typeof window !== "undefined") {
-        const serialized = JSON.stringify(data);
-        if (rememberMe) {
-          localStorage.setItem("onyx_client_session", serialized);
-          sessionStorage.removeItem("onyx_client_session");
-        } else {
-          sessionStorage.setItem("onyx_client_session", serialized);
-          localStorage.removeItem("onyx_client_session");
-        }
-      }
-      router.push("/hub");
+      router.push('/workspace'); 
     } catch (err: any) {
       alert(
         "Erreur de connexion : " + (err?.message || "Veuillez réessayer plus tard.")
