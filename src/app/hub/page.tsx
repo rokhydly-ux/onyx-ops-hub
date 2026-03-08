@@ -26,12 +26,14 @@ export default function OnyxHubPortal() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [unlockedApps, setUnlockedApps] = useState<string[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     const checkUserAccess = async () => {
+      setIsMounted(true);
       const saved = localStorage.getItem("onyx_client_session");
       if (!saved) {
-        router.push("/"); // 👈 On désactive le renvoi temporairement
+        router.push("/login");
         return;
       }
 
@@ -73,7 +75,20 @@ export default function OnyxHubPortal() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-zinc-100 flex items-center justify-center"><div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" /></div>;
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-zinc-100 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (loading)
+    return (
+      <div className="min-h-screen bg-zinc-100 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-[#f4f5f7] font-sans">

@@ -38,6 +38,7 @@ type Contact = {
   active_saas?: string[] | null;
   saas?: string;
   avatar_url?: string;
+  password_temp?: string | null;
 };
 
 type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs";
@@ -65,6 +66,10 @@ export default function AdminDashboard() {
    const [isLoading, setIsLoading] = useState(true);
    const [mounted, setMounted] = useState(false); // AJOUTÉ
    const [todayStr, setTodayStr] = useState("");   // AJOUTÉ
+  const [adminUser, setAdminUser] = useState<any>(null);
+  const [adminEmail, setAdminEmail] = useState("rokhydly@gmail.com");
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [adminAuthLoading, setAdminAuthLoading] = useState(false);
  
    // --- 5. SUPPRESSION DES DONNÉES FICTIVES (On part de zéro) ---
    const [contacts, setContacts] = useState<Contact[]>([]);
@@ -158,7 +163,22 @@ export default function AdminDashboard() {
   useEffect(() => {
     setMounted(true);
     setTodayStr(new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }));
-    fetchSupabaseData();
+
+    const initAdmin = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user) {
+          setAdminUser(data.user);
+          fetchSupabaseData();
+        } else {
+          setIsLoading(false);
+        }
+      } catch {
+        setIsLoading(false);
+      }
+    };
+
+    initAdmin();
   }, []);
   // --- LOGIQUE DE CRÉATION DE COMPTE (AVEC SÉLECTION SAAS) ---
   const handleCreateAccount = async (lead: any, type: 'client' | 'ambassadeur', saasName?: string) => {
@@ -210,6 +230,28 @@ export default function AdminDashboard() {
     return () => document.removeEventListener('click', close);
   }, [leadActionsOpen]);
 
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminAuthLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: adminEmail.trim(),
+        password: adminPasswordInput,
+      });
+      if (error || !data.user) {
+        alert("Identifiants administrateur incorrects.");
+        setAdminUser(null);
+      } else {
+        setAdminUser(data.user);
+        fetchSupabaseData();
+      }
+    } catch (err: any) {
+      alert("Erreur d'authentification : " + (err?.message || err));
+    } finally {
+      setAdminAuthLoading(false);
+    }
+  };
+
   if (!mounted) {
     return (
       <div className={`flex h-screen w-full bg-black items-center justify-center font-sans`}>
@@ -219,6 +261,54 @@ export default function AdminDashboard() {
             <h1 className={`font-sans text-2xl font-black text-white uppercase tracking-[0.5em]`}>OnyxOps</h1>
             <p className="text-[10px] font-bold text-[#39FF14] uppercase tracking-widest mt-2 animate-pulse">Initialisation du Terminal de Contrôle...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!adminUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black font-sans">
+        <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-[3rem] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.8)]">
+          <h1 className="text-2xl font-black uppercase text-white tracking-tighter mb-2 text-center">
+            Accès Administrateur
+          </h1>
+          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.3em] text-center mb-8">
+            Console Maître OnyxOps
+          </p>
+          <form onSubmit={handleAdminLogin} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                required
+                className="w-full p-4 bg-black border border-zinc-800 rounded-2xl font-bold text-xs text-white outline-none focus:border-[#39FF14] focus:ring-2 focus:ring-[#39FF14]/40"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-1">
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                value={adminPasswordInput}
+                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                required
+                className="w-full p-4 bg-black border border-zinc-800 rounded-2xl font-bold text-xs text-white outline-none focus:border-[#39FF14] focus:ring-2 focus:ring-[#39FF14]/40"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={adminAuthLoading}
+              className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-white transition disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+            >
+              {adminAuthLoading ? "Vérification..." : "Entrer dans le Terminal"}
+            </button>
+          </form>
         </div>
       </div>
     );
@@ -315,7 +405,16 @@ export default function AdminDashboard() {
       }
     }
     if (!supabase) return;
-    const payload = { ...editingContact, phone: phoneClean, updated_at: new Date().toISOString() };
+    const payload: any = { ...editingContact, phone: phoneClean, updated_at: new Date().toISOString() };
+    const hasSaas =
+      (Array.isArray(payload.active_saas) && payload.active_saas.length > 0) ||
+      !!payload.saas;
+    if (hasSaas) {
+      payload.type = "Client";
+      if (!payload.status) {
+        payload.status = "Client";
+      }
+    }
     const isNew = !payload.id;
     if (isNew) delete payload.id;
     try {
@@ -555,6 +654,12 @@ export default function AdminDashboard() {
             <div className="hidden lg:flex items-center gap-5 pr-10 border-r border-zinc-200">
                <button onClick={fetchSupabaseData} className={`text-zinc-400 hover:text-black transition-all ${isRefreshing ? 'animate-spin text-[#39FF14]' : ''}`} title="Rafraîchir les données">
                   <RefreshCcw size={22}/>
+               </button>
+               <button
+                 onClick={() => { setTempAdminProfile({ ...adminProfile }); setShowProfileModal(true); }}
+                 className="flex items-center gap-2 text-[11px] font-black uppercase text-zinc-500 hover:text-black"
+               >
+                 <Settings size={18} /> Paramètres
                </button>
                <div className="relative cursor-pointer group" onClick={() => setActiveView('leads')}>
   <Bell size={22} className={`${leads.length > 0 ? 'text-[#39FF14] animate-bounce' : 'text-zinc-400'}`}/>
@@ -1473,6 +1578,17 @@ export default function AdminDashboard() {
               <div className="space-y-2">
                  <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Notes de Suivi</label>
                  <input type="text" value={editingContact?.status || ''} onChange={e => setEditingContact({...editingContact, status: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="EX: EN TEST JUSQU'AU 15/03" />
+              </div>
+
+              <div className="space-y-2">
+                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Mot de passe temporaire (client)</label>
+                 <input
+                   type="text"
+                   value={editingContact?.password_temp || ''}
+                   onChange={e => setEditingContact({ ...editingContact, password_temp: e.target.value })}
+                   className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300"
+                   placeholder="Mot de passe communiqué au client"
+                 />
               </div>
 
               <button type="submit" className="w-full bg-black text-[#39FF14] py-5 sm:py-7 rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-xs sm:text-sm mt-6 sm:mt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)] sm:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 sm:gap-4 active:scale-95">
