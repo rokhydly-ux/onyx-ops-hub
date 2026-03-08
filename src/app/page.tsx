@@ -495,19 +495,18 @@ export default function OnyxOpsElite() {
     }
     
     try {
-       // 1. On prépare l'objet pour la table 'ambassadors' avec tous les champs
+       // 1. On prépare l'objet pour la table 'ambassadors' avec les clés exactes
        const ambassadorPayload = {
-          full_name: partnerForm.full_name, 
-          contact: partnerForm.contact, 
-          city: partnerForm.city || '',
-          address: partnerForm.address || '',
+          full_name: partnerForm.full_name,
+          contact: partnerForm.contact,
+          city: partnerForm.city,
+          address: partnerForm.address,
           country: partnerForm.country,
-          status_pro: partnerForm.status, // CORRIGÉ: Renommé de 'activity' pour correspondre à la DB
-          sales_exp: partnerForm.sales_exp,
-          objective: partnerForm.objective,
+          activity: partnerForm.status, // Le statut pro (Étudiant, etc.) va dans 'activity'
+          experience: partnerForm.sales_exp,
+          revenue_goal: partnerForm.objective,
           strategy: partnerForm.strategy,
-          status: 'En attente', // Statut de la candidature
-          sales: 0
+          status: 'En attente' // Le statut de la candidature
        };
        
        const { data: ambData, error: ambError } = await supabase
@@ -523,11 +522,10 @@ export default function OnyxOpsElite() {
        // 2. On crée AUSSI le lead pour qu'il apparaisse dans le CRM
        await saveLead({ 
           source: 'Formulaire Ambassadeur', 
-          intent: 'Candidature Ambassadeur', // Intent corrigé
+          intent: 'Candidature Ambassadeur',
           contact: partnerForm.contact, 
           full_name: partnerForm.full_name,
-          // Message enrichi avec toutes les données pour le CRM
-          message: `Statut pro: ${partnerForm.status} | Expérience: ${partnerForm.sales_exp} | Objectif: ${partnerForm.objective} | Stratégie: ${partnerForm.strategy} | Ville: ${partnerForm.city} | Adresse: ${partnerForm.address}`,
+          message: `Objectif de revenu: ${partnerForm.objective} | Statut pro: ${partnerForm.status} | Expérience: ${partnerForm.sales_exp} | Stratégie: ${partnerForm.strategy}`,
           status: 'Nouveau' // Statut du lead dans le CRM
        });
        
