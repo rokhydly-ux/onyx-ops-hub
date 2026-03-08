@@ -71,6 +71,7 @@ export default function AdminDashboard() {
   const [adminEmail, setAdminEmail] = useState("rokhydly@gmail.com");
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
   const [adminAuthLoading, setAdminAuthLoading] = useState(false);
+  const [isAutomating, setIsAutomating] = useState(false);
 
   // 👇 AJOUTE CES DEUX LIGNES JUSTE ICI 👇
   const [editingArticle, setEditingArticle] = useState<any>(null);
@@ -604,6 +605,88 @@ export default function AdminDashboard() {
       saas: ""
     });
     setShowContactModal(true);
+  };
+
+  const runAutomatedFollowUps = async () => {
+    setIsAutomating(true);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const newActions: IAAction[] = [];
+
+    for (const contact of contacts) {
+        if (!contact.expiration_date) continue;
+        const expirationDate = new Date(contact.expiration_date);
+        expirationDate.setHours(0, 0, 0, 0);
+
+        const diffTime = expirationDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        let message = '';
+        let subject = '';
+        let step = '';
+
+        if (contact.type === 'Prospect' || contact.type === 'Essai') {
+            if (diffDays === 2) {
+                step = 'Étape 1 (Essai J-2)';
+                subject = `[OnyxOps] Votre essai gratuit expire bientôt`;
+                message = `Bonjour ${contact.full_name}, votre essai gratuit expire dans 48h. Prêt à passer à la vitesse supérieure ?`;
+            } else if (diffDays === 0) {
+                step = 'Étape 2 (Essai J-0)';
+                subject = `[OnyxOps] Dernière chance pour votre essai`;
+                message = `Dernière chance ! Votre accès OnyxOps se termine ce soir.`;
+            }
+        } else if (contact.type === 'Client') {
+            if (diffDays === 2) {
+                step = 'Étape 3 (Client J-2)';
+                const renewalDate = new Date(expirationDate);
+                renewalDate.setDate(renewalDate.getDate() + 1); 
+                subject = `[OnyxOps] Rappel de renouvellement`;
+                message = `Rappel : Votre abonnement se renouvelle automatiquement le ${renewalDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}.`;
+            }
+        }
+        
+        if (message) {
+            const newAction: IAAction = {
+                id: `ia-${Date.now()}-${contact.id}`,
+                module: 'IA-SCAN',
+                title: `${step}: ${contact.full_name}`,
+                desc: message,
+                date: todayStr,
+                status: 'Auto-généré',
+                phone: contact.phone,
+                msg: message,
+            };
+            newActions.push(newAction);
+
+            try {
+                await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subject: subject,
+                        text: message,
+                        html: `<p><b>Action IA:</b> ${step}</p><p><b>Client:</b> ${contact.full_name}</p><p><b>Message:</b> ${message}</p>`,
+                    }),
+                });
+            } catch (error) {
+                console.error(`Failed to send email for ${contact.full_name}:`, error);
+            }
+        }
+    }
+
+    if (newActions.length > 0) {
+        setActionsIA(prev => {
+            const updated = [...newActions, ...prev];
+            localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+            return updated;
+        });
+        alert(`${newActions.length} relance(s) automatique(s) scannée(s) et ajoutée(s) au Journal IA. Une copie a été envoyée sur rokhydly@gmail.com.`);
+    } else {
+        alert('Scan IA terminé. Aucun lead ne correspondait aux critères de relance (J-2, J-0).');
+    }
+    
+    setShowRapportIA(false);
+    setIsAutomating(false);
   };
 
   // --- WIDGET EXPIRATIONS / RENOUVELLEMENTS CLIENTS ---
@@ -2002,45 +2085,28 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-6 mb-10">
               <div className="w-16 h-16 bg-black rounded-[2rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Sparkles size={32} className="animate-pulse"/></div>
               <div>
-                <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Scan IA CRM</h3>
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Analyse Prédictive Onyx</p>
+                <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Scan IA Relances</h3>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Détection des Expirations J-2 & J-0</p>
               </div>
             </div>
 
-            <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-            {contacts.filter(c => !scannedLeadIds.includes(c.id)).length > 0 ? (
-                contacts.filter(c => !scannedLeadIds.includes(c.id)).slice(0, 3).map((c, i) => (
-                  <div key={i} className="p-6 bg-zinc-50 rounded-[2.5rem] border border-zinc-100 flex justify-between items-center group hover:border-[#39FF14] transition-all">
-                    <div>
-                      <p className="font-black text-lg uppercase text-black tracking-tighter">{c.full_name}</p>
-                      <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Score de Conversion : <span className="text-[#39FF14]">85%</span></p>
-                    </div>
-                    <button onClick={() => {
-                        const msg = `Bonjour ${c.full_name}, c'est l'équipe OnyxOps. 🚀\n\nJ'ai remarqué que vous utilisez nos outils depuis un moment et j'aimerais vous proposer une optimisation rapide pour booster vos résultats.\n\nComment préférez-vous avancer ? Répondez juste avec un chiffre :\n\n1️⃣ Je veux un audit gratuit de mon compte.\n2️⃣ Je souhaite découvrir le pack supérieur.\n3️⃣ J'ai une question technique.\n4️⃣ Pas intéressé pour le moment.`;
-                        planifyCrmAction(
-                            `Action CRM : Contacter ${c.full_name}`, 
-                            "Relance ciblée avec CTA interactif (choix 1 à 4).", 
-                            c.phone || '', 
-                            msg
-                        );
-                        // CORRECTION : On cache ce prospect de la liste des suggestions
-                        setScannedLeadIds(prev => {
-                           const updated = [...prev, c.id];
-                           localStorage.setItem('onyx_scanned_leads', JSON.stringify(updated));
-                           return updated;
-                        });
-                    }} className="bg-black text-[#39FF14] px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-xl hover:scale-105 transition-all">Planifier</button>
-                  </div>
-                ))
-              ) : (
-                <div className="p-6 text-center text-zinc-400 font-bold uppercase text-xs tracking-widest border border-dashed border-zinc-200 rounded-[2rem]">
-                  Aucune donnée à analyser
-                </div>
-              )}
+            <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar text-center">
+               <p className="text-sm text-zinc-600 font-medium">
+                 Le Scan IA va analyser la base de données CRM pour détecter les essais et abonnements arrivant à expiration (J-2 et J-0).
+                 <br/><br/>
+                 Pour chaque contact trouvé, une action sera automatiquement créée dans le <strong>Journal IA</strong> et une copie de la relance sera envoyée par email à <strong>rokhydly@gmail.com</strong>.
+               </p>
             </div>
 
             <div className="mt-10 pt-8 border-t border-zinc-100 text-center">
-              <p className="text-[9px] font-black uppercase text-zinc-300 tracking-[0.3em]">Algorithme Onyx-Scan v2.4 (Mars 2026)</p>
+              <button
+                onClick={runAutomatedFollowUps}
+                disabled={isAutomating}
+                className="w-full bg-[#39FF14] text-black py-5 rounded-[2rem] font-black uppercase text-xs hover:scale-[1.03] transition-all active:scale-95 shadow-[0_20px_40px_rgba(57,255,20,0.15)] flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-wait"
+              >
+                {isAutomating ? 'Analyse en cours...' : 'Lancer le Scan & Envoyer les Relances'}
+              </button>
+              <p className="text-[9px] font-black uppercase text-zinc-300 tracking-[0.3em] mt-4">Algorithme Onyx-Scan v2.5 (Mars 2026)</p>
             </div>
           </div>
         </div>
