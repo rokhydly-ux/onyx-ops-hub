@@ -499,15 +499,15 @@ export default function OnyxOpsElite() {
        const ambassadorPayload = {
           full_name: partnerForm.full_name,
           contact: partnerForm.contact,
+          phone: partnerForm.contact, // Redondance pour robustesse
           city: partnerForm.city,
           address: partnerForm.address,
           country: partnerForm.country,
-          activity: partnerForm.status, // Le statut pro (Étudiant, etc.) va dans 'activity'
-          experience: partnerForm.sales_exp,
-          revenue_goal: partnerForm.objective,
-          strategy: partnerForm.strategy,
-          status: 'En attente' // Le statut de la candidature
+          activity: partnerForm.status,
+          status: 'En attente'
        };
+
+       console.log("PAYLOAD ENVOYÉ:", ambassadorPayload); // Log de débogage
        
        const { data: ambData, error: ambError } = await supabase
          .from('ambassadors')
@@ -526,7 +526,7 @@ export default function OnyxOpsElite() {
           contact: partnerForm.contact, 
           full_name: partnerForm.full_name,
           message: `Objectif de revenu: ${partnerForm.objective} | Statut pro: ${partnerForm.status} | Expérience: ${partnerForm.sales_exp} | Stratégie: ${partnerForm.strategy}`,
-          status: 'Nouveau' // Statut du lead dans le CRM
+          status: 'Nouveau'
        });
        
        setPartnerStep('success');
