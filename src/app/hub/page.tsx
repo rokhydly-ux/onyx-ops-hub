@@ -8,10 +8,10 @@ import {
   User, GraduationCap, ArrowRight, ShieldCheck 
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import AccountModal from "@/components/AccountModal"; // Import de la modale
+import AccountModal from "@/components/AccountModal"; // Import de la modales
 
 const APPS = [
-  { id: "vente", name: "Onyx Jaay", icon: Smartphone, color: "bg-blue-600", route: "/workspace/jaay", desc: "Catalogue & Devis" },
+  { id: "vente", name: "Onyx Jaay", icon: Smartphone, color: "bg-blue-600", route: "/vente", desc: "Catalogue & Devis" },
   { id: "stock", name: "Onyx Stock", icon: Box, color: "bg-emerald-600", route: "/stock", desc: "Gestion d'Inventaire" },
   { id: "tiak", name: "Onyx Tiak", icon: Truck, color: "bg-orange-600", route: "/tiak", desc: "Logistique & Livraisons" },
   { id: "menu", name: "Onyx Menu", icon: Utensils, color: "bg-red-600", route: "/menu", desc: "Menu QR & Commandes" },

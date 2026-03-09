@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import Link from "next/link";
+import { BarChart2, Settings, History } from "lucide-react";
 
 // Définition de l'interface pour le profil utilisateur
 interface UserProfile {
@@ -103,12 +104,28 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-200">
-            <h3 className="font-black uppercase mb-6">Mes Solutions</h3>
+            <h3 className="font-black uppercase mb-6">Mes Solutions Pro</h3>
             <div className="space-y-4">
               <SaasCard name="Onyx Jaay" href="/vente" isActive={onyxJaayActive} />
               {/* Vous pouvez ajouter d'autres SaaS ici sur le même modèle */}
               <button className="w-full mt-4 py-3 bg-black text-[#39FF14] rounded-xl font-bold text-xs uppercase">Acheter ou gérer un pack</button>
             </div>
+          </div>
+
+          <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm flex flex-col justify-between">
+            <div>
+                <h3 className="font-black uppercase mb-2">Performances</h3>
+                <p className="text-xs text-zinc-500 mb-6">Suivez vos ventes et la croissance de votre boutique.</p>
+            </div>
+            <Link href="/dashboard/stats" className="w-full py-4 bg-zinc-100 hover:bg-black hover:text-[#39FF14] text-black rounded-xl font-black text-xs uppercase transition-colors flex items-center justify-center gap-2">
+                <BarChart2 size={16} /> Voir mes statistiques
+            </Link>
+            <Link href="/dashboard/orders" className="w-full mt-3 py-4 bg-zinc-100 hover:bg-black hover:text-[#39FF14] text-black rounded-xl font-black text-xs uppercase transition-colors flex items-center justify-center gap-2">
+                <History size={16} /> Historique Commandes
+            </Link>
+            <Link href="/dashboard/account" className="w-full mt-3 py-4 bg-white border-2 border-zinc-100 hover:border-black text-black rounded-xl font-black text-xs uppercase transition-colors flex items-center justify-center gap-2">
+                <Settings size={16} /> Configurer ma boutique
+            </Link>
           </div>
 
           {(profile.role === "partner" || profile.role === "admin") ? (
