@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useState, useRef, DragEvent } from 'react';
-import { MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Image as ImageIcon, DollarSign, Tag, Type } from 'lucide-react';
+import { 
+  MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, 
+  Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
+  Settings, Store, ChevronRight, Share2 
+} from 'lucide-react';
 
 // --- TYPES ---
 interface Product {
@@ -15,22 +19,21 @@ interface Product {
 
 // --- INITIAL DATA ---
 const initialProducts: Product[] = [
-  { id: 1, name: 'Boubou Onyx Premium', price: 75000, description: 'Tissu de luxe, coupe moderne.', image: 'https://i.ibb.co/pPZJz7j/boubou-1.jpg', category: 'Luxe' },
-  { id: 2, name: 'Chemise en Lin "Dakar"', price: 25000, description: 'Légère et parfaite pour le climat.', image: 'https://i.ibb.co/3sSqcCg/chemise-lin.jpg', category: 'Casual' },
-  { id: 3, name: 'Ensemble Tailleur "Business"', price: 85000, description: 'Pour un look pro et élégant.', image: 'https://i.ibb.co/yQJ4c1g/tailleur-femme.jpg', category: 'Professionnel' },
-  { id: 4, name: 'Robe de Soirée "Lagoon"', price: 120000, description: 'Faites sensation lors de vos événements.', image: 'https://i.ibb.co/VvzHZj3/robe-soiree.jpg', category: 'Soirée' },
-  { id: 5, name: 'T-Shirt "Yoff"', price: 15000, description: 'Coton bio, design exclusif.', image: 'https://i.ibb.co/gR7HqvL/tshirt-yoff.jpg', category: 'Casual' },
-  { id: 6, name: 'Grand Boubou "Teranga"', price: 95000, description: 'Tradition et modernité réunies.', image: 'https://i.ibb.co/9gXqJqS/grand-boubou.jpg', category: 'Traditionnel' },
+  { id: 1, name: 'Boubou Onyx Premium', price: 75000, description: 'Tissu de luxe, coupe moderne, parfait pour les grandes occasions.', image: 'https://i.ibb.co/pPZJz7j/boubou-1.jpg', category: 'Luxe' },
+  { id: 2, name: 'Ensemble Tailleur "Business"', price: 85000, description: 'Pour un look pro et élégant au bureau.', image: 'https://i.ibb.co/yQJ4c1g/tailleur-femme.jpg', category: 'Professionnel' },
+  { id: 3, name: 'Robe de Soirée "Lagoon"', price: 120000, description: 'Faites sensation lors de vos événements avec cette pièce unique.', image: 'https://i.ibb.co/VvzHZj3/robe-soiree.jpg', category: 'Soirée' },
+  { id: 4, name: 'Chemise en Lin "Dakar"', price: 25000, description: 'Légère et respirante, idéale pour la saison chaude.', image: 'https://i.ibb.co/3sSqcCg/chemise-lin.jpg', category: 'Casual' },
 ];
 
-const WHATSAPP_NUMBER = "221771234567"; // Replace with the actual WhatsApp number
+const WHATSAPP_NUMBER = "221771234567"; // À remplacer par le vrai numéro
 
-export default function OnyxJaayPage() {
+export default function OnyxJaayDashboard() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [isEditingMode, setIsEditingMode] = useState(true); // Default to true for showcase
+  const [isEditingMode, setIsEditingMode] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAIWriting, setIsAIWriting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [activeCategory, setActiveCategory] = useState('Toutes');
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -60,10 +63,8 @@ export default function OnyxJaayPage() {
 
   const handleSaveProduct = (productData: Product) => {
     if (editingProduct) {
-      // Update existing product
       setProducts(products.map(p => p.id === productData.id ? productData : p));
     } else {
-      // Add new product
       const newProduct = { ...productData, id: Date.now() };
       setProducts([...products, newProduct]);
     }
@@ -73,23 +74,16 @@ export default function OnyxJaayPage() {
   const handleAIWrite = () => {
     setIsAIWriting(true);
     setTimeout(() => {
-      const aiDescription = `✨ **Sublimez votre style avec le Boubou Onyx Premium.** ✨
-
-Confectionné à partir d'un tissu de luxe importé, ce boubou incarne l'élégance et le raffinement. Sa coupe moderne et épurée s'adapte à toutes les morphologies, vous assurant une allure distinguée en toute occasion.
-
-- **Tissu Exceptionnel** : Douceur et confort incomparables.
-- **Design Exclusif** : Un mélange parfait de tradition et de modernité.
-- **Finitions Haute Couture** : Chaque détail est pensé pour la perfection.
-
-Commandez le vôtre aujourd'hui et devenez l'icône de l'élégance dakaroise.`;
-
-      // In a real scenario, you'd update the form state here
+      const aiDescription = `✨ **Sublimez votre style avec cette pièce exclusive !** ✨\n\nConfectionné avec soin, cet article incarne l'élégance et le raffinement. Sa coupe moderne s'adapte à toutes les morphologies.\n\n- **Qualité Premium** : Matériaux sélectionnés avec soin.\n- **Design Unique** : Démarquez-vous avec style.\n\nNe manquez pas cette pépite, commandez dès maintenant !`;
       const descriptionTextarea = document.getElementById('product-description') as HTMLTextAreaElement;
       if (descriptionTextarea) {
         descriptionTextarea.value = aiDescription;
+        // Trigger React state update manually if needed, or rely on onChange
+        const event = new Event('input', { bubbles: true });
+        descriptionTextarea.dispatchEvent(event);
       }
       setIsAIWriting(false);
-    }, 2000);
+    }, 1500);
   };
 
   // --- DRAG & DROP LOGIC ---
@@ -112,73 +106,141 @@ Commandez le vôtre aujourd'hui et devenez l'icône de l'élégance dakaroise.`;
     setProducts(newProducts);
   };
 
+  const categories = ['Toutes', 'Luxe', 'Professionnel', 'Soirée', 'Casual'];
+  const filteredProducts = activeCategory === 'Toutes' ? products : products.filter(p => p.category === activeCategory);
+
   // --- RENDER ---
   return (
-    <div className="min-h-screen bg-black text-white font-sans">
-      <header className="py-8 px-6 md:px-12 border-b border-zinc-800">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-black tracking-tighter uppercase">Onyx <span className="text-[#39FF14]">Jaay</span></h1>
-            <p className="text-zinc-500 text-sm">Votre catalogue WhatsApp-first.</p>
-          </div>
-          <div className="flex items-center gap-4">
-             <span className="text-xs font-bold uppercase mr-2 text-zinc-400">Mode Propriétaire</span>
-             <label htmlFor="editModeToggle" className="cursor-pointer">
-                <div className={`w-14 h-8 rounded-full p-1 transition-colors ${isEditingMode ? 'bg-[#39FF14]' : 'bg-zinc-700'}`}>
-                   <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${isEditingMode ? 'translate-x-6' : 'translate-x-0'}`} />
-                </div>
-                <input id="editModeToggle" type="checkbox" checked={isEditingMode} onChange={() => setIsEditingMode(!isEditingMode)} className="hidden" />
-             </label>
+    <div className="flex h-screen bg-black text-white font-sans overflow-hidden">
+      
+      {/* --- SIDEBAR --- */}
+      <aside className="w-64 bg-zinc-950 border-r border-zinc-800 flex flex-col hidden md:flex">
+        <div className="p-6 border-b border-zinc-800">
+          <h1 className="text-2xl font-black tracking-tighter uppercase">Onyx <span className="text-[#39FF14]">Jaay</span></h1>
+          <p className="text-zinc-500 text-xs mt-1">Catalogue Creator</p>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto py-6">
+          <nav className="px-4 space-y-2 mb-8">
+            <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-900 text-white font-semibold transition">
+              <LayoutDashboard size={18} className="text-[#39FF14]" /> Tableau de bord
+            </a>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-zinc-900 hover:text-white transition">
+              <Store size={18} /> Ma Boutique
+            </a>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-zinc-900 hover:text-white transition">
+              <Settings size={18} /> Paramètres
+            </a>
+          </nav>
+
+          <div className="px-4 space-y-2">
+            <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
+            {categories.map(cat => (
+              <button 
+                key={cat} 
+                onClick={() => setActiveCategory(cat)}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeCategory === cat ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'}`}
+              >
+                {cat}
+                {activeCategory === cat && <ChevronRight size={14} />}
+              </button>
+            ))}
           </div>
         </div>
-      </header>
-      
-      <main className="p-6 md:p-12">
-        {isEditingMode && (
-            <div className="fixed bottom-8 right-8 z-50 flex items-center gap-4">
-                <button onClick={handleAddProduct} className="bg-[#39FF14] text-black px-6 py-4 rounded-full font-black text-sm uppercase tracking-wider hover:bg-white transition duration-300 shadow-lg flex items-center gap-2">
-                    <Plus size={18}/> Ajouter un Produit
-                </button>
-                 <button className="bg-zinc-800 text-white px-6 py-4 rounded-full font-black text-sm uppercase tracking-wider hover:bg-zinc-700 transition duration-300 shadow-lg flex items-center gap-2">
-                    <FileUp size={18}/> Importer XLS
-                </button>
+
+        <div className="p-6 border-t border-zinc-800">
+          <button className="w-full flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white py-3 rounded-xl text-sm font-bold transition">
+            <Share2 size={16} /> Partager la boutique
+          </button>
+        </div>
+      </aside>
+
+      {/* --- MAIN CONTENT --- */}
+      <main className="flex-1 overflow-y-auto relative">
+        {/* Top Header Toggle */}
+        <header className="absolute top-0 right-0 p-6 z-10 flex items-center gap-4">
+          <span className="text-xs font-bold uppercase mr-2 text-white bg-black/50 px-3 py-1 rounded-full backdrop-blur-md border border-zinc-800">Mode Éditeur</span>
+          <label htmlFor="editModeToggle" className="cursor-pointer">
+            <div className={`w-14 h-8 rounded-full p-1 transition-colors border border-zinc-700 ${isEditingMode ? 'bg-[#39FF14]' : 'bg-zinc-800/80 backdrop-blur-md'}`}>
+               <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${isEditingMode ? 'translate-x-6' : 'translate-x-0'}`} />
             </div>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {products.map((product, index) => (
-            <div 
-              key={product.id} 
-              className={`bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all duration-300 ${isEditingMode ? 'cursor-grab active:cursor-grabbing hover:border-[#39FF14]/50' : ''}`}
-              draggable={isEditingMode}
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragEnter={(e) => handleDragEnter(e, index)}
-              onDragEnd={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-            >
-              <div className="relative">
-                <img src={product.image} alt={product.name} className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
-                {isEditingMode && (
-                    <div className="absolute top-4 right-4 flex flex-col gap-3">
-                        <button onClick={() => handleEditProduct(product)} className="bg-black/70 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white hover:text-black transition"><Edit size={16}/></button>
-                        <button onClick={() => handleDeleteProduct(product.id)} className="bg-black/70 backdrop-blur-sm text-red-500 p-3 rounded-full hover:bg-red-500 hover:text-white transition"><Trash2 size={16}/></button>
-                    </div>
-                )}
-              </div>
-              <div className="p-6 flex-1 flex flex-col">
-                <h2 className="text-xl font-bold tracking-tight">{product.name}</h2>
-                <p className="text-sm text-zinc-400 mt-1 flex-1">{product.description}</p>
-                <div className="flex justify-between items-center mt-6">
-                  <p className="text-2xl font-black text-[#39FF14]">{product.price.toLocaleString('fr-SN')} <span className="text-sm font-bold text-zinc-500">F CFA</span></p>
-                  <button onClick={() => handleWhatsAppOrder(product.name)} className="bg-white text-black px-4 py-2 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] transition-colors flex items-center gap-2">
-                    <MessageSquare size={16} /> Commander
+            <input id="editModeToggle" type="checkbox" checked={isEditingMode} onChange={() => setIsEditingMode(!isEditingMode)} className="hidden" />
+          </label>
+        </header>
+
+        {/* Banner */}
+        <div className="h-64 md:h-80 bg-gradient-to-br from-zinc-900 via-black to-zinc-900 relative border-b border-zinc-800 overflow-hidden flex items-end">
+          <div className="absolute inset-0 bg-[url('https://i.ibb.co/3sSqcCg/chemise-lin.jpg')] opacity-20 bg-cover bg-center mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          <div className="relative z-10 p-8 md:p-12 w-full">
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-2">Collection {activeCategory !== 'Toutes' ? activeCategory : 'Onyx'}</h2>
+            <p className="text-zinc-400 max-w-xl text-lg">Découvrez nos pièces exclusives, commandez directement via WhatsApp en un seul clic.</p>
+          </div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="p-8 md:p-12">
+          {isEditingMode && (
+              <div className="fixed bottom-8 right-8 z-50 flex flex-col md:flex-row items-center gap-4">
+                  <button className="bg-zinc-800 text-white px-6 py-4 rounded-full font-black text-sm uppercase tracking-wider hover:bg-zinc-700 transition duration-300 shadow-xl flex items-center gap-2 border border-zinc-700">
+                      <FileUp size={18}/> Importer XLS
                   </button>
+                  <button onClick={handleAddProduct} className="bg-[#39FF14] text-black px-6 py-4 rounded-full font-black text-sm uppercase tracking-wider hover:bg-white transition duration-300 shadow-xl flex items-center gap-2 shadow-[#39FF14]/20">
+                      <Plus size={18}/> Ajouter un Produit
+                  </button>
+              </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+            {filteredProducts.map((product, index) => (
+              <div 
+                key={product.id} 
+                className={`bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all duration-300 ${isEditingMode ? 'cursor-grab active:cursor-grabbing hover:border-[#39FF14]/50 hover:shadow-[0_0_30px_rgba(57,255,20,0.1)]' : ''}`}
+                draggable={isEditingMode && activeCategory === 'Toutes'} // Drag & Drop only logical when all products are shown
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragEnter={(e) => handleDragEnter(e, index)}
+                onDragEnd={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <div className="relative">
+                  <img src={product.image} alt={product.name} className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-700 text-[#39FF14]">
+                    {product.category}
+                  </div>
+                  {isEditingMode && (
+                      <div className="absolute top-4 right-4 flex flex-col gap-2">
+                          <button onClick={() => handleEditProduct(product)} className="bg-black/70 backdrop-blur-md text-white p-2.5 rounded-full hover:bg-[#39FF14] hover:text-black transition border border-zinc-700 shadow-lg"><Edit size={16}/></button>
+                          <button onClick={() => handleDeleteProduct(product.id)} className="bg-black/70 backdrop-blur-md text-red-500 p-2.5 rounded-full hover:bg-red-500 hover:text-white transition border border-zinc-700 shadow-lg"><Trash2 size={16}/></button>
+                      </div>
+                  )}
+                </div>
+                <div className="p-6 flex-1 flex flex-col">
+                  <h3 className="text-xl font-bold tracking-tight">{product.name}</h3>
+                  <p className="text-sm text-zinc-400 mt-2 flex-1 line-clamp-2">{product.description}</p>
+                  <div className="flex justify-between items-end mt-6">
+                    <div>
+                      <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-1">Prix</p>
+                      <p className="text-2xl font-black text-white">{product.price.toLocaleString('fr-SN')} <span className="text-sm font-bold text-[#39FF14]">FCFA</span></p>
+                    </div>
+                    <button onClick={() => handleWhatsAppOrder(product.name)} className="bg-white text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] transition-colors flex items-center gap-2 shadow-lg">
+                      <MessageSquare size={16} /> Commander
+                    </button>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-20 text-zinc-500">
+              <Store size={48} className="mx-auto mb-4 opacity-20" />
+              <p>Aucun produit dans cette catégorie.</p>
             </div>
-          ))}
+          )}
         </div>
       </main>
 
+      {/* --- MODAL --- */}
       {isModalOpen && (
          <ProductModal 
             product={editingProduct}
@@ -214,7 +276,7 @@ function ProductModal({ product, isOpen, onClose, onSave, onAIWrite, isAIWriting
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: name === 'price' ? parseFloat(value) : value }));
+        setFormData(prev => ({ ...prev, [name]: name === 'price' ? parseFloat(value) || 0 : value }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -225,61 +287,62 @@ function ProductModal({ product, isOpen, onClose, onSave, onAIWrite, isAIWriting
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 animate-in fade-in" onClick={onClose}>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl shadow-2xl relative animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-                <button onClick={onClose} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition"><X size={24}/></button>
-                <form onSubmit={handleSubmit} className="p-8 md:p-12">
-                    <h2 className="text-2xl font-black tracking-tighter mb-8">{product ? 'Modifier le Produit' : 'Ajouter un Nouveau Produit'}</h2>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
+            <div className="bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-2xl shadow-2xl relative animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                <button type="button" onClick={onClose} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition bg-zinc-900 p-2 rounded-full"><X size={20}/></button>
+                <form onSubmit={handleSubmit} className="p-8 md:p-10">
+                    <h2 className="text-2xl font-black tracking-tighter mb-8 text-white">{product ? 'Modifier le Produit' : 'Nouveau Produit'}</h2>
                     
                     <div className="space-y-6">
-                        {/* Image URL */}
-                        <div className="relative">
-                            <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
-                            <input type="text" name="image" value={formData.image} onChange={handleChange} placeholder="URL de l'image" className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 pl-12 font-bold text-white outline-none focus:border-[#39FF14] transition" required />
+                        <div className="relative group">
+                            <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#39FF14] transition" size={20} />
+                            <input type="text" name="image" value={formData.image} onChange={handleChange} placeholder="URL de l'image (ex: https://...)" className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 pl-12 font-medium text-white outline-none focus:border-[#39FF14] transition focus:ring-1 focus:ring-[#39FF14]" required />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Name */}
-                            <div className="relative">
-                                <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
-                                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Nom du produit" className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 pl-12 font-bold text-white outline-none focus:border-[#39FF14] transition" required />
+                            <div className="relative group">
+                                <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#39FF14] transition" size={20} />
+                                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Nom du produit" className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 pl-12 font-medium text-white outline-none focus:border-[#39FF14] transition focus:ring-1 focus:ring-[#39FF14]" required />
                             </div>
-                            {/* Price */}
-                            <div className="relative">
-                                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
-                                <input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="Prix (F CFA)" className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 pl-12 font-bold text-white outline-none focus:border-[#39FF14] transition" required />
+                            <div className="relative group">
+                                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#39FF14] transition" size={20} />
+                                <input type="number" name="price" value={formData.price || ''} onChange={handleChange} placeholder="Prix (FCFA)" className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 pl-12 font-medium text-white outline-none focus:border-[#39FF14] transition focus:ring-1 focus:ring-[#39FF14]" required />
                             </div>
                         </div>
 
-                        {/* Category */}
-                         <div className="relative">
-                            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
-                            <input type="text" name="category" value={formData.category} onChange={handleChange} placeholder="Catégorie" className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 pl-12 font-bold text-white outline-none focus:border-[#39FF14] transition" required />
+                         <div className="relative group">
+                            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#39FF14] transition" size={20} />
+                            <input type="text" name="category" list="categories-list" value={formData.category} onChange={handleChange} placeholder="Catégorie (ex: Luxe, Casual...)" className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 pl-12 font-medium text-white outline-none focus:border-[#39FF14] transition focus:ring-1 focus:ring-[#39FF14]" required />
+                            <datalist id="categories-list">
+                              <option value="Luxe" />
+                              <option value="Professionnel" />
+                              <option value="Soirée" />
+                              <option value="Casual" />
+                            </datalist>
                         </div>
 
-                        {/* Description & AI Button */}
                         <div className="space-y-3">
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center bg-zinc-900/50 p-3 rounded-t-xl border-b border-zinc-800">
                                 <label htmlFor="product-description" className="text-sm font-bold text-zinc-400">Description</label>
-                                <button type="button" onClick={onAIWrite} disabled={isAIWriting} className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 hover:opacity-90 transition disabled:opacity-50 disabled:cursor-wait">
+                                <button type="button" onClick={onAIWrite} disabled={isAIWriting} className="bg-gradient-to-r from-emerald-400 to-[#39FF14] text-black px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:opacity-90 transition disabled:opacity-50 disabled:cursor-wait shadow-lg">
                                     {isAIWriting ? (
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
                                     ) : (
                                         <Sparkles size={14} />
                                     )}
                                     Optimiser avec l'IA
                                 </button>
                             </div>
-                            <textarea id="product-description" name="description" value={formData.description} onChange={handleChange} rows={5} placeholder="Décrivez le produit, ses matières, sa coupe..." className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 font-bold text-white outline-none focus:border-[#39FF14] transition resize-none"></textarea>
+                            <textarea id="product-description" name="description" value={formData.description} onChange={handleChange} rows={5} placeholder="Décrivez le produit, ses matières, sa coupe..." className="w-full bg-zinc-900 border border-zinc-800 rounded-b-xl rounded-t-none p-4 font-medium text-white outline-none focus:border-[#39FF14] transition resize-none focus:ring-1 focus:ring-[#39FF14] -mt-3"></textarea>
                         </div>
                     </div>
                     
                     <div className="mt-8 flex justify-end gap-4">
-                        <button type="button" onClick={onClose} className="bg-zinc-700 text-white px-6 py-3 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-zinc-600 transition">
+                        <button type="button" onClick={onClose} className="bg-zinc-800 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-zinc-700 transition">
                             Annuler
                         </button>
-                        <button type="submit" className="bg-[#39FF14] text-black px-8 py-3 rounded-full font-black text-sm uppercase tracking-wider hover:bg-white transition">
-                            {product ? 'Sauvegarder' : 'Ajouter'}
+                        <button type="submit" className="bg-white text-black px-8 py-3 rounded-xl font-black text-sm uppercase tracking-wider hover:bg-[#39FF14] hover:shadow-[0_0_20px_rgba(57,255,20,0.3)] transition-all">
+                            {product ? 'Enregistrer' : 'Créer le produit'}
                         </button>
                     </div>
                 </form>
