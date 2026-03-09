@@ -15,15 +15,18 @@ export default function ClientLoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      const cleanPhone = phone.replace(/\s+/g, '');
+      console.log("Tentative avec le numéro :", cleanPhone);
+
       const { data, error } = await supabase
         .from("leads")
         .select("*")
-        .eq("phone", phone.replace(/\s+/g, ""))
+        .eq("phone", cleanPhone)
         .eq("password", password.trim())
         .single();
 
       if (error || !data) {
-        throw new Error("Numéro de téléphone ou mot de passe incorrect");
+        throw new Error("Identifiants incorrects. Vérifiez votre numéro sans espaces.");
       }
 
       localStorage.setItem("onyx_session", JSON.stringify(data));
