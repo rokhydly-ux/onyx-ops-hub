@@ -15,23 +15,22 @@ export default function ClientLoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        phone: phone.replace(/\s+/g, ""),
-        password: password.trim(),
-      });
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("phone", phone.replace(/\s+/g, ""))
+        .eq("password", password.trim())
+        .single();
 
-      if (error) throw error;
-      if (!data.session) {
-        alert(
-          "La session n'a pas pu être créée. Contactez le support."
-        );
-        return;
+      if (error || !data) {
+        throw new Error("Numéro de téléphone ou mot de passe incorrect");
       }
 
-      router.push('/workspace'); 
+      localStorage.setItem("onyx_session", JSON.stringify(data));
+      router.push("/workspace");
     } catch (err: any) {
       alert(
-        "Erreur de connexion : " + (err?.message || "Veuillez réessayer plus tard.")
+        err.message || "Erreur de connexion : Veuillez réessayer plus tard."
       );
     } finally {
       setLoading(false);
