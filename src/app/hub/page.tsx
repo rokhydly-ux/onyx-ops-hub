@@ -20,12 +20,21 @@ const APPS = [
 
 export default function OnyxHubPortal() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
   const [clientData, setClientData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false); // État pour la modale
   const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sessionData = localStorage.getItem('onyx_session');
+    if (sessionData) {
+      setClientData(JSON.parse(sessionData));
+      setIsLoading(false);
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,55 +46,16 @@ export default function OnyxHubPortal() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error("Erreur de session Supabase:", error);
-        setLoading(false);
-        router.push('/login');
-        return;
-      }
-      
-      if (!session) {
-        setLoading(false);
-        router.push('/login');
-        return;
-      }
-
-      // Session trouvée, on charge les données du client
-      try {
-        const { data: client, error: clientError } = await supabase
-          .from('clients')
-          .select('*, active_modules:active_saas, expiry_date')
-          .eq('id', session.user.id)
-          .single();
-
-        if (clientError) throw clientError;
-        
-        console.log("PROFIL CHARGÉ:", client);
-        setClientData(client);
-      } catch (err) {
-        console.error("Erreur de récupération des données client :", err);
-        await handleLogout(); // En cas d'erreur, on déconnecte
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    setIsMounted(true);
-    checkSession();
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/"); // Redirige vers l'accueil après déconnexion
+  const handleLogout = () => {
+    localStorage.removeItem('onyx_session');
+    router.push("/login");
   };
   
   // Fonction pour mettre à jour les données du client dans l'état local
   const handleProfileUpdate = (updatedData: any) => {
     setClientData(updatedData);
+    // Also update localStorage to persist changes across reloads
+    localStorage.setItem('onyx_session', JSON.stringify(updatedData));
   };
 
   const openApp = (appId: string, route: string) => {
@@ -105,9 +75,9 @@ export default function OnyxHubPortal() {
     return `${day}/${month}/${year}`;
   };
 
-    if (!isMounted || loading) {
+    if (isLoading) {
       return (
-        <div className="text-white">Chargement sécurisé...</div>
+        <div className="flex h-screen items-center justify-center">Chargement de votre espace...</div>
       );
     }
 

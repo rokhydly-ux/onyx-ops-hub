@@ -30,7 +30,7 @@ export default function ClientLoginPage() {
       }
 
       localStorage.setItem("onyx_session", JSON.stringify(data));
-      router.push("/workspace");
+      router.push("/hub");
     } catch (err: any) {
       alert(
         err.message || "Erreur de connexion : Veuillez réessayer plus tard."
