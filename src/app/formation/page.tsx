@@ -73,10 +73,13 @@ export default function OnyxFormationPage() {
     e.preventDefault();
     setAuthLoading(true);
     
+    // Nettoyage du numéro de téléphone (suppression des espaces)
+    const cleanPhone = phone.replace(/\s+/g, '');
+
     const { data, error } = await supabase
       .from('clients')
       .select('*')
-      .eq('phone', phone.trim())
+      .eq('phone', cleanPhone)
       .eq('password_temp', password.trim())
       .maybeSingle();
 

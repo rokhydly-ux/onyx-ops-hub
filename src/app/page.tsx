@@ -171,11 +171,7 @@ export default function OnyxOpsElite() {
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", address: "", country: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
-  const [articles, setArticles] = useState<any[]>([
-     { id: 1, title: "Comment doubler vos ventes WhatsApp en 2026", desc: "L'automatisation est reine pour les PME.", category: "Vente & Marketing", readTime: "4 min" },
-     { id: 2, title: "Finis les vols de stocks dans votre boutique", desc: "Les méthodes modernes pour tout tracer.", category: "Gestion", readTime: "6 min" },
-     { id: 3, title: "Pourquoi les menus papiers tuent votre restaurant", desc: "Le digital au service du Fast Food sénégalais.", category: "Restauration", readTime: "3 min" }
-  ]);
+  const [articles, setArticles] = useState<any[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
 
   const waNumber = "221785338417";
@@ -203,6 +199,22 @@ export default function OnyxOpsElite() {
       } catch (err) { console.warn(err); }
     };
     initData();
+
+    // Fetch articles from DB
+    const fetchArticles = async () => {
+      const { data } = await supabase.from('marketing_articles').select('*').order('created_at', { ascending: false });
+      if (data && data.length > 0) {
+        setArticles(data);
+      } else {
+        // Fallback default articles if DB is empty
+        setArticles([
+           { id: 1, title: "Comment doubler vos ventes WhatsApp en 2026", desc: "L'automatisation est reine pour les PME.", category: "Vente & Marketing", readTime: "4 min" },
+           { id: 2, title: "Finis les vols de stocks dans votre boutique", desc: "Les méthodes modernes pour tout tracer.", category: "Gestion", readTime: "6 min" },
+           { id: 3, title: "Pourquoi les menus papiers tuent votre restaurant", desc: "Le digital au service du Fast Food sénégalais.", category: "Restauration", readTime: "3 min" }
+        ]);
+      }
+    };
+    fetchArticles();
 
     setTimeout(() => {
       setIsBotOpen(true);
