@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient";
 import Link from "next/link";
 
 // Définition de l'interface pour le profil utilisateur
@@ -105,7 +105,7 @@ export default function Dashboard() {
           <div className="bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-200">
             <h3 className="font-black uppercase mb-6">Mes Solutions</h3>
             <div className="space-y-4">
-              <SaasCard name="Onyx Jaay" href="/jaay" isActive={onyxJaayActive} />
+              <SaasCard name="Onyx Jaay" href="/vente" isActive={onyxJaayActive} />
               {/* Vous pouvez ajouter d'autres SaaS ici sur le même modèle */}
               <button className="w-full mt-4 py-3 bg-black text-[#39FF14] rounded-xl font-bold text-xs uppercase">Acheter ou gérer un pack</button>
             </div>

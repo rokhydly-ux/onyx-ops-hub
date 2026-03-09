@@ -10,7 +10,7 @@ import {
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   BarChart, TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
-  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu
 } from "lucide-react";
 
 // --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
@@ -166,6 +166,7 @@ export default function AdminDashboard() {
   const [partnerKpiFilter, setPartnerKpiFilter] = useState<'all' | 'nouveaux' | 'top' | 'moins' | 'gains'>('all');
   const [marketingMaterials, setMarketingMaterials] = useState<any[]>([]);
   const [newMaterial, setNewMaterial] = useState({ title: '', type: 'Canva', url: '' });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // --- CHARGEMENT DES DONNÉES (Supabase uniquement) ---
   const fetchSupabaseData = async () => {
@@ -956,9 +957,54 @@ export default function AdminDashboard() {
       {/* ================= MAIN AREA (Zone Principale) ================= */}
       <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#fafafa] relative">
         
+        {/* MOBILE SIDEBAR OVERLAY */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+            <div className="relative bg-white w-72 h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
+                <div className="p-6 flex justify-between items-center border-b border-zinc-100">
+                  <h1 className="font-sans text-2xl font-black tracking-tighter uppercase">ONYX<span className="text-[#39FF14]">OPS</span></h1>
+                  <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-zinc-100 rounded-full hover:bg-zinc-200"><X size={20}/></button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] mb-4 pl-4">Terminal Principal</p>
+                    <nav className="space-y-1">
+                      {[
+                        { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de Bord' },
+                        { id: 'leads', icon: MessageSquare, label: 'Leads & Flux' },
+                        { id: 'crm', icon: Users, label: 'CRM & Membres' },
+                        { id: 'ecosystem', icon: Box, label: '9 SaaS Onyx' },
+                        { id: 'finance', icon: Wallet, label: 'Finances' },
+                        { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
+                      ].map(item => (
+                        <button key={item.id} onClick={() => { setActiveView(item.id as ViewType); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === item.id ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
+                          <item.icon size={20} className={activeView === item.id ? 'text-[#39FF14]' : ''} /> {item.label}
+                        </button>
+                      ))}
+                    </nav>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] mb-4 pl-4">Stratégie & Ventes</p>
+                    <nav className="space-y-1">
+                      <button onClick={() => { setActiveView('marketing'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}><Megaphone size={20} /> Marketing & Blog</button>
+                      <button onClick={() => { setShowRapportIA(true); setIsMobileMenuOpen(false); }} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all"><Sparkles size={20} className="text-[#39FF14]" /> Scan Intelligence</button>
+                      <button onClick={() => { setActiveView('journal-ia' as ViewType); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'journal-ia' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}><FileText size={20} /> Journal & Actions IA</button>
+                      <button onClick={() => { setShowHubsMap(true); setIsMobileMenuOpen(false); }} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all"><MapPin size={20} className="text-[#39FF14]" /> Carte des Hubs</button>
+                    </nav>
+                  </div>
+                </div>
+            </div>
+          </div>
+        )}
+
         {/* HEADER GÉANT */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200 h-28 flex items-center justify-between px-8 lg:px-12 shrink-0 z-20">
           <div className="flex flex-col">
+            <div className="flex items-center gap-4 md:hidden mb-1">
+               <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-zinc-100 rounded-full text-black"><Menu size={24}/></button>
+               <h2 className={`font-sans text-xl font-black uppercase tracking-tighter text-black`}>ONYX OPS</h2>
+            </div>
             <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter text-black`}>
                {activeView === 'dashboard' ? 'Terminal Central' : activeView.replace('-', ' ')}
             </h2>

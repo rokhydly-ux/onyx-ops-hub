@@ -4,7 +4,7 @@ import React, { useState, useRef, DragEvent } from 'react';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, 
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2 
+  Settings, Store, ChevronRight, Share2, Menu
 } from 'lucide-react';
 
 // --- TYPES ---
@@ -34,6 +34,7 @@ export default function OnyxJaayDashboard() {
   const [isAIWriting, setIsAIWriting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeCategory, setActiveCategory] = useState('Toutes');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -113,6 +114,41 @@ export default function OnyxJaayDashboard() {
   return (
     <div className="flex h-screen bg-black text-white font-sans overflow-hidden">
       
+      {/* --- MOBILE SIDEBAR --- */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+          <div className="relative bg-zinc-950 w-72 h-full shadow-2xl flex flex-col border-r border-zinc-800 animate-in slide-in-from-left duration-300">
+              <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+                <h1 className="text-2xl font-black tracking-tighter uppercase">Onyx <span className="text-[#39FF14]">Jaay</span></h1>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-400 hover:text-white"><X size={24}/></button>
+              </div>
+              <div className="flex-1 overflow-y-auto py-6">
+                <nav className="px-4 space-y-2 mb-8">
+                  <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
+                  <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-900 text-white font-semibold transition text-left">
+                    <LayoutDashboard size={18} className="text-[#39FF14]" /> Tableau de bord
+                  </button>
+                  <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-zinc-900 hover:text-white transition text-left">
+                    <Store size={18} /> Ma Boutique
+                  </button>
+                  <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-zinc-900 hover:text-white transition text-left">
+                    <Settings size={18} /> Paramètres
+                  </button>
+                </nav>
+                <div className="px-4 space-y-2">
+                  <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
+                  {categories.map(cat => (
+                    <button key={cat} onClick={() => { setActiveCategory(cat); setIsMobileMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeCategory === cat ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'}`}>
+                      {cat} {activeCategory === cat && <ChevronRight size={14} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+          </div>
+        </div>
+      )}
+
       {/* --- SIDEBAR --- */}
       <aside className="w-64 bg-zinc-950 border-r border-zinc-800 flex flex-col hidden md:flex">
         <div className="p-6 border-b border-zinc-800">
@@ -123,15 +159,15 @@ export default function OnyxJaayDashboard() {
         <div className="flex-1 overflow-y-auto py-6">
           <nav className="px-4 space-y-2 mb-8">
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
-            <a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-900 text-white font-semibold transition">
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-900 text-white font-semibold transition text-left">
               <LayoutDashboard size={18} className="text-[#39FF14]" /> Tableau de bord
-            </a>
-            <a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-zinc-900 hover:text-white transition">
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-zinc-900 hover:text-white transition text-left">
               <Store size={18} /> Ma Boutique
-            </a>
-            <a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-zinc-900 hover:text-white transition">
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-zinc-900 hover:text-white transition text-left">
               <Settings size={18} /> Paramètres
-            </a>
+            </button>
           </nav>
 
           <div className="px-4 space-y-2">
@@ -158,6 +194,14 @@ export default function OnyxJaayDashboard() {
 
       {/* --- MAIN CONTENT --- */}
       <main className="flex-1 overflow-y-auto relative">
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between p-4 bg-zinc-950 border-b border-zinc-800 sticky top-0 z-20">
+           <div className="flex items-center gap-3">
+              <button onClick={() => setIsMobileMenuOpen(true)} className="text-white"><Menu size={24}/></button>
+              <h1 className="text-lg font-black tracking-tighter uppercase text-white">Onyx <span className="text-[#39FF14]">Jaay</span></h1>
+           </div>
+        </div>
+
         {/* Top Header Toggle */}
         <header className="absolute top-0 right-0 p-6 z-10 flex items-center gap-4">
           <span className="text-xs font-bold uppercase mr-2 text-white bg-black/50 px-3 py-1 rounded-full backdrop-blur-md border border-zinc-800">Mode Éditeur</span>
