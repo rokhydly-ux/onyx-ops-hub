@@ -2,11 +2,12 @@
 
 import React, { useState, useRef, DragEvent, useEffect } from 'react';
 import { 
-  MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode,
+  MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift
 } from 'lucide-react';
 import QRCode from "react-qr-code";
+import * as XLSX from 'xlsx';
 
 // --- TYPES ---
 interface Review {
@@ -70,7 +71,27 @@ export default function OnyxJaayShop() {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [theme, setTheme] = useState('dark');
-  const [shopView, setShopView] = useState<'boutique' | 'dashboard' | 'settings'>('boutique');
+  const [shopView, setShopView] = useState<'boutique' | 'dashboard' | 'settings' | 'clients'>('boutique');
+  const [categories, setCategories] = useState(['Toutes', 'Favoris', 'Luxe', 'Professionnel', 'Soirée', 'Casual']);
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([
+    { id: 1, code: 'BIENVENUE10', discount: 10, type: 'percentage', active: true },
+    { id: 2, code: 'SOLDE5000', discount: 5000, type: 'fixed', active: false },
+  ]);
+  const [shopInfo, setShopInfo] = useState({
+    name: 'Onyx Jaay',
+    description: 'Version Pro',
+    phone: WHATSAPP_NUMBER,
+    deliveryFees: 2000,
+    openingHours: { start: '09:00', end: '18:00', enabled: false }
+  });
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
+  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
+  const [currentCustomerPoints, setCurrentCustomerPoints] = useState(0);
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -166,8 +187,64 @@ export default function OnyxJaayShop() {
     }));
   };
 
-  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const subTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const deliveryCost = deliveryMethod === 'delivery' ? (shopInfo.deliveryFees || 0) : 0;
+  const promoDiscountAmount = appliedPromo 
+    ? (appliedPromo.type === 'percentage' ? (subTotal * appliedPromo.discount / 100) : appliedPromo.discount)
+    : 0;
+  const loyaltyDiscountAmount = useLoyaltyPoints 
+    ? Math.min(currentCustomerPoints * 10, subTotal - promoDiscountAmount) // 1 point = 10 FCFA
+    : 0;
+  const cartTotal = Math.max(0, subTotal - promoDiscountAmount - loyaltyDiscountAmount + deliveryCost);
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+  
+  const lowStockProducts = products.filter(p => (p.stock || 0) < 5);
+  
+  const isShopOpen = () => {
+    if (!shopInfo.openingHours?.enabled) return true;
+    const now = new Date();
+    const currentTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return currentTime >= shopInfo.openingHours.start && currentTime <= shopInfo.openingHours.end;
+  };
+
+  const handleApplyPromo = () => {
+    const code = promoCodes.find(c => c.code === promoInput.toUpperCase() && c.active);
+    if (code) {
+      setAppliedPromo(code);
+      alert("Code promo appliqué !");
+    } else {
+      alert("Code promo invalide ou inactif.");
+      setAppliedPromo(null);
+    }
+    setPromoInput('');
+  };
+
+  useEffect(() => {
+    if (isCheckoutModalOpen && customerInfo.phone) {
+        const savedOrders = localStorage.getItem('onyx_jaay_orders');
+        if (savedOrders) {
+            try {
+                const orders = JSON.parse(savedOrders);
+                const customerOrders = orders.filter((o: any) => o.customer?.phone === customerInfo.phone);
+                let points = 0;
+                customerOrders.forEach((order: any) => {
+                    points += Math.floor(order.total / 1000); // Earn
+                    if (order.pointsUsed) {
+                        points -= order.pointsUsed; // Spend
+                    }
+                });
+                setCurrentCustomerPoints(points);
+            } catch (e) {
+                console.error("Erreur calcul points", e);
+                setCurrentCustomerPoints(0);
+            }
+        } else {
+            setCurrentCustomerPoints(0);
+        }
+    } else {
+        setCurrentCustomerPoints(0);
+    }
+  }, [customerInfo.phone, isCheckoutModalOpen]);
 
   const toggleWishlist = (productId: number) => {
     setWishlist(prev => 
@@ -201,6 +278,9 @@ export default function OnyxJaayShop() {
     } else {
       setProducts([...products, { ...product, id: Date.now() }]);
     }
+    if (product.category && !categories.includes(product.category)) {
+      setCategories(prev => [...prev, product.category]);
+    }
     setIsModalOpen(false);
   };
 
@@ -221,7 +301,27 @@ export default function OnyxJaayShop() {
   };
 
   const confirmOrder = () => {
-    let message = "Bonjour, je souhaite passer commande :\n\n";
+    if (!customerInfo.name || !customerInfo.phone) {
+        alert("Veuillez remplir votre nom et téléphone pour valider la commande.");
+        return;
+    }
+
+    const pointsToUse = useLoyaltyPoints ? Math.floor(loyaltyDiscountAmount / 10) : 0;
+
+    // Save order locally for history/clients
+    const newOrder = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        customer: customerInfo,
+        items: cart,
+        total: cartTotal, // This is the final total paid
+        pointsUsed: pointsToUse,
+        status: 'En attente'
+    };
+    const existingOrders = JSON.parse(localStorage.getItem('onyx_jaay_orders') || '[]');
+    localStorage.setItem('onyx_jaay_orders', JSON.stringify([newOrder, ...existingOrders]));
+
+    let message = `Bonjour, je suis ${customerInfo.name}. Je souhaite passer commande :\n\n`;
     cart.forEach(item => {
       let variantInfo = "";
       if (item.selectedVariant) {
@@ -232,13 +332,29 @@ export default function OnyxJaayShop() {
       }
       message += `- ${item.name}${variantInfo} (x${item.quantity}) : ${(item.price * item.quantity).toLocaleString('fr-SN')} FCFA\n`;
     });
-    message += `\n*Total : ${cartTotal.toLocaleString('fr-SN')} FCFA*`;
+    message += `\nSous-total : ${subTotal.toLocaleString('fr-SN')} FCFA`;
+    if (deliveryMethod === 'delivery') {
+        message += `\nFrais de livraison : ${deliveryCost.toLocaleString('fr-SN')} FCFA`;
+    }
+    if (appliedPromo) {
+        message += `\nRemise (${appliedPromo.code}) : -${promoDiscountAmount.toLocaleString('fr-SN')} FCFA`;
+    }
+    if (useLoyaltyPoints && loyaltyDiscountAmount > 0) {
+        message += `\nPoints Fidélité : -${loyaltyDiscountAmount.toLocaleString('fr-SN')} FCFA`;
+    }
+    message += `\nMode de livraison : ${deliveryMethod === 'delivery' ? 'Livraison à domicile' : 'Retrait en boutique'}`;
+    message += `\n*Total à payer : ${cartTotal.toLocaleString('fr-SN')} FCFA*`;
     message += `\n\nMerci de confirmer la disponibilité.`;
 
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/${shopInfo.phone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
     setIsCheckoutModalOpen(false);
     setIsCartOpen(false);
+    setCart([]);
+    setAppliedPromo(null);
+    setUseLoyaltyPoints(false);
+    setCustomerInfo({ name: '', phone: '' });
+    setIsOrderSuccessOpen(true);
   };
   
   const handleAddReview = (productId: number, review: Omit<Review, 'id' | 'date'>) => {
@@ -285,7 +401,124 @@ export default function OnyxJaayShop() {
     setProducts(newProducts);
   };
 
-  const categories = ['Toutes', 'Favoris', 'Luxe', 'Professionnel', 'Soirée', 'Casual'];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportXLS = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        'Nom': 'Ex: Robe de Soirée',
+        'Prix': 15000,
+        'Description': 'Ex: Une robe élégante pour les grandes occasions.',
+        'Catégorie': 'Ex: Soirée',
+        'Stock': 10,
+        'Image': 'https://example.com/image.jpg',
+        'Tailles': 'S, M, L',
+        'Couleurs': 'Rouge, Noir'
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Produits");
+
+    // Set column widths for better readability
+    worksheet['!cols'] = [
+      { wch: 30 }, // Nom
+      { wch: 15 }, // Prix
+      { wch: 50 }, // Description
+      { wch: 20 }, // Catégorie
+      { wch: 10 }, // Stock
+      { wch: 40 }, // Image
+      { wch: 20 }, // Tailles
+      { wch: 20 }, // Couleurs
+    ];
+
+    XLSX.writeFile(workbook, "modele_import_produits_onyx.xlsx");
+  };
+
+  const handleExportProducts = () => {
+    const exportData = products.map(p => ({
+      'Nom': p.name,
+      'Prix': p.price,
+      'Description': p.description,
+      'Catégorie': p.category,
+      'Stock': p.stock || 0,
+      'Image': p.image,
+      'Tailles': p.variants?.sizes?.join(', ') || '',
+      'Couleurs': p.variants?.colors?.join(', ') || ''
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Produits");
+
+    XLSX.writeFile(workbook, `onyx_produits_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      if (jsonData.length === 0) {
+        alert("Le fichier est vide.");
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      // Validation des colonnes obligatoires
+      const firstRow = jsonData[0] as any;
+      const requiredCols = ['Nom', 'Prix'];
+      const missingCols = requiredCols.filter(col => !Object.keys(firstRow).some(k => k.toLowerCase() === col.toLowerCase() || (col === 'Nom' && k.toLowerCase() === 'name') || (col === 'Prix' && k.toLowerCase() === 'price')));
+
+      if (missingCols.length > 0) {
+         alert(`Erreur : Colonnes manquantes (${missingCols.join(', ')}). Veuillez utiliser le modèle.`);
+         if (fileInputRef.current) fileInputRef.current.value = '';
+         return;
+      }
+
+      const newProducts: Product[] = jsonData.map((row: any, index: number) => ({
+        id: Date.now() + index,
+        name: row['Nom'] || row['name'] || 'Produit Importé',
+        price: Number(row['Prix'] || row['price'] || 0),
+        description: row['Description'] || row['description'] || '',
+        image: row['Image'] || row['image'] || 'https://via.placeholder.com/300',
+        category: row['Catégorie'] || row['category'] || 'Importé',
+        stock: Number(row['Stock'] || row['stock'] || 0),
+        rating: 5,
+        reviews: 0,
+        reviewsList: [],
+        variants: {
+            sizes: (row['Tailles'] || row['sizes'] || '').toString().split(',').map((s: string) => s.trim()).filter(Boolean),
+            colors: (row['Couleurs'] || row['colors'] || '').toString().split(',').map((s: string) => s.trim()).filter(Boolean)
+        }
+      }));
+
+      setProducts(prev => [...prev, ...newProducts]);
+      
+      const newCats = new Set(categories);
+      newProducts.forEach(p => { if(p.category) newCats.add(p.category); });
+      setCategories(Array.from(newCats));
+
+      alert(`${newProducts.length} produits importés avec succès !`);
+    } catch (error) {
+      console.error("Erreur import XLS:", error);
+      alert("Erreur lors de l'importation. Assurez-vous d'avoir un fichier Excel valide.");
+    }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const filteredProducts = products.filter(p => {
     const matchesCategory = activeCategory === 'Toutes' 
       ? true 
@@ -301,7 +534,7 @@ export default function OnyxJaayShop() {
 
   // --- RENDER ---
   return (
-    <div className="flex h-screen bg-white dark:bg-black text-black dark:text-white font-sans overflow-hidden">
+    <div className="flex h-screen bg-white dark:bg-black text-black dark:text-white font-sans overflow-hidden print:block">
       
       {/* --- MOBILE SIDEBAR --- */}
       {isMobileMenuOpen && (
@@ -309,7 +542,7 @@ export default function OnyxJaayShop() {
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
           <div className="relative bg-zinc-50 dark:bg-zinc-950 w-72 h-full shadow-2xl flex flex-col border-r border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-left duration-300">
               <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-                <h1 className="text-2xl font-black tracking-tighter uppercase">Onyx <span className="text-[#39FF14]">Jaay</span></h1>
+                <h1 className="text-2xl font-black tracking-tighter uppercase">{shopInfo.name}</h1>
                 <button onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white"><X size={24}/></button>
               </div>
               <div className="flex-1 overflow-y-auto py-6">
@@ -326,6 +559,9 @@ export default function OnyxJaayShop() {
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
                   <button onClick={() => { setShopView('dashboard'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'dashboard' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                     <LayoutDashboard size={18} className={shopView === 'dashboard' ? "text-[#39FF14]" : ""} /> Tableau de bord
+                  </button>
+                  <button onClick={() => { setShopView('clients'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                    <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
                   </button>
                   <button onClick={() => { setShopView('boutique'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                     <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
@@ -372,9 +608,9 @@ export default function OnyxJaayShop() {
       )}
 
       {/* --- SIDEBAR --- */}
-      <aside className="w-64 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex flex-col hidden md:flex">
+      <aside className="w-64 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex-col hidden md:flex print:hidden">
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-          <h1 className="text-2xl font-black tracking-tighter uppercase">Onyx <span className="text-[#39FF14]">Jaay</span></h1>
+          <h1 className="text-2xl font-black tracking-tighter uppercase">{shopInfo.name}</h1>
         </div>
         
         <div className="flex-1 overflow-y-auto py-6">
@@ -392,6 +628,9 @@ export default function OnyxJaayShop() {
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
             <button onClick={() => setShopView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'dashboard' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <LayoutDashboard size={18} className={shopView === 'dashboard' ? "text-[#39FF14]" : ""} /> Tableau de bord
+            </button>
+            <button onClick={() => setShopView('clients')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+              <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
             </button>
             <button onClick={() => setShopView('boutique')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
@@ -445,20 +684,20 @@ export default function OnyxJaayShop() {
               OJ
             </div>
             <div>
-              <p className="text-sm font-bold text-black dark:text-white">Onyx Jaay</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-500">Version Pro</p>
+              <p className="text-sm font-bold text-black dark:text-white">{shopInfo.name}</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-500">{shopInfo.description}</p>
             </div>
           </div>
         </div>
       </aside>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 overflow-y-auto relative bg-zinc-100 dark:bg-black">
+      <main className="flex-1 overflow-y-auto relative bg-zinc-100 dark:bg-black print:overflow-visible">
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between p-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-20">
+        <div className="md:hidden flex items-center justify-between p-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-20 print:hidden">
            <div className="flex items-center gap-3">
               <button onClick={() => setIsMobileMenuOpen(true)} className="text-black dark:text-white"><Menu size={24}/></button>
-              <h1 className="text-lg font-black tracking-tighter uppercase text-black dark:text-white">Onyx <span className="text-[#39FF14]">Jaay</span></h1> 
+              <h1 className="text-lg font-black tracking-tighter uppercase text-black dark:text-white">{shopInfo.name}</h1> 
            </div>
            <button onClick={() => setIsCartOpen(true)} className="relative p-2 text-black dark:text-white">
               <ShoppingCart size={24} />
@@ -467,7 +706,7 @@ export default function OnyxJaayShop() {
         </div>
 
         {/* Top Header Toggle */}
-        <header className="absolute top-0 right-0 p-6 z-10 flex items-center gap-4">
+        <header className="absolute top-0 right-0 p-6 z-10 flex items-center gap-4 print:hidden">
           <button onClick={() => setIsCartOpen(true)} className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
             <div className="relative">
               <ShoppingCart size={18} />
@@ -481,6 +720,32 @@ export default function OnyxJaayShop() {
             <Moon className="h-4 w-4 text-white hidden dark:block" />
           </button>
 
+          {isEditingMode && (
+            <div className="relative">
+              <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="p-2 rounded-full bg-white/50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 backdrop-blur-md relative">
+                <Bell size={16} className="text-black dark:text-white" />
+                {lowStockProducts.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-black">
+                    {lowStockProducts.length}
+                  </span>
+                )}
+              </button>
+              {isNotificationsOpen && (
+                <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl p-4 z-50 animate-in slide-in-from-top-2">
+                  <h4 className="font-black uppercase text-xs mb-3 flex items-center gap-2 text-black dark:text-white"><AlertTriangle size={14} className="text-yellow-500"/> Alertes Stock</h4>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {lowStockProducts.length === 0 ? <p className="text-xs text-zinc-500">Tout va bien.</p> : lowStockProducts.map(p => (
+                      <div key={p.id} className="flex justify-between items-center text-xs p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                        <span className="font-bold truncate max-w-[140px] text-black dark:text-white">{p.name}</span>
+                        <span className="text-red-500 font-black">{p.stock} restants</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <span className="text-xs font-bold uppercase mr-2 text-black dark:text-white bg-white/50 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-md border border-zinc-200 dark:border-zinc-800">Mode Éditeur</span>
           <label htmlFor="editModeToggle" className="cursor-pointer">
             <div className={`w-14 h-8 rounded-full p-1 transition-colors border border-zinc-700 ${isEditingMode ? 'bg-[#39FF14]' : 'bg-zinc-800/80 backdrop-blur-md'}`}>
@@ -489,6 +754,12 @@ export default function OnyxJaayShop() {
             <input type="checkbox" id="editModeToggle" className="hidden" checked={isEditingMode} onChange={() => setIsEditingMode(!isEditingMode)} />
           </label>
         </header>
+
+        {!isShopOpen() && !isEditingMode && (
+            <div className="bg-red-500 text-white text-center py-2 px-4 font-bold text-sm sticky top-0 z-30 flex items-center justify-center gap-2">
+                <Clock size={16} /> La boutique est actuellement fermée. (Ouverture : {shopInfo.openingHours?.start})
+            </div>
+        )}
 
         {shopView === 'boutique' && (
           <div className="p-8 md:p-12 max-w-7xl mx-auto">
@@ -502,8 +773,15 @@ export default function OnyxJaayShop() {
                 <button onClick={handleAddProduct} className="w-full sm:w-auto bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-sm hover:bg-white transition-colors flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(57,255,20,0.3)]">
                   <Plus size={20} /> Ajouter un produit
                 </button>
-                <button onClick={() => alert("Importation via XLS bientôt disponible !")} className="w-full sm:w-auto bg-zinc-800 text-white px-8 py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
+                <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+                <button onClick={handleImportXLS} className="w-full sm:w-auto bg-zinc-800 text-white px-8 py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
                   <FileUp size={20} /> Importer via XLS
+                </button>
+                <button onClick={handleDownloadTemplate} className="w-full sm:w-auto bg-zinc-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-500 transition-colors flex items-center justify-center gap-2">
+                  <Download size={20} /> Télécharger le modèle
+                </button>
+                <button onClick={handleExportProducts} className="w-full sm:w-auto bg-white text-black border-2 border-zinc-200 px-8 py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2">
+                  <Share2 size={20} /> Exporter
                 </button>
               </div>
             )}
@@ -586,15 +864,23 @@ export default function OnyxJaayShop() {
           </div>
         )}
         {shopView === 'dashboard' && (
-            <ShopDashboard />
+            <ShopDashboard products={products} />
+        )}
+        {shopView === 'clients' && (
+            <ShopClients />
         )}
         {shopView === 'settings' && (
-            <ShopSettings />
+            <ShopSettings 
+              promoCodes={promoCodes} 
+              setPromoCodes={setPromoCodes} 
+              shopInfo={shopInfo}
+              setShopInfo={setShopInfo}
+            />
         )}
       </main>
 
       {/* --- CART DRAWER --- */}
-      {isCartOpen && (
+      {isCartOpen && !isEditingMode && (
         <div className="fixed inset-0 z-[60] flex justify-end">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
           <div className="relative bg-white dark:bg-zinc-950 w-full max-w-md h-full shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-300">
@@ -639,11 +925,60 @@ export default function OnyxJaayShop() {
              </div>
 
              <div className="p-6 bg-zinc-100 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
+                <div className="mb-6">
+                   <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-3">Mode de livraison</p>
+                   <div className="flex gap-3">
+                      <button 
+                          onClick={() => setDeliveryMethod('delivery')}
+                          className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}
+                      >
+                          <Truck size={20} />
+                          <span className="text-[10px] font-black uppercase">Livraison</span>
+                      </button>
+                      <button 
+                          onClick={() => setDeliveryMethod('pickup')}
+                          className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}
+                      >
+                          <Store size={20} />
+                          <span className="text-[10px] font-black uppercase">Retrait</span>
+                      </button>
+                   </div>
+                </div>
+
+                <div className="flex gap-2 mb-4">
+                    <input 
+                        type="text" 
+                        placeholder="Code Promo" 
+                        value={promoInput}
+                        onChange={(e) => setPromoInput(e.target.value)}
+                        className="flex-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-bold uppercase outline-none focus:border-[#39FF14]"
+                    />
+                    <button onClick={handleApplyPromo} className="bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-xl text-xs font-black uppercase">OK</button>
+                </div>
+
+                {appliedPromo && (
+                    <div className="flex justify-between items-center mb-2 text-xs text-[#39FF14]">
+                        <span className="font-bold">Remise ({appliedPromo.code})</span>
+                        <span className="font-bold">-{promoDiscountAmount.toLocaleString()} F</span>
+                    </div>
+                )}
+
+                {deliveryMethod === 'delivery' && (
+                    <div className="flex justify-between items-center mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+                        <span className="font-bold">Frais de livraison</span>
+                        <span className="font-bold">{deliveryCost.toLocaleString()} F</span>
+                    </div>
+                )}
+
                 <div className="flex justify-between items-center mb-6">
                    <span className="text-zinc-500 dark:text-zinc-400 font-bold uppercase text-xs">Total à payer</span>
                    <span className="text-2xl font-black text-black dark:text-white">{cartTotal.toLocaleString()} <span className="text-[#39FF14] text-sm">FCFA</span></span>
                 </div>
-                <button onClick={handleCheckout} disabled={cart.length === 0} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg">
+                <button 
+                    onClick={handleCheckout} 
+                    disabled={cart.length === 0 || (!isShopOpen() && !isEditingMode)} 
+                    className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                >
                    Commander sur WhatsApp <ArrowRight size={18} />
                 </button>
              </div>
@@ -652,12 +987,34 @@ export default function OnyxJaayShop() {
       )}
 
       {/* --- CHECKOUT CONFIRMATION MODAL --- */}
-      {isCheckoutModalOpen && (
+      {isCheckoutModalOpen && !isEditingMode && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 relative">
             <button onClick={() => setIsCheckoutModalOpen(false)} className="absolute top-6 right-6 text-zinc-500 dark:text-zinc-500 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
             <h3 className="text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white">Confirmation</h3>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6">Vérifiez votre commande avant l'envoi sur WhatsApp.</p>
+            
+            <div className="mb-6 space-y-3 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Vos Coordonnées</p>
+                <input type="text" placeholder="Votre Nom *" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black" />
+                <input type="tel" placeholder="Votre Téléphone *" value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black" />
+            </div>
+            
+            {currentCustomerPoints > 0 && (
+                <div className="mb-6 space-y-3 bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border border-green-200 dark:border-green-800">
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-widest flex items-center gap-2"><Gift size={14}/> Vos points de fidélité</p>
+                        <p className="font-black text-green-600 dark:text-green-400">{currentCustomerPoints} pts</p>
+                    </div>
+                    <button 
+                        onClick={() => setUseLoyaltyPoints(!useLoyaltyPoints)}
+                        className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${useLoyaltyPoints ? 'bg-green-200 dark:bg-green-800' : 'bg-white dark:bg-zinc-800'}`}
+                    >
+                        <input type="checkbox" checked={useLoyaltyPoints} readOnly className="w-4 h-4 accent-green-600" />
+                        <span className="text-xs font-bold">Utiliser mes points pour une remise de {Math.min(currentCustomerPoints * 10, subTotal - promoDiscountAmount).toLocaleString()} FCFA</span>
+                    </button>
+                </div>
+            )}
             
             <div className="space-y-3 mb-8 max-h-[50vh] overflow-y-auto pr-2">
               {cart.map(item => (
@@ -686,6 +1043,26 @@ export default function OnyxJaayShop() {
         </div>
       )}
 
+      {/* --- ORDER SUCCESS MODAL --- */}
+      {isOrderSuccessOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] w-full max-w-md p-10 text-center shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-[#39FF14]"></div>
+            <div className="w-20 h-20 bg-[#39FF14]/20 text-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+                <Sparkles size={40} />
+            </div>
+            <h3 className="text-3xl font-black uppercase tracking-tighter mb-4 text-black dark:text-white">Merci pour votre confiance ! 💖</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 leading-relaxed">
+                Votre commande est bien partie vers notre équipe sur WhatsApp. On s'occupe de tout préparer avec soin !<br/><br/>
+                <span className="font-bold text-black dark:text-white">Un membre de l'équipe va vous répondre dans quelques instants pour valider la livraison.</span>
+            </p>
+            <button onClick={() => setIsOrderSuccessOpen(false)} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-xl">
+                C'est noté, à tout de suite !
+            </button>
+            </div>
+        </div>
+      )}
+
       {/* --- MODAL --- */}
       {isModalOpen && (
          <ProductModal 
@@ -698,7 +1075,7 @@ export default function OnyxJaayShop() {
       )}
 
       {/* --- PRODUCT DETAIL MODAL --- */}
-      {viewingProduct && (
+      {viewingProduct && !isEditingMode && (
         <ProductDetailModal 
           product={viewingProduct}
           allProducts={products}
@@ -712,7 +1089,7 @@ export default function OnyxJaayShop() {
         />
       )}
 
-      {qrCodeProduct && (
+      {qrCodeProduct && !isEditingMode && (
         <QRCodeModal 
           product={qrCodeProduct}
           onClose={() => setQrCodeProduct(null)}
@@ -1032,25 +1409,335 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard() {
+function ShopDashboard({ products }: { products: Product[] }) {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const savedOrders = localStorage.getItem('onyx_jaay_orders');
+    if (savedOrders) {
+      try {
+        setOrders(JSON.parse(savedOrders));
+      } catch (e) {
+        console.error("Erreur chargement commandes", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    setLowStockProducts(products.filter(p => (p.stock || 0) < 5));
+  }, [products]);
+
+  const chartData = (() => {
+    const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    const today = new Date();
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toISOString().split('T')[0];
+      
+      const dailyTotal = orders
+        .filter(o => o.date.startsWith(dayStr))
+        .reduce((sum, o) => sum + o.total, 0);
+        
+      data.push({ day: days[d.getDay()], total: dailyTotal });
+    }
+    return data;
+  })();
+
+  const maxTotal = Math.max(...chartData.map(d => d.total), 1);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white">
-      <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Tableau de <span className="text-[#39FF14]">Bord</span></h2>
-      <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Statistiques de ventes et de performance de la boutique.</p>
-      <div className="mt-12 p-12 bg-zinc-200 dark:bg-zinc-900 rounded-3xl text-center">
-        <h3 className="font-bold">Contenu du tableau de bord à venir...</h3>
+    <div id="dashboard-section" className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in print:p-0">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-4 print:hidden">
+        <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Tableau de <span className="text-[#39FF14]">Bord</span></h2>
+        <button onClick={handlePrint} className="bg-zinc-800 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
+          <Printer size={16} /> Imprimer
+        </button>
+      </div>
+      <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Aperçu des performances et alertes de stock.</p>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Sales Chart */}
+        <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+             <h3 className="font-black uppercase text-xl">Ventes (7 derniers jours)</h3>
+             <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                <BarChart size={20} className="text-[#39FF14]" />
+             </div>
+          </div>
+          
+          <div className="flex items-end justify-between h-64 gap-4">
+            {chartData.map((d, i) => (
+              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                <div 
+                  className="w-full max-w-[40px] bg-black dark:bg-white rounded-t-xl transition-all duration-500 relative group-hover:bg-[#39FF14]" 
+                  style={{ height: `${(d.total / maxTotal) * 100}%`, minHeight: '4px' }}
+                >
+                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                      {d.total.toLocaleString()} F
+                   </div>
+                </div>
+                <span className="mt-4 text-xs font-bold text-zinc-400 uppercase">{d.day}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Low Stock Alert */}
+        <div className="bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
+           <div className="flex items-center gap-3 mb-6">
+              <AlertTriangle className="text-yellow-500" size={24} />
+              <h3 className="font-black uppercase text-xl">Stock Faible</h3>
+           </div>
+           
+           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {lowStockProducts.length === 0 ? (
+                 <p className="text-zinc-500 text-sm">Aucun produit en rupture imminente.</p>
+              ) : (
+                 lowStockProducts.map(p => (
+                    <div key={p.id} className="flex items-center gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                       <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover bg-zinc-200" />
+                       <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm truncate text-black dark:text-white">{p.name}</p>
+                          <p className="text-xs text-zinc-500">{p.category}</p>
+                       </div>
+                       <div className={`px-3 py-1 rounded-lg text-xs font-black ${p.stock === 0 ? 'bg-red-500 text-white' : 'bg-yellow-500/20 text-yellow-600'}`}>
+                          {p.stock}
+                       </div>
+                    </div>
+                 ))
+              )}
+           </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function ShopSettings() {
+function ShopClients() {
+    const [clients, setClients] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const handleExportClients = () => {
+        if (clients.length === 0) {
+            alert("Aucun client à exporter.");
+            return;
+        }
+        const exportData = clients.map(c => ({
+            'Nom': c.name,
+            'Téléphone': c.phone,
+            'Dépenses Totales (FCFA)': c.totalSpent,
+            'Nombre de Commandes': c.ordersCount,
+            'Points de Fidélité': c.loyaltyPoints,
+            'Dernière Commande': new Date(c.lastOrder).toLocaleDateString('fr-FR')
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Clients");
+        XLSX.writeFile(workbook, `onyx_clients_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    useEffect(() => {
+        const savedOrders = localStorage.getItem('onyx_jaay_orders');
+        if (savedOrders) {
+            try {
+                const orders = JSON.parse(savedOrders);
+                const uniqueClients: any = {};
+                
+                orders.forEach((order: any) => {
+                    if (order.customer && order.customer.phone) {
+                        if (!uniqueClients[order.customer.phone]) {
+                            uniqueClients[order.customer.phone] = { ...order.customer, totalSpent: 0, ordersCount: 0, lastOrder: order.date, loyaltyPoints: 0 };
+                        }
+                        uniqueClients[order.customer.phone].totalSpent += order.total;
+                        uniqueClients[order.customer.phone].ordersCount += 1;
+                        uniqueClients[order.customer.phone].loyaltyPoints += Math.floor(order.total / 1000); // 1 point par 1000 FCFA
+                        if (order.pointsUsed) {
+                            uniqueClients[order.customer.phone].loyaltyPoints -= order.pointsUsed;
+                        }
+                        if (new Date(order.date) > new Date(uniqueClients[order.customer.phone].lastOrder)) {
+                            uniqueClients[order.customer.phone].lastOrder = order.date;
+                        }
+                    }
+                });
+                setClients(Object.values(uniqueClients));
+            } catch (e) { console.error(e); }
+        }
+    }, []);
+
+    const filteredClients = clients.filter(client =>
+        (client.name && typeof client.name === 'string' && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (client.phone && typeof client.phone === 'string' && client.phone.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    return (
+        <div className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Mes <span className="text-[#39FF14]">Clients</span></h2>
+                <button onClick={handleExportClients} className="bg-zinc-800 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
+                    <Download size={16} /> Exporter la liste
+                </button>
+            </div>
+            <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Historique des clients ayant passé commande.</p>
+            <div className="mb-8">
+                <input
+                    type="text"
+                    placeholder="Rechercher un client..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
+                />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredClients.map((client, i) => (
+                    <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black text-lg">{client.name.charAt(0)}</div>
+                            <div>
+                                <h3 className="font-bold text-lg leading-none">{client.name}</h3>
+                                <p className="text-sm text-zinc-500">{client.phone}</p>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center pt-4 border-t border-zinc-100 dark:border-zinc-800 gap-4">
+                            <div className="flex items-center gap-2">
+                                <Gift size={16} className="text-[#39FF14]"/>
+                                <p className="font-black text-lg">{client.loyaltyPoints || 0}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase">Dépensé</p>
+                                <p className="font-black text-[#39FF14]">{client.totalSpent.toLocaleString()} F</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase">Commandes</p>
+                                <p className="font-black">{client.ordersCount}</p>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                {filteredClients.length === 0 && <p className="text-zinc-500 col-span-full text-center py-10">Aucun client trouvé.</p>}
+            </div>
+        </div>
+    );
+}
+
+interface PromoCode {
+  id: number;
+  code: string;
+  discount: number;
+  type: 'percentage' | 'fixed';
+  active: boolean;
+}
+
+interface ShopSettingsProps {
+  promoCodes: PromoCode[];
+  setPromoCodes: React.Dispatch<React.SetStateAction<PromoCode[]>>;
+  shopInfo: { name: string; description: string; phone: string; deliveryFees: number; openingHours: { start: string; end: string; enabled: boolean } };
+  setShopInfo: React.Dispatch<React.SetStateAction<{ name: string; description: string; phone: string; deliveryFees: number; openingHours: { start: string; end: string; enabled: boolean } }>>;
+}
+
+function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo }: ShopSettingsProps) {
+  const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed' });
+
+  const handleAddCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCode.code || !newCode.discount) return;
+    const newPromo: PromoCode = {
+      id: Date.now(),
+      code: newCode.code.toUpperCase(),
+      discount: Number(newCode.discount),
+      type: newCode.type,
+      active: true,
+    };
+    setPromoCodes(prev => [...prev, newPromo]);
+    setNewCode({ code: '', discount: '', type: 'percentage' });
+  };
+
+  const toggleCodeStatus = (id: number) => {
+    setPromoCodes(codes => codes.map(c => c.id === id ? { ...c, active: !c.active } : c));
+  };
+
+  const deleteCode = (id: number) => {
+    if (confirm("Voulez-vous vraiment supprimer ce code promo ?")) {
+      setPromoCodes(codes => codes.filter(c => c.id !== id));
+    }
+  };
+
   return (
-    <div className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white">
+    <div className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
       <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Paramètres de la <span className="text-[#39FF14]">Boutique</span></h2>
-      <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Gérez les informations générales de votre boutique.</p>
-      <div className="mt-12 p-12 bg-zinc-200 dark:bg-zinc-900 rounded-3xl text-center">
-        <h3 className="font-bold">Contenu des paramètres à venir...</h3>
+      <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Gérez les informations générales et les promotions de votre boutique.</p>
+
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm mb-8">
+          <h3 className="font-black uppercase text-xl mb-6 flex items-center gap-3"><Store size={20} className="text-[#39FF14]" /> Informations Boutique</h3>
+          <div className="space-y-4">
+              <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Nom de la boutique</label>
+                  <input type="text" value={shopInfo.name} onChange={(e) => setShopInfo({...shopInfo, name: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+              </div>
+              <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Description courte</label>
+                  <input type="text" value={shopInfo.description} onChange={(e) => setShopInfo({...shopInfo, description: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+              </div>
+              <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Numéro WhatsApp</label>
+                  <input type="text" value={shopInfo.phone} onChange={(e) => setShopInfo({...shopInfo, phone: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+              </div>
+              <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Frais de livraison (Fixe)</label>
+                  <input type="number" value={shopInfo.deliveryFees} onChange={(e) => setShopInfo({...shopInfo, deliveryFees: Number(e.target.value)})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+              </div>
+              
+              <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <div className="flex items-center justify-between mb-4">
+                      <label className="text-xs font-bold text-zinc-500 uppercase block">Horaires d'ouverture auto</label>
+                      <input type="checkbox" checked={shopInfo.openingHours?.enabled} onChange={(e) => setShopInfo({...shopInfo, openingHours: { ...shopInfo.openingHours, enabled: e.target.checked }})} className="w-5 h-5 accent-[#39FF14]" />
+                  </div>
+                  {shopInfo.openingHours?.enabled && (
+                      <div className="flex gap-4">
+                          <div className="flex-1">
+                              <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1 block">Ouverture</label>
+                              <input type="time" value={shopInfo.openingHours.start} onChange={(e) => setShopInfo({...shopInfo, openingHours: { ...shopInfo.openingHours, start: e.target.value }})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none" />
+                          </div>
+                          <div className="flex-1">
+                              <label className="text-[10px] font-bold text-zinc-400 uppercase mb-1 block">Fermeture</label>
+                              <input type="time" value={shopInfo.openingHours.end} onChange={(e) => setShopInfo({...shopInfo, openingHours: { ...shopInfo.openingHours, end: e.target.value }})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none" />
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </div>
+      </div>
+
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm">
+        <h3 className="font-black uppercase text-xl mb-6 flex items-center gap-3"><Ticket size={20} className="text-[#39FF14]" /> Codes Promo</h3>
+        
+        <form onSubmit={handleAddCode} className="flex flex-wrap gap-4 items-end mb-8 p-6 bg-zinc-50 dark:bg-zinc-950/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+          <input type="text" placeholder="CODEPROMO" value={newCode.code} onChange={e => setNewCode({...newCode, code: e.target.value})} className="flex-1 bg-white dark:bg-zinc-800 p-3 rounded-lg font-bold text-sm uppercase outline-none focus:border-[#39FF14] border" required />
+          <input type="number" placeholder="Valeur" value={newCode.discount} onChange={e => setNewCode({...newCode, discount: e.target.value})} className="w-24 bg-white dark:bg-zinc-800 p-3 rounded-lg font-bold text-sm outline-none focus:border-[#39FF14] border" required />
+          <select value={newCode.type} onChange={e => setNewCode({...newCode, type: e.target.value as any})} className="bg-white dark:bg-zinc-800 p-3 rounded-lg font-bold text-sm outline-none focus:border-[#39FF14] border">
+            <option value="percentage">%</option>
+            <option value="fixed">FCFA</option>
+          </select>
+          <button type="submit" className="bg-black dark:bg-white text-white dark:text-black px-5 py-3 rounded-lg font-bold text-xs uppercase flex items-center gap-2"><Plus size={16} /> Ajouter</button>
+        </form>
+
+        <div className="space-y-3">
+          {promoCodes.map(code => (
+            <div key={code.id} className="flex justify-between items-center p-4 bg-zinc-100 dark:bg-zinc-800/50 rounded-xl">
+              <div className="font-bold text-sm uppercase">{code.code} - <span className="text-[#39FF14]">{code.discount}{code.type === 'percentage' ? '%' : ' FCFA'}</span></div>
+              <div className="flex items-center gap-3">
+                <label className="cursor-pointer"><div className={`w-10 h-5 rounded-full p-0.5 transition-colors ${code.active ? 'bg-[#39FF14]' : 'bg-zinc-300 dark:bg-zinc-700'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${code.active ? 'translate-x-5' : ''}`}></div></div><input type="checkbox" checked={code.active} onChange={() => toggleCodeStatus(code.id)} className="hidden" /></label>
+                <button onClick={() => deleteCode(code.id)} className="text-zinc-400 hover:text-red-500"><Trash2 size={16} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
