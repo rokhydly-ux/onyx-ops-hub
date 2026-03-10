@@ -25,6 +25,7 @@ interface Product {
   description: string;
   image: string;
   category: string;
+  videoUrl?: string;
   rating?: number;
   reviews?: number;
   stock?: number;
@@ -45,7 +46,7 @@ interface CartItem extends Product {
 
 // --- INITIAL DATA ---
 const initialProducts: Product[] = [
-  { id: 1, name: 'Boubou Onyx Premium', price: 75000, description: 'Tissu de luxe, coupe moderne, parfait pour les grandes occasions.', image: 'https://i.ibb.co/pPZJz7j/boubou-1.jpg', category: 'Luxe', rating: 5, reviews: 13, stock: 10, reviewsList: [{id: 1, name: "Aïssatou", rating: 5, comment: "Magnifique, la qualité est au rendez-vous.", date: "2024-03-10"}] },
+  { id: 1, name: 'Boubou Onyx Premium', price: 75000, description: 'Tissu de luxe, coupe moderne, parfait pour les grandes occasions.', image: 'https://i.ibb.co/pPZJz7j/boubou-1.jpg', category: 'Luxe', rating: 5, reviews: 13, stock: 10, videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', reviewsList: [{id: 1, name: "Aïssatou", rating: 5, comment: "Magnifique, la qualité est au rendez-vous.", date: "2024-03-10"}] },
   { id: 2, name: 'Ensemble Tailleur "Business"', price: 85000, description: 'Pour un look pro et élégant au bureau.', image: 'https://i.ibb.co/yQJ4c1g/tailleur-femme.jpg', category: 'Professionnel', rating: 4.5, reviews: 8, stock: 5, reviewsList: [] },
   { id: 3, name: 'Robe de Soirée "Lagoon"', price: 120000, description: 'Faites sensation lors de vos événements avec cette pièce unique.', image: 'https://i.ibb.co/VvzHZj3/robe-soiree.jpg', category: 'Soirée', rating: 5, reviews: 24, stock: 0, reviewsList: [] },
   { id: 4, name: 'Chemise en Lin "Dakar 2"', price: 25000, description: 'Légère et respirante, idéale pour la saison chaude.', image: 'https://i.ibb.co/3sSqcCg/chemise-lin.jpg', category: 'Casual', rating: 4, reviews: 15, variants: { sizes: ['M', 'L', 'XL'], colors: ['Blanc', 'Beige', 'Bleu Ciel'] }, stock: 20, reviewsList: [] },
@@ -575,7 +576,7 @@ export default function OnyxJaayShop() {
                   {categories.map(cat => (
                     <button 
                       key={cat} 
-                      onClick={() => { setActiveCategory(cat); setIsMobileMenuOpen(false); }} 
+                      onClick={() => { setActiveCategory(cat); setShopView('boutique'); setIsMobileMenuOpen(false); }} 
                       className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${
                         activeCategory === cat 
                           ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
@@ -645,7 +646,7 @@ export default function OnyxJaayShop() {
             {categories.map(cat => (
               <button 
                 key={cat} 
-                onClick={() => setActiveCategory(cat)}
+                onClick={() => { setActiveCategory(cat); setShopView('boutique'); }}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${
                   activeCategory === cat 
                     ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
@@ -786,7 +787,7 @@ export default function OnyxJaayShop() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProducts.map((product, index) => (
               <div 
                 key={product.id} 
@@ -1119,6 +1120,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting }: 
         rating: product?.rating || 5,
         reviews: product?.reviews || 0,
         variants: product?.variants || { sizes: [], colors: [] },
+        videoUrl: product?.videoUrl || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -1214,6 +1216,18 @@ function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting }: 
                                 </div>
                             </div>
                         </div>
+
+                        <div className="relative group">
+                            <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">URL Vidéo (YouTube Embed)</label>
+                            <input
+                                type="text"
+                                name="videoUrl"
+                                value={formData.videoUrl}
+                                onChange={handleChange}
+                                placeholder="https://www.youtube.com/embed/..."
+                                className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition"
+                            />
+                        </div>
                     </div>
 
                     <div className="pt-6 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-4">
@@ -1243,11 +1257,13 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
+  const [mediaView, setMediaView] = useState<'image' | 'video'>('image');
 
   // Reset selection when product changes
   React.useEffect(() => {
     setSelectedSize(null);
     setSelectedColor(null);
+    setMediaView('image');
   }, [product]);
 
   if (!isOpen) return null;
@@ -1268,7 +1284,24 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
             <button type="button" onClick={onClose} className="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black transition z-10"><X size={20}/></button>
             
             <div className="w-full md:w-1/2 h-72 md:h-auto relative bg-zinc-100 dark:bg-zinc-900">
-               <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+               {mediaView === 'image' || !product.videoUrl ? (
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                    <iframe
+                        className="w-full h-full"
+                        src={product.videoUrl}
+                        title={product.name}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                    ></iframe>
+                )}
+                {product.videoUrl && (
+                    <div className="absolute bottom-4 left-4 flex gap-2">
+                        <button onClick={(e) => {e.stopPropagation(); setMediaView('image')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm ${mediaView === 'image' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30'}`}>Image</button>
+                        <button onClick={(e) => {e.stopPropagation(); setMediaView('video')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm ${mediaView === 'video' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30'}`}>Vidéo</button>
+                    </div>
+                )}
             </div>
             
             <div className="w-full md:w-1/2 p-8 flex flex-col max-h-[90vh] overflow-y-auto">
@@ -1412,12 +1445,25 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 function ShopDashboard({ products }: { products: Product[] }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
 
   useEffect(() => {
     const savedOrders = localStorage.getItem('onyx_jaay_orders');
     if (savedOrders) {
       try {
-        setOrders(JSON.parse(savedOrders));
+        const parsedOrders = JSON.parse(savedOrders);
+        setOrders(parsedOrders);
+
+        const uniqueClients: any = {};
+        parsedOrders.forEach((order: any) => {
+            if (order.customer && order.customer.phone) {
+                if (!uniqueClients[order.customer.phone]) {
+                    uniqueClients[order.customer.phone] = { ...order.customer };
+                }
+            }
+        });
+        setClients(Object.values(uniqueClients));
+
       } catch (e) {
         console.error("Erreur chargement commandes", e);
       }
@@ -1425,8 +1471,26 @@ function ShopDashboard({ products }: { products: Product[] }) {
   }, []);
 
   useEffect(() => {
-    setLowStockProducts(products.filter(p => (p.stock || 0) < 5));
+    setLowStockProducts(products.filter(p => (p.stock || 0) < 5 && p.stock !== 0));
   }, [products]);
+
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const totalOrders = orders.length;
+  const totalClients = clients.length;
+  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+  const productSales = new Map<number, { quantity: number, name: string, image: string, category: string }>();
+  orders.forEach(order => {
+    order.items.forEach((item: CartItem) => {
+      const sold = productSales.get(item.id) || { quantity: 0, name: item.name, image: item.image, category: item.category };
+      productSales.set(item.id, { ...sold, quantity: sold.quantity + item.quantity });
+    });
+  });
+
+  const bestSellers = [...productSales.entries()]
+    .sort((a, b) => b[1].quantity - a[1].quantity)
+    .slice(0, 5);
+
 
   const chartData = (() => {
     const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
@@ -1452,6 +1516,18 @@ function ShopDashboard({ products }: { products: Product[] }) {
     window.print();
   };
 
+  const StatCard = ({ icon, label, value, colorClass }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string }) => (
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex items-center gap-6">
+        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${colorClass}`}>
+            {icon}
+        </div>
+        <div>
+            <p className="text-zinc-500 dark:text-zinc-400 font-bold text-sm uppercase tracking-wider">{label}</p>
+            <p className="text-black dark:text-white font-black text-3xl">{value}</p>
+        </div>
+    </div>
+  );
+
   return (
     <div id="dashboard-section" className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in print:p-0">
       <div className="flex flex-wrap justify-between items-center gap-4 mb-4 print:hidden">
@@ -1461,6 +1537,14 @@ function ShopDashboard({ products }: { products: Product[] }) {
         </button>
       </div>
       <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Aperçu des performances et alertes de stock.</p>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
+        <StatCard icon={<DollarSign size={32} />} label="Revenu Total" value={`${totalRevenue.toLocaleString('fr-SN')} F`} colorClass="bg-green-500/10 text-green-500" />
+        <StatCard icon={<ShoppingCart size={32} />} label="Commandes" value={totalOrders} colorClass="bg-blue-500/10 text-blue-500" />
+        <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="bg-orange-500/10 text-orange-500" />
+        <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={`${Math.round(averageOrderValue).toLocaleString('fr-SN')} F`} colorClass="bg-purple-500/10 text-purple-500" />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sales Chart */}
@@ -1488,9 +1572,38 @@ function ShopDashboard({ products }: { products: Product[] }) {
             ))}
           </div>
         </div>
-
-        {/* Low Stock Alert */}
-        <div className="bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
+        
+        {/* Best Sellers */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
+           <div className="flex items-center gap-3 mb-6">
+              <Star className="text-yellow-400" size={24} />
+              <h3 className="font-black uppercase text-xl">Meilleures Ventes</h3>
+           </div>
+           
+           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {bestSellers.length === 0 ? (
+                 <p className="text-zinc-500 text-sm">Aucune vente enregistrée.</p>
+              ) : (
+                 bestSellers.map(([id, data]) => (
+                    <div key={id} className="flex items-center gap-4">
+                       <img src={data.image} alt={data.name} className="w-12 h-12 rounded-lg object-cover bg-zinc-200" />
+                       <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm truncate text-black dark:text-white">{data.name}</p>
+                          <p className="text-xs text-zinc-500">{data.category}</p>
+                       </div>
+                       <div className="text-right">
+                         <p className="font-black text-lg text-black dark:text-white">{data.quantity}</p>
+                         <p className="text-[10px] font-bold text-zinc-400 uppercase">Ventes</p>
+                       </div>
+                    </div>
+                 ))
+              )}
+           </div>
+        </div>
+      </div>
+      
+       {/* Low Stock Alert */}
+       <div className="mt-8 bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
            <div className="flex items-center gap-3 mb-6">
               <AlertTriangle className="text-yellow-500" size={24} />
               <h3 className="font-black uppercase text-xl">Stock Faible</h3>
@@ -1515,7 +1628,7 @@ function ShopDashboard({ products }: { products: Product[] }) {
               )}
            </div>
         </div>
-      </div>
+
     </div>
   );
 }
