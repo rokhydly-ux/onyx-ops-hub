@@ -9,7 +9,8 @@ import {
   Smartphone, Truck, Box, Utensils, Calendar, 
   ArrowRight, Users, Target, 
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
-  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search
+  Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search,
+  ChevronDown
 } from "lucide-react";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -82,6 +83,29 @@ const AMBASSADOR_TESTIMONIALS = [
   { name: "Ibrahima Fall", role: "Consultant Digital", img: "https://ui-avatars.com/api/?name=Ibrahima+F&background=000&color=39FF14", text: "Le meilleur programme d'affiliation au Sénégal. Transparence totale et paiements toujours à l'heure via Wave." }
 ];
 
+const FAQ_DATA = [
+  {
+    question: "Qu'est-ce que OnyxOps exactement ?",
+    answer: "OnyxOps est une suite d'outils digitaux (SaaS) conçue pour les entreprises sénégalaises. Nous automatisons vos opérations via WhatsApp : gestion des ventes, inventaire, logistique, ressources humaines, et bien plus, pour vous faire gagner du temps et de l'argent."
+  },
+  {
+    question: "Dois-je m'engager sur une longue durée ?",
+    answer: "Non, il n'y a aucun engagement de durée. Nos abonnements sont mensuels et vous pouvez arrêter à tout moment. Nous sommes convaincus que la valeur de nos outils vous fidélisera naturellement."
+  },
+  {
+    question: "Est-ce que c'est compliqué à utiliser ?",
+    answer: "Pas du tout ! Nos outils sont pensés pour être utilisés directement sur WhatsApp, un environnement que vous et vos équipes maîtrisez déjà. La prise en main est quasi-instantanée et nous offrons un support complet pour vous accompagner."
+  },
+  {
+    question: "Quels sont les moyens de paiement acceptés ?",
+    answer: "Nous acceptons les principaux moyens de paiement mobile au Sénégal, notamment Wave, Orange Money, et Free Money, pour une flexibilité maximale pour vous et vos clients."
+  },
+  {
+    question: "Le programme ambassadeur, comment ça marche ?",
+    answer: "C'est simple : vous recommandez nos solutions à votre réseau. Pour chaque client qui s'abonne grâce à vous, vous touchez une commission de 30% sur le premier paiement, puis une rente de 10% sur tous les renouvellements, à vie."
+  }
+];
+
 const RANDOM_SCENARIOS = [
   { avant: { phone: "+221 77 000 00 00", text: "C'est quoi l'avance Tabaski de Modou déjà ?", tag: "RH", issue: "Pertes d'argent" }, apres: { tag: "Pointage OK", title: "Ressources Humaines", text: "Modou S. a partagé sa localisation.", sub: "Avance Tabaski déduite : -25.000F" } },
   { avant: { phone: "+221 76 111 11 11", text: "Tu peux me refaire le devis j'ai perdu la feuille !", tag: "Vente", issue: "Temps perdu" }, apres: { tag: "Devis OK", title: "Vente & Stock", text: "Devis #1042 accepté & payé en ligne.", sub: "Stock mis à jour automatiquement." } },
@@ -129,6 +153,7 @@ export default function OnyxOpsElite() {
   const [quizAnswers, setQuizAnswers] = useState({ size: '', sector: '', customSector: '', marketing: '' });
   const [quizStep, setQuizStep] = useState(0);
   const [quizResult, setQuizResult] = useState<{packId: string, message: string} | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   // ONBOARDING (Maimouna Modal & Exit Intent)
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -173,6 +198,7 @@ export default function OnyxOpsElite() {
 
   const [articles, setArticles] = useState<any[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [blogEmail, setBlogEmail] = useState("");
 
   const waNumber = "221785338417";
   const getWaLink = (msg: string) => `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
@@ -294,6 +320,7 @@ export default function OnyxOpsElite() {
       
       if (data.address) payload.address = data.address;
       if (data.country) payload.country = data.country;
+      if (data.email) payload.email = data.email;
       
       const { error } = await supabase.from('leads').insert(payload);
       if (error) console.error("ERREUR SUPABASE (Leads) :", error.message);
@@ -934,6 +961,36 @@ export default function OnyxOpsElite() {
                   </div>
                </div>
             </section>
+
+            {/* --- NOUVEAU : SECTION FAQ --- */}
+            <section id="faq" className="py-24 bg-white">
+              <div className="max-w-4xl mx-auto px-6">
+                <div className="text-center mb-16">
+                  <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Questions <span className="text-[#39FF14]">Fréquentes</span></h2>
+                  <p className="text-zinc-600 font-bold max-w-2xl mx-auto">Toutes les réponses à vos interrogations sur notre écosystème.</p>
+                </div>
+                <div className="space-y-4">
+                  {FAQ_DATA.map((item, index) => (
+                    <div key={index} className="bg-zinc-50 border-2 border-zinc-100 rounded-[2rem] p-6 transition-all duration-300">
+                      <button 
+                        onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                        className="w-full flex justify-between items-center text-left"
+                      >
+                        <h3 className="font-black text-lg uppercase tracking-tight">{item.question}</h3>
+                        <div className={`p-2 rounded-full transition-transform duration-300 ${openFaq === index ? 'bg-black text-[#39FF14] rotate-180' : 'bg-zinc-200 text-black'}`}>
+                          <ChevronDown size={20} />
+                        </div>
+                      </button>
+                      <div className={`grid transition-all duration-500 ease-in-out ${openFaq === index ? 'grid-rows-[1fr] opacity-100 pt-4' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="overflow-hidden">
+                          <p className="text-zinc-600 font-medium leading-relaxed pr-8">{item.answer}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
           </div>
         )}
 
@@ -947,7 +1004,7 @@ export default function OnyxOpsElite() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                {articles.map((article) => (
-                  <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white border border-zinc-200 rounded-[3rem] p-8 shadow-sm hover:shadow-xl hover:border-black transition cursor-pointer flex flex-col h-full">
+                  <div key={article.id} onClick={() => { setSelectedArticle(article); setBlogEmail(""); }} className="bg-white border border-zinc-200 rounded-[3rem] p-8 shadow-sm hover:shadow-xl hover:border-black transition cursor-pointer flex flex-col h-full">
                      <div className="flex gap-2 mb-6">
                         <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">{article.category}</span>
                         <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || '5 min'}</span>
@@ -973,8 +1030,25 @@ export default function OnyxOpsElite() {
                          <h3 className="font-black text-xl mb-4">L'ère de l'automatisation est là.</h3>
                          <p>Que vous soyez un restaurant, une boutique ou un prestataire, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
                       </div>
-                      <button onClick={() => {
-                        const message = `Bonjour, je suis intéressé(e) par votre article "${selectedArticle.title}" et j'aimerais en savoir plus sur vos solutions.`;
+
+                      <div className="mb-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1 mb-2 block">Votre Email (Optionnel)</label>
+                        <input 
+                          type="email" 
+                          placeholder="ex: contact@monbusiness.com" 
+                          value={blogEmail} 
+                          onChange={(e) => setBlogEmail(e.target.value)} 
+                          className="w-full p-3 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition"
+                        />
+                      </div>
+
+                      <button onClick={async () => {
+                        const message = `Hello la team Onyx ! J'ai lu votre article "${selectedArticle.title}" et je souhaite discuter pour mon business.`;
+                        
+                        if (blogEmail) {
+                           await saveLead({ source: 'Blog Article', intent: 'Lecture & Contact', email: blogEmail, full_name: 'Lecteur Blog', message: `Article lu : ${selectedArticle.title}` });
+                        }
+
                         window.open(getWaLink(message), '_blank');
                       }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm mt-8 shadow-xl hover:scale-105 transition">Discuter sur WhatsApp</button>
                    </div>
@@ -1488,6 +1562,7 @@ export default function OnyxOpsElite() {
                     <li><button onClick={() => navigateTo('dashboard')} className="hover:text-[#39FF14] transition">Programme Ambassadeur</button></li>
                     <li><button onClick={() => navigateTo('blog')} className="hover:text-[#39FF14] transition">Le Blog</button></li>
                     <li><button onClick={() => setShowAuthModal(true)} className="hover:text-[#39FF14] transition">Connexion Hub</button></li>
+                    <li><button onClick={() => navigateTo('home', 'faq')} className="hover:text-[#39FF14] transition">FAQ</button></li>
                  </ul>
               </div>
            </div>
