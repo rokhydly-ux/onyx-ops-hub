@@ -442,7 +442,6 @@ export default function AdminDashboard() {
 
     const payload: any = { ...editingContact, phone: phoneClean, updated_at: new Date().toISOString() };
 
-    // **NOUVEAU: Calcul de la date d'expiration**
     const newExpiryDate = new Date();
     if (payload.status === 'Essai') {
       newExpiryDate.setDate(newExpiryDate.getDate() + 7);
@@ -451,13 +450,9 @@ export default function AdminDashboard() {
       newExpiryDate.setDate(newExpiryDate.getDate() + 30);
       payload.expiration_date = newExpiryDate.toISOString();
     }
-    // Assurer que active_modules (active_saas) est dans le payload
     payload.active_saas = editingContact.active_saas || [];
 
-
-    const hasSaas =
-      (Array.isArray(payload.active_saas) && payload.active_saas.length > 0) ||
-      !!payload.saas;
+    const hasSaas = (Array.isArray(payload.active_saas) && payload.active_saas.length > 0) || !!payload.saas;
     if (hasSaas) {
       payload.type = "Client";
       if (!payload.status) {
@@ -466,14 +461,34 @@ export default function AdminDashboard() {
     }
     const isNew = !payload.id;
     if (isNew) delete payload.id;
+
     try {
-      const { error } = await supabase.from('clients').upsert(payload);
-      if (error) throw error;
+      const { data: savedClient, error } = await supabase
+        .from('clients')
+        .upsert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("❌ Erreur Supabase lors de la sauvegarde du contact:", error);
+        alert(`Erreur lors de la sauvegarde: ${error.message}`);
+        return;
+      }
+
+      if (savedClient) {
+        if (isNew) {
+          setContacts(prevContacts => [savedClient, ...prevContacts]);
+        } else {
+          setContacts(prevContacts => prevContacts.map(contact => contact.id === savedClient.id ? savedClient : contact));
+        }
+      }
+
       setShowContactModal(false);
-      fetchSupabaseData();
       alert("Enregistré avec succès !");
+
     } catch (err: any) {
-      alert("Erreur Supabase: " + (err?.message || err));
+      console.error("❌ Erreur inattendue:", err);
+      alert("Erreur inattendue: " + (err?.message || err));
     }
   };
 
@@ -2467,6 +2482,7 @@ export default function AdminDashboard() {
                  </select>
                  <select value={newPartnerForm.revenue_goal} onChange={e => setNewPartnerForm({...newPartnerForm, revenue_goal: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black appearance-none">
                     <option value="">Objectif de revenu mensuel ?</option>
+                    <option value="+ 0 et 50.000 F (Complément de revenu)">+ 50000 F (Complément de revenu)</option>
                     <option value="+ 500.000 F (Développer une agence)">+ 500.000 F (Développer une agence)</option>
                     <option value="Entre 100.000 F et 300.000 F">Entre 100.000 F et 300.000 F</option>
                  </select>
