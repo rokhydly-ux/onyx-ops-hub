@@ -1496,7 +1496,7 @@ export default function OnyxOpsElite() {
               <p className="text-xs text-zinc-600 font-bold">© 2026 OnyxOps Elite. Tous droits réservés. Dakar, Sénégal.</p>
               <div className="flex gap-4 text-xs font-bold text-zinc-600">
                  <button className="hover:text-white transition">CGV</button>
-                 <button className="hover:text-white transition">Confidentialité</button>
+                 <button className="hover:text-white transition">Confidentialités</button>
               </div>
            </div>
         </footer>
