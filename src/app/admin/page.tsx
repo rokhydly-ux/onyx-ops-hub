@@ -58,6 +58,46 @@ const ECOSYSTEM_SAAS = [
 ];
 const ONYX_ELITE = { id: "elite", name: "Onyx Elite", desc: "Pack Sans Limit CRM + Studio Créatif", price: 78900, color: "bg-zinc-800", url: "https://onyxops.com" };
 
+const TestSupabaseInsert = () => {
+  const handleTestInsert = async () => {
+    const testPayload = { full_name: 'TEST INSERT BOUTON', phone: '+221779998877', password: 'test', intent: 'Test via bouton' };
+    
+    alert('Envoi du payload de test à la table "leads"...');
+    console.log("Payload de test :", testPayload);
+
+    const { data, error } = await supabase.from('leads').insert([testPayload]).select();
+
+    if (error) {
+      alert('CRASH SUPABASE : ' + JSON.stringify(error, null, 2));
+      console.error('CRASH SUPABASE:', error);
+    } else {
+      alert('SUCCÈS : ' + JSON.stringify(data, null, 2));
+      console.log('SUCCÈS:', data);
+    }
+  };
+
+  return (
+    <div style={{ position: 'fixed', top: '150px', right: '20px', zIndex: 9999 }}>
+      <button 
+        onClick={handleTestInsert}
+        style={{
+          backgroundColor: '#FF4136',
+          color: 'white',
+          padding: '12px 24px',
+          border: 'none',
+          borderRadius: '10px',
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          boxShadow: '0 4px 14px 0 rgba(255, 65, 54, 0.39)'
+        }}
+      >
+        TEST INSERT LEADS
+      </button>
+    </div>
+  );
+};
+
 export default function AdminDashboard() {
    const router = useRouter();
  
@@ -896,6 +936,7 @@ export default function AdminDashboard() {
   
   return (
     <div className={`flex h-screen bg-[#fafafa] font-sans text-black overflow-hidden relative selection:bg-[#39FF14]/30`}>
+      <TestSupabaseInsert />
       
       {/* ================= SIDEBAR GAUCHE ================= */}
       <aside className="w-72 bg-white border-r border-zinc-200 flex flex-col z-30 shadow-sm hidden md:flex transition-all">
@@ -2465,7 +2506,7 @@ export default function AdminDashboard() {
                   <select value={newPartnerForm.profession} onChange={e => setNewPartnerForm({...newPartnerForm, profession: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black appearance-none">
                      <option value="">Sélectionner...</option>
                      <option value="Salarié (Recherche revenu complémentaire)">Salarié (Recherche revenu complémentaire)</option>
-                     <option value="Étudiant">Étudiant</option>
+                     <option value="Étudiant">Étudiants</option>
                      <option value="Indépendant">Indépendant / Entrepreneur</option>
                   </select>
                </div>
