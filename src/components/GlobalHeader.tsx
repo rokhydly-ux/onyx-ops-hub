@@ -3,38 +3,30 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "@/contexts/AuthContext";
 import { ChevronDown, LogOut, KeyRound, Settings, X, CheckCircle } from "lucide-react";
 
 type GlobalHeaderProps = {
-  client: any;
   title: string;
   subtitle?: string;
   showBackToHub?: boolean;
 };
 
 export function GlobalHeader({
-  client,
   title,
   subtitle,
   showBackToHub = true,
 }: GlobalHeaderProps) {
   const router = useRouter();
+  const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("onyx_client_session");
-      sessionStorage.removeItem("onyx_client_session");
-    }
-    router.push("/");
-  };
-
   const submitNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!client?.id) return;
+    if (!user?.id) return;
     if (newPassword.length < 4) {
       alert("Le mot de passe doit faire au moins 4 caractères.");
       return;
@@ -45,7 +37,7 @@ export function GlobalHeader({
       const { error } = await supabase
         .from("clients")
         .update({ password_temp: newPassword, updated_at: new Date().toISOString() })
-        .eq("id", client.id);
+        .eq("id", user.id);
 
       if (error) {
         console.error("Erreur maj mot de passe client:", error);
@@ -101,19 +93,19 @@ export function GlobalHeader({
             className="flex items-center gap-3 bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-700 hover:border-[#39FF14] transition-all"
           >
             <div className="w-7 h-7 rounded-full bg-zinc-800 overflow-hidden border border-zinc-600 flex items-center justify-center text-[10px] font-black uppercase">
-              {client?.avatar_url ? (
+              {user?.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={client.avatar_url}
+                  src={user.avatar_url}
                   alt="Profil"
                   className="w-full h-full object-cover"
                 />
               ) : (
-                (client?.full_name || "?").charAt(0)
+                (user?.full_name || "?").charAt(0)
               )}
             </div>
             <span className="text-[11px] font-bold uppercase hidden sm:block">
-              {client?.full_name || "Compte Client"}
+              {user?.full_name || "Compte Client"}
             </span>
             <ChevronDown size={14} className="text-zinc-400" />
           </button>
@@ -144,7 +136,7 @@ export function GlobalHeader({
                 className="w-full flex items-center gap-3 px-4 py-3 text-[11px] font-black uppercase text-red-600 hover:bg-red-50"
                 onClick={() => {
                   setMenuOpen(false);
-                  handleLogout();
+                  logout();
                 }}
               >
                 <LogOut size={14} /> Déconnexion

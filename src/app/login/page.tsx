@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ClientLoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,11 +28,10 @@ export default function ClientLoginPage() {
         .single();
 
       if (error || !data) {
-        throw new Error("Identifiants incorrects. Vérifiez votre numéro sans espaces.");
+        throw new Error("Identifiants incorrects. Veuillez vérifier vos informations.");
       }
 
-      localStorage.setItem("onyx_session", JSON.stringify(data));
-      router.push("/hub");
+      login(data);
     } catch (err: any) {
       alert(
         err.message || "Erreur de connexion : Veuillez réessayer plus tard."
