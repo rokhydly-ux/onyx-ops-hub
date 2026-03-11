@@ -973,7 +973,10 @@ export default function OnyxOpsElite() {
                          <h3 className="font-black text-xl mb-4">L'ère de l'automatisation est là.</h3>
                          <p>Que vous soyez un restaurant, une boutique ou un prestataire, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
                       </div>
-                      <button onClick={() => {setSelectedArticle(null); navigateTo('home', 'solutions');}} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm mt-8 shadow-xl hover:scale-105 transition">Découvrir comment appliquer cela</button>
+                      <button onClick={() => {
+                        const message = `Bonjour, je suis intéressé(e) par votre article "${selectedArticle.title}" et j'aimerais en savoir plus sur vos solutions.`;
+                        window.open(getWaLink(message), '_blank');
+                      }} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm mt-8 shadow-xl hover:scale-105 transition">Discuter sur WhatsApp</button>
                    </div>
                  </div>
                </div>

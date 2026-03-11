@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { 
   PlayCircle, BookOpen, FileText, ChevronRight, 
   LogOut, Shield, Download, CheckCircle, Star, X, Save, Edit3 
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -21,79 +23,43 @@ const DEFAULT_COURSES: Course[] = [
 ];
 
 export default function OnyxFormationPage() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  
-  // Auth
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
+  const router = useRouter();
+  const { user, loading, isAuthenticated, logout, updateUser } = useAuth();
   
   // Dashboard states
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(DEFAULT_COURSES[0]);
   const [showCertificate, setShowCertificate] = useState(false);
   
-  // Notes states (Nouvelle feature)
+  // Notes states
   const [courseNotes, setCourseNotes] = useState<Record<string, string>>({});
   
   // Profile Modal
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editProfileForm, setEditProfileForm] = useState({ full_name: "", phone: "", avatar_url: "" });
 
-  // 1. CHARGEMENT SESSION & DONNÉES LOCALES
   useEffect(() => {
-    const saved =
-      typeof window !== "undefined"
-        ? localStorage.getItem("onyx_client_session") ||
-          sessionStorage.getItem("onyx_client_session")
-        : null;
-    if (saved) {
-      const parsedUser = JSON.parse(saved);
-      setUser(parsedUser);
-      setEditProfileForm({
-        full_name: parsedUser.full_name || "",
-        phone: parsedUser.phone || "",
-        avatar_url: parsedUser.avatar_url || ""
-      });
+    if (!loading && !isAuthenticated) {
+      router.push('/login');
     }
-    
-    // Charger progressions et notes
+  }, [loading, isAuthenticated, router]);
+  
+  useEffect(() => {
+    if(user) {
+        setEditProfileForm({
+            full_name: user.full_name || "",
+            phone: user.phone || "",
+            avatar_url: user.avatar_url || ""
+          });
+    }
+    // Load local data
     const savedProgress = localStorage.getItem("onyx_course_progress");
     if (savedProgress) setProgress(JSON.parse(savedProgress));
     
     const savedNotes = localStorage.getItem("onyx_course_notes");
     if (savedNotes) setCourseNotes(JSON.parse(savedNotes));
-    
-    setLoading(false);
-  }, []);
+  }, [user]);
 
-  // 2. CONNEXION MANUELLE
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    
-    // Nettoyage du numéro de téléphone (suppression des espaces)
-    const cleanPhone = phone.replace(/\s+/g, '');
-
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('phone', cleanPhone)
-      .eq('password_temp', password.trim())
-      .maybeSingle();
-
-    if (data) {
-      localStorage.setItem("onyx_client_session", JSON.stringify(data));
-      setUser(data);
-      setEditProfileForm({ full_name: data.full_name || "", phone: data.phone || "", avatar_url: data.avatar_url || "" });
-    } else {
-      alert("Identifiants incorrects. Utilisez votre numéro et le mot de passe fourni par l'admin.");
-    }
-    setAuthLoading(false);
-  };
-
-  // 3. MISE À JOUR DU PROFIL
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
@@ -107,9 +73,7 @@ export default function OnyxFormationPage() {
 
       if (error) throw error;
 
-      const updatedUser = { ...user, ...editProfileForm };
-      setUser(updatedUser);
-      localStorage.setItem("onyx_client_session", JSON.stringify(updatedUser));
+      updateUser(editProfileForm);
       setShowProfileModal(false);
       alert("Profil mis à jour avec succès !");
     } catch (err: any) {
@@ -117,7 +81,6 @@ export default function OnyxFormationPage() {
     }
   };
 
-  // 4. GESTION PROGRESSION & NOTES
   const toggleComplete = (courseId: string) => {
     const newProgress = { ...progress, [courseId]: progress[courseId] === 100 ? 0 : 100 };
     setProgress(newProgress);
@@ -133,30 +96,8 @@ export default function OnyxFormationPage() {
 
   const totalProgress = Math.round(DEFAULT_COURSES.reduce((acc, c) => acc + (progress[c.id] || 0), 0) / DEFAULT_COURSES.length);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-black"><div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin" /></div>;
-
-  // --- VUE LOGIN ---
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6 font-sans">
-        <div className="w-full max-w-md bg-zinc-900 rounded-[3rem] border border-zinc-800 p-10 shadow-2xl">
-          <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-6 shadow-xl shadow-purple-500/20">
-              <PlayCircle size={32} />
-            </div>
-            <h1 className="text-3xl font-black uppercase text-white tracking-tighter italic">ONYX<span className="text-purple-500">FORMATION</span></h1>
-            <p className="text-[10px] font-bold text-zinc-500 mt-2 uppercase tracking-widest">Accès Étudiant • Terminal 2026</p>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-5">
-            <input type="tel" placeholder="NUMÉRO DE TÉLÉPHONE" value={phone} onChange={(e) => setPhone(e.target.value)} required className="w-full p-5 bg-black border border-zinc-800 rounded-2xl font-bold text-white outline-none focus:border-purple-500 transition-all" />
-            <input type="password" placeholder="MOT DE PASSE" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full p-5 bg-black border border-zinc-800 rounded-2xl font-bold text-white outline-none focus:border-purple-500 transition-all" />
-            <button type="submit" disabled={authLoading} className="w-full bg-purple-600 text-white py-5 rounded-2xl font-black uppercase text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-purple-900/20">
-              {authLoading ? "Vérification..." : "Entrer dans l'académie"}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
+  if (loading || !isAuthenticated) {
+    return <div className="min-h-screen flex items-center justify-center bg-black"><div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin" /></div>;
   }
 
   // --- VUE DASHBOARD ---
@@ -181,7 +122,7 @@ export default function OnyxFormationPage() {
             <span className="font-black uppercase text-xs hidden md:block text-zinc-800">{user?.full_name}</span>
           </div>
 
-          <button onClick={() => { localStorage.removeItem("onyx_client_session"); window.location.reload(); }} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-red-500 transition-all">
+          <button onClick={logout} className="p-3 bg-zinc-100 rounded-full text-zinc-400 hover:text-red-500 transition-all">
             <LogOut size={18} />
           </button>
         </div>
