@@ -462,34 +462,32 @@ export default function AdminDashboard() {
     const isNew = !payload.id;
     if (isNew) delete payload.id;
 
-    try {
-      const { data: savedClient, error } = await supabase
+    console.log('1. Données envoyées à Supabase:', payload);
+
+    const { data, error } = await supabase
         .from('clients')
         .upsert(payload)
-        .select()
-        .single();
+        .select();
 
-      if (error) {
-        console.error("❌ Erreur Supabase lors de la sauvegarde du contact:", error);
-        alert(`Erreur lors de la sauvegarde: ${error.message}`);
-        return;
-      }
+    console.log('2. Réponse de Supabase:', { data, error });
 
-      if (savedClient) {
+    if (error) {
+        console.error('❌ ERREUR D\'INSERTION:', error);
+        alert(`Erreur Supabase: ${error.message} (Détails: ${error.details || 'Aucun'})`);
+        return; 
+    }
+
+    if (data && data.length > 0) {
+        const savedClient = data[0];
         if (isNew) {
           setContacts(prevContacts => [savedClient, ...prevContacts]);
         } else {
           setContacts(prevContacts => prevContacts.map(contact => contact.id === savedClient.id ? savedClient : contact));
         }
-      }
-
-      setShowContactModal(false);
-      alert("Enregistré avec succès !");
-
-    } catch (err: any) {
-      console.error("❌ Erreur inattendue:", err);
-      alert("Erreur inattendue: " + (err?.message || err));
     }
+
+    setShowContactModal(false);
+    alert("Enregistré avec succès !");
   };
 
   const approveAmbassador = async (id: string) => {
@@ -2481,7 +2479,7 @@ export default function AdminDashboard() {
                     <option value="Débutant">Débutant</option>
                  </select>
                  <select value={newPartnerForm.revenue_goal} onChange={e => setNewPartnerForm({...newPartnerForm, revenue_goal: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black appearance-none">
-                    <option value="">Objectif de revenu mensuel ?</option>
+                    <option value=""> Objectif de revenus mensuels ?</option>
                     <option value="+ 0 et 50.000 F (Complément de revenu)">+ 50000 F (Complément de revenu)</option>
                     <option value="+ 500.000 F (Développer une agence)">+ 500.000 F (Développer une agence)</option>
                     <option value="Entre 100.000 F et 300.000 F">Entre 100.000 F et 300.000 F</option>
