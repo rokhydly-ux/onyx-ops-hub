@@ -51,7 +51,7 @@ export default function ClientLoginPage() {
         .select("*")
         .eq("phone", cleanPhone)
         .eq("password", trimmedPassword)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("❌ ERREUR SUPABASE:", error);
@@ -146,7 +146,7 @@ export default function ClientLoginPage() {
                 className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-900 accent-[#39FF14]"
               />
               <span className="uppercase tracking-[0.2em]">
-                Rester connectés
+                Rester connecté
               </span>
             </label>
           </div>
