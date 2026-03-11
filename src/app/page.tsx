@@ -103,6 +103,10 @@ const FAQ_DATA = [
   {
     question: "Le programme ambassadeur, comment ça marche ?",
     answer: "C'est simple : vous recommandez nos solutions à votre réseau. Pour chaque client qui s'abonne grâce à vous, vous touchez une commission de 30% sur le premier paiement, puis une rente de 10% sur tous les renouvellements, à vie."
+  },
+  {
+    question: "Proposez-vous une période d'essai ?",
+    answer: "Oui, vous pouvez tester nos solutions gratuitement. Discutez simplement avec notre assistant WhatsApp ou créez un compte pour activer votre période d'essai sans engagement."
   }
 ];
 
@@ -971,19 +975,19 @@ export default function OnyxOpsElite() {
                 </div>
                 <div className="space-y-4">
                   {FAQ_DATA.map((item, index) => (
-                    <div key={index} className="bg-zinc-50 border-2 border-zinc-100 rounded-[2rem] p-6 transition-all duration-300">
+                    <div key={index} className={`bg-zinc-50 border-2 rounded-[2rem] p-6 transition-all duration-300 ${openFaq === index ? 'border-[#39FF14]' : 'border-zinc-100'}`}>
                       <button 
                         onClick={() => setOpenFaq(openFaq === index ? null : index)}
                         className="w-full flex justify-between items-center text-left"
                       >
                         <h3 className="font-black text-lg uppercase tracking-tight">{item.question}</h3>
-                        <div className={`p-2 rounded-full transition-transform duration-300 ${openFaq === index ? 'bg-black text-[#39FF14] rotate-180' : 'bg-zinc-200 text-black'}`}>
+                        <div className={`p-2 rounded-full transition-transform duration-300 ${openFaq === index ? 'bg-black text-red-500 rotate-180' : 'bg-zinc-200 text-zinc-600'}`}>
                           <ChevronDown size={20} />
                         </div>
                       </button>
-                      <div className={`grid transition-all duration-500 ease-in-out ${openFaq === index ? 'grid-rows-[1fr] opacity-100 pt-4' : 'grid-rows-[0fr] opacity-0'}`}>
+                      <div className={`grid transition-all duration-300 ease-in-out ${openFaq === index ? 'grid-rows-[1fr] opacity-100 pt-4' : 'grid-rows-[0fr] opacity-0'}`}>
                         <div className="overflow-hidden">
-                          <p className="text-zinc-600 font-medium leading-relaxed pr-8">{item.answer}</p>
+                          <p className={`text-zinc-600 font-medium leading-relaxed pr-8 transition-transform duration-500 ${openFaq === index ? 'translate-y-0' : '-translate-y-3'}`}>{item.answer}</p>
                         </div>
                       </div>
                     </div>
@@ -1028,7 +1032,7 @@ export default function OnyxOpsElite() {
                       <p className="text-lg text-zinc-600 mb-6">{selectedArticle.desc || selectedArticle.content}</p>
                       <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 mb-6">
                          <h3 className="font-black text-xl mb-4">L'ère de l'automatisation est là.</h3>
-                         <p>Que vous soyez un restaurant, une boutique ou un prestataire, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
+                         <p>Que vous soyez un restaurant, une boutique ou un prestataire sur le marché, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
                       </div>
 
                       <div className="mb-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
