@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,29 +13,61 @@ export default function ClientLoginPage() {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
+  useEffect(() => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl) {
+      console.warn(
+        "⚠️ AVERTISSEMENT: La variable d'environnement NEXT_PUBLIC_SUPABASE_URL n'est pas définie."
+      );
+    }
+
+    if (!supabaseAnonKey) {
+      console.warn(
+        "⚠️ AVERTISSEMENT: La variable d'environnement NEXT_PUBLIC_SUPABASE_ANON_KEY n'est pas définie."
+      );
+    }
+
+    if (supabaseUrl && supabaseAnonKey) {
+      console.log(
+        "✅ Variables d'environnement Supabase chargées correctement côté client."
+      );
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const cleanPhone = phone.replace(/\s+/g, '');
-      console.log("Tentative avec le numéro :", cleanPhone);
+      const cleanPhone = phone.replace(/\s+/g, "");
+      const trimmedPassword = password.trim();
+
+      console.log("Numéro nettoyé:", cleanPhone);
+      console.log("Mot de passe:", trimmedPassword);
 
       const { data, error } = await supabase
         .from("leads")
         .select("*")
         .eq("phone", cleanPhone)
-        .eq("password", password.trim())
+        .eq("password", trimmedPassword)
         .single();
 
-      if (error || !data) {
-        throw new Error("Identifiants incorrects. Veuillez vérifier vos informations.");
+      if (error) {
+        console.error("❌ ERREUR SUPABASE:", error);
+        throw new Error(
+          `Erreur Supabase: ${error.message} (code: ${error.code})`
+        );
+      }
+
+      if (!data) {
+        console.error("❌ AUCUNE DATA TROUVÉE");
+        throw new Error("Identifiants incorrects ou utilisateur non trouvé.");
       }
 
       login(data);
     } catch (err: any) {
-      alert(
-        err.message || "Erreur de connexion : Veuillez réessayer plus tard."
-      );
+      alert(err.message || "Erreur de connexion : Veuillez réessayer plus tard.");
     } finally {
       setLoading(false);
     }
@@ -114,7 +146,7 @@ export default function ClientLoginPage() {
                 className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-900 accent-[#39FF14]"
               />
               <span className="uppercase tracking-[0.2em]">
-                Rester connecté
+                Rester connectés
               </span>
             </label>
           </div>
