@@ -713,7 +713,8 @@ export default function AdminDashboard() {
       active_saas: [],
       expiration_date: trialEndDate.toISOString().split('T')[0],
       type: "Prospect",
-      saas: ""
+      saas: "",
+      source: "Admin",
     });
     setShowContactModal(true);
   };

@@ -1034,7 +1034,7 @@ export default function OnyxOpsElite() {
                       <p className="text-lg text-zinc-600 mb-6">{selectedArticle.desc || selectedArticle.content}</p>
                       <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 mb-6">
                          <h3 className="font-black text-xl mb-4">L'ère de l'automatisation est là.</h3>
-                         <p>Da nga am restaurant, une boutique ou un prestataire sur le marché, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
+                         <p>Vous avez un restaurant, une boutique ou un prestataire sur le marché, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
                       </div>
 
                       <div className="mb-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
