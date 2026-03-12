@@ -40,18 +40,18 @@ export default function ClientLoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const cleanPhone = phone.replace(/\s+/g, "");
-      const trimmedPassword = password.trim();
-
-      console.log("Numéro nettoyé:", cleanPhone);
-      console.log("Mot de passe:", trimmedPassword);
+      // 1. On garde uniquement les chiffres
+      const onlyDigits = phone.replace(/[^0-9]/g, "");
+      // 2. On prend les 9 derniers chiffres (le numéro local au Sénégal)
+      const localNumber = onlyDigits.slice(-9);
+      console.log("Recherche des chiffres locaux :", localNumber);
 
       const { data, error } = await supabase
         .from("leads")
         .select("*")
-        .eq("phone", cleanPhone)
-        .eq("password", trimmedPassword)
-        .maybeSingle();
+        .like("phone", `%${localNumber}%`) // Recherche si le numéro CONTIENT ces 9 chiffres
+        .eq("password", password.trim())
+        .limit(1);
 
       if (error) {
         console.error("❌ ERREUR SUPABASE:", error);
@@ -60,12 +60,12 @@ export default function ClientLoginPage() {
         );
       }
 
-      if (!data) {
+      if (!data.length) {
         console.error("❌ AUCUNE DATA TROUVÉE");
         throw new Error("Identifiants incorrects ou utilisateur non trouvé.");
       }
 
-      login(data);
+      login(data[0]);
     } catch (err: any) {
       alert(err.message || "Erreur de connexion : Veuillez réessayer plus tard.");
     } finally {
@@ -161,7 +161,7 @@ export default function ClientLoginPage() {
         </form>
 
         <p className="mt-8 text-[9px] text-zinc-500 text-center uppercase font-bold tracking-[0.3em]">
-          Gestion centralisée OnyxOps • Dakar Hub
+          Gestion Centralisée OnyxOps • Dakar Hub
         </p>
       </div>
     </div>
