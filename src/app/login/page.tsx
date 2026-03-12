@@ -40,33 +40,47 @@ export default function ClientLoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // 1. On garde uniquement les chiffres
+      // 1. Nettoyage du numéro
       const onlyDigits = phone.replace(/[^0-9]/g, "");
-      // 2. On prend les 9 derniers chiffres (le numéro local au Sénégal)
       const localNumber = onlyDigits.slice(-9);
       console.log("Recherche des chiffres locaux :", localNumber);
 
-      const { data, error } = await supabase
-        .from("leads")
+      // 2. On cherche D'ABORD dans la table 'clients' (Membres validés / Admin)
+      let { data, error } = await supabase
+        .from("clients")
         .select("*")
-        .like("phone", `%${localNumber}%`) // Recherche si le numéro CONTIENT ces 9 chiffres
-        .eq("password", password.trim())
+        .ilike("phone", `%${localNumber}%`)
+        .eq("password_temp", password.trim()) // ⚠️ La colonne s'appelle password_temp ici !
         .limit(1);
 
-      if (error) {
-        console.error("❌ ERREUR SUPABASE:", error);
-        throw new Error(
-          `Erreur Supabase: ${error.message} (code: ${error.code})`
-        );
+      if (error) throw new Error(`Erreur DB Clients: ${error.message}`);
+
+      // 3. Si introuvable, on cherche dans la table 'leads' (Nouveaux inscrits site web)
+      if (!data || data.length === 0) {
+        console.log("Non trouvé dans clients, recherche dans leads...");
+        const { data: leadsData, error: leadsError } = await supabase
+          .from("leads")
+          .select("*")
+          .ilike("phone", `%${localNumber}%`)
+          .eq("password", password.trim()) // ⚠️ La colonne s'appelle password ici !
+          .limit(1);
+
+        if (leadsError) throw new Error(`Erreur DB Leads: ${leadsError.message}`);
+        data = leadsData; // On remplace par le résultat des leads
       }
 
-      if (!data.length) {
-        console.error("❌ AUCUNE DATA TROUVÉE");
-        throw new Error("Identifiants incorrects ou utilisateur non trouvé.");
+      // 4. Verdict final
+      if (!data || data.length === 0) {
+        console.error("❌ AUCUNE DATA TROUVÉE (Ni dans clients, ni dans leads)");
+        throw new Error("Identifiants incorrects ou compte inexistant.");
       }
 
+      // Succès !
+      console.log("✅ Connexion réussie :", data[0].full_name);
       login(data[0]);
+
     } catch (err: any) {
+      console.error("❌ ERREUR GLOBALE LOGIN:", err);
       alert(err.message || "Erreur de connexion : Veuillez réessayer plus tard.");
     } finally {
       setLoading(false);
@@ -97,7 +111,7 @@ export default function ClientLoginPage() {
             Onyx Hub Client
           </h1>
           <p className="text-[10px] font-bold text-zinc-500 mt-2 uppercase tracking-[0.3em]">
-            Accès sécurisé à vos applications
+            Accès 100 sécurisé à vos applications
           </p>
         </div>
 
