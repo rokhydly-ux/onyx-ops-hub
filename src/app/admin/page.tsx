@@ -480,36 +480,17 @@ export default function AdminDashboard() {
     }
     if (!supabase) return;
 
-    const payload: any = { ...editingContact, phone: phoneClean, updated_at: new Date().toISOString() };
-
-    const newExpiryDate = new Date();
-    if (payload.status === 'Essai') {
-      newExpiryDate.setDate(newExpiryDate.getDate() + 7);
-      payload.expiration_date = newExpiryDate.toISOString();
-    } else if (payload.status === 'Client') {
-      newExpiryDate.setDate(newExpiryDate.getDate() + 30);
-      payload.expiration_date = newExpiryDate.toISOString();
-    }
-    payload.active_saas = editingContact.active_saas || [];
-
-    const hasSaas = (Array.isArray(payload.active_saas) && payload.active_saas.length > 0) || !!payload.saas;
-    if (hasSaas) {
-      payload.type = "Client";
-      if (!payload.status) {
-        payload.status = "Client";
-      }
-    }
-    const isNew = !payload.id;
-    if (isNew) delete payload.id;
-
-    console.log('1. Données envoyées à Supabase:', payload);
-
-    const { data, error } = await supabase
-        .from('clients')
-        .upsert(payload)
-        .select();
-
-    console.log('2. Réponse de Supabase:', { data, error });
+    const payload = {
+      full_name: editingContact.full_name,
+      phone: phoneClean,
+      password: editingContact.password_temp || 'central2026',
+      source: editingContact.source || 'Admin',
+      status: editingContact.status || 'Client',
+      intent: editingContact.saas ? 'Accès ' + editingContact.saas : 'Ajout Manuel'
+    };
+    
+    // Insérer dans la table 'leads' pour que la page login fonctionne
+    const { data, error } = await supabase.from('leads').upsert(payload, { onConflict: 'phone' }).select();
 
     if (error) {
         console.error('❌ ERREUR D\'INSERTION:', error);
@@ -517,17 +498,11 @@ export default function AdminDashboard() {
         return; 
     }
 
-    if (data && data.length > 0) {
-        const savedClient = data[0];
-        if (isNew) {
-          setContacts(prevContacts => [savedClient, ...prevContacts]);
-        } else {
-          setContacts(prevContacts => prevContacts.map(contact => contact.id === savedClient.id ? savedClient : contact));
-        }
-    }
+    // Refetch all data to ensure UI consistency across all lists (leads and contacts)
+    fetchSupabaseData();
 
     setShowContactModal(false);
-    alert("Enregistré avec succès !");
+    alert("Client enregistré dans la liste des leads avec succès ! Il peut maintenant se connecter.");
   };
 
   const approveAmbassador = async (id: string) => {
@@ -2492,7 +2467,7 @@ export default function AdminDashboard() {
                     <select value={newPartnerForm.country} onChange={e => setNewPartnerForm({...newPartnerForm, country: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black appearance-none">
                        <option value="Sénégal">Sénégal</option>
                        <option value="Mali">Mali</option>
-                       <option value="Côte d'Ivoire">Côte d'Ivoire</option>
+                       <option value="Côte d'Ivoire">Côte d'ivoire</option>
                     </select>
                  </div>
                </div>

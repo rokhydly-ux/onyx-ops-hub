@@ -311,13 +311,13 @@ export default function OnyxOpsElite() {
       const finalName = data.full_name || data.name || 'Visiteur Web';
 
       const payload: Record<string, any> = {
-        source: data.source || 'Site Web', 
-        intent: data.intent || 'Contact', 
-        phone: data.contact || '', 
-        message: typeof data.message === 'string' ? data.message : JSON.stringify({ ...extra, ...data }) || '', 
-        name: finalName,
+        source: data.source || 'Site Web',
+        intent: data.intent || 'Contact',
+        phone: data.contact || '',
+        message: typeof data.message === 'string' ? data.message : JSON.stringify({ ...extra, ...data }) || '',
         full_name: finalName,
-        status: 'Nouveau'
+        status: 'Nouveau',
+        password: 'central2026' // Mot de passe par défaut pour permettre le login
       };
       
       if (data.address) payload.address = data.address;
