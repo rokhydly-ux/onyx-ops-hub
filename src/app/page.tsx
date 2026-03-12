@@ -306,7 +306,6 @@ export default function OnyxOpsElite() {
 
   const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string; full_name?: string; name?: string; address?: string; country?: string; [key: string]: any }) => {
     try {
-      // Les données spécifiques au formulaire ambassadeur (dont le statut pro) sont compilées ici
       const extra = { city: data.city, address: data.address, country: data.country, status: data.status, sales_exp: data.sales_exp, objective: data.objective, strategy: data.strategy };
       
       const finalName = data.full_name || data.name || 'Visiteur Web';
@@ -315,20 +314,23 @@ export default function OnyxOpsElite() {
         source: data.source || 'Site Web', 
         intent: data.intent || 'Contact', 
         phone: data.contact || '', 
-        // Le statut pro (étudiant, etc.) sera lisible dans la description du lead
         message: typeof data.message === 'string' ? data.message : JSON.stringify({ ...extra, ...data }) || '', 
         name: finalName,
         full_name: finalName,
-        status: 'Nouveau' // <-- AJOUT : Force le CRM à placer ce lead dans la colonne "Nouveau"
+        status: 'Nouveau'
       };
       
       if (data.address) payload.address = data.address;
       if (data.country) payload.country = data.country;
       if (data.email) payload.email = data.email;
       
-      const { error } = await supabase.from('leads').insert(payload);
-      if (error) console.error("ERREUR SUPABASE (Leads) :", error.message);
-    } catch (e) { console.error("ERREUR CATCH (Leads) :", e); }
+      const { error } = await supabase.from('leads').insert([payload]);
+      if (error) {
+        console.error("ERREUR SUPABASE (Leads) :", error.message);
+      }
+    } catch (e) { 
+      console.error("ERREUR CATCH (Leads) :", e); 
+    }
   };
 
   const handleWaClick = async (intent: string, msg: string) => {
@@ -1032,7 +1034,7 @@ export default function OnyxOpsElite() {
                       <p className="text-lg text-zinc-600 mb-6">{selectedArticle.desc || selectedArticle.content}</p>
                       <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 mb-6">
                          <h3 className="font-black text-xl mb-4">L'ère de l'automatisation est là.</h3>
-                         <p>Que vous soyez un restaurant, une boutique ou un prestataire sur le marché, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
+                         <p>Da nga am restaurant, une boutique ou un prestataire sur le marché, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
                       </div>
 
                       <div className="mb-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">

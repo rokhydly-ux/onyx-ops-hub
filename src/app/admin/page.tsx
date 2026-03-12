@@ -60,7 +60,7 @@ const ONYX_ELITE = { id: "elite", name: "Onyx Elite", desc: "Pack Sans Limit CRM
 
 const TestSupabaseInsert = () => {
   const handleTestInsert = async () => {
-    const testPayload = { full_name: 'TEST INSERT BOUTON', phone: '+221779998877', password: 'test', intent: 'Test via bouton' };
+    const testPayload = { full_name: 'TEST INSERT BOUTON', phone: '+221779998877', password: 'test', intent: 'Test via bouton', source: 'Admin Test Button' };
     
     alert('Envoi du payload de test à la table "leads"...');
     console.log("Payload de test :", testPayload);
