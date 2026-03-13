@@ -4,7 +4,7 @@ import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
@@ -94,7 +94,24 @@ const initialShopInfo = {
   phone: WHATSAPP_NUMBER,
   deliveryFees: 0,
   logoUrl: '',
+  currency: 'FCFA',
   openingHours: { start: '09:00', end: '18:00', enabled: false }
+};
+
+const CONVERSION_RATES: Record<string, { rate: number; symbol: string }> = {
+    'FCFA': { rate: 1, symbol: 'FCFA' },
+    'EUR': { rate: 1 / 655.957, symbol: '€' },
+    'USD': { rate: 1 / 610, symbol: '$' },
+};
+
+const displayPrice = (priceInCfa: number, currency: string = 'FCFA') => {
+    const config = CONVERSION_RATES[currency] || CONVERSION_RATES['FCFA'];
+    const convertedPrice = priceInCfa * config.rate;
+    
+    if (currency === 'FCFA') {
+        return `${convertedPrice.toLocaleString('fr-SN')} ${config.symbol}`;
+    }
+    return `${convertedPrice.toFixed(2)} ${config.symbol}`;
 };
 
 export default function OnyxJaayShop() {
@@ -212,6 +229,10 @@ export default function OnyxJaayShop() {
   useEffect(() => {
     localStorage.setItem('onyx_jaay_view_history', JSON.stringify(viewHistory));
   }, [viewHistory]);
+
+  useEffect(() => {
+    localStorage.setItem('onyx_jaay_shop_info', JSON.stringify(shopInfo));
+  }, [shopInfo]);
 
   // --- THEME LOGIC ---
   useEffect(() => {
@@ -428,23 +449,23 @@ export default function OnyxJaayShop() {
         if (item.selectedVariant.color) parts.push(`Couleur: ${item.selectedVariant.color}`);
         if (parts.length > 0) variantInfo = ` (${parts.join(', ')})`;
       }
-      message += `- ${item.name}${variantInfo} (x${item.quantity}) : ${(item.price * item.quantity).toLocaleString('fr-SN')} FCFA\n`;
+      message += `- ${item.name}${variantInfo} (x${item.quantity}) : ${displayPrice(item.price * item.quantity, shopInfo.currency)}\n`;
     });
-    message += `\nSous-total : ${subTotal.toLocaleString('fr-SN')} FCFA`;
+    message += `\nSous-total : ${displayPrice(subTotal, shopInfo.currency)}`;
     if (deliveryMethod === 'delivery') {
-        message += `\nFrais de livraison : ${deliveryCost.toLocaleString('fr-SN')} FCFA`;
+        message += `\nFrais de livraison : ${displayPrice(deliveryCost, shopInfo.currency)}`;
     }
     if (appliedPromo) {
-        message += `\nRemise (${appliedPromo.code}) : -${promoDiscountAmount.toLocaleString('fr-SN')} FCFA`;
+        message += `\nRemise (${appliedPromo.code}) : -${displayPrice(promoDiscountAmount, shopInfo.currency)}`;
     }
     if (useLoyaltyPoints && loyaltyDiscountAmount > 0) {
-        message += `\nPoints Fidélité : -${loyaltyDiscountAmount.toLocaleString('fr-SN')} FCFA`;
+        message += `\nPoints Fidélité : -${displayPrice(loyaltyDiscountAmount, shopInfo.currency)}`;
     }
     message += `\nMode de livraison : ${deliveryMethod === 'delivery' ? 'Livraison à domicile' : 'Retrait en boutique'}`;
     if (deliveryMethod === 'delivery' && selectedZone) {
         message += `\nZone : ${selectedZone.name} (${selectedZone.quartiers[0]}...)`;
     }
-    message += `\n*Total à payer : ${cartTotal.toLocaleString('fr-SN')} FCFA*`;
+    message += `\n*Total à payer : ${displayPrice(cartTotal, shopInfo.currency)}*`;
     message += `\n\nMerci de confirmer la disponibilité.`;
 
     const url = `https://wa.me/${shopInfo.phone}?text=${encodeURIComponent(message)}`;
@@ -1115,7 +1136,7 @@ export default function OnyxJaayShop() {
                   <div className="flex justify-between items-end mt-6">
                     <div>
                       <p className="text-xs text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider mb-1">Prix</p>
-                      <p className="text-2xl font-black text-black dark:text-white">{product.price.toLocaleString('fr-SN')} <span className="text-sm font-bold text-[#39FF14]">FCFA</span></p>
+                      <p className="text-2xl font-black text-black dark:text-white">{displayPrice(product.price, shopInfo.currency)}</p>
                     </div>
                     <button 
                       onClick={(e) => { e.stopPropagation(); addToCart(product); }} 
@@ -1139,10 +1160,10 @@ export default function OnyxJaayShop() {
           </div>
         )}
         {shopView === 'dashboard' && (
-            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} />
+            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} />
         )}
         {shopView === 'clients' && (
-            <ShopClients />
+            <ShopClients currency={shopInfo.currency} />
         )}
         {shopView === 'settings' && (
             <ShopSettings 
@@ -1154,6 +1175,7 @@ export default function OnyxJaayShop() {
               setDeliveryZones={setDeliveryZones}
               onResetData={handleResetData}
               onClearOrders={handleClearOrders}
+              currency={shopInfo.currency}
             />
         )}
       </main>
@@ -1272,7 +1294,7 @@ export default function OnyxJaayShop() {
 
                 <div className="flex justify-between items-center mb-6">
                    <span className="text-zinc-500 dark:text-zinc-400 font-bold uppercase text-xs">Total à payer</span>
-                   <span className="text-2xl font-black text-black dark:text-white">{cartTotal.toLocaleString()} <span className="text-[#39FF14] text-sm">FCFA</span></span>
+                   <span className="text-2xl font-black text-black dark:text-white">{displayPrice(cartTotal, shopInfo.currency)}</span>
                 </div>
                 <button 
                     onClick={handleCheckout} 
@@ -1314,7 +1336,7 @@ export default function OnyxJaayShop() {
                              <h4 className="font-bold text-base line-clamp-1 text-black dark:text-white">{item.name}</h4>
                              <button onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }} className="text-zinc-400 hover:text-red-500 shrink-0 p-1"><Trash2 size={18}/></button>
                           </div>
-                          <p className="text-zinc-500 dark:text-zinc-400 font-bold text-lg mb-auto">{item.price.toLocaleString()} FCFA</p>
+                          <p className="text-zinc-500 dark:text-zinc-400 font-bold text-lg mb-auto">{displayPrice(item.price, shopInfo.currency)}</p>
                           <button onClick={(e) => { e.stopPropagation(); addToCart(item); setIsWishlistOpen(false); }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition-colors">Ajouter au panier</button>
                        </div>
                     </div>
@@ -1368,7 +1390,7 @@ export default function OnyxJaayShop() {
               ))}
               <div className="pt-4 flex justify-between text-lg font-black text-[#39FF14]">
                 <span>Total</span>
-                <span>{cartTotal.toLocaleString()} FCFA</span>
+                <span>{displayPrice(cartTotal, shopInfo.currency)}</span>
               </div>
             </div>
             
@@ -1410,6 +1432,7 @@ export default function OnyxJaayShop() {
             onSave={handleSaveProduct}
             onImageUpload={handleImageUpload}
             isAIWriting={isAIWriting}
+            currency={shopInfo.currency}
          />
       )}
 
@@ -1425,6 +1448,7 @@ export default function OnyxJaayShop() {
           onViewProduct={handleViewProduct}
           onGenerateQR={setQrCodeProduct}
           onAddReview={handleAddReview}
+          currency={shopInfo.currency}
         />
       )}
 
@@ -1445,9 +1469,10 @@ interface ProductModalProps {
     onSave: (product: Product) => void;
     onImageUpload: (e: React.ChangeEvent<HTMLInputElement>, setFormData: any, formData: any) => void;
     isAIWriting: boolean;
+    currency: string;
 }
 
-function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting }: ProductModalProps) {
+function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting, currency }: ProductModalProps) {
     const [formData, setFormData] = useState<Partial<Product>>({
         name: product?.name || '',
         price: product?.price || 0,
@@ -1474,7 +1499,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting }: 
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] w-full max-w-2xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden">
                 <div className="p-8 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/50">
-                    <h2 className="text-2xl font-black uppercase tracking-tighter text-white">{product ? 'Modifier le produit' : 'Nouveau produit'}</h2>
+                    <h2 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white">{product ? 'Modifier le produit' : 'Nouveau produit'}</h2>
                     <button onClick={onClose} className="text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={24}/></button>
                 </div>
                 
@@ -1487,7 +1512,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting }: 
 
                         <div className="grid grid-cols-2 gap-6">
                             <div className="relative group">
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix (FCFA)</label>
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix ({currency})</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
                                     <input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
@@ -1589,9 +1614,10 @@ interface ProductDetailModalProps {
   onViewProduct: (product: Product) => void;
   onAddReview: (productId: number, review: Omit<Review, 'id' | 'date'>) => void;
   onGenerateQR: (product: Product) => void;
+  currency: string;
 }
 
-function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onShare, onViewProduct, onGenerateQR, onAddReview }: ProductDetailModalProps) {
+function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onShare, onViewProduct, onGenerateQR, onAddReview, currency }: ProductDetailModalProps) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
@@ -1646,7 +1672,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                <div className="mb-8">
                   <span className="text-[#39FF14] text-xs font-bold uppercase tracking-widest border border-[#39FF14]/20 px-3 py-1 rounded-full mb-4 inline-block">{product.category}</span>
                   <h2 className="text-3xl font-black tracking-tighter text-black dark:text-white mb-2">{product.name}</h2>
-                  <p className="text-2xl font-bold text-black dark:text-white mb-4">{product.price.toLocaleString('fr-SN')} <span className="text-sm text-[#39FF14]">FCFA</span></p>
+                  <p className="text-2xl font-bold text-black dark:text-white mb-4">{displayPrice(product.price, currency)}</p>
                   
                   {product.stock !== undefined && (
                     <p className={`text-sm font-bold mb-6 ${isOutOfStock ? 'text-red-500' : 'text-green-500'}`}>
@@ -1768,7 +1794,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                                 <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                              </div>
                              <p className="text-xs font-bold text-black dark:text-white truncate">{p.name}</p>
-                             <p className="text-[10px] text-zinc-500 dark:text-zinc-500">{p.price.toLocaleString()} F</p>
+                             <p className="text-[10px] text-zinc-500 dark:text-zinc-500">{displayPrice(p.price, currency)}</p>
                           </div>
                        ))}
                     </div>
@@ -1780,7 +1806,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void }) {
+function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
@@ -2088,10 +2114,10 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
-        <StatCard icon={<DollarSign size={32} />} label="Revenu Total" value={`${totalRevenue.toLocaleString('fr-SN')} F`} colorClass="text-green-500" trend={revenueTrend} />
+        <StatCard icon={<DollarSign size={32} />} label="Revenu Total" value={displayPrice(totalRevenue, currency)} colorClass="text-green-500" trend={revenueTrend} />
         <StatCard icon={<ShoppingCart size={32} />} label="Commandes" value={totalOrders} colorClass="text-blue-500" trend={ordersTrend} />
         <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} />
-        <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={`${Math.round(averageOrderValue).toLocaleString('fr-SN')} F`} colorClass="text-purple-500" trend={avgOrderTrend} />
+        <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={displayPrice(averageOrderValue, currency)} colorClass="text-purple-500" trend={avgOrderTrend} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -2126,7 +2152,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                   style={{ height: `${(d.total / maxTotal) * 100}%`, minHeight: '4px' }}
                 >
                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                      {d.total.toLocaleString()} F
+                      {displayPrice(d.total, currency)}
                    </div>
                 </div>
                 <span className="mt-4 text-xs font-bold text-zinc-400 uppercase">{d.day}</span>
@@ -2348,7 +2374,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   );
 }
 
-function ShopClients() {
+function ShopClients({ currency }: { currency: string }) {
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -2439,7 +2465,7 @@ function ShopClients() {
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-zinc-400 uppercase">Dépensé</p>
-                                <p className="font-black text-[#39FF14]">{client.totalSpent.toLocaleString()} F</p>
+                                <p className="font-black text-[#39FF14]">{displayPrice(client.totalSpent, currency)}</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-[10px] font-bold text-zinc-400 uppercase">Commandes</p>
@@ -2465,15 +2491,16 @@ interface PromoCode {
 interface ShopSettingsProps {
   promoCodes: PromoCode[];
   setPromoCodes: React.Dispatch<React.SetStateAction<PromoCode[]>>;
-  shopInfo: typeof initialShopInfo;
+  shopInfo: typeof initialShopInfo & { currency: string };
   setShopInfo: React.Dispatch<React.SetStateAction<typeof initialShopInfo>>;
   deliveryZones: DeliveryZone[];
   setDeliveryZones: React.Dispatch<React.SetStateAction<DeliveryZone[]>>;
   onResetData: () => void;
   onClearOrders: () => void;
+  currency: string;
 }
 
-function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, onResetData, onClearOrders }: ShopSettingsProps) {
+function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, onResetData, onClearOrders, currency }: ShopSettingsProps) {
   const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed' });
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
 
@@ -2514,6 +2541,10 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
     if(confirm("Supprimer cette zone ?")) setDeliveryZones(prev => prev.filter(z => z.id !== id));
   };
 
+  const handleSaveInfo = () => {
+    alert("Les informations de la boutique ont été enregistrées avec succès !");
+  };
+
   return (
     <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
       <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Paramètres de la <span className="text-[#39FF14]">Boutique</span></h2>
@@ -2539,6 +2570,20 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                   <input type="url" value={shopInfo.logoUrl} onChange={(e) => setShopInfo({...shopInfo, logoUrl: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
               </div>
               
+              <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Devise de la boutique</label>
+                  <select 
+                      value={shopInfo.currency} 
+                      onChange={(e) => setShopInfo({...shopInfo, currency: e.target.value})} 
+                      className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]"
+                  >
+                      <option value="FCFA">FCFA (XOF)</option>
+                      <option value="EUR">Euro (€)</option>
+                      <option value="USD">Dollar Américain ($)</option>
+                  </select>
+                  <p className="text-[10px] text-zinc-400 mt-2 italic">Les prix sont basés en FCFA et convertis automatiquement pour l'affichage.</p>
+              </div>
+
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
                   <div className="flex items-center justify-between mb-4">
                       <label className="text-xs font-bold text-zinc-500 uppercase block">Horaires d'ouverture auto</label>
@@ -2556,6 +2601,11 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                           </div>
                       </div>
                   )}
+              </div>
+              <div className="pt-2 flex justify-end">
+                  <button onClick={handleSaveInfo} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition flex items-center gap-2 shadow-lg">
+                      <Save size={16} /> Enregistrer
+                  </button>
               </div>
           </div>
       </div>
