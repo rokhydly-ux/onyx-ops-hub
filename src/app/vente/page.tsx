@@ -3,8 +3,8 @@
 import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
-  Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight
+  Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, Search,
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, ChevronLeft
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
@@ -52,12 +52,29 @@ interface DeliveryZone {
 }
 
 // --- INITIAL DATA ---
-const initialProducts: Product[] = [
-  { id: 1, name: 'Boubou Onyx Premium', price: 75000, description: 'Tissu de luxe, coupe moderne, parfait pour les grandes occasions.', image: 'https://i.ibb.co/pPZJz7j/boubou-1.jpg', category: 'Luxe', rating: 5, reviews: 13, stock: 10, videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', reviewsList: [{id: 1, name: "Aïssatou", rating: 5, comment: "Magnifique, la qualité est au rendez-vous.", date: "2024-03-10"}] },
-  { id: 2, name: 'Ensemble Tailleur "Business"', price: 85000, description: 'Pour un look pro et élégant au bureau.', image: 'https://i.ibb.co/yQJ4c1g/tailleur-femme.jpg', category: 'Professionnel', rating: 4.5, reviews: 8, stock: 5, reviewsList: [] },
-  { id: 3, name: 'Robe de Soirée "Lagoon"', price: 120000, description: 'Faites sensation lors de vos événements avec cette pièce unique.', image: 'https://i.ibb.co/VvzHZj3/robe-soiree.jpg', category: 'Soirée', rating: 5, reviews: 24, stock: 0, reviewsList: [] },
-  { id: 4, name: 'Chemise en Lin "Dakar 2"', price: 25000, description: 'Légère et respirante, idéale pour la saison chaude.', image: 'https://i.ibb.co/3sSqcCg/chemise-lin.jpg', category: 'Casual', rating: 4, reviews: 15, variants: { sizes: ['M', 'L', 'XL'], colors: ['Blanc', 'Beige', 'Bleu Ciel'] }, stock: 20, reviewsList: [] },
-];
+const generateMockProducts = (): Product[] => {
+  const categories = ['Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires'];
+  const types = ['Chemise', 'Pantalon', 'Robe', 'Chaussures', 'Sac', 'Montre', 'Ensemble', 'T-shirt', 'Veste'];
+  
+  return Array.from({ length: 30 }).map((_, i) => {
+    const cat = categories[i % categories.length];
+    const type = types[i % types.length];
+    return {
+      id: i + 1,
+      name: `${type} ${cat} Style ${i + 1}`,
+      price: (Math.floor(Math.random() * 20) + 2) * 2500, // Prix entre 5000 et 50000 FCFA
+      description: `Un article incontournable de la collection ${cat}. Confort et style garantis pour le quotidien ou les grandes occasions.`,
+      image: `https://placehold.co/600x800/1a1a1a/39FF14?text=${type}+${cat}+${i+1}`,
+      category: cat,
+      stock: Math.floor(Math.random() * 50),
+      rating: Number((3.5 + Math.random() * 1.5).toFixed(1)),
+      reviews: Math.floor(Math.random() * 100),
+      reviewsList: []
+    };
+  });
+};
+
+const initialProducts: Product[] = generateMockProducts();
 
 const INITIAL_ZONES: DeliveryZone[] = [
   { id: 1, name: "Zone 1", price: 1300, quartiers: ["Libertés (1-6)", "Scat Urbam", "Sacré Cœur", "Cité Guorgui", "Point E", "Niary Tally", "Sicap", "Grand Dakar", "Dieuppeul", "Castor", "Amitié", "Baobab"] },
@@ -91,7 +108,7 @@ export default function OnyxJaayShop() {
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [theme, setTheme] = useState('dark');
   const [shopView, setShopView] = useState<'boutique' | 'dashboard' | 'settings' | 'clients'>('boutique');
-  const [categories, setCategories] = useState(['Toutes', 'Favoris', 'Luxe', 'Professionnel', 'Soirée', 'Casual']);
+  const [categories, setCategories] = useState(['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires']);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([
     { id: 1, code: 'BIENVENUE10', discount: 10, type: 'percentage', active: true },
     { id: 2, code: 'SOLDE5000', discount: 5000, type: 'fixed', active: false },
@@ -188,6 +205,7 @@ export default function OnyxJaayShop() {
   useEffect(() => {
     const savedTheme = localStorage.getItem('onyx_jaay_theme') || 'dark';
     setTheme(savedTheme);
+    document.documentElement.classList.remove('light', 'dark'); // Nettoyage préalable
     document.documentElement.classList.add(savedTheme);
   }, []);
 
@@ -601,10 +619,19 @@ export default function OnyxJaayShop() {
       alert(`${newProducts.length} produits importés avec succès !`);
     } catch (error) {
       console.error("Erreur import XLS:", error);
-      alert("Erreur lors de l'importation. Assurez-vous d'avoir un fichier Excel valide.");
+      alert("Erreur lors de l'importation. Assurez-vous d'avoir un fichier Xcel valide.");
     }
     
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleGlobalSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchTerm(val);
+    if (val.trim() !== '') {
+        if (shopView !== 'boutique') setShopView('boutique');
+        if (activeCategory !== 'Toutes') setActiveCategory('Toutes');
+    }
   };
 
   const filteredProducts = products.filter(p => {
@@ -826,7 +853,20 @@ export default function OnyxJaayShop() {
         </div>
 
         {/* Top Header Toggle */}
-        <header className="absolute top-0 right-0 p-6 z-10 flex items-center gap-4 print:hidden">
+        <header className="absolute top-0 left-0 right-0 p-6 z-10 flex justify-between items-start pointer-events-none print:hidden">
+          {/* Global Search */}
+          <div className="hidden md:flex pointer-events-auto relative group shadow-sm">
+             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#39FF14] transition-colors" size={18} />
+             <input 
+                type="text" 
+                placeholder="Recherche globale..." 
+                value={searchTerm}
+                onChange={handleGlobalSearch}
+                className="pl-12 pr-6 py-3 bg-white/80 dark:bg-black/60 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-full font-bold text-sm outline-none focus:border-[#39FF14] focus:ring-4 focus:ring-[#39FF14]/10 transition-all w-64 focus:w-96"
+             />
+          </div>
+
+          <div className="flex items-center gap-4 pointer-events-auto ml-auto">
           <button onClick={() => setIsCartOpen(true)} className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
             <div className="relative">
               <ShoppingCart size={18} />
@@ -880,6 +920,7 @@ export default function OnyxJaayShop() {
             </div>
             <input type="checkbox" id="editModeToggle" className="hidden" checked={isEditingMode} onChange={() => setIsEditingMode(!isEditingMode)} />
           </label>
+          </div>
         </header>
 
         {!isShopOpen() && !isEditingMode && (
@@ -913,7 +954,32 @@ export default function OnyxJaayShop() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice ? (
+              // VUE SILOS (Catégories)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
+                {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map((cat) => (
+                  <div 
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
+                  >
+                    <img 
+                      src={`https://placehold.co/800x800/111/FFF?text=${cat}`} 
+                      alt={cat}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
+                      <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
+                      <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                        Voir la collection
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // VUE PRODUITS CLASSIQUE
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in">
             {filteredProducts.map((product, index) => (
               <div 
                 key={product.id} 
@@ -981,7 +1047,8 @@ export default function OnyxJaayShop() {
                 </div>
               </div>
             ))}
-          </div>
+              </div>
+            )}
             {filteredProducts.length === 0 && (
               <div className="text-center py-20 text-zinc-500 dark:text-zinc-500">
                 <Filter size={48} className="mx-auto mb-4 opacity-20" />
@@ -1637,6 +1704,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');
   const [selectedDayOrders, setSelectedDayOrders] = useState<{date: string, orders: any[]} | null>(null);
   const [popularCategory, setPopularCategory] = useState('Toutes');
+  const [dashboardView, setDashboardView] = useState<'stats' | 'calendar'>('stats');
+  const [calDate, setCalDate] = useState(new Date());
 
   const productCategories = ['Toutes', ...Array.from(new Set(products.map(p => p.category)))];
 
@@ -1804,6 +1873,22 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   })();
   const maxViews = Math.max(...viewsChartData.map(d => d.count), 5);
 
+  const calendarDays = useMemo(() => {
+    const year = calDate.getFullYear();
+    const month = calDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const days = [];
+    for (let i = 0; i < firstDay; i++) {
+        days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+        days.push(new Date(year, month, i));
+    }
+    return days;
+  }, [calDate]);
+
   const maxTotal = Math.max(...chartData.map(d => d.total), 1);
 
   const handlePrint = () => {
@@ -1877,13 +1962,13 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   };
 
   const StatCard = ({ icon, label, value, colorClass, trend }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null }) => (
-    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full ${colorClass}`}>
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full ${colorClass} cursor-pointer hover:scale-[1.02] transition-transform duration-300 shadow-sm hover:shadow-xl`}>
         <div className="flex justify-between items-start">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center`}>
             {icon}
             </div>
             {trend != null && trend !== 0 && (
-                <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${trend > 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+                <div title="Évolution par rapport à la période précédente" className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${trend > 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
                     {trend > 0 ? <TrendingUp size={12} /> : <ArrowDownRight size={12} />}
                     {Math.abs(trend).toFixed(0)}%
                 </div>
@@ -1897,7 +1982,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   );
 
   return (
-    <div id="dashboard-section" className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in print:p-0">
+    <div id="dashboard-section" className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in print:p-0">
       <div className="flex flex-wrap justify-between items-center gap-4 mb-4 print:hidden">
         <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Tableau de <span className="text-[#39FF14]">Bord</span></h2>
         <div className="flex gap-2 bg-white dark:bg-zinc-900 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -1936,6 +2021,17 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
           Aperçu des performances {dateFilter.start || dateFilter.end ? 'sur la période sélectionnée' : 'globales'}.
       </p>
 
+      <div className="flex gap-2 mb-8 bg-zinc-100 dark:bg-zinc-900 p-1.5 rounded-xl w-max border border-zinc-200 dark:border-zinc-800 print:hidden">
+          <button onClick={() => setDashboardView('stats')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${dashboardView === 'stats' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>
+              Vue Statistiques
+          </button>
+          <button onClick={() => setDashboardView('calendar')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${dashboardView === 'calendar' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>
+              Vue Calendrier
+          </button>
+      </div>
+
+      {dashboardView === 'stats' ? (
+      <>
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
         <StatCard icon={<DollarSign size={32} />} label="Revenu Total" value={`${totalRevenue.toLocaleString('fr-SN')} F`} colorClass="text-green-500" trend={revenueTrend} />
@@ -2122,8 +2218,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         </div>
       </div>
       
-       {/* Low Stock Alert */}
-       <div className="mt-8 bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
+      {/* Low Stock Alert */}
+      <div className="mt-8 bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
            <div className="flex items-center gap-3 mb-6">
               <AlertTriangle className="text-yellow-500" size={24} />
               <h3 className="font-black uppercase text-xl">Stock Faible</h3>
@@ -2150,6 +2246,61 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
               )}
            </div>
         </div>
+      </>
+      ) : (
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm animate-in fade-in">
+            <div className="flex items-center justify-between mb-8">
+                <h3 className="font-black uppercase text-xl flex items-center gap-3">
+                    <Calendar className="text-black dark:text-white" size={24} /> 
+                    Calendrier des Commandes
+                </h3>
+                <div className="flex items-center gap-4 bg-zinc-100 dark:bg-zinc-800 px-4 py-2 rounded-xl">
+                    <button onClick={() => { const d = new Date(calDate); d.setMonth(d.getMonth() - 1); setCalDate(d); }} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition"><ChevronLeft size={20}/></button>
+                    <span className="font-black uppercase text-sm w-32 text-center">{calDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</span>
+                    <button onClick={() => { const d = new Date(calDate); d.setMonth(d.getMonth() + 1); setCalDate(d); }} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition"><ChevronRight size={20}/></button>
+                </div>
+            </div>
+            
+            <div className="grid grid-cols-7 gap-px bg-zinc-200 dark:bg-zinc-800 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
+                {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(day => (
+                    <div key={day} className="bg-zinc-50 dark:bg-zinc-900 p-4 text-center font-black uppercase text-xs text-zinc-400">{day}</div>
+                ))}
+                {calendarDays.map((date, i) => {
+                    if (!date) return <div key={i} className="bg-white dark:bg-zinc-900 min-h-[120px]" />;
+                    
+                    const dateStr = date.toISOString().split('T')[0];
+                    const dayOrders = orders.filter(o => o.date.startsWith(dateStr));
+                    const dayTotal = dayOrders.reduce((sum, o) => sum + o.total, 0);
+                    const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                    
+                    return (
+                        <div 
+                            key={i} 
+                            onClick={() => {
+                                if (dayOrders.length > 0) setSelectedDayOrders({ date: dateStr, orders: dayOrders });
+                            }}
+                            className={`bg-white dark:bg-zinc-900 p-3 min-h-[120px] transition-all relative group ${dayOrders.length > 0 ? 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' : ''}`}
+                        >
+                            <span className={`text-sm font-bold ${isToday ? 'bg-black text-white w-7 h-7 flex items-center justify-center rounded-full' : 'text-zinc-500'}`}>
+                                {date.getDate()}
+                            </span>
+                            
+                            {dayOrders.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                    <div className="text-xs font-black text-black dark:text-white bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700">
+                                        {dayOrders.length} commande{dayOrders.length > 1 ? 's' : ''}
+                                    </div>
+                                    <div className="text-[10px] font-bold text-[#39FF14] bg-black/5 dark:bg-[#39FF14]/10 px-2 py-1 rounded-md">
+                                        {dayTotal.toLocaleString()} F
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+      )}
 
         {/* MODALE DÉTAILS COMMANDES JOUR */}
         {selectedDayOrders && (
