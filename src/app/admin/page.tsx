@@ -468,42 +468,46 @@ export default function AdminDashboard() {
   };
 
   const handleSaveContact = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingContact.full_name || !editingContact.phone) return alert("Nom et Téléphone requis");
-    const phoneClean = (editingContact.phone || "").replace(/\s+/g, "");
-    const isSenegal = !editingContact.country || editingContact.country === "Sénégal";
-    if (isSenegal) {
-      const regexSenegal = /^(?:\+221|00221|221)?(7[05678]\d{7})$/;
-      if (!regexSenegal.test(phoneClean)) {
-        return alert("Format Sénégal invalide (7x xxx xx xx). Ex: +221 77 123 45 67");
-      }
-    }
-    if (!supabase) return;
+  e.preventDefault();
+  if (!editingContact.full_name || !editingContact.phone) return alert("Nom et Téléphone requis");
+  
+  const phoneClean = (editingContact.phone || "").replace(/\s+/g, "");
 
-    const payload = {
-      full_name: editingContact.full_name,
-      phone: phoneClean,
-      password: editingContact.password_temp || 'central2026',
-      source: editingContact.source || 'Admin',
-      status: editingContact.status || 'Client',
-      intent: editingContact.saas ? 'Accès ' + editingContact.saas : 'Ajout Manuel'
-    };
-    
-    // Insérer dans la table 'leads' pour que la page login fonctionne
-    const { data, error } = await supabase.from('leads').upsert(payload, { onConflict: 'phone' }).select();
-
-    if (error) {
-        console.error('❌ ERREUR D\'INSERTION:', error);
-        alert(`Erreur Supabase: ${error.message} (Détails: ${error.details || 'Aucun'})`);
-        return; 
-    }
-
-    // Refetch all data to ensure UI consistency across all lists (leads and contacts)
-    fetchSupabaseData();
-
-    setShowContactModal(false);
-    alert("Client enregistré dans la liste des leads avec succès ! Il peut maintenant se connecter.");
+  const payload: any = {
+    full_name: editingContact.full_name,
+    phone: phoneClean,
+    password_temp: editingContact.password_temp || 'central2026',
+    type: editingContact.type || 'Client',
+    status: editingContact.status || 'Client',
+    saas: editingContact.saas || '',
+    active_saas: editingContact.active_saas || [],
+    address: editingContact.address || '',
+    avatar_url: editingContact.avatar_url || '',
+    expiration_date: editingContact.expiration_date || null,
+    source: editingContact.source || 'Admin',
+    updated_at: new Date().toISOString()
   };
+
+  // Si c'est une modification, on garde l'ID pour mettre à jour
+  if (editingContact.id) {
+    payload.id = editingContact.id;
+  }
+
+  const { data, error } = await supabase
+    .from('clients')
+    .upsert(payload)
+    .select();
+
+  if (error) {
+    console.error('Erreur Supabase:', error);
+    alert("Erreur Supabase: " + error.message);
+    return; 
+  }
+
+  setShowContactModal(false);
+  fetchSupabaseData(); // Rafraîchit l'affichage
+  alert("Fiche CRM enregistrée avec succès !");
+};
 
   const approveAmbassador = async (id: string) => {
     try {
@@ -2467,7 +2471,7 @@ export default function AdminDashboard() {
                     <select value={newPartnerForm.country} onChange={e => setNewPartnerForm({...newPartnerForm, country: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black appearance-none">
                        <option value="Sénégal">Sénégal</option>
                        <option value="Mali">Mali</option>
-                       <option value="Côte d'Ivoire">Côte d'ivoire</option>
+                       <option value="Côte d'Ivoire">Côte d'Ivoire</option>
                     </select>
                  </div>
                </div>

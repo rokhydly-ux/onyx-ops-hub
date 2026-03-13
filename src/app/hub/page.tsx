@@ -120,11 +120,7 @@ export default function OnyxHubPortal() {
   
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 sm:gap-8">
             {APPS.map((app) => {
-              const isOnyxJaay = app.id === 'vente';
-              const activeModulesString = JSON.stringify(user?.active_modules || '');
-              const isUnlocked = isOnyxJaay
-                ? activeModulesString.includes('jaay') || activeModulesString.includes('onyxjaay')
-                : user?.active_modules?.includes(app.id);
+              const isUnlocked = user?.active_saas?.includes(app.id) || user?.saas === app.name;
 
               const AppIcon = app.icon;
               
