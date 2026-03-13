@@ -3,8 +3,8 @@
 import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
-  Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, Search,
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, ChevronLeft
+  Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
@@ -88,6 +88,15 @@ const INITIAL_ZONES: DeliveryZone[] = [
 
 const WHATSAPP_NUMBER = "221771234567"; // À remplacer par le vrai numéro
 
+const initialShopInfo = {
+  name: 'Onyx Jaay',
+  description: 'Version Pro',
+  phone: WHATSAPP_NUMBER,
+  deliveryFees: 0,
+  logoUrl: '',
+  openingHours: { start: '09:00', end: '18:00', enabled: false }
+};
+
 export default function OnyxJaayShop() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isEditingMode, setIsEditingMode] = useState(false);
@@ -113,12 +122,15 @@ export default function OnyxJaayShop() {
     { id: 1, code: 'BIENVENUE10', discount: 10, type: 'percentage', active: true },
     { id: 2, code: 'SOLDE5000', discount: 5000, type: 'fixed', active: false },
   ]);
-  const [shopInfo, setShopInfo] = useState({
-    name: 'Onyx Jaay',
-    description: 'Version Pro',
-    phone: WHATSAPP_NUMBER,
-    deliveryFees: 2000,
-    openingHours: { start: '09:00', end: '18:00', enabled: false }
+  const [shopInfo, setShopInfo] = useState(() => {
+    if (typeof window === 'undefined') return initialShopInfo;
+    try {
+      const saved = localStorage.getItem('onyx_jaay_shop_info');
+      // Merge saved data with initial data to handle new properties
+      return saved ? { ...initialShopInfo, ...JSON.parse(saved) } : initialShopInfo;
+    } catch {
+      return initialShopInfo;
+    }
   });
   const [promoInput, setPromoInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
@@ -205,7 +217,6 @@ export default function OnyxJaayShop() {
   useEffect(() => {
     const savedTheme = localStorage.getItem('onyx_jaay_theme') || 'dark';
     setTheme(savedTheme);
-    document.documentElement.classList.remove('light', 'dark'); // Nettoyage préalable
     document.documentElement.classList.add(savedTheme);
   }, []);
 
@@ -271,7 +282,7 @@ export default function OnyxJaayShop() {
   const deliveryCost = deliveryMethod === 'delivery' 
     ? selectedZoneId 
       ? (deliveryZones.find(z => z.id === selectedZoneId)?.price || 0) 
-      : (shopInfo.deliveryFees || 0) 
+      : 0
     : 0;
 
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
@@ -619,7 +630,7 @@ export default function OnyxJaayShop() {
       alert(`${newProducts.length} produits importés avec succès !`);
     } catch (error) {
       console.error("Erreur import XLS:", error);
-      alert("Erreur lors de l'importation. Assurez-vous d'avoir un fichier Xcel valide.");
+      alert("Erreur lors de l'importation. Assurez-vous d'avoir un fichier Excel valide.");
     }
     
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -631,6 +642,74 @@ export default function OnyxJaayShop() {
     if (val.trim() !== '') {
         if (shopView !== 'boutique') setShopView('boutique');
         if (activeCategory !== 'Toutes') setActiveCategory('Toutes');
+    }
+  };
+
+  const handleExportAllData = () => {
+    const workbook = XLSX.utils.book_new();
+
+    // Produits
+    const productsSheet = XLSX.utils.json_to_sheet(products.map(p => ({
+      ID: p.id,
+      Nom: p.name,
+      Prix: p.price,
+      Catégorie: p.category,
+      Stock: p.stock,
+      Description: p.description
+    })));
+    XLSX.utils.book_append_sheet(workbook, productsSheet, "Produits");
+
+    // Commandes
+    const savedOrders = localStorage.getItem('onyx_jaay_orders');
+    if (savedOrders) {
+      try {
+        const orders = JSON.parse(savedOrders);
+        const ordersData = orders.map((o: any) => ({
+          ID: o.id,
+          Date: new Date(o.date).toLocaleDateString(),
+          Client: o.customer?.name,
+          Téléphone: o.customer?.phone,
+          Total: o.total,
+          Statut: o.status,
+          Articles: o.items?.map((i: any) => `${i.name} (x${i.quantity})`).join(', ') || ''
+        }));
+        const ordersSheet = XLSX.utils.json_to_sheet(ordersData);
+        XLSX.utils.book_append_sheet(workbook, ordersSheet, "Commandes");
+      } catch (e) { console.error("Erreur export commandes", e); }
+    }
+
+    XLSX.writeFile(workbook, `onyx_backup_complet_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleResetData = () => {
+    if (confirm("⚠️ ATTENTION ⚠️\n\nVous êtes sur le point de supprimer TOUTES les données de démonstration (commandes, clients, panier, favoris, etc.) et de réinitialiser la boutique à son état d'origine.\n\nCette action est irréversible. Continuer ?")) {
+      if (confirm("Êtes-vous vraiment certain de vouloir tout effacer ? Cette opération est définitive.")) {
+        if (confirm("Voulez-vous télécharger une sauvegarde de vos données avant la réinitialisation ?")) {
+          handleExportAllData();
+        }
+        
+        setTimeout(() => {
+          // Clear localStorage
+          localStorage.removeItem('onyx_jaay_orders');
+          localStorage.removeItem('onyx_jaay_cart');
+          localStorage.removeItem('onyx_jaay_wishlist');
+          localStorage.removeItem('onyx_jaay_shop_info');
+          localStorage.removeItem('onyx_jaay_zones');
+          localStorage.removeItem('onyx_jaay_views');
+          localStorage.removeItem('onyx_jaay_view_history');
+
+          alert("Données de démo réinitialisées. La page va maintenant se recharger pour appliquer les changements.");
+          window.location.reload();
+        }, 1000);
+      }
+    }
+  };
+
+  const handleClearOrders = () => {
+    if (confirm("Confirmer la suppression de TOUT l'historique des commandes ?\nLes produits et autres paramètres seront conservés.")) {
+        localStorage.removeItem('onyx_jaay_orders');
+        alert("Historique des commandes effacé.");
+        window.location.reload();
     }
   };
 
@@ -742,8 +821,12 @@ export default function OnyxJaayShop() {
 
       {/* --- SIDEBAR --- */}
       <aside className="w-64 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex-col hidden md:flex print:hidden">
-        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-          <h1 className="text-2xl font-black tracking-tighter uppercase">{shopInfo.name}</h1>
+        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 h-20 flex items-center">
+          {shopInfo.logoUrl ? (
+            <img src={shopInfo.logoUrl} alt={shopInfo.name} className="h-10 w-auto object-contain" />
+          ) : (
+            <h1 className="text-2xl font-black tracking-tighter uppercase">{shopInfo.name}</h1>
+          )}
         </div>
         
         <div className="flex-1 overflow-y-auto py-6">
@@ -930,8 +1013,8 @@ export default function OnyxJaayShop() {
         )}
 
         {shopView === 'boutique' && (
-          <div className="p-8 md:p-12 max-w-7xl mx-auto">
-            <div className="mb-12 mt-12 md:mt-0">
+          <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto">
+            <div className="mb-12">
               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Catalogue <span className="text-[#39FF14]">Produits</span></h2>
               <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Gérez votre inventaire, modifiez vos prix et partagez vos produits directement sur WhatsApp.</p>
             </div>
@@ -955,7 +1038,6 @@ export default function OnyxJaayShop() {
             )}
 
             {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice ? (
-              // VUE SILOS (Catégories)
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
                 {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map((cat) => (
                   <div 
@@ -978,8 +1060,7 @@ export default function OnyxJaayShop() {
                 ))}
               </div>
             ) : (
-              // VUE PRODUITS CLASSIQUE
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProducts.map((product, index) => (
               <div 
                 key={product.id} 
@@ -1047,7 +1128,7 @@ export default function OnyxJaayShop() {
                 </div>
               </div>
             ))}
-              </div>
+            </div>
             )}
             {filteredProducts.length === 0 && (
               <div className="text-center py-20 text-zinc-500 dark:text-zinc-500">
@@ -1071,6 +1152,8 @@ export default function OnyxJaayShop() {
               setShopInfo={setShopInfo}
               deliveryZones={deliveryZones}
               setDeliveryZones={setDeliveryZones}
+              onResetData={handleResetData}
+              onClearOrders={handleClearOrders}
             />
         )}
       </main>
@@ -1232,7 +1315,7 @@ export default function OnyxJaayShop() {
                              <button onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }} className="text-zinc-400 hover:text-red-500 shrink-0 p-1"><Trash2 size={18}/></button>
                           </div>
                           <p className="text-zinc-500 dark:text-zinc-400 font-bold text-lg mb-auto">{item.price.toLocaleString()} FCFA</p>
-                          <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition-colors">Ajouter au panier</button>
+                          <button onClick={(e) => { e.stopPropagation(); addToCart(item); setIsWishlistOpen(false); }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition-colors">Ajouter au panier</button>
                        </div>
                     </div>
                   ))
@@ -1704,8 +1787,6 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');
   const [selectedDayOrders, setSelectedDayOrders] = useState<{date: string, orders: any[]} | null>(null);
   const [popularCategory, setPopularCategory] = useState('Toutes');
-  const [dashboardView, setDashboardView] = useState<'stats' | 'calendar'>('stats');
-  const [calDate, setCalDate] = useState(new Date());
 
   const productCategories = ['Toutes', ...Array.from(new Set(products.map(p => p.category)))];
 
@@ -1873,22 +1954,6 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   })();
   const maxViews = Math.max(...viewsChartData.map(d => d.count), 5);
 
-  const calendarDays = useMemo(() => {
-    const year = calDate.getFullYear();
-    const month = calDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    const days = [];
-    for (let i = 0; i < firstDay; i++) {
-        days.push(null);
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-        days.push(new Date(year, month, i));
-    }
-    return days;
-  }, [calDate]);
-
   const maxTotal = Math.max(...chartData.map(d => d.total), 1);
 
   const handlePrint = () => {
@@ -1962,13 +2027,13 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   };
 
   const StatCard = ({ icon, label, value, colorClass, trend }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null }) => (
-    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full ${colorClass} cursor-pointer hover:scale-[1.02] transition-transform duration-300 shadow-sm hover:shadow-xl`}>
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full ${colorClass}`}>
         <div className="flex justify-between items-start">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center`}>
             {icon}
             </div>
             {trend != null && trend !== 0 && (
-                <div title="Évolution par rapport à la période précédente" className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${trend > 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+                <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${trend > 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
                     {trend > 0 ? <TrendingUp size={12} /> : <ArrowDownRight size={12} />}
                     {Math.abs(trend).toFixed(0)}%
                 </div>
@@ -2021,17 +2086,6 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
           Aperçu des performances {dateFilter.start || dateFilter.end ? 'sur la période sélectionnée' : 'globales'}.
       </p>
 
-      <div className="flex gap-2 mb-8 bg-zinc-100 dark:bg-zinc-900 p-1.5 rounded-xl w-max border border-zinc-200 dark:border-zinc-800 print:hidden">
-          <button onClick={() => setDashboardView('stats')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${dashboardView === 'stats' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>
-              Vue Statistiques
-          </button>
-          <button onClick={() => setDashboardView('calendar')} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${dashboardView === 'calendar' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>
-              Vue Calendrier
-          </button>
-      </div>
-
-      {dashboardView === 'stats' ? (
-      <>
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
         <StatCard icon={<DollarSign size={32} />} label="Revenu Total" value={`${totalRevenue.toLocaleString('fr-SN')} F`} colorClass="text-green-500" trend={revenueTrend} />
@@ -2218,8 +2272,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         </div>
       </div>
       
-      {/* Low Stock Alert */}
-      <div className="mt-8 bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
+       {/* Low Stock Alert */}
+       <div className="mt-8 bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
            <div className="flex items-center gap-3 mb-6">
               <AlertTriangle className="text-yellow-500" size={24} />
               <h3 className="font-black uppercase text-xl">Stock Faible</h3>
@@ -2246,61 +2300,6 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
               )}
            </div>
         </div>
-      </>
-      ) : (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm animate-in fade-in">
-            <div className="flex items-center justify-between mb-8">
-                <h3 className="font-black uppercase text-xl flex items-center gap-3">
-                    <Calendar className="text-black dark:text-white" size={24} /> 
-                    Calendrier des Commandes
-                </h3>
-                <div className="flex items-center gap-4 bg-zinc-100 dark:bg-zinc-800 px-4 py-2 rounded-xl">
-                    <button onClick={() => { const d = new Date(calDate); d.setMonth(d.getMonth() - 1); setCalDate(d); }} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition"><ChevronLeft size={20}/></button>
-                    <span className="font-black uppercase text-sm w-32 text-center">{calDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</span>
-                    <button onClick={() => { const d = new Date(calDate); d.setMonth(d.getMonth() + 1); setCalDate(d); }} className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition"><ChevronRight size={20}/></button>
-                </div>
-            </div>
-            
-            <div className="grid grid-cols-7 gap-px bg-zinc-200 dark:bg-zinc-800 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
-                {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(day => (
-                    <div key={day} className="bg-zinc-50 dark:bg-zinc-900 p-4 text-center font-black uppercase text-xs text-zinc-400">{day}</div>
-                ))}
-                {calendarDays.map((date, i) => {
-                    if (!date) return <div key={i} className="bg-white dark:bg-zinc-900 min-h-[120px]" />;
-                    
-                    const dateStr = date.toISOString().split('T')[0];
-                    const dayOrders = orders.filter(o => o.date.startsWith(dateStr));
-                    const dayTotal = dayOrders.reduce((sum, o) => sum + o.total, 0);
-                    const isToday = new Date().toISOString().split('T')[0] === dateStr;
-                    
-                    return (
-                        <div 
-                            key={i} 
-                            onClick={() => {
-                                if (dayOrders.length > 0) setSelectedDayOrders({ date: dateStr, orders: dayOrders });
-                            }}
-                            className={`bg-white dark:bg-zinc-900 p-3 min-h-[120px] transition-all relative group ${dayOrders.length > 0 ? 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' : ''}`}
-                        >
-                            <span className={`text-sm font-bold ${isToday ? 'bg-black text-white w-7 h-7 flex items-center justify-center rounded-full' : 'text-zinc-500'}`}>
-                                {date.getDate()}
-                            </span>
-                            
-                            {dayOrders.length > 0 && (
-                                <div className="mt-2 space-y-1">
-                                    <div className="text-xs font-black text-black dark:text-white bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700">
-                                        {dayOrders.length} commande{dayOrders.length > 1 ? 's' : ''}
-                                    </div>
-                                    <div className="text-[10px] font-bold text-[#39FF14] bg-black/5 dark:bg-[#39FF14]/10 px-2 py-1 rounded-md">
-                                        {dayTotal.toLocaleString()} F
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-      )}
 
         {/* MODALE DÉTAILS COMMANDES JOUR */}
         {selectedDayOrders && (
@@ -2406,7 +2405,7 @@ function ShopClients() {
     );
 
     return (
-        <div className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
+        <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
             <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                 <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Mes <span className="text-[#39FF14]">Clients</span></h2>
                 <button onClick={handleExportClients} className="bg-zinc-800 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
@@ -2466,13 +2465,15 @@ interface PromoCode {
 interface ShopSettingsProps {
   promoCodes: PromoCode[];
   setPromoCodes: React.Dispatch<React.SetStateAction<PromoCode[]>>;
-  shopInfo: { name: string; description: string; phone: string; deliveryFees: number; openingHours: { start: string; end: string; enabled: boolean } };
-  setShopInfo: React.Dispatch<React.SetStateAction<{ name: string; description: string; phone: string; deliveryFees: number; openingHours: { start: string; end: string; enabled: boolean } }>>;
+  shopInfo: typeof initialShopInfo;
+  setShopInfo: React.Dispatch<React.SetStateAction<typeof initialShopInfo>>;
   deliveryZones: DeliveryZone[];
   setDeliveryZones: React.Dispatch<React.SetStateAction<DeliveryZone[]>>;
+  onResetData: () => void;
+  onClearOrders: () => void;
 }
 
-function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones }: ShopSettingsProps) {
+function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, onResetData, onClearOrders }: ShopSettingsProps) {
   const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed' });
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
 
@@ -2514,7 +2515,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
   };
 
   return (
-    <div className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
+    <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
       <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Paramètres de la <span className="text-[#39FF14]">Boutique</span></h2>
       <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Gérez les informations générales et les promotions de votre boutique.</p>
 
@@ -2534,8 +2535,8 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                   <input type="text" value={shopInfo.phone} onChange={(e) => setShopInfo({...shopInfo, phone: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
               </div>
               <div>
-                  <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Frais de livraison (Fixe)</label>
-                  <input type="number" value={shopInfo.deliveryFees} onChange={(e) => setShopInfo({...shopInfo, deliveryFees: Number(e.target.value)})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">URL du logo de la boutique</label>
+                  <input type="url" value={shopInfo.logoUrl} onChange={(e) => setShopInfo({...shopInfo, logoUrl: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
               </div>
               
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -2619,6 +2620,51 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* WHATSAPP BOT */}
+      <div className="mt-12 pt-8 border-t-2 border-dashed border-zinc-200 dark:border-zinc-800">
+        <h3 className="font-black uppercase text-xl mb-4 flex items-center gap-3 text-black dark:text-white"><MessageSquare size={20} className="text-[#39FF14]" /> Assistant WhatsApp Automatique</h3>
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm">
+            <p className="text-zinc-600 dark:text-zinc-400 mb-6 text-sm leading-relaxed">Ne perdez plus de clients. Activez cette option pour que OnyxOps envoie des réponses automatiques et instantanées sur WhatsApp avec votre menu, vos prix et un lien de commande — même lorsque vous êtes occupé. Transformez chaque message en une véritable commande sans lever le petit doigt.</p>
+            <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 p-4 rounded-2xl">
+                <span className="font-bold text-sm">Activer les réponses automatiques</span>
+                <label className="cursor-pointer">
+                    <div className={`w-12 h-6 rounded-full p-1 transition-colors bg-zinc-300 dark:bg-zinc-700`}>
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform`}></div>
+                    </div>
+                </label>
+            </div>
+            <p className="text-xs text-zinc-500 mt-4">
+              Note : Cette fonctionnalité nécessite une configuration avancée avec l'API WhatsApp Business. 
+              <button onClick={() => alert("Veuillez contacter le support OnyxOps pour activer l'assistant WhatsApp.")} className="text-blue-500 underline ml-1">Contactez le support</button> pour l'activer.
+            </p>
+        </div>
+      </div>
+
+      {/* DANGER ZONE */}
+      <div className="mt-12 pt-8 border-t-2 border-dashed border-red-500/30">
+        <h3 className="font-black uppercase text-xl mb-4 flex items-center gap-3 text-red-500"><AlertTriangle size={20} /> Zone de Danger</h3>
+        <div className="bg-red-500/5 border border-red-500/20 p-6 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <p className="font-bold text-black dark:text-white">Gestion des données</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Actions irréversibles sur la base de données locale.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <button 
+              onClick={onClearOrders}
+              className="w-full sm:w-auto bg-orange-500 text-white px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 shrink-0"
+            >
+              <Trash2 size={16} /> Vider Commandes
+            </button>
+            <button 
+              onClick={onResetData}
+              className="w-full sm:w-auto bg-red-600 text-white px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-red-700 transition-all shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 shrink-0"
+            >
+              <RefreshCcw size={16} /> Réinitialiser Tout
+            </button>
+          </div>
         </div>
       </div>
     </div>
