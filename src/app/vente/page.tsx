@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useRef, DragEvent, useEffect } from 'react';
+import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
@@ -44,12 +44,29 @@ interface CartItem extends Product {
   };
 }
 
+interface DeliveryZone {
+  id: number;
+  name: string;
+  price: number;
+  quartiers: string[];
+}
+
 // --- INITIAL DATA ---
 const initialProducts: Product[] = [
   { id: 1, name: 'Boubou Onyx Premium', price: 75000, description: 'Tissu de luxe, coupe moderne, parfait pour les grandes occasions.', image: 'https://i.ibb.co/pPZJz7j/boubou-1.jpg', category: 'Luxe', rating: 5, reviews: 13, stock: 10, videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', reviewsList: [{id: 1, name: "Aïssatou", rating: 5, comment: "Magnifique, la qualité est au rendez-vous.", date: "2024-03-10"}] },
   { id: 2, name: 'Ensemble Tailleur "Business"', price: 85000, description: 'Pour un look pro et élégant au bureau.', image: 'https://i.ibb.co/yQJ4c1g/tailleur-femme.jpg', category: 'Professionnel', rating: 4.5, reviews: 8, stock: 5, reviewsList: [] },
   { id: 3, name: 'Robe de Soirée "Lagoon"', price: 120000, description: 'Faites sensation lors de vos événements avec cette pièce unique.', image: 'https://i.ibb.co/VvzHZj3/robe-soiree.jpg', category: 'Soirée', rating: 5, reviews: 24, stock: 0, reviewsList: [] },
   { id: 4, name: 'Chemise en Lin "Dakar 2"', price: 25000, description: 'Légère et respirante, idéale pour la saison chaude.', image: 'https://i.ibb.co/3sSqcCg/chemise-lin.jpg', category: 'Casual', rating: 4, reviews: 15, variants: { sizes: ['M', 'L', 'XL'], colors: ['Blanc', 'Beige', 'Bleu Ciel'] }, stock: 20, reviewsList: [] },
+];
+
+const INITIAL_ZONES: DeliveryZone[] = [
+  { id: 1, name: "Zone 1", price: 1300, quartiers: ["Libertés (1-6)", "Scat Urbam", "Sacré Cœur", "Cité Guorgui", "Point E", "Niary Tally", "Sicap", "Grand Dakar", "Dieuppeul", "Castor", "Amitié", "Baobab"] },
+  { id: 2, name: "Zone 2", price: 1800, quartiers: ["Yoff", "Ville", "Colobane", "HLM", "Patte d'oie", "Foire", "Sicap Foire", "Mermoz", "Ouakam", "Fann", "Mamelles", "Maristes", "Grand Yoff", "SIPRES", "Zone de captage", "Fass", "Médina", "Corniche", "Front de Terre", "Khar Yallah"] },
+  { id: 3, name: "Zone 3", price: 2000, quartiers: ["Almadies", "Ngor", "Parcelles", "Hlm grand Médine", "Yarakh", "Pikine", "Golf", "Hann Marinas", "Bel Air"] },
+  { id: 4, name: "Zone 4", price: 2500, quartiers: ["Guediawaye", "Cambérène", "Beaux Maraîchers", "Thiaroye"] },
+  { id: 5, name: "Zone 5", price: 3000, quartiers: ["Yeumbeul", "Sicap Mbao", "Petit Mbao", "Keur Massar"] },
+  { id: 6, name: "Zone 6", price: 3500, quartiers: ["Grand Mbao", "Zac Mbao", "Rufisque", "Tivaouane peulh", "Malika"] },
+  { id: 7, name: "Zone 7", price: 3500, quartiers: ["Régions"] },
 ];
 
 const WHATSAPP_NUMBER = "221771234567"; // À remplacer par le vrai numéro
@@ -64,6 +81,7 @@ export default function OnyxJaayShop() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,6 +111,11 @@ export default function OnyxJaayShop() {
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [currentCustomerPoints, setCurrentCustomerPoints] = useState(0);
+  const [productViews, setProductViews] = useState<Record<number, number>>({});
+  const [viewHistory, setViewHistory] = useState<Record<string, number>>({});
+  const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>(INITIAL_ZONES);
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -115,6 +138,30 @@ export default function OnyxJaayShop() {
         console.error("Erreur chargement wishlist", e);
       }
     }
+    const savedZones = localStorage.getItem('onyx_jaay_zones');
+    if (savedZones) {
+      try {
+        setDeliveryZones(JSON.parse(savedZones));
+      } catch (e) {
+        console.error("Erreur chargement zones", e);
+      }
+    }
+    const savedViews = localStorage.getItem('onyx_jaay_views');
+    if (savedViews) {
+      try {
+        setProductViews(JSON.parse(savedViews));
+      } catch (e) {
+        console.error("Erreur chargement vues", e);
+      }
+    }
+    const savedViewHistory = localStorage.getItem('onyx_jaay_view_history');
+    if (savedViewHistory) {
+      try {
+        setViewHistory(JSON.parse(savedViewHistory));
+      } catch (e) {
+        console.error("Erreur chargement historique vues", e);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -124,6 +171,18 @@ export default function OnyxJaayShop() {
   useEffect(() => {
     localStorage.setItem('onyx_jaay_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
+
+  useEffect(() => {
+    localStorage.setItem('onyx_jaay_zones', JSON.stringify(deliveryZones));
+  }, [deliveryZones]);
+
+  useEffect(() => {
+    localStorage.setItem('onyx_jaay_views', JSON.stringify(productViews));
+  }, [productViews]);
+
+  useEffect(() => {
+    localStorage.setItem('onyx_jaay_view_history', JSON.stringify(viewHistory));
+  }, [viewHistory]);
 
   // --- THEME LOGIC ---
   useEffect(() => {
@@ -189,7 +248,16 @@ export default function OnyxJaayShop() {
   };
 
   const subTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const deliveryCost = deliveryMethod === 'delivery' ? (shopInfo.deliveryFees || 0) : 0;
+  
+  // Calcul dynamique des frais de livraison basé sur la zone
+  const deliveryCost = deliveryMethod === 'delivery' 
+    ? selectedZoneId 
+      ? (deliveryZones.find(z => z.id === selectedZoneId)?.price || 0) 
+      : (shopInfo.deliveryFees || 0) 
+    : 0;
+
+  const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
+
   const promoDiscountAmount = appliedPromo 
     ? (appliedPromo.type === 'percentage' ? (subTotal * appliedPromo.discount / 100) : appliedPromo.discount)
     : 0;
@@ -344,6 +412,9 @@ export default function OnyxJaayShop() {
         message += `\nPoints Fidélité : -${loyaltyDiscountAmount.toLocaleString('fr-SN')} FCFA`;
     }
     message += `\nMode de livraison : ${deliveryMethod === 'delivery' ? 'Livraison à domicile' : 'Retrait en boutique'}`;
+    if (deliveryMethod === 'delivery' && selectedZone) {
+        message += `\nZone : ${selectedZone.name} (${selectedZone.quartiers[0]}...)`;
+    }
     message += `\n*Total à payer : ${cartTotal.toLocaleString('fr-SN')} FCFA*`;
     message += `\n\nMerci de confirmer la disponibilité.`;
 
@@ -373,7 +444,23 @@ export default function OnyxJaayShop() {
     });
   };
 
+  const handleUpdateStock = (id: number, newStock: number) => {
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, stock: Math.max(0, newStock) } : p));
+  };
+
   const handleViewProduct = (product: Product) => {
+    // Ajout pour les statistiques de vues
+    setProductViews(prev => ({
+      ...prev,
+      [product.id]: (prev[product.id] || 0) + 1
+    }));
+    
+    const today = new Date().toISOString().split('T')[0];
+    setViewHistory(prev => ({
+        ...prev,
+        [today]: (prev[today] || 0) + 1
+    }));
+
     setViewingProduct(product);
   };
 
@@ -531,6 +618,10 @@ export default function OnyxJaayShop() {
     const matchesSearch = searchTerm === '' || p.name.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
+  }).sort((a, b) => {
+    if (sortOrder === 'asc') return a.price - b.price;
+    if (sortOrder === 'desc') return b.price - a.price;
+    return 0;
   });
 
   // --- RENDER ---
@@ -601,6 +692,20 @@ export default function OnyxJaayShop() {
                       type="number" placeholder="Max" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : '')}
                       className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14] transition"
                     />
+                  </div>
+                  <div className="px-4 mt-2 flex gap-2">
+                    <button 
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? null : 'asc')} 
+                        className={`flex-1 p-2 rounded-xl text-xs font-bold border ${sortOrder === 'asc' ? 'bg-[#39FF14] text-black border-[#39FF14]' : 'bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800'}`}
+                    >
+                        <ArrowUp size={12} className="inline mr-1"/> Prix
+                    </button>
+                    <button 
+                        onClick={() => setSortOrder(sortOrder === 'desc' ? null : 'desc')}
+                        className={`flex-1 p-2 rounded-xl text-xs font-bold border ${sortOrder === 'desc' ? 'bg-[#39FF14] text-black border-[#39FF14]' : 'bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800'}`}
+                    >
+                        <ArrowDown size={12} className="inline mr-1"/> Prix
+                    </button>
                   </div>
                 </div>
               </div>
@@ -676,6 +781,20 @@ export default function OnyxJaayShop() {
                 className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14] transition"
               />
             </div>
+            <div className="px-4 mt-2 flex gap-2">
+                <button 
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? null : 'asc')} 
+                    className={`flex-1 p-2 rounded-xl text-xs font-bold border ${sortOrder === 'asc' ? 'bg-[#39FF14] text-black border-[#39FF14]' : 'bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800'}`}
+                >
+                    <ArrowUp size={12} className="inline mr-1"/> Prix
+                </button>
+                <button 
+                    onClick={() => setSortOrder(sortOrder === 'desc' ? null : 'desc')}
+                    className={`flex-1 p-2 rounded-xl text-xs font-bold border ${sortOrder === 'desc' ? 'bg-[#39FF14] text-black border-[#39FF14]' : 'bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800'}`}
+                >
+                    <ArrowDown size={12} className="inline mr-1"/> Prix
+                </button>
+            </div>
           </div>
         </div>
 
@@ -714,6 +833,13 @@ export default function OnyxJaayShop() {
               {cartCount > 0 && <span className="absolute -top-2 -right-2 bg-[#39FF14] text-black text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">{cartCount}</span>}
             </div>
             <span className="text-xs font-bold uppercase">Panier</span>
+          </button>
+
+          <button onClick={() => setIsWishlistOpen(true)} className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
+            <div className="relative">
+              <Heart size={18} />
+              {wishlist.length > 0 && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">{wishlist.length}</span>}
+            </div>
           </button>
 
           <button onClick={toggleTheme} className="p-2 rounded-full bg-white/50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 backdrop-blur-md">
@@ -865,7 +991,7 @@ export default function OnyxJaayShop() {
           </div>
         )}
         {shopView === 'dashboard' && (
-            <ShopDashboard products={products} />
+            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} />
         )}
         {shopView === 'clients' && (
             <ShopClients />
@@ -876,6 +1002,8 @@ export default function OnyxJaayShop() {
               setPromoCodes={setPromoCodes} 
               shopInfo={shopInfo}
               setShopInfo={setShopInfo}
+              deliveryZones={deliveryZones}
+              setDeliveryZones={setDeliveryZones}
             />
         )}
       </main>
@@ -946,6 +1074,27 @@ export default function OnyxJaayShop() {
                    </div>
                 </div>
 
+                {deliveryMethod === 'delivery' && (
+                    <div className="mb-4">
+                        <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-2">Zone de livraison</p>
+                        <select 
+                            value={selectedZoneId || ''} 
+                            onChange={(e) => setSelectedZoneId(Number(e.target.value))}
+                            className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14]"
+                        >
+                            <option value="">Sélectionner votre zone</option>
+                            {deliveryZones.map(zone => (
+                                <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
+                            ))}
+                        </select>
+                        {selectedZoneId && (
+                            <p className="text-[10px] text-zinc-400 mt-1 italic">
+                                {deliveryZones.find(z => z.id === selectedZoneId)?.quartiers.join(', ')}
+                            </p>
+                        )}
+                    </div>
+                )}
+
                 <div className="flex gap-2 mb-4">
                     <input 
                         type="text" 
@@ -982,6 +1131,45 @@ export default function OnyxJaayShop() {
                 >
                    Commander sur WhatsApp <ArrowRight size={18} />
                 </button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- WISHLIST DRAWER --- */}
+      {isWishlistOpen && !isEditingMode && (
+        <div className="fixed inset-0 z-[60] flex justify-end">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsWishlistOpen(false)}></div>
+          <div className="relative bg-zinc-50 dark:bg-black w-full max-w-lg h-full shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right-4 duration-500">
+             <div className="p-8 border-b-2 border-zinc-100 dark:border-zinc-900 flex justify-between items-center">
+                <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+                  <Heart className="text-red-500 fill-red-500" /> Liste de souhaits
+                </h2>
+                <button onClick={() => setIsWishlistOpen(false)} className="p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"><X size={24}/></button>
+             </div>
+             
+             <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {wishlist.length === 0 ? (
+                  <div className="text-center text-zinc-400 dark:text-zinc-600 h-full flex flex-col items-center justify-center">
+                    <Heart size={64} className="mx-auto mb-6 opacity-10" />
+                    <p className="font-bold text-lg">Votre liste est vide.</p>
+                    <p className="text-sm mt-2">Cliquez sur le cœur d'un produit pour l'ajouter.</p>
+                  </div>
+                ) : (
+                  products.filter(p => wishlist.includes(p.id)).map(item => (
+                    <div key={item.id} className="flex gap-6 bg-white dark:bg-zinc-900 p-4 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm hover:border-black dark:hover:border-zinc-700 transition-all cursor-pointer" onClick={() => { setViewingProduct(item); setIsWishlistOpen(false); }}>
+                       <img src={item.image} alt={item.name} className="w-24 h-24 object-cover rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
+                       <div className="flex-1 flex flex-col">
+                          <div className="flex justify-between items-start mb-2">
+                             <h4 className="font-bold text-base line-clamp-1 text-black dark:text-white">{item.name}</h4>
+                             <button onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }} className="text-zinc-400 hover:text-red-500 shrink-0 p-1"><Trash2 size={18}/></button>
+                          </div>
+                          <p className="text-zinc-500 dark:text-zinc-400 font-bold text-lg mb-auto">{item.price.toLocaleString()} FCFA</p>
+                          <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition-colors">Ajouter au panier</button>
+                       </div>
+                    </div>
+                  ))
+                )}
              </div>
           </div>
         </div>
@@ -1442,10 +1630,15 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard({ products }: { products: Product[] }) {
+function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
+  const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');
+  const [selectedDayOrders, setSelectedDayOrders] = useState<{date: string, orders: any[]} | null>(null);
+  const [popularCategory, setPopularCategory] = useState('Toutes');
+
+  const productCategories = ['Toutes', ...Array.from(new Set(products.map(p => p.category)))];
 
   useEffect(() => {
     const savedOrders = localStorage.getItem('onyx_jaay_orders');
@@ -1453,17 +1646,6 @@ function ShopDashboard({ products }: { products: Product[] }) {
       try {
         const parsedOrders = JSON.parse(savedOrders);
         setOrders(parsedOrders);
-
-        const uniqueClients: any = {};
-        parsedOrders.forEach((order: any) => {
-            if (order.customer && order.customer.phone) {
-                if (!uniqueClients[order.customer.phone]) {
-                    uniqueClients[order.customer.phone] = { ...order.customer };
-                }
-            }
-        });
-        setClients(Object.values(uniqueClients));
-
       } catch (e) {
         console.error("Erreur chargement commandes", e);
       }
@@ -1474,29 +1656,122 @@ function ShopDashboard({ products }: { products: Product[] }) {
     setLowStockProducts(products.filter(p => (p.stock || 0) < 5 && p.stock !== 0));
   }, [products]);
 
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
-  const totalOrders = orders.length;
-  const totalClients = clients.length;
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const { 
+    totalRevenue, totalOrders, totalClients, averageOrderValue,
+    revenueTrend, ordersTrend, clientsTrend, avgOrderTrend,
+    bestSellers
+  } = useMemo(() => {
+    const isPeriodSelected = dateFilter.start && dateFilter.end;
 
-  const productSales = new Map<number, { quantity: number, name: string, image: string, category: string }>();
-  orders.forEach(order => {
-    order.items.forEach((item: CartItem) => {
-      const sold = productSales.get(item.id) || { quantity: 0, name: item.name, image: item.image, category: item.category };
-      productSales.set(item.id, { ...sold, quantity: sold.quantity + item.quantity });
+    const currentOrders = orders.filter(o => {
+        if (!isPeriodSelected) return true;
+        const d = new Date(o.date);
+        const start = new Date(dateFilter.start);
+        const end = new Date(dateFilter.end);
+        start.setHours(0,0,0,0);
+        end.setHours(23,59,59,999);
+        return d >= start && d <= end;
     });
-  });
 
-  const bestSellers = [...productSales.entries()]
-    .sort((a, b) => b[1].quantity - a[1].quantity)
+    const revenue = currentOrders.reduce((sum, order) => sum + order.total, 0);
+    const TOrders = currentOrders.length;
+    const TClients = new Set(currentOrders.map(o => o.customer?.phone).filter(Boolean)).size;
+    const avgOrder = TOrders > 0 ? revenue / TOrders : 0;
+
+    let trends: {
+      revenueTrend: number | null;
+      ordersTrend: number | null;
+      clientsTrend: number | null;
+      avgOrderTrend: number | null;
+    } = { revenueTrend: null, ordersTrend: null, clientsTrend: null, avgOrderTrend: null };
+
+    if (isPeriodSelected) {
+        const startDate = new Date(dateFilter.start);
+        const endDate = new Date(dateFilter.end);
+        const duration = endDate.getTime() - startDate.getTime();
+
+        if (duration >= 0) {
+            const previousEndDate = new Date(startDate.getTime() - 1);
+            const previousStartDate = new Date(previousEndDate.getTime() - duration);
+
+            const previousPeriodOrders = orders.filter(o => {
+                const orderDate = new Date(o.date);
+                return orderDate >= previousStartDate && orderDate <= previousEndDate;
+            });
+
+            const prevRevenue = previousPeriodOrders.reduce((sum, o) => sum + o.total, 0);
+            const prevOrders = previousPeriodOrders.length;
+            const prevClients = new Set(previousPeriodOrders.map(o => o.customer?.phone).filter(Boolean)).size;
+            const prevAvgOrder = prevOrders > 0 ? prevRevenue / prevOrders : 0;
+
+            const calculateTrend = (current: number, previous: number) => {
+                if (previous === 0) return current > 0 ? 999 : 0;
+                return ((current - previous) / previous) * 100;
+            };
+
+            trends.revenueTrend = calculateTrend(revenue, prevRevenue);
+            trends.ordersTrend = calculateTrend(TOrders, prevOrders);
+            trends.clientsTrend = calculateTrend(TClients, prevClients);
+            trends.avgOrderTrend = calculateTrend(avgOrder, prevAvgOrder);
+        }
+    }
+    
+    const productSales = new Map<number, { quantity: number, name: string, image: string, category: string }>();
+    currentOrders.forEach(order => {
+        order.items.forEach((item: CartItem) => {
+          const sold = productSales.get(item.id) || { quantity: 0, name: item.name, image: item.image, category: item.category };
+          productSales.set(item.id, { ...sold, quantity: sold.quantity + item.quantity });
+        });
+    });
+    const localBestSellers = [...productSales.entries()].sort((a, b) => b[1].quantity - a[1].quantity).slice(0, 5);
+
+    return { 
+        totalRevenue: revenue, totalOrders: TOrders, totalClients: TClients, averageOrderValue: avgOrder,
+        ...trends,
+        bestSellers: localBestSellers
+    };
+  }, [orders, dateFilter]);
+
+  const salesByCategory = useMemo(() => {
+    const categorySales: Record<string, number> = {};
+    const isPeriodSelected = dateFilter.start && dateFilter.end;
+    const currentOrders = orders.filter(o => {
+        if (!isPeriodSelected) return true;
+        const d = new Date(o.date);
+        const start = new Date(dateFilter.start);
+        const end = new Date(dateFilter.end);
+        start.setHours(0,0,0,0);
+        end.setHours(23,59,59,999);
+        return d >= start && d <= end;
+    });
+    currentOrders.forEach(order => {
+      order.items.forEach((item: CartItem) => {
+        const category = item.category || 'Non classé';
+        if (!categorySales[category]) {
+          categorySales[category] = 0;
+        }
+        categorySales[category] += item.price * item.quantity;
+      });
+    });
+    return Object.entries(categorySales)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [orders, dateFilter]);
+
+  const mostViewed = [...products]
+    .sort((a, b) => (productViews[b.id] || 0) - (productViews[a.id] || 0))
     .slice(0, 5);
 
+  const maxProductViews = Math.max(...mostViewed.map(p => productViews[p.id] || 0), 1);
 
-  const chartData = (() => {
+
+  const chartData = useMemo(() => {
     const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
     const today = new Date();
     const data = [];
-    for (let i = 6; i >= 0; i--) {
+    const range = chartPeriod === 'week' ? 7 : 30;
+    
+    for (let i = range - 1; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
       const dayStr = d.toISOString().split('T')[0];
@@ -1505,10 +1780,29 @@ function ShopDashboard({ products }: { products: Product[] }) {
         .filter(o => o.date.startsWith(dayStr))
         .reduce((sum, o) => sum + o.total, 0);
         
-      data.push({ day: days[d.getDay()], total: dailyTotal });
+      data.push({ 
+          day: chartPeriod === 'week' ? days[d.getDay()] : d.getDate().toString(), 
+          total: dailyTotal,
+          fullDate: dayStr
+      });
+    }
+    return data;
+  }, [orders, chartPeriod]);
+
+  const viewsChartData = (() => {
+    const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    const today = new Date();
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dayStr = d.toISOString().split('T')[0];
+        const count = viewHistory[dayStr] || 0;
+        data.push({ day: days[d.getDay()], count });
     }
     return data;
   })();
+  const maxViews = Math.max(...viewsChartData.map(d => d.count), 5);
 
   const maxTotal = Math.max(...chartData.map(d => d.total), 1);
 
@@ -1516,13 +1810,87 @@ function ShopDashboard({ products }: { products: Product[] }) {
     window.print();
   };
 
-  const StatCard = ({ icon, label, value, colorClass }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string }) => (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex items-center gap-6">
-        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${colorClass}`}>
+  const handlePrintDayOrders = (dayOrders: {date: string, orders: any[]}) => {
+    if (!dayOrders || dayOrders.orders.length === 0) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Veuillez autoriser les pop-ups pour imprimer.");
+      return;
+    }
+
+    const ordersHtml = dayOrders.orders.map(order => `
+      <div style="border-bottom: 1px solid #eee; padding: 16px 0; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <p style="font-weight: bold; margin: 0; font-size: 16px;">${order.customer.name}</p>
+            <p style="font-size: 14px; color: #555; margin: 4px 0 0;">${order.customer.phone}</p>
+          </div>
+          <p style="font-weight: 900; font-size: 20px; margin: 0; color: #2ecc71;">${order.total.toLocaleString('fr-FR')} F</p>
+        </div>
+        <p style="font-size: 14px; color: #333; margin: 0; padding-top: 8px;">
+          <strong>Articles:</strong> ${order.items.map((item: CartItem) => `${item.name} (x${item.quantity})`).join(', ')}
+        </p>
+      </div>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Commandes du ${new Date(dayOrders.date).toLocaleDateString('fr-FR')}</title>
+          <style> body { font-family: sans-serif; padding: 20px; } h1 { text-transform: uppercase; } </style>
+        </head>
+        <body>
+          <h1>Commandes du ${new Date(dayOrders.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</h1>
+          ${ordersHtml}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const handleExportDayOrdersToCSV = (dayOrders: {date: string, orders: any[]}) => {
+      if (!dayOrders || dayOrders.orders.length === 0) {
+          alert("Aucune commande à exporter pour ce jour.");
+          return;
+      }
+
+      const flattenedData = dayOrders.orders.flatMap(order => 
+          order.items.map((item: CartItem) => ({
+              'Date': new Date(order.date).toLocaleDateString('fr-FR'),
+              'Client': order.customer.name,
+              'Téléphone': order.customer.phone,
+              'Produit': item.name,
+              'Quantité': item.quantity,
+              'Prix Unitaire (FCFA)': item.price,
+              'Total Ligne (FCFA)': item.price * item.quantity,
+              'ID Commande': order.id,
+          }))
+      );
+
+      const worksheet = XLSX.utils.json_to_sheet(flattenedData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, `Commandes ${dayOrders.date}`);
+      XLSX.writeFile(workbook, `commandes_${dayOrders.date}.xlsx`);
+  };
+
+  const StatCard = ({ icon, label, value, colorClass, trend }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null }) => (
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full ${colorClass}`}>
+        <div className="flex justify-between items-start">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center`}>
             {icon}
+            </div>
+            {trend != null && trend !== 0 && (
+                <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${trend > 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+                    {trend > 0 ? <TrendingUp size={12} /> : <ArrowDownRight size={12} />}
+                    {Math.abs(trend).toFixed(0)}%
+                </div>
+            )}
         </div>
         <div>
-            <p className="text-zinc-500 dark:text-zinc-400 font-bold text-sm uppercase tracking-wider">{label}</p>
+            <p className="text-zinc-500 dark:text-zinc-400 font-bold text-sm uppercase tracking-wider mt-4">{label}</p>
             <p className="text-black dark:text-white font-black text-3xl">{value}</p>
         </div>
     </div>
@@ -1532,33 +1900,77 @@ function ShopDashboard({ products }: { products: Product[] }) {
     <div id="dashboard-section" className="p-8 md:p-12 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in print:p-0">
       <div className="flex flex-wrap justify-between items-center gap-4 mb-4 print:hidden">
         <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Tableau de <span className="text-[#39FF14]">Bord</span></h2>
-        <button onClick={handlePrint} className="bg-zinc-800 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
-          <Printer size={16} /> Imprimer
-        </button>
+        <div className="flex gap-2 bg-white dark:bg-zinc-900 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center gap-2 px-2">
+                <Calendar size={16} className="text-zinc-400"/>
+                <input 
+                    type="date" 
+                    value={dateFilter.start} 
+                    onChange={(e) => setDateFilter({...dateFilter, start: e.target.value})} 
+                    className="bg-transparent text-xs font-bold outline-none text-black dark:text-white w-28"
+                />
+                <span className="text-zinc-400">-</span>
+                <input 
+                    type="date" 
+                    value={dateFilter.end} 
+                    onChange={(e) => setDateFilter({...dateFilter, end: e.target.value})} 
+                    className="bg-transparent text-xs font-bold outline-none text-black dark:text-white w-28"
+                />
+                {(dateFilter.start || dateFilter.end) && (
+                    <button onClick={() => setDateFilter({ start: '', end: '' })} className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition ml-2">
+                        <X size={16} />
+                    </button>
+                )}
+            </div>
+        </div>
+        <div className="flex gap-2">
+            <button onClick={() => window.print()} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2">
+              <Download size={16} /> PDF
+            </button>
+            <button onClick={handlePrint} className="bg-zinc-800 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
+              <Printer size={16} /> Imprimer
+            </button>
+        </div>
       </div>
-      <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Aperçu des performances et alertes de stock.</p>
+      <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">
+          Aperçu des performances {dateFilter.start || dateFilter.end ? 'sur la période sélectionnée' : 'globales'}.
+      </p>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
-        <StatCard icon={<DollarSign size={32} />} label="Revenu Total" value={`${totalRevenue.toLocaleString('fr-SN')} F`} colorClass="bg-green-500/10 text-green-500" />
-        <StatCard icon={<ShoppingCart size={32} />} label="Commandes" value={totalOrders} colorClass="bg-blue-500/10 text-blue-500" />
-        <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="bg-orange-500/10 text-orange-500" />
-        <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={`${Math.round(averageOrderValue).toLocaleString('fr-SN')} F`} colorClass="bg-purple-500/10 text-purple-500" />
+        <StatCard icon={<DollarSign size={32} />} label="Revenu Total" value={`${totalRevenue.toLocaleString('fr-SN')} F`} colorClass="text-green-500" trend={revenueTrend} />
+        <StatCard icon={<ShoppingCart size={32} />} label="Commandes" value={totalOrders} colorClass="text-blue-500" trend={ordersTrend} />
+        <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} />
+        <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={`${Math.round(averageOrderValue).toLocaleString('fr-SN')} F`} colorClass="text-purple-500" trend={avgOrderTrend} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sales Chart */}
         <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm">
           <div className="flex items-center justify-between mb-8">
-             <h3 className="font-black uppercase text-xl">Ventes (7 derniers jours)</h3>
-             <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-                <BarChart size={20} className="text-[#39FF14]" />
+             <h3 className="font-black uppercase text-xl">Tendance ({chartPeriod === 'week' ? '7' : '30'}j)</h3>
+             <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1 gap-1">
+                <button 
+                    onClick={() => setChartPeriod('week')} 
+                    className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${chartPeriod === 'week' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}
+                >7j</button>
+                <button 
+                    onClick={() => setChartPeriod('month')} 
+                    className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${chartPeriod === 'month' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}
+                >30j</button>
              </div>
           </div>
           
-          <div className="flex items-end justify-between h-64 gap-4">
+          <div className={`flex items-end justify-between h-64 ${chartPeriod === 'week' ? 'gap-4' : 'gap-1'}`}>
             {chartData.map((d, i) => (
-              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+              <div 
+                key={i} 
+                className="flex flex-col items-center flex-1 h-full justify-end group cursor-pointer"
+                onClick={() => {
+                    const ordersForDay = orders.filter(o => o.date.startsWith(d.fullDate));
+                    setSelectedDayOrders({ date: d.fullDate, orders: ordersForDay });
+                }}
+              >
                 <div 
                   className="w-full max-w-[40px] bg-black dark:bg-white rounded-t-xl transition-all duration-500 relative group-hover:bg-[#39FF14]" 
                   style={{ height: `${(d.total / maxTotal) * 100}%`, minHeight: '4px' }}
@@ -1577,7 +1989,7 @@ function ShopDashboard({ products }: { products: Product[] }) {
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
            <div className="flex items-center gap-3 mb-6">
               <Star className="text-yellow-400" size={24} />
-              <h3 className="font-black uppercase text-xl">Meilleures Ventes</h3>
+              <h3 className="font-black uppercase text-xl">Top Ventes {dateFilter.start && '(Période)'}</h3>
            </div>
            
            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
@@ -1601,6 +2013,114 @@ function ShopDashboard({ products }: { products: Product[] }) {
            </div>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+        {/* MOST VIEWED */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
+           <div className="flex items-center gap-3 mb-4">
+              <TrendingUp className="text-blue-500" size={24} />
+              <h3 className="font-black uppercase text-xl">Produits Populaires</h3>
+           </div>
+           <div className="flex flex-wrap gap-2 mb-6 border-b border-zinc-100 dark:border-zinc-800 pb-4">
+              {productCategories.map(cat => (
+                <button 
+                  key={cat}
+                  onClick={() => setPopularCategory(cat)}
+                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase transition-all ${popularCategory === cat ? 'bg-blue-500 text-white shadow-md' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200'}`}
+                >
+                  {cat}
+                </button>
+              ))}
+           </div>
+           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {mostViewed.length === 0 ? (
+                 <p className="text-zinc-500 text-sm">Aucune vue enregistrée.</p>
+              ) : (
+                 mostViewed.map(p => (
+                    <div key={p.id} onClick={() => onViewProduct(p)} className="relative flex items-center gap-4 p-2 rounded-xl cursor-pointer overflow-hidden hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group">
+                       {/* Background Bar */}
+                       <div 
+                         className="absolute inset-y-0 left-0 bg-blue-50 dark:bg-blue-900/20 z-0 transition-all duration-500" 
+                         style={{ width: `${((productViews[p.id] || 0) / maxProductViews) * 100}%` }}
+                       />
+                       <div className="relative z-10 flex items-center gap-4 w-full">
+                           <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover bg-zinc-200 shadow-sm" />
+                           <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm truncate text-black dark:text-white">{p.name}</p>
+                              <p className="text-xs text-zinc-500">{p.category}</p>
+                           </div>
+                           <p className="font-black text-lg text-blue-500">{productViews[p.id] || 0} <span className="text-xs text-zinc-400">vues</span></p>
+                       </div>
+                    </div>
+                 ))
+              )}
+           </div>
+        </div>
+
+        {/* VIEWS HISTORY CHART */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+             <h3 className="font-black uppercase text-xl">Trafic (Vues 7j)</h3>
+             <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                <Eye size={20} className="text-blue-500" />
+             </div>
+          </div>
+          
+          <div className="flex items-end justify-between h-64 gap-2">
+            {viewsChartData.map((d, i) => (
+              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                <div 
+                  className="w-full max-w-[30px] bg-blue-500 rounded-t-lg transition-all duration-500 relative group-hover:bg-blue-400" 
+                  style={{ height: `${(d.count / maxViews) * 100}%`, minHeight: '4px' }}
+                >
+                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                      {d.count} vues
+                   </div>
+                </div>
+                <span className="mt-4 text-[10px] font-bold text-zinc-400 uppercase">{d.day}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CATEGORY SALES PIE CHART */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
+          <div className="flex items-center gap-3 mb-6">
+            <PieChartIcon size={24} className="text-purple-500" />
+            <h3 className="font-black uppercase text-xl">Ventes par Catégorie</h3>
+          </div>
+          {salesByCategory.length > 0 && totalRevenue > 0 ? (
+            <div className="flex flex-col md:flex-row items-center gap-8">
+              <div className="relative w-32 h-32 shrink-0">
+                <div 
+                  className="w-full h-full rounded-full" 
+                  style={{
+                    background: `conic-gradient(${
+                      salesByCategory.map((cat, i) => {
+                        const colors = ['#39FF14', '#000000', '#3b82f6', '#f97316', '#8b5cf6', '#ec4899'];
+                        const startAngle = (salesByCategory.slice(0, i).reduce((acc, c) => acc + c.value, 0) / totalRevenue) * 100;
+                        const endAngle = startAngle + (cat.value / totalRevenue) * 100;
+                        return `${colors[i % colors.length]} ${startAngle}% ${endAngle}%`;
+                      }).join(', ')
+                    })`
+                  }}
+                ></div>
+              </div>
+              <div className="flex-1 space-y-2 w-full">
+                {salesByCategory.slice(0, 5).map((cat, i) => {
+                  const colors = ['#39FF14', '#000000', '#3b82f6', '#f97316', '#8b5cf6', '#ec4899'];
+                  const percentage = ((cat.value / totalRevenue) * 100).toFixed(0);
+                  return (
+                    <div key={cat.name} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors[i % colors.length] }}></span><span className="font-bold text-black dark:text-white">{cat.name}</span></div><span className="font-black text-zinc-500">{percentage}%</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (<p className="text-zinc-500 text-sm text-center py-10">Aucune vente pour afficher le graphique.</p>)}
+        </div>
+      </div>
       
        {/* Low Stock Alert */}
        <div className="mt-8 bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
@@ -1620,8 +2140,10 @@ function ShopDashboard({ products }: { products: Product[] }) {
                           <p className="font-bold text-sm truncate text-black dark:text-white">{p.name}</p>
                           <p className="text-xs text-zinc-500">{p.category}</p>
                        </div>
-                       <div className={`px-3 py-1 rounded-lg text-xs font-black ${p.stock === 0 ? 'bg-red-500 text-white' : 'bg-yellow-500/20 text-yellow-600'}`}>
-                          {p.stock}
+                       <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
+                          <button onClick={() => onUpdateStock(p.id, (p.stock||0) - 1)} className="w-6 h-6 flex items-center justify-center bg-white dark:bg-zinc-700 rounded text-black dark:text-white hover:bg-zinc-200 transition">-</button>
+                          <span className={`w-6 text-center text-xs font-black ${p.stock === 0 ? 'text-red-500' : 'text-black dark:text-white'}`}>{p.stock}</span>
+                          <button onClick={() => onUpdateStock(p.id, (p.stock||0) + 1)} className="w-6 h-6 flex items-center justify-center bg-white dark:bg-zinc-700 rounded text-black dark:text-white hover:bg-zinc-200 transition">+</button>
                        </div>
                     </div>
                  ))
@@ -1629,6 +2151,49 @@ function ShopDashboard({ products }: { products: Product[] }) {
            </div>
         </div>
 
+        {/* MODALE DÉTAILS COMMANDES JOUR */}
+        {selectedDayOrders && (
+            <div id="modal-overlay" onClick={() => setSelectedDayOrders(null)} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] w-full max-w-2xl shadow-2xl animate-in zoom-in-95 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+                        <h3 className="font-black text-lg uppercase">Commandes du {new Date(selectedDayOrders.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</h3>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => handleExportDayOrdersToCSV(selectedDayOrders)} 
+                                className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full text-xs font-bold transition-colors"
+                                title="Exporter en CSV"
+                            >
+                                <Download size={16}/> CSV
+                            </button>
+                            <button onClick={() => handlePrintDayOrders(selectedDayOrders)} className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full text-xs font-bold transition-colors" title="Imprimer">
+                                <Printer size={16}/> Imprimer
+                            </button>
+                            <button onClick={() => setSelectedDayOrders(null)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full"><X size={20}/></button>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                        {selectedDayOrders.orders.length === 0 ? (
+                            <p className="text-center text-zinc-500 py-10">Aucune commande ce jour.</p>
+                        ) : (
+                            selectedDayOrders.orders.map((order: any) => (
+                                <div key={order.id} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-bold text-sm text-black dark:text-white">{order.customer.name}</p>
+                                            <p className="text-xs text-zinc-500">{order.customer.phone}</p>
+                                        </div>
+                                        <p className="font-black text-lg text-[#39FF14]">{order.total.toLocaleString()} F</p>
+                                    </div>
+                                    <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800 pt-2">
+                                        {order.items.map((item: CartItem) => `${item.name} (x${item.quantity})`).join(', ')}
+                                    </p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 }
@@ -1752,10 +2317,13 @@ interface ShopSettingsProps {
   setPromoCodes: React.Dispatch<React.SetStateAction<PromoCode[]>>;
   shopInfo: { name: string; description: string; phone: string; deliveryFees: number; openingHours: { start: string; end: string; enabled: boolean } };
   setShopInfo: React.Dispatch<React.SetStateAction<{ name: string; description: string; phone: string; deliveryFees: number; openingHours: { start: string; end: string; enabled: boolean } }>>;
+  deliveryZones: DeliveryZone[];
+  setDeliveryZones: React.Dispatch<React.SetStateAction<DeliveryZone[]>>;
 }
 
-function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo }: ShopSettingsProps) {
+function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones }: ShopSettingsProps) {
   const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed' });
+  const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
 
   const handleAddCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1779,6 +2347,19 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo }: Shop
     if (confirm("Voulez-vous vraiment supprimer ce code promo ?")) {
       setPromoCodes(codes => codes.filter(c => c.id !== id));
     }
+  };
+
+  const handleUpdateZone = (id: number, field: keyof DeliveryZone, value: any) => {
+    setDeliveryZones(prev => prev.map(z => z.id === id ? { ...z, [field]: value } : z));
+  };
+
+  const handleAddZone = () => {
+    const newId = Math.max(...deliveryZones.map(z => z.id), 0) + 1;
+    setDeliveryZones([...deliveryZones, { id: newId, name: `Zone ${newId}`, price: 2000, quartiers: ["Nouveau quartier"] }]);
+  };
+
+  const handleDeleteZone = (id: number) => {
+    if(confirm("Supprimer cette zone ?")) setDeliveryZones(prev => prev.filter(z => z.id !== id));
   };
 
   return (
@@ -1824,6 +2405,43 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo }: Shop
                       </div>
                   )}
               </div>
+          </div>
+      </div>
+
+      {/* ZONES DE LIVRAISON */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-black uppercase text-xl flex items-center gap-3"><Truck size={20} className="text-[#39FF14]" /> Zones de Livraison</h3>
+            <button onClick={handleAddZone} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-xs font-black uppercase flex items-center gap-2"><Plus size={14}/> Ajouter Zone</button>
+          </div>
+          <div className="space-y-4">
+            {deliveryZones.map(zone => (
+                <div key={zone.id} className="bg-zinc-50 dark:bg-zinc-800 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+                    <div className="flex justify-between items-start gap-4 mb-2">
+                        <div className="flex-1 grid grid-cols-2 gap-4">
+                            <input 
+                                type="text" 
+                                value={zone.name} 
+                                onChange={(e) => handleUpdateZone(zone.id, 'name', e.target.value)} 
+                                className="bg-white dark:bg-zinc-900 p-2 rounded-lg font-bold text-sm outline-none border border-transparent focus:border-[#39FF14]"
+                            />
+                            <input 
+                                type="number" 
+                                value={zone.price} 
+                                onChange={(e) => handleUpdateZone(zone.id, 'price', Number(e.target.value))} 
+                                className="bg-white dark:bg-zinc-900 p-2 rounded-lg font-bold text-sm outline-none border border-transparent focus:border-[#39FF14]"
+                            />
+                        </div>
+                        <button onClick={() => handleDeleteZone(zone.id)} className="text-zinc-400 hover:text-red-500 p-2"><Trash2 size={16}/></button>
+                    </div>
+                    <textarea 
+                        value={zone.quartiers.join(', ')} 
+                        onChange={(e) => handleUpdateZone(zone.id, 'quartiers', e.target.value.split(',').map(s=>s.trim()))} 
+                        className="w-full bg-white dark:bg-zinc-900 p-2 rounded-lg text-xs outline-none border border-transparent focus:border-[#39FF14] h-16 resize-none"
+                        placeholder="Quartiers séparés par des virgules..."
+                    />
+                </div>
+            ))}
           </div>
       </div>
 
