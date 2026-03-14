@@ -3238,7 +3238,7 @@ function ShopClients({ currency }: { currency: string }) {
                     </button>
                 </div>
             </div>
-            <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Historique des clients ayant passé commande.</p>
+            <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Historique des clients ayant passé commandes.</p>
             <div className="mb-8">
                 <input
                     type="text"
