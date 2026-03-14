@@ -1,13 +1,17 @@
 "use client";
 
+import { DndContext, PointerSensor, useSensor, useSensors, useDraggable, useDroppable, closestCenter, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
+import { supabase } from "@/lib/supabaseClient";
 
 // --- TYPES ---
 interface Review {
@@ -95,6 +99,7 @@ const initialShopInfo = {
   deliveryFees: 0,
   logoUrl: '',
   currency: 'FCFA',
+  deliveryOptions: { delivery: true, pickup: true },
   openingHours: { start: '09:00', end: '18:00', enabled: false }
 };
 
@@ -113,6 +118,198 @@ const displayPrice = (priceInCfa: number, currency: string = 'FCFA') => {
     }
     return `${convertedPrice.toFixed(2)} ${config.symbol}`;
 };
+
+const WIDGET_TYPE = 'WIDGET';
+
+interface WidgetProps {
+  id: string;
+  name: string;
+}
+
+function DraggableWidget({ id, name }: WidgetProps) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: id,
+    data: { name, type: WIDGET_TYPE },
+  });
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 100,
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-lg cursor-grab">
+      {name}
+    </div>
+  );
+}
+
+function SortableWidget({ id, name }: WidgetProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 100 : 'auto',
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-4 bg-white dark:bg-zinc-800 rounded-lg shadow cursor-grab">
+      {name}
+    </div>
+  );
+}
+
+
+function DroppableCanvas({ children }: { children: React.ReactNode }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: 'canvas',
+  });
+
+  const style = {
+    backgroundColor: isOver ? 'rgba(57, 255, 20, 0.1)' : undefined,
+    outline: isOver ? '2px dashed #39FF14' : '2px dashed transparent',
+    transition: 'background-color 0.2s ease, outline 0.2s ease',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="lg:col-span-2 bg-zinc-50 dark:bg-zinc-900/50 p-8 rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 min-h-[400px]">
+      {children}
+    </div>
+  );
+}
+
+function ShopPageBuilder() {
+  const availableWidgets = [
+    { id: 'category-grid', name: 'Grille de Catégories' },
+    { id: 'promo-banner', name: 'Bannière Promotionnelle' },
+  ];
+
+  const [pageWidgets, setPageWidgets] = useState<WidgetProps[]>([]);
+  const sensors = useSensors(useSensor(PointerSensor));
+
+  useEffect(() => {
+    const savedLayout = localStorage.getItem('onyx_jaay_homepage_layout');
+    if (savedLayout) {
+      setPageWidgets(JSON.parse(savedLayout));
+    }
+  }, []);
+
+  const handleSaveLayout = () => {
+    localStorage.setItem('onyx_jaay_homepage_layout', JSON.stringify(pageWidgets));
+    alert('Mise en page enregistrée !');
+  };
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const isFromToolbox = availableWidgets.some(w => w.id === active.id);
+
+    if (isFromToolbox && over.id === 'canvas') {
+        const widget = availableWidgets.find(w => w.id === active.id);
+        if (widget) {
+            setPageWidgets(current => [...current, { ...widget, id: widget.id + '-' + Date.now() }]);
+        }
+        return;
+    }
+
+    const isReordering = pageWidgets.some(w => w.id === active.id);
+    const overIsWidget = pageWidgets.some(w => w.id === over.id);
+
+    if (isReordering && overIsWidget && active.id !== over.id) {
+        setPageWidgets(items => {
+            const oldIndex = items.findIndex(item => item.id === active.id);
+            const newIndex = items.findIndex(item => item.id === over.id);
+            return arrayMove(items, oldIndex, newIndex);
+        });
+    }
+  }
+
+  return (
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+        <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
+        <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Mettre à jour mon site</h2>
+        <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Faites glisser et déposez des composants pour construire votre page d'accueil.</p>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1">
+              <h3 className="font-bold text-lg mb-4">Widgets Disponibles</h3>
+              <div className="space-y-4">
+                  {availableWidgets.map(widget => (
+                    <DraggableWidget key={widget.id} id={widget.id} name={widget.name} />
+                  ))}
+              </div>
+            </div>
+            <DroppableCanvas>
+              <h3 className="font-bold text-lg mb-4">Aperçu de la Page</h3>
+               <SortableContext items={pageWidgets.map(w => w.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-4">
+                    {pageWidgets.map((widget) => (
+                      <SortableWidget key={widget.id} id={widget.id} name={widget.name} />
+                    ))}
+                    {pageWidgets.length === 0 && (
+                      <div className="text-center text-zinc-500 py-16">
+                          <p>Déposez des widgets ici</p>
+                      </div>
+                    )}
+                </div>
+              </SortableContext>
+            </DroppableCanvas>
+        </div>
+        <div className="mt-8 flex justify-end">
+            <button onClick={handleSaveLayout} className="bg-[#39FF14] text-black px-8 py-3 rounded-xl font-black uppercase text-sm hover:bg-white transition-colors flex items-center gap-2">
+                <Save size={16} /> Enregistrer la page
+            </button>
+        </div>
+        </div>
+    </DndContext>
+  );
+}
+
+interface CategoryGridWidgetProps {
+    categories: string[];
+    setActiveCategory: (category: string) => void;
+}
+
+const CategoryGridWidget = ({ categories, setActiveCategory }: CategoryGridWidgetProps) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
+    {categories.map((cat) => (
+        <div 
+        key={cat}
+        onClick={() => setActiveCategory(cat)}
+        className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
+        >
+        <img 
+            src={`https://placehold.co/800x800/111/FFF?text=${cat}`} 
+            alt={cat}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+        />
+        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
+            <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
+            <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+            Voir la collection
+            </span>
+        </div>
+        </div>
+    ))}
+    </div>
+);
+
+const PromoBannerWidget = () => (
+    <div className="bg-black text-white p-8 rounded-3xl my-8">
+        <h3 className="text-3xl font-black text-[#39FF14]">Bannière Promotionnelle</h3>
+        <p>Une super promotion ici!</p>
+    </div>
+);
 
 export default function OnyxJaayShop() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -133,7 +330,7 @@ export default function OnyxJaayShop() {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [theme, setTheme] = useState('dark');
-  const [shopView, setShopView] = useState<'boutique' | 'dashboard' | 'settings' | 'clients'>('boutique');
+  const [shopView, setShopView] = useState<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder'>('boutique');
   const [categories, setCategories] = useState(['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires']);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([
     { id: 1, code: 'BIENVENUE10', discount: 10, type: 'percentage', active: true },
@@ -155,6 +352,7 @@ export default function OnyxJaayShop() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
+  const [customerAddress, setCustomerAddress] = useState('');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [currentCustomerPoints, setCurrentCustomerPoints] = useState(0);
   const [productViews, setProductViews] = useState<Record<number, number>>({});
@@ -162,9 +360,37 @@ export default function OnyxJaayShop() {
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>(INITIAL_ZONES);
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [homepageLayout, setHomepageLayout] = useState<WidgetProps[] | null>(null);
+  
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [trackingInput, setTrackingInput] = useState('');
+  const [trackedOrder, setTrackedOrder] = useState<any>(null);
+  const [isTracking, setIsTracking] = useState(false);
+
+  const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+  const [orderReview, setOrderReview] = useState({ name: '', rating: 5, comment: '' });
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+
+  useEffect(() => {
+    const savedLayout = localStorage.getItem('onyx_jaay_homepage_layout');
+    if (savedLayout) {
+      setHomepageLayout(JSON.parse(savedLayout));
+    }
+  }, []);
+
+  const renderWidget = (widget: WidgetProps) => {
+    const widgetType = widget.id.split('-')[0];
+    switch (widgetType) {
+      case 'category-grid':
+        return <CategoryGridWidget categories={categories.filter(c => c !== 'Toutes' && c !== 'Favoris')} setActiveCategory={setActiveCategory} />;
+      case 'promo-banner':
+        return <PromoBannerWidget />;
+      default:
+        return <div className="p-4 bg-red-200 rounded-lg">Widget inconnu: {widget.name}</div>;
+    }
+  };
 
   // --- CART LOGIC ---
   useEffect(() => {
@@ -208,6 +434,10 @@ export default function OnyxJaayShop() {
         console.error("Erreur chargement historique vues", e);
       }
     }
+    const savedAddr = localStorage.getItem('onyx_jaay_address');
+    if (savedAddr) {
+      setCustomerAddress(savedAddr);
+    }
   }, []);
 
   useEffect(() => {
@@ -234,6 +464,10 @@ export default function OnyxJaayShop() {
     localStorage.setItem('onyx_jaay_shop_info', JSON.stringify(shopInfo));
   }, [shopInfo]);
 
+  useEffect(() => {
+    localStorage.setItem('onyx_jaay_address', customerAddress);
+  }, [customerAddress]);
+
   // --- THEME LOGIC ---
   useEffect(() => {
     const savedTheme = localStorage.getItem('onyx_jaay_theme') || 'dark';
@@ -258,6 +492,10 @@ export default function OnyxJaayShop() {
       if (product) {
         setViewingProduct(product);
       }
+    }
+    const orderId = urlParams.get('order_review');
+    if (orderId) {
+      setReviewOrderId(orderId);
     }
   }, [products]);
 
@@ -329,6 +567,21 @@ export default function OnyxJaayShop() {
   const handleApplyPromo = () => {
     const code = promoCodes.find(c => c.code === promoInput.toUpperCase() && c.active);
     if (code) {
+      if (code.expirationDate) {
+        const expDate = new Date(code.expirationDate);
+        expDate.setHours(23, 59, 59, 999); // Valide jusqu'à la fin de la journée
+        if (expDate < new Date()) {
+          alert("Désolé, ce code promotionnel a expiré.");
+          setAppliedPromo(null);
+          return;
+        }
+      }
+      if (code.minPurchase && subTotal < code.minPurchase) {
+        const missingAmount = code.minPurchase - subTotal;
+        alert(`Le montant minimum d'achat pour utiliser ce code est de ${displayPrice(code.minPurchase, shopInfo.currency)}.\n\nIl vous manque ${displayPrice(missingAmount, shopInfo.currency)} pour en profiter ! Ajoutez quelques articles à votre panier.`);
+        setAppliedPromo(null);
+        return;
+      }
       setAppliedPromo(code);
       alert("Code promo appliqué !");
     } else {
@@ -339,30 +592,34 @@ export default function OnyxJaayShop() {
   };
 
   useEffect(() => {
-    if (isCheckoutModalOpen && customerInfo.phone) {
-        const savedOrders = localStorage.getItem('onyx_jaay_orders');
-        if (savedOrders) {
-            try {
-                const orders = JSON.parse(savedOrders);
-                const customerOrders = orders.filter((o: any) => o.customer?.phone === customerInfo.phone);
-                let points = 0;
-                customerOrders.forEach((order: any) => {
-                    points += Math.floor(order.total / 1000); // Earn
-                    if (order.pointsUsed) {
-                        points -= order.pointsUsed; // Spend
-                    }
-                });
-                setCurrentCustomerPoints(points);
-            } catch (e) {
-                console.error("Erreur calcul points", e);
-                setCurrentCustomerPoints(0);
-            }
-        } else {
-            setCurrentCustomerPoints(0);
-        }
-    } else {
-        setCurrentCustomerPoints(0);
-    }
+    const fetchCustomerPoints = async () => {
+      if (isCheckoutModalOpen && customerInfo.phone) {
+          let orders = [];
+          const { data, error } = await supabase.from('orders').select('*').eq('customer_phone', customerInfo.phone);
+          
+          if (data && !error && data.length > 0) {
+              orders = data.map(o => ({ total: o.total_amount, pointsUsed: o.points_used }));
+          } else {
+              const savedOrders = localStorage.getItem('onyx_jaay_orders');
+              if (savedOrders) {
+                  try {
+                      const parsed = JSON.parse(savedOrders);
+                      orders = parsed.filter((o: any) => o.customer?.phone === customerInfo.phone);
+                  } catch (e) { }
+              }
+          }
+          
+          let points = 0;
+          orders.forEach((order: any) => {
+              points += Math.floor(order.total / 1000); // Gagne
+              if (order.pointsUsed) points -= order.pointsUsed; // Dépense
+          });
+          setCurrentCustomerPoints(points);
+      } else {
+          setCurrentCustomerPoints(0);
+      }
+    };
+    fetchCustomerPoints();
   }, [customerInfo.phone, isCheckoutModalOpen]);
 
   const toggleWishlist = (productId: number) => {
@@ -419,17 +676,22 @@ export default function OnyxJaayShop() {
     setIsCheckoutModalOpen(true);
   };
 
-  const confirmOrder = () => {
+  const confirmOrder = async () => {
     if (!customerInfo.name || !customerInfo.phone) {
         alert("Veuillez remplir votre nom et téléphone pour valider la commande.");
         return;
     }
 
+    if (deliveryMethod === 'delivery' && shopInfo.deliveryOptions?.delivery === false) return alert("La livraison n'est pas disponible actuellement.");
+    if (deliveryMethod === 'pickup' && shopInfo.deliveryOptions?.pickup === false) return alert("Le retrait n'est pas disponible actuellement.");
+
     const pointsToUse = useLoyaltyPoints ? Math.floor(loyaltyDiscountAmount / 10) : 0;
+    const trackingNumber = `CMD-${Math.floor(100000 + Math.random() * 900000)}`;
 
     // Save order locally for history/clients
     const newOrder = {
         id: Date.now(),
+        trackingNumber,
         date: new Date().toISOString(),
         customer: customerInfo,
         items: cart,
@@ -440,7 +702,30 @@ export default function OnyxJaayShop() {
     const existingOrders = JSON.parse(localStorage.getItem('onyx_jaay_orders') || '[]');
     localStorage.setItem('onyx_jaay_orders', JSON.stringify([newOrder, ...existingOrders]));
 
+    // --- 🚀 INTÉGRATION SUPABASE 🚀 ---
+    try {
+      const { error } = await supabase.from('orders').insert([{
+        customer_name: customerInfo.name,
+        customer_phone: customerInfo.phone,
+        items: cart,
+        total_amount: cartTotal,
+        points_used: pointsToUse,
+        status: 'En attente',
+        delivery_method: deliveryMethod,
+        delivery_zone: selectedZone ? selectedZone.name : null,
+        tracking_number: trackingNumber
+      }]);
+      if (error) {
+        console.error("Erreur d'insertion Supabase:", error.message);
+      } else {
+        alert("Commande enregistrée avec succès !");
+      }
+    } catch (err) {
+      console.error("Erreur réseau Supabase:", err);
+    }
+
     let message = `Bonjour, je suis ${customerInfo.name}. Je souhaite passer commande :\n\n`;
+    message += `📦 *Numéro de suivi :* ${trackingNumber}\n\n`;
     cart.forEach(item => {
       let variantInfo = "";
       if (item.selectedVariant) {
@@ -463,7 +748,10 @@ export default function OnyxJaayShop() {
     }
     message += `\nMode de livraison : ${deliveryMethod === 'delivery' ? 'Livraison à domicile' : 'Retrait en boutique'}`;
     if (deliveryMethod === 'delivery' && selectedZone) {
-        message += `\nZone : ${selectedZone.name} (${selectedZone.quartiers[0]}...)`;
+        message += `\n📍 Zone : ${selectedZone.name} (${selectedZone.quartiers[0]}...)`;
+        if (customerAddress.trim()) {
+            message += `\n🏠 Adresse : ${customerAddress.trim()}`;
+        }
     }
     message += `\n*Total à payer : ${displayPrice(cartTotal, shopInfo.currency)}*`;
     message += `\n\nMerci de confirmer la disponibilité.`;
@@ -479,19 +767,31 @@ export default function OnyxJaayShop() {
     setIsOrderSuccessOpen(true);
   };
   
-  const handleAddReview = (productId: number, review: Omit<Review, 'id' | 'date'>) => {
-    setProducts(prevProducts => {
-      const newProducts = prevProducts.map(p => {
-        if (p.id === productId) {
-          const newReview = { ...review, id: Date.now(), date: new Date().toISOString().split('T')[0] };
-          const updatedReviews = [...(p.reviewsList || []), newReview];
-          const newRating = updatedReviews.reduce((acc, r) => acc + r.rating, 0) / updatedReviews.length;
-          return { ...p, reviewsList: updatedReviews, reviews: updatedReviews.length, rating: parseFloat(newRating.toFixed(1)) };
-        }
-        return p;
-      });
-      return newProducts;
-    });
+  const handleAddReview = async (productId: number, review: Omit<Review, 'id' | 'date'>) => {
+    try {
+        const { data, error } = await supabase.from('reviews').insert([{
+            type: 'product',
+            reference_id: String(productId),
+            name: review.name,
+            rating: review.rating,
+            comment: review.comment
+        }]).select().single();
+
+        if (error) throw error;
+
+        setProducts(prevProducts => prevProducts.map(p => {
+            if (p.id === productId) {
+                const newReview = { ...review, id: data?.id || Date.now(), date: new Date().toISOString().split('T')[0] };
+                const updatedReviews = [...(p.reviewsList || []), newReview];
+                const newRating = updatedReviews.reduce((acc, r) => acc + r.rating, 0) / updatedReviews.length;
+                return { ...p, reviewsList: updatedReviews, reviews: updatedReviews.length, rating: parseFloat(newRating.toFixed(1)) };
+            }
+            return p;
+        }));
+    } catch (err) {
+        console.error("Erreur sauvegarde avis:", err);
+        alert("Erreur lors de l'envoi de l'avis.");
+    }
   };
 
   const handleUpdateStock = (id: number, newStock: number) => {
@@ -734,6 +1034,35 @@ export default function OnyxJaayShop() {
     }
   };
 
+  const handleTrackOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsTracking(true);
+    setTrackedOrder(null);
+    
+    // Nettoie les espaces accidentels avant ou après le code
+    const cleanTrackingInput = trackingInput.trim(); 
+    
+    try {
+        const { data, error } = await supabase.from('orders').select('*').eq('tracking_number', cleanTrackingInput).maybeSingle();
+        
+        if (data && !error) {
+            setTrackedOrder(data);
+        } else {
+            const savedOrders = JSON.parse(localStorage.getItem('onyx_jaay_orders') || '[]');
+            const localOrder = savedOrders.find((o: any) => o.trackingNumber === cleanTrackingInput || o.tracking_number === cleanTrackingInput);
+            if (localOrder) {
+                setTrackedOrder(localOrder);
+            } else {
+                alert("Aucune commande trouvée avec ce numéro de suivi.");
+            }
+        }
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setIsTracking(false);
+    }
+  };
+
   const filteredProducts = products.filter(p => {
     const matchesCategory = activeCategory === 'Toutes' 
       ? true 
@@ -787,6 +1116,12 @@ export default function OnyxJaayShop() {
                   </button>
                   <button onClick={() => { setShopView('settings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                     <Settings size={18} className={shopView === 'settings' ? "text-[#39FF14]" : ""} /> Paramètres
+                  </button>
+                  <button onClick={() => { setShopView('page-builder'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'page-builder' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                    <LayoutTemplate size={18} className={shopView === 'page-builder' ? "text-[#39FF14]" : ""} /> Mettre à jour mon site
+                  </button>
+                  <button onClick={() => { setIsTrackingModalOpen(true); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+                    <Package size={18} /> Suivi Commande
                   </button>
                 </nav>
                 <div className="px-4 space-y-2">
@@ -874,6 +1209,12 @@ export default function OnyxJaayShop() {
             </button>
             <button onClick={() => setShopView('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <Settings size={18} className={shopView === 'settings' ? "text-[#39FF14]" : ""} /> Paramètres
+            </button>
+            <button onClick={() => setShopView('page-builder')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'page-builder' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+              <LayoutTemplate size={18} className={shopView === 'page-builder' ? "text-[#39FF14]" : ""} /> Mettre à jour mon site
+            </button>
+            <button onClick={() => setIsTrackingModalOpen(true)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+              <Package size={18} /> Suivi Commande
             </button>
           </nav>
 
@@ -1058,104 +1399,112 @@ export default function OnyxJaayShop() {
               </div>
             )}
 
-            {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
-                {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map((cat) => (
+            {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice && !isEditingMode && homepageLayout ? (
+                <div className="space-y-8">
+                    {homepageLayout.map((widget, index) => <div key={index}>{renderWidget(widget)}</div>)}
+                </div>
+            ) : (
+              <>
+                {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
+                    {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map((cat) => (
+                      <div 
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
+                      >
+                        <img 
+                          src={`https://placehold.co/800x800/111/FFF?text=${cat}`} 
+                          alt={cat}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        />
+                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
+                          <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
+                          <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                            Voir la collection
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredProducts.map((product, index) => (
                   <div 
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
+                    key={product.id} 
+                    className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all duration-300 ${isEditingMode ? 'cursor-grab active:cursor-grabbing hover:border-[#39FF14]/50 hover:shadow-[0_0_30px_rgba(57,255,20,0.1)]' : 'cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600'}`}
+                    onClick={() => !isEditingMode && handleViewProduct(product)}
+                    draggable={isEditingMode && activeCategory === 'Toutes'} // Drag & Drop only logical when all products are shown
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragEnter={(e) => handleDragEnter(e, index)}
+                    onDragEnd={handleDragEnd}
                   >
-                    <img 
-                      src={`https://placehold.co/800x800/111/FFF?text=${cat}`} 
-                      alt={cat}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
-                      <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
-                      <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
-                        Voir la collection
-                      </span>
+                    <div className="relative">
+                      <img src={product.image} alt={product.name} className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500 bg-zinc-100 dark:bg-zinc-800" />
+                      {product.stock === 0 && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">Épuisé</span>
+                        </div>
+                      )}
+                      <div className="absolute top-4 left-4 bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700 text-[#39FF14]">
+                        {product.category}
+                      </div>
+                      
+                      {/* Wishlist Button */}
+                      {!isEditingMode && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
+                          className="absolute top-4 right-4 bg-white/80 dark:bg-black/60 backdrop-blur-md p-2.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:scale-110 transition-transform"
+                        >
+                          <Heart 
+                            size={18} 
+                            className={`transition-all ${wishlist.includes(product.id) ? 'text-red-500 fill-red-500' : 'text-black dark:text-white'}`} 
+                          />
+                        </button>
+                      )}
+
+                      {isEditingMode && (
+                          <div className="absolute top-4 right-4 flex flex-col gap-2">
+                              <button onClick={() => handleEditProduct(product)} className="bg-black/70 backdrop-blur-md text-white p-2.5 rounded-full hover:bg-[#39FF14] hover:text-black transition border border-zinc-700 shadow-lg"><Edit size={16}/></button>
+                              <button onClick={() => handleDeleteProduct(product.id)} className="bg-black/70 backdrop-blur-md text-red-500 p-2.5 rounded-full hover:bg-red-500 hover:text-white transition border border-zinc-700 shadow-lg"><Trash2 size={16}/></button>
+                          </div>
+                      )}
+                    </div>
+                    <div className="p-6 flex-1 flex flex-col">
+                      <h3 className="text-xl font-bold tracking-tight text-black dark:text-white">{product.name}</h3>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 flex-1 line-clamp-2">{product.description}</p>
+                      
+                      <div className="flex items-center gap-1 mt-3">
+                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                        <span className="text-xs font-bold text-black dark:text-white">{product.rating || 5}</span>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-500">({product.reviews || 0} avis)</span>
+                      </div>
+
+                      <div className="flex justify-between items-end mt-6">
+                        <div>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider mb-1">Prix</p>
+                          <p className="text-2xl font-black text-black dark:text-white">{displayPrice(product.price, shopInfo.currency)}</p>
+                        </div>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); addToCart(product); }} 
+                          disabled={product.stock === 0}
+                          className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center gap-2 shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
+                        >
+                          <Plus size={16} /> Ajouter
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
-              </div>
-            ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProducts.map((product, index) => (
-              <div 
-                key={product.id} 
-                className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all duration-300 ${isEditingMode ? 'cursor-grab active:cursor-grabbing hover:border-[#39FF14]/50 hover:shadow-[0_0_30px_rgba(57,255,20,0.1)]' : 'cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600'}`}
-                onClick={() => !isEditingMode && handleViewProduct(product)}
-                draggable={isEditingMode && activeCategory === 'Toutes'} // Drag & Drop only logical when all products are shown
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragEnter={(e) => handleDragEnter(e, index)}
-                onDragEnd={handleDragEnd}
-              >
-                <div className="relative">
-                  <img src={product.image} alt={product.name} className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500 bg-zinc-100 dark:bg-zinc-800" />
-                  {product.stock === 0 && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                      <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">Épuisé</span>
-                    </div>
-                  )}
-                  <div className="absolute top-4 left-4 bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700 text-[#39FF14]">
-                    {product.category}
-                  </div>
-                  
-                  {/* Wishlist Button */}
-                  {!isEditingMode && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
-                      className="absolute top-4 right-4 bg-white/80 dark:bg-black/60 backdrop-blur-md p-2.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:scale-110 transition-transform"
-                    >
-                      <Heart 
-                        size={18} 
-                        className={`transition-all ${wishlist.includes(product.id) ? 'text-red-500 fill-red-500' : 'text-black dark:text-white'}`} 
-                      />
-                    </button>
-                  )}
-
-                  {isEditingMode && (
-                      <div className="absolute top-4 right-4 flex flex-col gap-2">
-                          <button onClick={() => handleEditProduct(product)} className="bg-black/70 backdrop-blur-md text-white p-2.5 rounded-full hover:bg-[#39FF14] hover:text-black transition border border-zinc-700 shadow-lg"><Edit size={16}/></button>
-                          <button onClick={() => handleDeleteProduct(product.id)} className="bg-black/70 backdrop-blur-md text-red-500 p-2.5 rounded-full hover:bg-red-500 hover:text-white transition border border-zinc-700 shadow-lg"><Trash2 size={16}/></button>
-                      </div>
-                  )}
                 </div>
-                <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="text-xl font-bold tracking-tight text-black dark:text-white">{product.name}</h3>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 flex-1 line-clamp-2">{product.description}</p>
-                  
-                  <div className="flex items-center gap-1 mt-3">
-                    <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                    <span className="text-xs font-bold text-black dark:text-white">{product.rating || 5}</span>
-                    <span className="text-xs text-zinc-500 dark:text-zinc-500">({product.reviews || 0} avis)</span>
+                )}
+                {filteredProducts.length === 0 && (
+                  <div className="text-center py-20 text-zinc-500 dark:text-zinc-500">
+                    <Filter size={48} className="mx-auto mb-4 opacity-20" />
+                    <p>Aucun produit ne correspond à vos filtres.</p>
                   </div>
-
-                  <div className="flex justify-between items-end mt-6">
-                    <div>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider mb-1">Prix</p>
-                      <p className="text-2xl font-black text-black dark:text-white">{displayPrice(product.price, shopInfo.currency)}</p>
-                    </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); addToCart(product); }} 
-                      disabled={product.stock === 0}
-                      className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center gap-2 shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
-                    >
-                      <Plus size={16} /> Ajouter
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            </div>
-            )}
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-20 text-zinc-500 dark:text-zinc-500">
-                <Filter size={48} className="mx-auto mb-4 opacity-20" />
-                <p>Aucun produit ne correspond à vos filtres.</p>
-              </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1178,7 +1527,28 @@ export default function OnyxJaayShop() {
               currency={shopInfo.currency}
             />
         )}
+        {shopView === 'page-builder' && (
+            <ShopPageBuilder />
+        )}
       </main>
+
+      {/* --- FLOATING MOBILE CART BUTTON --- */}
+      {cartCount > 0 && !isEditingMode && !isCartOpen && (
+        <div className="fixed bottom-6 left-6 right-[5.5rem] z-40 md:hidden animate-in slide-in-from-bottom-4">
+            <button
+                onClick={() => setIsCartOpen(true)}
+                className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-xs shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-between px-4 border border-[#32E612]"
+            >
+                <span className="flex items-center gap-2">
+                    <ShoppingCart size={18} />
+                    À la caisse
+                </span>
+                <span className="bg-black text-[#39FF14] px-2 py-1 rounded-lg">
+                    {displayPrice(cartTotal, shopInfo.currency)}
+                </span>
+            </button>
+        </div>
+      )}
 
       {/* --- CART DRAWER --- */}
       {isCartOpen && !isEditingMode && (
@@ -1192,8 +1562,9 @@ export default function OnyxJaayShop() {
                 <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-zinc-800 rounded-full transition"><X size={20}/></button>
              </div>
              
-             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {cart.length === 0 ? (
+             <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar">
+               <div className="p-6 space-y-4 flex-1">
+                  {cart.length === 0 ? (
                   <div className="text-center text-zinc-500 dark:text-zinc-500 mt-20">
                     <ShoppingCart size={48} className="mx-auto mb-4 opacity-20" />
                     <p>Votre panier est vide.</p>
@@ -1223,26 +1594,30 @@ export default function OnyxJaayShop() {
                     </div>
                   ))
                 )}
-             </div>
+               </div>
 
-             <div className="p-6 bg-zinc-100 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
+               <div className="p-6 bg-zinc-100 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
                 <div className="mb-6">
                    <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-3">Mode de livraison</p>
                    <div className="flex gap-3">
-                      <button 
-                          onClick={() => setDeliveryMethod('delivery')}
-                          className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}
-                      >
-                          <Truck size={20} />
-                          <span className="text-[10px] font-black uppercase">Livraison</span>
-                      </button>
-                      <button 
-                          onClick={() => setDeliveryMethod('pickup')}
-                          className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}
-                      >
-                          <Store size={20} />
-                          <span className="text-[10px] font-black uppercase">Retrait</span>
-                      </button>
+                      {shopInfo.deliveryOptions?.delivery !== false && (
+                          <button 
+                              onClick={() => setDeliveryMethod('delivery')}
+                              className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}
+                          >
+                              <Truck size={20} />
+                              <span className="text-[10px] font-black uppercase">Livraison</span>
+                          </button>
+                      )}
+                      {shopInfo.deliveryOptions?.pickup !== false && (
+                          <button 
+                              onClick={() => setDeliveryMethod('pickup')}
+                              className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-700'}`}
+                          >
+                              <Store size={20} />
+                              <span className="text-[10px] font-black uppercase">Retrait</span>
+                          </button>
+                      )}
                    </div>
                 </div>
 
@@ -1264,6 +1639,13 @@ export default function OnyxJaayShop() {
                                 {deliveryZones.find(z => z.id === selectedZoneId)?.quartiers.join(', ')}
                             </p>
                         )}
+                        <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mt-5 mb-2">Adresse détaillée</p>
+                        <textarea 
+                            value={customerAddress}
+                            onChange={(e) => setCustomerAddress(e.target.value)}
+                            placeholder="Quartier, rue, numéro de villa, repère..."
+                            className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] resize-none h-20"
+                        />
                     </div>
                 )}
 
@@ -1296,13 +1678,22 @@ export default function OnyxJaayShop() {
                    <span className="text-zinc-500 dark:text-zinc-400 font-bold uppercase text-xs">Total à payer</span>
                    <span className="text-2xl font-black text-black dark:text-white">{displayPrice(cartTotal, shopInfo.currency)}</span>
                 </div>
-                <button 
-                    onClick={handleCheckout} 
-                    disabled={cart.length === 0 || (!isShopOpen() && !isEditingMode)} 
-                    className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
-                >
-                   Commander sur WhatsApp <ArrowRight size={18} />
-                </button>
+                <div className="flex flex-col gap-3">
+                    <button 
+                        onClick={handleCheckout} 
+                        disabled={cart.length === 0 || (deliveryMethod === 'delivery' && !selectedZoneId) || (deliveryMethod === 'delivery' && shopInfo.deliveryOptions?.delivery === false) || (deliveryMethod === 'pickup' && shopInfo.deliveryOptions?.pickup === false)} 
+                        className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                    >
+                       Commander sur WhatsApp <ArrowRight size={18} />
+                    </button>
+                    <button 
+                        onClick={() => setIsCartOpen(false)}
+                        className="w-full bg-transparent border-2 border-black dark:border-white text-black dark:text-white py-3 rounded-xl font-bold uppercase text-sm hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all flex items-center justify-center"
+                    >
+                        Continuer mes achats
+                    </button>
+                </div>
+               </div>
              </div>
           </div>
         </div>
@@ -1343,6 +1734,55 @@ export default function OnyxJaayShop() {
                   ))
                 )}
              </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- TRACKING MODAL --- */}
+      {isTrackingModalOpen && !isEditingMode && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsTrackingModalOpen(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95">
+            <button onClick={() => setIsTrackingModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+            <div className="flex items-center gap-3 mb-6">
+               <div className="p-3 bg-[#39FF14]/10 rounded-xl text-[#39FF14]"><Package size={24}/></div>
+               <h3 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white">Suivi Commande</h3>
+            </div>
+            
+            <form onSubmit={handleTrackOrder} className="mb-6 flex gap-2">
+               <input 
+                  type="text" 
+                  placeholder="Ex: CMD-123456" 
+                  value={trackingInput} 
+                  onChange={(e) => setTrackingInput(e.target.value.toUpperCase())}
+                  required
+                  className="flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 font-bold outline-none focus:border-[#39FF14] uppercase text-sm" 
+               />
+               <button type="submit" disabled={isTracking} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition disabled:opacity-50 flex items-center gap-2">
+                  <Search size={16}/> {isTracking ? '...' : 'Chercher'}
+               </button>
+            </form>
+
+            {trackedOrder && (
+               <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 animate-in slide-in-from-bottom-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Résultat du suivi</p>
+                  <div className="flex justify-between items-center mb-4">
+                     <p className="font-bold text-black dark:text-white">{trackedOrder.trackingNumber || trackedOrder.tracking_number}</p>
+                     <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${trackedOrder.status === 'Livré' ? 'bg-green-100 text-green-700' : trackedOrder.status === 'Annulé' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {trackedOrder.status || 'En attente'}
+                     </span>
+                  </div>
+                  <div className="flex justify-between items-end pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                     <div>
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase">Date</p>
+                        <p className="text-xs font-bold text-black dark:text-white">{new Date(trackedOrder.date || trackedOrder.created_at).toLocaleDateString('fr-FR')}</p>
+                     </div>
+                     <div className="text-right">
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase">Total</p>
+                        <p className="text-sm font-black text-[#39FF14]">{displayPrice(trackedOrder.total || trackedOrder.total_amount, shopInfo.currency)}</p>
+                     </div>
+                  </div>
+               </div>
+            )}
           </div>
         </div>
       )}
@@ -1421,6 +1861,68 @@ export default function OnyxJaayShop() {
                 C'est noté, à tout de suite !
             </button>
             </div>
+        </div>
+      )}
+
+      {/* --- ORDER REVIEW MODAL --- */}
+      {reviewOrderId && !isEditingMode && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setReviewOrderId(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95">
+            <button onClick={() => setReviewOrderId(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+            <div className="flex items-center gap-3 mb-6">
+               <div className="p-3 bg-yellow-400/10 rounded-xl text-yellow-500"><Star size={24} className="fill-yellow-500"/></div>
+               <h3 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white">Votre Avis</h3>
+            </div>
+            <p className="text-sm text-zinc-500 mb-6">Merci pour votre commande ! Comment s'est passée votre expérience avec la boutique ?</p>
+            
+            <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!orderReview.name || !orderReview.comment) return alert("Veuillez remplir votre nom et votre commentaire.");
+                
+                const { error } = await supabase.from('reviews').insert([{
+                   type: 'order',
+                   reference_id: reviewOrderId,
+                   name: orderReview.name,
+                   rating: orderReview.rating,
+                   comment: orderReview.comment
+                }]);
+
+                if (error) {
+                    console.error("Erreur:", error);
+                    alert("Une erreur est survenue lors de l'envoi de l'avis.");
+                    return;
+                }
+                
+                alert("Merci pour votre avis ! Il a été enregistré avec succès.");
+                setReviewOrderId(null);
+                setOrderReview({ name: '', rating: 5, comment: '' });
+                
+                // Nettoie l'URL pour ne pas rouvrir la modale au rafraîchissement
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }} className="space-y-4">
+               <div>
+                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Votre prénom / nom</label>
+                 <input type="text" value={orderReview.name} onChange={e => setOrderReview({...orderReview, name: e.target.value})} required className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none focus:border-[#39FF14]" />
+               </div>
+               <div>
+                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Note</label>
+                 <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map(star => (
+                       <button key={star} type="button" onClick={() => setOrderReview({...orderReview, rating: star})} className="p-2 hover:scale-110 transition-transform">
+                          <Star size={32} className={star <= orderReview.rating ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-300 dark:text-zinc-700'} />
+                       </button>
+                    ))}
+                 </div>
+               </div>
+               <div>
+                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Votre commentaire</label>
+                 <textarea value={orderReview.comment} onChange={e => setOrderReview({...orderReview, comment: e.target.value})} required className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none focus:border-[#39FF14] min-h-[100px] resize-none" placeholder="Racontez-nous..."></textarea>
+               </div>
+               <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg mt-4">
+                  Envoyer mon avis
+               </button>
+            </form>
+          </div>
         </div>
       )}
 
@@ -1816,17 +2318,83 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
 
   const productCategories = ['Toutes', ...Array.from(new Set(products.map(p => p.category)))];
 
-  useEffect(() => {
-    const savedOrders = localStorage.getItem('onyx_jaay_orders');
-    if (savedOrders) {
-      try {
-        const parsedOrders = JSON.parse(savedOrders);
-        setOrders(parsedOrders);
-      } catch (e) {
-        console.error("Erreur chargement commandes", e);
+  const fetchOrders = async () => {
+      // Tentative de récupération depuis Supabase
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      
+      if (data && !error && data.length > 0) {
+        const formattedOrders = data.map((o: any) => ({
+          id: o.id,
+          date: o.created_at || new Date().toISOString(),
+          customer: { name: o.customer_name, phone: o.customer_phone },
+          items: o.items || [],
+          total: o.total_amount,
+          status: o.status,
+          pointsUsed: o.points_used,
+          trackingNumber: o.tracking_number
+        }));
+        setOrders(formattedOrders);
+      } else {
+        // Fallback local storage si Supabase est vide ou en erreur
+        const savedOrders = localStorage.getItem('onyx_jaay_orders');
+        if (savedOrders) {
+          try { setOrders(JSON.parse(savedOrders)); } catch (e) { console.error("Erreur chargement commandes locales", e); }
+        }
       }
-    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+
+    // --- 📡 ÉCOUTE EN TEMPS RÉEL DES COMMANDES 📡 ---
+    const channel = supabase
+      .channel('realtime-orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        fetchOrders(); // Rafraîchit les données dès qu'un changement est détecté
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const updateOrderStatus = async (orderId: number, newStatus: string) => {
+        const updateFn = (o: any) => o.id === orderId ? { ...o, status: newStatus } : o;
+        
+        // Mise à jour optimiste instantanée de l'interface
+        setOrders(prev => prev.map(updateFn));
+        if (selectedDayOrders) {
+            setSelectedDayOrders(prev => prev ? { ...prev, orders: prev.orders.map(updateFn) } : prev);
+        }
+
+        try {
+            const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+            if (error) {
+                console.error("Erreur mise à jour statut:", error.message);
+            } else {
+                // Rafraîchir la liste depuis Supabase selon le prompt
+                fetchOrders();
+
+                    // --- DEMANDE D'AVIS AUTOMATIQUE ---
+                    if (newStatus === 'Livré') {
+                        const order = orders.find(o => o.id === orderId);
+                        if (order && order.customer?.phone) {
+                            if (confirm("La commande est marquée comme Livrée. Voulez-vous envoyer une demande d'avis vérifié au client sur WhatsApp ?")) {
+                                const reviewLink = `${window.location.origin}/vente?order_review=${order.id}`;
+                                const msg = `Bonjour ${order.customer.name} ! 🌟\n\nVotre commande a été livrée avec succès. Nous espérons que vous êtes satisfait !\n\nPourriez-vous prendre 1 minute pour nous laisser un avis vérifié ? C'est très important pour nous.\n\nCliquez ici : ${reviewLink}\n\nMerci pour votre confiance !`;
+                                
+                                const rawPhone = String(order.customer.phone).replace(/\s+/g, '').replace(/[^0-9]/g, '');
+                                const phoneWithPrefix = rawPhone.startsWith('221') ? rawPhone : `221${rawPhone}`;
+                                window.open(`https://wa.me/${phoneWithPrefix}?text=${encodeURIComponent(msg)}`, '_blank');
+                            }
+                        }
+                    }
+            }
+        } catch (err) {
+            console.error(err);
+        }
+  };
 
   useEffect(() => {
     setLowStockProducts(products.filter(p => (p.stock || 0) < 5 && p.stock !== 0));
@@ -2353,14 +2921,28 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                         ) : (
                             selectedDayOrders.orders.map((order: any) => (
                                 <div key={order.id} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex justify-between items-start">
                                         <div>
                                             <p className="font-bold text-sm text-black dark:text-white">{order.customer.name}</p>
                                             <p className="text-xs text-zinc-500">{order.customer.phone}</p>
+                                            {order.trackingNumber && <p className="text-[10px] font-black uppercase text-zinc-400 mt-1">Réf: {order.trackingNumber}</p>}
                                         </div>
-                                        <p className="font-black text-lg text-[#39FF14]">{order.total.toLocaleString()} F</p>
+                                        <div className="text-right flex flex-col items-end">
+                                            <p className="font-black text-lg text-[#39FF14] leading-none mb-2">{displayPrice(order.total, currency)}</p>
+                                            <select 
+                                                value={order.status || 'En attente'} 
+                                                onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                                className={`text-[10px] font-bold uppercase px-2 py-1 rounded outline-none cursor-pointer border ${order.status === 'Livré' ? 'bg-green-100 text-green-700 border-green-200' : order.status === 'Annulé' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}
+                                            >
+                                                <option value="En attente">En attente</option>
+                                                <option value="En cours">En cours</option>
+                                                <option value="Livré">Livré</option>
+                                                <option value="Annulé">Annulé</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800 pt-2">
+                                    <p className="mt-3 text-xs text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800 pt-3">
+                                        <span className="font-bold text-zinc-500 mr-1">Articles:</span>
                                         {order.items.map((item: CartItem) => `${item.name} (x${item.quantity})`).join(', ')}
                                     </p>
                                 </div>
@@ -2377,6 +2959,34 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
 function ShopClients({ currency }: { currency: string }) {
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newClient, setNewClient] = useState({ name: '', phone: '' });
+
+    const handleSaveClient = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newClient.name || !newClient.phone) return;
+
+        if (clients.some(c => c.phone === newClient.phone)) {
+            alert('Un client avec ce numéro de téléphone existe déjà.');
+            return;
+        }
+
+        const manualClients = JSON.parse(localStorage.getItem('onyx_jaay_manual_clients') || '[]');
+        manualClients.push(newClient);
+        localStorage.setItem('onyx_jaay_manual_clients', JSON.stringify(manualClients));
+
+        setClients(prev => [...prev, {
+            ...newClient,
+            totalSpent: 0,
+            ordersCount: 0,
+            cancelledCount: 0,
+            lastOrder: new Date().toISOString(),
+            loyaltyPoints: 0
+        }]);
+
+        setIsModalOpen(false);
+        setNewClient({ name: '', phone: '' });
+    };
 
     const handleExportClients = () => {
         if (clients.length === 0) {
@@ -2388,6 +2998,7 @@ function ShopClients({ currency }: { currency: string }) {
             'Téléphone': c.phone,
             'Dépenses Totales (FCFA)': c.totalSpent,
             'Nombre de Commandes': c.ordersCount,
+            'Commandes Annulées': c.cancelledCount || 0,
             'Points de Fidélité': c.loyaltyPoints,
             'Dernière Commande': new Date(c.lastOrder).toLocaleDateString('fr-FR')
         }));
@@ -2398,31 +3009,79 @@ function ShopClients({ currency }: { currency: string }) {
     };
 
     useEffect(() => {
-        const savedOrders = localStorage.getItem('onyx_jaay_orders');
-        if (savedOrders) {
-            try {
-                const orders = JSON.parse(savedOrders);
-                const uniqueClients: any = {};
-                
-                orders.forEach((order: any) => {
-                    if (order.customer && order.customer.phone) {
-                        if (!uniqueClients[order.customer.phone]) {
-                            uniqueClients[order.customer.phone] = { ...order.customer, totalSpent: 0, ordersCount: 0, lastOrder: order.date, loyaltyPoints: 0 };
-                        }
+        const fetchClientsData = async () => {
+            let orders: any[] = [];
+            const { data, error } = await supabase.from('orders').select('*');
+            
+            if (data && !error && data.length > 0) {
+                orders = data.map((o: any) => ({
+                    date: o.created_at,
+                    customer: { name: o.customer_name, phone: o.customer_phone },
+                    total: o.total_amount,
+                    pointsUsed: o.points_used,
+                    status: o.status
+                }));
+            } else {
+                const savedOrders = localStorage.getItem('onyx_jaay_orders');
+                if (savedOrders) {
+                    try { orders = JSON.parse(savedOrders); } catch (e) { console.error(e); }
+                }
+            }
+            
+            const uniqueClients: any = {};
+            orders.forEach((order: any) => {
+                if (order.customer && order.customer.phone) {
+                    if (!uniqueClients[order.customer.phone]) {
+                        uniqueClients[order.customer.phone] = { ...order.customer, totalSpent: 0, ordersCount: 0, cancelledCount: 0, lastOrder: order.date || new Date().toISOString(), loyaltyPoints: 0 };
+                    }
+                    uniqueClients[order.customer.phone].ordersCount += 1;
+                    
+                    if (order.status === 'Annulé') {
+                        uniqueClients[order.customer.phone].cancelledCount += 1;
+                    } else {
+                        // On n'ajoute pas les montants et points si la commande est annulée
                         uniqueClients[order.customer.phone].totalSpent += order.total;
-                        uniqueClients[order.customer.phone].ordersCount += 1;
-                        uniqueClients[order.customer.phone].loyaltyPoints += Math.floor(order.total / 1000); // 1 point par 1000 FCFA
+                        uniqueClients[order.customer.phone].loyaltyPoints += Math.floor(order.total / 1000);
                         if (order.pointsUsed) {
                             uniqueClients[order.customer.phone].loyaltyPoints -= order.pointsUsed;
                         }
-                        if (new Date(order.date) > new Date(uniqueClients[order.customer.phone].lastOrder)) {
-                            uniqueClients[order.customer.phone].lastOrder = order.date;
-                        }
                     }
-                });
-                setClients(Object.values(uniqueClients));
-            } catch (e) { console.error(e); }
-        }
+                    if (new Date(order.date) > new Date(uniqueClients[order.customer.phone].lastOrder)) {
+                        uniqueClients[order.customer.phone].lastOrder = order.date;
+                    }
+                }
+            });
+
+            const manualClients = JSON.parse(localStorage.getItem('onyx_jaay_manual_clients') || '[]');
+            manualClients.forEach((manualClient: any) => {
+                if (!uniqueClients[manualClient.phone]) {
+                    uniqueClients[manualClient.phone] = {
+                        ...manualClient,
+                        totalSpent: 0,
+                        ordersCount: 0,
+                        cancelledCount: 0,
+                        lastOrder: new Date().toISOString(),
+                        loyaltyPoints: 0
+                    };
+                }
+            });
+
+            setClients(Object.values(uniqueClients));
+        };
+        
+        fetchClientsData();
+
+        // --- 📡 ÉCOUTE EN TEMPS RÉEL (Vue Clients) 📡 ---
+        const channel = supabase
+          .channel('realtime-clients')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+            fetchClientsData();
+          })
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
     }, []);
 
     const filteredClients = clients.filter(client =>
@@ -2434,9 +3093,14 @@ function ShopClients({ currency }: { currency: string }) {
         <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
             <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                 <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Mes <span className="text-[#39FF14]">Clients</span></h2>
-                <button onClick={handleExportClients} className="bg-zinc-800 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
-                    <Download size={16} /> Exporter la liste
-                </button>
+                <div className="flex gap-4">
+                    <button onClick={() => setIsModalOpen(true)} className="bg-[#39FF14] text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-white transition-colors flex items-center justify-center gap-2">
+                        <Plus size={16} /> Ajouter un client
+                    </button>
+                    <button onClick={handleExportClients} className="bg-zinc-800 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
+                        <Download size={16} /> Exporter la liste
+                    </button>
+                </div>
             </div>
             <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Historique des clients ayant passé commande.</p>
             <div className="mb-8">
@@ -2454,7 +3118,14 @@ function ShopClients({ currency }: { currency: string }) {
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black text-lg">{client.name.charAt(0)}</div>
                             <div>
-                                <h3 className="font-bold text-lg leading-none">{client.name}</h3>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-bold text-lg leading-none">{client.name}</h3>
+                                    {client.cancelledCount > 0 && (
+                                        <span className="text-[10px] bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-md font-black uppercase tracking-widest border border-red-200 dark:border-red-500/30">
+                                            {client.cancelledCount} Annulé{client.cancelledCount > 1 ? 's' : ''}
+                                        </span>
+                                    )}
+                                </div>
                                 <p className="text-sm text-zinc-500">{client.phone}</p>
                             </div>
                         </div>
@@ -2476,6 +3147,25 @@ function ShopClients({ currency }: { currency: string }) {
                 ))}
                 {filteredClients.length === 0 && <p className="text-zinc-500 col-span-full text-center py-10">Aucun client trouvé.</p>}
             </div>
+
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+                    <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95">
+                        <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+                        <h3 className="text-2xl font-black uppercase tracking-tighter mb-6">Ajouter un Client</h3>
+                        <form onSubmit={handleSaveClient}>
+                            <div className="space-y-4">
+                                <input type="text" placeholder="Nom du client" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" required />
+                                <input type="tel" placeholder="Téléphone du client" value={newClient.phone} onChange={e => setNewClient({...newClient, phone: e.target.value})} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" required />
+                            </div>
+                            <div className="pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-4">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-xs uppercase text-zinc-500 hover:bg-zinc-100 transition">Annuler</button>
+                                <button type="submit" className="px-8 py-3 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase hover:bg-white transition">Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -2486,6 +3176,10 @@ interface PromoCode {
   discount: number;
   type: 'percentage' | 'fixed';
   active: boolean;
+  singleUse?: boolean;
+  minPurchase?: number;
+  usageCount?: number;
+  expirationDate?: string;
 }
 
 interface ShopSettingsProps {
@@ -2501,8 +3195,11 @@ interface ShopSettingsProps {
 }
 
 function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, onResetData, onClearOrders, currency }: ShopSettingsProps) {
-  const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed' });
+  const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed', singleUse: false, minPurchase: '', expirationDate: '' });
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
+  
+  const [editingCodeId, setEditingCodeId] = useState<number | null>(null);
+  const [editingCodeData, setEditingCodeData] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed', singleUse: false, minPurchase: '', expirationDate: '' });
 
   const handleAddCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2513,9 +3210,46 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
       discount: Number(newCode.discount),
       type: newCode.type,
       active: true,
+      singleUse: newCode.singleUse,
+      minPurchase: newCode.minPurchase ? Number(newCode.minPurchase) : undefined,
+      expirationDate: newCode.expirationDate || undefined,
     };
     setPromoCodes(prev => [...prev, newPromo]);
-    setNewCode({ code: '', discount: '', type: 'percentage' });
+    setNewCode({ code: '', discount: '', type: 'percentage', singleUse: false, minPurchase: '', expirationDate: '' });
+  };
+
+  const handleEditCode = (code: PromoCode) => {
+    setEditingCodeId(code.id);
+    setEditingCodeData({
+        code: code.code,
+        discount: String(code.discount),
+        type: code.type,
+        singleUse: code.singleUse || false,
+        minPurchase: String(code.minPurchase || ''),
+        expirationDate: code.expirationDate ? new Date(code.expirationDate).toISOString().split('T')[0] : ''
+    });
+  };
+
+  const handleSaveEditCode = () => {
+    if (!editingCodeId) return;
+
+    setPromoCodes(prev => prev.map(c => {
+        if (c.id === editingCodeId) {
+            return {
+                ...c,
+                code: editingCodeData.code.toUpperCase(),
+                discount: Number(editingCodeData.discount),
+                type: editingCodeData.type,
+                singleUse: editingCodeData.singleUse,
+                minPurchase: Number(editingCodeData.minPurchase) || undefined,
+                expirationDate: editingCodeData.expirationDate || undefined
+            };
+        }
+        return c;
+    }));
+
+    setEditingCodeId(null);
+    setEditingCodeData({ code: '', discount: '', type: 'percentage', singleUse: false, minPurchase: '', expirationDate: '' });
   };
 
   const toggleCodeStatus = (id: number) => {
@@ -2582,6 +3316,20 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                       <option value="USD">Dollar Américain ($)</option>
                   </select>
                   <p className="text-[10px] text-zinc-400 mt-2 italic">Les prix sont basés en FCFA et convertis automatiquement pour l'affichage.</p>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mb-4">
+                  <p className="text-xs font-bold text-zinc-500 uppercase mb-3 block">Modes de livraison autorisés</p>
+                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                          <input type="checkbox" checked={shopInfo.deliveryOptions?.delivery !== false} onChange={(e) => setShopInfo({...shopInfo, deliveryOptions: { ...shopInfo.deliveryOptions, delivery: e.target.checked }})} className="w-5 h-5 accent-[#39FF14]" />
+                          <span className="text-sm font-bold text-black dark:text-white">Livraison à domicile</span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                          <input type="checkbox" checked={shopInfo.deliveryOptions?.pickup !== false} onChange={(e) => setShopInfo({...shopInfo, deliveryOptions: { ...shopInfo.deliveryOptions, pickup: e.target.checked }})} className="w-5 h-5 accent-[#39FF14]" />
+                          <span className="text-sm font-bold text-black dark:text-white">Retrait en boutique</span>
+                      </label>
+                  </div>
               </div>
 
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -2651,23 +3399,69 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
         <h3 className="font-black uppercase text-xl mb-6 flex items-center gap-3"><Ticket size={20} className="text-[#39FF14]" /> Codes Promo</h3>
         
         <form onSubmit={handleAddCode} className="flex flex-wrap gap-4 items-end mb-8 p-6 bg-zinc-50 dark:bg-zinc-950/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-          <input type="text" placeholder="CODEPROMO" value={newCode.code} onChange={e => setNewCode({...newCode, code: e.target.value})} className="flex-1 bg-white dark:bg-zinc-800 p-3 rounded-lg font-bold text-sm uppercase outline-none focus:border-[#39FF14] border" required />
+          <input type="text" placeholder="CODEPROMO" value={newCode.code} onChange={e => setNewCode({...newCode, code: e.target.value})} className="flex-1 min-w-[120px] bg-white dark:bg-zinc-800 p-3 rounded-lg font-bold text-sm uppercase outline-none focus:border-[#39FF14] border" required />
           <input type="number" placeholder="Valeur" value={newCode.discount} onChange={e => setNewCode({...newCode, discount: e.target.value})} className="w-24 bg-white dark:bg-zinc-800 p-3 rounded-lg font-bold text-sm outline-none focus:border-[#39FF14] border" required />
           <select value={newCode.type} onChange={e => setNewCode({...newCode, type: e.target.value as any})} className="bg-white dark:bg-zinc-800 p-3 rounded-lg font-bold text-sm outline-none focus:border-[#39FF14] border">
             <option value="percentage">%</option>
             <option value="fixed">FCFA</option>
           </select>
-          <button type="submit" className="bg-black dark:bg-white text-white dark:text-black px-5 py-3 rounded-lg font-bold text-xs uppercase flex items-center gap-2"><Plus size={16} /> Ajouter</button>
+          <input type="number" placeholder="Min. Achat (Opt.)" value={newCode.minPurchase} onChange={e => setNewCode({...newCode, minPurchase: e.target.value})} className="w-32 bg-white dark:bg-zinc-800 p-3 rounded-lg font-bold text-sm outline-none focus:border-[#39FF14] border" />
+          <input type="date" title="Date d'expiration" value={newCode.expirationDate} onChange={e => setNewCode({...newCode, expirationDate: e.target.value})} className="bg-white dark:bg-zinc-800 p-3 rounded-lg font-bold text-sm outline-none focus:border-[#39FF14] border text-zinc-500" />
+          <label className="flex items-center gap-2 text-xs font-bold text-zinc-500 cursor-pointer h-11 px-2">
+             <input type="checkbox" checked={newCode.singleUse} onChange={e => setNewCode({...newCode, singleUse: e.target.checked})} className="w-4 h-4 accent-black dark:accent-[#39FF14]" /> Usage unique
+          </label>
+          <button type="submit" className="bg-black dark:bg-white text-white dark:text-black px-5 py-3 rounded-lg font-bold text-xs uppercase flex items-center gap-2 h-11"><Plus size={16} /> Ajouter</button>
         </form>
 
         <div className="space-y-3">
           {promoCodes.map(code => (
             <div key={code.id} className="flex justify-between items-center p-4 bg-zinc-100 dark:bg-zinc-800/50 rounded-xl">
-              <div className="font-bold text-sm uppercase">{code.code} - <span className="text-[#39FF14]">{code.discount}{code.type === 'percentage' ? '%' : ' FCFA'}</span></div>
-              <div className="flex items-center gap-3">
-                <label className="cursor-pointer"><div className={`w-10 h-5 rounded-full p-0.5 transition-colors ${code.active ? 'bg-[#39FF14]' : 'bg-zinc-300 dark:bg-zinc-700'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${code.active ? 'translate-x-5' : ''}`}></div></div><input type="checkbox" checked={code.active} onChange={() => toggleCodeStatus(code.id)} className="hidden" /></label>
-                <button onClick={() => deleteCode(code.id)} className="text-zinc-400 hover:text-red-500"><Trash2 size={16} /></button>
-              </div>
+              {editingCodeId === code.id ? (
+                <div className="flex flex-col gap-3 w-full">
+                  <div className="flex flex-wrap gap-2">
+                    <input type="text" value={editingCodeData.code} onChange={e => setEditingCodeData({...editingCodeData, code: e.target.value})} className="flex-1 min-w-[120px] bg-white dark:bg-zinc-900 p-2 rounded-lg text-sm uppercase outline-none focus:border-[#39FF14] border border-zinc-200 dark:border-zinc-700" />
+                    <input type="number" value={editingCodeData.discount} onChange={e => setEditingCodeData({...editingCodeData, discount: e.target.value})} className="w-20 bg-white dark:bg-zinc-900 p-2 rounded-lg text-sm outline-none focus:border-[#39FF14] border border-zinc-200 dark:border-zinc-700" />
+                    <select value={editingCodeData.type} onChange={e => setEditingCodeData({...editingCodeData, type: e.target.value as any})} className="bg-white dark:bg-zinc-900 p-2 rounded-lg text-sm outline-none focus:border-[#39FF14] border border-zinc-200 dark:border-zinc-700">
+                      <option value="percentage">%</option>
+                      <option value="fixed">FCFA</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <input type="number" placeholder="Min. Achat" value={editingCodeData.minPurchase} onChange={e => setEditingCodeData({...editingCodeData, minPurchase: e.target.value})} className="w-24 bg-white dark:bg-zinc-900 p-2 rounded-lg text-xs outline-none focus:border-[#39FF14] border border-zinc-200 dark:border-zinc-700" />
+                      <input type="date" title="Date d'expiration" value={editingCodeData.expirationDate} onChange={e => setEditingCodeData({...editingCodeData, expirationDate: e.target.value})} className="w-32 bg-white dark:bg-zinc-900 p-2 rounded-lg text-xs outline-none focus:border-[#39FF14] border border-zinc-200 dark:border-zinc-700 text-zinc-500" />
+                      <label className="flex items-center gap-1 text-xs text-zinc-500 cursor-pointer font-bold">
+                        <input type="checkbox" checked={editingCodeData.singleUse} onChange={e => setEditingCodeData({...editingCodeData, singleUse: e.target.checked})} className="w-3 h-3 accent-black dark:accent-[#39FF14]" /> Usage unique
+                      </label>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => setEditingCodeId(null)} className="text-xs px-3 py-1.5 bg-zinc-300 dark:bg-zinc-700 text-black dark:text-white rounded-lg hover:bg-zinc-400 font-bold transition-colors">Annuler</button>
+                      <button onClick={handleSaveEditCode} className="text-xs px-3 py-1.5 bg-black text-[#39FF14] rounded-lg hover:bg-zinc-800 font-bold flex items-center gap-1 shadow-md transition-colors"><Check size={14}/> Sauver</button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="font-bold text-sm uppercase">
+                    {code.code} - <span className="text-[#39FF14]">{code.discount}{code.type === 'percentage' ? '%' : ' ' + currency}</span>
+                    {code.singleUse && <span className="ml-3 text-[9px] bg-red-500/10 text-red-500 px-2 py-1 rounded-md tracking-widest border border-red-500/20">Usage Unique</span>}
+                    {code.minPurchase && code.minPurchase > 0 ? <span className="ml-2 text-[9px] bg-blue-500/10 text-blue-500 px-2 py-1 rounded-md tracking-widest border border-blue-500/20">Min: {code.minPurchase} {currency}</span> : null}
+                    {code.expirationDate && (
+                        <span className={`ml-2 text-[9px] px-2 py-1 rounded-md tracking-widest border ${new Date(code.expirationDate).setHours(23,59,59,999) < new Date().getTime() ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-orange-500/10 text-orange-500 border-orange-500/20'}`}>
+                            Exp: {new Date(code.expirationDate).toLocaleDateString('fr-FR')}
+                        </span>
+                    )}
+                    <span className="ml-2 text-[9px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-2 py-1 rounded-md tracking-widest border border-zinc-200 dark:border-zinc-700">Utilisé {code.usageCount || 0} fois</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => toggleCodeStatus(code.id)} className={`text-[10px] font-black uppercase px-3 py-1 rounded-md transition-all ${code.active ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border border-zinc-200 dark:border-zinc-700'}`}>
+                       {code.active ? 'Actif' : 'Inactif'}
+                    </button>
+                    <button onClick={() => handleEditCode(code)} className="text-zinc-400 hover:text-blue-500 transition-colors"><Edit size={16} /></button>
+                    <button onClick={() => deleteCode(code.id)} className="text-zinc-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
