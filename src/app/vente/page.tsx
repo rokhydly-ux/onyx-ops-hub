@@ -3161,6 +3161,7 @@ function ShopClients({ currency, orders, onClientSelect }: { currency: string, o
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [sortKey, setSortKey] = useState('totalSpent');
     const [newClient, setNewClient] = useState({ name: '', phone: '' });
 
     const handleSaveClient = (e: React.FormEvent) => {
@@ -3259,12 +3260,25 @@ function ShopClients({ currency, orders, onClientSelect }: { currency: string, o
         (client.phone && typeof client.phone === 'string' && client.phone.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    const sortedClients = [...filteredClients].sort((a, b) => {
+        if (sortKey === 'totalSpent') {
+            return (b.totalSpent || 0) - (a.totalSpent || 0);
+        }
+        if (sortKey === 'ordersCount') {
+            return (b.ordersCount || 0) - (a.ordersCount || 0);
+        }
+        if (sortKey === 'lastOrder') {
+            return new Date(b.lastOrder).getTime() - new Date(a.lastOrder).getTime();
+        }
+        return 0;
+    });
+
     return (
         <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
             <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                 <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Mes <span className="text-[#39FF14]">Clients</span></h2>
                 <div className="flex gap-4">
-                    <button onClick={() => setIsModalOpen(true)} className="bg-[#39FF14] text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-white transition-colors flex items-center justify-center gap-2">
+                    <button onClick={() => setIsModalOpen(true)} className="bg-[#39FF14] text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-white transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#39FF14]/20">
                         <Plus size={16} /> Ajouter un client
                     </button>
                     <button onClick={handleExportClients} className="bg-zinc-800 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2">
@@ -3273,7 +3287,7 @@ function ShopClients({ currency, orders, onClientSelect }: { currency: string, o
                 </div>
             </div>
             <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Historique des clients ayant passé commandes.</p>
-            <div className="mb-8">
+            <div className="mb-8 flex flex-wrap gap-4 items-center">
                 <input
                     type="text"
                     placeholder="Rechercher un client..."
@@ -3281,9 +3295,15 @@ function ShopClients({ currency, orders, onClientSelect }: { currency: string, o
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
                 />
+                <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <span className="text-xs font-bold text-zinc-500 pl-2">Trier par:</span>
+                    <button onClick={() => setSortKey('totalSpent')} className={`px-3 py-1 rounded-lg text-xs font-bold ${sortKey === 'totalSpent' ? 'bg-[#39FF14] text-black' : 'text-zinc-500'}`}>Plus dépensé</button>
+                    <button onClick={() => setSortKey('ordersCount')} className={`px-3 py-1 rounded-lg text-xs font-bold ${sortKey === 'ordersCount' ? 'bg-[#39FF14] text-black' : 'text-zinc-500'}`}>Plus de commandes</button>
+                    <button onClick={() => setSortKey('lastOrder')} className={`px-3 py-1 rounded-lg text-xs font-bold ${sortKey === 'lastOrder' ? 'bg-[#39FF14] text-black' : 'text-zinc-500'}`}>Plus récents</button>
+                </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredClients.map((client, i) => (
+                {sortedClients.map((client, i) => (
                     <div key={i} onClick={() => onClientSelect(client)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm cursor-pointer hover:border-[#39FF14] transition-all hover:shadow-lg">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black text-lg">{client.name.charAt(0)}</div>
@@ -3315,7 +3335,7 @@ function ShopClients({ currency, orders, onClientSelect }: { currency: string, o
                         </div>
                     </div>
                 ))}
-                {filteredClients.length === 0 && <p className="text-zinc-500 col-span-full text-center py-10">Aucun client trouvé.</p>}
+                {sortedClients.length === 0 && <p className="text-zinc-500 col-span-full text-center py-10">Aucun client trouvé.</p>}
             </div>
 
             {isModalOpen && (

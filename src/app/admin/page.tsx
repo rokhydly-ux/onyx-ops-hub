@@ -10,7 +10,7 @@ import {
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   BarChart, TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
-  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar
 } from "lucide-react";
 
 // --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
@@ -27,7 +27,7 @@ const inter = { className: "" };
 type Contact = {
   id: string;
   full_name: string;
-  email: string;
+  email?: string;
   phone: string;
   address?: string;
   country?: string;
@@ -42,7 +42,7 @@ type Contact = {
   password_temp?: string | null;
 };
 
-type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia";
+type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing";
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
 
 const ECOSYSTEM_SAAS = [
@@ -112,6 +112,7 @@ export default function AdminDashboard() {
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
   const [adminAuthLoading, setAdminAuthLoading] = useState(false);
   const [isAutomating, setIsAutomating] = useState(false);
+  const [iaSuggestions, setIaSuggestions] = useState<any[]>([]);
 
   // 👇 AJOUTE CES DEUX LIGNES JUSTE ICI 👇
   const [editingArticle, setEditingArticle] = useState<any>(null);
@@ -123,6 +124,16 @@ export default function AdminDashboard() {
     }
     return [];
   });
+  const [plannedEvents, setPlannedEvents] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('onyx_planned_events');
+        return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  useEffect(() => {
+    localStorage.setItem('onyx_planned_events', JSON.stringify(plannedEvents));
+  }, [plannedEvents]);
   // 👆 ================================= 👆
  
    // --- 5. SUPPRESSION DES DONNÉES FICTIVES (On part de zéro) ---
@@ -317,6 +328,56 @@ export default function AdminDashboard() {
    } catch (err: any) {
      alert("Erreur : " + err.message);
    }
+  };
+
+  const runIaScan = () => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const suggestions: any[] = [];
+    const plannedContactIds = new Set(plannedEvents.map(e => e.contactId));
+
+    contacts.forEach(contact => {
+        if (plannedContactIds.has(contact.id)) return;
+
+        const totalSpent = (contact as any).totalSpent || 0;
+        const ordersCount = (contact as any).ordersCount || 0;
+        const lastOrder = (contact as any).lastOrder ? new Date((contact as any).lastOrder) : null;
+
+        if (totalSpent > 150000 || ordersCount > 5) {
+            suggestions.push({
+                id: `ia-vip-${contact.id}`,
+                contactId: contact.id,
+                clientName: contact.full_name,
+                clientPhone: contact.phone,
+                type: 'vip',
+                title: `Action VIP pour ${contact.full_name}`,
+                description: 'Client fidèle. Proposer une offre exclusive ou un accès anticipé.',
+                msg: `⭐ Bonjour ${contact.full_name}, en tant que client VIP, nous vous offrons un accès anticipé à notre nouvelle collection ! Soyez le premier à la découvrir.`
+            });
+        } else if (lastOrder && lastOrder < thirtyDaysAgo) {
+            suggestions.push({
+                id: `ia-inactive-${contact.id}`,
+                contactId: contact.id,
+                clientName: contact.full_name,
+                clientPhone: contact.phone,
+                type: 'inactive',
+                title: `Réactivation de ${contact.full_name}`,
+                description: 'Client inactif depuis plus de 30 jours.',
+                msg: `😢 Bonjour ${contact.full_name}, vous nous manquez ! Profitez d'un bon d'achat de 5000F sur votre prochaine commande. Offre limitée !`
+            });
+        }
+    });
+
+    setIaSuggestions(suggestions);
+    if (suggestions.length > 0) {
+      setActiveView('planning-marketing');
+      alert(`${suggestions.length} nouvelle(s) action(s) marketing suggérée(s) par l'IA et ajoutée(s) au Planning.`);
+    } else {
+      alert("Scan IA terminé. Aucune nouvelle opportunité marketing détectée pour le moment.");
+    }
   };
 
   useEffect(() => {
@@ -941,6 +1002,7 @@ export default function AdminDashboard() {
                 { id: 'ecosystem', icon: Box, label: '9 SaaS Onyx' },
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
+                { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
               ].map(item => (
                 <button 
                   key={item.id} 
@@ -961,7 +1023,7 @@ export default function AdminDashboard() {
             <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] mb-4 pl-4">Stratégie & Ventes</p>
             <nav className="space-y-1">
             <button onClick={() => setActiveView('marketing')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
-  <Megaphone size={20} /> Marketing & Blog
+              <Megaphone size={20} /> Marketing & Blog
 </button>
                <button onClick={() => setShowRapportIA(true)} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all">
                  <Sparkles size={20} className="text-[#39FF14]" /> Scan Intelligence
@@ -1011,6 +1073,7 @@ export default function AdminDashboard() {
                         { id: 'ecosystem', icon: Box, label: '9 SaaS Onyx' },
                         { id: 'finance', icon: Wallet, label: 'Finances' },
                         { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
+                        { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
                       ].map(item => (
                         <button key={item.id} onClick={() => { setActiveView(item.id as ViewType); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === item.id ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
                           <item.icon size={20} className={activeView === item.id ? 'text-[#39FF14]' : ''} /> {item.label}
@@ -1402,6 +1465,9 @@ export default function AdminDashboard() {
                       <option value="Client">Clients Officiels</option>
                       <option value="Prospect">Prospects Leads</option>
                    </select>
+                   <button onClick={runIaScan} className="flex items-center justify-center gap-3 bg-zinc-800 text-white px-8 lg:px-12 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">
+                      <Sparkles size={18} /> Scan IA
+                   </button>
                    <button 
                      onClick={openNewClientModal} 
                      className="flex items-center justify-center gap-3 bg-[#39FF14] text-black px-8 lg:px-12 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-2xl hover:-translate-y-1 active:scale-95"
@@ -1916,6 +1982,15 @@ export default function AdminDashboard() {
                    )}
                 </div>
              </div>
+          )}
+
+          {/* ================= VUE PLANNING MARKETING ================= */}
+          {activeView === 'planning-marketing' && (
+            <MarketingPlanner 
+                suggestions={iaSuggestions}
+                plannedEvents={plannedEvents}
+                setPlannedEvents={setPlannedEvents}
+            />
           )}
 
           {/* ================= VUE JOURNAL IA ================= */}
@@ -2552,4 +2627,152 @@ export default function AdminDashboard() {
       )}
     </div>
   );
+}
+
+function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any) {
+    const [editingEvent, setEditingEvent] = useState<any>(null);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    const plannedCount = plannedEvents.filter((e: any) => e.status === 'Planifié').length;
+    const executedCount = plannedEvents.filter((e: any) => e.status === 'Exécuté').length;
+
+    const planAction = (suggestion: any) => {
+        const newEvent = { ...suggestion, status: 'Planifié', planDate: new Date().toISOString() };
+        setPlannedEvents((prev: any) => [newEvent, ...prev]);
+    };
+
+    const executePlannedAction = (event: any) => {
+        window.open(`https://wa.me/${event.clientPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(event.msg)}`, '_blank');
+        setPlannedEvents((prev: any[]) => prev.map(e => e.id === event.id ? { ...e, status: 'Exécuté' } : e));
+        setToastMessage("Action exécutée avec succès !");
+        setTimeout(() => setToastMessage(null), 3000);
+    };
+
+    const deletePlannedAction = (id: string) => {
+        if (confirm("Voulez-vous vraiment supprimer cette action planifiée ?")) {
+            setPlannedEvents((prev: any[]) => prev.filter(e => e.id !== id));
+        }
+    };
+
+    const suggestionsToShow = suggestions.filter((s: any) => !plannedEvents.some((p: any) => p.id === s.id));
+
+    const clearExecutedActions = () => {
+        if (confirm("Voulez-vous vraiment effacer toutes les actions exécutées de l'historique ?")) {
+            setPlannedEvents((prev: any[]) => prev.filter(e => e.status !== 'Exécuté'));
+        }
+    };
+
+    const sortedEvents = [...plannedEvents].sort((a: any, b: any) => {
+        const dateA = new Date(a.planDate || new Date()).getTime();
+        const dateB = new Date(b.planDate || new Date()).getTime();
+        return dateA - dateB; // Trie par date (les plus proches en premier)
+    });
+
+    const isOverdue = (dateString: string) => {
+        const d = new Date(dateString);
+        d.setHours(0,0,0,0);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        return d.getTime() < today.getTime();
+    };
+
+    return (
+        <>
+            <div className="space-y-12 animate-in fade-in">
+            <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group gap-6">
+                <div className="flex items-center gap-6 lg:gap-5 relative z-10">
+                    <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Megaphone size={32}/></div>
+                    <div>
+                        <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Planning Marketing</h2>
+                        <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Suggestions IA & Calendrier d'actions</p>
+                    </div>
+                </div>
+                <div className="flex gap-3 relative z-10 w-full md:w-auto">
+                    <div className="flex-1 md:flex-none bg-zinc-50 p-4 rounded-2xl border border-zinc-100 flex flex-col items-center justify-center min-w-[110px]">
+                        <span className="text-3xl font-black text-black leading-none">{plannedCount}</span>
+                        <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-2">Planifiées</span>
+                    </div>
+                    <div className="flex-1 md:flex-none bg-[#39FF14]/10 p-4 rounded-2xl border border-[#39FF14]/20 flex flex-col items-center justify-center min-w-[110px]">
+                        <span className="text-3xl font-black text-[#39FF14] leading-none">{executedCount}</span>
+                        <span className="text-[9px] font-black text-[#39FF14] uppercase tracking-widest mt-2">Exécutées</span>
+                    </div>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                    <h3 className="font-black uppercase text-lg mb-6 flex items-center gap-3"><Sparkles size={18} className="text-[#39FF14]"/> Suggestions de l'IA</h3>
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                        {suggestionsToShow.length > 0 ? suggestionsToShow.map((s: any) => (
+                            <div key={s.id} className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <p className="font-bold text-sm uppercase">{s.title}</p>
+                                <p className="text-xs text-zinc-500 mt-1">{s.description}</p>
+                                <button onClick={() => planAction(s)} className="mt-3 bg-black text-white text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition flex items-center gap-2"><Plus size={14}/> Planifier</button>
+                            </div>
+                        )) : <p className="text-sm text-zinc-400 italic text-center py-10">Aucune nouvelle suggestion. Lancez un Scan IA depuis le CRM.</p>}
+                    </div>
+                </div>
+                <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-black uppercase text-lg flex items-center gap-3"><Calendar size={18}/> Actions Planifiées</h3>
+                    {executedCount > 0 && (
+                        <button onClick={clearExecutedActions} className="text-[10px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition flex items-center gap-1">
+                            <Trash2 size={12}/> Nettoyer
+                        </button>
+                    )}
+                </div>
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                    {sortedEvents.map((e: any) => (
+                            <div key={e.id} className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                <p className="font-bold text-sm uppercase">{e.title}</p>
+                                <p className="text-xs text-zinc-500 mt-1 flex items-center gap-2">
+                                    Planifié le: {new Date(e.planDate).toLocaleDateString('fr-FR')}
+                                    {e.status === 'Planifié' && isOverdue(e.planDate) && <span className="bg-red-100 text-red-600 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-red-200">En retard</span>}
+                                </p>
+                                <div className="flex gap-2 mt-3">
+                                    <button disabled={e.status === 'Exécuté'} onClick={() => executePlannedAction(e)} className="bg-green-500 text-white text-[10px] font-bold px-4 py-2 rounded-xl flex items-center gap-2 disabled:bg-zinc-300 disabled:cursor-not-allowed"><Send size={14}/> {e.status === 'Exécuté' ? 'Envoyé' : 'Exécuter'}</button>
+                                    <button disabled={e.status === 'Exécuté'} onClick={() => setEditingEvent(e)} className="bg-zinc-100 text-black text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-zinc-200 transition disabled:opacity-50 disabled:cursor-not-allowed"><Edit3 size={14}/></button>
+                                    <button onClick={() => deletePlannedAction(e.id)} className="bg-red-100 text-red-600 text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-red-500 hover:text-white transition"><Trash2 size={14}/></button>
+                                </div>
+                            </div>
+                        ))}
+                        {plannedEvents.length === 0 && <p className="text-sm text-zinc-400 italic text-center py-10">Aucune action planifiée.</p>}
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            {toastMessage && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-6 py-3 rounded-full font-bold text-xs shadow-2xl flex items-center gap-2 z-[300] animate-in slide-in-from-bottom-5">
+                    <CheckCircle size={16}/> {toastMessage}
+                </div>
+            )}
+
+            {editingEvent && (
+                <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setEditingEvent(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white p-8 rounded-3xl w-full max-w-lg relative shadow-2xl animate-in zoom-in-95">
+                        <button onClick={() => setEditingEvent(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition"><X size={20}/></button>
+                        <h3 className="text-xl font-black uppercase mb-6 text-black">Modifier l'action</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Date planifiée</label>
+                                <input type="date" value={editingEvent.planDate ? new Date(editingEvent.planDate).toISOString().split('T')[0] : ''} onChange={e => {
+                                    if(e.target.value) setEditingEvent({...editingEvent, planDate: new Date(e.target.value).toISOString()})
+                                }} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black" />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Message WhatsApp</label>
+                                <textarea value={editingEvent.msg} onChange={e => setEditingEvent({...editingEvent, msg: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-[#39FF14] min-h-[150px] resize-none text-sm text-black" />
+                            </div>
+                        </div>
+                        <button onClick={() => {
+                            setPlannedEvents((prev: any[]) => prev.map(e => e.id === editingEvent.id ? editingEvent : e));
+                            setEditingEvent(null);
+                        }} className="w-full mt-6 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg">
+                            Enregistrer
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
+    );
 }
