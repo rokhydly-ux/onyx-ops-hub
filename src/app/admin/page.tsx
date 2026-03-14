@@ -10,7 +10,7 @@ import {
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   BarChart, TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
-  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle
 } from "lucide-react";
 
 // --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
@@ -2635,6 +2635,7 @@ function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any)
 
     const plannedCount = plannedEvents.filter((e: any) => e.status === 'Planifié').length;
     const executedCount = plannedEvents.filter((e: any) => e.status === 'Exécuté').length;
+    const cancelledCount = plannedEvents.filter((e: any) => e.status === 'Annulé').length;
 
     const planAction = (suggestion: any) => {
         const newEvent = { ...suggestion, status: 'Planifié', planDate: new Date().toISOString() };
@@ -2643,22 +2644,22 @@ function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any)
 
     const executePlannedAction = (event: any) => {
         window.open(`https://wa.me/${event.clientPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(event.msg)}`, '_blank');
-        setPlannedEvents((prev: any[]) => prev.map(e => e.id === event.id ? { ...e, status: 'Exécuté' } : e));
+        setPlannedEvents((prev: any[]) => prev.map(e => e.id === event.id ? { ...e, status: 'Exécuté', executionDate: new Date().toISOString() } : e));
         setToastMessage("Action exécutée avec succès !");
         setTimeout(() => setToastMessage(null), 3000);
     };
 
-    const deletePlannedAction = (id: string) => {
+    const cancelPlannedAction = (id: string) => {
         if (confirm("Voulez-vous vraiment supprimer cette action planifiée ?")) {
-            setPlannedEvents((prev: any[]) => prev.filter(e => e.id !== id));
+            setPlannedEvents((prev: any[]) => prev.map(e => e.id === id ? { ...e, status: 'Annulé', cancellationDate: new Date().toISOString() } : e));
         }
     };
 
     const suggestionsToShow = suggestions.filter((s: any) => !plannedEvents.some((p: any) => p.id === s.id));
 
-    const clearExecutedActions = () => {
-        if (confirm("Voulez-vous vraiment effacer toutes les actions exécutées de l'historique ?")) {
-            setPlannedEvents((prev: any[]) => prev.filter(e => e.status !== 'Exécuté'));
+    const clearFinishedActions = () => {
+        if (confirm("Voulez-vous vraiment effacer toutes les actions terminées (Exécutées et Annulées) de l'historique ?")) {
+            setPlannedEvents((prev: any[]) => prev.filter(e => e.status === 'Planifié'));
         }
     };
 
@@ -2714,8 +2715,8 @@ function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any)
                 <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-black uppercase text-lg flex items-center gap-3"><Calendar size={18}/> Actions Planifiées</h3>
-                    {executedCount > 0 && (
-                        <button onClick={clearExecutedActions} className="text-[10px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition flex items-center gap-1">
+                    {(executedCount > 0 || cancelledCount > 0) && (
+                        <button onClick={clearFinishedActions} className="text-[10px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition flex items-center gap-1">
                             <Trash2 size={12}/> Nettoyer
                         </button>
                     )}
@@ -2723,15 +2724,26 @@ function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any)
                     <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
                     {sortedEvents.map((e: any) => (
                             <div key={e.id} className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                <p className="font-bold text-sm uppercase">{e.title}</p>
-                                <p className="text-xs text-zinc-500 mt-1 flex items-center gap-2">
-                                    Planifié le: {new Date(e.planDate).toLocaleDateString('fr-FR')}
-                                    {e.status === 'Planifié' && isOverdue(e.planDate) && <span className="bg-red-100 text-red-600 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-red-200">En retard</span>}
+                                <p className={`font-bold text-sm uppercase flex items-center gap-2 ${e.status === 'Annulé' ? 'line-through text-zinc-500' : ''}`}>
+                                    {e.status === 'Annulé' && <XCircle size={16} className="text-red-500"/>}
+                                    {e.title}
+                                </p>
+                                <p className="text-xs text-zinc-500 mt-1.5 flex items-center gap-2">
+                                    {e.status === 'Exécuté' && e.executionDate ? (
+                                        <><CheckCircle size={12} className="text-green-500"/> Exécuté le: {new Date(e.executionDate).toLocaleDateString('fr-FR')}</>
+                                    ) : e.status === 'Annulé' && e.cancellationDate ? (
+                                        <>Annulé le: {new Date(e.cancellationDate).toLocaleDateString('fr-FR')}</>
+                                    ) : (
+                                        <>
+                                            Planifié le: {new Date(e.planDate).toLocaleDateString('fr-FR')}
+                                            {e.status === 'Planifié' && isOverdue(e.planDate) && <span className="bg-red-100 text-red-600 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-red-200">En retard</span>}
+                                        </>
+                                    )}
                                 </p>
                                 <div className="flex gap-2 mt-3">
-                                    <button disabled={e.status === 'Exécuté'} onClick={() => executePlannedAction(e)} className="bg-green-500 text-white text-[10px] font-bold px-4 py-2 rounded-xl flex items-center gap-2 disabled:bg-zinc-300 disabled:cursor-not-allowed"><Send size={14}/> {e.status === 'Exécuté' ? 'Envoyé' : 'Exécuter'}</button>
-                                    <button disabled={e.status === 'Exécuté'} onClick={() => setEditingEvent(e)} className="bg-zinc-100 text-black text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-zinc-200 transition disabled:opacity-50 disabled:cursor-not-allowed"><Edit3 size={14}/></button>
-                                    <button onClick={() => deletePlannedAction(e.id)} className="bg-red-100 text-red-600 text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-red-500 hover:text-white transition"><Trash2 size={14}/></button>
+                                    <button disabled={e.status !== 'Planifié'} onClick={() => executePlannedAction(e)} className="bg-green-500 text-white text-[10px] font-bold px-4 py-2 rounded-xl flex items-center gap-2 disabled:bg-zinc-300 disabled:cursor-not-allowed"><Send size={14}/> {e.status === 'Exécuté' ? 'Envoyé' : 'Exécuter'}</button>
+                                    <button disabled={e.status !== 'Planifié'} onClick={() => setEditingEvent(e)} className="bg-zinc-100 text-black text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-zinc-200 transition disabled:opacity-50 disabled:cursor-not-allowed"><Edit3 size={14}/></button>
+                                    <button disabled={e.status !== 'Planifié'} onClick={() => cancelPlannedAction(e.id)} className="bg-red-100 text-red-600 text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-red-500 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"><X size={14}/></button>
                                 </div>
                             </div>
                         ))}
