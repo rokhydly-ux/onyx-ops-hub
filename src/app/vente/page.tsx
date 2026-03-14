@@ -125,6 +125,7 @@ interface WidgetProps {
   id: string;
   name: string;
   settings?: any;
+  type?: string;
 }
 
 function DraggableWidget({ id, name }: WidgetProps) {
@@ -195,7 +196,7 @@ function DroppableCanvas({ children }: { children: React.ReactNode }) {
 
 function WidgetSettingsModal({ widget, onClose, onSave, categories }: any) {
     const [settings, setSettings] = useState(widget.settings || {});
-    const widgetType = widget.id.split('-')[0];
+    const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : '');
 
     const toggleCategory = (cat: string) => {
         const current = settings.categories || [];
@@ -251,9 +252,9 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories }: any) {
 
 function ShopPageBuilder({ categories }: { categories: string[] }) {
   const availableWidgets = [
-    { id: 'category-grid', name: 'Grille de Catégories', settings: { categories: [] } },
-    { id: 'promo-banner', name: 'Bannière Promotionnelle', settings: { imageUrl: '' } },
-    { id: 'new-arrivals', name: 'Nouveautés', settings: { title: 'Nouveautés' } }
+    { id: 'category-grid', type: 'category-grid', name: 'Grille de Catégories', settings: { categories: [] } },
+    { id: 'promo-banner', type: 'promo-banner', name: 'Bannière Promotionnelle', settings: { imageUrl: '' } },
+    { id: 'new-arrivals', type: 'new-arrivals', name: 'Nouveautés', settings: { title: 'Nouveautés' } }
   ];
 
   const [pageWidgets, setPageWidgets] = useState<WidgetProps[]>([]);
@@ -497,7 +498,7 @@ export default function OnyxJaayShop() {
   }, []);
 
   const renderWidget = (widget: WidgetProps) => {
-    const widgetType = widget.id.split('-')[0];
+    const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : '');
     switch (widgetType) {
       case 'category-grid':
         const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
@@ -1218,7 +1219,7 @@ export default function OnyxJaayShop() {
                     type="text" 
                     placeholder="Rechercher..." 
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleGlobalSearch}
                     className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
                   />
                 </div>
@@ -1230,7 +1231,7 @@ export default function OnyxJaayShop() {
                   <button onClick={() => { setShopView('clients'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                     <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
                   </button>
-                  <button onClick={() => { setShopView('boutique'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                  <button onClick={() => { setShopView('boutique'); setIsMobileMenuOpen(false); setSearchTerm(''); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                     <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
                   </button>
                   <button onClick={() => { setShopView('settings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
@@ -1310,7 +1311,7 @@ export default function OnyxJaayShop() {
               type="text" 
               placeholder="Rechercher un produit..." 
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleGlobalSearch}
               className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
             />
           </div>
@@ -1323,7 +1324,7 @@ export default function OnyxJaayShop() {
             <button onClick={() => setShopView('clients')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
             </button>
-            <button onClick={() => setShopView('boutique')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+            <button onClick={() => { setShopView('boutique'); setSearchTerm(''); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
             </button>
             <button onClick={() => setShopView('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
@@ -1418,18 +1419,6 @@ export default function OnyxJaayShop() {
 
         {/* Top Header Toggle */}
         <header className="absolute top-0 left-0 right-0 p-6 z-10 flex justify-between items-start pointer-events-none print:hidden">
-          {/* Global Search */}
-          <div className="hidden md:flex pointer-events-auto relative group shadow-sm">
-             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#39FF14] transition-colors" size={18} />
-             <input 
-                type="text" 
-                placeholder="Recherche globale..." 
-                value={searchTerm}
-                onChange={handleGlobalSearch}
-                className="pl-12 pr-6 py-3 bg-white/80 dark:bg-black/60 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-full font-bold text-sm outline-none focus:border-[#39FF14] focus:ring-4 focus:ring-[#39FF14]/10 transition-all w-64 focus:w-96"
-             />
-          </div>
-
           <div className="flex items-center gap-4 pointer-events-auto ml-auto">
           <button onClick={() => setIsCartOpen(true)} className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
             <div className="relative">
@@ -1518,7 +1507,7 @@ export default function OnyxJaayShop() {
               </div>
             )}
 
-            {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice && !isEditingMode && homepageLayout ? (
+            {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice && !isEditingMode && homepageLayout && homepageLayout.length > 0 ? (
                 <div className="space-y-8">
                     {homepageLayout.map((widget, index) => <div key={index}>{renderWidget(widget)}</div>)}
                 </div>
@@ -1620,7 +1609,8 @@ export default function OnyxJaayShop() {
                 {filteredProducts.length === 0 && (
                   <div className="text-center py-20 text-zinc-500 dark:text-zinc-500">
                     <Filter size={48} className="mx-auto mb-4 opacity-20" />
-                    <p>Aucun produit ne correspond à vos filtres.</p>
+                    <p className="text-xl font-black text-black dark:text-white mb-2">0 résultat trouvé</p>
+                    <p>Aucun produit ne correspond à votre recherche ou à vos filtres.</p>
                   </div>
                 )}
               </>
@@ -3412,7 +3402,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
   };
 
   const handleSaveInfo = () => {
-    alert("Les informations de la boutique ont été enregistrées avec succès !");
+    alert("Les informations de la boutique ont été enregistrés avec succès !");
   };
 
   return (
