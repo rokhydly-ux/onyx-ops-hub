@@ -1509,7 +1509,7 @@ export default function OnyxJaayShop() {
           </div>
         )}
         {shopView === 'dashboard' && (
-            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} />
+            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} setShopView={setShopView} />
         )}
         {shopView === 'clients' && (
             <ShopClients currency={shopInfo.currency} />
@@ -2308,7 +2308,12 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string }) {
+function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder'>> }) {
+  const mockOrders = [
+    { id: 1, date: new Date().toISOString(), customer: { name: 'Client Test 1', phone: '771111111' }, items: [{id: 1, name: 'Produit Mock 1', price: 1000, quantity: 2, category: 'Mock', image: '', description: ''}], total: 2000, status: 'Livré' },
+    { id: 2, date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(), customer: { name: 'Client Test 2', phone: '772222222' }, items: [{id: 2, name: 'Produit Mock 2', price: 3000, quantity: 1, category: 'Mock', image: '', description: ''}], total: 3000, status: 'En cours' },
+    { id: 3, date: new Date(new Date().setDate(new Date().getDate() - 8)).toISOString(), customer: { name: 'Client Test 1', phone: '771111111' }, items: [{id: 3, name: 'Produit Mock 3', price: 5000, quantity: 1, category: 'Mock', image: '', description: ''}], total: 5000, status: 'Livré' },
+  ];
   const [orders, setOrders] = useState<any[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
@@ -2338,7 +2343,19 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         // Fallback local storage si Supabase est vide ou en erreur
         const savedOrders = localStorage.getItem('onyx_jaay_orders');
         if (savedOrders) {
-          try { setOrders(JSON.parse(savedOrders)); } catch (e) { console.error("Erreur chargement commandes locales", e); }
+            try { 
+                const parsed = JSON.parse(savedOrders);
+                if (parsed.length > 0) {
+                    setOrders(parsed);
+                } else {
+                    setOrders(mockOrders);
+                }
+            } catch (e) { 
+                console.error("Erreur chargement commandes locales", e); 
+                setOrders(mockOrders);
+            }
+        } else {
+            setOrders(mockOrders);
         }
       }
   };
@@ -2620,8 +2637,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
       XLSX.writeFile(workbook, `commandes_${dayOrders.date}.xlsx`);
   };
 
-  const StatCard = ({ icon, label, value, colorClass, trend }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null }) => (
-    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full ${colorClass}`}>
+  const StatCard = ({ icon, label, value, colorClass, trend, onClick }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null, onClick?: () => void }) => (
+    <button onClick={onClick} disabled={!onClick} className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full text-left transition-all ${colorClass} ${onClick ? 'cursor-pointer hover:border-black dark:hover:border-white hover:scale-105' : 'cursor-default'}`}>
         <div className="flex justify-between items-start">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center`}>
             {icon}
@@ -2637,7 +2654,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
             <p className="text-zinc-500 dark:text-zinc-400 font-bold text-sm uppercase tracking-wider mt-4">{label}</p>
             <p className="text-black dark:text-white font-black text-3xl">{value}</p>
         </div>
-    </div>
+    </button>
   );
 
   return (
@@ -2684,7 +2701,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
         <StatCard icon={<DollarSign size={32} />} label="Revenu Total" value={displayPrice(totalRevenue, currency)} colorClass="text-green-500" trend={revenueTrend} />
         <StatCard icon={<ShoppingCart size={32} />} label="Commandes" value={totalOrders} colorClass="text-blue-500" trend={ordersTrend} />
-        <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} />
+        <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} onClick={() => setShopView('clients')} />
         <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={displayPrice(averageOrderValue, currency)} colorClass="text-purple-500" trend={avgOrderTrend} />
       </div>
 
@@ -3257,7 +3274,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
   };
 
   const deleteCode = (id: number) => {
-    if (confirm("Voulez-vous vraiment supprimer ce code promo ?")) {
+    if (confirm("Voulez-vous vraiment supprimer ce code promos ?")) {
       setPromoCodes(codes => codes.filter(c => c.id !== id));
     }
   };
