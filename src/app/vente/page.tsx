@@ -124,12 +124,13 @@ const WIDGET_TYPE = 'WIDGET';
 interface WidgetProps {
   id: string;
   name: string;
+  settings?: any;
 }
 
 function DraggableWidget({ id, name }: WidgetProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: id,
-    data: { name, type: WIDGET_TYPE },
+    data: { name, type: WIDGET_TYPE }
   });
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
@@ -143,7 +144,7 @@ function DraggableWidget({ id, name }: WidgetProps) {
   );
 }
 
-function SortableWidget({ id, name }: WidgetProps) {
+function SortableWidget({ id, name, onEdit, onDelete }: WidgetProps & { onEdit?: () => void, onDelete?: () => void }) {
   const {
     attributes,
     listeners,
@@ -161,8 +162,14 @@ function SortableWidget({ id, name }: WidgetProps) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-4 bg-white dark:bg-zinc-800 rounded-lg shadow cursor-grab">
-      {name}
+    <div ref={setNodeRef} style={style} className="p-4 bg-white dark:bg-zinc-800 rounded-lg shadow flex justify-between items-center group relative border border-transparent hover:border-black dark:hover:border-white transition-colors">
+      <div {...attributes} {...listeners} className="flex-1 cursor-grab font-bold">
+        {name}
+      </div>
+      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity absolute right-4">
+         {onEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-2 bg-zinc-100 dark:bg-zinc-700 rounded text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"><Edit size={14}/></button>}
+         {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-2 bg-zinc-100 dark:bg-zinc-700 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"><Trash2 size={14}/></button>}
+      </div>
     </div>
   );
 }
@@ -186,13 +193,71 @@ function DroppableCanvas({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ShopPageBuilder() {
+function WidgetSettingsModal({ widget, onClose, onSave, categories }: any) {
+    const [settings, setSettings] = useState(widget.settings || {});
+    const widgetType = widget.id.split('-')[0];
+
+    const toggleCategory = (cat: string) => {
+        const current = settings.categories || [];
+        if (current.includes(cat)) {
+            setSettings({ ...settings, categories: current.filter((c: string) => c !== cat) });
+        } else {
+            setSettings({ ...settings, categories: [...current, cat] });
+        }
+    };
+
+    return (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && onClose()} className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 p-8 rounded-3xl w-full max-w-md relative shadow-2xl">
+                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-500 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+                <h3 className="text-xl font-black uppercase mb-6 pr-8">Paramètres: {widget.name}</h3>
+                
+                {widgetType === 'category-grid' && (
+                    <div>
+                        <p className="text-sm font-bold mb-3">Sélectionnez les catégories à afficher :</p>
+                        <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                            {categories.filter((c: string) => c !== 'Toutes' && c !== 'Favoris').map((cat: string) => (
+                                <label key={cat} className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl cursor-pointer hover:border-black transition border border-transparent hover:border-zinc-300 dark:hover:border-zinc-700">
+                                    <input type="checkbox" checked={(settings.categories || []).includes(cat)} onChange={() => toggleCategory(cat)} className="w-5 h-5 accent-black" />
+                                    <span className="font-bold text-sm text-black dark:text-white">{cat}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {widgetType === 'promo-banner' && (
+                    <div>
+                        <label className="text-sm font-bold mb-2 block">URL de l'image (Bannière Parallax) :</label>
+                        <input type="text" value={settings.imageUrl || ''} onChange={e => setSettings({ ...settings, imageUrl: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-medium" placeholder="https://..." />
+                        {settings.imageUrl && <img src={settings.imageUrl} alt="Aperçu" className="w-full h-32 object-cover rounded-xl mt-4 border border-zinc-200 dark:border-zinc-800" />}
+                    </div>
+                )}
+
+                {widgetType === 'new-arrivals' && (
+                    <div>
+                        <label className="text-sm font-bold mb-2 block">Titre de la section :</label>
+                        <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase" placeholder="Ex: Nouveautés" />
+                    </div>
+                )}
+
+                <button onClick={() => onSave(settings)} className="w-full mt-8 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform flex justify-center items-center gap-2">
+                    <Save size={16} /> Enregistrer
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function ShopPageBuilder({ categories }: { categories: string[] }) {
   const availableWidgets = [
-    { id: 'category-grid', name: 'Grille de Catégories' },
-    { id: 'promo-banner', name: 'Bannière Promotionnelle' },
+    { id: 'category-grid', name: 'Grille de Catégories', settings: { categories: [] } },
+    { id: 'promo-banner', name: 'Bannière Promotionnelle', settings: { imageUrl: '' } },
+    { id: 'new-arrivals', name: 'Nouveautés', settings: { title: 'Nouveautés' } }
   ];
 
   const [pageWidgets, setPageWidgets] = useState<WidgetProps[]>([]);
+  const [editingWidget, setEditingWidget] = useState<WidgetProps | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
 
   useEffect(() => {
@@ -254,7 +319,7 @@ function ShopPageBuilder() {
                <SortableContext items={pageWidgets.map(w => w.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-4">
                     {pageWidgets.map((widget) => (
-                      <SortableWidget key={widget.id} id={widget.id} name={widget.name} />
+                      <SortableWidget key={widget.id} id={widget.id} name={widget.name} onEdit={() => setEditingWidget(widget)} onDelete={() => setPageWidgets(prev => prev.filter(w => w.id !== widget.id))} />
                     ))}
                     {pageWidgets.length === 0 && (
                       <div className="text-center text-zinc-500 py-16">
@@ -271,6 +336,17 @@ function ShopPageBuilder() {
             </button>
         </div>
         </div>
+        {editingWidget && (
+            <WidgetSettingsModal 
+                widget={editingWidget} 
+                onClose={() => setEditingWidget(null)} 
+                onSave={(newSettings: any) => {
+                   setPageWidgets(prev => prev.map(w => w.id === editingWidget.id ? { ...w, settings: newSettings } : w));
+                   setEditingWidget(null);
+                }}
+                categories={categories}
+            />
+        )}
     </DndContext>
   );
 }
@@ -304,12 +380,52 @@ const CategoryGridWidget = ({ categories, setActiveCategory }: CategoryGridWidge
     </div>
 );
 
-const PromoBannerWidget = () => (
-    <div className="bg-black text-white p-8 rounded-3xl my-8">
-        <h3 className="text-3xl font-black text-[#39FF14]">Bannière Promotionnelle</h3>
-        <p>Une super promotion ici!</p>
+const PromoBannerWidget = ({ imageUrl }: { imageUrl?: string }) => (
+    <div 
+        className="w-full h-64 md:h-96 rounded-[3rem] overflow-hidden relative my-8 shadow-2xl flex items-center justify-center bg-black transition-all"
+        style={{
+            backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
+            backgroundAttachment: 'fixed',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'cover'
+        }}
+    >
+        <div className="absolute inset-0 bg-black/40"></div>
+        {!imageUrl && <p className="relative z-10 text-white font-black text-2xl opacity-50 uppercase tracking-widest">Bannière Promotionnelle</p>}
     </div>
 );
+
+const NewArrivalsWidget = ({ title, products, onViewProduct, addToCart, currency }: any) => {
+    const latestProducts = [...products].sort((a, b) => b.id - a.id).slice(0, 8);
+    const marqueeProducts = [...latestProducts, ...latestProducts, ...latestProducts];
+    
+    return (
+        <div className="my-12 overflow-hidden">
+            <h3 className="text-3xl font-black uppercase tracking-tighter mb-8 px-2">{title || 'Nouveautés'}</h3>
+            <div className="relative w-full flex overflow-x-hidden group">
+                <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-33.333%); } } .animate-marquee { animation: marquee 25s linear infinite; display: flex; width: max-content; } .group:hover .animate-marquee { animation-play-state: paused; }`}</style>
+                <div className="animate-marquee gap-6">
+                    {marqueeProducts.map((p, idx) => (
+                        <div key={`${p.id}-${idx}`} className="w-[300px] h-[350px] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden flex flex-col cursor-pointer shadow-sm hover:shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all shrink-0" onClick={() => onViewProduct(p)}>
+                            <div className="h-[220px] relative overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                               <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 hover:scale-110" />
+                               <div className="absolute top-4 left-4 bg-black text-[#39FF14] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Nouveau</div>
+                            </div>
+                            <div className="p-5 flex-1 flex flex-col justify-between">
+                                <h4 className="font-bold text-base truncate text-black dark:text-white">{p.name}</h4>
+                                <div className="flex justify-between items-center mt-2">
+                                    <span className="font-black text-xl text-black dark:text-white">{displayPrice(p.price, currency)}</span>
+                                    <button onClick={(e) => { e.stopPropagation(); addToCart(p); }} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors"><Plus size={16} /></button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function OnyxJaayShop() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -384,9 +500,12 @@ export default function OnyxJaayShop() {
     const widgetType = widget.id.split('-')[0];
     switch (widgetType) {
       case 'category-grid':
-        return <CategoryGridWidget categories={categories.filter(c => c !== 'Toutes' && c !== 'Favoris')} setActiveCategory={setActiveCategory} />;
+        const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
+        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} />;
       case 'promo-banner':
-        return <PromoBannerWidget />;
+        return <PromoBannerWidget imageUrl={widget.settings?.imageUrl} />;
+      case 'new-arrivals':
+        return <NewArrivalsWidget title={widget.settings?.title} products={products} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} />;
       default:
         return <div className="p-4 bg-red-200 rounded-lg">Widget inconnu: {widget.name}</div>;
     }
@@ -1528,7 +1647,7 @@ export default function OnyxJaayShop() {
             />
         )}
         {shopView === 'page-builder' && (
-            <ShopPageBuilder />
+            <ShopPageBuilder categories={categories} />
         )}
       </main>
 
@@ -2637,8 +2756,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
       XLSX.writeFile(workbook, `commandes_${dayOrders.date}.xlsx`);
   };
 
-  const StatCard = ({ icon, label, value, colorClass, trend, onClick }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null, onClick?: () => void }) => (
-    <button onClick={onClick} disabled={!onClick} className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full text-left transition-all ${colorClass} ${onClick ? 'cursor-pointer hover:border-black dark:hover:border-white hover:scale-105' : 'cursor-default'}`}>
+  const StatCard = ({ icon, label, value, colorClass, trend }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null }) => (
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full text-left transition-all ${colorClass} cursor-default`}>
         <div className="flex justify-between items-start">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center`}>
             {icon}
@@ -2654,7 +2773,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
             <p className="text-zinc-500 dark:text-zinc-400 font-bold text-sm uppercase tracking-wider mt-4">{label}</p>
             <p className="text-black dark:text-white font-black text-3xl">{value}</p>
         </div>
-    </button>
+    </div>
   );
 
   return (
@@ -2699,9 +2818,9 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
-        <StatCard icon={<DollarSign size={32} />} label="Revenu Total" value={displayPrice(totalRevenue, currency)} colorClass="text-green-500" trend={revenueTrend} />
+        <StatCard icon={<span className="font-black text-xl">XOF</span>} label="Revenu Total" value={displayPrice(totalRevenue, currency)} colorClass="text-green-500" trend={revenueTrend} />
         <StatCard icon={<ShoppingCart size={32} />} label="Commandes" value={totalOrders} colorClass="text-blue-500" trend={ordersTrend} />
-        <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} onClick={() => setShopView('clients')} />
+        <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} />
         <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={displayPrice(averageOrderValue, currency)} colorClass="text-purple-500" trend={avgOrderTrend} />
       </div>
 
