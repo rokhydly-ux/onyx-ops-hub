@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import Link from "next/link";
-import { BarChart2, Settings, History } from "lucide-react";
+import { BarChart2, Settings, History, User, LogOut } from "lucide-react";
 
 // Définition de l'interface pour le profil utilisateur
 interface UserProfile {
@@ -10,12 +10,14 @@ interface UserProfile {
   full_name?: string;
   expiry_date?: string;
   active_modules?: string[] | string;
+  active_saas?: string[] | string;
+  saas?: string;
   role?: string;
 }
 
 // Composant pour la carte SaaS
 const SaasCard = ({ name, href, isActive }: { name: string; href: string; isActive: boolean }) => (
-  <Link href={isActive ? href : "#"} passHref>
+  <Link href={isActive ? href : "#"} className="block">
     <div
       className={`p-4 bg-white rounded-2xl border flex justify-between items-center transition-all duration-300 ${
         isActive ? "border-green-500 hover:shadow-lg" : "border-zinc-100 opacity-50 cursor-not-allowed"
@@ -33,11 +35,22 @@ const SaasCard = ({ name, href, isActive }: { name: string; href: string; isActi
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [view, setView] = useState<'home' | 'profile'>('home');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     const getUserProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Tenter d'abord dans 'clients' (où les clients confirmés avec SaaS sont stockés)
+        const { data: clientData } = await supabase.from("clients").select("*").eq("id", user.id).maybeSingle();
+        if (clientData) {
+          setProfile(clientData);
+          return;
+        }
+
         // Récupérer depuis la table 'leads' comme demandé
         const { data } = await supabase
           .from("leads")
@@ -61,6 +74,34 @@ export default function Dashboard() {
     getUserProfile();
   }, []);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      alert("Les mots de passe ne correspondent pas.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      alert("Le mot de passe doit faire au moins 6 caractères.");
+      return;
+    }
+    setIsUpdating(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setIsUpdating(false);
+    
+    if (error) {
+      alert("Erreur lors de la mise à jour: " + error.message);
+    } else {
+      alert("Mot de passe mis à jour avec succès !");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  };
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Non définie";
     return new Date(dateString).toLocaleDateString("fr-FR", {
@@ -71,17 +112,20 @@ export default function Dashboard() {
   };
   
   const isModuleActive = (moduleName: string) => {
-    if (!profile?.active_modules) return false;
-    const modules = profile.active_modules;
+    const modules = profile?.active_modules || profile?.active_saas;
+    const saas = profile?.saas;
     const lowerCaseModuleName = moduleName.toLowerCase();
     
+    let isActive = false;
     if (Array.isArray(modules)) {
-      return modules.some(m => m.toLowerCase().includes(lowerCaseModuleName));
+      isActive = modules.some(m => m.toLowerCase().includes(lowerCaseModuleName));
+    } else if (typeof modules === 'string') {
+      isActive = modules.toLowerCase().includes(lowerCaseModuleName);
     }
-    if (typeof modules === 'string') {
-      return modules.toLowerCase().includes(lowerCaseModuleName);
-    }
-    return false;
+    
+    if (!isActive && saas) isActive = saas.toLowerCase().includes(lowerCaseModuleName);
+    
+    return isActive;
   };
 
   if (!profile) return <div className="p-20 text-center font-bold">Chargement de votre empire...</div>;
@@ -91,62 +135,97 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-white p-6 md:p-12">
       <div className="max-w-6xl mx-auto">
-        <header className="mb-12">
-          <h1>Bienvenue, {profile.full_name || "Cher Partenaire"}</h1>
-          <p className="text-sm text-gray-600 mt-2">
-            Date de fin d'abonnement / d'essai :{" "}
-            <span className="font-bold">{formatDate(profile.expiry_date)}</span>
-          </p>
-          <p className="text-[#39FF14] font-bold bg-black inline-block px-3 py-1 rounded-full text-[10px] mt-2 uppercase tracking-widest">
-            Rôle : {profile.role || 'user'}
-          </p>
+        <header className="mb-12 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+          <div>
+            <h1>Bienvenue, {profile.full_name || "Cher Partenaire"}</h1>
+            <p className="text-sm text-gray-600 mt-2">
+              Date de fin d'abonnement / d'essai :{" "}
+              <span className="font-bold">{formatDate(profile.expiry_date)}</span>
+            </p>
+            <p className="text-[#39FF14] font-bold bg-black inline-block px-3 py-1 rounded-full text-[10px] mt-2 uppercase tracking-widest">
+              Rôle : {profile.role || 'user'}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setView(view === 'home' ? 'profile' : 'home')}
+              className="px-5 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase flex items-center gap-2 hover:bg-zinc-800 transition"
+            >
+              {view === 'home' ? <><User size={16} /> Mon Profil</> : "Retour au Dashboard"}
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="px-5 py-2.5 bg-red-50 text-red-500 border border-red-100 rounded-xl font-bold text-xs uppercase flex items-center gap-2 hover:bg-red-500 hover:text-white transition"
+            >
+              <LogOut size={16} /> Déconnexion
+            </button>
+          </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-200">
-            <h3 className="font-black uppercase mb-6">Mes Solutions Pro</h3>
-            <div className="space-y-4">
-              <SaasCard name="Onyx Jaay" href="/vente" isActive={onyxJaayActive} />
-              {/* Vous pouvez ajouter d'autres SaaS ici sur le même modèle */}
-              <button className="w-full mt-4 py-3 bg-black text-[#39FF14] rounded-xl font-bold text-xs uppercase">Acheter ou gérer un pack</button>
-            </div>
-          </div>
-
-          <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm flex flex-col justify-between">
-            <div>
-                <h3 className="font-black uppercase mb-2">Performances</h3>
-                <p className="text-xs text-zinc-500 mb-6">Suivez vos ventes et la croissance de votre boutique.</p>
-            </div>
-            <Link href="/dashboard/stats" className="w-full py-4 bg-zinc-100 hover:bg-black hover:text-[#39FF14] text-black rounded-xl font-black text-xs uppercase transition-colors flex items-center justify-center gap-2">
-                <BarChart2 size={16} /> Voir mes statistiques
-            </Link>
-            <Link href="/dashboard/orders" className="w-full mt-3 py-4 bg-zinc-100 hover:bg-black hover:text-[#39FF14] text-black rounded-xl font-black text-xs uppercase transition-colors flex items-center justify-center gap-2">
-                <History size={16} /> Historique Commandes
-            </Link>
-            <Link href="/dashboard/account" className="w-full mt-3 py-4 bg-white border-2 border-zinc-100 hover:border-black text-black rounded-xl font-black text-xs uppercase transition-colors flex items-center justify-center gap-2">
-                <Settings size={16} /> Configurer ma boutique
-            </Link>
-          </div>
-
-          {(profile.role === "partner" || profile.role === "admin") ? (
-            <div className="bg-[#39FF14]/5 p-8 rounded-[2.5rem] border-2 border-[#39FF14]">
-              <h3 className="font-black uppercase mb-2">Espace Ambassadeur</h3>
-              <p className="text-[10px] text-[#39FF14] font-bold mb-6 uppercase">Statut : Actif</p>
-              <div className="space-y-4">
-                <div className="bg-white p-4 rounded-xl">
-                  <p className="text-[10px] font-bold text-zinc-400">MON LIEN DE VENTE</p>
-                  <code className="text-xs font-bold break-all">onyxops.com/ref/{profile.id.slice(0,5)}</code>
+        {view === 'profile' ? (
+          <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm max-w-xl">
+             <h3 className="font-black uppercase mb-6 text-xl">Sécurité & Mot de passe</h3>
+             <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Nouveau mot de passe</label>
+                  <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-green-500" />
                 </div>
+                <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Confirmer le mot de passe</label>
+                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-green-500" />
+                </div>
+                <button type="submit" disabled={isUpdating} className="w-full py-4 bg-black text-[#39FF14] rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition-colors disabled:opacity-50 mt-4">
+                  {isUpdating ? 'Mise à jour...' : 'Enregistrer le nouveau mot de passe'}
+                </button>
+             </form>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-200">
+              <h3 className="font-black uppercase mb-6">Mes Solutions Pro</h3>
+              <div className="space-y-4">
+                <SaasCard name="Onyx Jaay" href="/vente" isActive={onyxJaayActive} />
+                {/* Vous pouvez ajouter d'autres SaaS ici sur le même modèle */}
+                <button className="w-full mt-4 py-3 bg-black text-[#39FF14] rounded-xl font-bold text-xs uppercase">Acheter ou gérer un pack</button>
               </div>
             </div>
-          ) : (
-            <div className="bg-zinc-900 text-white p-8 rounded-[2.5rem]">
-              <h3 className="font-black uppercase mb-4">Devenir Partenaire</h3>
-              <p className="text-xs text-zinc-400 mb-6 leading-relaxed">Gagnez 30% de commission en recommandant OnyxOps. Avantage Client : +5% de bonus immédiat.</p>
-              <button className="w-full py-4 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase">Postuler maintenant</button>
+
+            <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm flex flex-col justify-between">
+              <div>
+                  <h3 className="font-black uppercase mb-2">Performances</h3>
+                  <p className="text-xs text-zinc-500 mb-6">Suivez vos ventes et la croissance de votre boutique.</p>
+              </div>
+              <Link href="/dashboard/stats" className="w-full py-4 bg-zinc-100 hover:bg-black hover:text-[#39FF14] text-black rounded-xl font-black text-xs uppercase transition-colors flex items-center justify-center gap-2">
+                  <BarChart2 size={16} /> Voir mes statistiques
+              </Link>
+              <Link href="/dashboard/orders" className="w-full mt-3 py-4 bg-zinc-100 hover:bg-black hover:text-[#39FF14] text-black rounded-xl font-black text-xs uppercase transition-colors flex items-center justify-center gap-2">
+                  <History size={16} /> Historique Commandes
+              </Link>
+              <Link href="/dashboard/account" className="w-full mt-3 py-4 bg-white border-2 border-zinc-100 hover:border-black text-black rounded-xl font-black text-xs uppercase transition-colors flex items-center justify-center gap-2">
+                  <Settings size={16} /> Configurer ma boutique
+              </Link>
             </div>
-          )}
-        </div>
+
+            {(profile.role === "partner" || profile.role === "admin") ? (
+              <div className="bg-[#39FF14]/5 p-8 rounded-[2.5rem] border-2 border-[#39FF14]">
+                <h3 className="font-black uppercase mb-2">Espace Ambassadeur</h3>
+                <p className="text-[10px] text-[#39FF14] font-bold mb-6 uppercase">Statut : Actif</p>
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-xl">
+                    <p className="text-[10px] font-bold text-zinc-400">MON LIEN DE VENTE</p>
+                    <code className="text-xs font-bold break-all">onyxops.com/ref/{profile.id.slice(0,5)}</code>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-zinc-900 text-white p-8 rounded-[2.5rem]">
+                <h3 className="font-black uppercase mb-4">Devenir Partenaire</h3>
+                <p className="text-xs text-zinc-400 mb-6 leading-relaxed">Gagnez 30% de commission en recommandant OnyxOps. Avantage Client : +5% de bonus immédiat.</p>
+                <button className="w-full py-4 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase">Postuler maintenant</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

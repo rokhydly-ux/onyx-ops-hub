@@ -7,7 +7,7 @@ import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
@@ -145,7 +145,7 @@ function DraggableWidget({ id, name }: WidgetProps) {
   );
 }
 
-function SortableWidget({ id, name, onEdit, onDelete }: WidgetProps & { onEdit?: () => void, onDelete?: () => void }) {
+function SortableWidget({ id, name, settings, type, onEdit, onDelete }: WidgetProps & { onEdit?: () => void, onDelete?: () => void }) {
   const {
     attributes,
     listeners,
@@ -163,14 +163,31 @@ function SortableWidget({ id, name, onEdit, onDelete }: WidgetProps & { onEdit?:
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="p-4 bg-white dark:bg-zinc-800 rounded-lg shadow flex justify-between items-center group relative border border-transparent hover:border-black dark:hover:border-white transition-colors">
-      <div {...attributes} {...listeners} className="flex-1 cursor-grab font-bold">
-        {name}
+    <div ref={setNodeRef} style={style} className="p-4 bg-white dark:bg-zinc-800 rounded-lg shadow group relative border border-transparent hover:border-black dark:hover:border-white transition-colors">
+      <div className="flex justify-between items-start mb-2">
+        <div {...attributes} {...listeners} className="flex-1 cursor-grab font-bold flex items-center">
+          {name}
+          <span className="ml-2 text-[10px] font-normal text-zinc-500 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md">{type || id.split('-')[0]}</span>
+        </div>
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+           {onEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1.5 bg-zinc-100 dark:bg-zinc-700 rounded text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"><Edit size={14}/></button>}
+           {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 bg-zinc-100 dark:bg-zinc-700 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"><Trash2 size={14}/></button>}
+        </div>
       </div>
-      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity absolute right-4">
-         {onEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-2 bg-zinc-100 dark:bg-zinc-700 rounded text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"><Edit size={14}/></button>}
-         {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-2 bg-zinc-100 dark:bg-zinc-700 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"><Trash2 size={14}/></button>}
-      </div>
+      {(type === 'promo-banner' || id.startsWith('promo-banner')) && settings?.imageUrl && (
+         <div className="w-full h-24 rounded-lg bg-zinc-100 dark:bg-zinc-900 bg-cover bg-center border border-zinc-200 dark:border-zinc-700 mt-2 pointer-events-none" style={{ backgroundImage: `url(${settings.imageUrl})` }}></div>
+      )}
+      {(type === 'category-grid' || id.startsWith('category-grid')) && (
+         <div className="grid grid-cols-3 gap-2 mt-4 pointer-events-none">
+           {(settings?.categories?.length > 0 ? settings.categories : ['Toutes', 'Catégorie 1', 'Catégorie 2']).slice(0, 3).map((cat: string) => (
+             <div key={cat} className="h-20 rounded-xl bg-zinc-100 dark:bg-zinc-900 bg-cover bg-center border border-zinc-200 dark:border-zinc-700 relative overflow-hidden shadow-sm" style={{ backgroundImage: `url(https://placehold.co/800x800/111/FFF?text=${cat})` }}>
+               <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-2 text-center">
+                  <span className="text-white font-black text-[10px] uppercase tracking-wider drop-shadow-md truncate w-full">{cat}</span>
+               </div>
+             </div>
+           ))}
+         </div>
+      )}
     </div>
   );
 }
@@ -320,7 +337,7 @@ function ShopPageBuilder({ categories }: { categories: string[] }) {
                <SortableContext items={pageWidgets.map(w => w.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-4">
                     {pageWidgets.map((widget) => (
-                      <SortableWidget key={widget.id} id={widget.id} name={widget.name} onEdit={() => setEditingWidget(widget)} onDelete={() => setPageWidgets(prev => prev.filter(w => w.id !== widget.id))} />
+                      <SortableWidget key={widget.id} id={widget.id} type={widget.type} settings={widget.settings} name={widget.name} onEdit={() => setEditingWidget(widget)} onDelete={() => setPageWidgets(prev => prev.filter(w => w.id !== widget.id))} />
                     ))}
                     {pageWidgets.length === 0 && (
                       <div className="text-center text-zinc-500 py-16">
@@ -485,6 +502,11 @@ export default function OnyxJaayShop() {
   const [trackingInput, setTrackingInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
 
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
   const [orderReview, setOrderReview] = useState({ name: '', rating: 5, comment: '' });
@@ -1281,6 +1303,12 @@ export default function OnyxJaayShop() {
                   <button onClick={() => { setIsTrackingModalOpen(true); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
                     <Package size={18} /> Suivi Commande
                   </button>
+                  <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+                    <Home size={18} /> Retour au Hub
+                  </button>
+                  <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-red-500 hover:bg-red-500/10`}>
+                    <LogOut size={18} /> Se déconnecter
+                  </button>
                 </nav>
                 <div className="px-4 space-y-2">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
@@ -1373,6 +1401,12 @@ export default function OnyxJaayShop() {
             </button>
             <button onClick={() => setIsTrackingModalOpen(true)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
               <Package size={18} /> Suivi Commande
+            </button>
+            <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+              <Home size={18} /> Retour au Hub
+            </button>
+            <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-red-500 hover:bg-red-500/10`}>
+              <LogOut size={18} /> Se déconnecter
             </button>
           </nav>
 
