@@ -7,7 +7,7 @@ import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
@@ -479,6 +479,8 @@ export default function OnyxJaayShop() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [homepageLayout, setHomepageLayout] = useState<WidgetProps[] | null>(null);
   
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
   const [trackingInput, setTrackingInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
@@ -489,6 +491,42 @@ export default function OnyxJaayShop() {
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+
+  const fetchOrders = async () => {
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      
+      if (data && !error && data.length > 0) {
+        const formattedOrders = data.map((o: any) => ({
+          id: o.id,
+          date: o.created_at || new Date().toISOString(),
+          customer: { name: o.customer_name, phone: o.customer_phone },
+          items: o.items || [],
+          total: o.total_amount,
+          status: o.status,
+          pointsUsed: o.points_used,
+          trackingNumber: o.tracking_number
+        }));
+        setOrders(formattedOrders);
+      } else {
+        const savedOrders = localStorage.getItem('onyx_jaay_orders');
+        if (savedOrders) {
+            try { 
+                const parsed = JSON.parse(savedOrders);
+                setOrders(parsed);
+            } catch (e) { console.error("Erreur chargement commandes locales", e); }
+        }
+      }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    const channel = supabase
+      .channel('realtime-all-orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => { fetchOrders(); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   useEffect(() => {
     const savedLayout = localStorage.getItem('onyx_jaay_homepage_layout');
@@ -1231,7 +1269,7 @@ export default function OnyxJaayShop() {
                   <button onClick={() => { setShopView('clients'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                     <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
                   </button>
-                  <button onClick={() => { setShopView('boutique'); setIsMobileMenuOpen(false); setSearchTerm(''); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                  <button onClick={() => { setShopView('boutique'); setIsMobileMenuOpen(false); setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                     <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
                   </button>
                   <button onClick={() => { setShopView('settings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
@@ -1324,7 +1362,7 @@ export default function OnyxJaayShop() {
             <button onClick={() => setShopView('clients')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
             </button>
-            <button onClick={() => { setShopView('boutique'); setSearchTerm(''); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+            <button onClick={() => { setShopView('boutique'); setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
             </button>
             <button onClick={() => setShopView('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
@@ -1618,10 +1656,10 @@ export default function OnyxJaayShop() {
           </div>
         )}
         {shopView === 'dashboard' && (
-            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} setShopView={setShopView} />
+            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} setShopView={setShopView} orders={orders} refreshOrders={fetchOrders} />
         )}
         {shopView === 'clients' && (
-            <ShopClients currency={shopInfo.currency} />
+            <ShopClients currency={shopInfo.currency} orders={orders} onClientSelect={setSelectedClient} />
         )}
         {shopView === 'settings' && (
             <ShopSettings 
@@ -2069,6 +2107,16 @@ export default function OnyxJaayShop() {
           onClose={() => setQrCodeProduct(null)}
         />
       )}
+
+      {selectedClient && (
+        <ClientDetailModal 
+            client={selectedClient} 
+            orders={orders} 
+            onClose={() => setSelectedClient(null)}
+            shopName={shopInfo.name}
+            currency={shopInfo.currency}
+        />
+      )}
     </div>
   );
 }
@@ -2209,6 +2257,93 @@ function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting, cu
                         <button type="submit" className="px-8 py-3 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase hover:bg-white transition shadow-lg shadow-[#39FF14]/20">Enregistrer</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    );
+}
+
+// --- CLIENT DETAIL MODAL ---
+function ClientDetailModal({ client, orders, shopName, currency, onClose }: { client: any, orders: any[], shopName: string, currency: string, onClose: () => void }) {
+    const clientOrders = orders.filter(o => o.customer?.phone === client.phone && o.status !== 'Annulé');
+
+    const generateAction = (type: 'fomo' | 'reactivation' | 'vip') => {
+        let message = '';
+        const clientName = client.name.split(' ')[0];
+
+        switch (type) {
+            case 'fomo':
+                const categoryCounts = clientOrders.flatMap(o => o.items).reduce((acc, item) => {
+                    acc[item.category] = (acc[item.category] || 0) + 1;
+                    return acc;
+                }, {} as Record<string, number>);
+                const topCategory = Object.keys(categoryCounts).sort((a, b) => categoryCounts[b] - categoryCounts[a])[0];
+                message = `🔥 Offre Flash pour vous ${clientName} ! -20% sur toute la collection ${topCategory || 'préférée'} pendant 24h. Ne ratez pas ça !\n\nSigné, ${shopName}`;
+                break;
+            case 'reactivation':
+                message = `😢 ${clientName}, vous nous manquez ! Profitez d'un bon d'achat de ${displayPrice(5000, currency)} sur votre prochaine commande. Offre limitée !\n\nSigné, ${shopName}`;
+                break;
+            case 'vip':
+                message = `⭐ ${clientName}, vous êtes un client VIP ! En remerciement, voici un accès anticipé à notre nouvelle collection. Soyez le premier à la découvrir !\n\nSigné, ${shopName}`;
+                break;
+        }
+        const whatsappUrl = `https://wa.me/${String(client.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    };
+
+    const sendReceipt = (order: any) => {
+        let message = `Bonjour ${client.name.split(' ')[0]},\n\nVoici le reçu de votre commande du ${new Date(order.date).toLocaleDateString('fr-FR')} chez ${shopName} :\n\n`;
+        if (order.trackingNumber) message += `📦 Référence : ${order.trackingNumber}\n\n`;
+        order.items.forEach((item: any) => {
+            message += `- ${item.name} (x${item.quantity}) : ${displayPrice(item.price * item.quantity, currency)}\n`;
+        });
+        message += `\n*Total payé : ${displayPrice(order.total, currency)}*`;
+        message += `\n\nMerci pour votre confiance ! À bientôt.`;
+
+        const whatsappUrl = `https://wa.me/${String(client.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    };
+
+    return (
+        <div id="modal-overlay" onClick={onClose} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-2xl p-8 shadow-2xl relative animate-in zoom-in-95 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+                <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black text-2xl">{client.name.charAt(0)}</div>
+                        <div>
+                            <h3 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white">{client.name}</h3>
+                            <p className="text-sm font-bold text-[#39FF14]">{client.phone}</p>
+                        </div>
+                    </div>
+                    <a href={`tel:${String(client.phone).replace(/[^0-9]/g, '')}`} className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl text-black dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center group" title="Appeler le client">
+                        <Phone size={22} className="group-hover:text-[#39FF14] transition-colors"/>
+                    </a>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pr-4 -mr-4">
+                    <div>
+                        <h4 className="text-xs font-bold text-zinc-500 uppercase mb-3">Historique des Commandes ({clientOrders.length})</h4>
+                        <div className="space-y-3">
+                            {clientOrders.length > 0 ? clientOrders.map((order: any) => (
+                                <div key={order.id} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                    <div className="flex justify-between items-center"><p className="text-xs font-bold">{new Date(order.date).toLocaleDateString('fr-FR')}</p><p className="font-bold text-sm text-black dark:text-white">{displayPrice(order.total, currency)}</p></div>
+                                    <p className="text-xs text-zinc-500 mt-1 mb-3">{order.items.map((i: any) => `${i.name} (x${i.quantity})`).join(', ')}</p>
+                                    <button onClick={() => sendReceipt(order)} className="text-[10px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition text-black dark:text-white">
+                                        <MessageSquare size={12} /> Envoyer le reçu
+                                    </button>
+                                </div>
+                            )) : <p className="text-xs text-zinc-500 italic">Aucune commande trouvée.</p>}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="text-xs font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2"><Sparkles size={14} className="text-[#39FF14]"/> Actions Marketing IA</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <button onClick={() => generateAction('fomo')} className="p-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-center hover:border-black dark:hover:border-white transition"><p className="font-bold text-xs text-black dark:text-white">🔥 Offre Flash (FOMO)</p><p className="text-[10px] text-zinc-500 mt-1">Basé sur ses achats</p></button>
+                            <button onClick={() => generateAction('reactivation')} className="p-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-center hover:border-black dark:hover:border-white transition"><p className="font-bold text-xs text-black dark:text-white">😢 Réactivation</p><p className="text-[10px] text-zinc-500 mt-1">Client inactif</p></button>
+                            <button onClick={() => generateAction('vip')} className="p-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-center hover:border-black dark:hover:border-white transition"><p className="font-bold text-xs text-black dark:text-white">⭐ Traitement VIP</p><p className="text-[10px] text-zinc-500 mt-1">Meilleur client</p></button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -2417,13 +2552,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder'>> }) {
-  const mockOrders = [
-    { id: 1, date: new Date().toISOString(), customer: { name: 'Client Test 1', phone: '771111111' }, items: [{id: 1, name: 'Produit Mock 1', price: 1000, quantity: 2, category: 'Mock', image: '', description: ''}], total: 2000, status: 'Livré' },
-    { id: 2, date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString(), customer: { name: 'Client Test 2', phone: '772222222' }, items: [{id: 2, name: 'Produit Mock 2', price: 3000, quantity: 1, category: 'Mock', image: '', description: ''}], total: 3000, status: 'En cours' },
-    { id: 3, date: new Date(new Date().setDate(new Date().getDate() - 8)).toISOString(), customer: { name: 'Client Test 1', phone: '771111111' }, items: [{id: 3, name: 'Produit Mock 3', price: 5000, quantity: 1, category: 'Mock', image: '', description: ''}], total: 5000, status: 'Livré' },
-  ];
-  const [orders, setOrders] = useState<any[]>([]);
+function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder'>>, orders: any[], refreshOrders: () => void }) {
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
   const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');
@@ -2432,64 +2561,10 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
 
   const productCategories = ['Toutes', ...Array.from(new Set(products.map(p => p.category)))];
 
-  const fetchOrders = async () => {
-      // Tentative de récupération depuis Supabase
-      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-      
-      if (data && !error && data.length > 0) {
-        const formattedOrders = data.map((o: any) => ({
-          id: o.id,
-          date: o.created_at || new Date().toISOString(),
-          customer: { name: o.customer_name, phone: o.customer_phone },
-          items: o.items || [],
-          total: o.total_amount,
-          status: o.status,
-          pointsUsed: o.points_used,
-          trackingNumber: o.tracking_number
-        }));
-        setOrders(formattedOrders);
-      } else {
-        // Fallback local storage si Supabase est vide ou en erreur
-        const savedOrders = localStorage.getItem('onyx_jaay_orders');
-        if (savedOrders) {
-            try { 
-                const parsed = JSON.parse(savedOrders);
-                if (parsed.length > 0) {
-                    setOrders(parsed);
-                } else {
-                    setOrders(mockOrders);
-                }
-            } catch (e) { 
-                console.error("Erreur chargement commandes locales", e); 
-                setOrders(mockOrders);
-            }
-        } else {
-            setOrders(mockOrders);
-        }
-      }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-
-    // --- 📡 ÉCOUTE EN TEMPS RÉEL DES COMMANDES 📡 ---
-    const channel = supabase
-      .channel('realtime-orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-        fetchOrders(); // Rafraîchit les données dès qu'un changement est détecté
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
         const updateFn = (o: any) => o.id === orderId ? { ...o, status: newStatus } : o;
         
         // Mise à jour optimiste instantanée de l'interface
-        setOrders(prev => prev.map(updateFn));
         if (selectedDayOrders) {
             setSelectedDayOrders(prev => prev ? { ...prev, orders: prev.orders.map(updateFn) } : prev);
         }
@@ -2499,8 +2574,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
             if (error) {
                 console.error("Erreur mise à jour statut:", error.message);
             } else {
-                // Rafraîchir la liste depuis Supabase selon le prompt
-                fetchOrders();
+                // Rafraîchir la liste depuis la source de données principale
+                refreshOrders();
 
                     // --- DEMANDE D'AVIS AUTOMATIQUE ---
                     if (newStatus === 'Livré') {
@@ -2803,7 +2878,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         </div>
       </div>
       <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">
-          Aperçu des performances {dateFilter.start || dateFilter.end ? 'sur la période sélectionnée' : 'globales'}.
+          Aperçu des performances globales {dateFilter.start || dateFilter.end ? 'sur la période sélectionnée' : 'globales'}.
       </p>
 
       {/* Stat Cards */}
@@ -3082,7 +3157,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   );
 }
 
-function ShopClients({ currency }: { currency: string }) {
+function ShopClients({ currency, orders, onClientSelect }: { currency: string, orders: any[], onClientSelect: (client: any) => void }) {
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -3135,25 +3210,7 @@ function ShopClients({ currency }: { currency: string }) {
     };
 
     useEffect(() => {
-        const fetchClientsData = async () => {
-            let orders: any[] = [];
-            const { data, error } = await supabase.from('orders').select('*');
-            
-            if (data && !error && data.length > 0) {
-                orders = data.map((o: any) => ({
-                    date: o.created_at,
-                    customer: { name: o.customer_name, phone: o.customer_phone },
-                    total: o.total_amount,
-                    pointsUsed: o.points_used,
-                    status: o.status
-                }));
-            } else {
-                const savedOrders = localStorage.getItem('onyx_jaay_orders');
-                if (savedOrders) {
-                    try { orders = JSON.parse(savedOrders); } catch (e) { console.error(e); }
-                }
-            }
-            
+        const processClientsData = () => {
             const uniqueClients: any = {};
             orders.forEach((order: any) => {
                 if (order.customer && order.customer.phone) {
@@ -3194,21 +3251,8 @@ function ShopClients({ currency }: { currency: string }) {
 
             setClients(Object.values(uniqueClients));
         };
-        
-        fetchClientsData();
-
-        // --- 📡 ÉCOUTE EN TEMPS RÉEL (Vue Clients) 📡 ---
-        const channel = supabase
-          .channel('realtime-clients')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-            fetchClientsData();
-          })
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(channel);
-        };
-    }, []);
+        processClientsData();
+    }, [orders]);
 
     const filteredClients = clients.filter(client =>
         (client.name && typeof client.name === 'string' && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -3240,7 +3284,7 @@ function ShopClients({ currency }: { currency: string }) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredClients.map((client, i) => (
-                    <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm">
+                    <div key={i} onClick={() => onClientSelect(client)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm cursor-pointer hover:border-[#39FF14] transition-all hover:shadow-lg">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black text-lg">{client.name.charAt(0)}</div>
                             <div>
