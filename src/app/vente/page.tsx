@@ -21,6 +21,7 @@ interface Review {
   rating: number;
   comment: string;
   date: string;
+  admin_reply?: string;
 }
 
 interface Product {
@@ -551,6 +552,7 @@ export default function OnyxJaayShop() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeCategory, setActiveCategory] = useState('Toutes');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -602,6 +604,7 @@ export default function OnyxJaayShop() {
   const [trackingInput, setTrackingInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
+  const [recentReviews, setRecentReviews] = useState<any[]>([]);
 
   const [iaSuggestions, setIaSuggestions] = useState<any[]>([]);
   const [plannedEvents, setPlannedEvents] = useState<any[]>(() => {
@@ -686,13 +689,20 @@ export default function OnyxJaayShop() {
           });
 
           const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
+          let productIds: string[] = [];
           if (productsData && productsData.length > 0) {
-            setProducts(productsData.map(p => ({
-                id: p.id, name: p.name, price: p.price, costPrice: p.cost_price, oldPrice: p.old_price,
-                description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
-                stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
-                videoUrl: p.video_url, reviewsList: []
-            })));
+            productIds = productsData.map(p => String(p.id));
+            const { data: reviewsData } = await supabase.from('reviews').select('*').in('reference_id', productIds);
+            
+            setProducts(productsData.map(p => {
+                const productReviews = reviewsData ? reviewsData.filter(r => String(r.reference_id) === String(p.id)) : [];
+                return {
+                    id: p.id, name: p.name, price: p.price, costPrice: p.cost_price, oldPrice: p.old_price,
+                    description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
+                    stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
+                    videoUrl: p.video_url, reviewsList: productReviews
+                };
+            }));
           } else if (productsData && productsData.length === 0) {
             // 🚀 AUTO-REMPLISSAGE AGRESSIF SANS BLOCAGE
             console.log("Catalogue vide détecté. Injection automatique des 40 produits...");
@@ -719,6 +729,13 @@ export default function OnyxJaayShop() {
             }
           }
           fetchOrders(shop.id);
+
+          // Récupération des derniers avis pour les notifications
+          const { data: reviewsData } = await supabase.from('reviews').select('*').order('created_at', { ascending: false }).limit(10);
+          if (reviewsData) {
+              const shopReviews = reviewsData.filter(r => r.type === 'product' ? productIds.includes(String(r.reference_id)) : true);
+              setRecentReviews(shopReviews);
+          }
       }
   };
 
@@ -729,7 +746,14 @@ export default function OnyxJaayShop() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `shop_id=eq.${shopId}` }, (payload) => { fetchOrders(shopId); })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    const reviewsChannel = supabase
+      .channel('realtime-reviews')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reviews' }, (payload) => {
+          setRecentReviews(prev => [payload.new, ...prev].slice(0, 10));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); supabase.removeChannel(reviewsChannel); };
   }, [shopId]);
 
   useEffect(() => {
@@ -1851,78 +1875,92 @@ export default function OnyxJaayShop() {
       )}
 
       {/* --- SIDEBAR --- */}
-      <aside className="w-64 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex-col hidden md:flex print:hidden">
-        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 h-20 flex items-center">
-          {shopInfo.logoUrl ? (
-            <img src={shopInfo.logoUrl} alt={shopInfo.name} className="h-10 w-auto object-contain" />
-          ) : (
-            <h1 className="text-2xl font-black tracking-tighter uppercase">{shopInfo.name}</h1>
+      <aside className={`bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex-col hidden md:flex print:hidden transition-all duration-300 z-30 ${isSidebarCollapsed ? 'w-24 items-center' : 'w-64'}`}>
+        <div className={`p-6 border-b border-zinc-200 dark:border-zinc-800 h-20 flex items-center justify-between w-full ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+          {!isSidebarCollapsed && (
+            shopInfo.logoUrl ? (
+              <img src={shopInfo.logoUrl} alt={shopInfo.name} className="h-10 w-auto object-contain" />
+            ) : (
+              <h1 className="text-2xl font-black tracking-tighter uppercase truncate">{shopInfo.name}</h1>
+            )
           )}
+          <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className={`p-2 bg-zinc-200 dark:bg-zinc-800 rounded-full hover:bg-[#39FF14] hover:text-black transition ${isSidebarCollapsed ? 'mx-auto' : ''}`}>
+             {isSidebarCollapsed ? <Menu size={18}/> : <ChevronRight size={18} className="rotate-180" />}
+          </button>
         </div>
         
-        <div className="flex-1 overflow-y-auto py-6">
+        <div className="flex-1 overflow-y-auto py-6 w-full overflow-x-hidden custom-scrollbar">
           <div className="px-4 mb-6">
-            {isEditingMode && (
-                <button onClick={() => window.open(`/${shopInfo.slug || 'keur-yaay'}`, '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black transition bg-[#39FF14] text-black hover:bg-white shadow-[0_0_20px_rgba(57,255,20,0.3)] mb-6 uppercase text-xs">
-                  <ExternalLink size={16} /> Voir ma boutique
-                </button>
+            {!isSidebarCollapsed ? (
+               <>
+                  {isEditingMode && (
+                      <button onClick={() => window.open(`/${shopInfo.slug || 'keur-yaay'}`, '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black transition bg-[#39FF14] text-black hover:bg-white shadow-[0_0_20px_rgba(57,255,20,0.3)] mb-6 uppercase text-xs">
+                        <ExternalLink size={16} /> Voir ma boutique
+                      </button>
+                  )}
+                  <input 
+                    type="text" 
+                    placeholder="Rechercher un produit..." 
+                    value={searchTerm}
+                    onChange={handleGlobalSearch}
+                    className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
+                  />
+               </>
+            ) : (
+               <div className="flex flex-col gap-4 items-center">
+                  {isEditingMode && <button onClick={() => window.open(`/${shopInfo.slug || 'keur-yaay'}`, '_blank')} title="Voir ma boutique" className="p-3 bg-[#39FF14] text-black rounded-xl hover:bg-white shadow-lg"><ExternalLink size={18}/></button>}
+                  <button onClick={() => setIsSidebarCollapsed(false)} title="Rechercher" className="p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 rounded-xl hover:text-[#39FF14]"><Search size={18}/></button>
+               </div>
             )}
-            <input 
-              type="text" 
-              placeholder="Rechercher un produit..." 
-              value={searchTerm}
-              onChange={handleGlobalSearch}
-              className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
-            />
           </div>
 
           <nav className="px-4 space-y-2 mb-8">
-            <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
+            {!isSidebarCollapsed && <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>}
             {isEditingMode && (
                 <>
-                    <button onClick={() => setShopView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'dashboard' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                      <LayoutDashboard size={18} className={shopView === 'dashboard' ? "text-[#39FF14]" : ""} /> Tableau de bord
+                    <button onClick={() => setShopView('dashboard')} title="Tableau de bord" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'dashboard' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+                      <LayoutDashboard size={18} className={shopView === 'dashboard' ? "text-[#39FF14]" : ""} /> {!isSidebarCollapsed && 'Tableau de bord'}
                     </button>
-                    <button onClick={() => setShopView('clients')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                      <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
+                    <button onClick={() => setShopView('clients')} title="Clients" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+                      <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> {!isSidebarCollapsed && 'Clients'}
                     </button>
-                    <button onClick={() => setShopView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                      <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> Planning Marketing
+                    <button onClick={() => setShopView('planning')} title="Planning Marketing" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+                      <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> {!isSidebarCollapsed && 'Planning Marketing'}
                     </button>
-                    <button onClick={() => setShopView('reviews')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'reviews' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                      <Star size={18} className={shopView === 'reviews' ? "text-[#39FF14]" : ""} /> Avis Clients
+                    <button onClick={() => setShopView('reviews')} title="Avis Clients" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'reviews' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+                      <Star size={18} className={shopView === 'reviews' ? "text-[#39FF14]" : ""} /> {!isSidebarCollapsed && 'Avis Clients'}
                     </button>
                 </>
             )}
-            <button onClick={() => { setShopView('boutique'); setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-              <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> {isEditingMode ? 'Ma Boutique' : 'Accueil'}
+            <button onClick={() => { setShopView('boutique'); setSearchTerm(''); setActiveCategory('Toutes'); }} title={isEditingMode ? 'Ma Boutique' : 'Accueil'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+              <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> {!isSidebarCollapsed && (isEditingMode ? 'Ma Boutique' : 'Accueil')}
             </button>
             {isEditingMode && (
                 <>
-                    <button onClick={() => setShopView('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                      <Settings size={18} className={shopView === 'settings' ? "text-[#39FF14]" : ""} /> Paramètres
+                    <button onClick={() => setShopView('settings')} title="Paramètres" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+                      <Settings size={18} className={shopView === 'settings' ? "text-[#39FF14]" : ""} /> {!isSidebarCollapsed && 'Paramètres'}
                     </button>
-                    <button onClick={() => setShopView('page-builder')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'page-builder' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                      <LayoutTemplate size={18} className={shopView === 'page-builder' ? "text-[#39FF14]" : ""} /> Mettre à jour mon site
+                    <button onClick={() => setShopView('page-builder')} title="Mettre à jour mon site" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'page-builder' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+                      <LayoutTemplate size={18} className={shopView === 'page-builder' ? "text-[#39FF14]" : ""} /> {!isSidebarCollapsed && 'Mettre à jour mon site'}
                     </button>
                 </>
             )}
-            <button onClick={() => setIsTrackingModalOpen(true)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
-              <Package size={18} /> Suivi Commande
+            <button onClick={() => setIsTrackingModalOpen(true)} title="Suivi Commande" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+              <Package size={18} /> {!isSidebarCollapsed && 'Suivi Commande'}
             </button>
             {isEditingMode && (
                 <>
-                    <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
-                      <Home size={18} /> Retour au Hub
+                    <button onClick={() => window.location.href = '/dashboard'} title="Retour au Hub" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+                      <Home size={18} /> {!isSidebarCollapsed && 'Retour au Hub'}
                     </button>
-                    <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-red-500 hover:bg-red-500/10`}>
-                      <LogOut size={18} /> Se déconnecter
+                    <button onClick={handleLogout} title="Se déconnecter" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-red-500 hover:bg-red-500/10 ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+                      <LogOut size={18} /> {!isSidebarCollapsed && 'Se déconnecter'}
                     </button>
                 </>
             )}
           </nav>
 
-          <div className="px-4 space-y-2">
+          <div className={`px-4 space-y-2 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
             {categories.map(cat => (
               <button 
@@ -1943,7 +1981,7 @@ export default function OnyxJaayShop() {
             ))}
           </div>
 
-          <div className="px-4 space-y-2 mt-6">
+          <div className={`px-4 space-y-2 mt-6 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">
               <Filter size={12}/> Prix (FCFA)
             </p>
@@ -1974,7 +2012,7 @@ export default function OnyxJaayShop() {
           </div>
         </div>
 
-        <div className="p-6 border-t border-zinc-200 dark:border-zinc-800">
+        <div className={`p-6 border-t border-zinc-200 dark:border-zinc-800 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
           <div className="bg-zinc-100 dark:bg-zinc-900 rounded-xl p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-bold">
               OJ
@@ -2029,16 +2067,16 @@ export default function OnyxJaayShop() {
             <div className="relative">
               <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="p-2 rounded-full bg-white/50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 backdrop-blur-md relative">
                 <Bell size={16} className="text-black dark:text-white" />
-                {lowStockProducts.length > 0 && (
+                {(lowStockProducts.length > 0 || recentReviews.length > 0) && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white dark:border-black">
-                    {lowStockProducts.length}
+                    {lowStockProducts.length + recentReviews.length}
                   </span>
                 )}
               </button>
               {isNotificationsOpen && (
-                <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl p-4 z-50 animate-in slide-in-from-top-2">
+                <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl p-4 z-50 animate-in slide-in-from-top-2 cursor-default">
                   <h4 className="font-black uppercase text-xs mb-3 flex items-center gap-2 text-black dark:text-white"><AlertTriangle size={14} className="text-yellow-500"/> Alertes Stock</h4>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
                     {lowStockProducts.length === 0 ? <p className="text-xs text-zinc-500">Tout va bien.</p> : lowStockProducts.map(p => (
                       <div key={p.id} className="flex justify-between items-center text-xs p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
                         <span className="font-bold truncate max-w-[140px] text-black dark:text-white">{p.name}</span>
@@ -2046,6 +2084,19 @@ export default function OnyxJaayShop() {
                       </div>
                     ))}
                   </div>
+                  {recentReviews.length > 0 && (
+                     <>
+                        <h4 className="font-black uppercase text-xs mb-3 flex items-center gap-2 text-black dark:text-white mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800"><Star size={14} className="text-[#39FF14] fill-[#39FF14]"/> Nouveaux Avis</h4>
+                        <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                           {recentReviews.map(r => (
+                              <div key={r.id} onClick={() => { setShopView('reviews'); setIsNotificationsOpen(false); }} className="flex flex-col text-xs p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer hover:border-[#39FF14] border border-transparent transition-colors">
+                                 <span className="font-bold text-black dark:text-white flex justify-between"><span>{r.name}</span> <span className="text-yellow-500 flex items-center gap-1">{r.rating}<Star size={10} className="fill-yellow-500"/></span></span>
+                                 <span className="text-zinc-500 truncate mt-1 italic">"{r.comment}"</span>
+                              </div>
+                           ))}
+                        </div>
+                     </>
+                  )}
                 </div>
               )}
             </div>
@@ -2991,6 +3042,9 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
 function ShopReviews({ shopId, products }: { shopId: string | null, products: Product[] }) {
     const [reviews, setReviews] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [replyingTo, setReplyingTo] = useState<number | null>(null);
+    const [replyText, setReplyText] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         const fetchReviews = async () => {
@@ -3023,10 +3077,38 @@ function ShopReviews({ shopId, products }: { shopId: string | null, products: Pr
         }
     };
 
+    const handleReplySubmit = async (reviewId: number) => {
+        if (!replyText.trim()) return;
+        setIsSubmitting(true);
+        try {
+            const { error } = await supabase
+                .from('reviews')
+                .update({ admin_reply: replyText })
+                .eq('id', reviewId);
+
+            if (error) throw error;
+
+            setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, admin_reply: replyText } : r));
+            setReplyingTo(null);
+            setReplyText("");
+        } catch (err: any) {
+            alert("Erreur lors de l'envoi de la réponse: " + err.message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
             <div className="flex flex-wrap justify-between items-center gap-4 mb-12">
-                <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Avis <span className="text-[#39FF14]">Clients</span></h2>
+                <div className="flex items-center gap-4">
+                    <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Avis <span className="text-[#39FF14]">Clients</span></h2>
+                    {reviews.length > 0 && (
+                        <div className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-2 rounded-2xl font-black text-xl flex items-center gap-2 shadow-lg">
+                            <Star className="fill-[#39FF14] dark:fill-black text-[#39FF14] dark:text-black" size={20} /> {(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)} / 5
+                        </div>
+                    )}
+                </div>
             </div>
             
             {isLoading ? (
@@ -3047,7 +3129,10 @@ function ShopReviews({ shopId, products }: { shopId: string | null, products: Pr
                                             <Star key={star} size={16} className={star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-zinc-200 dark:text-zinc-700"} />
                                         ))}
                                     </div>
-                                    <button onClick={() => handleDeleteReview(review.id)} className="text-zinc-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
+                                <div className="flex gap-2 opacity-100 transition-opacity">
+                                    <button onClick={() => { setReplyingTo(review.id); setReplyText(review.admin_reply || ''); }} className="text-zinc-500 hover:text-[#39FF14] transition bg-zinc-100 dark:bg-zinc-800 p-2 rounded-lg" title="Répondre"><MessageSquare size={16}/></button>
+                                    <button onClick={() => handleDeleteReview(review.id)} className="text-zinc-500 hover:text-red-500 transition bg-zinc-100 dark:bg-zinc-800 p-2 rounded-lg" title="Supprimer"><Trash2 size={16}/></button>
+                                </div>
                                 </div>
                                 <p className="font-medium text-sm mb-4 flex-1 text-black dark:text-white">"{review.comment}"</p>
                                 <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-end">
@@ -3059,6 +3144,21 @@ function ShopReviews({ shopId, products }: { shopId: string | null, products: Pr
                                     </div>
                                     <p className="text-[10px] text-zinc-400">{new Date(review.created_at || Date.now()).toLocaleDateString('fr-FR')}</p>
                                 </div>
+                            
+                            {replyingTo === review.id ? (
+                                <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <textarea value={replyText} onChange={e => setReplyText(e.target.value)} className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-[#39FF14] mb-2 min-h-[80px]" placeholder="Votre réponse..."/>
+                                    <div className="flex justify-end gap-2">
+                                        <button onClick={() => { setReplyingTo(null); setReplyText(''); }} className="px-4 py-2 text-xs font-bold text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition">Annuler</button>
+                                        <button onClick={() => handleReplySubmit(review.id)} disabled={isSubmitting} className="px-4 py-2 text-xs font-bold bg-[#39FF14] text-black rounded-lg hover:scale-105 transition disabled:opacity-50 flex items-center gap-1">{isSubmitting ? '...' : <><Send size={14}/> Envoyer</>}</button>
+                                    </div>
+                                </div>
+                            ) : review.admin_reply && (
+                                <div className="mt-4 p-3 bg-zinc-50 dark:bg-zinc-950/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                                    <p className="text-[10px] font-black uppercase text-[#39FF14] mb-1 flex items-center gap-1"><MessageSquare size={10}/> Votre réponse</p>
+                                    <p className="text-xs text-zinc-600 dark:text-zinc-400 italic">"{review.admin_reply}"</p>
+                                </div>
+                            )}
                             </div>
                         );
                     })}
@@ -3357,6 +3457,12 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                           <div className="flex items-center gap-1">{[...Array(5)].map((_, i) => <Star key={i} size={12} className={i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-400 dark:text-zinc-600'} />)}</div>
                         </div>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{review.comment}</p>
+                        {review.admin_reply && (
+                          <div className="mt-3 p-3 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-lg border-l-2 border-[#39FF14]">
+                            <p className="text-[10px] font-black uppercase text-[#39FF14] mb-1 flex items-center gap-1"><MessageSquare size={10}/> Réponse du vendeur</p>
+                            <p className="text-xs text-zinc-600 dark:text-zinc-300 italic">"{review.admin_reply}"</p>
+                          </div>
+                        )}
                       </div>
                     )) : <p className="text-xs text-zinc-500 dark:text-zinc-500 italic">Aucun avis pour ce produit.</p>}
                   </div>
@@ -5041,21 +5147,59 @@ interface QRCodeModalProps {
 
 function QRCodeModal({ product, onClose }: QRCodeModalProps) {
   const productUrl = `${window.location.origin}/vente?product=${product.id}`;
+  const [fgColor, setFgColor] = useState("#000000");
+  const [bgColor, setBgColor] = useState("#FFFFFF");
+
+  const downloadQRCode = () => {
+    const svg = document.getElementById("qr-code-svg");
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `QR_${product.name.replace(/\s+/g, "_")}.png`;
+      downloadLink.href = `${pngFile}`;
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white p-8 rounded-3xl w-full max-w-sm text-center shadow-2xl relative animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-        <button type="button" onClick={onClose} className="absolute top-4 right-4 text-zinc-400 bg-zinc-100 p-2 rounded-full hover:bg-zinc-200 transition z-10"><X size={20}/></button>
-        <h3 className="text-xl font-black text-black uppercase tracking-tighter mb-2">{product.name}</h3>
-        <p className="text-sm text-zinc-500 mb-6">Scannez pour voir ou partager ce produit.</p>
-        <div className="p-4 bg-white rounded-2xl border-4 border-black inline-block">
-          <QRCode value={productUrl} size={200} />
+      <div className="bg-white dark:bg-zinc-950 p-8 rounded-3xl w-full max-w-sm text-center shadow-2xl relative animate-in zoom-in-95 duration-200 border border-zinc-200 dark:border-zinc-800" onClick={e => e.stopPropagation()}>
+        <button type="button" onClick={onClose} className="absolute top-4 right-4 text-zinc-400 bg-zinc-100 dark:bg-zinc-800 p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition z-10"><X size={20}/></button>
+        <h3 className="text-xl font-black text-black dark:text-white uppercase tracking-tighter mb-2">{product.name}</h3>
+        <p className="text-sm text-zinc-500 mb-6">Personnalisez et téléchargez votre QR Code.</p>
+        <div className="p-4 bg-white rounded-2xl border-4 border-zinc-200 dark:border-zinc-800 inline-block mb-4">
+          <QRCode id="qr-code-svg" value={productUrl} size={200} fgColor={fgColor} bgColor={bgColor} />
         </div>
+        
+        <div className="flex justify-center gap-4 mb-4">
+           <div className="flex flex-col items-center">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase mb-1">Code</label>
+              <input type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent p-0" />
+           </div>
+           <div className="flex flex-col items-center">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase mb-1">Fond</label>
+              <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent p-0" />
+           </div>
+        </div>
+
+        <button onClick={downloadQRCode} className="w-full bg-[#39FF14] text-black py-3 rounded-xl font-bold text-xs uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg mb-4">
+           <Download size={16} /> Télécharger Image
+        </button>
+
         <input 
           type="text" 
           readOnly 
           value={productUrl} 
-          className="w-full mt-6 bg-zinc-100 text-zinc-600 text-xs p-3 rounded-lg border border-zinc-200 text-center"
+          className="w-full bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-xs p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 text-center outline-none focus:border-[#39FF14]"
           onFocus={(e) => e.target.select()}
         />
       </div>

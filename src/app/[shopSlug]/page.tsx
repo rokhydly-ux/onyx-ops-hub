@@ -234,12 +234,18 @@ export default function DynamicShopPage() {
 
       const { data: shopProducts } = await supabase.from("products").select("*").eq("shop_id", shop.id);
       if (shopProducts) {
-        setProducts(shopProducts.map((p: any) => ({
-            id: p.id, name: p.name, price: p.price, oldPrice: p.old_price,
-            description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
-            stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
-            videoUrl: p.video_url, reviewsList: []
-        })));
+        const productIds = shopProducts.map((p: any) => String(p.id));
+        const { data: reviewsData } = await supabase.from('reviews').select('*').in('reference_id', productIds);
+
+        setProducts(shopProducts.map((p: any) => {
+            const productReviews = reviewsData ? reviewsData.filter((r: any) => String(r.reference_id) === String(p.id)) : [];
+            return {
+                id: p.id, name: p.name, price: p.price, oldPrice: p.old_price,
+                description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
+                stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
+                videoUrl: p.video_url, reviewsList: productReviews
+            };
+        }));
         if (!shop.categories || shop.categories.length === 0) {
             const defaultCats = ['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires'];
             const uniqueCategories = Array.from(new Set(shopProducts.map((p:any) => p.category).filter(Boolean))) as string[];
