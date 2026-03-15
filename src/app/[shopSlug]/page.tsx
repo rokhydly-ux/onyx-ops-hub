@@ -222,7 +222,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   };
 
   const similarProducts = allProducts.filter((p: any) => p.category === product.category && p.id !== product.id).slice(0, 3);
-  const qtyInCart = cart.filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0);
+  const qtyInCart = (cart || []).filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0);
   const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
   const isOutOfStock = product.stock === 0;
 
@@ -296,7 +296,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         <button onClick={() => setActiveImage(product.image)} className={`w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === product.image ? 'border-[#39FF14]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                             <img src={product.image} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
                         </button>
-                        {product.gallery.map((img: string, idx: number) => (
+                        {(product.gallery || []).map((img: string, idx: number) => (
                             <button key={idx} onClick={() => setActiveImage(img)} className={`w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === img ? 'border-[#39FF14]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                                 <img src={img} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
                             </button>
@@ -338,7 +338,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                     <div className="mb-6">
                       <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Taille</p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants?.sizes?.map((size: string) => (
+                        {(product.variants?.sizes || []).map((size: string) => (
                           <button 
                             key={size} 
                             onClick={() => setSelectedSize(size)}
@@ -355,7 +355,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                     <div className="mb-6">
                       <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Couleur</p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants?.colors?.map((color: string) => (
+                        {(product.variants?.colors || []).map((color: string) => (
                           <button 
                             key={color} 
                             onClick={() => setSelectedColor(color)}
@@ -415,7 +415,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800">
                   <h4 className="text-sm font-bold text-zinc-500 dark:text-zinc-500 uppercase mb-4">Avis des clients</h4>
                   <div className="space-y-4 mb-6 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                    {(product.reviewsList || []).length > 0 ? product.reviewsList?.map((review: any) => (
+                    {(product.reviewsList || []).length > 0 ? (product.reviewsList || []).map((review: any) => (
                       <div key={review.id} className="bg-zinc-100 dark:bg-zinc-900 p-4 rounded-lg">
                         <div className="flex justify-between items-center">
                           <span className="font-bold text-sm text-black dark:text-white">{review.name}</span>
@@ -715,6 +715,49 @@ export default function DynamicShopPage() {
       return () => clearTimeout(timeoutId);
     }
   }, [customerInfo.phone, customerInfo.name, cart, isCheckoutModalOpen, shopInfo]);
+
+  // AUTO-REFRESH CATALOGUE SI INACTIF PENDANT 5 MINUTES
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    const fetchShopProductsSilently = async () => {
+      if (!shopInfo?.id) return;
+      const { data: shopProducts } = await supabase.from("products").select("*").eq("shop_id", shopInfo.id);
+      if (shopProducts) {
+        const productIds = shopProducts.map((p: any) => String(p.id));
+        const { data: reviewsData } = await supabase.from('reviews').select('*').in('reference_id', productIds);
+        setProducts(shopProducts.map((p: any) => {
+            const productReviews = reviewsData ? reviewsData.filter((r: any) => String(r.reference_id) === String(p.id)) : [];
+            return {
+                ...p,
+                oldPrice: p.old_price,
+                costPrice: p.cost_price,
+                videoUrl: p.video_url,
+                reviewsList: productReviews
+            };
+        }));
+      }
+    };
+
+    const resetIdleTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => { fetchShopProductsSilently(); }, 5 * 60 * 1000); // Rafraîchissement après 5 minutes d'inactivité
+    };
+
+    window.addEventListener('mousemove', resetIdleTimer);
+    window.addEventListener('keydown', resetIdleTimer);
+    window.addEventListener('scroll', resetIdleTimer);
+    window.addEventListener('touchstart', resetIdleTimer);
+    resetIdleTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', resetIdleTimer);
+      window.removeEventListener('keydown', resetIdleTimer);
+      window.removeEventListener('scroll', resetIdleTimer);
+      window.removeEventListener('touchstart', resetIdleTimer);
+    };
+  }, [shopInfo]);
 
   useEffect(() => {
     localStorage.setItem(`onyx_cart_${shopSlug}`, JSON.stringify(cart));
@@ -1322,7 +1365,7 @@ export default function DynamicShopPage() {
                             {product.old_price && product.old_price > product.price && <p className="text-sm text-zinc-400 line-through mb-1">{displayPrice(product.old_price, shopInfo.currency)}</p>}
                           </div>
                         </div>
-                        <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} disabled={product.stock === 0 || (product.stock !== undefined && cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-all flex items-center gap-2 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:scale-105 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">
+                        <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} disabled={product.stock === 0 || (product.stock !== undefined && (cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-all flex items-center gap-2 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:scale-105 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">
                           <Plus size={16} /> Ajouter au Panier
                         </button>
                       </div>
@@ -1763,7 +1806,7 @@ export default function DynamicShopPage() {
           onAddReview={handleAddReview}
           onGenerateQR={setQrCodeProduct}
           currency={shopInfo?.currency || 'FCFA'}
-          cart={cart}
+          cart={cart || []}
           shopPhone={shopInfo?.phone || ''}
         />
 
