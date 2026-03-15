@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, RefreshCcw,
   Store, MessageSquare, Sparkles, Heart, ChevronRight, Menu, ArrowRight, Star, Sun, Moon,
-  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft
+  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft, Printer
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
@@ -577,6 +577,8 @@ export default function DynamicShopPage() {
   const [loyaltyPhoneCheck, setLoyaltyPhoneCheck] = useState('');
   const [loyaltyResult, setLoyaltyResult] = useState<number | null>(null);
   const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const [currentCustomerPoints, setCurrentCustomerPoints] = useState(0);
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   
   // UI Additions
   const [homepageLayout, setHomepageLayout] = useState<any[] | null>(null);
@@ -755,6 +757,37 @@ export default function DynamicShopPage() {
     }
   }, [isLoading, products]);
 
+  // Calcul des points de fidélité pour le checkout
+  useEffect(() => {
+    const fetchCustomerPoints = async () => {
+      if (isCheckoutModalOpen && customerInfo.phone && shopInfo?.id) {
+          let orders: any[] = [];
+          const cleanPhone = customerInfo.phone.trim().replace(/\s+/g, '');
+          const corePhone = cleanPhone.length >= 9 ? cleanPhone.slice(-9) : cleanPhone;
+
+          const { data, error } = await supabase.from('orders')
+            .select('total_amount, points_used')
+            .eq('shop_id', shopInfo.id)
+            .ilike('customer_phone', `%${corePhone}%`)
+            .neq('status', 'Annulé');
+          
+          if (data && !error && data.length > 0) {
+              orders = data.map(o => ({ total: o.total_amount, pointsUsed: o.points_used }));
+          }
+          
+          let points = 0;
+          orders.forEach((order: any) => {
+              points += Math.floor(order.total / 1000);
+              if (order.pointsUsed) points -= order.pointsUsed;
+          });
+          setCurrentCustomerPoints(points);
+      } else {
+          setCurrentCustomerPoints(0);
+      }
+    };
+    fetchCustomerPoints();
+  }, [customerInfo.phone, isCheckoutModalOpen, shopInfo]);
+
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
@@ -833,7 +866,55 @@ export default function DynamicShopPage() {
   const deliveryCost = deliveryMethod === 'delivery' 
     ? (amountForFreeShipping === 0 ? 0 : (selectedZoneId ? (deliveryZones.find(z => z.id === selectedZoneId)?.price || 0) : 0))
     : 0;
-  const cartTotal = subTotal + deliveryCost;
+  const loyaltyDiscountAmount = useLoyaltyPoints ? Math.min(currentCustomerPoints * 10, subTotal) : 0;
+  const cartTotal = Math.max(0, subTotal + deliveryCost - loyaltyDiscountAmount);
+
+  const handlePrintQuote = () => {
+    if (cart.length === 0) return alert("Votre panier est vide.");
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return alert("Veuillez autoriser les pop-ups pour imprimer.");
+
+    const itemsHtml = cart.map(item => `
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 12px 15px; text-align: left;">${item.name} ${item.selectedVariant ? `<br><span style="font-size: 11px; color: #777;">${[item.selectedVariant.size, item.selectedVariant.color].filter(Boolean).join(', ')}</span>` : ''}</td>
+        <td style="padding: 12px 15px; text-align: center;">${item.quantity}</td>
+        <td style="padding: 12px 15px; text-align: right;">${displayPrice(item.price, shopInfo?.currency)}</td>
+        <td style="padding: 12px 15px; text-align: right; font-weight: bold;">${displayPrice(item.price * item.quantity, shopInfo?.currency)}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Devis - ${shopInfo?.name || 'Boutique'}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 40px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+            h1 { text-transform: uppercase; margin: 0 0 5px 0; color: #000; font-size: 32px; font-weight: 900; }
+            p { margin: 0; color: #555; }
+            table { width: 100%; border-collapse: collapse; margin-top: 30px; margin-bottom: 30px; }
+            th { background-color: #000; color: #fff; padding: 12px 15px; text-align: left; text-transform: uppercase; font-size: 12px; }
+            .totals { float: right; width: 300px; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+            .total-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+            .total-row.final { font-size: 20px; font-weight: bold; border-top: 2px solid #ddd; padding-top: 10px; color: #000; }
+          </style>
+        </head>
+        <body>
+          <div class="header"><div><h1>DEVIS</h1><p><strong>${shopInfo?.name || 'Boutique'}</strong></p></div><div><p>Date : ${new Date().toLocaleDateString('fr-FR')}</p></div></div>
+          <table>
+            <thead><tr><th>Désignation</th><th style="text-align: center;">Qté</th><th style="text-align: right;">P.U</th><th style="text-align: right;">Total</th></tr></thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
+          <div class="totals">
+            <div class="total-row"><span>Sous-total</span><span>${displayPrice(subTotal, shopInfo?.currency)}</span></div>
+            <div class="total-row final"><span>Total TTC</span><span>${displayPrice(subTotal, shopInfo?.currency)}</span></div>
+          </div>
+          <script>window.onload = () => { setTimeout(() => { window.print(); }, 250); }</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const confirmOrder = async () => {
     if (!customerInfo.name || !customerInfo.phone) return alert("Veuillez remplir votre nom et téléphone.");
@@ -841,6 +922,7 @@ export default function DynamicShopPage() {
 
     const trackingNumber = `CMD-${Math.floor(100000 + Math.random() * 900000)}`;
     const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
+    const pointsToUse = useLoyaltyPoints ? Math.floor(loyaltyDiscountAmount / 10) : 0;
 
     const orderPayload = {
       shop_id: shopInfo.id,
@@ -850,6 +932,7 @@ export default function DynamicShopPage() {
       delivery_instructions: customerInfo.instructions,
       items: cart,
       total_amount: cartTotal,
+      points_used: pointsToUse,
       status: 'En attente', // Passe de "Panier abandonné" à "En attente"
       delivery_method: deliveryMethod,
       delivery_zone: selectedZone ? selectedZone.name : null,
@@ -890,6 +973,9 @@ export default function DynamicShopPage() {
     } else {
         message += `\n🏬 Mode : Retrait en boutique`;
     }
+    if (useLoyaltyPoints && loyaltyDiscountAmount > 0) {
+        message += `\n🎁 Points Fidélité : -${displayPrice(loyaltyDiscountAmount, shopInfo.currency)}`;
+    }
     if (customerInfo.instructions) message += `\n📝 Instructions : ${customerInfo.instructions}`;
     
     const paymentText = paymentProvider === 'wave' ? 'Wave Mobile Money' : paymentProvider === 'orange_money' ? 'Orange Money' : 'Paiement à la livraison';
@@ -898,7 +984,7 @@ export default function DynamicShopPage() {
     message += `\n\nNous revenons vers vous sous 1h maximum pour confirmer la livraison.`;
 
     window.open(`https://wa.me/${String(shopInfo.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
-    setIsCheckoutModalOpen(false); setIsCartOpen(false); setCart([]); setIsOrderSuccessOpen(true);
+    setIsCheckoutModalOpen(false); setIsCartOpen(false); setCart([]); setUseLoyaltyPoints(false); setIsOrderSuccessOpen(true);
   };
 
   const handleTrackOrder = async (e: React.FormEvent) => {
@@ -1213,6 +1299,12 @@ export default function DynamicShopPage() {
                         <Heart size={18} className={`transition-all ${wishlist.includes(product.id) ? 'text-red-500 fill-red-500' : 'text-black dark:text-white'}`} />
                       </button>
                     </div>
+
+                    {trackedOrder.delivery_driver && trackedOrder.status !== 'Livré' && (
+                       <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 p-3 rounded-xl mb-6 text-xs font-bold border border-orange-200 dark:border-orange-500/20">
+                          <Truck size={16} /> Livreur assigné : {trackedOrder.delivery_driver}
+                       </div>
+                    )}
                     <div className="p-6 flex-1 flex flex-col">
                       <h3 className="text-xl font-bold tracking-tight text-black dark:text-white line-clamp-2">{product.name}</h3>
                       
@@ -1352,6 +1444,9 @@ export default function DynamicShopPage() {
                             <button onClick={() => { if(confirm("Voulez-vous vraiment vider votre panier ?")) { setCart([]); } }} className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded hover:bg-red-500 hover:text-white transition tracking-widest flex items-center gap-1">
                                 <Trash2 size={12} /> VIDER
                             </button>
+                            <button onClick={handlePrintQuote} className="text-[10px] font-bold text-zinc-600 bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 px-2 py-1 rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 transition tracking-widest flex items-center gap-1">
+                                <Printer size={12} /> DEVIS
+                            </button>
                         </div>
                     )}
                   </h2>
@@ -1463,6 +1558,22 @@ export default function DynamicShopPage() {
                  {deliveryMethod === 'delivery' && <textarea placeholder="Adresse de livraison détaillée (Numéro de rue, repère...)" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none transition" />}
               </div>
 
+              {currentCustomerPoints > 0 && (
+                  <div className="mb-6 space-y-3 bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border border-green-200 dark:border-green-800">
+                      <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-widest flex items-center gap-2"><Gift size={14}/> Vos points de fidélité</p>
+                          <p className="font-black text-green-600 dark:text-green-400">{currentCustomerPoints} pts</p>
+                      </div>
+                      <button 
+                          onClick={() => setUseLoyaltyPoints(!useLoyaltyPoints)}
+                          className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${useLoyaltyPoints ? 'bg-green-200 dark:bg-green-800' : 'bg-white dark:bg-zinc-800'}`}
+                      >
+                          <input type="checkbox" checked={useLoyaltyPoints} readOnly className="w-4 h-4 accent-green-600" />
+                          <span className="text-xs font-bold">Utiliser mes points pour une remise de {displayPrice(Math.min(currentCustomerPoints * 10, subTotal), shopInfo.currency)}</span>
+                      </button>
+                  </div>
+              )}
+
               <div className="space-y-3 mb-8 pr-2">
                 {cart.map(item => (
                   <div key={item.id} className="flex justify-between text-sm py-2 border-b border-zinc-100 dark:border-zinc-900">
@@ -1478,6 +1589,12 @@ export default function DynamicShopPage() {
                    <div className="flex justify-between items-center mb-2 text-xs text-zinc-500 dark:text-zinc-400 py-2 border-b border-zinc-100 dark:border-zinc-900">
                        <span className="font-bold">Frais de livraison ({deliveryZones.find(z => z.id === selectedZoneId)?.name || 'Non défini'})</span>
                        <span className="font-bold">{deliveryCost.toLocaleString()} FCFA</span>
+                   </div>
+                )}
+                {useLoyaltyPoints && loyaltyDiscountAmount > 0 && (
+                   <div className="flex justify-between items-center mb-2 text-xs text-green-600 dark:text-green-400 py-2 border-b border-zinc-100 dark:border-zinc-900">
+                       <span className="font-bold flex items-center gap-1"><Gift size={12}/> Points Fidélité</span>
+                       <span className="font-bold">-{displayPrice(loyaltyDiscountAmount, shopInfo.currency)}</span>
                    </div>
                 )}
                 <div className="pt-2 flex justify-between text-lg font-black text-[#39FF14]">
@@ -1544,17 +1661,56 @@ export default function DynamicShopPage() {
               </form>
 
               {trackedOrder && (
-                 <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 animate-in slide-in-from-bottom-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Résultat du suivi</p>
+                 <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 animate-in slide-in-from-bottom-2 mt-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Détails de la commande</p>
                     <div className="flex justify-between items-center mb-4">
                        <p className="font-bold text-black dark:text-white">{trackedOrder.tracking_number}</p>
-                       <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${trackedOrder.status === 'Livré' ? 'bg-green-100 text-green-700' : trackedOrder.status === 'Annulé' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                       <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${
+                           trackedOrder.status === 'Livré' ? 'bg-green-100 text-green-700' : 
+                           trackedOrder.status === 'Payé' ? 'bg-emerald-100 text-emerald-700' :
+                           trackedOrder.status === 'Expédié' ? 'bg-blue-100 text-blue-700' :
+                           trackedOrder.status === 'En cours de préparation' ? 'bg-purple-100 text-purple-700' :
+                           trackedOrder.status === 'Annulé' || trackedOrder.status === 'Retour article' ? 'bg-red-100 text-red-700' : 
+                           'bg-yellow-100 text-yellow-700'
+                       }`}>
                           {trackedOrder.status || 'En attente'}
                        </span>
                     </div>
-                    <div className="flex justify-between items-end pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                    <div className="flex justify-between items-end pb-4 border-b border-zinc-200 dark:border-zinc-800 mb-6">
                        <div><p className="text-[10px] font-bold text-zinc-500 uppercase">Date</p><p className="text-xs font-bold text-black dark:text-white">{new Date(trackedOrder.created_at).toLocaleDateString('fr-FR')}</p></div>
                        <div className="text-right"><p className="text-[10px] font-bold text-zinc-500 uppercase">Total</p><p className="text-sm font-black text-[#39FF14]">{displayPrice(trackedOrder.total_amount, shopInfo.currency)}</p></div>
+                    </div>
+
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Historique & Suivi</p>
+                    <div className="relative pl-3 border-l-2 border-zinc-200 dark:border-zinc-800 space-y-6">
+                       {(trackedOrder.history || [{status: trackedOrder.status || 'En attente', date: trackedOrder.created_at}]).map((h: any, i: number) => {
+                           const getStatusInfo = (status: string) => {
+                               switch(status) {
+                                   case 'En attente': return { color: 'bg-yellow-500', msg: 'Votre commande a bien été reçue et est en attente de traitement.' };
+                                   case 'Payé': return { color: 'bg-emerald-500', msg: 'Paiement confirmé. Nous préparons votre commande.' };
+                                   case 'En cours de préparation': return { color: 'bg-purple-500', msg: 'Votre commande est en cours de préparation par notre équipe.' };
+                                   case 'Expédié': return { color: 'bg-blue-500', msg: 'Votre colis a été remis au livreur et est en route !' };
+                                   case 'Livré': return { color: 'bg-green-500', msg: 'Votre commande a été livrée avec succès.' };
+                                   case 'Retour article': return { color: 'bg-red-500', msg: 'Le retour de votre article est en cours de traitement.' };
+                                   case 'Annulé': return { color: 'bg-red-500', msg: 'Votre commande a été annulée.' };
+                                   default: return { color: 'bg-zinc-500', msg: 'Mise à jour de la commande.' };
+                               }
+                           };
+                           const info = getStatusInfo(h.status);
+                           const isLast = i === (trackedOrder.history || []).length - 1;
+                           return (
+                               <div key={i} className="relative pb-4">
+                                  <div className={`absolute -left-[17px] top-1 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${info.color} ${isLast ? 'animate-pulse' : ''}`}></div>
+                                  <div className="pl-4">
+                                     <p className="text-xs font-black text-black dark:text-white uppercase">{h.status}</p>
+                                     <p className="text-[10px] text-zinc-500 mb-1">
+                                        {new Date(h.date).toLocaleDateString('fr-FR')} à {new Date(h.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}
+                                     </p>
+                                     <p className="text-xs text-zinc-600 dark:text-zinc-400">{info.msg}</p>
+                                  </div>
+                               </div>
+                           );
+                       })}
                     </div>
                  </div>
               )}

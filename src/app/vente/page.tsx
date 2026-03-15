@@ -670,6 +670,7 @@ export default function OnyxJaayShop() {
           trackingNumber: o.tracking_number,
           deliveryMethod: o.delivery_method,
           deliveryZone: o.delivery_zone,
+          delivery_driver: o.delivery_driver,
           history: o.history || [{ status: o.status || 'En attente', date: o.created_at || new Date().toISOString(), user: 'Système' }]
         }));
         setOrders(formattedOrders);
@@ -1073,7 +1074,7 @@ export default function OnyxJaayShop() {
   useEffect(() => {
     const fetchCustomerPoints = async () => {
       if (isCheckoutModalOpen && customerInfo.phone) {
-          let orders = [];
+          let orders: any[] = [];
           const { data, error } = await supabase.from('orders').select('*').eq('customer_phone', customerInfo.phone);
           
           if (data && !error && data.length > 0) {
@@ -2638,15 +2639,22 @@ export default function OnyxJaayShop() {
             </form>
 
             {trackedOrder && (
-               <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 animate-in slide-in-from-bottom-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Résultat du suivi</p>
+               <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 animate-in slide-in-from-bottom-2 mt-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Détails de la commande</p>
                   <div className="flex justify-between items-center mb-4">
                      <p className="font-bold text-black dark:text-white">{trackedOrder.trackingNumber || trackedOrder.tracking_number}</p>
-                     <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${trackedOrder.status === 'Livré' ? 'bg-green-100 text-green-700' : trackedOrder.status === 'Annulé' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                     <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${
+                         trackedOrder.status === 'Livré' ? 'bg-green-100 text-green-700' : 
+                         trackedOrder.status === 'Payé' ? 'bg-emerald-100 text-emerald-700' :
+                         trackedOrder.status === 'Expédié' ? 'bg-blue-100 text-blue-700' :
+                         trackedOrder.status === 'En cours de préparation' ? 'bg-purple-100 text-purple-700' :
+                         trackedOrder.status === 'Annulé' || trackedOrder.status === 'Retour article' ? 'bg-red-100 text-red-700' : 
+                         'bg-yellow-100 text-yellow-700'
+                     }`}>
                         {trackedOrder.status || 'En attente'}
                      </span>
                   </div>
-                  <div className="flex justify-between items-end pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                  <div className="flex justify-between items-end pb-4 border-b border-zinc-200 dark:border-zinc-800 mb-6">
                      <div>
                         <p className="text-[10px] font-bold text-zinc-500 uppercase">Date</p>
                         <p className="text-xs font-bold text-black dark:text-white">{new Date(trackedOrder.date || trackedOrder.created_at).toLocaleDateString('fr-FR')}</p>
@@ -2655,6 +2663,44 @@ export default function OnyxJaayShop() {
                         <p className="text-[10px] font-bold text-zinc-500 uppercase">Total</p>
                         <p className="text-sm font-black text-[#39FF14]">{displayPrice(trackedOrder.total || trackedOrder.total_amount, shopInfo.currency)}</p>
                      </div>
+                  </div>
+
+                  {trackedOrder.delivery_driver && trackedOrder.status !== 'Livré' && (
+                     <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 p-3 rounded-xl mb-6 text-xs font-bold border border-orange-200 dark:border-orange-500/20">
+                        <Truck size={16} /> Livreur assigné : {trackedOrder.delivery_driver}
+                     </div>
+                  )}
+
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Historique & Suivi</p>
+                  <div className="relative pl-3 border-l-2 border-zinc-200 dark:border-zinc-800 space-y-6">
+                     {(trackedOrder.history || [{status: trackedOrder.status || 'En attente', date: trackedOrder.date || trackedOrder.created_at}]).map((h: any, i: number) => {
+                         const getStatusInfo = (status: string) => {
+                             switch(status) {
+                                 case 'En attente': return { color: 'bg-yellow-500', msg: 'Votre commande a bien été reçue et est en attente de traitement.' };
+                                 case 'Payé': return { color: 'bg-emerald-500', msg: 'Paiement confirmé. Nous préparons votre commande.' };
+                                 case 'En cours de préparation': return { color: 'bg-purple-500', msg: 'Votre commande est en cours de préparation par notre équipe.' };
+                                 case 'Expédié': return { color: 'bg-blue-500', msg: 'Votre colis a été remis au livreur et est en route !' };
+                                 case 'Livré': return { color: 'bg-green-500', msg: 'Votre commande a été livrée avec succès.' };
+                                 case 'Retour article': return { color: 'bg-red-500', msg: 'Le retour de votre article est en cours de traitement.' };
+                                 case 'Annulé': return { color: 'bg-red-500', msg: 'Votre commande a été annulée.' };
+                                 default: return { color: 'bg-zinc-500', msg: 'Mise à jour de la commande.' };
+                             }
+                         };
+                         const info = getStatusInfo(h.status);
+                         const isLast = i === (trackedOrder.history || []).length - 1;
+                         return (
+                             <div key={i} className="relative pb-4">
+                                <div className={`absolute -left-[17px] top-1 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${info.color} ${isLast ? 'animate-pulse' : ''}`}></div>
+                                <div className="pl-4">
+                                   <p className="text-xs font-black text-black dark:text-white uppercase">{h.status}</p>
+                                   <p className="text-[10px] text-zinc-500 mb-1">
+                                      {new Date(h.date).toLocaleDateString('fr-FR')} à {new Date(h.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}
+                                   </p>
+                                   <p className="text-xs text-zinc-600 dark:text-zinc-400">{info.msg}</p>
+                                </div>
+                             </div>
+                         );
+                     })}
                   </div>
                </div>
             )}
@@ -3767,6 +3813,19 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         }
   };
 
+  const updateOrderDriver = async (orderId: number, driverName: string) => {
+        const updateFn = (o: any) => o.id === orderId ? { ...o, delivery_driver: driverName } : o;
+        if (selectedDayOrders) {
+            setSelectedDayOrders(prev => prev ? { ...prev, orders: prev.orders.map(updateFn) } : prev);
+        }
+        try {
+            await supabase.from('orders').update({ delivery_driver: driverName }).eq('id', orderId);
+            refreshOrders();
+        } catch (err) {
+            console.error(err);
+        }
+  };
+
   useEffect(() => {
     setLowStockProducts(products.filter(p => (p.stock || 0) < 5 && p.stock !== 0));
   }, [products]);
@@ -4567,19 +4626,58 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                                             <p className="font-bold text-sm text-black dark:text-white">{order.customer.name}</p>
                                             <p className="text-xs text-zinc-500">{order.customer.phone}</p>
                                             {order.trackingNumber && <p className="text-[10px] font-black uppercase text-zinc-400 mt-1">Réf: {order.trackingNumber}</p>}
+                                            {order.deliveryZone && <p className="text-[10px] font-bold text-zinc-500 mt-1 flex items-center gap-1">📍 {order.deliveryZone}</p>}
                                         </div>
                                         <div className="text-right flex flex-col items-end">
                                             <p className="font-black text-lg text-[#39FF14] leading-none mb-2">{displayPrice(order.total, currency)}</p>
                                             <select 
                                                 value={order.status || 'En attente'} 
                                                 onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                                className={`text-[10px] font-bold uppercase px-2 py-1 rounded outline-none cursor-pointer border ${order.status === 'Livré' ? 'bg-green-100 text-green-700 border-green-200' : order.status === 'Annulé' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}
+                                                className={`text-[10px] font-bold uppercase px-2 py-1 rounded outline-none cursor-pointer border ${
+                                                    order.status === 'Livré' ? 'bg-green-100 text-green-700 border-green-200' : 
+                                                    order.status === 'Payé' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                                    order.status === 'Expédié' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                    order.status === 'En cours de préparation' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                                    order.status === 'Annulé' || order.status === 'Retour article' ? 'bg-red-100 text-red-700 border-red-200' : 
+                                                    'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                                }`}
                                             >
                                                 <option value="En attente">En attente</option>
-                                                <option value="En cours">En cours</option>
+                                                <option value="Payé">Payé</option>
+                                                <option value="En cours de préparation">En cours de préparation</option>
+                                                <option value="Expédié">Expédié</option>
                                                 <option value="Livré">Livré</option>
+                                                <option value="Retour article">Retour article</option>
                                                 <option value="Annulé">Annulé</option>
                                             </select>
+                                            
+                                            {/* Assignation Livreur (Onyx Tiak) */}
+                                            {(order.deliveryMethod === 'delivery' || order.delivery_method === 'delivery') && (
+                                                <div className="mt-2 flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1 bg-white dark:bg-zinc-800">
+                                                        <Truck size={12} className="text-orange-500" />
+                                                        <input 
+                                                            type="text"
+                                                            placeholder="Livreur..."
+                                                            value={order.delivery_driver || ''}
+                                                            onChange={(e) => updateOrderDriver(order.id, e.target.value)}
+                                                            className="text-[10px] font-bold outline-none bg-transparent text-black dark:text-white w-20 placeholder:text-zinc-400"
+                                                        />
+                                                    </div>
+                                                    {order.delivery_driver && (
+                                                        <button 
+                                                            onClick={() => {
+                                                                const msg = `📦 *NOUVELLE COURSE*\n\n*Client:* ${order.customer?.name}\n*Téléphone:* ${order.customer?.phone}\n*Adresse:* ${order.deliveryZone || order.delivery_zone || ''} - ${order.customer?.address || 'Non spécifiée'}\n\n*Commande:* ${order.items?.map((i: any) => `${i.name} (x${i.quantity})`).join(', ')}\n\n*Montant à encaisser:* ${displayPrice(order.total, currency)}\n*Instructions:* ${order.customer?.instructions || 'Aucune'}`;
+                                                                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                                                            }}
+                                                            className="p-1.5 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white rounded-lg transition-colors"
+                                                            title="Envoyer la course au livreur sur WhatsApp"
+                                                        >
+                                                            <MessageSquare size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="mt-3 flex justify-between items-center border-t border-zinc-200 dark:border-zinc-800 pt-3">
