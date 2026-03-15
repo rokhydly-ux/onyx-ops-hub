@@ -1001,15 +1001,17 @@ export default function DynamicShopPage() {
     if (draftId) {
       const { error } = await supabase.from('orders').update(orderPayload).eq('id', draftId);
       if (error) {
-        console.error("Erreur lors de la mise à jour de la commande:", error);
-        alert("Erreur lors de l'enregistrement de la commande");
+        console.error("ERREUR SUPABASE ORDER:", error);
+        alert("Erreur lors de la commande : " + error.message);
+        return; // On empêche l'ouverture de WhatsApp si la BDD a échoué
       }
       setDraftId(null);
     } else {
       const { error } = await supabase.from('orders').insert([orderPayload]);
       if (error) {
-        console.error("Erreur lors de l'insertion de la commande:", error);
-        alert("Erreur lors de l'enregistrement de la commande");
+        console.error("ERREUR SUPABASE ORDER:", error);
+        alert("Erreur lors de la commande : " + error.message);
+        return; // On empêche l'ouverture de WhatsApp si la BDD a échoué
       }
     }
 
@@ -1128,10 +1130,15 @@ export default function DynamicShopPage() {
   if (isLoading) return <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-black"><div className="w-16 h-16 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_#39FF14]"></div></div>;
   if (error || !shopInfo) return <div className="flex flex-col h-screen items-center justify-center bg-zinc-50 dark:bg-black text-center p-6"><AlertTriangle size={64} className="text-zinc-300 mb-6" /><h1 className="text-3xl font-black uppercase text-black dark:text-white mb-2">Boutique Introuvable</h1><p className="text-zinc-500">Cette boutique n'existe pas ou a été désactivée.</p></div>;
 
-  const filteredProducts = products.filter(p => {
+  const safeProducts = products || [];
+  const filteredProducts = safeProducts.filter(p => {
     if (p.stock === 0) return false;
     const matchesCategory = activeCategory === 'Toutes' ? true : activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory;
-    const matchesSearch = !searchTerm || (p.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || (p.description || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || (p.category || '').toLowerCase().includes((searchTerm || '').toLowerCase());
+    const search = (searchTerm || '').toLowerCase();
+    const matchesSearch = search === '' || 
+      (p.name?.toLowerCase() || '').includes(search) || 
+      (p.description?.toLowerCase() || '').includes(search) || 
+      (p.category?.toLowerCase() || '').includes(search);
     const matchesMinPrice = minPrice === '' || p.price >= minPrice;
     const matchesMaxPrice = maxPrice === '' || p.price <= maxPrice;
     return matchesCategory && matchesSearch && matchesMinPrice && matchesMaxPrice;

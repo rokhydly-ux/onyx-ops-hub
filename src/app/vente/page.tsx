@@ -1822,7 +1822,8 @@ export default function OnyxJaayShop() {
       }
   };
 
-  const filteredProducts = products.filter(p => {
+  const safeProducts = products || [];
+  const filteredProducts = safeProducts.filter(p => {
     const matchesCategory = activeCategory === 'Toutes' 
       ? true 
       : activeCategory === 'Favoris'
@@ -1830,7 +1831,11 @@ export default function OnyxJaayShop() {
       : p.category === activeCategory;
     const matchesMinPrice = minPrice === '' || p.price >= minPrice;
     const matchesMaxPrice = maxPrice === '' || p.price <= maxPrice;
-    const matchesSearch = !searchTerm || (p.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || (p.description || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || (p.category || '').toLowerCase().includes((searchTerm || '').toLowerCase());
+    const search = (searchTerm || '').toLowerCase();
+    const matchesSearch = search === '' || 
+      (p.name?.toLowerCase() || '').includes(search) || 
+      (p.description?.toLowerCase() || '').includes(search) || 
+      (p.category?.toLowerCase() || '').includes(search);
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
   }).sort((a, b) => {
