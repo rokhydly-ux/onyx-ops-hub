@@ -1519,15 +1519,16 @@ export default function OnyxJaayShop() {
       if (!shopId) return;
       if (confirm("Voulez-vous générer 40 produits de démonstration (Images, Prix, Variants, Vidéos) ?\nCela s'ajoutera à votre catalogue actuel.")) {
           const seedData = initialProducts.map(p => ({
-              shop_id: shopId, name: p.name, price: p.price, cost_price: p.costPrice, old_price: p.oldPrice,
-              description: p.description, image: p.image, gallery: p.gallery, category: p.category,
-              stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants, video_url: p.videoUrl
+              shop_id: shopId, name: p.name, price: p.price, cost_price: p.costPrice || 0, old_price: p.oldPrice || null,
+              description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
+              stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] }, video_url: p.videoUrl || null
           }));
           const { error } = await supabase.from('products').insert(seedData);
           if (!error) {
               alert("40 Produits générés avec succès ! La page va se recharger.");
               window.location.reload();
           } else {
+              console.error("Supabase Generate Error:", error);
               alert("Erreur lors de la génération : " + error.message);
           }
       }
@@ -3221,6 +3222,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   const [selectedDayOrders, setSelectedDayOrders] = useState<{date: string, orders: any[]} | null>(null);
   const [historyModalOrder, setHistoryModalOrder] = useState<any | null>(null);
   const [popularCategory, setPopularCategory] = useState('Toutes');
+  const [showAbandoned, setShowAbandoned] = useState(false);
 
   const productCategories = ['Toutes', ...Array.from(new Set(products.map(p => p.category)))];
 
@@ -3274,6 +3276,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
     const isPeriodSelected = dateFilter.start && dateFilter.end;
 
     const currentOrders = orders.filter(o => {
+        if (o.status === 'Panier abandonné') return false; // Ne pas compter dans les stats
         if (!isPeriodSelected) return true;
         const d = new Date(o.date);
         const start = new Date(dateFilter.start);
@@ -3352,6 +3355,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
     const categorySales: Record<string, number> = {};
     const isPeriodSelected = dateFilter.start && dateFilter.end;
     const currentOrders = orders.filter(o => {
+        if (o.status === 'Panier abandonné') return false;
         if (!isPeriodSelected) return true;
         const d = new Date(o.date);
         const start = new Date(dateFilter.start);
@@ -3393,7 +3397,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
       const dayStr = d.toISOString().split('T')[0];
       
       const dailyTotal = orders
-        .filter(o => o.date.startsWith(dayStr))
+        .filter(o => o.date.startsWith(dayStr) && o.status !== 'Panier abandonné')
         .reduce((sum, o) => sum + o.total, 0);
         
       data.push({ 
@@ -3423,7 +3427,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   const newClientsChartData = useMemo(() => {
     const firstOrders = new Map<string, Date>();
     orders.forEach(o => {
-        if (o.customer?.phone && o.status !== 'Annulé') {
+        if (o.customer?.phone && o.status !== 'Annulé' && o.status !== 'Panier abandonné') {
             const orderDate = new Date(o.date);
             const existing = firstOrders.get(o.customer.phone);
             if (!existing || orderDate < existing) {
@@ -3745,6 +3749,51 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} />
         <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={displayPrice(averageOrderValue, currency)} colorClass="text-purple-500" trend={avgOrderTrend} />
       </div>
+
+      {/* ABANDONNED CARTS ALERT */}
+      {orders.filter(o => o.status === 'Panier abandonné').length > 0 && (
+        <div className="mb-8 bg-orange-50 dark:bg-orange-500/10 border-l-4 border-orange-500 p-4 sm:p-6 rounded-r-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="text-orange-500" size={24} />
+            <div>
+              <p className="font-black text-orange-700 dark:text-orange-400">Paniers Abandonnés détectés</p>
+              <p className="text-sm text-orange-600 dark:text-orange-500">{orders.filter(o => o.status === 'Panier abandonné').length} client(s) ont commencé une commande sans la terminer.</p>
+            </div>
+          </div>
+          <button onClick={() => setShowAbandoned(!showAbandoned)} className="bg-orange-500 text-white px-6 py-3 rounded-xl font-black text-xs uppercase hover:bg-orange-600 transition shadow-lg shrink-0">
+            {showAbandoned ? 'Masquer' : 'Voir les paniers'}
+          </button>
+        </div>
+      )}
+
+      {showAbandoned && (
+        <div className="mb-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-4">
+          <h3 className="font-black uppercase text-xl mb-4">Relance WhatsApp</h3>
+          <div className="space-y-3">
+            {orders.filter(o => o.status === 'Panier abandonné').map(order => (
+              <div key={order.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 gap-4">
+                <div>
+                  <p className="font-bold text-sm text-black dark:text-white">{order.customer?.name || 'Client Anonyme'}</p>
+                  <p className="text-xs text-zinc-500 mt-1">{order.customer?.phone}</p>
+                  <p className="text-xs text-zinc-400 mt-2 line-clamp-1">{order.items?.map((i: any) => `${i.name} (x${i.quantity})`).join(', ')}</p>
+                </div>
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <p className="font-black text-lg text-[#39FF14]">{displayPrice(order.total, currency)}</p>
+                  <button 
+                    onClick={() => {
+                      const msg = `Bonjour ${order.customer?.name || ''}, nous avons remarqué que vous n'avez pas finalisé votre commande de ${displayPrice(order.total, currency)} sur *${shopName}*. Avez-vous rencontré un problème ? Si vous le souhaitez, nous pouvons valider votre panier directement ici ! 🛒`;
+                      window.open(`https://wa.me/${String(order.customer?.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    className="flex-1 sm:flex-none bg-[#25D366] text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-[#1ebd58] transition shadow-md flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare size={14} /> Relancer
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sales Chart */}
@@ -4253,9 +4302,13 @@ function ShopClients({ currency, orders, onClientSelect, onRunIaScan }: { curren
                             </div>
                         </div>
                         <div className="flex justify-between items-center pt-4 border-t border-zinc-100 dark:border-zinc-800 gap-4">
-                            <div className="flex items-center gap-2">
-                                <Gift size={16} className="text-[#39FF14]"/>
-                                <p className="font-black text-lg">{client.loyaltyPoints || 0}</p>
+                            <div className="flex flex-col items-start">
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase">Points Fidélité</p>
+                                <div className="flex items-center gap-2 text-[#39FF14]">
+                                    <Gift size={16}/>
+                                    <p className="font-black text-lg">{client.loyaltyPoints || 0}</p>
+                                </div>
+                                <p className="text-[9px] text-zinc-500 font-bold">= {((client.loyaltyPoints || 0) * 10).toLocaleString()} F</p>
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-zinc-400 uppercase">Dépensé</p>

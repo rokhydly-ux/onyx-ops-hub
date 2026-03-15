@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, 
   Store, MessageSquare, Sparkles, Heart, ChevronRight, Menu, ArrowRight, Star, Sun, Moon,
-  Package, QrCode, Share2, ArrowUp, ArrowDown
+  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
@@ -56,6 +56,7 @@ export default function DynamicShopPage() {
   const [paymentProvider, setPaymentProvider] = useState<'cod' | 'wave' | 'orange_money'>('cod');
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '', instructions: '' });
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   // Tracking & Reviews
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
@@ -63,6 +64,12 @@ export default function DynamicShopPage() {
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+  
+  // Loyalty System
+  const [isLoyaltyModalOpen, setIsLoyaltyModalOpen] = useState(false);
+  const [loyaltyPhoneCheck, setLoyaltyPhoneCheck] = useState('');
+  const [loyaltyResult, setLoyaltyResult] = useState<number | null>(null);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('onyx_jaay_theme') || 'dark';
@@ -113,6 +120,37 @@ export default function DynamicShopPage() {
     };
     fetchShopData();
   }, [shopSlug]);
+
+  // 🚀 SAUVEGARDE SILENCIEUSE DU PANIER ABANDONNÉ
+  useEffect(() => {
+    if (isCheckoutModalOpen && customerInfo.phone.length >= 9 && cart.length > 0 && shopInfo?.id) {
+      const timeoutId = setTimeout(async () => {
+        try {
+          if (!draftId) {
+            const tempTracking = `DRF-${Math.floor(100000 + Math.random() * 900000)}`;
+            const { data } = await supabase.from('orders').insert([{
+              shop_id: shopInfo.id,
+              customer_name: customerInfo.name || 'Visiteur',
+              customer_phone: customerInfo.phone,
+              items: cart,
+              total_amount: cartTotal,
+              status: 'Panier abandonné',
+              tracking_number: tempTracking
+            }]).select().single();
+            if (data) setDraftId(data.id);
+          } else {
+            await supabase.from('orders').update({
+              customer_name: customerInfo.name || 'Visiteur',
+              customer_phone: customerInfo.phone,
+              items: cart,
+              total_amount: cartTotal
+            }).eq('id', draftId);
+          }
+        } catch (e) {}
+      }, 1500); // 1.5s après la dernière frappe pour ne pas spammer la base
+      return () => clearTimeout(timeoutId);
+    }
+  }, [customerInfo.phone, customerInfo.name, cart, isCheckoutModalOpen, shopInfo]);
 
   useEffect(() => {
     localStorage.setItem(`onyx_cart_${shopSlug}`, JSON.stringify(cart));
@@ -211,19 +249,26 @@ export default function DynamicShopPage() {
     const trackingNumber = `CMD-${Math.floor(100000 + Math.random() * 900000)}`;
     const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
 
-    await supabase.from('orders').insert([{
-        shop_id: shopInfo.id,
-        customer_name: customerInfo.name,
-        customer_phone: customerInfo.phone,
-        customer_address: customerInfo.address,
-        delivery_instructions: customerInfo.instructions,
-        items: cart,
-        total_amount: cartTotal,
-        status: 'En attente',
-        delivery_method: deliveryMethod,
-        delivery_zone: selectedZone ? selectedZone.name : null,
-        tracking_number: trackingNumber
-    }]);
+    const orderPayload = {
+      shop_id: shopInfo.id,
+      customer_name: customerInfo.name,
+      customer_phone: customerInfo.phone,
+      customer_address: customerInfo.address,
+      delivery_instructions: customerInfo.instructions,
+      items: cart,
+      total_amount: cartTotal,
+      status: 'En attente', // Passe de "Panier abandonné" à "En attente"
+      delivery_method: deliveryMethod,
+      delivery_zone: selectedZone ? selectedZone.name : null,
+      tracking_number: trackingNumber
+    };
+
+    if (draftId) {
+      await supabase.from('orders').update(orderPayload).eq('id', draftId);
+      setDraftId(null);
+    } else {
+      await supabase.from('orders').insert([orderPayload]);
+    }
 
     let message = `👋 Bonjour ! Je souhaite passer commande sur ${shopInfo.name} :\n\n📦 *Numéro de suivi :* ${trackingNumber}\n\n`;
     cart.forEach(item => { 
@@ -272,6 +317,30 @@ export default function DynamicShopPage() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  const handleCheckLoyalty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoyaltyLoading(true);
+    const cleanPhone = loyaltyPhoneCheck.trim().replace(/\s+/g, '');
+    const corePhone = cleanPhone.length >= 9 ? cleanPhone.slice(-9) : cleanPhone;
+    
+    try {
+        const { data, error } = await supabase.from('orders').select('total_amount, points_used').eq('shop_id', shopInfo.id).ilike('customer_phone', `%${corePhone}%`).neq('status', 'Annulé');
+        if (data && !error && data.length > 0) {
+            let pts = 0;
+            data.forEach(o => {
+                pts += Math.floor(o.total_amount / 1000);
+                if (o.points_used) pts -= o.points_used;
+            });
+            setLoyaltyResult(pts);
+        } else {
+            setLoyaltyResult(0);
+        }
+    } catch (err) {
+        setLoyaltyResult(0);
+    }
+    setLoyaltyLoading(false);
+  };
+
   if (isLoading) return <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-black"><div className="w-16 h-16 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_#39FF14]"></div></div>;
   if (error || !shopInfo) return <div className="flex flex-col h-screen items-center justify-center bg-zinc-50 dark:bg-black text-center p-6"><AlertTriangle size={64} className="text-zinc-300 mb-6" /><h1 className="text-3xl font-black uppercase text-black dark:text-white mb-2">Boutique Introuvable</h1><p className="text-zinc-500">Cette boutique n'existe pas ou a été désactivée.</p></div>;
 
@@ -309,6 +378,9 @@ export default function DynamicShopPage() {
                   </button>
                   <button onClick={() => { setIsTrackingModalOpen(true); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:text-black dark:hover:text-white`}>
                     <Package size={18} /> Suivi Commande
+                  </button>
+                  <button onClick={() => { setIsLoyaltyModalOpen(true); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:text-black dark:hover:text-white`}>
+                    <Gift size={18} className="text-[#39FF14]"/> Programme Fidélité
                   </button>
                 </nav>
 
@@ -716,6 +788,38 @@ export default function DynamicShopPage() {
                        <div><p className="text-[10px] font-bold text-zinc-500 uppercase">Date</p><p className="text-xs font-bold text-black dark:text-white">{new Date(trackedOrder.created_at).toLocaleDateString('fr-FR')}</p></div>
                        <div className="text-right"><p className="text-[10px] font-bold text-zinc-500 uppercase">Total</p><p className="text-sm font-black text-[#39FF14]">{displayPrice(trackedOrder.total_amount, shopInfo.currency)}</p></div>
                     </div>
+                 </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* --- LOYALTY MODAL --- */}
+        {isLoyaltyModalOpen && (
+          <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsLoyaltyModalOpen(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95">
+              <button onClick={() => setIsLoyaltyModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+              <div className="flex items-center gap-3 mb-6">
+                 <div className="p-3 bg-[#39FF14]/10 rounded-xl text-[#39FF14]"><Gift size={24}/></div>
+                 <h3 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white">Fidélité</h3>
+              </div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">Gagnez 1 point pour chaque 1000 FCFA dépensés. 1 point = 10 FCFA de réduction sur votre prochaine commande !</p>
+              
+              <form onSubmit={handleCheckLoyalty} className="mb-6 flex gap-2">
+                 <input 
+                    type="tel" placeholder="Votre n° WhatsApp" value={loyaltyPhoneCheck} onChange={(e) => setLoyaltyPhoneCheck(e.target.value)} required
+                    className="flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 font-bold outline-none focus:border-[#39FF14] text-sm text-black dark:text-white" 
+                 />
+                 <button type="submit" disabled={loyaltyLoading} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition disabled:opacity-50 flex items-center gap-2">
+                    {loyaltyLoading ? '...' : 'Vérifier'}
+                 </button>
+              </form>
+
+              {loyaltyResult !== null && (
+                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-5 animate-in slide-in-from-bottom-2 text-center">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-green-600 dark:text-green-400 mb-2">Solde de points</p>
+                    <p className="text-5xl font-black text-green-600 dark:text-green-400 mb-2">{loyaltyResult}</p>
+                    <p className="text-sm font-bold text-green-700 dark:text-green-500">soit {(loyaltyResult * 10).toLocaleString()} FCFA de réduction</p>
                  </div>
               )}
             </div>
