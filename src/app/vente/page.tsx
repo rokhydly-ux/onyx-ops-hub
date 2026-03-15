@@ -625,6 +625,12 @@ export default function OnyxJaayShop() {
           history: o.history || [{ status: o.status || 'En attente', date: o.created_at || new Date().toISOString(), user: 'Système' }]
         }));
         setOrders(formattedOrders);
+      } else {
+        // Restauration de l'historique local si Supabase est vide
+        const savedOrders = localStorage.getItem('onyx_jaay_orders');
+        if (savedOrders) {
+            try { setOrders(JSON.parse(savedOrders)); } catch(e) {}
+        }
       }
   };
 
@@ -668,6 +674,15 @@ export default function OnyxJaayShop() {
                 stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
                 videoUrl: p.video_url, reviewsList: []
             })));
+          } else {
+            // 🚀 AUTO-REMPLISSAGE : Si 0 produit, on restaure les 30 articles de démonstration
+            setProducts(initialProducts);
+            const seedData = initialProducts.map(p => ({
+                shop_id: shop.id, name: p.name, price: p.price, cost_price: p.costPrice, old_price: p.oldPrice,
+                description: p.description, image: p.image, category: p.category,
+                stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants
+            }));
+            supabase.from('products').insert(seedData).then(() => console.log("Produits restaurés dans Supabase"));
           }
           fetchOrders(shop.id);
       }
@@ -1562,11 +1577,9 @@ export default function OnyxJaayShop() {
               </div>
               <div className="flex-1 overflow-y-auto py-6">
                 <div className="px-4 mb-6">
-              {shopInfo.slug && (
-                <button onClick={() => window.open(`/${shopInfo.slug}`, '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black transition bg-[#39FF14] text-black hover:bg-white shadow-[0_0_20px_rgba(57,255,20,0.3)] mb-6 uppercase text-xs">
+                <button onClick={() => window.open(`/${shopInfo.slug || 'keur-yaay'}`, '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black transition bg-[#39FF14] text-black hover:bg-white shadow-[0_0_20px_rgba(57,255,20,0.3)] mb-6 uppercase text-xs">
                   <ExternalLink size={16} /> Voir ma boutique
                 </button>
-              )}
                   <input 
                     type="text" 
                     placeholder="Rechercher..." 
@@ -1680,8 +1693,8 @@ export default function OnyxJaayShop() {
         
         <div className="flex-1 overflow-y-auto py-6">
           <div className="px-4 mb-6">
-            {isEditingMode && shopInfo.slug && (
-                <button onClick={() => window.open(`/${shopInfo.slug}`, '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black transition bg-[#39FF14] text-black hover:bg-white shadow-[0_0_20px_rgba(57,255,20,0.3)] mb-6 uppercase text-xs">
+            {isEditingMode && (
+                <button onClick={() => window.open(`/${shopInfo.slug || 'keur-yaay'}`, '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black transition bg-[#39FF14] text-black hover:bg-white shadow-[0_0_20px_rgba(57,255,20,0.3)] mb-6 uppercase text-xs">
                   <ExternalLink size={16} /> Voir ma boutique
                 </button>
             )}
@@ -1821,17 +1834,17 @@ export default function OnyxJaayShop() {
           <div className="flex items-center gap-4 pointer-events-auto ml-auto">
           <button onClick={() => setIsCartOpen(true)} className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
             <div className="relative">
-              {isEditingMode && shopInfo.slug && (
+              {isEditingMode && (
                 <div className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900/50 p-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 backdrop-blur-md">
                     <button 
-                        onClick={() => window.open(`/${shopInfo.slug}`, '_blank')}
+                        onClick={() => window.open(`/${shopInfo.slug || 'keur-yaay'}`, '_blank')}
                         className="px-4 py-2 bg-black text-white rounded-full text-xs font-bold flex items-center gap-2 hover:bg-zinc-800 transition-colors"
                     >
                         <ExternalLink size={14} /> Voir ma boutique
                     </button>
                     <button 
                         onClick={() => {
-                            const url = `${window.location.origin}/${shopInfo.slug}`;
+                            const url = `${window.location.origin}/${shopInfo.slug || 'keur-yaay'}`;
                             navigator.clipboard.writeText(url);
                             alert("Lien de la boutique copié !");
                         }}

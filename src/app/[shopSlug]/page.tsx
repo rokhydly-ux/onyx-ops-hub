@@ -53,6 +53,7 @@ export default function DynamicShopPage() {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
+  const [paymentProvider, setPaymentProvider] = useState<'cod' | 'wave' | 'orange_money'>('cod');
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '', instructions: '' });
 
@@ -230,6 +231,9 @@ export default function DynamicShopPage() {
         message += `\n🏬 Mode : Retrait en boutique`;
     }
     if (customerInfo.instructions) message += `\n📝 Instructions : ${customerInfo.instructions}`;
+    
+    const paymentText = paymentProvider === 'wave' ? 'Wave Mobile Money' : paymentProvider === 'orange_money' ? 'Orange Money' : 'Paiement à la livraison';
+    message += `\n💳 Paiement : ${paymentText}`;
     message += `\n*Total à payer : ${displayPrice(cartTotal, shopInfo.currency)}*`;
 
     window.open(`https://wa.me/${String(shopInfo.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
@@ -624,6 +628,24 @@ export default function DynamicShopPage() {
                   <input type="tel" placeholder="Votre Téléphone *" value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 outline-none focus:border-black text-black dark:text-white" />
                   {deliveryMethod === 'delivery' && <textarea placeholder="Adresse de livraison détaillée (Numéro de rue, repère...)" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none" />}
               </div>
+
+              <div className="mb-8">
+                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3">Moyen de paiement</p>
+                 <div className="grid grid-cols-3 gap-2">
+                    <button onClick={() => setPaymentProvider('cod')} className={`py-3 px-2 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${paymentProvider === 'cod' ? 'border-black dark:border-white bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-50 dark:bg-zinc-900 text-zinc-500'}`}>
+                       <span className="text-[10px] font-black uppercase text-center leading-tight">À la livraison</span>
+                    </button>
+                    <button onClick={() => setPaymentProvider('wave')} className={`py-3 px-2 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${paymentProvider === 'wave' ? 'border-[#1eb2e8] bg-[#1eb2e8]/10 text-[#1eb2e8] shadow-md' : 'border-transparent bg-zinc-50 dark:bg-zinc-900 text-zinc-500'}`}>
+                       <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-4 object-contain" />
+                       <span className="text-[10px] font-black uppercase">Wave</span>
+                    </button>
+                    <button onClick={() => setPaymentProvider('orange_money')} className={`py-3 px-2 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${paymentProvider === 'orange_money' ? 'border-[#ff6600] bg-[#ff6600]/10 text-[#ff6600] shadow-md' : 'border-transparent bg-zinc-50 dark:bg-zinc-900 text-zinc-500'}`}>
+                       <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="OM" className="h-4 object-contain" />
+                       <span className="text-[10px] font-black uppercase text-center leading-tight">Orange M.</span>
+                    </button>
+                 </div>
+              </div>
+
               <button onClick={confirmOrder} className="w-full py-4 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase hover:bg-white transition flex items-center justify-center gap-2 shadow-lg"><MessageSquare size={18}/> Envoyer sur WhatsApp</button>
             </div>
           </div>
