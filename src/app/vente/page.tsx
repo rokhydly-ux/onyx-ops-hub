@@ -105,7 +105,8 @@ const initialShopInfo = {
   logoUrl: '',
   currency: 'FCFA',
   deliveryOptions: { delivery: true, pickup: true },
-  openingHours: { start: '09:00', end: '18:00', enabled: false }
+  openingHours: { start: '09:00', end: '18:00', enabled: false },
+  slug: ''
 };
 
 const CONVERSION_RATES: Record<string, { rate: number; symbol: string }> = {
@@ -654,7 +655,8 @@ export default function OnyxJaayShop() {
               logoUrl: shop.logo_url || '',
               currency: shop.currency || 'FCFA',
               deliveryOptions: shop.delivery_options || { delivery: true, pickup: true },
-              openingHours: shop.opening_hours || { start: '09:00', end: '18:00', enabled: false }
+              openingHours: shop.opening_hours || { start: '09:00', end: '18:00', enabled: false },
+              slug: shop.slug || ''
           });
 
           const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
@@ -1546,6 +1548,11 @@ export default function OnyxJaayShop() {
               </div>
               <div className="flex-1 overflow-y-auto py-6">
                 <div className="px-4 mb-6">
+              {shopInfo.slug && (
+                <button onClick={() => window.open(`/${shopInfo.slug}`, '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black transition bg-[#39FF14] text-black hover:bg-white shadow-[0_0_20px_rgba(57,255,20,0.3)] mb-6 uppercase text-xs">
+                  <Store size={16} /> Voir ma boutique
+                </button>
+              )}
                   <input 
                     type="text" 
                     placeholder="Rechercher..." 
@@ -2051,6 +2058,7 @@ export default function OnyxJaayShop() {
               onResetData={handleResetData}
               onClearOrders={handleClearOrders}
               currency={shopInfo.currency}
+          shopId={shopId}
             />
         )}
         {shopView === 'page-builder' && (
@@ -4193,9 +4201,10 @@ interface ShopSettingsProps {
   onResetData: () => void;
   onClearOrders: () => void;
   currency: string;
+  shopId: string | null;
 }
 
-function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, categories, setCategories, onResetData, onClearOrders, currency }: ShopSettingsProps) {
+function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, categories, setCategories, onResetData, onClearOrders, currency, shopId }: ShopSettingsProps) {
   const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed', singleUse: false, minPurchase: '', expirationDate: '' });
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
   
@@ -4277,8 +4286,20 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
     if(confirm("Supprimer cette zone ?")) setDeliveryZones(prev => prev.filter(z => z.id !== id));
   };
 
-  const handleSaveInfo = () => {
-    alert("Les informations de la boutique ont été enregistrés avec succès !");
+  const handleSaveInfo = async () => {
+    if (!shopId) return;
+    const { error } = await supabase.from('shops').update({
+        name: shopInfo.name,
+        description: shopInfo.description,
+        phone: shopInfo.phone,
+        logo_url: shopInfo.logoUrl,
+        currency: shopInfo.currency,
+        delivery_options: shopInfo.deliveryOptions,
+        opening_hours: shopInfo.openingHours
+    }).eq('id', shopId);
+    
+    if (!error) alert("Les paramètres ont été enregistrés et appliqués à votre boutique publique !");
+    else alert("Erreur lors de l'enregistrement sur les serveurs.");
   };
 
   const handleAddCategory = (e: React.FormEvent) => {

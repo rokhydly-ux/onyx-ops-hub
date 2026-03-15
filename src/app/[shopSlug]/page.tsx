@@ -69,10 +69,14 @@ export default function DynamicShopPage() {
     document.documentElement.classList.add(savedTheme);
 
     const savedCart = localStorage.getItem(`onyx_cart_${shopSlug}`);
-    if (savedCart) setCart(JSON.parse(savedCart));
+    if (savedCart) {
+        try { const parsed = JSON.parse(savedCart); if (Array.isArray(parsed)) setCart(parsed); } catch(e) {}
+    }
 
     const savedWishlist = localStorage.getItem(`onyx_wishlist_${shopSlug}`);
-    if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+    if (savedWishlist) {
+        try { const parsed = JSON.parse(savedWishlist); if (Array.isArray(parsed)) setWishlist(parsed); } catch(e) {}
+    }
 
     const fetchShopData = async () => {
       if (!shopSlug) return;
@@ -262,7 +266,7 @@ export default function DynamicShopPage() {
 
   const filteredProducts = products.filter(p => {
     const matchesCategory = activeCategory === 'Toutes' ? true : activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory;
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMinPrice = minPrice === '' || p.price >= minPrice;
     const matchesMaxPrice = maxPrice === '' || p.price <= maxPrice;
     return matchesCategory && matchesSearch && matchesMinPrice && matchesMaxPrice;
