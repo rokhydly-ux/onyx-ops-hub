@@ -114,7 +114,7 @@ export default function DynamicShopPage() {
     localStorage.setItem(`onyx_wishlist_${shopSlug}`, JSON.stringify(wishlist));
   }, [wishlist, shopSlug]);
 
-  // 🚀 URL PARAMS INTERCEPTION (Marketplace & Tracking & Review)
+  // 🚀 URL PARAMS INTERCEPTION (Marketplace & Tracking et Review)
   useEffect(() => {
     if (!isLoading && products.length > 0) {
       const urlParams = new URLSearchParams(window.location.search);
