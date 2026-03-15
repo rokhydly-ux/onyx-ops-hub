@@ -1534,6 +1534,47 @@ export default function OnyxJaayShop() {
     }
   };
 
+  const handleSeedDatabase = async () => {
+      if (!shopId) return alert("Erreur: Aucun shopId détecté.");
+      if (!confirm("Générer 40 produits IA dans la base Supabase pour cette boutique ?")) return;
+
+      const categoriesList = ['Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires'];
+      const typesList = ['Chemise', 'Pantalon', 'Robe', 'Baskets', 'Sac', 'Montre', 'Ensemble'];
+      
+      const productsArray = Array.from({ length: 40 }).map((_, i) => {
+          const cat = categoriesList[i % categoriesList.length];
+          const type = typesList[i % typesList.length];
+          
+          const basePrice = Math.floor((Math.random() * (45000 - 5000 + 1) + 5000) / 100) * 100;
+          const isPromo = Math.random() > 0.7;
+          const price = isPromo ? Math.floor(basePrice * 0.8) : basePrice;
+
+          return {
+              shop_id: shopId,
+              name: `${type} Premium ${cat} ${i + 1}`,
+              price: price,
+              old_price: isPromo ? basePrice : null,
+              cost_price: Math.floor(price * 0.4), // 40% du prix
+              description: `Un article incontournable de la collection ${cat}. Confort et style garantis au quotidien.`,
+              category: cat,
+              image: `https://placehold.co/600x800/1a1a1a/39FF14?text=${type}+${cat}`,
+              stock: Math.floor(Math.random() * 46) + 5, // Entre 5 et 50
+              gallery: [],
+              rating: 5,
+              reviews: 0,
+              variants: { sizes: ['S', 'M', 'L'], colors: ['Noir', 'Standard'] }
+          };
+      });
+
+      const { error } = await supabase.from('products').insert(productsArray);
+      if (error) {
+          alert("Erreur lors de la génération: " + error.message);
+      } else {
+          alert("✅ 40 produits générés avec succès !");
+          window.location.reload();
+      }
+  };
+
   const handleTrackOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsTracking(true);
@@ -1969,7 +2010,12 @@ export default function OnyxJaayShop() {
             <div className="flex-1">
             <div className="mb-12 print:hidden">
               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Catalogue <span className="text-[#39FF14]">Produits</span></h2>
-              <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Gérez votre inventaire, modifiez vos prix et partagez vos produits directement sur WhatsApp.</p>
+              <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-4">Gérez votre inventaire, modifiez vos prix et partagez vos produits directement sur WhatsApp.</p>
+              {isEditingMode && (
+                 <button onClick={handleSeedDatabase} className="bg-red-500 text-white px-6 py-2.5 rounded-xl font-black uppercase text-xs hover:bg-red-600 transition shadow-lg flex items-center gap-2">
+                    <Sparkles size={16} /> Générer 40 produits IA
+                 </button>
+              )}
             </div>
 
             {isEditingMode && (
