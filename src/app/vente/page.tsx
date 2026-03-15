@@ -686,7 +686,6 @@ export default function OnyxJaayShop() {
           });
 
           const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
-          const hasSeeded = localStorage.getItem(`onyx_demo_seeded_${shop.id}`);
           if (productsData && productsData.length > 0) {
             setProducts(productsData.map(p => ({
                 id: p.id, name: p.name, price: p.price, costPrice: p.cost_price, oldPrice: p.old_price,
@@ -694,14 +693,14 @@ export default function OnyxJaayShop() {
                 stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
                 videoUrl: p.video_url, reviewsList: []
             })));
-          } else if (!hasSeeded && productsData && productsData.length === 0) {
-            // 🚀 AUTO-REMPLISSAGE
-            localStorage.setItem(`onyx_demo_seeded_${shop.id}`, 'true');
+          } else if (productsData && productsData.length === 0) {
+            // 🚀 AUTO-REMPLISSAGE AGRESSIF SANS BLOCAGE
+            console.log("Catalogue vide détecté. Injection automatique des 40 produits...");
             setProducts(initialProducts);
             const seedData = initialProducts.map(p => ({
-                shop_id: shop.id, name: p.name, price: p.price, cost_price: p.costPrice, old_price: p.oldPrice,
-                description: p.description, image: p.image, category: p.category,
-                stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants
+                shop_id: shop.id, name: p.name, price: p.price, cost_price: p.costPrice || 0, old_price: p.oldPrice || null,
+                description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
+                stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] }, video_url: p.videoUrl || null
             }));
             const { error: seedError } = await supabase.from('products').insert(seedData);
             if (!seedError) {
@@ -1501,6 +1500,25 @@ export default function OnyxJaayShop() {
     }
   };
 
+  const handleGenerateDemo = async () => {
+      if (!shopId) return;
+      if (confirm("Voulez-vous générer 40 produits de démonstration (Images, Prix, Variants, Vidéos) ?\nCela s'ajoutera à votre catalogue actuel.")) {
+          const seedData = initialProducts.map(p => ({
+              shop_id: shopId, name: p.name, price: p.price, cost_price: p.costPrice || 0, old_price: p.oldPrice || null,
+              description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
+              stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] }, video_url: p.videoUrl || null
+          }));
+          const { error } = await supabase.from('products').insert(seedData);
+          if (!error) {
+              alert("40 Produits générés avec succès ! La page va se recharger.");
+              window.location.reload();
+          } else {
+              console.error("Supabase Generate Error:", error);
+              alert("Erreur lors de la génération : " + error.message);
+          }
+      }
+  };
+
   const handleClearCatalog = async () => {
     if (confirm("⚠️ ATTENTION : Voulez-vous vraiment supprimer TOUS les produits de votre catalogue ? Cette action est définitive.")) {
         if (shopId) {
@@ -2140,6 +2158,7 @@ export default function OnyxJaayShop() {
               onResetData={handleResetData}
               onClearOrders={handleClearOrders}
           onClearCatalog={handleClearCatalog}
+          onGenerateDemo={handleGenerateDemo}
               currency={shopInfo.currency}
           shopId={shopId}
             />
@@ -4351,11 +4370,12 @@ interface ShopSettingsProps {
   onResetData: () => void;
   onClearOrders: () => void;
   onClearCatalog: () => void;
+  onGenerateDemo: () => void;
   currency: string;
   shopId: string | null;
 }
 
-function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, categories, setCategories, onResetData, onClearOrders, onClearCatalog, currency, shopId }: ShopSettingsProps) {
+function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, categories, setCategories, onResetData, onClearOrders, onClearCatalog, onGenerateDemo, currency, shopId }: ShopSettingsProps) {
   const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed', singleUse: false, minPurchase: '', expirationDate: '' });
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
   
@@ -4716,6 +4736,12 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Actions irréversibles sur la base de données locale.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto flex-wrap justify-end">
+            <button 
+              onClick={onGenerateDemo}
+              className="w-full sm:w-auto bg-blue-500 text-white px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 shrink-0"
+            >
+              <Sparkles size={16} /> Générer 40 Produits
+            </button>
             <button 
               onClick={onClearCatalog}
               className="w-full sm:w-auto bg-red-500 text-white px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 shrink-0"
