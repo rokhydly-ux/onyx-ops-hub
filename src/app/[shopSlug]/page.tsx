@@ -14,6 +14,98 @@ const displayPrice = (price: number, currency: string = 'FCFA') => {
     return `${price.toLocaleString('fr-SN')} ${currency}`;
 };
 
+const CategoryGridWidget = ({ categories, setActiveCategory }: { categories: string[], setActiveCategory: (cat: string) => void }) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
+    {categories.map((cat) => (
+        <div 
+        key={cat}
+        onClick={() => setActiveCategory(cat)}
+        className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
+        >
+        <img 
+            src={`https://placehold.co/800x800/111/FFF?text=${cat}`} 
+            alt={cat}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+        />
+        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
+            <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
+            <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+            Voir la collection
+            </span>
+        </div>
+        </div>
+    ))}
+    </div>
+);
+
+const PromoBannerWidget = ({ imageUrl, onClick }: { imageUrl?: string, onClick?: () => void }) => (
+    <div 
+        onClick={onClick}
+        className={`w-full max-w-[600px] mx-auto h-[200px] rounded-[2rem] overflow-hidden relative my-8 shadow-xl flex items-center justify-center bg-black transition-all ${onClick ? 'cursor-pointer hover:shadow-2xl hover:scale-[1.02]' : ''}`}
+        style={{
+            backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
+            backgroundAttachment: 'fixed',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'cover'
+        }}
+    >
+        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+        {!imageUrl && <p className="relative z-10 text-white font-black text-xl opacity-50 uppercase tracking-widest text-center px-4">Bannière Promotionnelle<br/><span className="text-sm">Parallax (600x200)</span></p>}
+    </div>
+);
+
+const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct, addToCart, currency, cart }: any) => {
+    let displayProducts: any[] = [...products];
+    if (selectedProductIds && selectedProductIds.length > 0) {
+        displayProducts = products.filter((p: any) => selectedProductIds.includes(p.id));
+    } else {
+        displayProducts = displayProducts.sort((a: any, b: any) => b.id - a.id).slice(0, 8);
+    }
+    const latestProducts = displayProducts;
+    if (latestProducts.length === 0) return null;
+    const marqueeProducts = [...latestProducts, ...latestProducts, ...latestProducts];
+    
+    const getQtyInCart = (id: number) => cart ? cart.filter((i:any) => i.id === id).reduce((sum:any, i:any) => sum + i.quantity, 0) : 0;
+
+    return (
+        <div className="my-12 overflow-hidden">
+            <h3 className="text-3xl font-black uppercase tracking-tighter mb-8 px-2">{title || 'Nouveautés'}</h3>
+            <div className="relative w-full flex overflow-x-hidden group">
+                <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-33.333%); } } .animate-marquee { animation: marquee 25s linear infinite; display: flex; width: max-content; } .group:hover .animate-marquee { animation-play-state: paused; }`}</style>
+                <div className="animate-marquee gap-6">
+                    {marqueeProducts.map((p: any, idx: number) => (
+                        <div key={`${p.id}-${idx}`} className="w-[300px] h-[350px] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden flex flex-col cursor-pointer shadow-sm hover:shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all shrink-0" onClick={() => onViewProduct(p)}>
+                            <div className="h-[220px] relative overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                               <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 hover:scale-110" />
+                               {p.stock === 0 && (
+                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
+                                    <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">En rupture</span>
+                                  </div>
+                               )}
+                               <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
+                                  {p.stock === 0 && <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">En rupture</div>}
+                                  {p.stock !== 0 && <div className="bg-black text-[#39FF14] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Nouveau</div>}
+                               </div>
+                            </div>
+                            <div className="p-5 flex-1 flex flex-col justify-between">
+                                <h4 className="font-bold text-base truncate text-black dark:text-white">{p.name}</h4>
+                                <div className="flex justify-between items-end mt-2">
+                                    <div className="flex flex-col">
+                                        {p.oldPrice && p.oldPrice > p.price && <span className="text-[10px] text-zinc-400 line-through mb-[-4px]">{displayPrice(p.oldPrice, currency)}</span>}
+                                        <span className="font-black text-xl text-black dark:text-white">{displayPrice(p.price, currency)}</span>
+                                    </div>
+                                    <button onClick={(e) => { e.stopPropagation(); addToCart(p); }} disabled={p.stock === 0 || (p.stock !== undefined && getQtyInCart(p.id) >= p.stock)} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"><Plus size={16} /></button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const INITIAL_ZONES = [
   { id: 1, name: "Zone 1", price: 1300, quartiers: ["Libertés", "Sacré Cœur", "Point E"] },
   { id: 2, name: "Zone 2", price: 1800, quartiers: ["Yoff", "Ville", "Colobane", "Foire"] },
@@ -72,6 +164,7 @@ export default function DynamicShopPage() {
   const [loyaltyLoading, setLoyaltyLoading] = useState(false);
   
   // UI Additions
+  const [homepageLayout, setHomepageLayout] = useState<any[] | null>(null);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
@@ -88,6 +181,11 @@ export default function DynamicShopPage() {
     const savedWishlist = localStorage.getItem(`onyx_wishlist_${shopSlug}`);
     if (savedWishlist) {
         try { const parsed = JSON.parse(savedWishlist); if (Array.isArray(parsed)) setWishlist(parsed); } catch(e) {}
+    }
+
+    const savedLayout = localStorage.getItem('onyx_jaay_homepage_layout');
+    if (savedLayout) {
+      setHomepageLayout(JSON.parse(savedLayout));
     }
 
     const fetchShopData = async () => {
@@ -240,6 +338,29 @@ export default function DynamicShopPage() {
     }).filter(item => item.quantity > 0));
   };
 
+  const renderWidget = (widget: any) => {
+    const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : '');
+    switch (widgetType) {
+      case 'category-grid':
+        const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
+        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} />;
+      case 'promo-banner':
+        return <PromoBannerWidget 
+            imageUrl={widget.settings?.imageUrl} 
+            onClick={widget.settings?.linkType ? () => {
+                if (widget.settings.linkType === 'category' && widget.settings.linkTarget) setActiveCategory(widget.settings.linkTarget);
+                else if (widget.settings.linkType === 'product' && widget.settings.linkTarget) {
+                    const p = products.find(prod => String(prod.id) === String(widget.settings.linkTarget));
+                    if (p) setViewingProduct(p);
+                }
+            } : undefined} />;
+      case 'new-arrivals':
+        return <NewArrivalsWidget title={widget.settings?.title} products={products} selectedProductIds={widget.settings?.selectedProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
+      default:
+        return null;
+    }
+  };
+
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const subTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const deliveryCost = deliveryMethod === 'delivery' 
@@ -265,7 +386,8 @@ export default function DynamicShopPage() {
       status: 'En attente', // Passe de "Panier abandonné" à "En attente"
       delivery_method: deliveryMethod,
       delivery_zone: selectedZone ? selectedZone.name : null,
-      tracking_number: trackingNumber
+      tracking_number: trackingNumber,
+      history: [{ status: 'En attente', date: new Date().toISOString(), user: 'Client (Web)' }]
     };
 
     if (draftId) {
@@ -273,6 +395,20 @@ export default function DynamicShopPage() {
       setDraftId(null);
     } else {
       await supabase.from('orders').insert([orderPayload]);
+    }
+
+    try {
+        await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                subject: `🚨 Nouvelle Commande : ${trackingNumber} - ${displayPrice(cartTotal, shopInfo.currency)}`,
+                text: `Nouvelle commande de ${customerInfo.name} (${customerInfo.phone}). Total: ${displayPrice(cartTotal, shopInfo.currency)}`,
+                html: `<h2>Nouvelle commande sur ${shopInfo.name} !</h2><p><b>Référence :</b> ${trackingNumber}</p><p><b>Client :</b> ${customerInfo.name} (${customerInfo.phone})</p><p><b>Montant Total :</b> ${displayPrice(cartTotal, shopInfo.currency)}</p><h3>Détails :</h3><ul>${cart.map(i => `<li>${i.name} (x${i.quantity})</li>`).join('')}</ul>`
+            })
+        });
+    } catch (e) {
+        console.error("Erreur d'envoi d'email admin:", e);
     }
 
     let message = `👋 Bonjour ! Je souhaite passer commande sur ${shopInfo.name} :\n\n📦 *Numéro de suivi :* ${trackingNumber}\n\n`;
@@ -553,10 +689,19 @@ export default function DynamicShopPage() {
               <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Bienvenue sur la boutique de {shopInfo.name}. Ajoutez au panier et validez via WhatsApp !</p>
             </div>
 
-            {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map(product => (
-                  <div key={product.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all shadow-sm cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600" onClick={() => setViewingProduct(product)}>
+            {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice && homepageLayout && homepageLayout.length > 0 ? (
+                <div className="space-y-8">
+                    {homepageLayout.map((widget, index) => <div key={index}>{renderWidget(widget)}</div>)}
+                </div>
+            ) : (
+              <>
+                {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice ? (
+                  <CategoryGridWidget categories={categories.filter(c => c !== 'Toutes' && c !== 'Favoris')} setActiveCategory={setActiveCategory} />
+                ) : (
+                  filteredProducts.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      {filteredProducts.map(product => (
+                        <div key={product.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all shadow-sm cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600" onClick={() => setViewingProduct(product)}>
                     <div className="relative aspect-[4/5] bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                       <img src={product.image || "https://placehold.co/600"} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       {product.stock === 0 && <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none"><span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">En rupture</span></div>}
@@ -590,11 +735,14 @@ export default function DynamicShopPage() {
                         </button>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-20 text-zinc-500"><Filter size={48} className="mx-auto mb-4 opacity-20" /><p className="text-xl font-black text-black dark:text-white mb-2">0 résultat</p></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-20 text-zinc-500"><Filter size={48} className="mx-auto mb-4 opacity-20" /><p className="text-xl font-black text-black dark:text-white mb-2">0 résultat</p></div>
+                  )
+                )}
+              </>
             )}
           </div>
           

@@ -1065,34 +1065,89 @@ export default function OnyxJaayShop() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteProduct = (id: number) => {
+  const handleDeleteProduct = async (id: number) => {
     if (confirm('Voulez-vous vraiment supprimer ce produit ?')) {
       setProducts(products.filter(p => p.id !== id));
+      if (shopId) {
+          await supabase.from('products').delete().eq('id', id);
+      }
     }
   };
 
-  const handleDuplicateProduct = (product: Product) => {
+  const handleDuplicateProduct = async (product: Product) => {
+    const tempId = Date.now();
     const duplicatedProduct = {
       ...product,
-      id: Date.now(), // Nouvel identifiant unique
+      id: tempId, // Nouvel identifiant unique temporaire
       name: `${product.name} (Copie)`,
       reviews: 0,
       reviewsList: [],
       rating: 5
     };
     setProducts(prev => [duplicatedProduct, ...prev]);
+
+    if (shopId) {
+        const payload = {
+            shop_id: shopId,
+            name: duplicatedProduct.name,
+            price: duplicatedProduct.price,
+            cost_price: duplicatedProduct.costPrice || 0,
+            old_price: duplicatedProduct.oldPrice || null,
+            description: duplicatedProduct.description,
+            image: duplicatedProduct.image,
+            gallery: duplicatedProduct.gallery || [],
+            category: duplicatedProduct.category,
+            stock: duplicatedProduct.stock,
+            rating: duplicatedProduct.rating,
+            reviews: duplicatedProduct.reviews,
+            variants: duplicatedProduct.variants || { sizes: [], colors: [] },
+            video_url: duplicatedProduct.videoUrl || null
+        };
+        const { data, error } = await supabase.from('products').insert([payload]).select().single();
+        if (data && !error) {
+            setProducts(prev => prev.map(p => p.id === tempId ? { ...p, id: data.id } : p));
+        }
+    }
   };
 
-  const handleSaveProduct = (product: Product) => {
-    if (editingProduct) {
-      setProducts(products.map(p => p.id === product.id ? product : p));
+  const handleSaveProduct = async (product: Product) => {
+    const isEditing = !!editingProduct;
+    setIsModalOpen(false);
+
+    const payload = {
+        shop_id: shopId,
+        name: product.name,
+        price: product.price,
+        cost_price: product.costPrice || 0,
+        old_price: product.oldPrice || null,
+        description: product.description,
+        image: product.image,
+        gallery: product.gallery || [],
+        category: product.category,
+        stock: product.stock,
+        rating: product.rating || 5,
+        reviews: product.reviews || 0,
+        variants: product.variants || { sizes: [], colors: [] },
+        video_url: product.videoUrl || null
+    };
+
+    if (isEditing) {
+        setProducts(products.map(p => p.id === product.id ? product : p));
+        if (shopId) await supabase.from('products').update(payload).eq('id', product.id);
     } else {
-      setProducts([...products, { ...product, id: Date.now() }]);
+        const tempId = Date.now();
+        setProducts(prev => [{ ...product, id: tempId }, ...prev]);
+        if (shopId) {
+            const { data, error } = await supabase.from('products').insert([payload]).select().single();
+            if (data && !error) {
+                 setProducts(prev => prev.map(p => p.id === tempId ? { ...p, id: data.id } : p));
+            }
+        }
     }
+    
     if (product.category && !categories.includes(product.category)) {
       setCategories(prev => [...prev, product.category]);
     }
-    setIsModalOpen(false);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setFormData: any, formData: any) => {
