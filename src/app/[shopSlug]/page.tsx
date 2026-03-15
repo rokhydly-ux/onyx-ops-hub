@@ -70,6 +70,10 @@ export default function DynamicShopPage() {
   const [loyaltyPhoneCheck, setLoyaltyPhoneCheck] = useState('');
   const [loyaltyResult, setLoyaltyResult] = useState<number | null>(null);
   const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  
+  // UI Additions
+  const [isBannerVisible, setIsBannerVisible] = useState(true);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('onyx_jaay_theme') || 'dark';
@@ -466,6 +470,14 @@ export default function DynamicShopPage() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
+        {/* Banner */}
+        {isBannerVisible && (
+          <div className="bg-black dark:bg-[#39FF14] text-[#39FF14] dark:text-black px-4 py-2.5 text-center text-[10px] sm:text-xs font-bold flex justify-center items-center relative z-30 shadow-md animate-in slide-in-from-top-2">
+             <span>🚀 Bienvenue sur {shopInfo?.name} ! Profitez de nos offres avec le code <span className="bg-[#39FF14] dark:bg-black text-black dark:text-[#39FF14] px-1.5 py-0.5 rounded ml-1">BIENVENUE10</span></span>
+             <button onClick={() => setIsBannerVisible(false)} className="absolute right-4 hover:scale-110 transition p-1"><X size={14}/></button>
+          </div>
+        )}
+
         {/* Header Mobile */}
         <div className="md:hidden flex flex-col bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-20">
            <div className="flex items-center justify-between p-4 pb-2">
@@ -486,7 +498,7 @@ export default function DynamicShopPage() {
         </div>
 
         {/* Header Desktop (Boutons Flottants) */}
-        <header className="absolute top-0 left-0 right-0 p-6 z-10 flex justify-between items-start pointer-events-none hidden md:flex">
+        <header className={`absolute ${isBannerVisible ? 'top-10' : 'top-0'} left-0 right-0 p-6 z-10 flex justify-between items-start pointer-events-none hidden md:flex transition-all duration-300`}>
           <div className="flex items-center gap-3 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md px-4 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-800 pointer-events-auto shadow-sm">
              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Paiements acceptés :</span>
              <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-4 object-contain" />
@@ -895,15 +907,20 @@ export default function DynamicShopPage() {
 
         {/* --- PRODUCT DETAIL MODAL --- */}
         {viewingProduct && (
-            <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto" onClick={() => setViewingProduct(null)}>
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto" onClick={() => { setViewingProduct(null); setIsLightboxOpen(false); }}>
                 <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-3xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col md:flex-row my-auto" onClick={e => e.stopPropagation()}>
-                    <button type="button" onClick={() => setViewingProduct(null)} className="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black transition z-10"><X size={20}/></button>
+                    <button type="button" onClick={() => { setViewingProduct(null); setIsLightboxOpen(false); }} className="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black transition z-10"><X size={20}/></button>
                     
                     <div className="w-full md:w-1/2 flex flex-col bg-zinc-100 dark:bg-zinc-900 min-h-[300px] relative">
                         {viewingProduct.video_url ? (
                             <iframe className="w-full h-full absolute inset-0" src={viewingProduct.video_url} title={viewingProduct.name} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen></iframe>
                         ) : (
-                            <img src={viewingProduct.image} alt={viewingProduct.name} className="w-full h-full absolute inset-0 object-cover" />
+                            <div className="w-full h-full absolute inset-0 overflow-hidden cursor-zoom-in group/img" onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(true); }}>
+                                <img src={viewingProduct.image} alt={viewingProduct.name} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500" />
+                                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
+                                    <Search className="text-white drop-shadow-lg" size={32} />
+                                </div>
+                            </div>
                         )}
                     </div>
                     
@@ -937,6 +954,21 @@ export default function DynamicShopPage() {
                        </div>
                     </div>
                 </div>
+            </div>
+        )}
+
+        {/* --- LIGHTBOX MODAL --- */}
+        {isLightboxOpen && viewingProduct && !viewingProduct.video_url && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 bg-black/95 backdrop-blur-sm animate-in fade-in" onClick={() => setIsLightboxOpen(false)}>
+                <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                    <X size={24}/>
+                </button>
+                <img 
+                    src={viewingProduct.image} 
+                    alt={viewingProduct.name} 
+                    className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 cursor-zoom-out" 
+                    onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
+                />
             </div>
         )}
 
