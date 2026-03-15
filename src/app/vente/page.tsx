@@ -644,14 +644,16 @@ export default function OnyxJaayShop() {
   useEffect(() => {
       const verifyAuth = async () => {
           const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user) {
-              router.push('/login');
-          } else {
+          if (session?.user) {
               setAuthUser(session.user);
               setIsShopOwner(true);
               setIsEditingMode(true);
-              setIsLoading(false);
+          } else {
+              // C'est un client externe : on ne le redirige PLUS vers /login
+              setIsShopOwner(false);
+              setIsEditingMode(false);
           }
+          setIsLoading(false); // Dans tous les cas on affiche la page
       };
       verifyAuth();
   }, [router]);
