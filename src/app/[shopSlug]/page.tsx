@@ -39,7 +39,7 @@ export default function DynamicShopPage() {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'popular' | null>(null);
-  const [categories, setCategories] = useState<string[]>(["Toutes"]);
+  const [categories, setCategories] = useState<string[]>(['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires']);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [viewingProduct, setViewingProduct] = useState<any | null>(null);
@@ -116,8 +116,9 @@ export default function DynamicShopPage() {
             videoUrl: p.video_url, reviewsList: []
         })));
         if (!shop.categories || shop.categories.length === 0) {
+            const defaultCats = ['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires'];
             const uniqueCategories = Array.from(new Set(shopProducts.map((p:any) => p.category).filter(Boolean))) as string[];
-            setCategories(["Toutes", "Favoris", ...uniqueCategories]);
+            setCategories(Array.from(new Set([...defaultCats, ...uniqueCategories])));
         }
       }
       setIsLoading(false);
@@ -627,7 +628,7 @@ export default function DynamicShopPage() {
 
         {/* --- FLOAT CART MOBILE --- */}
         {cartCount > 0 && !isCartOpen && (
-          <div className="fixed bottom-6 left-6 right-6 z-40 md:hidden animate-in slide-in-from-bottom-4">
+          <div className="fixed bottom-6 left-6 right-[5.5rem] z-40 md:hidden animate-in slide-in-from-bottom-4">
               <button onClick={() => setIsCartOpen(true)} className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-xs shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-between px-4 border border-[#32E612]">
                   <span className="flex items-center gap-3">
                       <div className="relative"><ShoppingCart size={18} /><span className="absolute -top-2 -right-2 bg-black text-[#39FF14] text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">{cartCount}</span></div>
