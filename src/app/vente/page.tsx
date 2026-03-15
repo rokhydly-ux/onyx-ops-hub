@@ -531,12 +531,15 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
                                <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 hover:scale-110" />
                                {p.stock === 0 && (
                                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
-                                    <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">En rupture</span>
+                                    <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">Épuisé</span>
                                   </div>
                                )}
                                <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
-                                  {p.stock === 0 && <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">En rupture</div>}
-                                  {p.stock !== 0 && <div className="bg-black text-[#39FF14] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Nouveau</div>}
+                                  {((p.oldPrice || (p as any).old_price) || 0) > p.price && (
+                                     <span className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((((p.oldPrice || (p as any).old_price) || 0) - p.price) / ((p.oldPrice || (p as any).old_price) || 1)) * 100)}%</span>
+                                  )}
+                                  {p.stock === 0 && <div className="bg-zinc-800 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Épuisé</div>}
+                                  {p.stock !== 0 && ((p as any).created_at ? new Date((p as any).created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 : p.id > Date.now() - 7 * 24 * 60 * 60 * 1000) && <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border border-[#39FF14]/30">Nouveau</div>}
                                   {p.stock === 1 && <div className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg animate-pulse">Stock critique !</div>}
                                </div>
                             </div>
@@ -549,7 +552,7 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
                                     </div>
                                     <button onClick={(e) => { 
                                         e.stopPropagation(); 
-                                        if ((p.variants?.sizes?.length || 0) > 0 || (p.variants?.colors?.length || 0) > 0) {
+                                        if ((Array.isArray(p.variants?.sizes) && p.variants.sizes.length > 0) || (Array.isArray(p.variants?.colors) && p.variants.colors.length > 0)) {
                                             onViewProduct(p);
                                         } else {
                                             addToCart(p, undefined, false); 
@@ -1318,6 +1321,7 @@ export default function OnyxJaayShop() {
     // --- 🚀 INTÉGRATION SUPABASE 🚀 ---
     try {
       const { error } = await supabase.from('orders').insert([{
+        shop_id: shopId,
         customer_name: finalName,
         customer_phone: finalPhone,
         customer_address: customerAddress,
@@ -1827,23 +1831,15 @@ export default function OnyxJaayShop() {
       }
   };
 
-  const safeProducts = Array.isArray(products) ? products : [];
-  const filteredProducts = safeProducts.filter((p) => {
+  const filteredProducts = (products || []).filter(p => {
     if (!p) return false;
-    
-    // 1. Blindage de la recherche
     const search = (searchTerm || '').toLowerCase().trim();
-    let matchesSearch = true;
-    if (search !== '') {
-      const nameStr = (p.name || '').toLowerCase();
-      const descStr = (p.description || '').toLowerCase();
-      const catStr = (p.category || '').toLowerCase();
-      matchesSearch = nameStr.includes(search) || descStr.includes(search) || catStr.includes(search);
-    }
+    const nameMatch = p.name ? p.name.toLowerCase().includes(search) : false;
+    const descMatch = p.description ? p.description.toLowerCase().includes(search) : false;
+    const catMatch = p.category ? p.category.toLowerCase().includes(search) : false;
+    const matchesSearch = search === '' || nameMatch || descMatch || catMatch;
 
-    // 2. Blindage des autres filtres
-    const matchesCategory = activeCategory === 'Toutes' || 
-                            (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
+    const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
     const matchesMinPrice = minPrice === '' || p.price >= Number(minPrice);
     const matchesMaxPrice = maxPrice === '' || p.price <= Number(maxPrice);
 
@@ -2304,24 +2300,24 @@ export default function OnyxJaayShop() {
                       <img src={product.image} alt={product.name} className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500 bg-zinc-100 dark:bg-zinc-800" />
                       {product.stock === 0 && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
-                          <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">En rupture</span>
+                          <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">Épuisé</span>
                         </div>
                       )}
                       <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
                         <div className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700 text-[#39FF14]">
                           {product.category}
                         </div>
-                        {product.oldPrice && product.oldPrice > product.price && (
-                           <div className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%</div>
+                        {((product.oldPrice || (product as any).old_price) || 0) > product.price && (
+                           <div className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((((product.oldPrice || (product as any).old_price) || 0) - product.price) / ((product.oldPrice || (product as any).old_price) || 1)) * 100)}%</div>
                         )}
                         {product.stock === 0 && (
-                          <div className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">En rupture</div>
+                          <div className="bg-zinc-800 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Épuisé</div>
                         )}
                         {product.stock === 1 && (
                           <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg animate-pulse">Stock critique !</div>
                         )}
-                        {product.id > Date.now() - 7 * 24 * 60 * 60 * 1000 && product.stock !== 0 && (
-                          <div className="bg-[#39FF14] text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Nouveau</div>
+                        {product.stock !== 0 && ((product as any).created_at ? new Date((product as any).created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 : product.id > Date.now() - 7 * 24 * 60 * 60 * 1000) && (
+                          <div className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border border-[#39FF14]/30">Nouveau</div>
                         )}
                       </div>
                       
@@ -2367,7 +2363,7 @@ export default function OnyxJaayShop() {
                         <button 
                           onClick={(e) => { 
                               e.stopPropagation(); 
-                              if ((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) {
+                              if ((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) {
                                   handleViewProduct(product);
                               } else {
                                   addToCart(product, undefined, false); 
@@ -2376,7 +2372,7 @@ export default function OnyxJaayShop() {
                           disabled={product.stock === 0 || (product.stock !== undefined && cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)}
                           className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
                         >
-                          <Plus size={16} /> {((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) ? 'Options' : 'Ajouter'}
+                          <Plus size={16} /> {((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? 'Options' : 'Ajouter'}
                         </button>
                       </div>
                     </div>
@@ -2735,14 +2731,14 @@ export default function OnyxJaayShop() {
                           <p className="text-zinc-500 dark:text-zinc-400 font-bold text-lg mb-auto">{displayPrice(item.price, shopInfo.currency)}</p>
                             <button onClick={(e) => { 
                                 e.stopPropagation(); 
-                                if ((item.variants?.sizes?.length || 0) > 0 || (item.variants?.colors?.length || 0) > 0) {
+                                if ((Array.isArray(item.variants?.sizes) && item.variants.sizes.length > 0) || (Array.isArray(item.variants?.colors) && item.variants.colors.length > 0)) {
                                     setViewingProduct(item);
                                 } else {
                                     addToCart(item, undefined, false); 
                                 }
                                 setIsWishlistOpen(false); 
                             }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition-colors">
-                                {((item.variants?.sizes?.length || 0) > 0 || (item.variants?.colors?.length || 0) > 0) ? 'Options' : 'Ajouter au panier'}
+                                {((Array.isArray(item.variants?.sizes) && item.variants.sizes.length > 0) || (Array.isArray(item.variants?.colors) && item.variants.colors.length > 0)) ? 'Options' : 'Ajouter au panier'}
                             </button>
                        </div>
                     </div>
@@ -3754,12 +3750,12 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         </div>
                     )}
                 </div>
-                {product.gallery && product.gallery.length > 0 && mediaView === 'image' && (
+                {Array.isArray(product.gallery) && product.gallery.length > 0 && mediaView === 'image' && (
                     <div className="p-4 flex gap-3 overflow-x-auto bg-white dark:bg-zinc-950 shrink-0 border-t border-zinc-200 dark:border-zinc-800 custom-scrollbar">
                         <button onClick={() => setActiveImage(product.image)} className={`w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === product.image ? 'border-[#39FF14]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                             <img src={product.image} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
                         </button>
-                        {product.gallery.map((img, idx) => (
+                        {product.gallery.map((img: string, idx: number) => (
                             <button key={idx} onClick={() => setActiveImage(img)} className={`w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === img ? 'border-[#39FF14]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                                 <img src={img} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
                             </button>
@@ -3811,11 +3807,11 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   </div>
 
                   {/* VARIANTS SELECTION */}
-                  {(product.variants?.sizes?.length || 0) > 0 && (
+                  {product?.variants?.sizes && Array.isArray(product.variants.sizes) && product.variants.sizes.length > 0 && (
                     <div className="mb-6">
                       <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Taille</p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants?.sizes?.map((size: string) => (
+                        {product.variants.sizes.map((size: string) => (
                           <button 
                             key={size} 
                             onClick={() => setSelectedSize(size)}
@@ -3828,11 +3824,11 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                     </div>
                   )}
 
-                  {(product.variants?.colors?.length || 0) > 0 && (
+                  {product?.variants?.colors && Array.isArray(product.variants.colors) && product.variants.colors.length > 0 && (
                     <div className="mb-6">
                       <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Couleur</p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants?.colors?.map((color: string) => (
+                        {product.variants.colors.map((color: string) => (
                           <button 
                             key={color} 
                             onClick={() => setSelectedColor(color)}
