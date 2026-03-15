@@ -547,7 +547,14 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
                                         {p.oldPrice && p.oldPrice > p.price && <span className="text-[10px] text-zinc-400 line-through mb-[-4px]">{displayPrice(p.oldPrice, currency)}</span>}
                                         <span className="font-black text-xl text-black dark:text-white">{displayPrice(p.price, currency)}</span>
                                     </div>
-                                    <button onClick={(e) => { e.stopPropagation(); addToCart(p, undefined, false); }} disabled={p.stock === 0 || (p.stock !== undefined && getQtyInCart(p.id) >= p.stock)} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"><Plus size={16} /></button>
+                                    <button onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        if ((p.variants?.sizes?.length || 0) > 0 || (p.variants?.colors?.length || 0) > 0) {
+                                            onViewProduct(p);
+                                        } else {
+                                            addToCart(p, undefined, false); 
+                                        }
+                                    }} disabled={p.stock === 0 || (p.stock !== undefined && getQtyInCart(p.id) >= p.stock)} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"><Plus size={16} /></button>
                                 </div>
                             </div>
                         </div>
@@ -1823,10 +1830,7 @@ export default function OnyxJaayShop() {
       : p.category === activeCategory;
     const matchesMinPrice = minPrice === '' || p.price >= minPrice;
     const matchesMaxPrice = maxPrice === '' || p.price <= maxPrice;
-    const matchesSearch = searchTerm === '' || 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (p.category && p.category.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = !searchTerm || (p.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || (p.description || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || (p.category || '').toLowerCase().includes((searchTerm || '').toLowerCase());
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
   }).sort((a, b) => {
@@ -2346,11 +2350,18 @@ export default function OnyxJaayShop() {
                           </div>
                         </div>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); addToCart(product, undefined, false); }} 
+                          onClick={(e) => { 
+                              e.stopPropagation(); 
+                              if ((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) {
+                                  handleViewProduct(product);
+                              } else {
+                                  addToCart(product, undefined, false); 
+                              }
+                          }} 
                           disabled={product.stock === 0 || (product.stock !== undefined && cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)}
                           className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
                         >
-                          <Plus size={16} /> Ajouter
+                          <Plus size={16} /> {((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) ? 'Options' : 'Ajouter'}
                         </button>
                       </div>
                     </div>
@@ -2397,7 +2408,7 @@ export default function OnyxJaayShop() {
           </div>
         )}
         {shopView === 'dashboard' && (
-            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} setShopView={setShopView} orders={orders} refreshOrders={fetchOrders} shopName={shopInfo.name} shopLogo={shopInfo.logoUrl} />
+            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} setShopView={setShopView} orders={orders} refreshOrders={fetchOrders} shopName={shopInfo.name} shopLogo={shopInfo.logoUrl} recentReviews={recentReviews} />
         )}
         {shopView === 'clients' && (
             <ShopClients currency={shopInfo.currency} orders={orders} onClientSelect={setSelectedClient} onRunIaScan={runIaScanGeneral} />
@@ -2707,7 +2718,17 @@ export default function OnyxJaayShop() {
                              <button onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }} className="text-zinc-400 hover:text-red-500 shrink-0 p-1"><Trash2 size={18}/></button>
                           </div>
                           <p className="text-zinc-500 dark:text-zinc-400 font-bold text-lg mb-auto">{displayPrice(item.price, shopInfo.currency)}</p>
-                          <button onClick={(e) => { e.stopPropagation(); addToCart(item, undefined, false); setIsWishlistOpen(false); }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition-colors">Ajouter au panier</button>
+                            <button onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if ((item.variants?.sizes?.length || 0) > 0 || (item.variants?.colors?.length || 0) > 0) {
+                                    setViewingProduct(item);
+                                } else {
+                                    addToCart(item, undefined, false); 
+                                }
+                                setIsWishlistOpen(false); 
+                            }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition-colors">
+                                {((item.variants?.sizes?.length || 0) > 0 || (item.variants?.colors?.length || 0) > 0) ? 'Options' : 'Ajouter au panier'}
+                            </button>
                        </div>
                     </div>
                   ))
@@ -3814,6 +3835,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   <div className="flex flex-col sm:flex-row gap-3">
                       <button 
                         onClick={() => { 
+                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
                           onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true); 
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
@@ -3823,6 +3846,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                       </button>
                       <button 
                         onClick={() => { 
+                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
                           onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }); 
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
@@ -3961,7 +3986,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders, shopName, shopLogo }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning' | 'reviews'>>, orders: any[], refreshOrders: () => void, shopName: string, shopLogo: string }) {
+function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders, shopName, shopLogo, recentReviews }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning' | 'reviews'>>, orders: any[], refreshOrders: () => void, shopName: string, shopLogo: string, recentReviews?: any[] }) {
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
   const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');
@@ -4738,7 +4763,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
         {/* Low Stock Alert */}
         <div className="bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
            <div className="flex items-center gap-3 mb-6">
@@ -4794,6 +4819,33 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                 <span className="mt-4 text-[10px] font-bold text-zinc-400 uppercase">{d.label}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* AVIS VERIFIES WIDGET */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+             <div className="flex items-center gap-3">
+                <Star className="text-[#39FF14] fill-[#39FF14]" size={24} />
+                <h3 className="font-black uppercase text-xl">Avis Vérifiés</h3>
+             </div>
+             <button onClick={() => setShopView('reviews')} className="text-[10px] font-black uppercase text-zinc-400 hover:text-black dark:hover:text-white transition">Voir tout</button>
+          </div>
+          <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+             {recentReviews && recentReviews.length > 0 ? recentReviews.slice(0, 4).map((r: any) => (
+                 <div key={r.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-700">
+                     <div className="flex justify-between items-center mb-2">
+                         <p className="font-bold text-sm text-black dark:text-white truncate">{r.name}</p>
+                         <div className="flex items-center gap-1 shrink-0">
+                            <span className="text-xs font-bold">{r.rating}</span>
+                            <Star size={12} className="text-yellow-500 fill-yellow-500"/>
+                         </div>
+                     </div>
+                     <p className="text-xs text-zinc-500 italic line-clamp-2">"{r.comment}"</p>
+                 </div>
+             )) : (
+                 <p className="text-zinc-500 text-sm">Aucun avis récent.</p>
+             )}
           </div>
         </div>
       </div>
@@ -5103,8 +5155,8 @@ function ShopClients({ currency, orders, onClientSelect, onRunIaScan }: { curren
     }, [orders]);
 
     const filteredClients = clients.filter(client =>
-        (client.name && typeof client.name === 'string' && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (client.phone && typeof client.phone === 'string' && client.phone.toLowerCase().includes(searchTerm.toLowerCase()))
+        (client.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (client.phone || '').toLowerCase().includes((searchTerm || '').toLowerCase())
     );
 
     const sortedClients = [...filteredClients].sort((a, b) => {

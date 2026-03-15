@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, RefreshCcw,
   Store, MessageSquare, Sparkles, Heart, ChevronRight, Menu, ArrowRight, Star, Sun, Moon,
-  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft, Printer
+  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft, Printer, Clock
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
@@ -74,7 +74,7 @@ const PromoBannerWidget = ({ imageUrl, onClick }: { imageUrl?: string, onClick?:
 );
 
 const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct, addToCart, currency, cart }: any) => {
-    let displayProducts: any[] = [...products];
+    let displayProducts: any[] = [...products].filter(p => p.stock !== 0);
     if (selectedProductIds && selectedProductIds.length > 0) {
         displayProducts = products.filter((p: any) => selectedProductIds.includes(p.id));
     } else {
@@ -114,7 +114,14 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
                                         {p.oldPrice && p.oldPrice > p.price && <span className="text-[10px] text-zinc-400 line-through mb-[-4px]">{displayPrice(p.oldPrice, currency)}</span>}
                                         <span className="font-black text-xl text-black dark:text-white">{displayPrice(p.price, currency)}</span>
                                     </div>
-                                    <button onClick={(e) => { e.stopPropagation(); addToCart(p); }} disabled={p.stock === 0 || (p.stock !== undefined && getQtyInCart(p.id) >= p.stock)} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"><Plus size={16} /></button>
+                                    <button onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        if ((p.variants?.sizes?.length || 0) > 0 || (p.variants?.colors?.length || 0) > 0) {
+                                            onViewProduct(p);
+                                        } else {
+                                            addToCart(p); 
+                                        }
+                                    }} disabled={p.stock === 0 || (p.stock !== undefined && getQtyInCart(p.id) >= p.stock)} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"><Plus size={16} /></button>
                                 </div>
                             </div>
                         </div>
@@ -221,7 +228,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
     if (distance < -minSwipeDistance) handlePrevImage();
   };
 
-  const similarProducts = allProducts.filter((p: any) => p.category === product.category && p.id !== product.id).slice(0, 3);
+  const similarProducts = allProducts.filter((p: any) => p.category === product.category && p.id !== product.id && p.stock !== 0).slice(0, 3);
   const qtyInCart = (cart || []).filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0);
   const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
   const isOutOfStock = product.stock === 0;
@@ -373,6 +380,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   <div className="flex flex-col sm:flex-row gap-3">
                       <button 
                         onClick={() => { 
+                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
                           onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true); 
                           onClose();
                         }} 
@@ -383,6 +392,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                       </button>
                       <button 
                         onClick={() => { 
+                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
                           onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }); 
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
@@ -525,6 +536,7 @@ export default function DynamicShopPage() {
   const shopSlug = params.shopSlug as string;
   const router = useRouter();
 
+  const [currentShopId, setCurrentShopId] = useState<string | null>(null);
   const [shopInfo, setShopInfo] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -584,6 +596,7 @@ export default function DynamicShopPage() {
   const [homepageLayout, setHomepageLayout] = useState<any[] | null>(null);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isIdleModalOpen, setIsIdleModalOpen] = useState(false);
 
   // Confettis de célébration lors d'une commande
   useEffect(() => {
@@ -647,6 +660,7 @@ export default function DynamicShopPage() {
       const { data: shop, error: shopError } = await supabase.from("shops").select("*").eq("slug", shopSlug).single();
       if (shopError || !shop) { setError(true); setIsLoading(false); return; }
 
+      setCurrentShopId(shop.id);
       setShopInfo(shop);
       if (shop.delivery_zones && shop.delivery_zones.length > 0) {
         setDeliveryZones(shop.delivery_zones);
@@ -720,7 +734,8 @@ export default function DynamicShopPage() {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-    const fetchShopProductsSilently = async () => {
+    const handleIdle = async () => {
+      setIsIdleModalOpen(true);
       if (!shopInfo?.id) return;
       const { data: shopProducts } = await supabase.from("products").select("*").eq("shop_id", shopInfo.id);
       if (shopProducts) {
@@ -741,7 +756,7 @@ export default function DynamicShopPage() {
 
     const resetIdleTimer = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => { fetchShopProductsSilently(); }, 5 * 60 * 1000); // Rafraîchissement après 5 minutes d'inactivité
+      timeoutId = setTimeout(() => { handleIdle(); }, 5 * 60 * 1000); // 5 minutes d'inactivité
     };
 
     window.addEventListener('mousemove', resetIdleTimer);
@@ -968,15 +983,15 @@ export default function DynamicShopPage() {
     const pointsToUse = useLoyaltyPoints ? Math.floor(loyaltyDiscountAmount / 10) : 0;
 
     const orderPayload = {
-      shop_id: shopInfo.id,
+      shop_id: currentShopId || shopInfo?.id, // L'ID vital pour que la commande remonte !
       customer_name: customerInfo.name,
       customer_phone: customerInfo.phone,
-      customer_address: customerInfo.address,
-      delivery_instructions: customerInfo.instructions,
+      customer_address: customerInfo.address || '',
+      delivery_instructions: customerInfo.instructions || '',
       items: cart,
       total_amount: cartTotal,
       points_used: pointsToUse,
-      status: 'En attente', // Passe de "Panier abandonné" à "En attente"
+      status: 'En attente',
       delivery_method: deliveryMethod,
       delivery_zone: selectedZone ? selectedZone.name : null,
       tracking_number: trackingNumber,
@@ -984,10 +999,18 @@ export default function DynamicShopPage() {
     };
 
     if (draftId) {
-      await supabase.from('orders').update(orderPayload).eq('id', draftId);
+      const { error } = await supabase.from('orders').update(orderPayload).eq('id', draftId);
+      if (error) {
+        console.error("Erreur lors de la mise à jour de la commande:", error);
+        alert("Erreur lors de l'enregistrement de la commande");
+      }
       setDraftId(null);
     } else {
-      await supabase.from('orders').insert([orderPayload]);
+      const { error } = await supabase.from('orders').insert([orderPayload]);
+      if (error) {
+        console.error("Erreur lors de l'insertion de la commande:", error);
+        alert("Erreur lors de l'enregistrement de la commande");
+      }
     }
 
     try {
@@ -1106,8 +1129,9 @@ export default function DynamicShopPage() {
   if (error || !shopInfo) return <div className="flex flex-col h-screen items-center justify-center bg-zinc-50 dark:bg-black text-center p-6"><AlertTriangle size={64} className="text-zinc-300 mb-6" /><h1 className="text-3xl font-black uppercase text-black dark:text-white mb-2">Boutique Introuvable</h1><p className="text-zinc-500">Cette boutique n'existe pas ou a été désactivée.</p></div>;
 
   const filteredProducts = products.filter(p => {
+    if (p.stock === 0) return false;
     const matchesCategory = activeCategory === 'Toutes' ? true : activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory;
-    const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = !searchTerm || (p.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || (p.description || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || (p.category || '').toLowerCase().includes((searchTerm || '').toLowerCase());
     const matchesMinPrice = minPrice === '' || p.price >= minPrice;
     const matchesMaxPrice = maxPrice === '' || p.price <= maxPrice;
     return matchesCategory && matchesSearch && matchesMinPrice && matchesMaxPrice;
@@ -1365,8 +1389,15 @@ export default function DynamicShopPage() {
                             {product.old_price && product.old_price > product.price && <p className="text-sm text-zinc-400 line-through mb-1">{displayPrice(product.old_price, shopInfo.currency)}</p>}
                           </div>
                         </div>
-                        <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} disabled={product.stock === 0 || (product.stock !== undefined && (cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-all flex items-center gap-2 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:scale-105 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">
-                          <Plus size={16} /> Ajouter au Panier
+                        <button onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if ((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) {
+                                setViewingProduct(product);
+                            } else {
+                                addToCart(product); 
+                            }
+                        }} disabled={product.stock === 0 || (product.stock !== undefined && (cart || []).filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-all flex items-center gap-2 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:scale-105 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">
+                          <Plus size={16} /> {((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) ? 'Choisir Options' : 'Ajouter au Panier'}
                         </button>
                       </div>
                     </div>
@@ -1450,7 +1481,17 @@ export default function DynamicShopPage() {
                                <button onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }} className="text-zinc-400 hover:text-red-500 shrink-0 p-1"><Trash2 size={18}/></button>
                             </div>
                             <p className="text-zinc-500 dark:text-zinc-400 font-bold text-lg mb-auto">{displayPrice(item.price, shopInfo.currency)}</p>
-                            <button onClick={(e) => { e.stopPropagation(); addToCart(item); setIsWishlistOpen(false); }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase hover:bg-[#39FF14] hover:text-black transition-colors">Ajouter</button>
+                            <button onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if ((item.variants?.sizes?.length || 0) > 0 || (item.variants?.colors?.length || 0) > 0) {
+                                    setViewingProduct(item);
+                                } else {
+                                    addToCart(item); 
+                                }
+                                setIsWishlistOpen(false); 
+                            }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase hover:bg-[#39FF14] hover:text-black transition-colors">
+                                {((item.variants?.sizes?.length || 0) > 0 || (item.variants?.colors?.length || 0) > 0) ? 'Options' : 'Ajouter'}
+                            </button>
                          </div>
                       </div>
                     ))
@@ -1840,6 +1881,25 @@ export default function DynamicShopPage() {
                 Besoin d'aide ?
             </span>
         </button>
+
+        {/* --- IDLE MODAL --- */}
+        {isIdleModalOpen && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 p-8 rounded-3xl w-full max-w-sm text-center shadow-2xl relative animate-in zoom-in-95">
+              <div className="w-16 h-16 bg-yellow-400/20 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <Clock size={32} />
+              </div>
+              <h3 className="text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white">Êtes-vous toujours là ?</h3>
+              <p className="text-sm text-zinc-500 mb-6">Pour garantir la disponibilité de nos articles, le catalogue a été actualisé.</p>
+              <button 
+                onClick={() => setIsIdleModalOpen(false)} 
+                className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg"
+              >
+                Oui, je continue
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* --- SCROLL TO TOP --- */}
         {showScrollTop && (

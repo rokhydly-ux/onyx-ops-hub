@@ -919,7 +919,7 @@ export default function AdminDashboard() {
   const filteredContacts = (contacts || []).filter(c => {
     if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
     const search = (globalSearch || crmSearch).toLowerCase();
-    if (search && !c.full_name?.toLowerCase().includes(search) && !c.phone?.includes(search) && !c.saas?.toLowerCase().includes(search)) return false;
+    if (search && !(c.full_name || '').toLowerCase().includes(search) && !(c.phone || '').includes(search) && !(c.saas || '').toLowerCase().includes(search)) return false;
     if (crmCardFilter === 'new_clients' && c.type !== 'Client') return false;
     if (crmCardFilter === 'new_prospects' && c.type !== 'Prospect') return false;
     return true;
@@ -927,7 +927,7 @@ export default function AdminDashboard() {
 
   const filteredTransactions = (transactions || []).filter(t => {
      const search = financeSearch.toLowerCase();
-     if (search && !t.client?.toLowerCase().includes(search) && !t.ref?.toLowerCase().includes(search)) return false;
+     if (search && !(t.client || '').toLowerCase().includes(search) && !(t.ref || '').toLowerCase().includes(search)) return false;
      if (financeTypeFilter === 'Entrée' && t.amount <= 0) return false;
      if (financeTypeFilter === 'Sortie' && t.amount > 0) return false;
      return true;
@@ -937,7 +937,7 @@ export default function AdminDashboard() {
       if (actionTabFilter === 'IA' && a.module === 'Marketing') return false;
       if (actionTabFilter === 'Marketing' && a.module !== 'Marketing') return false;
       const search = actionSearchFilter.toLowerCase();
-      return a.title.toLowerCase().includes(search) || a.desc.toLowerCase().includes(search);
+      return (a.title || '').toLowerCase().includes(search) || (a.desc || '').toLowerCase().includes(search);
   });
 
   const exportFinanceReport = () => {
