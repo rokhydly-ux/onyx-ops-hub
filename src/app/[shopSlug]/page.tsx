@@ -1682,8 +1682,8 @@ export default function DynamicShopPage() {
                     </div>
 
                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Historique & Suivi</p>
-                    <div className="relative pl-3 border-l-2 border-zinc-200 dark:border-zinc-800 space-y-6">
-                       {(trackedOrder.history || [{status: trackedOrder.status || 'En attente', date: trackedOrder.created_at}]).map((h: any, i: number) => {
+                    <div className="relative pl-3 border-l-2 border-zinc-200 dark:border-zinc-800 space-y-6 ml-3">
+                       {(trackedOrder.history && trackedOrder.history.length > 0 ? trackedOrder.history : [{status: trackedOrder.status || 'En attente', date: trackedOrder.created_at || new Date().toISOString()}]).map((h: any, i: number, arr: any[]) => {
                            const getStatusInfo = (status: string) => {
                                switch(status) {
                                    case 'En attente': return { color: 'bg-yellow-500', msg: 'Votre commande a bien été reçue et est en attente de traitement.' };
@@ -1697,11 +1697,11 @@ export default function DynamicShopPage() {
                                }
                            };
                            const info = getStatusInfo(h.status);
-                           const isLast = i === (trackedOrder.history || []).length - 1;
+                           const isLast = i === arr.length - 1;
                            return (
                                <div key={i} className="relative pb-4">
-                                  <div className={`absolute -left-[17px] top-1 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${info.color} ${isLast ? 'animate-pulse' : ''}`}></div>
-                                  <div className="pl-4">
+                                  <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${info.color} ${isLast ? 'animate-pulse' : ''}`}></div>
+                                  <div className="pl-2">
                                      <p className="text-xs font-black text-black dark:text-white uppercase">{h.status}</p>
                                      <p className="text-[10px] text-zinc-500 mb-1">
                                         {new Date(h.date).toLocaleDateString('fr-FR')} à {new Date(h.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}

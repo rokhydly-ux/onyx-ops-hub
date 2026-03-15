@@ -38,6 +38,7 @@ interface Product {
   rating?: number;
   reviews?: number;
   stock?: number;
+  barcode?: string;
   reviewsList?: Review[];
   variants?: {
     sizes?: string[];
@@ -612,6 +613,7 @@ export default function OnyxJaayShop() {
   const [manualDiscountPct, setManualDiscountPct] = useState<number | ''>('');
   const [productViews, setProductViews] = useState<Record<number, number>>({});
   const [viewHistory, setViewHistory] = useState<Record<string, number>>({});
+  const [barcodeInput, setBarcodeInput] = useState('');
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>(INITIAL_ZONES);
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
@@ -685,9 +687,31 @@ export default function OnyxJaayShop() {
       }
   };
 
-  const fetchShopData = async (userId: string) => {
+  const fetchShopData = async (userId: string, passedPhone?: string) => {
       let { data: shop, error: shopError } = await supabase.from('shops').select('*').eq('owner_id', userId).maybeSingle();
       
+      if (!shop) {
+          // Fallback : On cherche par le numéro de téléphone si owner_id est introuvable
+          let userPhone = passedPhone || authUser?.phone;
+          if (!userPhone && typeof window !== 'undefined') {
+              try {
+                  const customSession = JSON.parse(localStorage.getItem('onyx_custom_session') || '{}');
+                  userPhone = customSession.phone;
+              } catch (e) {}
+          }
+
+          if (userPhone) {
+              const { data: shopByPhone } = await supabase.from('shops').select('*').eq('phone', userPhone).maybeSingle();
+              if (shopByPhone) {
+                  shop = shopByPhone;
+                  // Optionnel : on répare la liaison pour les futures connexions
+                  if (!shop.owner_id) {
+                      await supabase.from('shops').update({ owner_id: userId }).eq('id', shop.id);
+                  }
+              }
+          }
+      }
+
       if (!shop) {
           const { data: profile } = await supabase.from('clients').select('full_name').eq('id', userId).maybeSingle();
           const defaultName = profile?.full_name ? `Boutique de ${profile.full_name}` : 'Ma Boutique';
@@ -793,7 +817,7 @@ export default function OnyxJaayShop() {
               setAuthUser(session.user);
               setIsShopOwner(true);
               setIsEditingMode(true);
-              await fetchShopData(session.user.id);
+              await fetchShopData(session.user.id, session.user.phone || session.user.user_metadata?.phone);
           } else {
               const customSession = localStorage.getItem('onyx_custom_session');
               if (customSession) {
@@ -802,7 +826,7 @@ export default function OnyxJaayShop() {
                       setAuthUser(user);
                       setIsShopOwner(true);
                       setIsEditingMode(true);
-                      await fetchShopData(user.id);
+                      await fetchShopData(user.id, user.phone);
                   } catch (e) {
                       setIsShopOwner(false);
                       setIsEditingMode(false);
@@ -993,6 +1017,23 @@ export default function OnyxJaayShop() {
     triggerStockUpdateBadge();
     setToastMessage(`🛒 ${product.name} ajouté au panier !`);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleBarcodeScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!barcodeInput.trim()) return;
+        
+        const scannedCode = barcodeInput.trim();
+        const product = products.find(p => p.barcode === scannedCode || p.id.toString() === scannedCode);
+        
+        if (product) {
+            addToCart(product, undefined, false);
+        } else {
+            alert(`Aucun produit trouvé pour le code : ${scannedCode}`);
+        }
+        setBarcodeInput('');
+    }
   };
 
   const removeFromCart = (itemToRemove: CartItem) => {
@@ -1187,6 +1228,7 @@ export default function OnyxJaayShop() {
         gallery: product.gallery || [],
         category: product.category,
         stock: product.stock,
+        barcode: product.barcode || null,
         rating: product.rating || 5,
         reviews: product.reviews || 0,
         variants: product.variants || { sizes: [], colors: [] },
@@ -2411,7 +2453,7 @@ export default function OnyxJaayShop() {
       )}
 
       {/* --- CART DRAWER --- */}
-      {isCartOpen && !isEditingMode && (
+      {isCartOpen && (
         <div className="fixed inset-0 z-[60] flex justify-end">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
           <div className="relative bg-white dark:bg-zinc-950 w-full max-w-md h-full shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-300">
@@ -2453,6 +2495,22 @@ export default function OnyxJaayShop() {
              </div>
              
              <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar">
+               {isShopOwner && (
+                 <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+                   <div className="relative">
+                     <QrCode size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                     <input 
+                       type="text" 
+                       autoFocus
+                       placeholder="Scanner code-barre ou ID (Entrée)..." 
+                       value={barcodeInput}
+                       onChange={e => setBarcodeInput(e.target.value)}
+                       onKeyDown={handleBarcodeScan}
+                       className="w-full pl-12 pr-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white transition"
+                     />
+                   </div>
+                 </div>
+               )}
                <div className="p-6 space-y-4 flex-1">
                   {cart.length === 0 ? (
                   <div className="text-center text-zinc-500 dark:text-zinc-500 mt-20">
@@ -2717,8 +2775,8 @@ export default function OnyxJaayShop() {
                   )}
 
                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Historique & Suivi</p>
-                  <div className="relative pl-3 border-l-2 border-zinc-200 dark:border-zinc-800 space-y-6">
-                     {(trackedOrder.history || [{status: trackedOrder.status || 'En attente', date: trackedOrder.date || trackedOrder.created_at}]).map((h: any, i: number) => {
+                  <div className="relative pl-4 border-l-2 border-zinc-200 dark:border-zinc-800 space-y-6 ml-3">
+                     {(trackedOrder.history && trackedOrder.history.length > 0 ? trackedOrder.history : [{status: trackedOrder.status || 'En attente', date: trackedOrder.date || trackedOrder.created_at || new Date().toISOString()}]).map((h: any, i: number, arr: any[]) => {
                          const getStatusInfo = (status: string) => {
                              switch(status) {
                                  case 'En attente': return { color: 'bg-yellow-500', msg: 'Votre commande a bien été reçue et est en attente de traitement.' };
@@ -2732,11 +2790,11 @@ export default function OnyxJaayShop() {
                              }
                          };
                          const info = getStatusInfo(h.status);
-                         const isLast = i === (trackedOrder.history || []).length - 1;
+                         const isLast = i === arr.length - 1;
                          return (
                              <div key={i} className="relative pb-4">
-                                <div className={`absolute -left-[17px] top-1 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${info.color} ${isLast ? 'animate-pulse' : ''}`}></div>
-                                <div className="pl-4">
+                                <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${info.color} ${isLast ? 'animate-pulse' : ''}`}></div>
+                                <div className="pl-2">
                                    <p className="text-xs font-black text-black dark:text-white uppercase">{h.status}</p>
                                    <p className="text-[10px] text-zinc-500 mb-1">
                                       {new Date(h.date).toLocaleDateString('fr-FR')} à {new Date(h.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}
@@ -2972,6 +3030,7 @@ export default function OnyxJaayShop() {
             onClose={() => setSelectedClient(null)}
             shopName={shopInfo.name}
             currency={shopInfo.currency}
+                refreshOrders={() => fetchOrders(shopId || undefined)}
         />
       )}
 
@@ -3006,6 +3065,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
         gallery: product?.gallery || [],
         category: product?.category || '',
         stock: product?.stock ?? 0,
+        barcode: product?.barcode || '',
         rating: product?.rating || 5,
         reviews: product?.reviews || 0,
         variants: product?.variants || { sizes: [], colors: [] },
@@ -3125,9 +3185,18 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                             </div>
                         </div>
 
-                        <div className="relative group">
-                            <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Quantité en Stock</label>
-                            <input type="number" name="stock" value={formData.stock} onChange={handleChange} min="0" className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="relative group">
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Quantité en Stock</label>
+                                <input type="number" name="stock" value={formData.stock} onChange={handleChange} min="0" className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                            </div>
+                            <div className="relative group">
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Code-barre / SKU</label>
+                                <div className="relative">
+                                    <QrCode size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                    <input type="text" name="barcode" value={formData.barcode || ''} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Ex: 370123456789" />
+                                </div>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3333,8 +3402,30 @@ function ShopReviews({ shopId, products }: { shopId: string | null, products: Pr
 }
 
 // --- CLIENT DETAIL MODAL ---
-function ClientDetailModal({ client, orders, shopName, currency, onClose }: { client: any, orders: any[], shopName: string, currency: string, onClose: () => void }) {
+function ClientDetailModal({ client, orders, shopName, currency, onClose, refreshOrders }: { client: any, orders: any[], shopName: string, currency: string, onClose: () => void, refreshOrders: () => void }) {
     const clientOrders = orders.filter(o => o.customer?.phone === client.phone && o.status !== 'Annulé');
+
+    const updateOrderStatus = async (orderId: number, newStatus: string) => {
+        const order = orders.find(o => o.id === orderId);
+        const newHistory = [...(order?.history || []), { status: newStatus, date: new Date().toISOString(), user: 'Administrateur' }];
+        try {
+            const { error } = await supabase.from('orders').update({ status: newStatus, history: newHistory }).eq('id', orderId);
+            if (!error) {
+                refreshOrders();
+                if (newStatus === 'Livré' && order?.customer?.phone) {
+                    if (confirm("La commande est marquée comme Livrée. Voulez-vous envoyer une demande d'avis vérifié au client sur WhatsApp ?")) {
+                        const reviewLink = `${window.location.origin}/vente?order_review=${order.id}`;
+                        const msg = `Bonjour ${order.customer.name.split(' ')[0]} ! 🌟\n\nVotre commande a été livrée avec succès. Nous espérons que vous êtes satisfait !\n\nPourriez-vous prendre 1 minute pour nous laisser un avis vérifié ? C'est très important pour nous.\n\nCliquez ici : ${reviewLink}\n\nMerci pour votre confiance !`;
+                        const rawPhone = String(order.customer.phone).replace(/\s+/g, '').replace(/[^0-9]/g, '');
+                        const phoneWithPrefix = rawPhone.startsWith('221') ? rawPhone : `221${rawPhone}`;
+                        window.open(`https://wa.me/${phoneWithPrefix}?text=${encodeURIComponent(msg)}`, '_blank');
+                    }
+                }
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const generateAction = (type: 'fomo' | 'reactivation' | 'vip') => {
         let message = '';
@@ -3399,11 +3490,41 @@ function ClientDetailModal({ client, orders, shopName, currency, onClose }: { cl
                         <div className="space-y-3">
                             {clientOrders.length > 0 ? clientOrders.map((order: any) => (
                                 <div key={order.id} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                                    <div className="flex justify-between items-center"><p className="text-xs font-bold">{new Date(order.date).toLocaleDateString('fr-FR')}</p><p className="font-bold text-sm text-black dark:text-white">{displayPrice(order.total, currency)}</p></div>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <p className="text-xs font-bold">{new Date(order.date).toLocaleDateString('fr-FR')} à {new Date(order.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</p>
+                                            {order.trackingNumber && <p className="text-[10px] font-black uppercase text-zinc-400 mt-1">Réf: {order.trackingNumber}</p>}
+                                        </div>
+                                        <p className="font-black text-sm text-[#39FF14]">{displayPrice(order.total, currency)}</p>
+                                    </div>
                                     <p className="text-xs text-zinc-500 mt-1 mb-3">{order.items.map((i: any) => `${i.name} (x${i.quantity})`).join(', ')}</p>
-                                    <button onClick={() => sendReceipt(order)} className="text-[10px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition text-black dark:text-white">
-                                        <MessageSquare size={12} /> Envoyer le reçu
-                                    </button>
+                                    
+                                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                                        <select 
+                                            value={order.status || 'En attente'} 
+                                            onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                            className={`text-[10px] font-bold uppercase px-2 py-1.5 rounded outline-none cursor-pointer border ${
+                                                order.status === 'Livré' ? 'bg-green-100 text-green-700 border-green-200' : 
+                                                order.status === 'Payé' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                                order.status === 'Expédié' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                order.status === 'En cours de préparation' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                                order.status === 'Annulé' || order.status === 'Retour article' ? 'bg-red-100 text-red-700 border-red-200' : 
+                                                'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                            }`}
+                                        >
+                                            <option value="En attente">En attente</option>
+                                            <option value="Payé">Payé</option>
+                                            <option value="En cours de préparation">En cours de préparation</option>
+                                            <option value="Expédié">Expédié</option>
+                                            <option value="Livré">Livré</option>
+                                            <option value="Retour article">Retour article</option>
+                                            <option value="Annulé">Annulé</option>
+                                        </select>
+
+                                        <button onClick={() => sendReceipt(order)} className="text-[10px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition text-black dark:text-white shadow-sm">
+                                            <MessageSquare size={12} /> Envoyer reçu
+                                        </button>
+                                    </div>
                                 </div>
                             )) : <p className="text-xs text-zinc-500 italic">Aucune commande trouvée.</p>}
                         </div>
@@ -4675,6 +4796,70 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
             ))}
           </div>
         </div>
+      </div>
+
+      {/* DERNIÈRES COMMANDES */}
+      <div className="mt-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm overflow-x-auto">
+         <div className="flex justify-between items-center mb-6">
+            <h3 className="font-black uppercase text-xl">Dernières Commandes</h3>
+         </div>
+         <table className="w-full text-left min-w-[800px]">
+            <thead className="bg-zinc-50 dark:bg-zinc-800/50">
+               <tr>
+                  <th className="p-4 text-xs font-black uppercase text-zinc-500">Date & Réf</th>
+                  <th className="p-4 text-xs font-black uppercase text-zinc-500">Client</th>
+                  <th className="p-4 text-xs font-black uppercase text-zinc-500 text-center">Montant</th>
+                  <th className="p-4 text-xs font-black uppercase text-zinc-500 text-right">Statut & Actions</th>
+               </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+               {orders.filter((o: any) => o.status !== 'Panier abandonné').slice(0, 10).map((order: any) => (
+                   <tr key={order.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                      <td className="p-4">
+                         <p className="font-bold text-sm">{new Date(order.date || order.created_at).toLocaleDateString('fr-FR')}</p>
+                         <p className="text-[10px] text-zinc-500">{order.trackingNumber || order.tracking_number}</p>
+                      </td>
+                      <td className="p-4">
+                         <p className="font-bold text-sm">{order.customer?.name}</p>
+                         <p className="text-xs text-zinc-500">{order.customer?.phone}</p>
+                      </td>
+                      <td className="p-4 text-center">
+                         <p className="font-black text-[#39FF14]">{displayPrice(order.total || order.total_amount, currency)}</p>
+                      </td>
+                      <td className="p-4 text-right flex items-center justify-end gap-3">
+                         <select 
+                             value={order.status || 'En attente'} 
+                             onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                             className={`text-[10px] font-bold uppercase px-3 py-2 rounded-xl outline-none cursor-pointer border ${
+                                 order.status === 'Livré' ? 'bg-green-100 text-green-700 border-green-200' : 
+                                 order.status === 'Payé' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                 order.status === 'Expédié' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                 order.status === 'En cours de préparation' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                 order.status === 'Annulé' || order.status === 'Retour article' ? 'bg-red-100 text-red-700 border-red-200' : 
+                                 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                             }`}
+                         >
+                             <option value="En attente">En attente</option>
+                             <option value="Payé">Payé</option>
+                             <option value="En cours de préparation">En cours de préparation</option>
+                             <option value="Expédié">Expédié</option>
+                             <option value="Livré">Livré</option>
+                             <option value="Retour article">Retour article</option>
+                             <option value="Annulé">Annulé</option>
+                         </select>
+                         <button onClick={() => setHistoryModalOrder(order)} className="text-[10px] font-bold bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white px-3 py-2 rounded-xl hover:bg-zinc-300 dark:hover:bg-zinc-700 transition">
+                            Détails
+                         </button>
+                      </td>
+                   </tr>
+               ))}
+               {orders.filter((o: any) => o.status !== 'Panier abandonné').length === 0 && (
+                   <tr>
+                      <td colSpan={4} className="p-8 text-center text-zinc-500 italic">Aucune commande récente.</td>
+                   </tr>
+               )}
+            </tbody>
+         </table>
       </div>
 
         {/* MODALE DÉTAILS COMMANDES JOUR */}
