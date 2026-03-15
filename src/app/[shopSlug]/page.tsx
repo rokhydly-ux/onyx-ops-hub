@@ -393,7 +393,11 @@ export default function DynamicShopPage() {
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
                   {categories.map(cat => (
                     <button key={cat} onClick={() => { setActiveCategory(cat); setIsMobileMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeCategory === cat ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'}`}>
-                      <span className="flex items-center gap-2">{cat === 'Favoris' && <Heart size={14} />}{cat}</span>
+                    <span className="flex items-center gap-2">
+                      {cat === 'Favoris' && <Heart size={14} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />}
+                      {cat}
+                      {cat === 'Favoris' && wishlist.length > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full leading-none">{wishlist.length}</span>}
+                    </span>
                       {activeCategory === cat && <ChevronRight size={14} />}
                     </button>
                   ))}
@@ -437,7 +441,11 @@ export default function DynamicShopPage() {
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
             {categories.map(cat => (
               <button key={cat} onClick={() => setActiveCategory(cat)} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeCategory === cat ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                <span className="flex items-center gap-2">{cat === 'Favoris' && <Heart size={14} />}{cat}</span>
+              <span className="flex items-center gap-2">
+                {cat === 'Favoris' && <Heart size={14} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />}
+                {cat}
+                {cat === 'Favoris' && wishlist.length > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full leading-none">{wishlist.length}</span>}
+              </span>
                 {activeCategory === cat && <ChevronRight size={14} />}
               </button>
             ))}
@@ -473,7 +481,18 @@ export default function DynamicShopPage() {
         {/* Banner */}
         {isBannerVisible && (
           <div className="bg-black dark:bg-[#39FF14] text-[#39FF14] dark:text-black px-4 py-2.5 text-center text-[10px] sm:text-xs font-bold flex justify-center items-center relative z-30 shadow-md animate-in slide-in-from-top-2">
-             <span>🚀 Bienvenue sur {shopInfo?.name} ! Profitez de nos offres avec le code <span className="bg-[#39FF14] dark:bg-black text-black dark:text-[#39FF14] px-1.5 py-0.5 rounded ml-1">BIENVENUE10</span></span>
+             <span className="flex flex-wrap items-center justify-center gap-2">
+                <span>🚀 Bienvenue sur {shopInfo?.name} ! Profitez de nos offres avec le code <span className="bg-[#39FF14] dark:bg-black text-black dark:text-[#39FF14] px-1.5 py-0.5 rounded ml-1">BIENVENUE10</span></span>
+                <button 
+                   onClick={() => {
+                       const msg = `Bonjour l'équipe, je suis sur votre boutique en ligne et j'aimerais avoir plus d'informations !`;
+                       window.open(`https://wa.me/${String(shopInfo?.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                   }}
+                   className="bg-[#39FF14] dark:bg-black text-black dark:text-[#39FF14] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider hover:scale-105 transition-transform flex items-center gap-1 shadow-sm ml-2"
+                >
+                   <MessageSquare size={12} /> Discuter
+                </button>
+             </span>
              <button onClick={() => setIsBannerVisible(false)} className="absolute right-4 hover:scale-110 transition p-1"><X size={14}/></button>
           </div>
         )}
