@@ -594,6 +594,7 @@ export default function OnyxJaayShop() {
   });
 
   const handleLogout = async () => {
+    localStorage.removeItem('onyx_custom_session');
     await supabase.auth.signOut();
     window.location.href = '/';
   };
@@ -691,9 +692,17 @@ export default function OnyxJaayShop() {
               setIsEditingMode(true);
               await fetchShopData(session.user.id);
           } else {
-              // C'est un client externe : on NE le redirige PLUS vers /login
-              setIsShopOwner(false);
-              setIsEditingMode(false);
+              const customSession = localStorage.getItem('onyx_custom_session');
+              if (customSession) {
+                  const user = JSON.parse(customSession);
+                  setAuthUser(user);
+                  setIsShopOwner(true);
+                  setIsEditingMode(true);
+                  await fetchShopData(user.id);
+              } else {
+                  setIsShopOwner(false);
+                  setIsEditingMode(false);
+              }
           }
           setIsLoading(false); // Dans tous les cas on affiche la page
       };
@@ -4295,7 +4304,8 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
         logo_url: shopInfo.logoUrl,
         currency: shopInfo.currency,
         delivery_options: shopInfo.deliveryOptions,
-        opening_hours: shopInfo.openingHours
+        opening_hours: shopInfo.openingHours,
+        slug: shopInfo.slug
     }).eq('id', shopId);
     
     if (!error) alert("Les paramètres ont été enregistrés et appliqués à votre boutique publique !");
@@ -4354,6 +4364,15 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                       <option value="USD">Dollar Américain ($)</option>
                   </select>
                   <p className="text-[10px] text-zinc-400 mt-2 italic">Les prix sont basés en FCFA et convertis automatiquement pour l'affichage.</p>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Lien public de la boutique</label>
+                  <div className="flex items-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 focus-within:border-[#39FF14] transition-colors">
+                      <span className="text-sm font-bold text-zinc-400">onyxops.com/</span>
+                      <input type="text" value={shopInfo.slug} onChange={(e) => setShopInfo({...shopInfo, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} className="w-full bg-transparent p-3 pl-1 font-bold text-sm outline-none text-black dark:text-white" placeholder="ex: ma-boutique" />
+                  </div>
+                  <p className="text-[10px] text-zinc-400 mt-2 italic">Ceci sera l'URL que vous partagerez à vos clients.</p>
               </div>
 
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mb-4">

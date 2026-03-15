@@ -16,26 +16,56 @@ export default function LoginPage() {
     setIsLoading(true);
     setErrorMsg(null);
 
-    // Nettoyage du numéro de téléphone (enlève les espaces et assure la présence du +)
-    const formattedPhone = phone.replace(/\s+/g, '').startsWith('+') ? phone.replace(/\s+/g, '') : `+${phone.replace(/\s+/g, '')}`;
+    // Nettoyage pour trouver le cœur du numéro (ex: 778000012)
+    const cleanPhone = phone.replace(/\s+/g, '').replace('+', '');
+    const corePhone = cleanPhone.length >= 9 ? cleanPhone.slice(-9) : cleanPhone;
 
-    // Utilisation de l'API d'authentification officielle Supabase avec le numéro
-    const { data, error } = await supabase.auth.signInWithPassword({
-      phone: formattedPhone,
-      password: password,
-    });
+    // 1. Tenter la connexion via la base de données CRM (Clients confirmés)
+    const { data: clients, error: errC } = await supabase.from('clients')
+        .select('*')
+        .ilike('phone', `%${corePhone}%`);
 
-    if (error) {
-      console.error("Erreur de connexion:", error.message);
-      setErrorMsg("Numéro de téléphone ou mot de passe incorrect.");
-      setIsLoading(false);
-      return;
+    const validClient = clients?.find(c => 
+        c.password === password || 
+        c.password_temp === password || 
+        (c.password && c.password.toLowerCase() === password.toLowerCase()) || 
+        (c.password_temp && c.password_temp.toLowerCase() === password.toLowerCase())
+    );
+
+    if (validClient) {
+        localStorage.setItem('onyx_custom_session', JSON.stringify(validClient));
+        router.push('/dashboard');
+        return;
     }
 
-    if (data.session) {
-      // Succès ! Redirection vers le tableau de bord vendeur
-      router.push("/dashboard");
+    // 2. Tenter la connexion via la base Leads (Nouveaux inscrits)
+    const { data: leads, error: errL } = await supabase.from('leads')
+        .select('*')
+        .ilike('phone', `%${corePhone}%`);
+        
+    const validLead = leads?.find(l => 
+        l.password === password || 
+        l.password_temp === password || 
+        (l.password && l.password.toLowerCase() === password.toLowerCase()) || 
+        (l.password_temp && l.password_temp.toLowerCase() === password.toLowerCase())
+    );
+
+    if (validLead) {
+        localStorage.setItem('onyx_custom_session', JSON.stringify(validLead));
+        router.push('/dashboard');
+        return;
     }
+
+    // 3. Fallback Auth Supabase officiel (au cas où)
+    const phoneWithPlus = `+${cleanPhone}`;
+    const { data } = await supabase.auth.signInWithPassword({ phone: phoneWithPlus, password: password });
+    if (data?.session) {
+        router.push('/dashboard');
+        return;
+    }
+
+    setErrorMsg("Numéro de téléphone ou mot de passe incorrect.");
+    setIsLoading(false);
   };
 
   return (
@@ -44,8 +74,8 @@ export default function LoginPage() {
         <div className="flex justify-center mb-6">
            <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" className="h-[40px] w-auto object-contain dark:invert" />
         </div>
-        <h2 className="text-3xl font-black uppercase tracking-tighter mb-6 text-center text-black dark:text-white">
-          Connexion Vendeur
+        <h2 className="font-sans text-3xl font-black uppercase tracking-tighter mb-6 text-center text-black dark:text-white">
+          Connexion au Hub
         </h2>
         
         {errorMsg && (
