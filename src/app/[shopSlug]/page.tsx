@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, 
   Store, MessageSquare, Sparkles, Heart, ChevronRight, Menu, ArrowRight, Star, Sun, Moon,
-  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift
+  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
@@ -38,7 +38,7 @@ export default function DynamicShopPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'popular' | null>(null);
   const [categories, setCategories] = useState<string[]>(["Toutes"]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
@@ -353,6 +353,7 @@ export default function DynamicShopPage() {
   }).sort((a, b) => {
     if (sortOrder === 'asc') return a.price - b.price;
     if (sortOrder === 'desc') return b.price - a.price;
+    if (sortOrder === 'popular') return (b.reviews || 0) - (a.reviews || 0);
     return b.id - a.id; 
   });
 
@@ -392,6 +393,18 @@ export default function DynamicShopPage() {
                       {activeCategory === cat && <ChevronRight size={14} />}
                     </button>
                   ))}
+                </div>
+
+                <div className="px-4 space-y-2 mt-8">
+                  <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2"><Filter size={12}/> Prix ({shopInfo.currency})</p>
+                  <div className="px-4 flex gap-2">
+                    <input type="number" placeholder="Min" value={minPrice} onChange={(e) => setMinPrice(e.target.value ? Number(e.target.value) : '')} className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                    <input type="number" placeholder="Max" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : '')} className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                  </div>
+                  <div className="px-4 mt-2 flex gap-2">
+                      <button onClick={() => { setSortOrder(sortOrder === 'asc' ? null : 'asc'); setIsMobileMenuOpen(false); }} className={`flex-1 p-2 rounded-xl text-xs font-bold border ${sortOrder === 'asc' ? 'bg-[#39FF14] text-black border-[#39FF14]' : 'bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800'}`}><ArrowUp size={12} className="inline mr-1"/> Prix</button>
+                      <button onClick={() => { setSortOrder(sortOrder === 'desc' ? null : 'desc'); setIsMobileMenuOpen(false); }} className={`flex-1 p-2 rounded-xl text-xs font-bold border ${sortOrder === 'desc' ? 'bg-[#39FF14] text-black border-[#39FF14]' : 'bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800'}`}><ArrowDown size={12} className="inline mr-1"/> Prix</button>
+                  </div>
                 </div>
               </div>
           </div>
@@ -540,8 +553,8 @@ export default function DynamicShopPage() {
                             {product.old_price && product.old_price > product.price && <p className="text-sm text-zinc-400 line-through mb-1">{displayPrice(product.old_price, shopInfo.currency)}</p>}
                           </div>
                         </div>
-                        <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} disabled={product.stock === 0} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                          <Plus size={16} /> Ajouter
+                        <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} disabled={product.stock === 0 || (product.stock !== undefined && cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)} className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-all flex items-center gap-2 shadow-lg hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:scale-105 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none">
+                          <Plus size={16} /> Ajouter au Panier
                         </button>
                       </div>
                     </div>
@@ -638,7 +651,30 @@ export default function DynamicShopPage() {
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
             <div className="relative bg-white dark:bg-zinc-950 w-full max-w-md h-full shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-300">
                <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900">
-                  <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3"><ShoppingCart className="text-[#39FF14]" /> Mon Panier</h2>
+                  <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
+                    <ShoppingCart className="text-[#39FF14]" /> Mon Panier
+                    {cartCount > 0 && (
+                        <div className="flex gap-2 ml-2 flex-wrap">
+                            <button onClick={() => {
+                                let shareMsg = `Salut ! Regarde mon panier sur ${shopInfo.name} :\n\n`;
+                                cart.forEach(item => { shareMsg += `- ${item.name} (x${item.quantity}) : ${displayPrice(item.price * item.quantity, shopInfo.currency)}\n`; });
+                                shareMsg += `\n*Total : ${displayPrice(cartTotal, shopInfo.currency)}*\n\nLien : ${window.location.origin}/${shopSlug}`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(shareMsg)}`, '_blank');
+                            }} className="text-[10px] font-bold text-green-600 bg-green-500/10 px-2 py-1 rounded hover:bg-green-500 hover:text-white transition tracking-widest flex items-center gap-1">
+                                <Share2 size={12} /> PARTAGER
+                            </button>
+                            <button onClick={() => {
+                                localStorage.setItem(`onyx_cart_${shopSlug}`, JSON.stringify(cart));
+                                alert("Votre panier est sauvegardé sur cet appareil ! Vous le retrouverez lors de votre prochaine visite.");
+                            }} className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded hover:bg-blue-500 hover:text-white transition tracking-widest flex items-center gap-1">
+                                <Save size={12} /> SAUVER
+                            </button>
+                            <button onClick={() => { if(confirm("Voulez-vous vraiment vider votre panier ?")) { setCart([]); } }} className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded hover:bg-red-500 hover:text-white transition tracking-widest flex items-center gap-1">
+                                <Trash2 size={12} /> VIDER
+                            </button>
+                        </div>
+                    )}
+                  </h2>
                   <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full"><X size={20}/></button>
                </div>
                <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
@@ -702,6 +738,9 @@ export default function DynamicShopPage() {
 
                     <div className="flex justify-between items-center mb-6"><span className="text-zinc-500 font-bold uppercase text-xs">Total à payer</span><span className="text-2xl font-black text-black dark:text-white">{displayPrice(cartTotal, shopInfo.currency)}</span></div>
                     <button onClick={() => setIsCheckoutModalOpen(true)} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2">Commander sur WhatsApp <ArrowRight size={18} /></button>
+                    <button onClick={() => setIsCartOpen(false)} className="w-full mt-3 bg-transparent border-2 border-black dark:border-white text-black dark:text-white py-3 rounded-xl font-bold uppercase text-sm hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all flex items-center justify-center">
+                        Continuer mes achats
+                    </button>
                  </div>
                )}
             </div>
@@ -711,14 +750,39 @@ export default function DynamicShopPage() {
         {/* --- CHECKOUT CONFIRMATION MODAL --- */}
         {isCheckoutModalOpen && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative">
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
               <button onClick={() => setIsCheckoutModalOpen(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-black dark:hover:text-white"><X size={20}/></button>
               <h3 className="text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white">Confirmation</h3>
-              <p className="text-zinc-500 text-sm mb-6">Vos informations de livraison.</p>
-              <div className="mb-6 space-y-3">
-                  <input type="text" placeholder="Votre Nom *" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 outline-none focus:border-black text-black dark:text-white" />
-                  <input type="tel" placeholder="Votre Téléphone *" value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 outline-none focus:border-black text-black dark:text-white" />
-                  {deliveryMethod === 'delivery' && <textarea placeholder="Adresse de livraison détaillée (Numéro de rue, repère...)" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none" />}
+              <p className="text-zinc-500 text-sm mb-6">Vérifiez vos informations avant l'envoi.</p>
+              
+              <div className="mb-6 space-y-3 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Vos Coordonnées</p>
+                 <input type="text" placeholder="Votre Nom *" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black text-black dark:text-white transition" />
+                 <input type="tel" placeholder="Votre Téléphone *" value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black text-black dark:text-white transition" />
+                 {deliveryMethod === 'delivery' && <textarea placeholder="Adresse de livraison détaillée (Numéro de rue, repère...)" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none transition" />}
+              </div>
+
+              <div className="space-y-3 mb-8 pr-2">
+                {cart.map(item => (
+                  <div key={item.id} className="flex justify-between text-sm py-2 border-b border-zinc-100 dark:border-zinc-900">
+                    <span className="text-zinc-600 dark:text-zinc-300">
+                      {item.name} 
+                      {(item.selectedVariant?.size || item.selectedVariant?.color) && <span className="text-zinc-500 text-xs ml-1">({[item.selectedVariant.size, item.selectedVariant.color].filter(Boolean).join(', ')})</span>}
+                      <span className="text-zinc-500 text-xs ml-1">x{item.quantity}</span>
+                    </span>
+                    <span className="font-bold text-black dark:text-white">{(item.price * item.quantity).toLocaleString()} FCFA</span>
+                  </div>
+                ))}
+                {deliveryMethod === 'delivery' && (
+                   <div className="flex justify-between items-center mb-2 text-xs text-zinc-500 dark:text-zinc-400 py-2 border-b border-zinc-100 dark:border-zinc-900">
+                       <span className="font-bold">Frais de livraison ({deliveryZones.find(z => z.id === selectedZoneId)?.name || 'Non défini'})</span>
+                       <span className="font-bold">{deliveryCost.toLocaleString()} FCFA</span>
+                   </div>
+                )}
+                <div className="pt-2 flex justify-between text-lg font-black text-[#39FF14]">
+                  <span>Total à payer</span>
+                  <span>{displayPrice(cartTotal, shopInfo.currency)}</span>
+                </div>
               </div>
 
               <div className="mb-8">
@@ -738,7 +802,10 @@ export default function DynamicShopPage() {
                  </div>
               </div>
 
-              <button onClick={confirmOrder} className="w-full py-4 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase hover:bg-white transition flex items-center justify-center gap-2 shadow-lg"><MessageSquare size={18}/> Envoyer sur WhatsApp</button>
+              <div className="flex gap-3">
+                 <button onClick={() => setIsCheckoutModalOpen(false)} className="flex-1 py-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl font-bold text-xs uppercase hover:bg-zinc-200 dark:hover:bg-zinc-800 transition text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white">Annuler</button>
+                 <button onClick={confirmOrder} className="flex-[2] py-4 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase hover:bg-white transition flex items-center justify-center gap-2 shadow-lg"><MessageSquare size={18}/> Confirmer l'envoi</button>
+              </div>
             </div>
           </div>
         )}
