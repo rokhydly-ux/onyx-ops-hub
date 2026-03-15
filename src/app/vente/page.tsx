@@ -341,7 +341,7 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories, products }: 
     );
 }
 
-function ShopPageBuilder({ categories, products }: { categories: string[], products: Product[] }) {
+function ShopPageBuilder({ categories, products, shopId }: { categories: string[], products: Product[], shopId: string | null }) {
   const availableWidgets = [
     { id: 'category-grid', type: 'category-grid', name: 'Grille de Catégories', settings: { categories: [] } },
     { id: 'promo-banner', type: 'promo-banner', name: 'Bannière Promotionnelle', settings: { imageUrl: '' } },
@@ -359,8 +359,11 @@ function ShopPageBuilder({ categories, products }: { categories: string[], produ
     }
   }, []);
 
-  const handleSaveLayout = () => {
+  const handleSaveLayout = async () => {
     localStorage.setItem('onyx_jaay_homepage_layout', JSON.stringify(pageWidgets));
+    if (shopId) {
+        await supabase.from('shops').update({ homepage_layout: pageWidgets }).eq('id', shopId);
+    }
     alert('Mise en page enregistrée !');
   };
 
@@ -2324,7 +2327,7 @@ export default function OnyxJaayShop() {
             />
         )}
         {shopView === 'page-builder' && (
-            <ShopPageBuilder categories={categories} products={products} />
+            <ShopPageBuilder categories={categories} products={products} shopId={shopId} />
         )}
         {shopView === 'planning' && (
             <MarketingPlanner suggestions={iaSuggestions} plannedEvents={plannedEvents} setPlannedEvents={setPlannedEvents} />
@@ -4765,7 +4768,8 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
         currency: shopInfo.currency,
         delivery_options: shopInfo.deliveryOptions,
         opening_hours: shopInfo.openingHours,
-        slug: shopInfo.slug
+        slug: shopInfo.slug,
+        categories: categories
     }).eq('id', shopId);
     if (error) { alert("Erreur lors de la sauvegarde des paramètres : " + error.message); } else { alert("Paramètres de la boutique mis à jour avec succès !"); }
   };

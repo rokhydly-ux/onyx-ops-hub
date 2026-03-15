@@ -231,6 +231,9 @@ export default function DynamicShopPage() {
         const otherCats = shop.categories.filter((c: string) => c !== "Toutes" && c !== "Favoris");
         setCategories([...baseCats, ...otherCats]);
       }
+      if (shop.homepage_layout && shop.homepage_layout.length > 0) {
+        setHomepageLayout(shop.homepage_layout);
+      }
 
       const { data: shopProducts } = await supabase.from("products").select("*").eq("shop_id", shop.id);
       if (shopProducts) {
@@ -240,10 +243,11 @@ export default function DynamicShopPage() {
         setProducts(shopProducts.map((p: any) => {
             const productReviews = reviewsData ? reviewsData.filter((r: any) => String(r.reference_id) === String(p.id)) : [];
             return {
-                id: p.id, name: p.name, price: p.price, oldPrice: p.old_price,
-                description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
-                stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
-                videoUrl: p.video_url, reviewsList: productReviews
+                ...p,
+                oldPrice: p.old_price,
+                costPrice: p.cost_price,
+                videoUrl: p.video_url,
+                reviewsList: productReviews
             };
         }));
         if (!shop.categories || shop.categories.length === 0) {
