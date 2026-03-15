@@ -126,7 +126,8 @@ const initialShopInfo = {
   currency: 'FCFA',
   deliveryOptions: { delivery: true, pickup: true },
   openingHours: { start: '09:00', end: '18:00', enabled: false },
-  slug: ''
+  slug: '',
+  categoryCovers: {} as Record<string, string>
 };
 
 const CONVERSION_RATES: Record<string, { rate: number; symbol: string }> = {
@@ -461,9 +462,10 @@ function ShopPageBuilder({ categories, products, shopId }: { categories: string[
 interface CategoryGridWidgetProps {
     categories: string[];
     setActiveCategory: (category: string) => void;
+    categoryCovers?: Record<string, string>;
 }
 
-const CategoryGridWidget = ({ categories, setActiveCategory }: CategoryGridWidgetProps) => (
+const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {} }: CategoryGridWidgetProps) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
     {categories.map((cat) => (
         <div 
@@ -472,7 +474,7 @@ const CategoryGridWidget = ({ categories, setActiveCategory }: CategoryGridWidge
         className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
         >
         <img 
-            src={`https://placehold.co/800x800/111/FFF?text=${cat}`} 
+            src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${cat}`} 
             alt={cat}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
         />
@@ -523,7 +525,7 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
                 <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-33.333%); } } .animate-marquee { animation: marquee 25s linear infinite; display: flex; width: max-content; } .group:hover .animate-marquee { animation-play-state: paused; }`}</style>
                 <div className="animate-marquee gap-6">
                     {marqueeProducts.map((p: Product, idx: number) => (
-                        <div key={`${p.id}-${idx}`} className="w-[300px] h-[350px] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden flex flex-col cursor-pointer shadow-sm hover:shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all shrink-0" onClick={() => onViewProduct(p)}>
+                        <div key={`${p.id}-${idx}`} className={`w-[300px] h-[350px] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden flex flex-col cursor-pointer shadow-sm hover:shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all shrink-0 ${p.stock === 0 ? 'grayscale opacity-75' : ''}`} onClick={() => onViewProduct(p)}>
                             <div className="h-[220px] relative overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                                <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 hover:scale-110" />
                                {p.stock === 0 && (
@@ -534,6 +536,7 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
                                <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
                                   {p.stock === 0 && <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">En rupture</div>}
                                   {p.stock !== 0 && <div className="bg-black text-[#39FF14] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Nouveau</div>}
+                                  {p.stock === 1 && <div className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg animate-pulse">Stock critique !</div>}
                                </div>
                             </div>
                             <div className="p-5 flex-1 flex flex-col justify-between">
@@ -543,7 +546,7 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
                                         {p.oldPrice && p.oldPrice > p.price && <span className="text-[10px] text-zinc-400 line-through mb-[-4px]">{displayPrice(p.oldPrice, currency)}</span>}
                                         <span className="font-black text-xl text-black dark:text-white">{displayPrice(p.price, currency)}</span>
                                     </div>
-                                    <button onClick={(e) => { e.stopPropagation(); addToCart(p); }} disabled={p.stock === 0 || (p.stock !== undefined && getQtyInCart(p.id) >= p.stock)} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"><Plus size={16} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); addToCart(p, undefined, false); }} disabled={p.stock === 0 || (p.stock !== undefined && getQtyInCart(p.id) >= p.stock)} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"><Plus size={16} /></button>
                                 </div>
                             </div>
                         </div>
@@ -598,6 +601,7 @@ export default function OnyxJaayShop() {
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [customerAddress, setCustomerAddress] = useState('');
@@ -707,7 +711,8 @@ export default function OnyxJaayShop() {
               currency: shop.currency || 'FCFA',
               deliveryOptions: shop.delivery_options || { delivery: true, pickup: true },
               openingHours: shop.opening_hours || { start: '09:00', end: '18:00', enabled: false },
-              slug: shop.slug || ''
+              slug: shop.slug || '',
+              categoryCovers: shop.category_covers || {}
           });
 
           const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
@@ -825,7 +830,7 @@ export default function OnyxJaayShop() {
     switch (widgetType) {
       case 'category-grid':
         const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
-        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} />;
+        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo.categoryCovers} />;
       case 'promo-banner':
         return <PromoBannerWidget 
             imageUrl={widget.settings?.imageUrl} 
@@ -983,6 +988,8 @@ export default function OnyxJaayShop() {
     });
     if (openCart) setIsCartOpen(true);
     triggerStockUpdateBadge();
+    setToastMessage(`🛒 ${product.name} ajouté au panier !`);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const removeFromCart = (itemToRemove: CartItem) => {
@@ -2190,7 +2197,7 @@ export default function OnyxJaayShop() {
                         className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
                       >
                         <img 
-                          src={`https://placehold.co/800x800/111/FFF?text=${cat}`} 
+                          src={shopInfo.categoryCovers?.[cat] || `https://placehold.co/800x800/111/FFF?text=${cat}`} 
                           alt={cat}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
@@ -2208,7 +2215,7 @@ export default function OnyxJaayShop() {
                 {filteredProducts.map((product, index) => (
                   <div 
                     key={product.id} 
-                    className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all duration-300 ${isEditingMode ? 'cursor-grab active:cursor-grabbing hover:border-[#39FF14]/50 hover:shadow-[0_0_30px_rgba(57,255,20,0.1)]' : 'cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600'}`}
+                    className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all duration-300 ${isEditingMode ? 'cursor-grab active:cursor-grabbing hover:border-[#39FF14]/50 hover:shadow-[0_0_30px_rgba(57,255,20,0.1)]' : 'cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600'} ${product.stock === 0 ? 'grayscale opacity-75' : ''}`}
                     onClick={() => !isEditingMode && handleViewProduct(product)}
                     draggable={isEditingMode && activeCategory === 'Toutes'} // Drag & Drop only logical when all products are shown
                     onDragStart={(e) => handleDragStart(e, index)}
@@ -2226,8 +2233,14 @@ export default function OnyxJaayShop() {
                         <div className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700 text-[#39FF14]">
                           {product.category}
                         </div>
+                        {product.oldPrice && product.oldPrice > product.price && (
+                           <div className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%</div>
+                        )}
                         {product.stock === 0 && (
                           <div className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">En rupture</div>
+                        )}
+                        {product.stock === 1 && (
+                          <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg animate-pulse">Stock critique !</div>
                         )}
                         {product.id > Date.now() - 7 * 24 * 60 * 60 * 1000 && product.stock !== 0 && (
                           <div className="bg-[#39FF14] text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Nouveau</div>
@@ -2274,7 +2287,7 @@ export default function OnyxJaayShop() {
                           </div>
                         </div>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); addToCart(product); }} 
+                          onClick={(e) => { e.stopPropagation(); addToCart(product, undefined, false); }} 
                           disabled={product.stock === 0 || (product.stock !== undefined && cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)}
                           className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
                         >
@@ -2590,7 +2603,7 @@ export default function OnyxJaayShop() {
                              <button onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }} className="text-zinc-400 hover:text-red-500 shrink-0 p-1"><Trash2 size={18}/></button>
                           </div>
                           <p className="text-zinc-500 dark:text-zinc-400 font-bold text-lg mb-auto">{displayPrice(item.price, shopInfo.currency)}</p>
-                          <button onClick={(e) => { e.stopPropagation(); addToCart(item); setIsWishlistOpen(false); }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition-colors">Ajouter au panier</button>
+                          <button onClick={(e) => { e.stopPropagation(); addToCart(item, undefined, false); setIsWishlistOpen(false); }} className="text-xs bg-black dark:bg-white text-white dark:text-black px-4 py-2.5 rounded-xl w-max mt-2 font-bold uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition-colors">Ajouter au panier</button>
                        </div>
                     </div>
                   ))
@@ -2841,6 +2854,12 @@ export default function OnyxJaayShop() {
             shopName={shopInfo.name}
             currency={shopInfo.currency}
         />
+      )}
+
+      {toastMessage && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-[#39FF14] dark:text-black px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[300] animate-in slide-in-from-bottom-5">
+            <CheckCircle size={16}/> {toastMessage}
+        </div>
       )}
     </div>
   );
@@ -3360,7 +3379,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!product || galleryImages.length <= 1) return;
+      if (!isLightboxOpen || !product || galleryImages.length <= 1) return;
       if (e.key === 'ArrowLeft') {
         handlePrevImage();
       } else if (e.key === 'ArrowRight') {
@@ -3369,7 +3388,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [product, galleryImages.length, handleNextImage, handlePrevImage]);
+  }, [product, galleryImages.length, handleNextImage, handlePrevImage, isLightboxOpen]);
 
   if (!isOpen || !product) return null;
 
@@ -3493,8 +3512,22 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed mb-8">{product.description || "Aucune description fournie pour ce produit."}</p>
 
                   <div className="flex items-center gap-2 mb-6 bg-zinc-100 dark:bg-zinc-900 w-max px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                    <div className="flex text-yellow-400"><Star size={16} className="fill-yellow-400" /></div>
-                    <span className="text-sm font-bold text-black dark:text-white">{product.rating || 5}/5</span>
+                    <div className="flex text-yellow-400 cursor-pointer" title="Noter ce produit">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <Star 
+                          key={star} 
+                          size={16} 
+                          className={star <= Math.round(product.rating || 5) ? 'fill-yellow-400 hover:scale-125 transition-transform' : 'text-zinc-300 dark:text-zinc-700 hover:scale-125 transition-transform'} 
+                          onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setNewReview(prev => ({...prev, rating: star})); 
+                              document.getElementById('review-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+                              setTimeout(() => { document.getElementById('review-comment-input')?.focus({ preventScroll: true }); }, 500);
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm font-bold text-black dark:text-white ml-2">{product.rating || 5}/5</span>
                     <span className="text-xs text-zinc-500 dark:text-zinc-500 font-medium border-l border-zinc-300 dark:border-zinc-700 pl-2 ml-1">{product.reviews || 0} avis vérifiés</span>
                   </div>
 
@@ -3538,7 +3571,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   <div className="flex flex-col sm:flex-row gap-3">
                       <button 
                         onClick={() => { 
-                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, false); 
+                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true); 
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
                         className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -3597,19 +3630,20 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   </div>
 
                   {/* Add Review Form */}
-                  <form onSubmit={handleReviewSubmit} className="space-y-3">
+                  <form id="review-form" onSubmit={handleReviewSubmit} className="space-y-3">
                     <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">Laisser un avis</p>
+                    <div className="flex gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button key={star} type="button" onClick={() => setNewReview({...newReview, rating: star})} className="hover:scale-110 transition-transform">
+                          <Star size={24} className={star <= newReview.rating ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-300 dark:text-zinc-700'} />
+                        </button>
+                      ))}
+                    </div>
                     <div className="flex gap-2">
-                      <input type="text" placeholder="Votre nom" value={newReview.name} onChange={e => setNewReview({...newReview, name: e.target.value})} className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14]" />
-                      <select value={newReview.rating} onChange={e => setNewReview({...newReview, rating: Number(e.target.value)})} className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14]">
-                        <option value={5}>5 ★</option>
-                        <option value={4}>4 ★</option>
-                        <option value={3}>3 ★</option>
-                        <option value={2}>2 ★</option>
-                        <option value={1}>1 ★</option>
-                      </select>
+                      <input type="text" placeholder="Votre nom" value={newReview.name} onChange={e => setNewReview({...newReview, name: e.target.value})} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14]" />
                     </div>
                     <textarea 
+                      id="review-comment-input"
                       placeholder="Votre commentaire..." 
                       value={newReview.comment} 
                       onChange={e => setNewReview({...newReview, comment: e.target.value})}
@@ -4150,8 +4184,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
       XLSX.writeFile(workbook, `onyx_nouveaux_clients_export_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const StatCard = ({ icon, label, value, colorClass, trend }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null }) => (
-    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full text-left transition-all ${colorClass} cursor-default`}>
+  const StatCard = ({ icon, label, value, colorClass, trend, onClick }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null, onClick?: () => void }) => (
+    <div onClick={onClick} className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl flex flex-col justify-between h-full text-left transition-all ${colorClass} ${onClick ? 'cursor-pointer hover:scale-105 hover:shadow-lg' : 'cursor-default'}`}>
         <div className="flex justify-between items-start">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center`}>
             {icon}
@@ -4212,10 +4246,10 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        <StatCard icon={<span className="font-black text-xl">XOF</span>} label="Revenu Total" value={displayPrice(totalRevenue, currency)} colorClass="text-green-500" trend={revenueTrend} />
-        <StatCard icon={<Wallet size={32} />} label="Marge Nette" value={displayPrice(netMargin, currency)} colorClass="text-[#39FF14]" trend={marginTrend} />
-        <StatCard icon={<ShoppingCart size={32} />} label="Commandes" value={totalOrders} colorClass="text-blue-500" trend={ordersTrend} />
-        <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} />
+        <StatCard icon={<span className="font-black text-xl">XOF</span>} label="Revenu Total" value={displayPrice(totalRevenue, currency)} colorClass="text-green-500" trend={revenueTrend} onClick={() => { document.getElementById('dashboard-chart')?.scrollIntoView({ behavior: 'smooth' }) }} />
+        <StatCard icon={<Wallet size={32} />} label="Marge Nette" value={displayPrice(netMargin, currency)} colorClass="text-[#39FF14]" trend={marginTrend} onClick={() => { document.getElementById('dashboard-chart')?.scrollIntoView({ behavior: 'smooth' }) }} />
+        <StatCard icon={<ShoppingCart size={32} />} label="Commandes" value={totalOrders} colorClass="text-blue-500" trend={ordersTrend} onClick={() => setShopView('clients')} />
+        <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} onClick={() => setShopView('clients')} />
         <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={displayPrice(averageOrderValue, currency)} colorClass="text-purple-500" trend={avgOrderTrend} />
       </div>
 
@@ -4266,7 +4300,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sales Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm">
+        <div id="dashboard-chart" className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm">
           <div className="flex items-center justify-between mb-8">
              <h3 className="font-black uppercase text-xl">Tendance ({chartPeriod === 'week' ? '7' : '30'}j)</h3>
              <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1 gap-1">
@@ -4830,7 +4864,7 @@ interface PromoCode {
 interface ShopSettingsProps {
   promoCodes: PromoCode[];
   setPromoCodes: React.Dispatch<React.SetStateAction<PromoCode[]>>;
-  shopInfo: typeof initialShopInfo & { currency: string };
+  shopInfo: typeof initialShopInfo & { currency: string, categoryCovers?: Record<string, string> };
   setShopInfo: React.Dispatch<React.SetStateAction<typeof initialShopInfo>>;
   deliveryZones: DeliveryZone[];
   setDeliveryZones: React.Dispatch<React.SetStateAction<DeliveryZone[]>>;
@@ -4937,7 +4971,8 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
         delivery_options: shopInfo.deliveryOptions,
         opening_hours: shopInfo.openingHours,
         slug: shopInfo.slug,
-        categories: categories
+        categories: categories,
+        category_covers: shopInfo.categoryCovers || {}
     }).eq('id', shopId);
     if (error) { alert("Erreur lors de la sauvegarde des paramètres : " + error.message); } else { alert("Paramètres de la boutique mis à jour avec succès !"); }
   };
@@ -5085,7 +5120,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
       {/* GESTION DES CATÉGORIES */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm mb-8">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="font-black uppercase text-xl flex items-center gap-3"><Tag size={20} className="text-[#39FF14]" /> Catégories du Catalogue</h3>
+          <h3 className="font-black uppercase text-xl flex items-center gap-3"><Tag size={20} className="text-[#39FF14]" /> Catégories & Couvertures</h3>
         </div>
         
         <form onSubmit={handleAddCategory} className="flex flex-wrap gap-4 mb-6">
@@ -5093,12 +5128,23 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
            <button type="submit" className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-[#39FF14] hover:text-black transition flex items-center gap-2"><Plus size={16}/> Ajouter</button>
         </form>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="space-y-3">
            {categories.map(cat => (
-              <div key={cat} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                 <span className="font-bold text-sm text-black dark:text-white">{cat}</span>
+              <div key={cat} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                 <div className="flex items-center gap-4 w-full sm:w-1/3">
+                    <span className="font-bold text-sm text-black dark:text-white flex-1 truncate">{cat}</span>
+                    {cat !== 'Toutes' && cat !== 'Favoris' && (
+                        <button type="button" onClick={() => handleDeleteCategory(cat)} className="text-zinc-400 hover:text-red-500 transition shrink-0"><Trash2 size={16}/></button>
+                    )}
+                 </div>
                  {cat !== 'Toutes' && cat !== 'Favoris' && (
-                     <button onClick={() => handleDeleteCategory(cat)} className="text-zinc-400 hover:text-red-500 transition ml-2"><X size={14}/></button>
+                   <input 
+                      type="url" 
+                      placeholder="URL de l'image de couverture..." 
+                      value={shopInfo.categoryCovers?.[cat] || ''}
+                      onChange={(e) => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: e.target.value } })}
+                      className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-4 py-2 text-xs outline-none focus:border-[#39FF14] w-full"
+                   />
                  )}
               </div>
            ))}

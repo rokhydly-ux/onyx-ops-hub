@@ -26,7 +26,13 @@ const getEmbedUrl = (url: string) => {
     return url;
 };
 
-const CategoryGridWidget = ({ categories, setActiveCategory }: { categories: string[], setActiveCategory: (cat: string) => void }) => (
+interface CategoryGridWidgetProps {
+    categories: string[];
+    setActiveCategory: (cat: string) => void;
+    categoryCovers?: Record<string, string>;
+}
+
+const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {} }: CategoryGridWidgetProps) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
     {categories.map((cat) => (
         <div 
@@ -35,7 +41,7 @@ const CategoryGridWidget = ({ categories, setActiveCategory }: { categories: str
         className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
         >
         <img 
-            src={`https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} 
+            src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} 
             alt={cat}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
         />
@@ -87,7 +93,7 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
                 <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-33.333%); } } .animate-marquee { animation: marquee 25s linear infinite; display: flex; width: max-content; } .group:hover .animate-marquee { animation-play-state: paused; }`}</style>
                 <div className="animate-marquee gap-6">
                     {marqueeProducts.map((p: any, idx: number) => (
-                        <div key={`${p.id}-${idx}`} className="w-[300px] h-[350px] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden flex flex-col cursor-pointer shadow-sm hover:shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all shrink-0" onClick={() => onViewProduct(p)}>
+                        <div key={`${p.id}-${idx}`} className={`w-[300px] h-[350px] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden flex flex-col cursor-pointer shadow-sm hover:shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all shrink-0 ${p.stock === 0 ? 'grayscale opacity-75' : ''}`} onClick={() => onViewProduct(p)}>
                             <div className="h-[220px] relative overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                                <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 hover:scale-110" />
                                {p.stock === 0 && (
@@ -98,6 +104,7 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
                                <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
                                   {p.stock === 0 && <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">En rupture</div>}
                                   {p.stock !== 0 && <div className="bg-black text-[#39FF14] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Nouveau</div>}
+                                  {p.stock === 1 && <div className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg animate-pulse">Stock critique !</div>}
                                </div>
                             </div>
                             <div className="p-5 flex-1 flex flex-col justify-between">
@@ -188,7 +195,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!product || galleryImages.length <= 1) return;
+      if (!isLightboxOpen || !product || galleryImages.length <= 1) return;
       if (e.key === 'ArrowLeft') {
         handlePrevImage();
       } else if (e.key === 'ArrowRight') {
@@ -197,7 +204,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [product, galleryImages.length, handleNextImage, handlePrevImage]);
+  }, [product, galleryImages.length, handleNextImage, handlePrevImage, isLightboxOpen]);
 
   if (!isOpen || !product) return null;
 
@@ -797,7 +804,7 @@ export default function DynamicShopPage() {
     switch (widgetType) {
       case 'category-grid':
         const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
-        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} />;
+        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo?.category_covers || {}} />;
       case 'promo-banner':
         return <PromoBannerWidget 
             imageUrl={widget.settings?.imageUrl} 
@@ -1179,12 +1186,12 @@ export default function DynamicShopPage() {
             ) : (
               <>
                 {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice ? (
-                  <CategoryGridWidget categories={categories.filter(c => c !== 'Toutes' && c !== 'Favoris')} setActiveCategory={setActiveCategory} />
+              <CategoryGridWidget categories={categories.filter(c => c !== 'Toutes' && c !== 'Favoris')} setActiveCategory={setActiveCategory} categoryCovers={shopInfo?.category_covers || {}} />
                 ) : (
                   filteredProducts.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {filteredProducts.map(product => (
-                        <div key={product.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all shadow-sm cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600" onClick={() => setViewingProduct(product)}>
+                    <div key={product.id} className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden flex flex-col group transition-all shadow-sm cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600 ${product.stock === 0 ? 'grayscale opacity-75' : ''}`} onClick={() => setViewingProduct(product)}>
                     <div className="relative aspect-[4/5] bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                       <img src={product.image || "https://placehold.co/600"} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       {product.stock === 0 && <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none"><span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">En rupture</span></div>}
@@ -1193,6 +1200,9 @@ export default function DynamicShopPage() {
                          <span className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-[#39FF14] border border-zinc-200 dark:border-zinc-700 shadow-sm">{product.category}</span>
                          {product.old_price && product.old_price > product.price && (
                             <span className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((product.old_price - product.price) / product.old_price) * 100)}%</span>
+                         )}
+                         {product.stock === 1 && (
+                            <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg animate-pulse">Stock critique !</span>
                          )}
                       </div>
 
