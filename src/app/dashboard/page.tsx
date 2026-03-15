@@ -43,33 +43,38 @@ export default function Dashboard() {
 
   useEffect(() => {
     const getUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Tenter d'abord dans 'clients' (où les clients confirmés avec SaaS sont stockés)
-        const { data: clientData } = await supabase.from("clients").select("*").eq("id", user.id).maybeSingle();
-        if (clientData) {
-          setProfile(clientData);
-          return;
-        }
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      // 1. Redirection stricte si l'utilisateur n'as pas de session
+      if (error || !session?.user) {
+        window.location.href = '/login';
+        return;
+      }
+      
+      const user = session.user;
 
-        // Récupérer depuis la table 'leads' comme demandé
-        const { data } = await supabase
-          .from("leads")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-        
-        if (data) {
-          setProfile(data);
-        } else {
-          // Fallback sur la table 'profiles' si 'leads' ne retourne rien
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single();
-          if (profileData) setProfile(profileData);
-        }
+      // 2. Tenter d'abord dans 'clients' (où les clients confirmés avec SaaS sont stockés)
+      const { data: clientData } = await supabase.from("clients").select("*").eq("id", user.id).maybeSingle();
+      if (clientData) {
+        setProfile(clientData);
+        return;
+      }
+
+      // 3. Récupérer depuis la table 'leads' comme demandé
+      const { data: leadData } = await supabase.from("leads").select("*").eq("id", user.id).maybeSingle();
+      if (leadData) {
+        setProfile(leadData);
+        return;
+      }
+      
+      // 4. Fallback sur la table 'profiles' si 'leads' ne retourne rien
+      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      if (profileData) {
+        setProfile(profileData);
+      } else {
+        // Si aucun profil trouvé en base, on force la déconnexion et redirection
+        await supabase.auth.signOut();
+        window.location.href = '/login';
       }
     };
     getUserProfile();
