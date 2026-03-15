@@ -35,7 +35,7 @@ const CategoryGridWidget = ({ categories, setActiveCategory }: { categories: str
         className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
         >
         <img 
-            src={`https://placehold.co/800x800/111/FFF?text=${cat}`} 
+            src={`https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} 
             alt={cat}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
         />
@@ -126,6 +126,295 @@ const INITIAL_ZONES = [
   { id: 5, name: "Zone 5", price: 3000, quartiers: ["Keur Massar", "Rufisque"] }
 ];
 
+function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: any) {
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
+  const [mediaView, setMediaView] = useState<'image' | 'video'>('image');
+  const [activeImage, setActiveImage] = useState(product?.image);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  React.useEffect(() => {
+    if (product) {
+      setSelectedSize(null);
+      setSelectedColor(null);
+      setMediaView('image');
+      setActiveImage(product.image);
+      setIsLightboxOpen(false);
+      setLightboxIndex(0);
+    }
+  }, [product]);
+
+  if (!isOpen || !product) return null;
+
+  const similarProducts = allProducts.filter((p: any) => p.category === product.category && p.id !== product.id).slice(0, 3);
+  const qtyInCart = cart.filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0);
+  const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
+  const isOutOfStock = product.stock === 0;
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReview.name || !newReview.comment) return alert("Veuillez remplir votre nom et votre commentaire.");
+    onAddReview(product.id, newReview);
+    setNewReview({ name: '', rating: 5, comment: '' });
+  };
+
+  const galleryImages = [product.image, ...(product.gallery || [])].filter(Boolean);
+
+  return (
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto" onClick={onClose}>
+        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-5xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col md:flex-row my-auto" onClick={e => e.stopPropagation()}>
+            <button type="button" onClick={onClose} className="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black transition z-10"><X size={20}/></button>
+            
+            <div className="w-full md:w-1/2 flex flex-col bg-zinc-100 dark:bg-zinc-900">
+                <div className="flex-1 relative min-h-[300px] bg-zinc-100 dark:bg-zinc-900">
+                   {mediaView === 'image' || !product.videoUrl ? (
+                        <div className="w-full h-full absolute inset-0 overflow-hidden cursor-zoom-in group/img" onClick={(e) => { e.stopPropagation(); setLightboxIndex(galleryImages.indexOf(activeImage) > -1 ? galleryImages.indexOf(activeImage) : 0); setIsLightboxOpen(true); }}>
+                            <img src={activeImage} alt={product.name} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
+                                <Search className="text-white drop-shadow-lg" size={32} />
+                            </div>
+                        </div>
+                    ) : (
+                        <iframe
+                            className="w-full h-full absolute inset-0"
+                            src={getEmbedUrl(product.videoUrl)}
+                            title={product.name}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                        ></iframe>
+                    )}
+                    {product.videoUrl && (
+                        <div className="absolute bottom-4 left-4 flex gap-2 z-10">
+                            <button onClick={(e) => {e.stopPropagation(); setMediaView('image')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm transition-colors ${mediaView === 'image' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30 hover:bg-black/50'}`}>Image</button>
+                            <button onClick={(e) => {e.stopPropagation(); setMediaView('video')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm transition-colors ${mediaView === 'video' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30 hover:bg-black/50'}`}>Vidéo</button>
+                        </div>
+                    )}
+                </div>
+                {product.gallery && product.gallery.length > 0 && mediaView === 'image' && (
+                    <div className="p-4 flex gap-3 overflow-x-auto bg-white dark:bg-zinc-950 shrink-0 border-t border-zinc-200 dark:border-zinc-800 custom-scrollbar">
+                        <button onClick={() => setActiveImage(product.image)} className={`w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === product.image ? 'border-[#39FF14]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                            <img src={product.image} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
+                        </button>
+                        {product.gallery.map((img: string, idx: number) => (
+                            <button key={idx} onClick={() => setActiveImage(img)} className={`w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === img ? 'border-[#39FF14]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                                <img src={img} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+            
+            <div className="w-full md:w-1/2 p-8 flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar">
+               <div className="mb-8">
+                  <span className="text-[#39FF14] text-xs font-bold uppercase tracking-widest border border-[#39FF14]/20 px-3 py-1 rounded-full mb-4 inline-block">{product.category}</span>
+                  <h2 className="text-3xl font-black tracking-tighter text-black dark:text-white mb-2">{product.name}</h2>
+                  <div className="flex items-center gap-3 mb-6">
+                      <p className="text-2xl font-bold text-black dark:text-white">{displayPrice(product.price, currency)}</p>
+                      {product.oldPrice && product.oldPrice > product.price && (
+                          <>
+                              <p className="text-lg text-zinc-500 line-through">{displayPrice(product.oldPrice, currency)}</p>
+                              <span className="bg-red-500/10 text-red-500 px-2 py-1 rounded-lg text-xs font-black">-{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%</span>
+                          </>
+                      )}
+                  </div>
+                  
+                  {product.stock !== undefined && (
+                    <p className={`text-sm font-bold mb-6 ${isOutOfStock ? 'text-red-500' : 'text-green-500'}`}>
+                      {isOutOfStock ? 'Épuisé' : `En stock (${product.stock} restants)`}
+                    </p>
+                  )}
+
+                  <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed mb-8">{product.description || "Aucune description fournie pour ce produit."}</p>
+
+                  <div className="flex items-center gap-2 mb-6 bg-zinc-100 dark:bg-zinc-900 w-max px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <div className="flex text-yellow-400"><Star size={16} className="fill-yellow-400" /></div>
+                    <span className="text-sm font-bold text-black dark:text-white">{product.rating || 5}/5</span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-500 font-medium border-l border-zinc-300 dark:border-zinc-700 pl-2 ml-1">{product.reviews || 0} avis vérifiés</span>
+                  </div>
+
+                  {/* VARIANTS SELECTION */}
+                  {(product.variants?.sizes?.length || 0) > 0 && (
+                    <div className="mb-6">
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Taille</p>
+                      <div className="flex flex-wrap gap-2">
+                        {product.variants?.sizes?.map((size: string) => (
+                          <button 
+                            key={size} 
+                            onClick={() => setSelectedSize(size)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedSize === size ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(product.variants?.colors?.length || 0) > 0 && (
+                    <div className="mb-6">
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Couleur</p>
+                      <div className="flex flex-wrap gap-2">
+                        {product.variants?.colors?.map((color: string) => (
+                          <button 
+                            key={color} 
+                            onClick={() => setSelectedColor(color)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedColor === color ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                          >
+                            {color}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+               </div>
+               
+               <div className="flex flex-col gap-3 mb-8 mt-auto">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                      <button 
+                        onClick={() => { 
+                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, false); 
+                        }} 
+                        disabled={isOutOfStock || isMaxedOut}
+                        className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                         <Plus size={18} /> {isMaxedOut && !isOutOfStock ? "Limite atteinte" : "Ajouter"}
+                      </button>
+                      <button 
+                        onClick={() => { 
+                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }); 
+                        }} 
+                        disabled={isOutOfStock || isMaxedOut}
+                        className="flex-[2] bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition flex items-center justify-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
+                      >
+                         <ShoppingCart size={18} /> Acheter Directement
+                      </button>
+                  </div>
+                  <button 
+                        onClick={() => {
+                            const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
+                            const message = `Bonjour, je suis intéressé(e) par le produit *${product.name}* (${displayPrice(product.price, currency)}).\nLien : ${productUrl}\n\nJ'ai une question : `;
+                            window.open(`https://wa.me/${String(shopPhone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                        }}
+                        className="w-full bg-[#25D366] text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-[#1ebd58] transition flex items-center justify-center gap-2 shadow-lg"
+                      >
+                         <MessageSquare size={18} /> Continuer sur WhatsApp
+                      </button>
+                  <div className="flex gap-3">
+                    <button onClick={() => onShare(product)} className="flex-1 bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white py-4 rounded-xl font-bold uppercase text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800">
+                       <Share2 size={18} /> Partager
+                    </button>
+                    <button onClick={() => onGenerateQR(product)} className="flex-1 bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white py-4 rounded-xl font-bold uppercase text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800">
+                       <QrCode size={18} /> QR Code
+                    </button>
+                  </div>
+               </div>
+
+               {/* REVIEWS SECTION */}
+               <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800">
+                  <h4 className="text-sm font-bold text-zinc-500 dark:text-zinc-500 uppercase mb-4">Avis des clients</h4>
+                  <div className="space-y-4 mb-6 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                    {(product.reviewsList || []).length > 0 ? product.reviewsList?.map((review: any) => (
+                      <div key={review.id} className="bg-zinc-100 dark:bg-zinc-900 p-4 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-sm text-black dark:text-white">{review.name}</span>
+                          <div className="flex items-center gap-1">{[...Array(5)].map((_, i) => <Star key={i} size={12} className={i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-400 dark:text-zinc-600'} />)}</div>
+                        </div>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{review.comment}</p>
+                        {review.admin_reply && (
+                          <div className="mt-3 p-3 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-lg border-l-2 border-[#39FF14]">
+                            <p className="text-[10px] font-black uppercase text-[#39FF14] mb-1 flex items-center gap-1"><MessageSquare size={10}/> Réponse du vendeur</p>
+                            <p className="text-xs text-zinc-600 dark:text-zinc-300 italic">"{review.admin_reply}"</p>
+                          </div>
+                        )}
+                      </div>
+                    )) : <p className="text-xs text-zinc-500 dark:text-zinc-500 italic">Aucun avis pour ce produit.</p>}
+                  </div>
+
+                  {/* Add Review Form */}
+                  <form onSubmit={handleReviewSubmit} className="space-y-3">
+                    <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">Laisser un avis</p>
+                    <div className="flex gap-2">
+                      <input type="text" placeholder="Votre nom" value={newReview.name} onChange={e => setNewReview({...newReview, name: e.target.value})} className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14]" />
+                      <select value={newReview.rating} onChange={e => setNewReview({...newReview, rating: Number(e.target.value)})} className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14]">
+                        <option value={5}>5 ★</option>
+                        <option value={4}>4 ★</option>
+                        <option value={3}>3 ★</option>
+                        <option value={2}>2 ★</option>
+                        <option value={1}>1 ★</option>
+                      </select>
+                    </div>
+                    <textarea 
+                      placeholder="Votre commentaire..." 
+                      value={newReview.comment} 
+                      onChange={e => setNewReview({...newReview, comment: e.target.value})}
+                      className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-black dark:text-white outline-none focus:border-[#39FF14] min-h-[60px]"
+                    />
+                    <button type="submit" className="w-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white py-2 rounded-lg text-xs font-bold hover:bg-zinc-300 dark:hover:bg-zinc-700 transition">Envoyer</button>
+                  </form>
+               </div>
+
+               {/* SIMILAR PRODUCTS */}
+               {similarProducts.length > 0 && (
+                 <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800 mt-8">
+                    <h4 className="text-sm font-bold text-zinc-500 dark:text-zinc-500 uppercase mb-4">Vous aimerez aussi</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                       {similarProducts.map((p: any) => (
+                          <div key={p.id} className="group cursor-pointer" onClick={() => onViewProduct(p)}>
+                             <div className="aspect-square rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 mb-2">
+                                <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                             </div>
+                             <p className="text-xs font-bold text-black dark:text-white truncate">{p.name}</p>
+                             <p className="text-[10px] text-zinc-500 dark:text-zinc-500">{displayPrice(p.price, currency)}</p>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+               )}
+            </div>
+            
+            {/* LIGHTBOX INSIDE THE MODAL TO COVER IT */}
+            {isLightboxOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 bg-black/95 backdrop-blur-sm animate-in fade-in" onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}>
+                  <button onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }} className="absolute top-6 right-6 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                      <X size={24}/>
+                  </button>
+                  
+                  {galleryImages.length > 1 && (
+                      <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }} className="absolute left-4 sm:left-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                          <ChevronLeft size={24}/>
+                      </button>
+                  )}
+
+                  <img 
+                      src={galleryImages[lightboxIndex] || product.image} 
+                      alt={product.name} 
+                      className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 cursor-zoom-out" 
+                      onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
+                  />
+
+                  {galleryImages.length > 1 && (
+                      <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => (prev + 1) % galleryImages.length); }} className="absolute right-4 sm:right-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                          <ChevronRight size={24}/>
+                      </button>
+                  )}
+
+                  {galleryImages.length > 1 && (
+                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/50 px-4 py-2 rounded-full backdrop-blur-md">
+                        {galleryImages.map((_, idx) => (
+                           <div key={idx} className={`w-2 h-2 rounded-full transition-colors ${idx === lightboxIndex ? 'bg-[#39FF14]' : 'bg-white/30'}`} />
+                        ))}
+                     </div>
+                  )}
+              </div>
+            )}
+        </div>
+    </div>
+  );
+}
+
 export default function DynamicShopPage() {
   const params = useParams();
   const shopSlug = params.shopSlug as string;
@@ -178,8 +467,6 @@ export default function DynamicShopPage() {
   // UI Additions
   const [homepageLayout, setHomepageLayout] = useState<any[] | null>(null);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
@@ -226,11 +513,6 @@ export default function DynamicShopPage() {
       if (shop.delivery_zones && shop.delivery_zones.length > 0) {
         setDeliveryZones(shop.delivery_zones);
       }
-      if (shop.categories && shop.categories.length > 0) {
-        const baseCats = ["Toutes", "Favoris"];
-        const otherCats = shop.categories.filter((c: string) => c !== "Toutes" && c !== "Favoris");
-        setCategories([...baseCats, ...otherCats]);
-      }
       if (shop.homepage_layout && shop.homepage_layout.length > 0) {
         setHomepageLayout(shop.homepage_layout);
       }
@@ -250,11 +532,11 @@ export default function DynamicShopPage() {
                 reviewsList: productReviews
             };
         }));
-        if (!shop.categories || shop.categories.length === 0) {
-            const defaultCats = ['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires'];
-            const uniqueCategories = Array.from(new Set(shopProducts.map((p:any) => p.category).filter(Boolean))) as string[];
-            setCategories(Array.from(new Set([...defaultCats, ...uniqueCategories])));
-        }
+        
+        // Extraction DYNAMIQUE de toutes les catégories depuis les produits existants dans Supabase
+        const uniqueCategories = Array.from(new Set(shopProducts.map((p:any) => p.category).filter(Boolean))) as string[];
+        const adminCats = shop.categories || [];
+        setCategories(Array.from(new Set(["Toutes", "Favoris", ...adminCats, ...uniqueCategories])));
       }
       setIsLoading(false);
     };
@@ -527,6 +809,29 @@ export default function DynamicShopPage() {
         setLoyaltyResult(0);
     }
     setLoyaltyLoading(false);
+  };
+
+  const handleAddReview = async (productId: number, review: Omit<any, 'id' | 'date'>) => {
+    try {
+        const { data, error } = await supabase.from('reviews').insert([{
+            type: 'product',
+            reference_id: String(productId),
+            name: review.name,
+            rating: review.rating,
+            comment: review.comment
+        }]).select().single();
+        if (error) throw error;
+        setProducts(prevProducts => prevProducts.map(p => {
+            if (p.id === productId) {
+                const newReview = { ...review, id: data?.id || Date.now(), date: new Date().toISOString().split('T')[0] };
+                const updatedReviews = [...(p.reviewsList || []), newReview];
+                const newRating = updatedReviews.reduce((acc: any, r: any) => acc + r.rating, 0) / updatedReviews.length;
+                return { ...p, reviewsList: updatedReviews, reviews: updatedReviews.length, rating: parseFloat(newRating.toFixed(1)) };
+            }
+            return p;
+        }));
+        alert("Avis envoyé avec succès !");
+    } catch (err) { console.error("Erreur sauvegarde avis:", err); alert("Erreur lors de l'envoi de l'avis."); }
   };
 
   if (isLoading) return <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-black"><div className="w-16 h-16 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_#39FF14]"></div></div>;
@@ -1138,83 +1443,21 @@ export default function DynamicShopPage() {
         )}
 
         {/* --- PRODUCT DETAIL MODAL --- */}
-        {viewingProduct && (
-            <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto" onClick={() => { setViewingProduct(null); setIsLightboxOpen(false); }}>
-                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-3xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col md:flex-row my-auto" onClick={e => e.stopPropagation()}>
-                    <button type="button" onClick={() => { setViewingProduct(null); setIsLightboxOpen(false); }} className="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black transition z-10"><X size={20}/></button>
-                    
-                    <div className="w-full md:w-1/2 flex flex-col bg-zinc-100 dark:bg-zinc-900 min-h-[300px] relative">
-                        {viewingProduct.video_url ? (
-                            <iframe className="w-full h-full absolute inset-0" src={getEmbedUrl(viewingProduct.video_url)} title={viewingProduct.name} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen></iframe>
-                        ) : (
-                            <div className="w-full h-full absolute inset-0 overflow-hidden cursor-zoom-in group/img" onClick={(e) => { e.stopPropagation(); setLightboxIndex(0); setIsLightboxOpen(true); }}>
-                                <img src={viewingProduct.image} alt={viewingProduct.name} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500" />
-                                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
-                                    <Search className="text-white drop-shadow-lg" size={32} />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <div className="w-full md:w-1/2 p-8 flex flex-col max-h-[90vh] overflow-y-auto">
-                       <div className="mb-8">
-                          <span className="text-[#39FF14] text-xs font-bold uppercase tracking-widest border border-[#39FF14]/20 px-3 py-1 rounded-full mb-4 inline-block">{viewingProduct.category}</span>
-                          <h2 className="text-3xl font-black tracking-tighter text-black dark:text-white mb-2">{viewingProduct.name}</h2>
-                          <div className="flex items-center gap-3 mb-6">
-                              <p className="text-2xl font-bold text-black dark:text-white">{displayPrice(viewingProduct.price, shopInfo.currency)}</p>
-                              {viewingProduct.old_price && viewingProduct.old_price > viewingProduct.price && (
-                                  <p className="text-lg text-zinc-500 line-through">{displayPrice(viewingProduct.old_price, shopInfo.currency)}</p>
-                              )}
-                          </div>
-                          <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed mb-8">{viewingProduct.description || "Aucune description fournie pour ce produit."}</p>
-                       </div>
-                       
-                       <div className="flex flex-col gap-3 mb-4 mt-auto">
-                          <div className="flex gap-3">
-                              <button onClick={() => { addToCart(viewingProduct); setViewingProduct(null); }} disabled={viewingProduct.stock === 0} className="flex-1 bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
-                                 <ShoppingCart size={18} /> {viewingProduct.stock === 0 ? "Épuisé" : "Ajouter au Panier"}
-                              </button>
-                          </div>
-                          <div className="flex gap-3">
-                            <button onClick={() => handleShareProduct(viewingProduct)} className="flex-1 bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white py-3 rounded-xl font-bold uppercase text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800">
-                               <Share2 size={16} /> Partager
-                            </button>
-                            <button onClick={() => setQrCodeProduct(viewingProduct)} className="flex-1 bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white py-3 rounded-xl font-bold uppercase text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800">
-                               <QrCode size={16} /> QR Code
-                            </button>
-                          </div>
-                       </div>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* --- LIGHTBOX MODAL --- */}
-        {isLightboxOpen && viewingProduct && !viewingProduct.video_url && (() => {
-            const galleryImages = [viewingProduct.image, ...(viewingProduct.gallery || [])].filter(Boolean);
-            return (
-              <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 bg-black/95 backdrop-blur-sm animate-in fade-in" onClick={() => setIsLightboxOpen(false)}>
-                  <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
-                      <X size={24}/>
-                  </button>
-                  {galleryImages.length > 1 && (
-                      <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }} className="absolute left-4 sm:left-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
-                          <ChevronLeft size={24}/>
-                      </button>
-                  )}
-                  <img 
-                      src={galleryImages[lightboxIndex] || viewingProduct.image} 
-                      alt={viewingProduct.name} 
-                      className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 cursor-zoom-out" 
-                      onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
-                  />
-                  {galleryImages.length > 1 && (
-                      <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => (prev + 1) % galleryImages.length); }} className="absolute right-4 sm:right-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
-                          <ChevronRight size={24}/>
-                      </button>
-                  )}
-              </div>
-            );
-        })()}
+        <ProductDetailModal 
+          product={viewingProduct}
+          allProducts={products}
+          isOpen={!!viewingProduct}
+          onClose={() => setViewingProduct(null)}
+          onAddToCart={addToCart}
+          onBuyDirectly={(p: any, v: any) => { addToCart(p, v, false); setIsCheckoutModalOpen(true); }}
+          onShare={handleShareProduct}
+          onViewProduct={setViewingProduct}
+          onAddReview={handleAddReview}
+          onGenerateQR={setQrCodeProduct}
+          currency={shopInfo?.currency || 'FCFA'}
+          cart={cart}
+          shopPhone={shopInfo?.phone || ''}
+        />
 
         {/* --- QR CODE MODAL --- */}
         {qrCodeProduct && (
