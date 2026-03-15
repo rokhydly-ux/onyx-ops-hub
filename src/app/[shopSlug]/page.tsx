@@ -162,6 +162,22 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
   const galleryImages = [product.image, ...(product.gallery || [])].filter(Boolean);
 
+  React.useEffect(() => {
+    if (!product || galleryImages.length <= 1) return;
+    const intervalId = setInterval(() => {
+      if (isLightboxOpen) {
+        setLightboxIndex((prev) => (prev + 1) % galleryImages.length);
+      } else if (mediaView === 'image') {
+        setActiveImage((prev: string) => {
+          const currentIndex = galleryImages.indexOf(prev);
+          const nextIndex = currentIndex > -1 ? (currentIndex + 1) % galleryImages.length : 0;
+          return galleryImages[nextIndex];
+        });
+      }
+    }, 5000);
+    return () => clearInterval(intervalId);
+  }, [product, galleryImages.length, isLightboxOpen, mediaView]);
+
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto" onClick={onClose}>
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-5xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col md:flex-row my-auto" onClick={e => e.stopPropagation()}>
@@ -175,6 +191,17 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
                                 <Search className="text-white drop-shadow-lg" size={32} />
                             </div>
+                            {galleryImages.length > 1 && (
+                               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-md" onClick={e => e.stopPropagation()}>
+                                  {galleryImages.map((img: string, idx: number) => (
+                                     <button 
+                                       key={idx} 
+                                       onClick={(e) => { e.stopPropagation(); setActiveImage(img); setLightboxIndex(idx); }}
+                                       className={`w-2 h-2 rounded-full transition-all ${activeImage === img ? 'bg-[#39FF14] scale-125' : 'bg-white/50 hover:bg-white'}`}
+                                     />
+                                  ))}
+                               </div>
+                            )}
                         </div>
                     ) : (
                         <iframe
@@ -469,6 +496,28 @@ export default function DynamicShopPage() {
   const [isBannerVisible, setIsBannerVisible] = useState(true);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  // Confettis de célébration lors d'une commande
+  useEffect(() => {
+    if (isOrderSuccessOpen) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js';
+      script.async = true;
+      script.onload = () => {
+        if ((window as any).confetti) {
+          (window as any).confetti({
+            particleCount: 150,
+            spread: 80,
+            origin: { y: 0.5 },
+            colors: ['#39FF14', '#ffffff', '#aaaaaa'],
+            zIndex: 9999
+          });
+        }
+      };
+      document.body.appendChild(script);
+      return () => { if (document.body.contains(script)) document.body.removeChild(script); };
+    }
+  }, [isOrderSuccessOpen]);
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('onyx_jaay_theme') || 'dark';
     setTheme(savedTheme);
@@ -757,6 +806,7 @@ export default function DynamicShopPage() {
     const paymentText = paymentProvider === 'wave' ? 'Wave Mobile Money' : paymentProvider === 'orange_money' ? 'Orange Money' : 'Paiement à la livraison';
     message += `\n💳 Paiement : ${paymentText}`;
     message += `\n*Total à payer : ${displayPrice(cartTotal, shopInfo.currency)}*`;
+    message += `\n\nNous revenons vers vous sous 1h maximum pour confirmer la livraison.`;
 
     window.open(`https://wa.me/${String(shopInfo.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
     setIsCheckoutModalOpen(false); setIsCartOpen(false); setCart([]); setIsOrderSuccessOpen(true);
@@ -1215,7 +1265,7 @@ export default function DynamicShopPage() {
                   </h2>
                   <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full"><X size={20}/></button>
                </div>
-               <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+               <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
                   {cart.length === 0 ? <p className="text-center text-zinc-500 mt-20">Votre panier est vide.</p> : cart.map(item => (
                     <div key={`${item.id}-${JSON.stringify(item.selectedVariant)}`} className="flex gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
                          <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-xl bg-zinc-200 dark:bg-zinc-800" />
@@ -1241,7 +1291,7 @@ export default function DynamicShopPage() {
                   ))}
                </div>
                {cart.length > 0 && (
-                 <div className="p-6 bg-zinc-100 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
+                 <div className="mt-auto bg-white dark:bg-zinc-950 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] border-t border-zinc-200 dark:border-zinc-800 shrink-0 max-h-[55vh] overflow-y-auto custom-scrollbar">
 
                     <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
                         <div className="flex justify-between items-center mb-2">
@@ -1282,6 +1332,11 @@ export default function DynamicShopPage() {
                                   <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
                               ))}
                           </select>
+                          {selectedZoneId && (
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 italic">
+                                  {deliveryZones.find((z: any) => z.id === selectedZoneId)?.quartiers.join(', ')}
+                              </p>
+                          )}
                       </div>
                   )}
 
