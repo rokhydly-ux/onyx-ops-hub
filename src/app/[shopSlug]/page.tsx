@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
-  ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, 
+  ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, RefreshCcw,
   Store, MessageSquare, Sparkles, Heart, ChevronRight, Menu, ArrowRight, Star, Sun, Moon,
   Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft
 } from "lucide-react";
@@ -134,6 +134,38 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   const [activeImage, setActiveImage] = useState(product?.image);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const galleryImages = React.useMemo(() => {
+    return product ? [product.image, ...(product.gallery || [])].filter(Boolean) : [];
+  }, [product]);
+
+  const handleNextImage = React.useCallback(() => {
+    if (galleryImages.length <= 1) return;
+    if (isLightboxOpen) {
+      setLightboxIndex((prev) => (prev + 1) % galleryImages.length);
+    } else if (mediaView === 'image') {
+      setActiveImage((prev: string) => {
+        const currentIndex = galleryImages.indexOf(prev);
+        const nextIndex = currentIndex > -1 ? (currentIndex + 1) % galleryImages.length : 0;
+        return galleryImages[nextIndex];
+      });
+    }
+  }, [galleryImages, isLightboxOpen, mediaView]);
+
+  const handlePrevImage = React.useCallback(() => {
+    if (galleryImages.length <= 1) return;
+    if (isLightboxOpen) {
+      setLightboxIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+    } else if (mediaView === 'image') {
+      setActiveImage((prev: string) => {
+        const currentIndex = galleryImages.indexOf(prev);
+        const nextIndex = currentIndex > -1 ? (currentIndex - 1 + galleryImages.length) % galleryImages.length : 0;
+        return galleryImages[nextIndex];
+      });
+    }
+  }, [galleryImages, isLightboxOpen, mediaView]);
 
   React.useEffect(() => {
     if (product) {
@@ -146,25 +178,41 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
     }
   }, [product]);
 
-  const galleryImages = product ? [product.image, ...(product.gallery || [])].filter(Boolean) : [];
-
   React.useEffect(() => {
     if (!product || galleryImages.length <= 1) return;
     const intervalId = setInterval(() => {
-      if (isLightboxOpen) {
-        setLightboxIndex((prev) => (prev + 1) % galleryImages.length);
-      } else if (mediaView === 'image') {
-        setActiveImage((prev: string) => {
-          const currentIndex = galleryImages.indexOf(prev);
-          const nextIndex = currentIndex > -1 ? (currentIndex + 1) % galleryImages.length : 0;
-          return galleryImages[nextIndex];
-        });
-      }
-    }, 5000);
+      handleNextImage();
+    }, 3000);
     return () => clearInterval(intervalId);
-  }, [product, galleryImages.length, isLightboxOpen, mediaView]);
+  }, [product, galleryImages.length, handleNextImage]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!product || galleryImages.length <= 1) return;
+      if (e.key === 'ArrowLeft') {
+        handlePrevImage();
+      } else if (e.key === 'ArrowRight') {
+        handleNextImage();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [product, galleryImages.length, handleNextImage, handlePrevImage]);
 
   if (!isOpen || !product) return null;
+
+  const minSwipeDistance = 50;
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    if (distance > minSwipeDistance) handleNextImage();
+    if (distance < -minSwipeDistance) handlePrevImage();
+  };
 
   const similarProducts = allProducts.filter((p: any) => p.category === product.category && p.id !== product.id).slice(0, 3);
   const qtyInCart = cart.filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0);
@@ -186,11 +234,27 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
             <div className="w-full md:w-1/2 flex flex-col bg-zinc-100 dark:bg-zinc-900">
                 <div className="flex-1 relative min-h-[300px] bg-zinc-100 dark:bg-zinc-900">
                    {mediaView === 'image' || !product.videoUrl ? (
-                        <div className="w-full h-full absolute inset-0 overflow-hidden cursor-zoom-in group/img" onClick={(e) => { e.stopPropagation(); setLightboxIndex(galleryImages.indexOf(activeImage) > -1 ? galleryImages.indexOf(activeImage) : 0); setIsLightboxOpen(true); }}>
+                        <div 
+                          className="w-full h-full absolute inset-0 overflow-hidden cursor-zoom-in group/img" 
+                          onClick={(e) => { e.stopPropagation(); setLightboxIndex(galleryImages.indexOf(activeImage) > -1 ? galleryImages.indexOf(activeImage) : 0); setIsLightboxOpen(true); }}
+                          onTouchStart={onTouchStart}
+                          onTouchMove={onTouchMove}
+                          onTouchEnd={onTouchEnd}
+                        >
                             <img src={activeImage} alt={product.name} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500" />
                             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
                                 <Search className="text-white drop-shadow-lg" size={32} />
                             </div>
+                            {galleryImages.length > 1 && (
+                                <>
+                                    <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black transition-colors opacity-0 group-hover/img:opacity-100 z-20">
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black transition-colors opacity-0 group-hover/img:opacity-100 z-20">
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </>
+                            )}
                             {galleryImages.length > 1 && (
                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-md" onClick={e => e.stopPropagation()}>
                                   {galleryImages.map((img: string, idx: number) => (
@@ -405,13 +469,19 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
             
             {/* LIGHTBOX INSIDE THE MODAL TO COVER IT */}
             {isLightboxOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 bg-black/95 backdrop-blur-sm animate-in fade-in" onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}>
+                <div 
+                  className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 bg-black/95 backdrop-blur-sm animate-in fade-in" 
+                  onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                >
                   <button onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }} className="absolute top-6 right-6 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
                       <X size={24}/>
                   </button>
                   
                   {galleryImages.length > 1 && (
-                      <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }} className="absolute left-4 sm:left-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                      <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="absolute left-4 sm:left-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
                           <ChevronLeft size={24}/>
                       </button>
                   )}
@@ -424,7 +494,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   />
 
                   {galleryImages.length > 1 && (
-                      <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => (prev + 1) % galleryImages.length); }} className="absolute right-4 sm:right-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                      <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="absolute right-4 sm:right-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
                           <ChevronRight size={24}/>
                       </button>
                   )}
@@ -486,6 +556,15 @@ export default function DynamicShopPage() {
   const [isTracking, setIsTracking] = useState(false);
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
   
+  // Stock update badge
+  const [showStockUpdate, setShowStockUpdate] = useState(false);
+  const stockUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const triggerStockUpdateBadge = () => {
+    setShowStockUpdate(true);
+    if (stockUpdateTimeoutRef.current) clearTimeout(stockUpdateTimeoutRef.current);
+    stockUpdateTimeoutRef.current = setTimeout(() => setShowStockUpdate(false), 2000);
+  };
+
   // Loyalty System
   const [isLoyaltyModalOpen, setIsLoyaltyModalOpen] = useState(false);
   const [loyaltyPhoneCheck, setLoyaltyPhoneCheck] = useState('');
@@ -694,9 +773,10 @@ export default function DynamicShopPage() {
       return [...prev, { ...product, quantity: 1, selectedVariant: variant }];
     });
     if (openCart) setIsCartOpen(true);
+    triggerStockUpdateBadge();
   };
 
-  const removeFromCart = (itemToRemove: any) => setCart(prev => prev.filter(item => item.id !== itemToRemove.id || JSON.stringify(item.selectedVariant) !== JSON.stringify(itemToRemove.selectedVariant)));
+  const removeFromCart = (itemToRemove: any) => { setCart(prev => prev.filter(item => item.id !== itemToRemove.id || JSON.stringify(item.selectedVariant) !== JSON.stringify(itemToRemove.selectedVariant))); triggerStockUpdateBadge(); };
   const updateQuantity = (itemToUpdate: any, delta: number) => {
     setCart(prev => prev.map(item => {
         if (item.id === itemToUpdate.id && JSON.stringify(item.selectedVariant) === JSON.stringify(itemToUpdate.selectedVariant)) {
@@ -709,6 +789,7 @@ export default function DynamicShopPage() {
         }
         return item;
     }).filter(item => item.quantity > 0));
+    triggerStockUpdateBadge();
   };
 
   const renderWidget = (widget: any) => {
@@ -1266,6 +1347,11 @@ export default function DynamicShopPage() {
                   </h2>
                   <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full"><X size={20}/></button>
                </div>
+       {showStockUpdate && (
+          <div className="bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest text-center py-2 animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-2 z-10 relative">
+             <RefreshCcw size={12} className="animate-spin" /> Mise à jour du stock en temps réel
+          </div>
+       )}
                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-zinc-50/50 dark:bg-zinc-950/50">
                   {cart.length === 0 ? <p className="text-center text-zinc-500 mt-20">Votre panier est vide.</p> : cart.map(item => (
                     <div key={`${item.id}-${JSON.stringify(item.selectedVariant)}`} className="flex gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">

@@ -3,13 +3,13 @@
 import { DndContext, PointerSensor, useSensor, useSensors, useDraggable, useDroppable, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
+import React, { useState, useRef, DragEvent, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
   Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut, Megaphone, Send, XCircle, CheckCircle, Edit3, Copy, LogIn, Wallet, ExternalLink
-} from 'lucide-react';
+, ChevronLeft } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
 import { supabase } from "@/lib/supabaseClient";
@@ -143,6 +143,17 @@ const displayPrice = (priceInCfa: number, currency: string = 'FCFA') => {
         return `${convertedPrice.toLocaleString('fr-SN')} ${config.symbol}`;
     }
     return `${convertedPrice.toFixed(2)} ${config.symbol}`;
+};
+
+const getEmbedUrl = (url: string) => {
+    if (!url) return '';
+    let videoId = '';
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+    if (match && match[1]) {
+        videoId = match[1];
+        return `https://www.youtube.com/embed/${videoId}`;
+    }
+    return url;
 };
 
 const WIDGET_TYPE = 'WIDGET';
@@ -601,6 +612,14 @@ export default function OnyxJaayShop() {
   const [homepageLayout, setHomepageLayout] = useState<WidgetProps[] | null>(null);
   const [shopId, setShopId] = useState<string | null>(null);
   
+  const [showStockUpdate, setShowStockUpdate] = useState(false);
+  const stockUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const triggerStockUpdateBadge = () => {
+    setShowStockUpdate(true);
+    if (stockUpdateTimeoutRef.current) clearTimeout(stockUpdateTimeoutRef.current);
+    stockUpdateTimeoutRef.current = setTimeout(() => setShowStockUpdate(false), 2000);
+  };
+
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
@@ -963,10 +982,12 @@ export default function OnyxJaayShop() {
       return [...prev, { ...product, quantity: 1, selectedVariant: variant }];
     });
     if (openCart) setIsCartOpen(true);
+    triggerStockUpdateBadge();
   };
 
   const removeFromCart = (itemToRemove: CartItem) => {
     setCart(prev => prev.filter(item => item.id !== itemToRemove.id || JSON.stringify(item.selectedVariant) !== JSON.stringify(itemToRemove.selectedVariant)));
+    triggerStockUpdateBadge();
   };
 
   const updateQuantity = (itemToUpdate: CartItem, delta: number) => {
@@ -983,6 +1004,7 @@ export default function OnyxJaayShop() {
       }
       return item;
     }));
+    triggerStockUpdateBadge();
   };
 
   const subTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -2793,6 +2815,7 @@ export default function OnyxJaayShop() {
           isOpen={!!viewingProduct}
           onClose={() => setViewingProduct(null)}
           onAddToCart={addToCart}
+          onBuyDirectly={(p: any, v: any) => { addToCart(p, v, false); setIsCheckoutModalOpen(true); }}
           onShare={handleShareProduct}
           onViewProduct={handleViewProduct}
           onGenerateQR={setQrCodeProduct}
@@ -3265,6 +3288,7 @@ interface ProductDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddToCart: (product: Product, variant?: { size?: string; color?: string }, openCart?: boolean) => void;
+  onBuyDirectly: (product: Product, variant?: { size?: string; color?: string }) => void;
   onShare: (product: Product) => void;
   onViewProduct: (product: Product) => void;
   onAddReview: (productId: number, review: Omit<Review, 'id' | 'date'>) => void;
@@ -3274,22 +3298,93 @@ interface ProductDetailModalProps {
   shopPhone: string;
 }
 
-function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: ProductDetailModalProps) {
+function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: ProductDetailModalProps) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
   const [mediaView, setMediaView] = useState<'image' | 'video'>('image');
-  const [activeImage, setActiveImage] = useState(product.image);
+  const [activeImage, setActiveImage] = useState(product?.image);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  // Reset selection when product changes
-  React.useEffect(() => {
-    setSelectedSize(null);
-    setSelectedColor(null);
-    setMediaView('image');
-    setActiveImage(product.image);
+  const galleryImages = React.useMemo(() => {
+    return product ? [product.image, ...(product.gallery || [])].filter(Boolean) : [];
   }, [product]);
 
-  if (!isOpen) return null;
+  const handleNextImage = React.useCallback(() => {
+    if (galleryImages.length <= 1) return;
+    if (isLightboxOpen) {
+      setLightboxIndex((prev) => (prev + 1) % galleryImages.length);
+    } else if (mediaView === 'image') {
+      setActiveImage((prev: string) => {
+        const currentIndex = galleryImages.indexOf(prev);
+        const nextIndex = currentIndex > -1 ? (currentIndex + 1) % galleryImages.length : 0;
+        return galleryImages[nextIndex];
+      });
+    }
+  }, [galleryImages, isLightboxOpen, mediaView]);
+
+  const handlePrevImage = React.useCallback(() => {
+    if (galleryImages.length <= 1) return;
+    if (isLightboxOpen) {
+      setLightboxIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+    } else if (mediaView === 'image') {
+      setActiveImage((prev: string) => {
+        const currentIndex = galleryImages.indexOf(prev);
+        const nextIndex = currentIndex > -1 ? (currentIndex - 1 + galleryImages.length) % galleryImages.length : 0;
+        return galleryImages[nextIndex];
+      });
+    }
+  }, [galleryImages, isLightboxOpen, mediaView]);
+
+  React.useEffect(() => {
+    if (product) {
+      setSelectedSize(null);
+      setSelectedColor(null);
+      setMediaView('image');
+      setActiveImage(product.image);
+      setIsLightboxOpen(false);
+      setLightboxIndex(0);
+    }
+  }, [product]);
+
+  React.useEffect(() => {
+    if (!product || galleryImages.length <= 1) return;
+    const intervalId = setInterval(() => {
+      handleNextImage();
+    }, 3000);
+    return () => clearInterval(intervalId);
+  }, [product, galleryImages.length, handleNextImage]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!product || galleryImages.length <= 1) return;
+      if (e.key === 'ArrowLeft') {
+        handlePrevImage();
+      } else if (e.key === 'ArrowRight') {
+        handleNextImage();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [product, galleryImages.length, handleNextImage, handlePrevImage]);
+
+  if (!isOpen || !product) return null;
+
+  const minSwipeDistance = 50;
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    if (distance > minSwipeDistance) handleNextImage();
+    if (distance < -minSwipeDistance) handlePrevImage();
+  };
 
   const similarProducts = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
   const qtyInCart = cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0);
@@ -3311,11 +3406,43 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
             <div className="w-full md:w-1/2 flex flex-col bg-zinc-100 dark:bg-zinc-900">
                 <div className="flex-1 relative min-h-[300px] bg-zinc-100 dark:bg-zinc-900">
                    {mediaView === 'image' || !product.videoUrl ? (
-                        <img src={activeImage} alt={product.name} className="w-full h-full absolute inset-0 object-cover" />
+                        <div 
+                          className="w-full h-full absolute inset-0 overflow-hidden cursor-zoom-in group/img" 
+                          onClick={(e) => { e.stopPropagation(); setLightboxIndex(galleryImages.indexOf(activeImage) > -1 ? galleryImages.indexOf(activeImage) : 0); setIsLightboxOpen(true); }}
+                          onTouchStart={onTouchStart}
+                          onTouchMove={onTouchMove}
+                          onTouchEnd={onTouchEnd}
+                        >
+                            <img src={activeImage} alt={product.name} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
+                                <Search className="text-white drop-shadow-lg" size={32} />
+                            </div>
+                            {galleryImages.length > 1 && (
+                                <>
+                                    <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black transition-colors opacity-0 group-hover/img:opacity-100 z-20">
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black transition-colors opacity-0 group-hover/img:opacity-100 z-20">
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </>
+                            )}
+                            {galleryImages.length > 1 && (
+                               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-md" onClick={e => e.stopPropagation()}>
+                                  {galleryImages.map((img: string, idx: number) => (
+                                     <button 
+                                       key={idx} 
+                                       onClick={(e) => { e.stopPropagation(); setActiveImage(img); setLightboxIndex(idx); }}
+                                       className={`w-2 h-2 rounded-full transition-all ${activeImage === img ? 'bg-[#39FF14] scale-125' : 'bg-white/50 hover:bg-white'}`}
+                                     />
+                                  ))}
+                               </div>
+                            )}
+                        </div>
                     ) : (
                         <iframe
                             className="w-full h-full absolute inset-0"
-                            src={product.videoUrl}
+                            src={getEmbedUrl(product.videoUrl)}
                             title={product.name}
                             frameBorder="0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -3323,9 +3450,9 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         ></iframe>
                     )}
                     {product.videoUrl && (
-                        <div className="absolute bottom-4 left-4 flex gap-2">
-                            <button onClick={(e) => {e.stopPropagation(); setMediaView('image')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm ${mediaView === 'image' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30'}`}>Image</button>
-                            <button onClick={(e) => {e.stopPropagation(); setMediaView('video')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm ${mediaView === 'video' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30'}`}>Vidéo</button>
+                        <div className="absolute bottom-4 left-4 flex gap-2 z-10">
+                            <button onClick={(e) => {e.stopPropagation(); setMediaView('image')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm transition-colors ${mediaView === 'image' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30 hover:bg-black/50'}`}>Image</button>
+                            <button onClick={(e) => {e.stopPropagation(); setMediaView('video')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm transition-colors ${mediaView === 'video' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30 hover:bg-black/50'}`}>Vidéo</button>
                         </div>
                     )}
                 </div>
@@ -3343,11 +3470,11 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                 )}
             </div>
             
-            <div className="w-full md:w-1/2 p-8 flex flex-col max-h-[90vh] overflow-y-auto">
+            <div className="w-full md:w-1/2 p-8 flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar">
                <div className="mb-8">
                   <span className="text-[#39FF14] text-xs font-bold uppercase tracking-widest border border-[#39FF14]/20 px-3 py-1 rounded-full mb-4 inline-block">{product.category}</span>
                   <h2 className="text-3xl font-black tracking-tighter text-black dark:text-white mb-2">{product.name}</h2>
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-6">
                       <p className="text-2xl font-bold text-black dark:text-white">{displayPrice(product.price, currency)}</p>
                       {product.oldPrice && product.oldPrice > product.price && (
                           <>
@@ -3363,7 +3490,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                     </p>
                   )}
 
-                  <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed mb-8">{product.description}</p>
+                  <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed mb-8">{product.description || "Aucune description fournie pour ce produit."}</p>
 
                   <div className="flex items-center gap-2 mb-6 bg-zinc-100 dark:bg-zinc-900 w-max px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
                     <div className="flex text-yellow-400"><Star size={16} className="fill-yellow-400" /></div>
@@ -3376,7 +3503,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                     <div className="mb-6">
                       <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Taille</p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants?.sizes?.map(size => (
+                        {product.variants?.sizes?.map((size: string) => (
                           <button 
                             key={size} 
                             onClick={() => setSelectedSize(size)}
@@ -3393,7 +3520,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                     <div className="mb-6">
                       <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Couleur</p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants?.colors?.map(color => (
+                        {product.variants?.colors?.map((color: string) => (
                           <button 
                             key={color} 
                             onClick={() => setSelectedColor(color)}
@@ -3420,8 +3547,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                       </button>
                       <button 
                         onClick={() => { 
-                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true); 
-                          onClose(); 
+                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }); 
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
                         className="flex-[2] bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition flex items-center justify-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
@@ -3452,7 +3578,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                {/* REVIEWS SECTION */}
                <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800">
                   <h4 className="text-sm font-bold text-zinc-500 dark:text-zinc-500 uppercase mb-4">Avis des clients</h4>
-                  <div className="space-y-4 mb-6 max-h-48 overflow-y-auto pr-2">
+                  <div className="space-y-4 mb-6 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                     {(product.reviewsList || []).length > 0 ? product.reviewsList?.map(review => (
                       <div key={review.id} className="bg-zinc-100 dark:bg-zinc-900 p-4 rounded-lg">
                         <div className="flex justify-between items-center">
@@ -3495,10 +3621,10 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
                {/* SIMILAR PRODUCTS */}
                {similarProducts.length > 0 && (
-                 <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800">
+                 <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800 mt-8">
                     <h4 className="text-sm font-bold text-zinc-500 dark:text-zinc-500 uppercase mb-4">Vous aimerez aussi</h4>
                     <div className="grid grid-cols-3 gap-4">
-                       {similarProducts.map(p => (
+                       {similarProducts.map((p: any) => (
                           <div key={p.id} className="group cursor-pointer" onClick={() => onViewProduct(p)}>
                              <div className="aspect-square rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 mb-2">
                                 <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
@@ -3511,6 +3637,48 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                  </div>
                )}
             </div>
+            
+            {/* LIGHTBOX INSIDE THE MODAL TO COVER IT */}
+            {isLightboxOpen && (
+                <div 
+                  className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 bg-black/95 backdrop-blur-sm animate-in fade-in" 
+                  onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                >
+                  <button onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }} className="absolute top-6 right-6 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                      <X size={24}/>
+                  </button>
+                  
+                  {galleryImages.length > 1 && (
+                      <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="absolute left-4 sm:left-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                          <ChevronLeft size={24}/>
+                      </button>
+                  )}
+
+                  <img 
+                      src={galleryImages[lightboxIndex] || product.image} 
+                      alt={product.name} 
+                      className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 cursor-zoom-out" 
+                      onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
+                  />
+
+                  {galleryImages.length > 1 && (
+                      <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="absolute right-4 sm:right-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                          <ChevronRight size={24}/>
+                      </button>
+                  )}
+
+                  {galleryImages.length > 1 && (
+                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/50 px-4 py-2 rounded-full backdrop-blur-md">
+                        {galleryImages.map((_, idx) => (
+                           <div key={idx} className={`w-2 h-2 rounded-full transition-colors ${idx === lightboxIndex ? 'bg-[#39FF14]' : 'bg-white/30'}`} />
+                        ))}
+                     </div>
+                  )}
+              </div>
+            )}
         </div>
     </div>
   );
