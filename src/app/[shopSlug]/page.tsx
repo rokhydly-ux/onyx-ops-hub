@@ -6,7 +6,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, 
   Store, MessageSquare, Sparkles, Heart, ChevronRight, Menu, ArrowRight, Star, Sun, Moon,
-  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, SaveCo rc
+  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft
+} from "lucide-react";
+import QRCode from "react-qr-code";
 
 const displayPrice = (price: number, currency: string = 'FCFA') => {
     return `${price.toLocaleString('fr-SN')} ${currency}`;
@@ -392,8 +394,14 @@ export default function DynamicShopPage() {
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const subTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  
+  // Calcul de la Livraison Gratuite
+  const FREE_SHIPPING_THRESHOLD = 50000;
+  const amountForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subTotal);
+  const freeShippingProgress = Math.min((subTotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+
   const deliveryCost = deliveryMethod === 'delivery' 
-    ? selectedZoneId ? (deliveryZones.find(z => z.id === selectedZoneId)?.price || 0) : 0
+    ? (amountForFreeShipping === 0 ? 0 : (selectedZoneId ? (deliveryZones.find(z => z.id === selectedZoneId)?.price || 0) : 0))
     : 0;
   const cartTotal = subTotal + deliveryCost;
 
@@ -643,8 +651,9 @@ export default function DynamicShopPage() {
       </aside>
 
       {/* Main Content */}
-      <main id="main-conte
-        {isBannerVisible &t-[#39FF14] dark:text-black px-4 py-2.5 text-center text-[10px] sm:text-xs font-bold flex justify-center items-center relative z-30 shadow-md animate-in slide-in-from-top-2">
+      <main id="main-content-scroll" className="flex-1 overflow-y-auto relative custom-scrollbar">
+        {isBannerVisible && (
+          <div className="bg-black dark:bg-[#39FF14] text-[#39FF14] dark:text-black px-4 py-2.5 text-center text-[10px] sm:text-xs font-bold flex justify-center items-center relative z-30 shadow-md animate-in slide-in-from-top-2">
              <span className="flex flex-wrap items-center justify-center gap-2">
                 <span>🚀 Bienvenue sur {shopInfo?.name} ! Profitez de nos offres avec le code <span className="bg-[#39FF14] dark:bg-black text-black dark:text-[#39FF14] px-1.5 py-0.5 rounded ml-1">BIENVENUE10</span></span>
                 <button 
@@ -732,7 +741,14 @@ export default function DynamicShopPage() {
                     <div className="relative aspect-[4/5] bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                       <img src={product.image || "https://placehold.co/600"} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       {product.stock === 0 && <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none"><span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">En rupture</span></div>}
-                      <span className="absolute top-4 left-4 bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-[#39FF14] border border-zinc-200 dark:border-zinc-700 shadow-sm">{product.category}</span>
+                      
+                      <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
+                         <span className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-[#39FF14] border border-zinc-200 dark:border-zinc-700 shadow-sm">{product.category}</span>
+                         {product.old_price && product.old_price > product.price && (
+                            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((product.old_price - product.price) / product.old_price) * 100)}%</span>
+                         )}
+                      </div>
+
                       <button 
                         onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
                         className="absolute top-4 right-4 bg-white/80 dark:bg-black/60 backdrop-blur-md p-2.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:scale-110 transition-transform"
@@ -911,6 +927,17 @@ export default function DynamicShopPage() {
                </div>
                {cart.length > 0 && (
                  <div className="p-6 bg-zinc-100 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
+
+                    <div className="mb-6 bg-white dark:bg-zinc-800 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] font-black uppercase text-zinc-500">Livraison (50 000 F max)</span>
+                            <span className="text-[10px] font-black text-[#39FF14]">{amountForFreeShipping === 0 ? 'Offerte ! 🎉' : `Plus que ${displayPrice(amountForFreeShipping, shopInfo.currency)}`}</span>
+                        </div>
+                        <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${freeShippingProgress}%` }}></div>
+                        </div>
+                    </div>
+
                     <div className="mb-6">
                        <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-3">Mode de livraison</p>
                        <div className="flex gap-3">
@@ -1110,9 +1137,12 @@ export default function DynamicShopPage() {
                         {viewingProduct.video_url ? (
                             <iframe className="w-full h-full absolute inset-0" src={getEmbedUrl(viewingProduct.video_url)} title={viewingProduct.name} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen></iframe>
                         ) : (
-                            <div className="w-full h-full absolute inset-0 overflow-e} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500" />
+                            <div className="w-full h-full absolute inset-0 overflow-hidden cursor-zoom-in group/img" onClick={(e) => { e.stopPropagation(); setLightboxIndex(0); setIsLightboxOpen(true); }}>
+                                <img src={viewingProduct.image} alt={viewingProduct.name} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500" />
                                 <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
-                                    <Search className="text-white drop-shadow-lg" si
+                                    <Search className="text-white drop-shadow-lg" size={32} />
+                                </div>
+                            </div>
                         )}
                     </div>
                     <div className="w-full md:w-1/2 p-8 flex flex-col max-h-[90vh] overflow-y-auto">
@@ -1152,11 +1182,26 @@ export default function DynamicShopPage() {
         {isLightboxOpen && viewingProduct && !viewingProduct.video_url && (() => {
             const galleryImages = [viewingProduct.image, ...(viewingProduct.gallery || [])].filter(Boolean);
             return (
-              <div className="fixed i             alt={viewingProduct.name} 
+              <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 bg-black/95 backdrop-blur-sm animate-in fade-in" onClick={() => setIsLightboxOpen(false)}>
+                  <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                      <X size={24}/>
+                  </button>
+                  {galleryImages.length > 1 && (
+                      <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); }} className="absolute left-4 sm:left-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                          <ChevronLeft size={24}/>
+                      </button>
+                  )}
+                  <img 
+                      src={galleryImages[lightboxIndex] || viewingProduct.image} 
+                      alt={viewingProduct.name} 
                       className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 cursor-zoom-out" 
                       onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
                   />
-         )}
+                  {galleryImages.length > 1 && (
+                      <button onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => (prev + 1) % galleryImages.length); }} className="absolute right-4 sm:right-8 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
+                          <ChevronRight size={24}/>
+                      </button>
+                  )}
               </div>
             );
         })()}

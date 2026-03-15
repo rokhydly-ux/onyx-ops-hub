@@ -562,7 +562,7 @@ export default function OnyxJaayShop() {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [theme, setTheme] = useState('dark');
-  const [shopView, setShopView] = useState<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning'>('boutique');
+  const [shopView, setShopView] = useState<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning' | 'reviews'>('boutique');
   const [categories, setCategories] = useState(['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires']);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([
     { id: 1, code: 'BIENVENUE10', discount: 10, type: 'percentage', active: true },
@@ -1767,6 +1767,9 @@ export default function OnyxJaayShop() {
                           <button onClick={() => { setShopView('planning'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                             <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> Planning Marketing
                           </button>
+                          <button onClick={() => { setShopView('reviews'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'reviews' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                            <Star size={18} className={shopView === 'reviews' ? "text-[#39FF14]" : ""} /> Avis Clients
+                          </button>
                       </>
                   )}
                   <button onClick={() => { setShopView('boutique'); setIsMobileMenuOpen(false); setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
@@ -1885,6 +1888,9 @@ export default function OnyxJaayShop() {
                     </button>
                     <button onClick={() => setShopView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                       <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> Planning Marketing
+                    </button>
+                    <button onClick={() => setShopView('reviews')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'reviews' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                      <Star size={18} className={shopView === 'reviews' ? "text-[#39FF14]" : ""} /> Avis Clients
                     </button>
                 </>
             )}
@@ -2271,6 +2277,9 @@ export default function OnyxJaayShop() {
         )}
         {shopView === 'planning' && (
             <MarketingPlanner suggestions={iaSuggestions} plannedEvents={plannedEvents} setPlannedEvents={setPlannedEvents} />
+        )}
+        {shopView === 'reviews' && (
+            <ShopReviews shopId={shopId} products={products} />
         )}
       </main>
 
@@ -2979,6 +2988,86 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
     );
 }
 
+function ShopReviews({ shopId, products }: { shopId: string | null, products: Product[] }) {
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchReviews = async () => {
+            if (!shopId) return;
+            setIsLoading(true);
+            
+            const productIds = products.map(p => String(p.id));
+            
+            const { data, error } = await supabase
+                .from('reviews')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (data && !error) {
+                const shopReviews = data.filter((r: any) => {
+                    if (r.type === 'product') return productIds.includes(String(r.reference_id));
+                    return true; 
+                });
+                setReviews(shopReviews);
+            }
+            setIsLoading(false);
+        };
+        fetchReviews();
+    }, [shopId, products]);
+
+    const handleDeleteReview = async (id: number) => {
+        if(confirm("Voulez-vous supprimer cet avis ?")) {
+            await supabase.from('reviews').delete().eq('id', id);
+            setReviews(prev => prev.filter(r => r.id !== id));
+        }
+    };
+
+    return (
+        <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-12">
+                <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Avis <span className="text-[#39FF14]">Clients</span></h2>
+            </div>
+            
+            {isLoading ? (
+                <p className="text-zinc-500">Chargement des avis...</p>
+            ) : reviews.length === 0 ? (
+                <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-12 rounded-3xl text-center">
+                    <p className="font-bold text-lg text-zinc-500">Aucun avis client pour le moment.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {reviews.map(review => {
+                        const product = products.find(p => String(p.id) === String(review.reference_id));
+                        return (
+                            <div key={review.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm flex flex-col group transition hover:border-[#39FF14]">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-1">
+                                        {[1,2,3,4,5].map(star => (
+                                            <Star key={star} size={16} className={star <= review.rating ? "text-yellow-400 fill-yellow-400" : "text-zinc-200 dark:text-zinc-700"} />
+                                        ))}
+                                    </div>
+                                    <button onClick={() => handleDeleteReview(review.id)} className="text-zinc-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
+                                </div>
+                                <p className="font-medium text-sm mb-4 flex-1 text-black dark:text-white">"{review.comment}"</p>
+                                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-end">
+                                    <div>
+                                        <p className="font-bold text-sm uppercase text-black dark:text-white">{review.name}</p>
+                                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">
+                                            {review.type === 'product' ? (product ? `Produit : ${product.name}` : 'Produit inconnu') : 'Commande'}
+                                        </p>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-400">{new Date(review.created_at || Date.now()).toLocaleDateString('fr-FR')}</p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // --- CLIENT DETAIL MODAL ---
 function ClientDetailModal({ client, orders, shopName, currency, onClose }: { client: any, orders: any[], shopName: string, currency: string, onClose: () => void }) {
     const clientOrders = orders.filter(o => o.customer?.phone === client.phone && o.status !== 'Annulé');
@@ -3318,7 +3407,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders, shopName, shopLogo }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning'>>, orders: any[], refreshOrders: () => void, shopName: string, shopLogo: string }) {
+function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders, shopName, shopLogo }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning' | 'reviews'>>, orders: any[], refreshOrders: () => void, shopName: string, shopLogo: string }) {
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
   const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');
