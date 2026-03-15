@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,15 +16,18 @@ export default function LoginPage() {
     setIsLoading(true);
     setErrorMsg(null);
 
-    // Utilisation de l'API d'authentification officielles Supabase
+    // Nettoyage du numéro de téléphone (enlève les espaces et assure la présence du +)
+    const formattedPhone = phone.replace(/\s+/g, '').startsWith('+') ? phone.replace(/\s+/g, '') : `+${phone.replace(/\s+/g, '')}`;
+
+    // Utilisation de l'API d'authentification officielle Supabase avec le numéro
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email,
+      phone: formattedPhone,
       password: password,
     });
 
     if (error) {
       console.error("Erreur de connexion:", error.message);
-      setErrorMsg("Email ou mot de passe incorrect.");
+      setErrorMsg("Numéro de téléphone ou mot de passe incorrect.");
       setIsLoading(false);
       return;
     }
@@ -38,6 +41,9 @@ export default function LoginPage() {
   return (
     <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-black p-4">
       <div className="w-full max-w-md bg-white dark:bg-zinc-900 p-8 rounded-3xl shadow-xl border border-zinc-200 dark:border-zinc-800">
+        <div className="flex justify-center mb-6">
+           <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" className="h-[40px] w-auto object-contain dark:invert" />
+        </div>
         <h2 className="text-3xl font-black uppercase tracking-tighter mb-6 text-center text-black dark:text-white">
           Connexion Vendeur
         </h2>
@@ -51,12 +57,12 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
-              Adresse Email
+              Numéro WhatsApp (ex: +221778000012)
             </label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               required
               className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-sm text-black dark:text-white transition-colors"
             />
