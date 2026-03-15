@@ -7,7 +7,7 @@ import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut, Megaphone, Send, XCircle, CheckCircle, Edit3, Copy
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
@@ -26,8 +26,10 @@ interface Product {
   id: number;
   name: string;
   price: number;
+  oldPrice?: number;
   description: string;
   image: string;
+  gallery?: string[];
   category: string;
   videoUrl?: string;
   rating?: number;
@@ -84,7 +86,7 @@ const INITIAL_ZONES: DeliveryZone[] = [
   { id: 1, name: "Zone 1", price: 1300, quartiers: ["Libertés (1-6)", "Scat Urbam", "Sacré Cœur", "Cité Guorgui", "Point E", "Niary Tally", "Sicap", "Grand Dakar", "Dieuppeul", "Castor", "Amitié", "Baobab"] },
   { id: 2, name: "Zone 2", price: 1800, quartiers: ["Yoff", "Ville", "Colobane", "HLM", "Patte d'oie", "Foire", "Sicap Foire", "Mermoz", "Ouakam", "Fann", "Mamelles", "Maristes", "Grand Yoff", "SIPRES", "Zone de captage", "Fass", "Médina", "Corniche", "Front de Terre", "Khar Yallah"] },
   { id: 3, name: "Zone 3", price: 2000, quartiers: ["Almadies", "Ngor", "Parcelles", "Hlm grand Médine", "Yarakh", "Pikine", "Golf", "Hann Marinas", "Bel Air"] },
-  { id: 4, name: "Zone 4", price: 2500, quartiers: ["Guediawaye", "Cambérène", "Beaux Maraîchers", "Thiaroye"] },
+  { id: 4, name: "Zone 4", price: 2500, quartiers: ["Guédiawaye", "Cambérène", "Beaux Maraîchers", "Thiaroye"] },
   { id: 5, name: "Zone 5", price: 3000, quartiers: ["Yeumbeul", "Sicap Mbao", "Petit Mbao", "Keur Massar"] },
   { id: 6, name: "Zone 6", price: 3500, quartiers: ["Grand Mbao", "Zac Mbao", "Rufisque", "Tivaouane peulh", "Malika"] },
   { id: 7, name: "Zone 7", price: 3500, quartiers: ["Régions"] },
@@ -211,7 +213,7 @@ function DroppableCanvas({ children }: { children: React.ReactNode }) {
   );
 }
 
-function WidgetSettingsModal({ widget, onClose, onSave, categories }: any) {
+function WidgetSettingsModal({ widget, onClose, onSave, categories, products }: any) {
     const [settings, setSettings] = useState(widget.settings || {});
     const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : '');
 
@@ -245,10 +247,48 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories }: any) {
                 )}
 
                 {widgetType === 'promo-banner' && (
-                    <div>
-                        <label className="text-sm font-bold mb-2 block">URL de l'image (Bannière Parallax) :</label>
-                        <input type="text" value={settings.imageUrl || ''} onChange={e => setSettings({ ...settings, imageUrl: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-medium" placeholder="https://..." />
-                        {settings.imageUrl && <img src={settings.imageUrl} alt="Aperçu" className="w-full h-32 object-cover rounded-xl mt-4 border border-zinc-200 dark:border-zinc-800" />}
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-bold mb-2 block">Image de la bannière (600x200 recommandé) :</label>
+                            <div className="flex flex-col gap-4">
+                                <div className="w-full h-32 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center relative">
+                                    {settings.imageUrl ? <img src={settings.imageUrl} alt="Aperçu" className="w-full h-full object-cover" /> : <ImageIcon className="text-zinc-400" size={32} />}
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <input type="text" placeholder="Ou coller une URL d'image" value={settings.imageUrl || ''} onChange={e => setSettings({ ...settings, imageUrl: e.target.value })} className="w-full p-3 text-xs bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14]" />
+                                    <input type="file" accept="image/*" onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => setSettings({...settings, imageUrl: reader.result as string});
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }} className="w-full text-xs text-zinc-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-bold file:bg-zinc-200 dark:file:bg-zinc-800 file:text-black dark:file:text-white hover:file:bg-[#39FF14] transition" />
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-bold mb-2 block">Lien au clic (Optionnel) :</label>
+                            <div className="flex gap-2">
+                                <select value={settings.linkType || ''} onChange={e => setSettings({...settings, linkType: e.target.value, linkTarget: ''})} className="w-1/3 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none text-xs font-bold text-black dark:text-white">
+                                    <option value="">Aucun</option>
+                                    <option value="category">Catégorie</option>
+                                    <option value="product">Produit</option>
+                                </select>
+                                {settings.linkType === 'category' && (
+                                    <select value={settings.linkTarget || ''} onChange={e => setSettings({...settings, linkTarget: e.target.value})} className="flex-1 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none text-xs font-bold text-black dark:text-white">
+                                        <option value="">Choisir...</option>
+                                        {categories.filter((c: string) => c !== 'Toutes' && c !== 'Favoris').map((c: string) => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                )}
+                                {settings.linkType === 'product' && (
+                                    <select value={settings.linkTarget || ''} onChange={e => setSettings({...settings, linkTarget: e.target.value})} className="flex-1 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none text-xs font-bold text-black dark:text-white">
+                                        <option value="">Choisir...</option>
+                                        {products?.map((p: any) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+                                    </select>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -256,6 +296,16 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories }: any) {
                     <div>
                         <label className="text-sm font-bold mb-2 block">Titre de la section :</label>
                         <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase" placeholder="Ex: Nouveautés" />
+                        
+                        <label className="text-sm font-bold mt-4 mb-2 block">Sélectionner des produits (Optionnel) :</label>
+                        <div className="max-h-40 overflow-y-auto space-y-2 custom-scrollbar p-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                            {products?.map((p: any) => (
+                                <label key={p.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition">
+                                    <input type="checkbox" checked={(settings.selectedProducts || []).includes(p.id)} onChange={(e) => { const curr = settings.selectedProducts || []; setSettings({ ...settings, selectedProducts: e.target.checked ? [...curr, p.id] : curr.filter((id: number) => id !== p.id) }); }} className="w-4 h-4 accent-black dark:accent-[#39FF14]" />
+                                    <span className="text-xs font-bold text-black dark:text-white truncate">{p.name}</span>
+                                </label>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -267,7 +317,7 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories }: any) {
     );
 }
 
-function ShopPageBuilder({ categories }: { categories: string[] }) {
+function ShopPageBuilder({ categories, products }: { categories: string[], products: Product[] }) {
   const availableWidgets = [
     { id: 'category-grid', type: 'category-grid', name: 'Grille de Catégories', settings: { categories: [] } },
     { id: 'promo-banner', type: 'promo-banner', name: 'Bannière Promotionnelle', settings: { imageUrl: '' } },
@@ -363,6 +413,7 @@ function ShopPageBuilder({ categories }: { categories: string[] }) {
                    setEditingWidget(null);
                 }}
                 categories={categories}
+                products={products}
             />
         )}
     </DndContext>
@@ -398,9 +449,10 @@ const CategoryGridWidget = ({ categories, setActiveCategory }: CategoryGridWidge
     </div>
 );
 
-const PromoBannerWidget = ({ imageUrl }: { imageUrl?: string }) => (
+const PromoBannerWidget = ({ imageUrl, onClick }: { imageUrl?: string, onClick?: () => void }) => (
     <div 
-        className="w-full h-64 md:h-96 rounded-[3rem] overflow-hidden relative my-8 shadow-2xl flex items-center justify-center bg-black transition-all"
+        onClick={onClick}
+        className={`w-full max-w-[600px] mx-auto h-[200px] rounded-[2rem] overflow-hidden relative my-8 shadow-xl flex items-center justify-center bg-black transition-all ${onClick ? 'cursor-pointer hover:shadow-2xl hover:scale-[1.02]' : ''}`}
         style={{
             backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
             backgroundAttachment: 'fixed',
@@ -409,32 +461,51 @@ const PromoBannerWidget = ({ imageUrl }: { imageUrl?: string }) => (
             backgroundSize: 'cover'
         }}
     >
-        <div className="absolute inset-0 bg-black/40"></div>
-        {!imageUrl && <p className="relative z-10 text-white font-black text-2xl opacity-50 uppercase tracking-widest">Bannière Promotionnelle</p>}
+        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+        {!imageUrl && <p className="relative z-10 text-white font-black text-xl opacity-50 uppercase tracking-widest text-center px-4">Bannière Promotionnelle<br/><span className="text-sm">Parallax (600x200)</span></p>}
     </div>
 );
 
-const NewArrivalsWidget = ({ title, products, onViewProduct, addToCart, currency }: any) => {
-    const latestProducts = [...products].sort((a, b) => b.id - a.id).slice(0, 8);
+const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct, addToCart, currency, cart }: any) => {
+    let displayProducts: Product[] = [...products];
+    if (selectedProductIds && selectedProductIds.length > 0) {
+        displayProducts = products.filter((p: Product) => selectedProductIds.includes(p.id));
+    } else {
+        displayProducts = displayProducts.sort((a: Product, b: Product) => b.id - a.id).slice(0, 8);
+    }
+    const latestProducts = displayProducts;
     const marqueeProducts = [...latestProducts, ...latestProducts, ...latestProducts];
     
+    const getQtyInCart = (id: number) => cart ? cart.filter((i:any) => i.id === id).reduce((sum:any, i:any) => sum + i.quantity, 0) : 0;
+
     return (
         <div className="my-12 overflow-hidden">
             <h3 className="text-3xl font-black uppercase tracking-tighter mb-8 px-2">{title || 'Nouveautés'}</h3>
             <div className="relative w-full flex overflow-x-hidden group">
                 <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-33.333%); } } .animate-marquee { animation: marquee 25s linear infinite; display: flex; width: max-content; } .group:hover .animate-marquee { animation-play-state: paused; }`}</style>
                 <div className="animate-marquee gap-6">
-                    {marqueeProducts.map((p, idx) => (
+                    {marqueeProducts.map((p: Product, idx: number) => (
                         <div key={`${p.id}-${idx}`} className="w-[300px] h-[350px] bg-white dark:bg-zinc-900 rounded-[2rem] overflow-hidden flex flex-col cursor-pointer shadow-sm hover:shadow-xl border border-zinc-200 dark:border-zinc-800 transition-all shrink-0" onClick={() => onViewProduct(p)}>
                             <div className="h-[220px] relative overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                                <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 hover:scale-110" />
-                               <div className="absolute top-4 left-4 bg-black text-[#39FF14] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Nouveau</div>
+                               {p.stock === 0 && (
+                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
+                                    <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">En rupture</span>
+                                  </div>
+                               )}
+                               <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
+                                  {p.stock === 0 && <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">En rupture</div>}
+                                  {p.stock !== 0 && <div className="bg-black text-[#39FF14] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Nouveau</div>}
+                               </div>
                             </div>
                             <div className="p-5 flex-1 flex flex-col justify-between">
                                 <h4 className="font-bold text-base truncate text-black dark:text-white">{p.name}</h4>
-                                <div className="flex justify-between items-center mt-2">
-                                    <span className="font-black text-xl text-black dark:text-white">{displayPrice(p.price, currency)}</span>
-                                    <button onClick={(e) => { e.stopPropagation(); addToCart(p); }} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors"><Plus size={16} /></button>
+                                <div className="flex justify-between items-end mt-2">
+                                    <div className="flex flex-col">
+                                        {p.oldPrice && p.oldPrice > p.price && <span className="text-[10px] text-zinc-400 line-through mb-[-4px]">{displayPrice(p.oldPrice, currency)}</span>}
+                                        <span className="font-black text-xl text-black dark:text-white">{displayPrice(p.price, currency)}</span>
+                                    </div>
+                                    <button onClick={(e) => { e.stopPropagation(); addToCart(p); }} disabled={p.stock === 0 || (p.stock !== undefined && getQtyInCart(p.id) >= p.stock)} className="bg-black dark:bg-white text-white dark:text-black p-3 rounded-xl hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"><Plus size={16} /></button>
                                 </div>
                             </div>
                         </div>
@@ -464,7 +535,7 @@ export default function OnyxJaayShop() {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [theme, setTheme] = useState('dark');
-  const [shopView, setShopView] = useState<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder'>('boutique');
+  const [shopView, setShopView] = useState<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning'>('boutique');
   const [categories, setCategories] = useState(['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires']);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([
     { id: 1, code: 'BIENVENUE10', discount: 10, type: 'percentage', active: true },
@@ -487,6 +558,7 @@ export default function OnyxJaayShop() {
   const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [customerAddress, setCustomerAddress] = useState('');
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [currentCustomerPoints, setCurrentCustomerPoints] = useState(0);
   const [productViews, setProductViews] = useState<Record<number, number>>({});
@@ -502,6 +574,15 @@ export default function OnyxJaayShop() {
   const [trackingInput, setTrackingInput] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
+
+  const [iaSuggestions, setIaSuggestions] = useState<any[]>([]);
+  const [plannedEvents, setPlannedEvents] = useState<any[]>(() => {
+      if (typeof window !== 'undefined') {
+          const saved = localStorage.getItem('onyx_jaay_planned_events');
+          return saved ? JSON.parse(saved) : [];
+      }
+      return [];
+  });
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -557,6 +638,10 @@ export default function OnyxJaayShop() {
     }
   }, []);
 
+  useEffect(() => {
+      localStorage.setItem('onyx_jaay_planned_events', JSON.stringify(plannedEvents));
+  }, [plannedEvents]);
+
   const renderWidget = (widget: WidgetProps) => {
     const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : '');
     switch (widgetType) {
@@ -564,9 +649,17 @@ export default function OnyxJaayShop() {
         const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
         return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} />;
       case 'promo-banner':
-        return <PromoBannerWidget imageUrl={widget.settings?.imageUrl} />;
+        return <PromoBannerWidget 
+            imageUrl={widget.settings?.imageUrl} 
+            onClick={(!isEditingMode && widget.settings?.linkType) ? () => {
+                if (widget.settings.linkType === 'category' && widget.settings.linkTarget) setActiveCategory(widget.settings.linkTarget);
+                else if (widget.settings.linkType === 'product' && widget.settings.linkTarget) {
+                    const p = products.find(prod => String(prod.id) === String(widget.settings.linkTarget));
+                    if (p) handleViewProduct(p);
+                }
+            } : undefined} />;
       case 'new-arrivals':
-        return <NewArrivalsWidget title={widget.settings?.title} products={products} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} />;
+        return <NewArrivalsWidget title={widget.settings?.title} products={products} selectedProductIds={widget.settings?.selectedProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
       default:
         return <div className="p-4 bg-red-200 rounded-lg">Widget inconnu: {widget.name}</div>;
     }
@@ -648,6 +741,19 @@ export default function OnyxJaayShop() {
     localStorage.setItem('onyx_jaay_address', customerAddress);
   }, [customerAddress]);
 
+  useEffect(() => {
+    const savedCategories = localStorage.getItem('onyx_jaay_categories');
+    if (savedCategories) {
+      try {
+        setCategories(JSON.parse(savedCategories));
+      } catch (e) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('onyx_jaay_categories', JSON.stringify(categories));
+  }, [categories]);
+
   // --- THEME LOGIC ---
   useEffect(() => {
     const savedTheme = localStorage.getItem('onyx_jaay_theme') || 'dark';
@@ -679,7 +785,7 @@ export default function OnyxJaayShop() {
     }
   }, [products]);
 
-  const addToCart = (product: Product, variant?: { size?: string; color?: string }) => {
+  const addToCart = (product: Product, variant?: { size?: string; color?: string }, openCart: boolean = true) => {
     setCart(prev => {
       const existing = prev.find(item => 
         item.id === product.id && 
@@ -687,9 +793,8 @@ export default function OnyxJaayShop() {
       );
       
       // Check stock
-      const currentQuantityInCart = existing ? existing.quantity : 0;
-      if (product.stock !== undefined && currentQuantityInCart >= product.stock) {
-        alert("Quantité maximale en stock atteinte !");
+      const totalProductQuantityInCart = prev.filter(item => item.id === product.id).reduce((sum, item) => sum + item.quantity, 0);
+      if (product.stock !== undefined && totalProductQuantityInCart >= product.stock) {
         return prev;
       }
 
@@ -698,17 +803,23 @@ export default function OnyxJaayShop() {
       }
       return [...prev, { ...product, quantity: 1, selectedVariant: variant }];
     });
-    setIsCartOpen(true);
+    if (openCart) setIsCartOpen(true);
   };
 
-  const removeFromCart = (id: number) => {
-    setCart(prev => prev.filter(item => item.id !== id));
+  const removeFromCart = (itemToRemove: CartItem) => {
+    setCart(prev => prev.filter(item => item.id !== itemToRemove.id || JSON.stringify(item.selectedVariant) !== JSON.stringify(itemToRemove.selectedVariant)));
   };
 
-  const updateQuantity = (id: number, delta: number) => {
+  const updateQuantity = (itemToUpdate: CartItem, delta: number) => {
     setCart(prev => prev.map(item => {
-      if (item.id === id) {
+      if (item.id === itemToUpdate.id && JSON.stringify(item.selectedVariant) === JSON.stringify(itemToUpdate.selectedVariant)) {
         const newQty = item.quantity + delta;
+        if (delta > 0 && item.stock !== undefined) {
+          const totalProductQuantityInCart = prev.filter(i => i.id === item.id).reduce((sum, i) => sum + i.quantity, 0);
+          if (totalProductQuantityInCart >= item.stock) {
+            return item;
+          }
+        }
         return newQty > 0 ? { ...item, quantity: newQty } : item;
       }
       return item;
@@ -828,6 +939,18 @@ export default function OnyxJaayShop() {
     }
   };
 
+  const handleDuplicateProduct = (product: Product) => {
+    const duplicatedProduct = {
+      ...product,
+      id: Date.now(), // Nouvel identifiant unique
+      name: `${product.name} (Copie)`,
+      reviews: 0,
+      reviewsList: [],
+      rating: 5
+    };
+    setProducts(prev => [duplicatedProduct, ...prev]);
+  };
+
   const handleSaveProduct = (product: Product) => {
     if (editingProduct) {
       setProducts(products.map(p => p.id === product.id ? product : p));
@@ -898,6 +1021,20 @@ export default function OnyxJaayShop() {
       if (error) {
         console.error("Erreur d'insertion Supabase:", error.message);
       } else {
+        // --- ALERTE EMAIL AUTO ADMIN ---
+        try {
+            await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subject: `🚨 Nouvelle Commande : ${trackingNumber} - ${displayPrice(cartTotal, shopInfo.currency)}`,
+                    text: `Nouvelle commande de ${customerInfo.name} (${customerInfo.phone}). Total: ${displayPrice(cartTotal, shopInfo.currency)}`,
+                    html: `<h2>Nouvelle commande sur ${shopInfo.name} !</h2><p><b>Référence :</b> ${trackingNumber}</p><p><b>Client :</b> ${customerInfo.name} (${customerInfo.phone})</p><p><b>Montant Total :</b> ${displayPrice(cartTotal, shopInfo.currency)}</p><h3>Détails :</h3><ul>${cart.map(i => `<li>${i.name} (x${i.quantity})</li>`).join('')}</ul>`
+                })
+            });
+        } catch (e) {
+            console.error("Erreur lors de l'envoi de l'alerte email :", e);
+        }
         alert("Commande enregistrée avec succès !");
       }
     } catch (err) {
@@ -933,6 +1070,9 @@ export default function OnyxJaayShop() {
             message += `\n🏠 Adresse : ${customerAddress.trim()}`;
         }
     }
+    if (deliveryInstructions.trim()) {
+        message += `\n📝 Instructions : ${deliveryInstructions.trim()}`;
+    }
     message += `\n*Total à payer : ${displayPrice(cartTotal, shopInfo.currency)}*`;
     message += `\n\nMerci de confirmer la disponibilité.`;
 
@@ -942,6 +1082,7 @@ export default function OnyxJaayShop() {
     setIsCartOpen(false);
     setCart([]);
     setAppliedPromo(null);
+    setDeliveryInstructions('');
     setUseLoyaltyPoints(false);
     setCustomerInfo({ name: '', phone: '' });
     setIsOrderSuccessOpen(true);
@@ -1243,6 +1384,45 @@ export default function OnyxJaayShop() {
     }
   };
 
+  const runIaScanGeneral = () => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const suggestions: any[] = [];
+      const plannedPhoneNumbers = new Set(plannedEvents.map(e => e.clientPhone));
+      
+      const uniqueClients: any = {};
+      orders.forEach((order: any) => {
+          if (order.customer && order.customer.phone && order.status !== 'Annulé') {
+              if (!uniqueClients[order.customer.phone]) uniqueClients[order.customer.phone] = { ...order.customer, totalSpent: 0, ordersCount: 0, lastOrder: order.date || new Date().toISOString() };
+              uniqueClients[order.customer.phone].ordersCount += 1;
+              uniqueClients[order.customer.phone].totalSpent += order.total;
+              if (new Date(order.date) > new Date(uniqueClients[order.customer.phone].lastOrder)) uniqueClients[order.customer.phone].lastOrder = order.date;
+          }
+      });
+
+      Object.values(uniqueClients).forEach((contact: any) => {
+          if (plannedPhoneNumbers.has(contact.phone)) return;
+          const totalSpent = contact.totalSpent || 0;
+          const ordersCount = contact.ordersCount || 0;
+          const lastOrder = contact.lastOrder ? new Date(contact.lastOrder) : null;
+
+          if (totalSpent > 100000 || ordersCount > 3) {
+              suggestions.push({ id: `ia-vip-${contact.phone}`, clientName: contact.name, clientPhone: contact.phone, type: 'vip', title: `Action VIP pour ${contact.name}`, description: 'Client fidèle. Proposer une offre exclusive ou un accès anticipé.', msg: `⭐ Bonjour ${contact.name}, en tant que client VIP chez ${shopInfo.name}, nous vous offrons un accès anticipé à notre nouvelle collection ! Ne ratez pas ça.` });
+          } else if (lastOrder && lastOrder < thirtyDaysAgo) {
+              suggestions.push({ id: `ia-inactive-${contact.phone}`, clientName: contact.name, clientPhone: contact.phone, type: 'inactive', title: `Réactivation de ${contact.name}`, description: 'Client inactif depuis plus de 30 jours.', msg: `😢 Bonjour ${contact.name}, vous nous manquez chez ${shopInfo.name} ! Profitez de -10% sur votre prochaine commande. Offre limitée !` });
+          }
+      });
+
+      setIaSuggestions(suggestions);
+      if (suggestions.length > 0) {
+          setShopView('planning');
+          alert(`${suggestions.length} nouvelle(s) action(s) marketing suggérée(s) par l'IA.`);
+      } else {
+          alert("Scan IA terminé. Aucune nouvelle opportunité détectée pour le moment.");
+      }
+  };
+
   const filteredProducts = products.filter(p => {
     const matchesCategory = activeCategory === 'Toutes' 
       ? true 
@@ -1251,13 +1431,16 @@ export default function OnyxJaayShop() {
       : p.category === activeCategory;
     const matchesMinPrice = minPrice === '' || p.price >= minPrice;
     const matchesMaxPrice = maxPrice === '' || p.price <= maxPrice;
-    const matchesSearch = searchTerm === '' || p.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchTerm === '' || 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (p.category && p.category.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
   }).sort((a, b) => {
     if (sortOrder === 'asc') return a.price - b.price;
     if (sortOrder === 'desc') return b.price - a.price;
-    return 0;
+    return b.id - a.id; // Trie par nouveautés (identifiant le plus récent) par défaut
   });
 
   // --- RENDER ---
@@ -1290,6 +1473,9 @@ export default function OnyxJaayShop() {
                   </button>
                   <button onClick={() => { setShopView('clients'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                     <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
+                  </button>
+                  <button onClick={() => { setShopView('planning'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                    <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> Planning Marketing
                   </button>
                   <button onClick={() => { setShopView('boutique'); setIsMobileMenuOpen(false); setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                     <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
@@ -1390,6 +1576,9 @@ export default function OnyxJaayShop() {
             <button onClick={() => setShopView('clients')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
             </button>
+            <button onClick={() => setShopView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+              <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> Planning Marketing
+            </button>
             <button onClick={() => { setShopView('boutique'); setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
             </button>
@@ -1485,7 +1674,7 @@ export default function OnyxJaayShop() {
            </div>
            <button onClick={() => setIsCartOpen(true)} className="relative p-2 text-black dark:text-white">
               <ShoppingCart size={24} />
-              {cartCount > 0 && <span className="absolute top-0 right-0 bg-[#39FF14] text-black text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">{cartCount}</span>}
+           {cartCount > 0 && <span className={`absolute top-0 right-0 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center transition-colors ${cartCount > 5 ? 'bg-red-500 text-white' : 'bg-[#39FF14] text-black'}`}>{cartCount}</span>}
            </button>
         </div>
 
@@ -1495,7 +1684,7 @@ export default function OnyxJaayShop() {
           <button onClick={() => setIsCartOpen(true)} className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
             <div className="relative">
               <ShoppingCart size={18} />
-              {cartCount > 0 && <span className="absolute -top-2 -right-2 bg-[#39FF14] text-black text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">{cartCount}</span>}
+          {cartCount > 0 && <span className={`absolute -top-2 -right-2 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center transition-colors ${cartCount > 5 ? 'bg-red-500 text-white' : 'bg-[#39FF14] text-black'}`}>{cartCount}</span>}
             </div>
             <span className="text-xs font-bold uppercase">Panier</span>
           </button>
@@ -1555,8 +1744,9 @@ export default function OnyxJaayShop() {
         )}
 
         {shopView === 'boutique' && (
-          <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto">
-            <div className="mb-12">
+          <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto flex flex-col min-h-[calc(100vh-80px)]">
+            <div className="flex-1">
+            <div className="mb-12 print:hidden">
               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Catalogue <span className="text-[#39FF14]">Produits</span></h2>
               <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Gérez votre inventaire, modifiez vos prix et partagez vos produits directement sur WhatsApp.</p>
             </div>
@@ -1622,12 +1812,20 @@ export default function OnyxJaayShop() {
                     <div className="relative">
                       <img src={product.image} alt={product.name} className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500 bg-zinc-100 dark:bg-zinc-800" />
                       {product.stock === 0 && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                          <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">Épuisé</span>
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
+                          <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">En rupture</span>
                         </div>
                       )}
-                      <div className="absolute top-4 left-4 bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700 text-[#39FF14]">
-                        {product.category}
+                      <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
+                        <div className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700 text-[#39FF14]">
+                          {product.category}
+                        </div>
+                        {product.stock === 0 && (
+                          <div className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">En rupture</div>
+                        )}
+                        {product.id > Date.now() - 7 * 24 * 60 * 60 * 1000 && product.stock !== 0 && (
+                          <div className="bg-[#39FF14] text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Nouveau</div>
+                        )}
                       </div>
                       
                       {/* Wishlist Button */}
@@ -1646,6 +1844,7 @@ export default function OnyxJaayShop() {
                       {isEditingMode && (
                           <div className="absolute top-4 right-4 flex flex-col gap-2">
                               <button onClick={() => handleEditProduct(product)} className="bg-black/70 backdrop-blur-md text-white p-2.5 rounded-full hover:bg-[#39FF14] hover:text-black transition border border-zinc-700 shadow-lg"><Edit size={16}/></button>
+                              <button onClick={() => handleDuplicateProduct(product)} className="bg-black/70 backdrop-blur-md text-white p-2.5 rounded-full hover:bg-blue-500 hover:text-white transition border border-zinc-700 shadow-lg" title="Dupliquer"><Copy size={16}/></button>
                               <button onClick={() => handleDeleteProduct(product.id)} className="bg-black/70 backdrop-blur-md text-red-500 p-2.5 rounded-full hover:bg-red-500 hover:text-white transition border border-zinc-700 shadow-lg"><Trash2 size={16}/></button>
                           </div>
                       )}
@@ -1663,12 +1862,15 @@ export default function OnyxJaayShop() {
                       <div className="flex justify-between items-end mt-6">
                         <div>
                           <p className="text-xs text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider mb-1">Prix</p>
-                          <p className="text-2xl font-black text-black dark:text-white">{displayPrice(product.price, shopInfo.currency)}</p>
+                          <div className="flex items-end gap-2">
+                             <p className="text-2xl font-black text-black dark:text-white">{displayPrice(product.price, shopInfo.currency)}</p>
+                             {product.oldPrice && product.oldPrice > product.price && <p className="text-sm text-zinc-400 line-through mb-1">{displayPrice(product.oldPrice, shopInfo.currency)}</p>}
+                          </div>
                         </div>
                         <button 
                           onClick={(e) => { e.stopPropagation(); addToCart(product); }} 
-                          disabled={product.stock === 0}
-                          className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center gap-2 shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
+                          disabled={product.stock === 0 || (product.stock !== undefined && cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)}
+                          className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
                         >
                           <Plus size={16} /> Ajouter
                         </button>
@@ -1687,13 +1889,40 @@ export default function OnyxJaayShop() {
                 )}
               </>
             )}
+            </div>
+
+            {/* FOOTER */}
+            {!isEditingMode && (
+                <footer className="mt-20 border-t border-zinc-200 dark:border-zinc-800 pt-12 pb-8 px-6 text-center animate-in fade-in shrink-0 print:hidden">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 text-left max-w-4xl mx-auto">
+                        <div>
+                            <h4 className="font-black uppercase mb-4 text-black dark:text-white">Onyx Jaay</h4>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">{shopInfo.description || "Votre boutique propulsée par OnyxOps."}</p>
+                        </div>
+                        <div>
+                            <h4 className="font-black uppercase mb-4 text-black dark:text-white">Liens Utiles</h4>
+                            <ul className="space-y-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                <li><button onClick={() => { setActiveCategory('Toutes'); setSearchTerm(''); }} className="hover:text-[#39FF14] transition-colors">Catalogue</button></li>
+                                <li><button onClick={() => setIsTrackingModalOpen(true)} className="hover:text-[#39FF14] transition-colors">Suivi de Commande</button></li>
+                                <li><button onClick={() => setIsCartOpen(true)} className="hover:text-[#39FF14] transition-colors">Mon Panier</button></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-black uppercase mb-4 text-black dark:text-white">Contact</h4>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">WhatsApp : {shopInfo.phone}</p>
+                            <a href={`https://wa.me/${String(shopInfo.phone).replace(/[^0-9]/g, '')}`} target="_blank" className="mt-2 inline-block px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold hover:bg-[#39FF14] hover:text-black transition">Discuter avec nous</a>
+                        </div>
+                    </div>
+                    <p className="text-xs text-zinc-400 dark:text-zinc-600">&copy; {new Date().getFullYear()} {shopInfo.name}. Propulsé par <a href="https://onyxops.com" target="_blank" className="font-bold text-black dark:text-white">OnyxOps</a>.</p>
+                </footer>
+            )}
           </div>
         )}
         {shopView === 'dashboard' && (
             <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} setShopView={setShopView} orders={orders} refreshOrders={fetchOrders} />
         )}
         {shopView === 'clients' && (
-            <ShopClients currency={shopInfo.currency} orders={orders} onClientSelect={setSelectedClient} />
+            <ShopClients currency={shopInfo.currency} orders={orders} onClientSelect={setSelectedClient} onRunIaScan={runIaScanGeneral} />
         )}
         {shopView === 'settings' && (
             <ShopSettings 
@@ -1703,13 +1932,18 @@ export default function OnyxJaayShop() {
               setShopInfo={setShopInfo}
               deliveryZones={deliveryZones}
               setDeliveryZones={setDeliveryZones}
+              categories={categories}
+              setCategories={setCategories}
               onResetData={handleResetData}
               onClearOrders={handleClearOrders}
               currency={shopInfo.currency}
             />
         )}
         {shopView === 'page-builder' && (
-            <ShopPageBuilder categories={categories} />
+            <ShopPageBuilder categories={categories} products={products} />
+        )}
+        {shopView === 'planning' && (
+            <MarketingPlanner suggestions={iaSuggestions} plannedEvents={plannedEvents} setPlannedEvents={setPlannedEvents} />
         )}
       </main>
 
@@ -1720,8 +1954,11 @@ export default function OnyxJaayShop() {
                 onClick={() => setIsCartOpen(true)}
                 className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-xs shadow-[0_10px_30px_rgba(57,255,20,0.3)] flex items-center justify-between px-4 border border-[#32E612]"
             >
-                <span className="flex items-center gap-2">
-                    <ShoppingCart size={18} />
+                <span className="flex items-center gap-3">
+                    <div className="relative">
+                        <ShoppingCart size={18} />
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-[#39FF14] leading-none">{cartCount}</span>
+                    </div>
                     À la caisse
                 </span>
                 <span className="bg-black text-[#39FF14] px-2 py-1 rounded-lg">
@@ -1739,6 +1976,36 @@ export default function OnyxJaayShop() {
              <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-100 dark:bg-zinc-900">
                 <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                   <ShoppingCart className="text-[#39FF14]" /> Mon Panier
+                  {cartCount > 0 && (
+                      <div className="flex gap-2 ml-2 flex-wrap">
+                          <button 
+                              onClick={() => {
+                                  let shareMsg = `Salut ! Regarde mon panier sur ${shopInfo.name} :\n\n`;
+                                  cart.forEach(item => { shareMsg += `- ${item.name} (x${item.quantity}) : ${displayPrice(item.price * item.quantity, shopInfo.currency)}\n`; });
+                                  shareMsg += `\n*Total : ${displayPrice(cartTotal, shopInfo.currency)}*\n\nLien : ${window.location.origin}/vente`;
+                                  window.open(`https://wa.me/?text=${encodeURIComponent(shareMsg)}`, '_blank');
+                              }} 
+                              className="text-[10px] font-bold text-green-600 bg-green-500/10 px-2 py-1 rounded hover:bg-green-500 hover:text-white transition tracking-widest flex items-center gap-1"
+                          >
+                              <Share2 size={12} /> PARTAGER
+                          </button>
+                          <button 
+                              onClick={() => {
+                                  localStorage.setItem('onyx_jaay_cart', JSON.stringify(cart));
+                                  alert("Votre panier est sauvegardé sur cet appareil ! Vous le retrouverez lors de votre prochaine visite.");
+                              }} 
+                              className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded hover:bg-blue-500 hover:text-white transition tracking-widest flex items-center gap-1"
+                          >
+                              <Save size={12} /> SAUVER
+                          </button>
+                          <button 
+                              onClick={() => { if(confirm("Voulez-vous vraiment vider votre panier ?")) { setCart([]); setAppliedPromo(null); } }} 
+                              className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded hover:bg-red-500 hover:text-white transition tracking-widest flex items-center gap-1"
+                          >
+                              <Trash2 size={12} /> VIDER
+                          </button>
+                      </div>
+                  )}
                 </h2>
                 <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-zinc-800 rounded-full transition"><X size={20}/></button>
              </div>
@@ -1752,12 +2019,12 @@ export default function OnyxJaayShop() {
                   </div>
                 ) : (
                   cart.map(item => (
-                    <div key={item.id} className="flex gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                  <div key={`${item.id}-${JSON.stringify(item.selectedVariant)}`} className="flex gap-4 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
                        <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded-xl bg-zinc-200 dark:bg-zinc-800" />
                        <div className="flex-1 flex flex-col justify-between">
                           <div className="flex justify-between items-start">
                              <h4 className="font-bold text-sm line-clamp-1 text-black dark:text-white">{item.name}</h4>
-                             <button onClick={() => removeFromCart(item.id)} className="text-zinc-500 dark:text-zinc-500 hover:text-red-500 shrink-0"><Trash2 size={16}/></button>
+                           <button onClick={() => removeFromCart(item)} className="text-zinc-500 dark:text-zinc-500 hover:text-red-500 shrink-0"><Trash2 size={16}/></button>
                           </div>
                           {(item.selectedVariant?.size || item.selectedVariant?.color) && (
                             <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-1">
@@ -1767,9 +2034,9 @@ export default function OnyxJaayShop() {
                           )}
                           <p className="text-[#39FF14] font-bold text-sm">{item.price.toLocaleString()} FCFA</p>
                           <div className="flex items-center gap-3 mt-2">
-                             <button onClick={() => updateQuantity(item.id, -1)} className="p-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-700"><Minus size={14}/></button>
+                           <button onClick={() => updateQuantity(item, -1)} className="p-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-700"><Minus size={14}/></button>
                              <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                             <button onClick={() => updateQuantity(item.id, 1)} className="p-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-700"><Plus size={14}/></button>
+                           <button onClick={() => updateQuantity(item, 1)} disabled={item.stock !== undefined && cart.filter(i => i.id === item.id).reduce((sum, i) => sum + i.quantity, 0) >= item.stock} className="p-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"><Plus size={14}/></button>
                           </div>
                        </div>
                     </div>
@@ -1830,16 +2097,18 @@ export default function OnyxJaayShop() {
                     </div>
                 )}
 
-                <div className="flex gap-2 mb-4">
-                    <input 
-                        type="text" 
-                        placeholder="Code Promo" 
-                        value={promoInput}
-                        onChange={(e) => setPromoInput(e.target.value)}
-                        className="flex-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-bold uppercase outline-none focus:border-[#39FF14]"
-                    />
-                    <button onClick={handleApplyPromo} className="bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-xl text-xs font-black uppercase">OK</button>
-                </div>
+                {promoCodes.some(c => c.active) && (
+                    <div className="flex gap-2 mb-4">
+                        <input 
+                            type="text" 
+                            placeholder="Code Promo" 
+                            value={promoInput}
+                            onChange={(e) => setPromoInput(e.target.value)}
+                            className="flex-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-bold uppercase outline-none focus:border-[#39FF14]"
+                        />
+                        <button onClick={handleApplyPromo} className="bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-xl text-xs font-black uppercase">OK</button>
+                    </div>
+                )}
 
                 {appliedPromo && (
                     <div className="flex justify-between items-center mb-2 text-xs text-[#39FF14]">
@@ -1920,7 +2189,7 @@ export default function OnyxJaayShop() {
       )}
 
       {/* --- TRACKING MODAL --- */}
-      {isTrackingModalOpen && !isEditingMode && (
+      {isTrackingModalOpen && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsTrackingModalOpen(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95">
             <button onClick={() => setIsTrackingModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
@@ -1980,6 +2249,7 @@ export default function OnyxJaayShop() {
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Vos Coordonnées</p>
                 <input type="text" placeholder="Votre Nom *" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black" />
                 <input type="tel" placeholder="Votre Téléphone *" value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black" />
+                <textarea placeholder="Instructions de livraison (Optionnel)" value={deliveryInstructions} onChange={e => setDeliveryInstructions(e.target.value)} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[80px] resize-none" />
             </div>
             
             {currentCustomerPoints > 0 && (
@@ -2016,8 +2286,14 @@ export default function OnyxJaayShop() {
             </div>
             
             <div className="flex gap-3">
+              <button 
+                onClick={() => { if(confirm("Voulez-vous vraiment vider le panier et annuler la commande ?")) { setCart([]); setAppliedPromo(null); setIsCheckoutModalOpen(false); setIsCartOpen(false); } }} 
+                className="py-4 px-4 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl font-bold text-xs hover:bg-red-500 hover:text-white transition flex items-center justify-center" title="Vider le panier"
+              >
+                 <Trash2 size={18}/>
+              </button>
               <button onClick={() => setIsCheckoutModalOpen(false)} className="flex-1 py-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl font-bold text-xs uppercase hover:bg-zinc-200 dark:hover:bg-zinc-800 transition text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white">Annuler</button>
-              <button onClick={confirmOrder} className="flex-1 py-4 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase hover:bg-white transition flex items-center justify-center gap-2 shadow-lg shadow-[#39FF14]/20">
+              <button onClick={confirmOrder} className="flex-[2] py-4 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase hover:bg-white transition flex items-center justify-center gap-2 shadow-lg shadow-[#39FF14]/20">
                 <MessageSquare size={18}/> Confirmer l'envoi
               </button>
             </div>
@@ -2114,7 +2390,7 @@ export default function OnyxJaayShop() {
             onClose={() => setIsModalOpen(false)} 
             onSave={handleSaveProduct}
             onImageUpload={handleImageUpload}
-            isAIWriting={isAIWriting}
+            categories={categories}
             currency={shopInfo.currency}
          />
       )}
@@ -2132,6 +2408,8 @@ export default function OnyxJaayShop() {
           onGenerateQR={setQrCodeProduct}
           onAddReview={handleAddReview}
           currency={shopInfo.currency}
+        cart={cart}
+        shopPhone={shopInfo.phone}
         />
       )}
 
@@ -2161,16 +2439,19 @@ interface ProductModalProps {
     onClose: () => void;
     onSave: (product: Product) => void;
     onImageUpload: (e: React.ChangeEvent<HTMLInputElement>, setFormData: any, formData: any) => void;
-    isAIWriting: boolean;
+    categories: string[];
     currency: string;
 }
 
-function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting, currency }: ProductModalProps) {
+function ProductModal({ product, onClose, onSave, onImageUpload, categories, currency }: ProductModalProps) {
+    const [isGenerating, setIsGenerating] = useState(false);
     const [formData, setFormData] = useState<Partial<Product>>({
         name: product?.name || '',
         price: product?.price || 0,
+        oldPrice: product?.oldPrice || 0,
         description: product?.description || '',
         image: product?.image || '',
+        gallery: product?.gallery || [],
         category: product?.category || '',
         stock: product?.stock ?? 0,
         rating: product?.rating || 5,
@@ -2188,6 +2469,36 @@ function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting, cu
         onSave({ ...product, ...formData } as Product);
     };
 
+    const handleAddGalleryImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({ ...prev, gallery: [...(prev.gallery || []), reader.result as string] }));
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removeGalleryImage = (index: number) => {
+        setFormData(prev => ({ ...prev, gallery: prev.gallery?.filter((_, i) => i !== index) }));
+    };
+
+    const handleGenerateIA = () => {
+        if (!formData.name) return alert("Veuillez d'abord saisir le nom du produit pour utiliser l'IA.");
+        setIsGenerating(true);
+        setTimeout(() => {
+            let variantText = '';
+            const sizes = formData.variants?.sizes || [];
+            const colors = formData.variants?.colors || [];
+            if (sizes.length > 0) variantText += ` Disponible en tailles : ${sizes.join(', ')}.`;
+            if (colors.length > 0) variantText += ` Couleurs proposées : ${colors.join(', ')}.`;
+            
+            setFormData({ ...formData, description: `Découvrez notre incroyable ${formData.name}${formData.category ? ` de la collection ${formData.category}` : ''}. Un concentré de qualité et de style conçu spécialement pour répondre à vos attentes. Profitez d'une finition soignée et d'un confort optimal au quotidien !${variantText} Proposé au prix exceptionnel de ${displayPrice(formData.price || 0, currency)}.` });
+            setIsGenerating(false);
+        }, 1500);
+    };
+
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] w-full max-w-2xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden">
@@ -2203,7 +2514,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting, cu
                             <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Ex: Robe de soirée" />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="relative group">
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix ({currency})</label>
                                 <div className="relative">
@@ -2212,15 +2523,21 @@ function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting, cu
                                 </div>
                             </div>
                             <div className="relative group">
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Ancien Prix (Opt.)</label>
+                                <div className="relative">
+                                    <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                    <input type="number" name="oldPrice" value={formData.oldPrice || ''} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Promo" />
+                                </div>
+                            </div>
+                            <div className="relative group">
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Catégorie</label>
                                 <input type="text" name="category" value={formData.category} onChange={handleChange} list="categories-list" className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                                <datalist id="categories-list">
+                                  {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map(c => (
+                                      <option key={c} value={c} />
+                                  ))}
+                                </datalist>
                             </div>
-                            <datalist id="categories-list">
-                              <option value="Luxe" />
-                              <option value="Professionnel" />
-                              <option value="Soirée" />
-                              <option value="Casual" />
-                            </datalist>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2253,23 +2570,39 @@ function ProductModal({ product, onClose, onSave, onImageUpload, isAIWriting, cu
                         <div className="space-y-3">
                             <div className="flex justify-between items-center bg-zinc-100/50 dark:bg-zinc-900/50 p-3 rounded-t-xl border-b border-zinc-200 dark:border-zinc-800">
                                 <label className="text-xs font-bold text-zinc-500 uppercase">Description</label>
-                                <button type="button" className="text-[10px] font-bold text-[#39FF14] flex items-center gap-1 hover:underline">
-                                    <Sparkles size={12} /> {isAIWriting ? 'Rédaction...' : 'Générer avec IA'}
+                                <button type="button" onClick={handleGenerateIA} disabled={isGenerating} className="text-[10px] font-bold text-[#39FF14] flex items-center gap-1 hover:underline disabled:opacity-50 disabled:cursor-wait">
+                                    <Sparkles size={12} /> {isGenerating ? 'Rédaction...' : 'Générer avec IA'}
                                 </button>
                             </div>
                             <textarea name="description" value={formData.description} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-b-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition min-h-[120px]" placeholder="Description détaillée du produit..." />
                         </div>
 
-                        <div className="relative group">
-                            <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Image du produit</label>
-                            <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-center overflow-hidden">
-                                    {formData.image ? <img src={formData.image} alt="Preview" className="w-full h-full object-cover" /> : <ImageIcon className="text-zinc-700" />}
+                        <div className="space-y-6 bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                            <div className="relative group">
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-3 block">Image principale (Couverture)</label>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-20 h-20 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                                        {formData.image ? <img src={formData.image} alt="Preview" className="w-full h-full object-cover" /> : <ImageIcon className="text-zinc-400" />}
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <input type="text" placeholder="Ou coller une URL d'image" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full text-xs bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 text-black dark:text-white outline-none focus:border-[#39FF14] transition-all" />
+                                        <input type="file" accept="image/*" onChange={(e) => onImageUpload(e, setFormData, formData)} className="w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] hover:file:text-black transition cursor-pointer" />
+                                    </div>
                                 </div>
-                                <div className="flex-1 space-y-2">
-                                    <input type="text" placeholder="Ou coller une URL d'image" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 text-black dark:text-white outline-none focus:border-[#39FF14]" />
-                                    <input type="file" accept="image/*" onChange={(e) => onImageUpload(e, setFormData, formData)} className="w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-zinc-200 dark:file:bg-zinc-800 file:text-black dark:file:text-white hover:file:bg-[#39FF14] hover:file:text-black transition" />
-                                </div>
+                            </div>
+                            <div className="relative group pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-3 block">Galerie d'images supplémentaires</label>
+                                <input type="file" accept="image/*" multiple onChange={handleAddGalleryImage} className="w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] hover:file:text-black transition cursor-pointer mb-4" />
+                                {(formData.gallery?.length || 0) > 0 && (
+                                    <div className="flex flex-wrap gap-3">
+                                        {formData.gallery?.map((img, idx) => (
+                                            <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 group/gal shadow-sm">
+                                                <img src={img} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
+                                                <button type="button" onClick={() => removeGalleryImage(idx)} className="absolute inset-0 bg-red-500/90 text-white flex items-center justify-center opacity-0 group-hover/gal:opacity-100 transition-all"><Trash2 size={16}/></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -2389,30 +2722,36 @@ interface ProductDetailModalProps {
   allProducts: Product[];
   isOpen: boolean;
   onClose: () => void;
-  onAddToCart: (product: Product, variant?: { size?: string; color?: string }) => void;
+  onAddToCart: (product: Product, variant?: { size?: string; color?: string }, openCart?: boolean) => void;
   onShare: (product: Product) => void;
   onViewProduct: (product: Product) => void;
   onAddReview: (productId: number, review: Omit<Review, 'id' | 'date'>) => void;
   onGenerateQR: (product: Product) => void;
   currency: string;
+  cart: CartItem[];
+  shopPhone: string;
 }
 
-function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onShare, onViewProduct, onGenerateQR, onAddReview, currency }: ProductDetailModalProps) {
+function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: ProductDetailModalProps) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
   const [mediaView, setMediaView] = useState<'image' | 'video'>('image');
+  const [activeImage, setActiveImage] = useState(product.image);
 
   // Reset selection when product changes
   React.useEffect(() => {
     setSelectedSize(null);
     setSelectedColor(null);
     setMediaView('image');
+    setActiveImage(product.image);
   }, [product]);
 
   if (!isOpen) return null;
 
   const similarProducts = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
+  const qtyInCart = cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0);
+  const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
   const isOutOfStock = product.stock === 0;
 
   const handleReviewSubmit = (e: React.FormEvent) => {
@@ -2427,23 +2766,37 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-5xl shadow-2xl relative animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col md:flex-row my-auto" onClick={e => e.stopPropagation()}>
             <button type="button" onClick={onClose} className="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black transition z-10"><X size={20}/></button>
             
-            <div className="w-full md:w-1/2 h-72 md:h-auto relative bg-zinc-100 dark:bg-zinc-900">
-               {mediaView === 'image' || !product.videoUrl ? (
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                ) : (
-                    <iframe
-                        className="w-full h-full"
-                        src={product.videoUrl}
-                        title={product.name}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                    ></iframe>
-                )}
-                {product.videoUrl && (
-                    <div className="absolute bottom-4 left-4 flex gap-2">
-                        <button onClick={(e) => {e.stopPropagation(); setMediaView('image')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm ${mediaView === 'image' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30'}`}>Image</button>
-                        <button onClick={(e) => {e.stopPropagation(); setMediaView('video')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm ${mediaView === 'video' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30'}`}>Vidéo</button>
+            <div className="w-full md:w-1/2 flex flex-col bg-zinc-100 dark:bg-zinc-900">
+                <div className="flex-1 relative min-h-[300px] bg-zinc-100 dark:bg-zinc-900">
+                   {mediaView === 'image' || !product.videoUrl ? (
+                        <img src={activeImage} alt={product.name} className="w-full h-full absolute inset-0 object-cover" />
+                    ) : (
+                        <iframe
+                            className="w-full h-full absolute inset-0"
+                            src={product.videoUrl}
+                            title={product.name}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                        ></iframe>
+                    )}
+                    {product.videoUrl && (
+                        <div className="absolute bottom-4 left-4 flex gap-2">
+                            <button onClick={(e) => {e.stopPropagation(); setMediaView('image')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm ${mediaView === 'image' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30'}`}>Image</button>
+                            <button onClick={(e) => {e.stopPropagation(); setMediaView('video')}} className={`px-4 py-2 rounded-lg text-xs font-bold border backdrop-blur-sm ${mediaView === 'video' ? 'bg-white/80 text-black border-black' : 'bg-black/30 text-white border-white/30'}`}>Vidéo</button>
+                        </div>
+                    )}
+                </div>
+                {product.gallery && product.gallery.length > 0 && mediaView === 'image' && (
+                    <div className="p-4 flex gap-3 overflow-x-auto bg-white dark:bg-zinc-950 shrink-0 border-t border-zinc-200 dark:border-zinc-800 custom-scrollbar">
+                        <button onClick={() => setActiveImage(product.image)} className={`w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === product.image ? 'border-[#39FF14]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                            <img src={product.image} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
+                        </button>
+                        {product.gallery.map((img, idx) => (
+                            <button key={idx} onClick={() => setActiveImage(img)} className={`w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${activeImage === img ? 'border-[#39FF14]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                                <img src={img} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
+                            </button>
+                        ))}
                     </div>
                 )}
             </div>
@@ -2452,7 +2805,15 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                <div className="mb-8">
                   <span className="text-[#39FF14] text-xs font-bold uppercase tracking-widest border border-[#39FF14]/20 px-3 py-1 rounded-full mb-4 inline-block">{product.category}</span>
                   <h2 className="text-3xl font-black tracking-tighter text-black dark:text-white mb-2">{product.name}</h2>
-                  <p className="text-2xl font-bold text-black dark:text-white mb-4">{displayPrice(product.price, currency)}</p>
+                  <div className="flex items-center gap-3 mb-4">
+                      <p className="text-2xl font-bold text-black dark:text-white">{displayPrice(product.price, currency)}</p>
+                      {product.oldPrice && product.oldPrice > product.price && (
+                          <>
+                              <p className="text-lg text-zinc-500 line-through">{displayPrice(product.oldPrice, currency)}</p>
+                              <span className="bg-red-500/10 text-red-500 px-2 py-1 rounded-lg text-xs font-black">-{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%</span>
+                          </>
+                      )}
+                  </div>
                   
                   {product.stock !== undefined && (
                     <p className={`text-sm font-bold mb-6 ${isOutOfStock ? 'text-red-500' : 'text-green-500'}`}>
@@ -2505,16 +2866,37 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                </div>
                
                <div className="flex flex-col gap-3 mb-8 mt-auto">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                      <button 
+                        onClick={() => { 
+                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, false); 
+                        }} 
+                        disabled={isOutOfStock || isMaxedOut}
+                        className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                         <Plus size={18} /> {isMaxedOut && !isOutOfStock ? "Limite atteinte" : "Ajouter"}
+                      </button>
+                      <button 
+                        onClick={() => { 
+                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true); 
+                          onClose(); 
+                        }} 
+                        disabled={isOutOfStock || isMaxedOut}
+                        className="flex-[2] bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition flex items-center justify-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
+                      >
+                         <ShoppingCart size={18} /> Acheter Directement
+                      </button>
+                  </div>
                   <button 
-                    onClick={() => { 
-                      onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }); 
-                      onClose(); 
-                    }} 
-                    disabled={isOutOfStock}
-                    className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-sm hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition flex items-center justify-center gap-2 shadow-lg disabled:bg-zinc-400 disabled:cursor-not-allowed"
-                  >
-                     <Plus size={18} /> Ajouter au panier
-                  </button>
+                        onClick={() => {
+                            const productUrl = `${window.location.origin}/vente?product=${product.id}`;
+                            const message = `Bonjour, je suis intéressé(e) par le produit *${product.name}* (${displayPrice(product.price, currency)}).\nLien : ${productUrl}\n\nJ'ai une question : `;
+                            window.open(`https://wa.me/${String(shopPhone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                        }}
+                        className="w-full bg-[#25D366] text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-[#1ebd58] transition flex items-center justify-center gap-2 shadow-lg"
+                      >
+                         <MessageSquare size={18} /> Continuer sur WhatsApp
+                      </button>
                   <div className="flex gap-3">
                     <button onClick={() => onShare(product)} className="flex-1 bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white py-4 rounded-xl font-bold uppercase text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800">
                        <Share2 size={18} /> Partager
@@ -2586,7 +2968,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder'>>, orders: any[], refreshOrders: () => void }) {
+function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning'>>, orders: any[], refreshOrders: () => void }) {
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
   const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');
@@ -2783,6 +3165,39 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   })();
   const maxViews = Math.max(...viewsChartData.map(d => d.count), 5);
 
+  const newClientsChartData = useMemo(() => {
+    const firstOrders = new Map<string, Date>();
+    orders.forEach(o => {
+        if (o.customer?.phone && o.status !== 'Annulé') {
+            const orderDate = new Date(o.date);
+            const existing = firstOrders.get(o.customer.phone);
+            if (!existing || orderDate < existing) {
+                firstOrders.set(o.customer.phone, orderDate);
+            }
+        }
+    });
+
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const data = [];
+    const today = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const monthLabel = `${months[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
+        
+        let count = 0;
+        firstOrders.forEach((date) => {
+            if (date.getMonth() === d.getMonth() && date.getFullYear() === d.getFullYear()) {
+                count++;
+            }
+        });
+        
+        data.push({ label: monthLabel, count });
+    }
+    return data;
+  }, [orders]);
+  const maxNewClients = Math.max(...newClientsChartData.map(d => d.count), 5);
+
   const maxTotal = Math.max(...chartData.map(d => d.total), 1);
 
   const handlePrint = () => {
@@ -2853,6 +3268,16 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, `Commandes ${dayOrders.date}`);
       XLSX.writeFile(workbook, `commandes_${dayOrders.date}.xlsx`);
+  };
+
+  const handleExportNewClientsToCSV = () => {
+      const worksheet = XLSX.utils.json_to_sheet(newClientsChartData.map(d => ({
+          'Mois': d.label,
+          'Nouveaux Clients': d.count
+      })));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Nouveaux Clients");
+      XLSX.writeFile(workbook, `onyx_nouveaux_clients_export_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const StatCard = ({ icon, label, value, colorClass, trend }: { icon: React.ReactNode, label: string, value: string | number, colorClass: string, trend?: number | null }) => (
@@ -3101,8 +3526,9 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         </div>
       </div>
       
-       {/* Low Stock Alert */}
-       <div className="mt-8 bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        {/* Low Stock Alert */}
+        <div className="bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl">
            <div className="flex items-center gap-3 mb-6">
               <AlertTriangle className="text-yellow-500" size={24} />
               <h3 className="font-black uppercase text-xl">Stock Faible</h3>
@@ -3129,6 +3555,36 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
               )}
            </div>
         </div>
+
+        {/* NOUVEAUX CLIENTS CHART */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+             <div className="flex items-center gap-3">
+                <Users className="text-orange-500" size={24} />
+                <h3 className="font-black uppercase text-xl">Nouveaux Clients</h3>
+             </div>
+             <button onClick={handleExportNewClientsToCSV} className="p-2 bg-orange-500/10 text-orange-500 rounded-lg hover:bg-orange-500 hover:text-white transition-colors" title="Exporter en CSV">
+                 <Download size={16}/>
+             </button>
+          </div>
+          
+          <div className="flex items-end justify-between h-64 gap-2">
+            {newClientsChartData.map((d, i) => (
+              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                <div 
+                  className="w-full max-w-[40px] bg-orange-500 rounded-t-lg transition-all duration-500 relative group-hover:bg-orange-400" 
+                  style={{ height: `${(d.count / maxNewClients) * 100}%`, minHeight: '4px' }}
+                >
+                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                      {d.count}
+                   </div>
+                </div>
+                <span className="mt-4 text-[10px] font-bold text-zinc-400 uppercase">{d.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
         {/* MODALE DÉTAILS COMMANDES JOUR */}
         {selectedDayOrders && (
@@ -3191,7 +3647,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   );
 }
 
-function ShopClients({ currency, orders, onClientSelect }: { currency: string, orders: any[], onClientSelect: (client: any) => void }) {
+function ShopClients({ currency, orders, onClientSelect, onRunIaScan }: { currency: string, orders: any[], onClientSelect: (client: any) => void, onRunIaScan: () => void }) {
     const [clients, setClients] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -3312,6 +3768,9 @@ function ShopClients({ currency, orders, onClientSelect }: { currency: string, o
             <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                 <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Mes <span className="text-[#39FF14]">Clients</span></h2>
                 <div className="flex gap-4">
+                    <button onClick={onRunIaScan} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#39FF14]/20 hidden sm:flex">
+                        <Sparkles size={16} /> Scan IA Marketing
+                    </button>
                     <button onClick={() => setIsModalOpen(true)} className="bg-[#39FF14] text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-white transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#39FF14]/20">
                         <Plus size={16} /> Ajouter un client
                     </button>
@@ -3413,17 +3872,20 @@ interface ShopSettingsProps {
   setShopInfo: React.Dispatch<React.SetStateAction<typeof initialShopInfo>>;
   deliveryZones: DeliveryZone[];
   setDeliveryZones: React.Dispatch<React.SetStateAction<DeliveryZone[]>>;
+  categories: string[];
+  setCategories: React.Dispatch<React.SetStateAction<string[]>>;
   onResetData: () => void;
   onClearOrders: () => void;
   currency: string;
 }
 
-function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, onResetData, onClearOrders, currency }: ShopSettingsProps) {
+function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, categories, setCategories, onResetData, onClearOrders, currency }: ShopSettingsProps) {
   const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed', singleUse: false, minPurchase: '', expirationDate: '' });
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
   
   const [editingCodeId, setEditingCodeId] = useState<number | null>(null);
   const [editingCodeData, setEditingCodeData] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed', singleUse: false, minPurchase: '', expirationDate: '' });
+  const [newCat, setNewCat] = useState('');
 
   const handleAddCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -3501,6 +3963,21 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
 
   const handleSaveInfo = () => {
     alert("Les informations de la boutique ont été enregistrés avec succès !");
+  };
+
+  const handleAddCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newCat && !categories.includes(newCat)) {
+        setCategories([...categories, newCat]);
+        setNewCat('');
+    }
+  };
+
+  const handleDeleteCategory = (cat: string) => {
+    if (cat === 'Toutes' || cat === 'Favoris') return alert("Cette catégorie système ne peut pas être supprimée.");
+    if (confirm(`Supprimer la catégorie "${cat}" ? Les produits associés ne seront pas supprimés.`)) {
+        setCategories(categories.filter(c => c !== cat));
+    }
   };
 
   return (
@@ -3617,6 +4094,29 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                 </div>
             ))}
           </div>
+      </div>
+
+      {/* GESTION DES CATÉGORIES */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm mb-8">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-black uppercase text-xl flex items-center gap-3"><Tag size={20} className="text-[#39FF14]" /> Catégories du Catalogue</h3>
+        </div>
+        
+        <form onSubmit={handleAddCategory} className="flex flex-wrap gap-4 mb-6">
+           <input type="text" placeholder="Nouvelle catégorie (ex: Électronique)" value={newCat} onChange={e => setNewCat(e.target.value)} className="flex-1 min-w-[200px] bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#39FF14]" required />
+           <button type="submit" className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-[#39FF14] hover:text-black transition flex items-center gap-2"><Plus size={16}/> Ajouter</button>
+        </form>
+
+        <div className="flex flex-wrap gap-3">
+           {categories.map(cat => (
+              <div key={cat} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                 <span className="font-bold text-sm text-black dark:text-white">{cat}</span>
+                 {cat !== 'Toutes' && cat !== 'Favoris' && (
+                     <button onClick={() => handleDeleteCategory(cat)} className="text-zinc-400 hover:text-red-500 transition ml-2"><X size={14}/></button>
+                 )}
+              </div>
+           ))}
+        </div>
       </div>
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm">
@@ -3737,6 +4237,80 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
       </div>
     </div>
   );
+}
+
+function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any) {
+    const [editingEvent, setEditingEvent] = useState<any>(null);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    const plannedCount = plannedEvents.filter((e: any) => e.status === 'Planifié').length;
+    const executedCount = plannedEvents.filter((e: any) => e.status === 'Exécuté').length;
+    const cancelledCount = plannedEvents.filter((e: any) => e.status === 'Annulé').length;
+
+    const planAction = (suggestion: any) => {
+        const newEvent = { ...suggestion, status: 'Planifié', planDate: new Date().toISOString() };
+        setPlannedEvents((prev: any) => [newEvent, ...prev]);
+    };
+
+    const executePlannedAction = (event: any) => {
+        window.open(`https://wa.me/${event.clientPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(event.msg)}`, '_blank');
+        setPlannedEvents((prev: any[]) => prev.map(e => e.id === event.id ? { ...e, status: 'Exécuté', executionDate: new Date().toISOString() } : e));
+        setToastMessage("Action exécutée avec succès !");
+        setTimeout(() => setToastMessage(null), 3000);
+    };
+
+    const cancelPlannedAction = (id: string) => {
+        if (confirm("Voulez-vous supprimer cette action planifiée ?")) {
+            setPlannedEvents((prev: any[]) => prev.map(e => e.id === id ? { ...e, status: 'Annulé', cancellationDate: new Date().toISOString() } : e));
+        }
+    };
+
+    const clearFinishedActions = () => {
+        if (confirm("Voulez-vous vraiment effacer toutes les actions terminées (Exécutées et Annulées) de l'historique ?")) {
+            setPlannedEvents((prev: any[]) => prev.filter(e => e.status === 'Planifié'));
+        }
+    };
+
+    const sortedEvents = [...plannedEvents].sort((a: any, b: any) => new Date(a.planDate || new Date()).getTime() - new Date(b.planDate || new Date()).getTime());
+    const suggestionsToShow = suggestions.filter((s: any) => !plannedEvents.some((p: any) => p.id === s.id));
+    const isOverdue = (dateString: string) => { const d = new Date(dateString); d.setHours(0,0,0,0); const today = new Date(); today.setHours(0,0,0,0); return d.getTime() < today.getTime(); };
+
+    return (
+        <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
+            <div className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
+                <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Planning <span className="text-[#39FF14]">Marketing</span></h2>
+                <div className="flex gap-3">
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl flex flex-col items-center min-w-[100px]"><span className="text-2xl font-black">{plannedCount}</span><span className="text-[9px] font-black text-zinc-500 uppercase">Planifiées</span></div>
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl flex flex-col items-center min-w-[100px]"><span className="text-2xl font-black text-[#39FF14]">{executedCount}</span><span className="text-[9px] font-black text-zinc-500 uppercase">Exécutées</span></div>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    <h3 className="font-black uppercase text-lg mb-6 flex items-center gap-3"><Sparkles size={18} className="text-[#39FF14]"/> Suggestions IA</h3>
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                        {suggestionsToShow.length > 0 ? suggestionsToShow.map((s: any) => (
+                            <div key={s.id} className="bg-zinc-50 dark:bg-zinc-800 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-700"><p className="font-bold text-sm uppercase">{s.title}</p><p className="text-xs text-zinc-500 mt-1">{s.description}</p><button onClick={() => planAction(s)} className="mt-3 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition flex items-center gap-2"><Plus size={14}/> Planifier</button></div>
+                        )) : <p className="text-sm text-zinc-400 italic text-center py-10">Aucune nouvelle suggestion. Lancez un Scan IA depuis l'onglet Clients.</p>}
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    <div className="flex justify-between items-center mb-6"><h3 className="font-black uppercase text-lg flex items-center gap-3"><Calendar size={18}/> Actions Planifiées</h3>{(executedCount > 0 || cancelledCount > 0) && <button onClick={clearFinishedActions} className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-500/10 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition flex items-center gap-1"><Trash2 size={12}/> Nettoyer</button>}</div>
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                        {sortedEvents.map((e: any) => (
+                            <div key={e.id} className="bg-zinc-50 dark:bg-zinc-800 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-700">
+                                <p className={`font-bold text-sm uppercase flex items-center gap-2 ${e.status === 'Annulé' ? 'line-through text-zinc-500' : ''}`}>{e.status === 'Annulé' && <XCircle size={16} className="text-red-500"/>}{e.title}</p>
+                                <p className="text-xs text-zinc-500 mt-1.5 flex items-center gap-2">{e.status === 'Exécuté' && e.executionDate ? <><CheckCircle size={12} className="text-green-500"/> Exécuté le: {new Date(e.executionDate).toLocaleDateString('fr-FR')}</> : e.status === 'Annulé' && e.cancellationDate ? <>Annulé le: {new Date(e.cancellationDate).toLocaleDateString('fr-FR')}</> : <>Planifié le: {new Date(e.planDate).toLocaleDateString('fr-FR')}{e.status === 'Planifié' && isOverdue(e.planDate) && <span className="bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-red-200 dark:border-red-500/30">En retard</span>}</>}</p>
+                                <div className="flex gap-2 mt-3"><button disabled={e.status !== 'Planifié'} onClick={() => executePlannedAction(e)} className="bg-green-500 text-white text-[10px] font-bold px-4 py-2 rounded-xl flex items-center gap-2 disabled:bg-zinc-300 disabled:cursor-not-allowed"><Send size={14}/> {e.status === 'Exécuté' ? 'Envoyé' : 'Exécuter'}</button><button disabled={e.status !== 'Planifié'} onClick={() => setEditingEvent(e)} className="bg-zinc-200 dark:bg-zinc-700 text-black dark:text-white text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-zinc-300 transition disabled:opacity-50 disabled:cursor-not-allowed"><Edit3 size={14}/></button><button disabled={e.status !== 'Planifié'} onClick={() => cancelPlannedAction(e.id)} className="bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold px-4 py-2 rounded-xl hover:bg-red-500 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"><X size={14}/></button></div>
+                            </div>
+                        ))}
+                        {plannedEvents.length === 0 && <p className="text-sm text-zinc-400 italic text-center py-10">Aucune action planifiée.</p>}
+                    </div>
+                </div>
+            </div>
+            {toastMessage && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-6 py-3 rounded-full font-bold text-xs shadow-2xl flex items-center gap-2 z-[300] animate-in slide-in-from-bottom-5"><CheckCircle size={16}/> {toastMessage}</div>}
+            {editingEvent && <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setEditingEvent(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"><div className="bg-white dark:bg-zinc-950 p-8 rounded-3xl w-full max-w-lg relative shadow-2xl animate-in zoom-in-95 border border-zinc-200 dark:border-zinc-800"><button onClick={() => setEditingEvent(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button><h3 className="text-xl font-black uppercase mb-6 text-black dark:text-white">Modifier l'action</h3><div className="space-y-4"><div><label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Date planifiée</label><input type="date" value={editingEvent.planDate ? new Date(editingEvent.planDate).toISOString().split('T')[0] : ''} onChange={e => {if(e.target.value) setEditingEvent({...editingEvent, planDate: new Date(e.target.value).toISOString()})}} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" /></div><div><label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Message WhatsApp</label><textarea value={editingEvent.msg} onChange={e => setEditingEvent({...editingEvent, msg: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] min-h-[150px] resize-none text-sm text-black dark:text-white" /></div></div><button onClick={() => { setPlannedEvents((prev: any[]) => prev.map(e => e.id === editingEvent.id ? editingEvent : e)); setEditingEvent(null); }} className="w-full mt-6 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg">Enregistrer</button></div></div>}
+        </div>
+    );
 }
 
 // --- QR CODE MODAL COMPONENT ---

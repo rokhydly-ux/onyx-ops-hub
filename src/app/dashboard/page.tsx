@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import Link from "next/link";
-import { BarChart2, Settings, History, User, LogOut } from "lucide-react";
+import { BarChart2, Settings, History, User, LogOut, Sparkles } from "lucide-react";
 
 // Définition de l'interface pour le profil utilisateur
 interface UserProfile {
@@ -13,6 +13,7 @@ interface UserProfile {
   active_saas?: string[] | string;
   saas?: string;
   role?: string;
+  ia_credits?: number;
 }
 
 // Composant pour la carte SaaS
@@ -86,7 +87,7 @@ export default function Dashboard() {
       return;
     }
     if (newPassword.length < 6) {
-      alert("Le mot de passe doit faire au moins 6 caractères.");
+      alert("Le mot de passe doit faire au moins 6 caractères");
       return;
     }
     setIsUpdating(true);
@@ -145,6 +146,9 @@ export default function Dashboard() {
             <p className="text-[#39FF14] font-bold bg-black inline-block px-3 py-1 rounded-full text-[10px] mt-2 uppercase tracking-widest">
               Rôle : {profile.role || 'user'}
             </p>
+            <p className="text-purple-500 font-bold bg-purple-500/10 border border-purple-500/20 inline-flex px-3 py-1 rounded-full text-[10px] mt-2 ml-2 uppercase tracking-widest items-center gap-1 w-max">
+              <Sparkles size={12} /> {profile.ia_credits !== undefined ? profile.ia_credits : 100} Crédits IA
+            </p>
           </div>
           <div className="flex gap-2">
             <button 
@@ -175,7 +179,7 @@ export default function Dashboard() {
                   <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-green-500" />
                 </div>
                 <button type="submit" disabled={isUpdating} className="w-full py-4 bg-black text-[#39FF14] rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition-colors disabled:opacity-50 mt-4">
-                  {isUpdating ? 'Mise à jour...' : 'Enregistrer le nouveau mot de passe'}
+                  {isUpdating ? 'Mise à jour....' : 'Enregistrer le nouveau mot de passe'}
                 </button>
              </form>
           </div>

@@ -218,6 +218,7 @@ export default function AdminDashboard() {
   const [marketingMaterials, setMarketingMaterials] = useState<any[]>([]);
   const [newMaterial, setNewMaterial] = useState({ title: '', type: 'Canva', url: '' });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // --- CHARGEMENT DES DONNÉES (Supabase uniquement) ---
   const fetchSupabaseData = async () => {
@@ -1139,14 +1140,38 @@ export default function AdminDashboard() {
                >
                  Forcer la déconnexion
                </button>
-               <div className="relative cursor-pointer group" onClick={() => setActiveView('leads')}>
-  <Bell size={22} className={`${leads.length > 0 ? 'text-[#39FF14] animate-bounce' : 'text-zinc-400'}`}/>
-  {leads.length > 0 && (
-    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-white">
-      {leads.length}
-    </span>
-  )}
-</div>
+               <div className="relative cursor-pointer group">
+                  <div onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="relative">
+                    <Bell size={22} className={`${leads.length + partners.filter(p => p.status === 'En attente').length > 0 ? 'text-[#39FF14] animate-bounce' : 'text-zinc-400'}`}/>
+                    {leads.length + partners.filter(p => p.status === 'En attente').length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-white">
+                        {leads.length + partners.filter(p => p.status === 'En attente').length}
+                      </span>
+                    )}
+                  </div>
+                  {isNotificationsOpen && (
+                    <div className="absolute top-full right-0 mt-4 w-80 bg-white border border-zinc-200 rounded-3xl shadow-2xl p-5 z-50 cursor-default animate-in slide-in-from-top-2">
+                        <h4 className="font-black uppercase text-xs mb-4 flex items-center justify-between text-black"><span>Notifications</span> <span className="bg-black text-[#39FF14] px-2 py-0.5 rounded-full">{leads.length + partners.filter(p => p.status === 'En attente').length}</span></h4>
+                        <div className="space-y-3 max-h-72 overflow-y-auto custom-scrollbar pr-2">
+                            {leads.length > 0 && leads.slice(0, 5).map(l => (
+                                <div key={`lead-${l.id}`} onClick={() => { setActiveView('leads'); setIsNotificationsOpen(false); }} className="p-4 bg-zinc-50 rounded-2xl hover:bg-zinc-100 transition cursor-pointer border border-zinc-100">
+                                    <p className="text-[10px] font-black text-[#39FF14] uppercase mb-1 flex items-center gap-1.5"><MessageSquare size={12}/> Nouveau Lead</p>
+                                    <p className="text-sm font-bold text-black truncate">{l.full_name}</p>
+                                    <p className="text-[10px] font-medium text-zinc-500 truncate mt-1">{l.intent}</p>
+                                </div>
+                            ))}
+                            {partners.filter(p => p.status === 'En attente').length > 0 && partners.filter(p => p.status === 'En attente').slice(0, 5).map(p => (
+                                <div key={`part-${p.id}`} onClick={() => { setActiveView('partners'); setIsNotificationsOpen(false); }} className="p-4 bg-orange-50 rounded-2xl hover:bg-orange-100 transition cursor-pointer border border-orange-100">
+                                    <p className="text-[10px] font-black text-orange-500 uppercase mb-1 flex items-center gap-1.5"><Handshake size={12}/> Ambassadeur en attente</p>
+                                    <p className="text-sm font-bold text-black truncate">{p.full_name}</p>
+                                    <p className="text-[10px] font-medium text-zinc-500 truncate mt-1">{p.contact}</p>
+                                </div>
+                            ))}
+                            {(leads.length + partners.filter(p => p.status === 'En attente').length) === 0 && <p className="text-xs text-zinc-400 text-center py-6 font-bold">Aucune nouvelle notification.</p>}
+                        </div>
+                    </div>
+                  )}
+               </div>
             </div>
             
             <div onClick={() => { setTempAdminProfile({ ...adminProfile }); setShowProfileModal(true); }} className="flex items-center gap-5 bg-white border border-zinc-200 p-2.5 pr-8 rounded-full cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-1 group active:scale-95">
