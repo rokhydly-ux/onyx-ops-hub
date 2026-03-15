@@ -1535,8 +1535,10 @@ export default function OnyxJaayShop() {
   };
 
   const handleSeedDatabase = async () => {
-      if (!shopId) return alert("Erreur: Aucun shopId détecté.");
       if (!confirm("Générer 40 produits IA dans la base Supabase pour cette boutique ?")) return;
+
+      const { data: shop, error: fetchError } = await supabase.from('shops').select('id').eq('slug', 'keur-yaay').single();
+      if (!shop || fetchError) { alert('Boutique Keur Yaay introuvable dans Supabase.'); return; }
 
       const categoriesList = ['Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires'];
       const typesList = ['Chemise', 'Pantalon', 'Robe', 'Baskets', 'Sac', 'Montre', 'Ensemble'];
@@ -1550,7 +1552,7 @@ export default function OnyxJaayShop() {
           const price = isPromo ? Math.floor(basePrice * 0.8) : basePrice;
 
           return {
-              shop_id: shopId,
+              shop_id: shop.id,
               name: `${type} Premium ${cat} ${i + 1}`,
               price: price,
               old_price: isPromo ? basePrice : null,
