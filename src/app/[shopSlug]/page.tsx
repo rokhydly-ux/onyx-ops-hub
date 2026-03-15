@@ -1130,18 +1130,27 @@ export default function DynamicShopPage() {
   if (isLoading) return <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-black"><div className="w-16 h-16 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_#39FF14]"></div></div>;
   if (error || !shopInfo) return <div className="flex flex-col h-screen items-center justify-center bg-zinc-50 dark:bg-black text-center p-6"><AlertTriangle size={64} className="text-zinc-300 mb-6" /><h1 className="text-3xl font-black uppercase text-black dark:text-white mb-2">Boutique Introuvable</h1><p className="text-zinc-500">Cette boutique n'existe pas ou a été désactivée.</p></div>;
 
-  const safeProducts = products || [];
-  const filteredProducts = safeProducts.filter(p => {
-    if (p.stock === 0) return false;
-    const matchesCategory = activeCategory === 'Toutes' ? true : activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory;
-    const search = (searchTerm || '').toLowerCase();
-    const matchesSearch = search === '' || 
-      (p.name?.toLowerCase() || '').includes(search) || 
-      (p.description?.toLowerCase() || '').includes(search) || 
-      (p.category?.toLowerCase() || '').includes(search);
-    const matchesMinPrice = minPrice === '' || p.price >= minPrice;
-    const matchesMaxPrice = maxPrice === '' || p.price <= maxPrice;
-    return matchesCategory && matchesSearch && matchesMinPrice && matchesMaxPrice;
+  const safeProducts = Array.isArray(products) ? products : [];
+  const filteredProducts = safeProducts.filter((p) => {
+    if (!p) return false;
+    
+    // 1. Blindage de la recherche
+    const search = (searchTerm || '').toLowerCase().trim();
+    let matchesSearch = true;
+    if (search !== '') {
+      const nameStr = (p.name || '').toLowerCase();
+      const descStr = (p.description || '').toLowerCase();
+      const catStr = (p.category || '').toLowerCase();
+      matchesSearch = nameStr.includes(search) || descStr.includes(search) || catStr.includes(search);
+    }
+
+    // 2. Blindage des autres filtres
+    const matchesCategory = activeCategory === 'Toutes' || 
+                            (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
+    const matchesMinPrice = minPrice === '' || p.price >= Number(minPrice);
+    const matchesMaxPrice = maxPrice === '' || p.price <= Number(maxPrice);
+
+    return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
   }).sort((a, b) => {
     if (sortOrder === 'asc') return a.price - b.price;
     if (sortOrder === 'desc') return b.price - a.price;

@@ -1216,6 +1216,11 @@ export default function OnyxJaayShop() {
         const { data, error } = await supabase.from('products').insert([payload]).select().single();
         if (data && !error) {
             setProducts(prev => prev.map(p => p.id === tempId ? { ...p, id: data.id } : p));
+            setToastMessage(`Le produit "${product.name}" a été dupliqué !`);
+            setTimeout(() => setToastMessage(null), 3000);
+        } else if (error) {
+            console.error("Erreur de duplication:", error);
+            alert("Erreur lors de la duplication: " + error.message);
         }
     }
   };
@@ -1822,20 +1827,25 @@ export default function OnyxJaayShop() {
       }
   };
 
-  const safeProducts = products || [];
-  const filteredProducts = safeProducts.filter(p => {
-    const matchesCategory = activeCategory === 'Toutes' 
-      ? true 
-      : activeCategory === 'Favoris'
-      ? wishlist.includes(p.id)
-      : p.category === activeCategory;
-    const matchesMinPrice = minPrice === '' || p.price >= minPrice;
-    const matchesMaxPrice = maxPrice === '' || p.price <= maxPrice;
-    const search = (searchTerm || '').toLowerCase();
-    const matchesSearch = search === '' || 
-      (p.name?.toLowerCase() || '').includes(search) || 
-      (p.description?.toLowerCase() || '').includes(search) || 
-      (p.category?.toLowerCase() || '').includes(search);
+  const safeProducts = Array.isArray(products) ? products : [];
+  const filteredProducts = safeProducts.filter((p) => {
+    if (!p) return false;
+    
+    // 1. Blindage de la recherche
+    const search = (searchTerm || '').toLowerCase().trim();
+    let matchesSearch = true;
+    if (search !== '') {
+      const nameStr = (p.name || '').toLowerCase();
+      const descStr = (p.description || '').toLowerCase();
+      const catStr = (p.category || '').toLowerCase();
+      matchesSearch = nameStr.includes(search) || descStr.includes(search) || catStr.includes(search);
+    }
+
+    // 2. Blindage des autres filtres
+    const matchesCategory = activeCategory === 'Toutes' || 
+                            (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
+    const matchesMinPrice = minPrice === '' || p.price >= Number(minPrice);
+    const matchesMaxPrice = maxPrice === '' || p.price <= Number(maxPrice);
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
   }).sort((a, b) => {
@@ -4340,10 +4350,11 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
           <div id="invoice-content">
           <div class="header">
             <div style="display: flex; align-items: center; gap: 15px;">
-              ${shopLogo ? `<img src="${shopLogo}" alt="Logo" style="max-height: 50px; max-width: 150px; object-fit: contain;" />` : ''}
+              ${shopLogo ? `<img src="${shopLogo}" alt="Logo" style="max-height: 80px; max-width: 200px; object-fit: contain; border-radius: 8px;" />` : ''}
               <div>
-                <h1>FACTURE <span style="font-size: 20px; color: #777; font-weight: normal; letter-spacing: 0;">| ${shopName}</span></h1>
-                <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #555;">Réf: ${order.trackingNumber || order.tracking_number || order.id}</p>
+                <h1 style="font-size: 32px; letter-spacing: -1px; line-height: 1; margin: 0;">FACTURE</h1>
+                <p style="margin: 4px 0 0 0; font-size: 18px; color: #222; font-weight: 900; text-transform: uppercase;">${shopName}</p>
+                <p style="margin: 4px 0 0 0; font-size: 13px; font-weight: bold; color: #777;">Réf: ${order.trackingNumber || order.tracking_number || order.id}</p>
               </div>
             </div>
             <div class="header-right">
@@ -5440,8 +5451,23 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                   <input type="text" value={shopInfo.phone} onChange={(e) => setShopInfo({...shopInfo, phone: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
               </div>
               <div>
-                  <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">URL du logo de la boutique</label>
-                  <input type="url" value={shopInfo.logoUrl} onChange={(e) => setShopInfo({...shopInfo, logoUrl: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Logo de la boutique (Factures & Accueil)</label>
+                  <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                          {shopInfo.logoUrl ? <img src={shopInfo.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" /> : <Store className="text-zinc-400" />}
+                      </div>
+                      <div className="flex-1 flex flex-col gap-2">
+                          <input type="text" placeholder="URL de l'image (ou importez un fichier)" value={shopInfo.logoUrl} onChange={(e) => setShopInfo({...shopInfo, logoUrl: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-2.5 font-bold text-xs outline-none focus:border-[#39FF14]" />
+                          <input type="file" accept="image/*" onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => setShopInfo({...shopInfo, logoUrl: reader.result as string});
+                                  reader.readAsDataURL(file);
+                              }
+                          }} className="w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] hover:file:text-black transition cursor-pointer" />
+                      </div>
+                  </div>
               </div>
               
               <div>
