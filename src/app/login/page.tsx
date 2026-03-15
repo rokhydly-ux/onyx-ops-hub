@@ -37,7 +37,7 @@ export default function LoginPage() {
 
       if (validClient) {
           localStorage.setItem('onyx_custom_session', JSON.stringify(validClient));
-          window.location.href = '/dashboard';
+          window.location.href = '/hub';
           return; // Laisse isLoading à true pendant la redirection
       }
 
@@ -55,7 +55,7 @@ export default function LoginPage() {
 
       if (validLead) {
           localStorage.setItem('onyx_custom_session', JSON.stringify(validLead));
-          window.location.href = '/dashboard';
+          window.location.href = '/hub';
           return;
       }
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
       const phoneWithPlus = `+${cleanPhone}`;
       const { data } = await supabase.auth.signInWithPassword({ phone: phoneWithPlus, password: password });
       if (data?.session) {
-          window.location.href = '/dashboard';
+          window.location.href = '/hub';
           return;
       }
 

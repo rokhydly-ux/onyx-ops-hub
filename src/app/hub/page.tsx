@@ -7,8 +7,8 @@ import {
   Smartphone, Truck, Utensils, Box, Lock, LogOut, 
   User, GraduationCap, ArrowRight, ShieldCheck 
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 import AccountModal from "@/components/AccountModal"; // Import de la modale
+import { supabase } from "@/lib/supabaseClient";
 
 const APPS = [
   { id: "vente", name: "Onyx Jaay", icon: Smartphone, color: "bg-blue-600", route: "/vente", desc: "Catalogue & Devis" },
@@ -20,16 +20,40 @@ const APPS = [
 
 export default function OnyxHubPortal() {
   const router = useRouter();
-  const { user, loading, logout, isAuthenticated, updateUser } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [loading, isAuthenticated, router]);
+    const verifyAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
+        setUser(data ? { ...session.user, ...data } : session.user);
+      } else {
+        // Vérification de la session personnalisée CRM
+        const customSession = localStorage.getItem('onyx_custom_session');
+        if (customSession) {
+          try {
+            setUser(JSON.parse(customSession));
+          } catch(e) {}
+        } else {
+          window.location.href = '/login';
+          return;
+        }
+      }
+      setLoading(false);
+    };
+    verifyAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    localStorage.removeItem('onyx_custom_session');
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -58,7 +82,7 @@ export default function OnyxHubPortal() {
     return `${day}/${month}/${year}`;
   };
 
-  if (loading || !isAuthenticated) {
+  if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950 text-white">
         Chargement de votre espace...
@@ -89,7 +113,7 @@ export default function OnyxHubPortal() {
                 <button onClick={() => { setIsAccountModalOpen(true); setIsProfileMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100">
                   <User size={16}/> Mon Compte
                 </button>
-                <button onClick={logout} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                <button onClick={handleLogout} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                   <LogOut size={16}/> Déconnexion
                 </button>
               </div>
@@ -179,7 +203,7 @@ export default function OnyxHubPortal() {
         <AccountModal 
           user={user}
           onClose={() => setIsAccountModalOpen(false)}
-          onUpdate={updateUser}
+          onUpdate={setUser}
         />
       )}
     </>
