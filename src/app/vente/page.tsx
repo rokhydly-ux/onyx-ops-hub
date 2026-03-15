@@ -645,9 +645,7 @@ export default function OnyxJaayShop() {
       const verifyAuth = async () => {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session?.user) {
-              setIsShopOwner(false);
-              setIsEditingMode(false);
-              setIsLoading(false);
+              router.push('/login');
           } else {
               setAuthUser(session.user);
               setIsShopOwner(true);
@@ -1542,7 +1540,7 @@ export default function OnyxJaayShop() {
                   <button onClick={() => { setIsTrackingModalOpen(true); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
                     <Package size={18} /> Suivi Commande
                   </button>
-                  {isEditingMode ? (
+                  {isEditingMode && (
                       <>
                           <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
                             <Home size={18} /> Retour au Hub
@@ -1551,10 +1549,6 @@ export default function OnyxJaayShop() {
                             <LogOut size={18} /> Se déconnecter
                           </button>
                       </>
-                  ) : (
-                      <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
-                         <LogIn size={18} /> Connexion Client
-                      </button>
                   )}
                 </nav>
                 <div className="px-4 space-y-2">
@@ -1660,7 +1654,7 @@ export default function OnyxJaayShop() {
             <button onClick={() => setIsTrackingModalOpen(true)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
               <Package size={18} /> Suivi Commande
             </button>
-            {isEditingMode ? (
+            {isEditingMode && (
                 <>
                     <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
                       <Home size={18} /> Retour au Hub
@@ -1669,10 +1663,6 @@ export default function OnyxJaayShop() {
                       <LogOut size={18} /> Se déconnecter
                     </button>
                 </>
-            ) : (
-                <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
-                   <LogIn size={18} /> Connexion Client
-                </button>
             )}
           </nav>
 

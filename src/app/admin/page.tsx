@@ -714,6 +714,22 @@ export default function AdminDashboard() {
      window.open(`https://wa.me/${targetPhone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  const handleFixMissingExpiryDates = async () => {
+    if (!confirm("Voulez-vous attribuer une date d'expiration (J+7 après création) à tous les clients qui n'en ont pas ?")) return;
+    
+    let updatedCount = 0;
+    for (const client of contacts) {
+       if (client.type === 'Client' && !client.expiration_date) {
+           const creationDate = client.created_at ? new Date(client.created_at) : new Date();
+           creationDate.setDate(creationDate.getDate() + 7);
+           await supabase.from('clients').update({ expiration_date: creationDate.toISOString().split('T')[0] }).eq('id', client.id);
+           updatedCount++;
+       }
+    }
+    alert(`${updatedCount} clients mis à jour avec succès !`);
+    fetchSupabaseData();
+  };
+
   const saveAdminProfile = async () => {
      if (newPassword && newPassword !== confirmPassword) {
        alert("Les mots de passe ne correspondent pas.");
@@ -1522,6 +1538,9 @@ export default function AdminDashboard() {
                       <option value="Client">Clients Officiels</option>
                       <option value="Prospect">Prospects Leads</option>
                    </select>
+                   <button onClick={handleFixMissingExpiryDates} className="flex items-center justify-center gap-3 bg-blue-500 text-white px-8 lg:px-12 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95">
+                      <Clock size={18} /> Régulariser Dates
+                   </button>
                    <button onClick={runIaScan} className="flex items-center justify-center gap-3 bg-zinc-800 text-white px-8 lg:px-12 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">
                       <Sparkles size={18} /> Scan IA
                    </button>

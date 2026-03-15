@@ -113,8 +113,17 @@ export default function Dashboard() {
   };
 
   const expiryStatus = (() => {
-    if (!profile?.expiry_date) return null;
-    const expDate = new Date(profile.expiry_date);
+    let expDate;
+    if (profile?.expiry_date) {
+        expDate = new Date(profile.expiry_date);
+    } else if ((profile as any)?.created_at) {
+        // Pour les clients existants sans expiry_date, on calcule 7 jours après la création
+        expDate = new Date((profile as any).created_at);
+        expDate.setDate(expDate.getDate() + 7);
+    } else {
+        return null;
+    }
+
     const today = new Date();
     const diffTime = expDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
