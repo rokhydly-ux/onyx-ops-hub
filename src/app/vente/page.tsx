@@ -594,7 +594,6 @@ export default function OnyxJaayShop() {
   });
 
   const handleLogout = async () => {
-    localStorage.removeItem('onyx_custom_session');
     await supabase.auth.signOut();
     window.location.href = '/';
   };
@@ -692,17 +691,9 @@ export default function OnyxJaayShop() {
               setIsEditingMode(true);
               await fetchShopData(session.user.id);
           } else {
-              const customSession = localStorage.getItem('onyx_custom_session');
-              if (customSession) {
-                  const user = JSON.parse(customSession);
-                  setAuthUser(user);
-                  setIsShopOwner(true);
-                  setIsEditingMode(true);
-                  await fetchShopData(user.id);
-              } else {
-                  setIsShopOwner(false);
-                  setIsEditingMode(false);
-              }
+              // C'est un client externe : on NE le redirige PLUS vers /login
+              setIsShopOwner(false);
+              setIsEditingMode(false);
           }
           setIsLoading(false); // Dans tous les cas on affiche la page
       };
@@ -1559,7 +1550,7 @@ export default function OnyxJaayShop() {
                 <div className="px-4 mb-6">
               {shopInfo.slug && (
                 <button onClick={() => window.open(`/${shopInfo.slug}`, '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black transition bg-[#39FF14] text-black hover:bg-white shadow-[0_0_20px_rgba(57,255,20,0.3)] mb-6 uppercase text-xs">
-                  <Store size={16} /> Voir ma boutique
+                  <ExternalLink size={16} /> Voir ma boutique
                 </button>
               )}
                   <input 
@@ -1811,6 +1802,27 @@ export default function OnyxJaayShop() {
           <div className="flex items-center gap-4 pointer-events-auto ml-auto">
           <button onClick={() => setIsCartOpen(true)} className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
             <div className="relative">
+              {isEditingMode && shopInfo.slug && (
+                <div className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900/50 p-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 backdrop-blur-md">
+                    <button 
+                        onClick={() => window.open(`/${shopInfo.slug}`, '_blank')}
+                        className="px-4 py-2 bg-black text-white rounded-full text-xs font-bold flex items-center gap-2 hover:bg-zinc-800 transition-colors"
+                    >
+                        <ExternalLink size={14} /> Voir ma boutique
+                    </button>
+                    <button 
+                        onClick={() => {
+                            const url = `${window.location.origin}/${shopInfo.slug}`;
+                            navigator.clipboard.writeText(url);
+                            alert("Lien de la boutique copié !");
+                        }}
+                        className="p-2.5 text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
+                        title="Copier le lien"
+                    >
+                        <Share2 size={16} />
+                    </button>
+                </div>
+              )}
               <ShoppingCart size={18} />
           {cartCount > 0 && <span className={`absolute -top-2 -right-2 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center transition-colors ${cartCount > 5 ? 'bg-red-500 text-white' : 'bg-[#39FF14] text-black'}`}>{cartCount}</span>}
             </div>
@@ -4296,7 +4308,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
   };
 
   const handleSaveInfo = async () => {
-    if (!shopId) return;
+    if (!shopId) return alert("Erreur: ID de la boutique non trouvé.");
     const { error } = await supabase.from('shops').update({
         name: shopInfo.name,
         description: shopInfo.description,
@@ -4307,9 +4319,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
         opening_hours: shopInfo.openingHours,
         slug: shopInfo.slug
     }).eq('id', shopId);
-    
-    if (!error) alert("Les paramètres ont été enregistrés et appliqués à votre boutique publique !");
-    else alert("Erreur lors de l'enregistrement sur les serveurs.");
+    if (error) { alert("Erreur lors de la sauvegarde des paramètres : " + error.message); } else { alert("Paramètres de la boutique mis à jour avec succès !"); }
   };
 
   const handleAddCategory = (e: React.FormEvent) => {
@@ -4369,8 +4379,8 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
                   <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Lien public de la boutique</label>
                   <div className="flex items-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 focus-within:border-[#39FF14] transition-colors">
-                      <span className="text-sm font-bold text-zinc-400">onyxops.com/</span>
-                      <input type="text" value={shopInfo.slug} onChange={(e) => setShopInfo({...shopInfo, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} className="w-full bg-transparent p-3 pl-1 font-bold text-sm outline-none text-black dark:text-white" placeholder="ex: ma-boutique" />
+                      <span className="text-sm font-bold text-zinc-400">https://onyx-ops-hub.vercel.app/</span>
+                      <input type="text" value={shopInfo.slug || ''} onChange={(e) => setShopInfo({...shopInfo, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} className="w-full bg-transparent p-3 pl-1 font-bold text-sm outline-none text-black dark:text-white" placeholder="keur-yaay" />
                   </div>
                   <p className="text-[10px] text-zinc-400 mt-2 italic">Ceci sera l'URL que vous partagerez à vos clients.</p>
               </div>
