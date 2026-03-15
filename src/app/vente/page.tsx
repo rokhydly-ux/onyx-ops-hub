@@ -523,7 +523,7 @@ export default function OnyxJaayShop() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [authUser, setAuthUser] = useState<any>(null);
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<any[]>([]);
   const [isEditingMode, setIsEditingMode] = useState(false);
   const [isShopOwner, setIsShopOwner] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -574,6 +574,7 @@ export default function OnyxJaayShop() {
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [homepageLayout, setHomepageLayout] = useState<WidgetProps[] | null>(null);
+  const [shopId, setShopId] = useState<string | null>(null);
   
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -602,10 +603,12 @@ export default function OnyxJaayShop() {
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
-  const fetchOrders = async () => {
-      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+  const fetchOrders = async (targetShopId?: string) => {
+      const idToFetch = targetShopId || shopId;
+      if (!idToFetch) return;
+      const { data, error } = await supabase.from('orders').select('*').eq('shop_id', idToFetch).order('created_at', { ascending: false });
       
-      if (data && !error && data.length > 0) {
+      if (data && !error) {
         const formattedOrders = data.map((o: any) => ({
           id: o.id,
           date: o.created_at || new Date().toISOString(),
@@ -620,26 +623,62 @@ export default function OnyxJaayShop() {
           history: o.history || [{ status: o.status || 'En attente', date: o.created_at || new Date().toISOString(), user: 'Système' }]
         }));
         setOrders(formattedOrders);
-      } else {
-        const savedOrders = localStorage.getItem('onyx_jaay_orders');
-        if (savedOrders) {
-            try { 
-                const parsed = JSON.parse(savedOrders);
-                setOrders(parsed);
-            } catch (e) { console.error("Erreur chargement commandes locales", e); }
-        }
+      }
+  };
+
+  const fetchShopData = async (userId: string) => {
+      let { data: shop, error: shopError } = await supabase.from('shops').select('*').eq('owner_id', userId).maybeSingle();
+      
+      if (!shop) {
+          const { data: profile } = await supabase.from('clients').select('full_name').eq('id', userId).maybeSingle();
+          const defaultName = profile?.full_name ? `Boutique de ${profile.full_name}` : 'Ma Boutique';
+          const defaultSlug = defaultName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + '-' + Math.floor(Math.random() * 10000);
+
+          const { data: newShop, error: createError } = await supabase.from('shops').insert([{
+              owner_id: userId,
+              name: defaultName,
+              slug: defaultSlug,
+              currency: 'FCFA'
+          }]).select().single();
+          
+          if (!createError && newShop) shop = newShop;
+      }
+
+      if (shop) {
+          setShopId(shop.id);
+          setShopInfo({
+              name: shop.name || '',
+              description: shop.description || '',
+              phone: shop.phone || '',
+              deliveryFees: 0,
+              logoUrl: shop.logo_url || '',
+              currency: shop.currency || 'FCFA',
+              deliveryOptions: shop.delivery_options || { delivery: true, pickup: true },
+              openingHours: shop.opening_hours || { start: '09:00', end: '18:00', enabled: false }
+          });
+
+          const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
+          if (productsData) {
+            setProducts(productsData.map(p => ({
+                id: p.id, name: p.name, price: p.price, costPrice: p.cost_price, oldPrice: p.old_price,
+                description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
+                stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
+                videoUrl: p.video_url, reviewsList: []
+            })));
+          }
+          fetchOrders(shop.id);
       }
   };
 
   useEffect(() => {
-    fetchOrders();
+    if (!shopId) return;
     const channel = supabase
-      .channel('realtime-all-orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => { fetchOrders(); })
+      .channel('realtime-orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `shop_id=eq.${shopId}` }, (payload) => { fetchOrders(shopId); })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [shopId]);
 
   useEffect(() => {
       const verifyAuth = async () => {
@@ -648,8 +687,9 @@ export default function OnyxJaayShop() {
               setAuthUser(session.user);
               setIsShopOwner(true);
               setIsEditingMode(true);
+              await fetchShopData(session.user.id);
           } else {
-              // C'est un client externe : on ne le redirige PLUS vers /login
+              // C'est un client externe : on NE le redirige PLUS vers /login
               setIsShopOwner(false);
               setIsEditingMode(false);
           }
@@ -1385,10 +1425,13 @@ export default function OnyxJaayShop() {
   };
 
   const handleClearOrders = () => {
-    if (confirm("Confirmer la suppression de TOUT l'historique des commandes ?\nLes produits et autres paramètres seront conservés.")) {
-        localStorage.removeItem('onyx_jaay_orders');
-        alert("Historique des commandes effacé.");
-        window.location.reload();
+    if (confirm("Confirmer la suppression de TOUT l'historique des commandes pour cette boutique ?\nLes produits et autres paramètres seront conservés.")) {
+        if (shopId) {
+            supabase.from('orders').delete().eq('shop_id', shopId).then(() => {
+                alert("Historique des commandes effacé.");
+                window.location.reload();
+            });
+        }
     }
   };
 
