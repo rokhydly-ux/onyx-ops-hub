@@ -374,7 +374,7 @@ function ShopPageBuilder({ categories, products }: { categories: string[], produ
     <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
         <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
         <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Mettre à jour mon site</h2>
-        <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Faites glisser et déposez des composants pour construire votre page d'accueil.</p>
+        <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Faites glisser et déposez des composants pour construire votre page d&apos;accueil.</p>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
@@ -2357,7 +2357,7 @@ export default function OnyxJaayShop() {
           <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 relative">
             <button onClick={() => setIsCheckoutModalOpen(false)} className="absolute top-6 right-6 text-zinc-500 dark:text-zinc-500 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
             <h3 className="text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white">Confirmation</h3>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6">Vérifiez votre commande avant l'envoi sur WhatsApp.</p>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6">Vérifiez votre commande avant l&apos;envoi sur WhatsApp.</p>
             
             <div className="mb-6 space-y-3 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Vos Coordonnées</p>
@@ -2425,11 +2425,11 @@ export default function OnyxJaayShop() {
             </div>
             <h3 className="text-3xl font-black uppercase tracking-tighter mb-4 text-black dark:text-white">Merci pour votre confiance ! 💖</h3>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 leading-relaxed">
-                Votre commande est bien partie vers notre équipe sur WhatsApp. On s'occupe de tout préparer avec soin !<br/><br/>
-                <span className="font-bold text-black dark:text-white">Un membre de l'équipe va vous répondre dans quelques instants pour valider la livraison.</span>
+                Votre commande est bien partie vers notre équipe sur WhatsApp. On s&apos;occupe de tout préparer avec soin !<br/><br/>
+                <span className="font-bold text-black dark:text-white">Un membre de l&apos;équipe va vous répondre dans quelques instants pour valider la livraison.</span>
             </p>
             <button onClick={() => setIsOrderSuccessOpen(false)} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-xl">
-                C'est noté, à tout de suite !
+                C&apos;est noté, à tout de suite !
             </button>
             </div>
         </div>
@@ -2638,7 +2638,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 </div>
                             </div>
                             <div className="relative group">
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Coût d'achat</label>
+                            <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Coût d&apos;achat</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
                                     <input type="number" name="costPrice" value={formData.costPrice || ''} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Fournisseur" />
@@ -2668,7 +2668,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 <input type="number" name="rating" value={formData.rating} onChange={handleChange} min="0" max="5" step="0.1" className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
                             </div>
                             <div className="relative group">
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Nombre d'avis</label>
+                            <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Nombre d&apos;avis</label>
                                 <input type="number" name="reviews" value={formData.reviews} onChange={handleChange} min="0" className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
                             </div>
                         </div>
@@ -2713,7 +2713,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 </div>
                             </div>
                             <div className="relative group pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-3 block">Galerie d'images supplémentaires</label>
+                            <label className="text-xs font-bold text-zinc-500 uppercase mb-3 block">Galerie d&apos;images supplémentaires</label>
                                 <input type="file" accept="image/*" multiple onChange={handleAddGalleryImage} className="w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] hover:file:text-black transition cursor-pointer mb-4" />
                                 {(formData.gallery?.length || 0) > 0 && (
                                     <div className="flex flex-wrap gap-3">
@@ -4351,7 +4351,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
 
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
                   <div className="flex items-center justify-between mb-4">
-                      <label className="text-xs font-bold text-zinc-500 uppercase block">Horaires d'ouverture auto</label>
+                  <label className="text-xs font-bold text-zinc-500 uppercase block">Horaires d&apos;ouverture auto</label>
                       <input type="checkbox" checked={shopInfo.openingHours?.enabled} onChange={(e) => setShopInfo({...shopInfo, openingHours: { ...shopInfo.openingHours, enabled: e.target.checked }})} className="w-5 h-5 accent-[#39FF14]" />
                   </div>
                   {shopInfo.openingHours?.enabled && (
@@ -4624,7 +4624,7 @@ function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any)
                 </div>
             </div>
             {toastMessage && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-6 py-3 rounded-full font-bold text-xs shadow-2xl flex items-center gap-2 z-[300] animate-in slide-in-from-bottom-5"><CheckCircle size={16}/> {toastMessage}</div>}
-            {editingEvent && <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setEditingEvent(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"><div className="bg-white dark:bg-zinc-950 p-8 rounded-3xl w-full max-w-lg relative shadow-2xl animate-in zoom-in-95 border border-zinc-200 dark:border-zinc-800"><button onClick={() => setEditingEvent(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button><h3 className="text-xl font-black uppercase mb-6 text-black dark:text-white">Modifier l'action</h3><div className="space-y-4"><div><label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Date planifiée</label><input type="date" value={editingEvent.planDate ? new Date(editingEvent.planDate).toISOString().split('T')[0] : ''} onChange={e => {if(e.target.value) setEditingEvent({...editingEvent, planDate: new Date(e.target.value).toISOString()})}} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" /></div><div><label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Message WhatsApp</label><textarea value={editingEvent.msg} onChange={e => setEditingEvent({...editingEvent, msg: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] min-h-[150px] resize-none text-sm text-black dark:text-white" /></div></div><button onClick={() => { setPlannedEvents((prev: any[]) => prev.map(e => e.id === editingEvent.id ? editingEvent : e)); setEditingEvent(null); }} className="w-full mt-6 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg">Enregistrer</button></div></div>}
+        {editingEvent && <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setEditingEvent(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"><div className="bg-white dark:bg-zinc-950 p-8 rounded-3xl w-full max-w-lg relative shadow-2xl animate-in zoom-in-95 border border-zinc-200 dark:border-zinc-800"><button onClick={() => setEditingEvent(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button><h3 className="text-xl font-black uppercase mb-6 text-black dark:text-white">Modifier l&apos;action</h3><div className="space-y-4"><div><label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Date planifiée</label><input type="date" value={editingEvent.planDate ? new Date(editingEvent.planDate).toISOString().split('T')[0] : ''} onChange={e => {if(e.target.value) setEditingEvent({...editingEvent, planDate: new Date(e.target.value).toISOString()})}} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" /></div><div><label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Message WhatsApp</label><textarea value={editingEvent.msg} onChange={e => setEditingEvent({...editingEvent, msg: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] min-h-[150px] resize-none text-sm text-black dark:text-white" /></div></div><button onClick={() => { setPlannedEvents((prev: any[]) => prev.map(e => e.id === editingEvent.id ? editingEvent : e)); setEditingEvent(null); }} className="w-full mt-6 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:bg-black hover:text-[#39FF14] transition shadow-lg">Enregistrer</button></div></div>}
         </div>
     );
 }

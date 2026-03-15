@@ -634,6 +634,7 @@ export default function OnyxOpsElite() {
             <button onClick={() => navigateTo('home', 'tarifs')} className="hover:text-[#39FF14] transition">Tarifs</button>
             <button onClick={() => navigateTo('dashboard')} className={`${activeView === 'dashboard' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>Partenaires</button>
             <button onClick={() => navigateTo('blog')} className={`${activeView === 'blog' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>Blog</button>
+            <button onClick={() => router.push('/boutiques')} className="hover:text-[#39FF14] transition py-1">Boutiques</button>
             
             {currentUser ? (
                <div onClick={() => window.location.href = '/admin'} className="flex items-center gap-3 cursor-pointer bg-zinc-100 p-1.5 pr-4 rounded-full transition-colors shadow-sm hover:scale-105">
@@ -668,6 +669,7 @@ export default function OnyxOpsElite() {
             <button onClick={() => navigateTo('home', 'tarifs')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Tarifs</button>
             <button onClick={() => navigateTo('dashboard')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Partenaires</button>
             <button onClick={() => navigateTo('blog')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Blog</button>
+            <button onClick={() => { router.push('/boutiques'); setIsMobileMenuOpen(false); }} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Boutiques</button>
           </div>
         )}
 
