@@ -146,21 +146,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
     }
   }, [product]);
 
-  if (!isOpen || !product) return null;
-
-  const similarProducts = allProducts.filter((p: any) => p.category === product.category && p.id !== product.id).slice(0, 3);
-  const qtyInCart = cart.filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0);
-  const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
-  const isOutOfStock = product.stock === 0;
-
-  const handleReviewSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReview.name || !newReview.comment) return alert("Veuillez remplir votre nom et votre commentaire.");
-    onAddReview(product.id, newReview);
-    setNewReview({ name: '', rating: 5, comment: '' });
-  };
-
-  const galleryImages = [product.image, ...(product.gallery || [])].filter(Boolean);
+  const galleryImages = product ? [product.image, ...(product.gallery || [])].filter(Boolean) : [];
 
   React.useEffect(() => {
     if (!product || galleryImages.length <= 1) return;
@@ -177,6 +163,20 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
     }, 5000);
     return () => clearInterval(intervalId);
   }, [product, galleryImages.length, isLightboxOpen, mediaView]);
+
+  if (!isOpen || !product) return null;
+
+  const similarProducts = allProducts.filter((p: any) => p.category === product.category && p.id !== product.id).slice(0, 3);
+  const qtyInCart = cart.filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0);
+  const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
+  const isOutOfStock = product.stock === 0;
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReview.name || !newReview.comment) return alert("Veuillez remplir votre nom et votre commentaire.");
+    onAddReview(product.id, newReview);
+    setNewReview({ name: '', rating: 5, comment: '' });
+  };
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto" onClick={onClose}>
@@ -302,12 +302,13 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   <div className="flex flex-col sm:flex-row gap-3">
                       <button 
                         onClick={() => { 
-                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, false); 
+                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true); 
+                          onClose();
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
                         className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                         <Plus size={18} /> {isMaxedOut && !isOutOfStock ? "Limite atteinte" : "Ajouter"}
+                         <Plus size={18} /> {isMaxedOut && !isOutOfStock ? "Limite atteinte" : "Ajouter au Panier"}
                       </button>
                       <button 
                         onClick={() => { 
@@ -1197,10 +1198,10 @@ export default function DynamicShopPage() {
 
         {/* --- WISHLIST DRAWER --- */}
         {isWishlistOpen && (
-          <div className="fixed inset-0 z-[60] flex justify-end">
+          <div className="fixed inset-0 z-[60] flex flex-col justify-end md:flex-row md:justify-end">
             <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsWishlistOpen(false)}></div>
-            <div className="relative bg-zinc-50 dark:bg-black w-full max-w-lg h-full shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right-4 duration-500">
-               <div className="p-8 border-b-2 border-zinc-100 dark:border-zinc-900 flex justify-between items-center">
+            <div className="relative bg-zinc-50 dark:bg-black w-full max-w-full md:max-w-lg h-[90vh] md:h-full shadow-2xl flex flex-col border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom md:slide-in-from-right duration-500 rounded-t-[2rem] md:rounded-none mt-auto md:mt-0">
+               <div className="p-8 border-b-2 border-zinc-100 dark:border-zinc-900 flex justify-between items-center rounded-t-[2rem] md:rounded-none">
                   <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
                     <Heart className="text-red-500 fill-red-500" /> Liste de souhaits
                   </h2>
@@ -1235,10 +1236,10 @@ export default function DynamicShopPage() {
 
         {/* --- CART DRAWER --- */}
         {isCartOpen && (
-          <div className="fixed inset-0 z-[60] flex justify-end">
+          <div className="fixed inset-0 z-[60] flex flex-col justify-end md:flex-row md:justify-end">
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}></div>
-            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-md h-full shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-300">
-               <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900">
+            <div className="relative bg-white dark:bg-zinc-950 w-full max-w-full md:max-w-md h-[90vh] md:h-full shadow-2xl flex flex-col border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom md:slide-in-from-right duration-300 rounded-t-[2rem] md:rounded-none mt-auto md:mt-0">
+               <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900 rounded-t-[2rem] md:rounded-none">
                   <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                     <ShoppingCart className="text-[#39FF14]" /> Mon Panier
                     {cartCount > 0 && (
