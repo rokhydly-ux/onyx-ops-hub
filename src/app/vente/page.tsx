@@ -608,6 +608,8 @@ export default function OnyxJaayShop() {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [currentCustomerPoints, setCurrentCustomerPoints] = useState(0);
+  const [customDeliveryCost, setCustomDeliveryCost] = useState<number | ''>('');
+  const [manualDiscountPct, setManualDiscountPct] = useState<number | ''>('');
   const [productViews, setProductViews] = useState<Record<number, number>>({});
   const [viewHistory, setViewHistory] = useState<Record<string, number>>({});
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>(INITIAL_ZONES);
@@ -1017,22 +1019,25 @@ export default function OnyxJaayShop() {
 
   const subTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   
-  // Calcul dynamique des frais de livraison basé sur la zone
-  const deliveryCost = deliveryMethod === 'delivery' 
+  // Calcul dynamique des frais de livraison basé sur la zone (avec override admin)
+  const defaultDeliveryCost = deliveryMethod === 'delivery' 
     ? selectedZoneId 
       ? (deliveryZones.find(z => z.id === selectedZoneId)?.price || 0) 
       : 0
     : 0;
+
+  const deliveryCost = customDeliveryCost !== '' ? customDeliveryCost : defaultDeliveryCost;
 
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
 
   const promoDiscountAmount = appliedPromo 
     ? (appliedPromo.type === 'percentage' ? (subTotal * appliedPromo.discount / 100) : appliedPromo.discount)
     : 0;
+  const manualDiscountAmount = manualDiscountPct !== '' ? (subTotal * Number(manualDiscountPct) / 100) : 0;
   const loyaltyDiscountAmount = useLoyaltyPoints 
-    ? Math.min(currentCustomerPoints * 10, subTotal - promoDiscountAmount) // 1 point = 10 FCFA
+    ? Math.min(currentCustomerPoints * 10, subTotal - promoDiscountAmount - manualDiscountAmount) // 1 point = 10 FCFA
     : 0;
-  const cartTotal = Math.max(0, subTotal - promoDiscountAmount - loyaltyDiscountAmount + deliveryCost);
+  const cartTotal = Math.max(0, subTotal - promoDiscountAmount - manualDiscountAmount - loyaltyDiscountAmount + deliveryCost);
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   
   const lowStockProducts = products.filter(p => (p.stock || 0) < 5);
@@ -1223,9 +1228,13 @@ export default function OnyxJaayShop() {
     setIsCheckoutModalOpen(true);
   };
 
-  const confirmOrder = async () => {
-    if (!customerInfo.name || !customerInfo.phone) {
-        alert("Veuillez remplir votre nom et téléphone pour valider la commande.");
+  const confirmOrder = async (skipWhatsApp: boolean = false) => {
+    // Validation assouplie pour les commandes "Sur place"
+    const finalName = skipWhatsApp && !customerInfo.name ? "Client en boutique" : customerInfo.name;
+    const finalPhone = skipWhatsApp && !customerInfo.phone ? "Sur place" : customerInfo.phone;
+
+    if (!skipWhatsApp && (!finalName || !finalPhone)) {
+        alert("Veuillez remplir le nom et le téléphone pour valider la commande en ligne.");
         return;
     }
 
@@ -1240,7 +1249,7 @@ export default function OnyxJaayShop() {
         id: Date.now(),
         trackingNumber,
         date: new Date().toISOString(),
-        customer: { ...customerInfo, address: customerAddress, instructions: deliveryInstructions },
+        customer: { ...customerInfo, name: finalName, phone: finalPhone, address: customerAddress, instructions: deliveryInstructions },
         items: cart,
         total: cartTotal, // This is the final total paid
         pointsUsed: pointsToUse,
@@ -1255,8 +1264,8 @@ export default function OnyxJaayShop() {
     // --- 🚀 INTÉGRATION SUPABASE 🚀 ---
     try {
       const { error } = await supabase.from('orders').insert([{
-        customer_name: customerInfo.name,
-        customer_phone: customerInfo.phone,
+        customer_name: finalName,
+        customer_phone: finalPhone,
         customer_address: customerAddress,
         delivery_instructions: deliveryInstructions,
         items: cart,
@@ -1277,9 +1286,9 @@ export default function OnyxJaayShop() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    subject: `🚨 Nouvelle Commande : ${trackingNumber} - ${displayPrice(cartTotal, shopInfo.currency)}`,
-                    text: `Nouvelle commande de ${customerInfo.name} (${customerInfo.phone}). Total: ${displayPrice(cartTotal, shopInfo.currency)}`,
-                    html: `<h2>Nouvelle commande sur ${shopInfo.name} !</h2><p><b>Référence :</b> ${trackingNumber}</p><p><b>Client :</b> ${customerInfo.name} (${customerInfo.phone})</p><p><b>Montant Total :</b> ${displayPrice(cartTotal, shopInfo.currency)}</p><h3>Détails :</h3><ul>${cart.map(i => `<li>${i.name} (x${i.quantity})</li>`).join('')}</ul>`
+                    subject: `🚨 Nouvelle Commande ${skipWhatsApp ? '(Boutique)' : ''} : ${trackingNumber} - ${displayPrice(cartTotal, shopInfo.currency)}`,
+                    text: `Nouvelle commande de ${finalName} (${finalPhone}). Total: ${displayPrice(cartTotal, shopInfo.currency)}`,
+                    html: `<h2>Nouvelle commande sur ${shopInfo.name} !</h2><p><b>Référence :</b> ${trackingNumber}</p><p><b>Client :</b> ${finalName} (${finalPhone})</p><p><b>Montant Total :</b> ${displayPrice(cartTotal, shopInfo.currency)}</p><h3>Détails :</h3><ul>${cart.map(i => `<li>${i.name} (x${i.quantity})</li>`).join('')}</ul>`
                 })
             });
         } catch (e) {
@@ -1291,10 +1300,10 @@ export default function OnyxJaayShop() {
       console.error("Erreur réseau Supabase:", err);
     }
 
-    const isReturningCustomer = orders.some(o => o.customer?.phone === customerInfo.phone);
+    const isReturningCustomer = orders.some(o => o.customer?.phone === finalPhone);
     let message = isReturningCustomer 
-        ? `👋 Bonjour l'équipe ! C'est ${customerInfo.name}, je suis de retour pour une nouvelle commande :\n\n`
-        : `👋 Bonjour ! Je suis un nouveau client (${customerInfo.name}). Je souhaite passer ma première commande :\n\n`;
+        ? `👋 Bonjour l'équipe ! C'est ${finalName}, je suis de retour pour une nouvelle commande :\n\n`
+        : `👋 Bonjour ! Je suis un nouveau client (${finalName}). Je souhaite passer ma première commande :\n\n`;
         
     message += `📦 *Numéro de suivi :* ${trackingNumber}\n\n`;
     cart.forEach(item => {
@@ -1314,6 +1323,9 @@ export default function OnyxJaayShop() {
     if (appliedPromo) {
         message += `\nRemise (${appliedPromo.code}) : -${displayPrice(promoDiscountAmount, shopInfo.currency)}`;
     }
+    if (manualDiscountAmount > 0) {
+        message += `\nRemise Exceptionnelle (${manualDiscountPct}%) : -${displayPrice(manualDiscountAmount, shopInfo.currency)}`;
+    }
     if (useLoyaltyPoints && loyaltyDiscountAmount > 0) {
         message += `\nPoints Fidélité : -${displayPrice(loyaltyDiscountAmount, shopInfo.currency)}`;
     }
@@ -1330,8 +1342,10 @@ export default function OnyxJaayShop() {
     message += `\n*Total à payer : ${displayPrice(cartTotal, shopInfo.currency)}*`;
     message += `\n\nMerci de confirmer la disponibilité.`;
 
-    const url = `https://wa.me/${shopInfo.phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    if (!skipWhatsApp) {
+        const url = `https://wa.me/${shopInfo.phone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    }
     setIsCheckoutModalOpen(false);
     setIsCartOpen(false);
     setCart([]);
@@ -1339,6 +1353,8 @@ export default function OnyxJaayShop() {
     setDeliveryInstructions('');
     setUseLoyaltyPoints(false);
     setCustomerInfo({ name: '', phone: '' });
+    setCustomDeliveryCost('');
+    setManualDiscountPct('');
     setIsOrderSuccessOpen(true);
   };
   
@@ -2543,9 +2559,38 @@ export default function OnyxJaayShop() {
                     </div>
                 )}
 
+                {isShopOwner && (
+                    <div className="flex justify-between items-center mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+                        <span className="font-bold flex items-center gap-2">
+                            Remise globale (%)
+                            <input 
+                                type="number" 
+                                placeholder="0" 
+                                value={manualDiscountPct} 
+                                onChange={e => setManualDiscountPct(e.target.value ? Number(e.target.value) : '')} 
+                                className="w-16 font-normal bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1 outline-none text-black dark:text-white"
+                            />
+                        </span>
+                        {manualDiscountAmount > 0 && (
+                            <span className="font-bold text-[#39FF14]">-{manualDiscountAmount.toLocaleString()} FCFA</span>
+                        )}
+                    </div>
+                )}
+
                 {deliveryMethod === 'delivery' && (
                     <div className="flex justify-between items-center mb-2 text-xs text-zinc-500 dark:text-zinc-400">
-                        <span className="font-bold">Frais de livraison</span>
+                        <span className="font-bold flex items-center gap-2">
+                            Frais de livraison
+                            {isShopOwner && (
+                                <input 
+                                    type="number" 
+                                    placeholder="Auto" 
+                                    value={customDeliveryCost} 
+                                    onChange={e => setCustomDeliveryCost(e.target.value ? Number(e.target.value) : '')} 
+                                    className="w-20 font-normal bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1 outline-none text-black dark:text-white"
+                                />
+                            )}
+                        </span>
                         <span className="font-bold">{deliveryCost.toLocaleString()} F</span>
                     </div>
                 )}
@@ -2750,6 +2795,29 @@ export default function OnyxJaayShop() {
                   <span className="font-bold text-black dark:text-white">{(item.price * item.quantity).toLocaleString()} FCFA</span>
                 </div>
               ))}
+              {deliveryMethod === 'delivery' && (
+                  <div className="flex justify-between items-center py-2 border-b border-zinc-100 dark:border-zinc-900 text-sm">
+                      <span className="text-zinc-600 dark:text-zinc-300 font-bold flex items-center gap-2">
+                          Frais de livraison {selectedZoneId ? `(${deliveryZones.find(z => z.id === selectedZoneId)?.name})` : ''}
+                          {isShopOwner && (
+                              <input 
+                                  type="number" 
+                                  placeholder="Auto" 
+                                  value={customDeliveryCost} 
+                                  onChange={e => setCustomDeliveryCost(e.target.value ? Number(e.target.value) : '')} 
+                                  className="w-20 font-normal bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1 outline-none text-black dark:text-white text-xs"
+                              />
+                          )}
+                      </span>
+                      <span className="font-bold text-black dark:text-white">{deliveryCost.toLocaleString()} FCFA</span>
+                  </div>
+              )}
+                  {manualDiscountAmount > 0 && (
+                     <div className="flex justify-between items-center py-2 border-b border-zinc-100 dark:border-zinc-900 text-sm text-[#39FF14]">
+                         <span className="font-bold flex items-center gap-1">Remise ({manualDiscountPct}%)</span>
+                         <span className="font-bold">-{displayPrice(manualDiscountAmount, shopInfo.currency)}</span>
+                     </div>
+                  )}
               <div className="pt-4 flex justify-between text-lg font-black text-[#39FF14]">
                 <span>Total</span>
                 <span>{displayPrice(cartTotal, shopInfo.currency)}</span>
@@ -2764,8 +2832,13 @@ export default function OnyxJaayShop() {
                  <Trash2 size={18}/>
               </button>
               <button onClick={() => setIsCheckoutModalOpen(false)} className="flex-1 py-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl font-bold text-xs uppercase hover:bg-zinc-200 dark:hover:bg-zinc-800 transition text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white">Annuler</button>
-              <button onClick={confirmOrder} className="flex-[2] py-4 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase hover:bg-white transition flex items-center justify-center gap-2 shadow-lg shadow-[#39FF14]/20">
-                <MessageSquare size={18}/> Confirmer l'envoi
+              {isShopOwner && (
+                  <button onClick={() => confirmOrder(true)} className="flex-[1.2] py-4 bg-zinc-800 dark:bg-white text-white dark:text-black rounded-xl font-black text-xs uppercase hover:opacity-80 transition flex items-center justify-center gap-2 shadow-lg">
+                    <Store size={18}/> Sur place
+                  </button>
+              )}
+              <button onClick={() => confirmOrder(false)} className="flex-[1.8] py-4 bg-[#39FF14] text-black rounded-xl font-black text-xs uppercase hover:bg-white transition flex items-center justify-center gap-2 shadow-lg shadow-[#39FF14]/20">
+                <MessageSquare size={18}/> Confirmer
               </button>
             </div>
           </div>
@@ -2782,8 +2855,8 @@ export default function OnyxJaayShop() {
             </div>
             <h3 className="text-3xl font-black uppercase tracking-tighter mb-4 text-black dark:text-white">Merci pour votre confiance ! 💖</h3>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 leading-relaxed">
-                Votre commande est bien partie vers notre équipe sur WhatsApp. On s&apos;occupe de tout préparer avec soin !<br/><br/>
-                <span className="font-bold text-black dark:text-white">Un membre de l&apos;équipe va vous répondre dans quelques instants pour valider la livraison.</span>
+                Votre commande a été enregistrée avec succès. On s&apos;occupe de tout préparer avec soin !<br/><br/>
+                <span className="font-bold text-black dark:text-white">Notre équipe reviendra vers vous très vite si besoin.</span>
             </p>
             <button onClick={() => setIsOrderSuccessOpen(false)} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-xl">
                 C&apos;est noté, à tout de suite !
@@ -3308,7 +3381,10 @@ function ClientDetailModal({ client, orders, shopName, currency, onClose }: { cl
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black text-2xl">{client.name.charAt(0)}</div>
                         <div>
-                            <h3 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white">{client.name}</h3>
+                            <h3 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center gap-3">
+                                {client.name}
+                                {clientOrders.length > 5 && <span className="bg-yellow-400 text-black px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest align-middle shadow-sm">VIP ⭐</span>}
+                            </h3>
                             <p className="text-sm font-bold text-[#39FF14]">{client.phone}</p>
                         </div>
                     </div>
@@ -4067,6 +4143,9 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   };
 
   const handlePrintSingleInvoice = (order: any, isPdf: boolean = false) => {
+    const clientOrdersCount = orders.filter(o => o.customer?.phone === order.customer?.phone && o.status !== 'Annulé').length;
+    const isVip = clientOrdersCount > 5;
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert("Veuillez autoriser les pop-ups pour imprimer.");
@@ -4125,7 +4204,10 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
           <div class="info-section">
             <div class="info-box">
               <h3>Facturé à</h3>
-              <p style="font-weight: bold; font-size: 16px; color: #000;">${order.customer?.name}</p>
+              <p style="font-weight: bold; font-size: 16px; color: #000;">
+                ${order.customer?.name}
+                ${isVip ? '<span style="background-color: #ffd700; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px; vertical-align: middle; text-transform: uppercase;">VIP ⭐</span>' : ''}
+              </p>
               <p>${order.customer?.phone}</p>
               ${(order.deliveryMethod === 'delivery' || order.delivery_method === 'delivery') ? `
                 <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ddd;">
@@ -4893,6 +4975,11 @@ function ShopClients({ currency, orders, onClientSelect, onRunIaScan }: { curren
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <h3 className="font-bold text-lg leading-none">{client.name}</h3>
+                                    {client.ordersCount > 5 && (
+                                        <span className="text-[9px] bg-yellow-400 text-black px-2 py-0.5 rounded-md font-black uppercase tracking-widest shadow-sm">
+                                            VIP ⭐
+                                        </span>
+                                    )}
                                     {client.cancelledCount > 0 && (
                                         <span className="text-[10px] bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-md font-black uppercase tracking-widest border border-red-200 dark:border-red-500/30">
                                             {client.cancelledCount} Annulé{client.cancelledCount > 1 ? 's' : ''}
