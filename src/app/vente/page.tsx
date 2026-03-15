@@ -63,22 +63,41 @@ interface DeliveryZone {
 const generateMockProducts = (): Product[] => {
   const categories = ['Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires'];
   const types = ['Chemise', 'Pantalon', 'Robe', 'Chaussures', 'Sac', 'Montre', 'Ensemble', 'T-shirt', 'Veste', 'Costume', 'Casquette', 'Lunettes'];
+  const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+  const colors = ['Noir', 'Blanc', 'Bleu', 'Rouge', 'Gris'];
   
   return Array.from({ length: 40 }).map((_, i) => {
     const cat = categories[i % categories.length];
     const type = types[i % types.length];
+    const basePrice = (Math.floor(Math.random() * 20) + 2) * 2500;
+    const isPromo = Math.random() > 0.7;
+    const price = isPromo ? Math.floor(basePrice * 0.8) : basePrice;
+
     return {
       id: i + 1,
-      name: `${type} ${cat} Style ${i + 1}`,
-      price: (Math.floor(Math.random() * 20) + 2) * 2500, // Prix entre 5000 et 50000 FCFA
-      costPrice: Math.floor(((Math.floor(Math.random() * 20) + 2) * 2500) * 0.4), // Coût fictif à 40%
-      description: `Un article incontournable de la collection ${cat}. Confort et style garantis pour le quotidien ou les grandes occasions.`,
-      image: `https://placehold.co/600x800/1a1a1a/39FF14?text=${type}+${cat}+${i+1}`,
+      name: `${type} Premium ${cat} ${i + 1}`,
+      price: price,
+      costPrice: Math.floor(price * 0.4),
+      oldPrice: isPromo ? basePrice : undefined,
+      description: `Un article incontournable de la collection ${cat}. Confort et style garantis pour le quotidien ou les grandes occasions. Matériaux de première qualité.`,
+      image: `https://placehold.co/600x800/1a1a1a/39FF14?text=${type}+${cat}`,
+      gallery: [
+        `https://placehold.co/600x800/222222/39FF14?text=Vue+Dos`,
+        `https://placehold.co/600x800/333333/39FF14?text=Détails`
+      ],
       category: cat,
-      stock: Math.floor(Math.random() * 50),
+      stock: Math.floor(Math.random() * 50) + 2,
       rating: Number((3.5 + Math.random() * 1.5).toFixed(1)),
-      reviews: Math.floor(Math.random() * 100),
-      reviewsList: []
+      reviews: Math.floor(Math.random() * 100) + 5,
+      variants: {
+        sizes: [sizes[i % sizes.length], sizes[(i + 1) % sizes.length], sizes[(i + 2) % sizes.length]],
+        colors: [colors[i % colors.length], colors[(i + 1) % colors.length]]
+      },
+      videoUrl: i % 4 === 0 ? "https://www.youtube.com/embed/dQw4w9WgXcQ" : "",
+      reviewsList: [
+        { id: 1, name: "Client Vérifié", rating: 5, comment: "Excellente qualité, je recommande !", date: "2026-03-10" },
+        { id: 2, name: "Acheteur Anonyme", rating: 4, comment: "Très bon produit, livraison rapide.", date: "2026-03-12" }
+      ]
     };
   });
 };
@@ -667,6 +686,7 @@ export default function OnyxJaayShop() {
           });
 
           const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
+          const hasSeeded = localStorage.getItem(`onyx_demo_seeded_${shop.id}`);
           if (productsData && productsData.length > 0) {
             setProducts(productsData.map(p => ({
                 id: p.id, name: p.name, price: p.price, costPrice: p.cost_price, oldPrice: p.old_price,
@@ -674,8 +694,9 @@ export default function OnyxJaayShop() {
                 stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
                 videoUrl: p.video_url, reviewsList: []
             })));
-          } else {
-            // 🚀 AUTO-REMPLISSAGE : Si 0 produit, on restaure les 40 articles de démonstration
+          } else if (!hasSeeded && productsData && productsData.length === 0) {
+            // 🚀 AUTO-REMPLISSAGE
+            localStorage.setItem(`onyx_demo_seeded_${shop.id}`, 'true');
             setProducts(initialProducts);
             const seedData = initialProducts.map(p => ({
                 shop_id: shop.id, name: p.name, price: p.price, cost_price: p.costPrice, old_price: p.oldPrice,
@@ -694,6 +715,8 @@ export default function OnyxJaayShop() {
                     })));
                 }
             }
+          } else {
+            setProducts([]); // Le catalogue est volontairement vide
           }
           fetchOrders(shop.id);
       }
@@ -1477,6 +1500,39 @@ export default function OnyxJaayShop() {
     }
   };
 
+  const handleClearCatalog = async () => {
+    if (confirm("⚠️ ATTENTION : Voulez-vous vraiment supprimer TOUS les produits de votre catalogue ? Cette action est définitive.")) {
+        if (shopId) {
+            const { error } = await supabase.from('products').delete().eq('shop_id', shopId);
+            if (!error) {
+                localStorage.setItem(`onyx_demo_seeded_${shopId}`, 'true');
+                setProducts([]);
+                alert("Catalogue vidé avec succès. Vous pouvez maintenant ajouter vos vrais produits !");
+            } else {
+                alert("Erreur lors de la suppression : " + error.message);
+            }
+        }
+    }
+  };
+
+  const handleGenerateDemo = async () => {
+      if (!shopId) return;
+      if (confirm("Voulez-vous générer 40 produits de démonstration (Images, Prix, Variants, Vidéos) ?\nCela s'ajoutera à votre catalogue actuel.")) {
+          const seedData = initialProducts.map(p => ({
+              shop_id: shopId, name: p.name, price: p.price, cost_price: p.costPrice, old_price: p.oldPrice,
+              description: p.description, image: p.image, gallery: p.gallery, category: p.category,
+              stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants, video_url: p.videoUrl
+          }));
+          const { error } = await supabase.from('products').insert(seedData);
+          if (!error) {
+              alert("40 Produits générés avec succès ! La page va se recharger.");
+              window.location.reload();
+          } else {
+              alert("Erreur lors de la génération : " + error.message);
+          }
+      }
+  };
+
   const handleTrackOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsTracking(true);
@@ -2100,6 +2156,8 @@ export default function OnyxJaayShop() {
               setCategories={setCategories}
               onResetData={handleResetData}
               onClearOrders={handleClearOrders}
+          onClearCatalog={handleClearCatalog}
+          onGenerateDemo={handleGenerateDemo}
               currency={shopInfo.currency}
           shopId={shopId}
             />
@@ -2682,24 +2740,39 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                             <div className="relative group">
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix ({currency})</label>
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix Normal ({currency})</label>
+                                <div className="relative">
+                                    <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                    <input type="number" name="oldPrice" value={formData.oldPrice || formData.price} onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        setFormData({...formData, oldPrice: val, price: val});
+                                    }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                                </div>
+                            </div>
+                            <div className="relative group">
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Remise (%)</label>
+                                <div className="relative">
+                                    <Tag size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                    <input type="number" min="0" max="100" value={formData.oldPrice && formData.price && formData.oldPrice > formData.price ? Math.round(((formData.oldPrice - formData.price) / formData.oldPrice) * 100) : ''} onChange={(e) => {
+                                        const discount = Number(e.target.value);
+                                        if (discount >= 0 && discount <= 100 && formData.oldPrice) {
+                                            setFormData({...formData, price: Math.round(formData.oldPrice * (1 - discount / 100))});
+                                        }
+                                    }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Ex: 20" />
+                                </div>
+                            </div>
+                            <div className="relative group">
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix Final ({currency})</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
                                     <input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
                                 </div>
                             </div>
                             <div className="relative group">
-                            <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Coût d&apos;achat</label>
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Coût d&apos;achat</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
                                     <input type="number" name="costPrice" value={formData.costPrice || ''} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Fournisseur" />
-                                </div>
-                            </div>
-                            <div className="relative group">
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Ancien Prix (Opt.)</label>
-                                <div className="relative">
-                                    <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" name="oldPrice" value={formData.oldPrice || ''} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Promo" />
                                 </div>
                             </div>
                             <div className="relative group">
@@ -4243,11 +4316,13 @@ interface ShopSettingsProps {
   setCategories: React.Dispatch<React.SetStateAction<string[]>>;
   onResetData: () => void;
   onClearOrders: () => void;
+  onClearCatalog: () => void;
+  onGenerateDemo: () => void;
   currency: string;
   shopId: string | null;
 }
 
-function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, categories, setCategories, onResetData, onClearOrders, currency, shopId }: ShopSettingsProps) {
+function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, deliveryZones, setDeliveryZones, categories, setCategories, onResetData, onClearOrders, onClearCatalog, onGenerateDemo, currency, shopId }: ShopSettingsProps) {
   const [newCode, setNewCode] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed', singleUse: false, minPurchase: '', expirationDate: '' });
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
   
@@ -4607,7 +4682,19 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
             <p className="font-bold text-black dark:text-white">Gestion des données</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Actions irréversibles sur la base de données locale.</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto flex-wrap justify-end">
+            <button 
+              onClick={onGenerateDemo}
+              className="w-full sm:w-auto bg-blue-500 text-white px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 shrink-0"
+            >
+              <Sparkles size={16} /> Générer 40 Produits
+            </button>
+            <button 
+              onClick={onClearCatalog}
+              className="w-full sm:w-auto bg-red-500 text-white px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 shrink-0"
+            >
+              <Trash2 size={16} /> Vider Catalogue
+            </button>
             <button 
               onClick={onClearOrders}
               className="w-full sm:w-auto bg-orange-500 text-white px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 shrink-0"
