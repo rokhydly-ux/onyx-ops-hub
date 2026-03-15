@@ -62,9 +62,9 @@ interface DeliveryZone {
 // --- INITIAL DATA ---
 const generateMockProducts = (): Product[] => {
   const categories = ['Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires'];
-  const types = ['Chemise', 'Pantalon', 'Robe', 'Chaussures', 'Sac', 'Montre', 'Ensemble', 'T-shirt', 'Veste'];
+  const types = ['Chemise', 'Pantalon', 'Robe', 'Chaussures', 'Sac', 'Montre', 'Ensemble', 'T-shirt', 'Veste', 'Costume', 'Casquette', 'Lunettes'];
   
-  return Array.from({ length: 30 }).map((_, i) => {
+  return Array.from({ length: 40 }).map((_, i) => {
     const cat = categories[i % categories.length];
     const type = types[i % types.length];
     return {
@@ -667,7 +667,7 @@ export default function OnyxJaayShop() {
           });
 
           const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
-          if (productsData) {
+          if (productsData && productsData.length > 0) {
             setProducts(productsData.map(p => ({
                 id: p.id, name: p.name, price: p.price, costPrice: p.cost_price, oldPrice: p.old_price,
                 description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
@@ -675,14 +675,25 @@ export default function OnyxJaayShop() {
                 videoUrl: p.video_url, reviewsList: []
             })));
           } else {
-            // 🚀 AUTO-REMPLISSAGE : Si 0 produit, on restaure les 30 articles de démonstration
+            // 🚀 AUTO-REMPLISSAGE : Si 0 produit, on restaure les 40 articles de démonstration
             setProducts(initialProducts);
             const seedData = initialProducts.map(p => ({
                 shop_id: shop.id, name: p.name, price: p.price, cost_price: p.costPrice, old_price: p.oldPrice,
                 description: p.description, image: p.image, category: p.category,
                 stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants
             }));
-            supabase.from('products').insert(seedData).then(() => console.log("Produits restaurés dans Supabase"));
+            const { error: seedError } = await supabase.from('products').insert(seedData);
+            if (!seedError) {
+                const { data: refetched } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
+                if (refetched) {
+                    setProducts(refetched.map(p => ({
+                        id: p.id, name: p.name, price: p.price, costPrice: p.cost_price, oldPrice: p.old_price,
+                        description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
+                        stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
+                        videoUrl: p.video_url, reviewsList: []
+                    })));
+                }
+            }
           }
           fetchOrders(shop.id);
       }
@@ -1834,27 +1845,6 @@ export default function OnyxJaayShop() {
           <div className="flex items-center gap-4 pointer-events-auto ml-auto">
           <button onClick={() => setIsCartOpen(true)} className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
             <div className="relative">
-              {isEditingMode && (
-                <div className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900/50 p-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 backdrop-blur-md">
-                    <button 
-                        onClick={() => window.open(`/${shopInfo.slug || 'keur-yaay'}`, '_blank')}
-                        className="px-4 py-2 bg-black text-white rounded-full text-xs font-bold flex items-center gap-2 hover:bg-zinc-800 transition-colors"
-                    >
-                        <ExternalLink size={14} /> Voir ma boutique
-                    </button>
-                    <button 
-                        onClick={() => {
-                            const url = `${window.location.origin}/${shopInfo.slug || 'keur-yaay'}`;
-                            navigator.clipboard.writeText(url);
-                            alert("Lien de la boutique copié !");
-                        }}
-                        className="p-2.5 text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
-                        title="Copier le lien"
-                    >
-                        <Share2 size={16} />
-                    </button>
-                </div>
-              )}
               <ShoppingCart size={18} />
           {cartCount > 0 && <span className={`absolute -top-2 -right-2 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center transition-colors ${cartCount > 5 ? 'bg-red-500 text-white' : 'bg-[#39FF14] text-black'}`}>{cartCount}</span>}
             </div>

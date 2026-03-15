@@ -90,6 +90,11 @@ export default function DynamicShopPage() {
       if (shop.delivery_zones && shop.delivery_zones.length > 0) {
         setDeliveryZones(shop.delivery_zones);
       }
+      if (shop.categories && shop.categories.length > 0) {
+        const baseCats = ["Toutes", "Favoris"];
+        const otherCats = shop.categories.filter((c: string) => c !== "Toutes" && c !== "Favoris");
+        setCategories([...baseCats, ...otherCats]);
+      }
 
       const { data: shopProducts } = await supabase.from("products").select("*").eq("shop_id", shop.id);
       if (shopProducts) {
@@ -99,8 +104,10 @@ export default function DynamicShopPage() {
             stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
             video_url: p.video_url, reviewsList: []
         })));
-        const uniqueCategories = Array.from(new Set(shopProducts.map((p:any) => p.category).filter(Boolean))) as string[];
-        setCategories(["Toutes", "Favoris", ...uniqueCategories]);
+        if (!shop.categories || shop.categories.length === 0) {
+            const uniqueCategories = Array.from(new Set(shopProducts.map((p:any) => p.category).filter(Boolean))) as string[];
+            setCategories(["Toutes", "Favoris", ...uniqueCategories]);
+        }
       }
       setIsLoading(false);
     };
@@ -375,19 +382,32 @@ export default function DynamicShopPage() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
         {/* Header Mobile */}
-        <div className="md:hidden flex items-center justify-between p-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-20">
-           <div className="flex items-center gap-3">
-              <button onClick={() => setIsMobileMenuOpen(true)} className="text-black dark:text-white"><Menu size={24}/></button>
-              <h1 className="text-lg font-black tracking-tighter uppercase text-black dark:text-white line-clamp-1">{shopInfo.name}</h1> 
+        <div className="md:hidden flex flex-col bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-20">
+           <div className="flex items-center justify-between p-4 pb-2">
+               <div className="flex items-center gap-3">
+                  <button onClick={() => setIsMobileMenuOpen(true)} className="text-black dark:text-white"><Menu size={24}/></button>
+                  <h1 className="text-lg font-black tracking-tighter uppercase text-black dark:text-white line-clamp-1">{shopInfo.name}</h1> 
+               </div>
+               <button onClick={() => setIsCartOpen(true)} className="relative p-2 text-black dark:text-white">
+                  <ShoppingCart size={24} />
+                  {cartCount > 0 && <span className="absolute top-0 right-0 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center bg-[#39FF14] text-black">{cartCount}</span>}
+               </button>
            </div>
-           <button onClick={() => setIsCartOpen(true)} className="relative p-2 text-black dark:text-white">
-              <ShoppingCart size={24} />
-              {cartCount > 0 && <span className="absolute top-0 right-0 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center bg-[#39FF14] text-black">{cartCount}</span>}
-           </button>
+           <div className="flex items-center gap-3 px-4 pb-3">
+              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Paiements acceptés :</span>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-3 object-contain" />
+              <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-3 object-contain" />
+           </div>
         </div>
 
-        {/* Bouton Panier Flottant Desktop */}
-        <header className="absolute top-0 left-0 right-0 p-6 z-10 flex justify-end items-start pointer-events-none hidden md:flex">
+        {/* Header Desktop (Boutons Flottants) */}
+        <header className="absolute top-0 left-0 right-0 p-6 z-10 flex justify-between items-start pointer-events-none hidden md:flex">
+          <div className="flex items-center gap-3 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md px-4 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-800 pointer-events-auto shadow-sm">
+             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Paiements acceptés :</span>
+             <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-4 object-contain" />
+             <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-4 object-contain" />
+          </div>
+
           <div className="flex items-center gap-4 pointer-events-auto ml-auto">
             <button onClick={() => setIsCartOpen(true)} className="flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
               <div className="relative">
