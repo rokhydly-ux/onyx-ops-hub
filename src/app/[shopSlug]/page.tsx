@@ -6,12 +6,22 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, 
   Store, MessageSquare, Sparkles, Heart, ChevronRight, Menu, ArrowRight, Star, Sun, Moon,
-  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save
-} from "lucide-react";
-import QRCode from "react-qr-code";
+  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, SaveCo rc
 
 const displayPrice = (price: number, currency: string = 'FCFA') => {
     return `${price.toLocaleString('fr-SN')} ${currency}`;
+};
+
+const getEmbedUrl = (url: string) => {
+    if (!url) return '';
+    let videoId = '';
+    // Regex pour extraire l'ID de la vidéo YouTube (format normal ou youtu.be)
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+    if (match && match[1]) {
+        videoId = match[1];
+        return `https://www.youtube.com/embed/${videoId}`;
+    }
+    return url;
 };
 
 const CategoryGridWidget = ({ categories, setActiveCategory }: { categories: string[], setActiveCategory: (cat: string) => void }) => (
@@ -167,6 +177,8 @@ export default function DynamicShopPage() {
   const [homepageLayout, setHomepageLayout] = useState<any[] | null>(null);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('onyx_jaay_theme') || 'dark';
@@ -186,6 +198,19 @@ export default function DynamicShopPage() {
     const savedLayout = localStorage.getItem('onyx_jaay_homepage_layout');
     if (savedLayout) {
       setHomepageLayout(JSON.parse(savedLayout));
+    }
+
+    const handleScroll = (e: any) => {
+      if (e.target.scrollTop > 400) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    
+    const mainElement = document.getElementById('main-content-scroll');
+    if (mainElement) {
+        mainElement.addEventListener('scroll', handleScroll);
     }
 
     const fetchShopData = async () => {
@@ -222,6 +247,10 @@ export default function DynamicShopPage() {
       setIsLoading(false);
     };
     fetchShopData();
+
+    return () => {
+      if (mainElement) mainElement.removeEventListener('scroll', handleScroll);
+    }
   }, [shopSlug]);
 
   // 🚀 SAUVEGARDE SILENCIEUSE DU PANIER ABANDONNÉ
@@ -614,10 +643,8 @@ export default function DynamicShopPage() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative">
-        {/* Banner */}
-        {isBannerVisible && (
-          <div className="bg-black dark:bg-[#39FF14] text-[#39FF14] dark:text-black px-4 py-2.5 text-center text-[10px] sm:text-xs font-bold flex justify-center items-center relative z-30 shadow-md animate-in slide-in-from-top-2">
+      <main id="main-conte
+        {isBannerVisible &t-[#39FF14] dark:text-black px-4 py-2.5 text-center text-[10px] sm:text-xs font-bold flex justify-center items-center relative z-30 shadow-md animate-in slide-in-from-top-2">
              <span className="flex flex-wrap items-center justify-center gap-2">
                 <span>🚀 Bienvenue sur {shopInfo?.name} ! Profitez de nos offres avec le code <span className="bg-[#39FF14] dark:bg-black text-black dark:text-[#39FF14] px-1.5 py-0.5 rounded ml-1">BIENVENUE10</span></span>
                 <button 
@@ -1081,17 +1108,13 @@ export default function DynamicShopPage() {
                     
                     <div className="w-full md:w-1/2 flex flex-col bg-zinc-100 dark:bg-zinc-900 min-h-[300px] relative">
                         {viewingProduct.video_url ? (
-                            <iframe className="w-full h-full absolute inset-0" src={viewingProduct.video_url} title={viewingProduct.name} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen></iframe>
+                            <iframe className="w-full h-full absolute inset-0" src={getEmbedUrl(viewingProduct.video_url)} title={viewingProduct.name} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen></iframe>
                         ) : (
-                            <div className="w-full h-full absolute inset-0 overflow-hidden cursor-zoom-in group/img" onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(true); }}>
-                                <img src={viewingProduct.image} alt={viewingProduct.name} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500" />
+                            <div className="w-full h-full absolute inset-0 overflow-e} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500" />
                                 <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
-                                    <Search className="text-white drop-shadow-lg" size={32} />
-                                </div>
-                            </div>
+                                    <Search className="text-white drop-shadow-lg" si
                         )}
                     </div>
-                    
                     <div className="w-full md:w-1/2 p-8 flex flex-col max-h-[90vh] overflow-y-auto">
                        <div className="mb-8">
                           <span className="text-[#39FF14] text-xs font-bold uppercase tracking-widest border border-[#39FF14]/20 px-3 py-1 rounded-full mb-4 inline-block">{viewingProduct.category}</span>
@@ -1126,19 +1149,17 @@ export default function DynamicShopPage() {
         )}
 
         {/* --- LIGHTBOX MODAL --- */}
-        {isLightboxOpen && viewingProduct && !viewingProduct.video_url && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 bg-black/95 backdrop-blur-sm animate-in fade-in" onClick={() => setIsLightboxOpen(false)}>
-                <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-white p-3 bg-white/10 hover:bg-white/20 rounded-full transition z-10 backdrop-blur-md">
-                    <X size={24}/>
-                </button>
-                <img 
-                    src={viewingProduct.image} 
-                    alt={viewingProduct.name} 
-                    className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 cursor-zoom-out" 
-                    onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
-                />
-            </div>
-        )}
+        {isLightboxOpen && viewingProduct && !viewingProduct.video_url && (() => {
+            const galleryImages = [viewingProduct.image, ...(viewingProduct.gallery || [])].filter(Boolean);
+            return (
+              <div className="fixed i             alt={viewingProduct.name} 
+                      className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 cursor-zoom-out" 
+                      onClick={(e) => { e.stopPropagation(); setIsLightboxOpen(false); }}
+                  />
+         )}
+              </div>
+            );
+        })()}
 
         {/* --- QR CODE MODAL --- */}
         {qrCodeProduct && (
@@ -1153,6 +1174,38 @@ export default function DynamicShopPage() {
               <input type="text" readOnly value={`${window.location.origin}/${shopSlug}?product=${qrCodeProduct.id}`} className="w-full mt-6 bg-zinc-100 text-zinc-600 text-xs p-3 rounded-lg border border-zinc-200 text-center" onFocus={(e) => e.target.select()} />
             </div>
           </div>
+        )}
+
+        {/* --- SUPPORT BUBBLE --- */}
+        <button 
+            onClick={() => {
+                const msg = `Bonjour, j'aimerais avoir plus d'informations sur votre boutique !`;
+                window.open(`https://wa.me/${String(shopInfo?.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+            }}
+            className="fixed bottom-6 right-6 z-[45] bg-[#39FF14] text-black p-4 rounded-full shadow-[0_10px_30px_rgba(57,255,20,0.4)] hover:scale-110 hover:-translate-y-1 transition-all flex items-center justify-center group"
+            title="Support Client"
+        >
+            <MessageSquare size={24} />
+            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-zinc-950 animate-pulse"></span>
+            <span className="absolute right-full mr-4 bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg hidden sm:block">
+                Besoin d'aide ?
+            </span>
+        </button>
+
+        {/* --- SCROLL TO TOP --- */}
+        {showScrollTop && (
+          <button 
+            onClick={() => {
+              const mainElement = document.getElementById('main-content-scroll');
+              if (mainElement) {
+                mainElement.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            className="fixed bottom-[5.5rem] right-6 z-[45] bg-zinc-800/80 backdrop-blur-md text-white p-3 rounded-full shadow-lg hover:bg-black transition-all hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-2"
+            title="Remonter en haut"
+          >
+            <ArrowUp size={20} />
+          </button>
         )}
 
       </main>
