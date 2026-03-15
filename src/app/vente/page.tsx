@@ -594,6 +594,7 @@ export default function OnyxJaayShop() {
   });
 
   const handleLogout = async () => {
+    localStorage.removeItem('onyx_custom_session');
     await supabase.auth.signOut();
     window.location.href = '/';
   };
@@ -691,9 +692,22 @@ export default function OnyxJaayShop() {
               setIsEditingMode(true);
               await fetchShopData(session.user.id);
           } else {
-              // C'est un client externe : on NE le redirige PLUS vers /login
-              setIsShopOwner(false);
-              setIsEditingMode(false);
+              const customSession = localStorage.getItem('onyx_custom_session');
+              if (customSession) {
+                  try {
+                      const user = JSON.parse(customSession);
+                      setAuthUser(user);
+                      setIsShopOwner(true);
+                      setIsEditingMode(true);
+                      await fetchShopData(user.id);
+                  } catch (e) {
+                      setIsShopOwner(false);
+                      setIsEditingMode(false);
+                  }
+              } else {
+                  setIsShopOwner(false);
+                  setIsEditingMode(false);
+              }
           }
           setIsLoading(false); // Dans tous les cas on affiche la page
       };
@@ -1666,6 +1680,11 @@ export default function OnyxJaayShop() {
         
         <div className="flex-1 overflow-y-auto py-6">
           <div className="px-4 mb-6">
+            {isEditingMode && shopInfo.slug && (
+                <button onClick={() => window.open(`/${shopInfo.slug}`, '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black transition bg-[#39FF14] text-black hover:bg-white shadow-[0_0_20px_rgba(57,255,20,0.3)] mb-6 uppercase text-xs">
+                  <ExternalLink size={16} /> Voir ma boutique
+                </button>
+            )}
             <input 
               type="text" 
               placeholder="Rechercher un produit..." 
