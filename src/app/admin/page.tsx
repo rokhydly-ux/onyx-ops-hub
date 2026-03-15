@@ -10,7 +10,7 @@ import {
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   BarChart, TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
-  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon
 } from "lucide-react";
 
 // --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
@@ -42,7 +42,7 @@ type Contact = {
   password_temp?: string | null;
 };
 
-type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing";
+type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help";
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
 
 const ECOSYSTEM_SAAS = [
@@ -219,6 +219,21 @@ export default function AdminDashboard() {
   const [newMaterial, setNewMaterial] = useState({ title: '', type: 'Canva', url: '' });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('onyx_admin_theme') || 'light';
+    setTheme(savedTheme);
+    if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    if (newTheme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+    localStorage.setItem('onyx_admin_theme', newTheme);
+  };
 
   // --- CHARGEMENT DES DONNÉES (Supabase uniquement) ---
   const fetchSupabaseData = async () => {
@@ -304,6 +319,10 @@ export default function AdminDashboard() {
    const phone = type === 'ambassadeur' ? '+221762237425' : (lead.phone || '').replace(/\s+/g, '');
    const phoneColumn = type === 'client' ? 'phone' : 'contact';
 
+   // Calcul de la date d'expiration (J+7 pour l'essais gratuit)
+   const trialEndDate = new Date();
+   trialEndDate.setDate(trialEndDate.getDate() + 7);
+
    try {
      const payload: any = {
        full_name: lead.full_name || 'Test Ambassadeur',
@@ -314,7 +333,10 @@ export default function AdminDashboard() {
        updated_at: new Date().toISOString()
      };
 
-     if (type === 'client' && saasName) payload.saas = saasName;
+     if (type === 'client') {
+       if (saasName) payload.saas = saasName;
+       payload.expiration_date = trialEndDate.toISOString().split('T')[0];
+     }
 
      const { error } = await supabase.from(table).upsert(payload, { onConflict: phoneColumn });
      if (error) throw error;
@@ -673,12 +695,17 @@ export default function AdminDashboard() {
      
      const msg = `Félicitations ${targetName} ! Votre espace ${showSaasLogin.name} est actif.\nLien : https://${showSaasLogin.id}.onyxops.com\nIdentifiant : ${targetPhone}\nMot de passe : ${saasCreateForm.password}`;
      
+     // Calcul de la date d'expiration (J+7)
+     const trialEndDate = new Date();
+     trialEndDate.setDate(trialEndDate.getDate() + 7);
+
      await supabase.from('clients').upsert({
         full_name: targetName,
         phone: targetPhone,
         type: 'Client',
         saas: showSaasLogin.name,
-        status: 'Compte Créé'
+        status: 'Compte Créé',
+        expiration_date: trialEndDate.toISOString().split('T')[0]
      }, { onConflict: 'phone' });
 
      alert(`Compte ${showSaasLogin.name} créé et enregistré !`);
@@ -977,13 +1004,13 @@ export default function AdminDashboard() {
   };
   
   return (
-    <div className={`flex h-screen bg-[#fafafa] font-sans text-black overflow-hidden relative selection:bg-[#39FF14]/30`}>
+    <div className={`flex h-screen bg-[#fafafa] dark:bg-zinc-950 font-sans text-black dark:text-white overflow-hidden relative selection:bg-[#39FF14]/30 transition-colors`}>
       <TestSupabaseInsert />
       
       {/* ================= SIDEBAR GAUCHE ================= */}
-      <aside className="w-72 bg-white border-r border-zinc-200 flex flex-col z-30 shadow-sm hidden md:flex transition-all">
+      <aside className="w-72 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col z-30 shadow-sm hidden md:flex transition-all">
         <div className="p-6">
-          <h1 className={`font-sans text-3xl font-black tracking-tighter uppercase cursor-pointer group`} onClick={() => setActiveView('dashboard')}>
+          <h1 className={`font-sans text-3xl font-black tracking-tighter uppercase cursor-pointer group text-black dark:text-white`} onClick={() => setActiveView('dashboard')}>
             ONYX<span className="text-[#39FF14] group-hover:drop-shadow-[0_0_8px_rgba(57,255,20,0.6)] transition-all">OPS</span>
           </h1>
           <div className="mt-2 flex items-center gap-2">
@@ -1004,6 +1031,7 @@ export default function AdminDashboard() {
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
                 { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
+                { id: 'help', icon: HelpCircle, label: 'Aide & Tutoriels' },
               ].map(item => (
                 <button 
                   key={item.id} 
@@ -1075,6 +1103,7 @@ export default function AdminDashboard() {
                         { id: 'finance', icon: Wallet, label: 'Finances' },
                         { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
                         { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
+                        { id: 'help', icon: HelpCircle, label: 'Aide & Tutoriels' },
                       ].map(item => (
                         <button key={item.id} onClick={() => { setActiveView(item.id as ViewType); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === item.id ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
                           <item.icon size={20} className={activeView === item.id ? 'text-[#39FF14]' : ''} /> {item.label}
@@ -1097,13 +1126,13 @@ export default function AdminDashboard() {
         )}
 
         {/* HEADER GÉANT */}
-        <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200 h-28 flex items-center justify-between px-8 lg:px-12 shrink-0 z-20">
+        <header className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800 h-28 flex items-center justify-between px-8 lg:px-12 shrink-0 z-20 transition-colors">
           <div className="flex flex-col">
             <div className="flex items-center gap-4 md:hidden mb-1">
                <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-zinc-100 rounded-full text-black"><Menu size={24}/></button>
-               <h2 className={`font-sans text-xl font-black uppercase tracking-tighter text-black`}>ONYX OPS</h2>
+               <h2 className={`font-sans text-xl font-black uppercase tracking-tighter text-black dark:text-white`}>ONYX OPS</h2>
             </div>
-            <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter text-black`}>
+            <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>
                {activeView === 'dashboard' ? 'Terminal Central' : activeView.replace('-', ' ')}
             </h2>
             <div className="flex items-center gap-3 mt-1">
@@ -1121,6 +1150,9 @@ export default function AdminDashboard() {
             <div className="hidden lg:flex items-center gap-5 pr-10 border-r border-zinc-200">
                <button onClick={fetchSupabaseData} className={`text-zinc-400 hover:text-black transition-all ${isRefreshing ? 'animate-spin text-[#39FF14]' : ''}`} title="Rafraîchir les données">
                   <RefreshCcw size={22}/>
+               </button>
+               <button onClick={toggleTheme} className="text-zinc-400 hover:text-black dark:hover:text-white transition-all" title="Mode Sombre / Clair">
+                  {theme === 'dark' ? <Sun size={22}/> : <Moon size={22}/>}
                </button>
                <button
                  onClick={() => { setTempAdminProfile({ ...adminProfile }); setShowProfileModal(true); }}
@@ -2066,6 +2098,44 @@ export default function AdminDashboard() {
                    </div>
                 </div>
              </div>
+          )}
+
+          {/* ================= VUE AIDE & TUTORIELS ================= */}
+          {activeView === 'help' && (
+            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 max-w-[1200px] mx-auto">
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden">
+                 <div className="flex items-center gap-6 lg:gap-5 relative z-10">
+                    <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><HelpCircle size={32}/></div>
+                    <div>
+                       <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Aide & Tutoriels</h2>
+                       <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Maîtrisez votre Hub OnyxOps</p>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[
+                     { title: "Gérer le CRM & Leads", desc: "Comment convertir vos leads en clients actifs et gérer les statuts.", icon: Users },
+                     { title: "Planificateur Marketing IA", desc: "Utiliser l'intelligence artificielle pour relancer vos clients inactifs.", icon: Sparkles },
+                     { title: "Finance & Commissions", desc: "Suivre vos revenus, votre marge nette et les commissions des ambassadeurs.", icon: Wallet },
+                     { title: "Écosystème SaaS", desc: "Comment déployer Onyx Jaay, Onyx Menu, etc. pour un client.", icon: Box },
+                     { title: "Configuration Boutique", desc: "Paramétrer les zones de livraison et l'assistant WhatsApp sur Onyx Jaay.", icon: Settings },
+                     { title: "Cartographie des Hubs", desc: "Analyser la répartition géographique de vos clients et partenaires.", icon: MapPin },
+                  ].map((tuto, i) => (
+                     <div key={i} onClick={() => alert("Ce tutoriel vidéo sera bientôt disponible.")} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:border-black transition-all group cursor-pointer">
+                        <div className="w-12 h-12 bg-zinc-100 rounded-2xl flex items-center justify-center text-black mb-6 group-hover:bg-black group-hover:text-[#39FF14] transition-colors"><tuto.icon size={20}/></div>
+                        <h3 className="font-black text-lg uppercase mb-2 leading-tight">{tuto.title}</h3>
+                        <p className="text-xs text-zinc-500 font-medium leading-relaxed mb-6">{tuto.desc}</p>
+                        <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-4 py-2.5 rounded-xl w-max hover:scale-105 transition-transform"><PlayCircle size={14}/> Voir la vidéo</button>
+                     </div>
+                  ))}
+              </div>
+              
+              <div className="bg-black text-white p-8 sm:p-12 rounded-[3rem] shadow-2xl border border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-6 mt-8">
+                  <div><h3 className="text-xl sm:text-2xl font-black uppercase tracking-tighter mb-2 text-[#39FF14]">Besoin d'aide supplémentaire ?</h3><p className="text-sm font-medium text-zinc-400">Notre équipe de support technique est disponible sur WhatsApp pour répondre à vos questions.</p></div>
+                  <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black text-xs uppercase hover:bg-white transition-colors shrink-0 whitespace-nowrap">Contacter le Support</button>
+              </div>
+            </div>
           )}
 
         </div>

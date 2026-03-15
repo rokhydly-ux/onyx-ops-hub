@@ -4,10 +4,11 @@ import { DndContext, PointerSensor, useSensor, useSensors, useDraggable, useDrop
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import React, { useState, useRef, DragEvent, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut, Megaphone, Send, XCircle, CheckCircle, Edit3, Copy
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut, Megaphone, Send, XCircle, CheckCircle, Edit3, Copy, LogIn, Wallet
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
@@ -26,6 +27,7 @@ interface Product {
   id: number;
   name: string;
   price: number;
+  costPrice?: number;
   oldPrice?: number;
   description: string;
   image: string;
@@ -69,6 +71,7 @@ const generateMockProducts = (): Product[] => {
       id: i + 1,
       name: `${type} ${cat} Style ${i + 1}`,
       price: (Math.floor(Math.random() * 20) + 2) * 2500, // Prix entre 5000 et 50000 FCFA
+      costPrice: Math.floor(((Math.floor(Math.random() * 20) + 2) * 2500) * 0.4), // Coût fictif à 40%
       description: `Un article incontournable de la collection ${cat}. Confort et style garantis pour le quotidien ou les grandes occasions.`,
       image: `https://placehold.co/600x800/1a1a1a/39FF14?text=${type}+${cat}+${i+1}`,
       category: cat,
@@ -517,8 +520,12 @@ const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct,
 };
 
 export default function OnyxJaayShop() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [authUser, setAuthUser] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isEditingMode, setIsEditingMode] = useState(false);
+  const [isShopOwner, setIsShopOwner] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAIWriting, setIsAIWriting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -602,12 +609,15 @@ export default function OnyxJaayShop() {
         const formattedOrders = data.map((o: any) => ({
           id: o.id,
           date: o.created_at || new Date().toISOString(),
-          customer: { name: o.customer_name, phone: o.customer_phone },
+          customer: { name: o.customer_name, phone: o.customer_phone, address: o.customer_address, instructions: o.delivery_instructions },
           items: o.items || [],
           total: o.total_amount,
           status: o.status,
           pointsUsed: o.points_used,
-          trackingNumber: o.tracking_number
+          trackingNumber: o.tracking_number,
+          deliveryMethod: o.delivery_method,
+          deliveryZone: o.delivery_zone,
+          history: o.history || [{ status: o.status || 'En attente', date: o.created_at || new Date().toISOString(), user: 'Système' }]
         }));
         setOrders(formattedOrders);
       } else {
@@ -630,6 +640,23 @@ export default function OnyxJaayShop() {
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  useEffect(() => {
+      const verifyAuth = async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user) {
+              setIsShopOwner(false);
+              setIsEditingMode(false);
+              setIsLoading(false);
+          } else {
+              setAuthUser(session.user);
+              setIsShopOwner(true);
+              setIsEditingMode(true);
+              setIsLoading(false);
+          }
+      };
+      verifyAuth();
+  }, [router]);
 
   useEffect(() => {
     const savedLayout = localStorage.getItem('onyx_jaay_homepage_layout');
@@ -696,7 +723,7 @@ export default function OnyxJaayShop() {
       try {
         setProductViews(JSON.parse(savedViews));
       } catch (e) {
-        console.error("Erreur chargement vues", e);
+        console.error("Erreur chargement Vues", e);
       }
     }
     const savedViewHistory = localStorage.getItem('onyx_jaay_view_history');
@@ -996,11 +1023,14 @@ export default function OnyxJaayShop() {
         id: Date.now(),
         trackingNumber,
         date: new Date().toISOString(),
-        customer: customerInfo,
+        customer: { ...customerInfo, address: customerAddress, instructions: deliveryInstructions },
         items: cart,
         total: cartTotal, // This is the final total paid
         pointsUsed: pointsToUse,
-        status: 'En attente'
+        status: 'En attente',
+        deliveryMethod: deliveryMethod,
+        deliveryZone: selectedZone ? selectedZone.name : null,
+        history: [{ status: 'En attente', date: new Date().toISOString(), user: 'Client (Web)' }]
     };
     const existingOrders = JSON.parse(localStorage.getItem('onyx_jaay_orders') || '[]');
     localStorage.setItem('onyx_jaay_orders', JSON.stringify([newOrder, ...existingOrders]));
@@ -1010,13 +1040,16 @@ export default function OnyxJaayShop() {
       const { error } = await supabase.from('orders').insert([{
         customer_name: customerInfo.name,
         customer_phone: customerInfo.phone,
+        customer_address: customerAddress,
+        delivery_instructions: deliveryInstructions,
         items: cart,
         total_amount: cartTotal,
         points_used: pointsToUse,
         status: 'En attente',
         delivery_method: deliveryMethod,
         delivery_zone: selectedZone ? selectedZone.name : null,
-        tracking_number: trackingNumber
+        tracking_number: trackingNumber,
+        history: [{ status: 'En attente', date: new Date().toISOString(), user: 'Client (Web)' }]
       }]);
       if (error) {
         console.error("Erreur d'insertion Supabase:", error.message);
@@ -1041,7 +1074,11 @@ export default function OnyxJaayShop() {
       console.error("Erreur réseau Supabase:", err);
     }
 
-    let message = `Bonjour, je suis ${customerInfo.name}. Je souhaite passer commande :\n\n`;
+    const isReturningCustomer = orders.some(o => o.customer?.phone === customerInfo.phone);
+    let message = isReturningCustomer 
+        ? `👋 Bonjour l'équipe ! C'est ${customerInfo.name}, je suis de retour pour une nouvelle commande :\n\n`
+        : `👋 Bonjour ! Je suis un nouveau client (${customerInfo.name}). Je souhaite passer ma première commande :\n\n`;
+        
     message += `📦 *Numéro de suivi :* ${trackingNumber}\n\n`;
     cart.forEach(item => {
       let variantInfo = "";
@@ -1443,6 +1480,14 @@ export default function OnyxJaayShop() {
     return b.id - a.id; // Trie par nouveautés (identifiant le plus récent) par défaut
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <div className="w-16 h-16 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_#39FF14]"></div>
+      </div>
+    );
+  }
+
   // --- RENDER ---
   return (
     <div className="flex h-screen bg-white dark:bg-black text-black dark:text-white font-sans overflow-hidden print:block">
@@ -1468,33 +1513,49 @@ export default function OnyxJaayShop() {
                 </div>
                 <nav className="px-4 space-y-2 mb-8">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
-                  <button onClick={() => { setShopView('dashboard'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'dashboard' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                    <LayoutDashboard size={18} className={shopView === 'dashboard' ? "text-[#39FF14]" : ""} /> Tableau de bord
-                  </button>
-                  <button onClick={() => { setShopView('clients'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                    <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
-                  </button>
-                  <button onClick={() => { setShopView('planning'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                    <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> Planning Marketing
-                  </button>
+                  {isEditingMode && (
+                      <>
+                          <button onClick={() => { setShopView('dashboard'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'dashboard' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                            <LayoutDashboard size={18} className={shopView === 'dashboard' ? "text-[#39FF14]" : ""} /> Tableau de bord
+                          </button>
+                          <button onClick={() => { setShopView('clients'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                            <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
+                          </button>
+                          <button onClick={() => { setShopView('planning'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                            <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> Planning Marketing
+                          </button>
+                      </>
+                  )}
                   <button onClick={() => { setShopView('boutique'); setIsMobileMenuOpen(false); setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                    <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
+                    <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> {isEditingMode ? 'Ma Boutique' : 'Accueil'}
                   </button>
-                  <button onClick={() => { setShopView('settings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                    <Settings size={18} className={shopView === 'settings' ? "text-[#39FF14]" : ""} /> Paramètres
-                  </button>
-                  <button onClick={() => { setShopView('page-builder'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'page-builder' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-                    <LayoutTemplate size={18} className={shopView === 'page-builder' ? "text-[#39FF14]" : ""} /> Mettre à jour mon site
-                  </button>
+                  {isEditingMode && (
+                      <>
+                          <button onClick={() => { setShopView('settings'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                            <Settings size={18} className={shopView === 'settings' ? "text-[#39FF14]" : ""} /> Paramètres
+                          </button>
+                          <button onClick={() => { setShopView('page-builder'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'page-builder' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                            <LayoutTemplate size={18} className={shopView === 'page-builder' ? "text-[#39FF14]" : ""} /> Mettre à jour mon site
+                          </button>
+                      </>
+                  )}
                   <button onClick={() => { setIsTrackingModalOpen(true); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
                     <Package size={18} /> Suivi Commande
                   </button>
-                  <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
-                    <Home size={18} /> Retour au Hub
-                  </button>
-                  <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-red-500 hover:bg-red-500/10`}>
-                    <LogOut size={18} /> Se déconnecter
-                  </button>
+                  {isEditingMode ? (
+                      <>
+                          <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+                            <Home size={18} /> Retour au Hub
+                          </button>
+                          <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-red-500 hover:bg-red-500/10`}>
+                            <LogOut size={18} /> Se déconnecter
+                          </button>
+                      </>
+                  ) : (
+                      <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+                         <LogIn size={18} /> Connexion Client
+                      </button>
+                  )}
                 </nav>
                 <div className="px-4 space-y-2">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
@@ -1570,33 +1631,49 @@ export default function OnyxJaayShop() {
 
           <nav className="px-4 space-y-2 mb-8">
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
-            <button onClick={() => setShopView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'dashboard' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-              <LayoutDashboard size={18} className={shopView === 'dashboard' ? "text-[#39FF14]" : ""} /> Tableau de bord
-            </button>
-            <button onClick={() => setShopView('clients')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-              <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
-            </button>
-            <button onClick={() => setShopView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-              <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> Planning Marketing
-            </button>
+            {isEditingMode && (
+                <>
+                    <button onClick={() => setShopView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'dashboard' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                      <LayoutDashboard size={18} className={shopView === 'dashboard' ? "text-[#39FF14]" : ""} /> Tableau de bord
+                    </button>
+                    <button onClick={() => setShopView('clients')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'clients' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                      <Users size={18} className={shopView === 'clients' ? "text-[#39FF14]" : ""} /> Clients
+                    </button>
+                    <button onClick={() => setShopView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'planning' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                      <Calendar size={18} className={shopView === 'planning' ? "text-[#39FF14]" : ""} /> Planning Marketing
+                    </button>
+                </>
+            )}
             <button onClick={() => { setShopView('boutique'); setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-              <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> Ma Boutique
+              <Store size={18} className={shopView === 'boutique' ? "text-[#39FF14]" : ""} /> {isEditingMode ? 'Ma Boutique' : 'Accueil'}
             </button>
-            <button onClick={() => setShopView('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-              <Settings size={18} className={shopView === 'settings' ? "text-[#39FF14]" : ""} /> Paramètres
-            </button>
-            <button onClick={() => setShopView('page-builder')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'page-builder' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-              <LayoutTemplate size={18} className={shopView === 'page-builder' ? "text-[#39FF14]" : ""} /> Mettre à jour mon site
-            </button>
+            {isEditingMode && (
+                <>
+                    <button onClick={() => setShopView('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'settings' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                      <Settings size={18} className={shopView === 'settings' ? "text-[#39FF14]" : ""} /> Paramètres
+                    </button>
+                    <button onClick={() => setShopView('page-builder')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'page-builder' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+                      <LayoutTemplate size={18} className={shopView === 'page-builder' ? "text-[#39FF14]" : ""} /> Mettre à jour mon site
+                    </button>
+                </>
+            )}
             <button onClick={() => setIsTrackingModalOpen(true)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
               <Package size={18} /> Suivi Commande
             </button>
-            <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
-              <Home size={18} /> Retour au Hub
-            </button>
-            <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-red-500 hover:bg-red-500/10`}>
-              <LogOut size={18} /> Se déconnecter
-            </button>
+            {isEditingMode ? (
+                <>
+                    <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+                      <Home size={18} /> Retour au Hub
+                    </button>
+                    <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-red-500 hover:bg-red-500/10`}>
+                      <LogOut size={18} /> Se déconnecter
+                    </button>
+                </>
+            ) : (
+                <button onClick={() => window.location.href = '/dashboard'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+                   <LogIn size={18} /> Connexion Client
+                </button>
+            )}
           </nav>
 
           <div className="px-4 space-y-2">
@@ -1701,7 +1778,8 @@ export default function OnyxJaayShop() {
             <Moon className="h-4 w-4 text-white hidden dark:block" />
           </button>
 
-          {isEditingMode && (
+          {isShopOwner && (
+            <>
             <div className="relative">
               <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="p-2 rounded-full bg-white/50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 backdrop-blur-md relative">
                 <Bell size={16} className="text-black dark:text-white" />
@@ -1725,15 +1803,16 @@ export default function OnyxJaayShop() {
                 </div>
               )}
             </div>
-          )}
 
-          <span className="text-xs font-bold uppercase mr-2 text-black dark:text-white bg-white/50 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-md border border-zinc-200 dark:border-zinc-800">Mode Éditeur</span>
-          <label htmlFor="editModeToggle" className="cursor-pointer">
-            <div className={`w-14 h-8 rounded-full p-1 transition-colors border border-zinc-700 ${isEditingMode ? 'bg-[#39FF14]' : 'bg-zinc-800/80 backdrop-blur-md'}`}>
-              <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${isEditingMode ? 'translate-x-6' : ''}`}></div>
-            </div>
-            <input type="checkbox" id="editModeToggle" className="hidden" checked={isEditingMode} onChange={() => setIsEditingMode(!isEditingMode)} />
-          </label>
+            <span className="text-xs font-bold uppercase ml-4 mr-2 text-black dark:text-white bg-white/50 dark:bg-black/50 px-3 py-1 rounded-full backdrop-blur-md border border-zinc-200 dark:border-zinc-800">Mode Éditeur</span>
+            <label htmlFor="editModeToggle" className="cursor-pointer">
+              <div className={`w-14 h-8 rounded-full p-1 transition-colors border border-zinc-700 ${isEditingMode ? 'bg-[#39FF14]' : 'bg-zinc-800/80 backdrop-blur-md'}`}>
+                <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${isEditingMode ? 'translate-x-6' : ''}`}></div>
+              </div>
+              <input type="checkbox" id="editModeToggle" className="hidden" checked={isEditingMode} onChange={() => setIsEditingMode(!isEditingMode)} />
+            </label>
+            </>
+          )}
           </div>
         </header>
 
@@ -1919,7 +1998,7 @@ export default function OnyxJaayShop() {
           </div>
         )}
         {shopView === 'dashboard' && (
-            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} setShopView={setShopView} orders={orders} refreshOrders={fetchOrders} />
+            <ShopDashboard products={products} productViews={productViews} viewHistory={viewHistory} onUpdateStock={handleUpdateStock} onViewProduct={handleViewProduct} currency={shopInfo.currency} setShopView={setShopView} orders={orders} refreshOrders={fetchOrders} shopName={shopInfo.name} shopLogo={shopInfo.logoUrl} />
         )}
         {shopView === 'clients' && (
             <ShopClients currency={shopInfo.currency} orders={orders} onClientSelect={setSelectedClient} onRunIaScan={runIaScanGeneral} />
@@ -2448,6 +2527,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
     const [formData, setFormData] = useState<Partial<Product>>({
         name: product?.name || '',
         price: product?.price || 0,
+        costPrice: product?.costPrice || 0,
         oldPrice: product?.oldPrice || 0,
         description: product?.description || '',
         image: product?.image || '',
@@ -2514,12 +2594,19 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                             <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Ex: Robe de soirée" />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                             <div className="relative group">
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix ({currency})</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
                                     <input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                                </div>
+                            </div>
+                            <div className="relative group">
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Coût d'achat</label>
+                                <div className="relative">
+                                    <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                    <input type="number" name="costPrice" value={formData.costPrice || ''} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Fournisseur" />
                                 </div>
                             </div>
                             <div className="relative group">
@@ -2968,17 +3055,20 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
   );
 }
 
-function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning'>>, orders: any[], refreshOrders: () => void }) {
+function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onViewProduct, currency, setShopView, orders, refreshOrders, shopName, shopLogo }: { products: Product[], productViews: Record<number, number>, viewHistory: Record<string, number>, onUpdateStock: (id: number, val: number) => void, onViewProduct: (product: Product) => void, currency: string, setShopView: React.Dispatch<React.SetStateAction<'boutique' | 'dashboard' | 'settings' | 'clients' | 'page-builder' | 'planning'>>, orders: any[], refreshOrders: () => void, shopName: string, shopLogo: string }) {
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
   const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');
   const [selectedDayOrders, setSelectedDayOrders] = useState<{date: string, orders: any[]} | null>(null);
+  const [historyModalOrder, setHistoryModalOrder] = useState<any | null>(null);
   const [popularCategory, setPopularCategory] = useState('Toutes');
 
   const productCategories = ['Toutes', ...Array.from(new Set(products.map(p => p.category)))];
 
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
-        const updateFn = (o: any) => o.id === orderId ? { ...o, status: newStatus } : o;
+        const order = orders.find(o => o.id === orderId);
+        const newHistory = [...(order?.history || []), { status: newStatus, date: new Date().toISOString(), user: 'Administrateur' }];
+        const updateFn = (o: any) => o.id === orderId ? { ...o, status: newStatus, history: newHistory } : o;
         
         // Mise à jour optimiste instantanée de l'interface
         if (selectedDayOrders) {
@@ -2986,7 +3076,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         }
 
         try {
-            const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+            const { error } = await supabase.from('orders').update({ status: newStatus, history: newHistory }).eq('id', orderId);
             if (error) {
                 console.error("Erreur mise à jour statut:", error.message);
             } else {
@@ -3018,8 +3108,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   }, [products]);
 
   const { 
-    totalRevenue, totalOrders, totalClients, averageOrderValue,
-    revenueTrend, ordersTrend, clientsTrend, avgOrderTrend,
+    totalRevenue, totalOrders, totalClients, averageOrderValue, netMargin,
+    revenueTrend, ordersTrend, clientsTrend, avgOrderTrend, marginTrend,
     bestSellers
   } = useMemo(() => {
     const isPeriodSelected = dateFilter.start && dateFilter.end;
@@ -3035,6 +3125,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
     });
 
     const revenue = currentOrders.reduce((sum, order) => sum + order.total, 0);
+    const totalCost = currentOrders.reduce((sum, order) => sum + order.items.reduce((iSum: number, item: CartItem) => iSum + ((item.costPrice || 0) * item.quantity), 0), 0);
+    const margin = revenue - totalCost;
     const TOrders = currentOrders.length;
     const TClients = new Set(currentOrders.map(o => o.customer?.phone).filter(Boolean)).size;
     const avgOrder = TOrders > 0 ? revenue / TOrders : 0;
@@ -3044,7 +3136,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
       ordersTrend: number | null;
       clientsTrend: number | null;
       avgOrderTrend: number | null;
-    } = { revenueTrend: null, ordersTrend: null, clientsTrend: null, avgOrderTrend: null };
+      marginTrend: number | null;
+    } = { revenueTrend: null, ordersTrend: null, clientsTrend: null, avgOrderTrend: null, marginTrend: null };
 
     if (isPeriodSelected) {
         const startDate = new Date(dateFilter.start);
@@ -3061,6 +3154,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
             });
 
             const prevRevenue = previousPeriodOrders.reduce((sum, o) => sum + o.total, 0);
+            const prevTotalCost = previousPeriodOrders.reduce((sum, order) => sum + order.items.reduce((iSum: number, item: CartItem) => iSum + ((item.costPrice || 0) * item.quantity), 0), 0);
+            const prevMargin = prevRevenue - prevTotalCost;
             const prevOrders = previousPeriodOrders.length;
             const prevClients = new Set(previousPeriodOrders.map(o => o.customer?.phone).filter(Boolean)).size;
             const prevAvgOrder = prevOrders > 0 ? prevRevenue / prevOrders : 0;
@@ -3074,6 +3169,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
             trends.ordersTrend = calculateTrend(TOrders, prevOrders);
             trends.clientsTrend = calculateTrend(TClients, prevClients);
             trends.avgOrderTrend = calculateTrend(avgOrder, prevAvgOrder);
+            trends.marginTrend = calculateTrend(margin, prevMargin);
         }
     }
     
@@ -3087,7 +3183,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
     const localBestSellers = [...productSales.entries()].sort((a, b) => b[1].quantity - a[1].quantity).slice(0, 5);
 
     return { 
-        totalRevenue: revenue, totalOrders: TOrders, totalClients: TClients, averageOrderValue: avgOrder,
+        totalRevenue: revenue, totalOrders: TOrders, totalClients: TClients, averageOrderValue: avgOrder, netMargin: margin,
         ...trends,
         bestSellers: localBestSellers
     };
@@ -3245,6 +3341,148 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
     printWindow.print();
   };
 
+  const handlePrintSingleInvoice = (order: any, isPdf: boolean = false) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Veuillez autoriser les pop-ups pour imprimer.");
+      return;
+    }
+
+    const itemsHtml = order.items.map((item: CartItem) => `
+      <tr>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 14px;">${item.name} ${item.selectedVariant?.size || item.selectedVariant?.color ? `<br><span style="font-size: 11px; color: #777;">${[item.selectedVariant.size, item.selectedVariant.color].filter(Boolean).join(', ')}</span>` : ''}</td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px;">${item.quantity}</td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #eee; text-align: right; font-size: 14px;">${displayPrice(item.price, currency)}</td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #eee; text-align: right; font-size: 14px;">${displayPrice(item.price * item.quantity, currency)}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Facture ${order.trackingNumber || order.tracking_number || order.id}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111; margin: 0; padding: 0; background: #fff; }
+            #invoice-content { padding: 40px; max-width: 800px; margin: 0 auto; background: #fff; }
+            h1 { color: #000; font-size: 36px; font-weight: 900; text-transform: uppercase; margin: 0 0 5px 0; letter-spacing: -1.5px; }
+            .header { display: flex; justify-content: space-between; border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 30px; align-items: flex-end; }
+            .header-right { text-align: right; }
+            .header-right p { margin: 2px 0; font-size: 14px; color: #555; }
+            .info-section { display: flex; justify-content: space-between; margin-bottom: 40px; background: #f9f9f9; padding: 20px; border-radius: 12px; }
+            .info-box { width: 48%; }
+            .info-box h3 { font-size: 11px; text-transform: uppercase; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; letter-spacing: 1px; }
+            .info-box p { margin: 4px 0; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th { background-color: #000; color: #fff; padding: 12px 15px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+            .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 12px; }
+            .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; color: #555; }
+            .total-row.final { font-weight: 900; font-size: 24px; border-top: 2px solid #ddd; margin-top: 10px; padding-top: 15px; color: #000; }
+            .footer { clear: both; text-align: center; padding-top: 50px; font-size: 12px; color: #aaa; }
+          </style>
+          ${isPdf ? `<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>` : ''}
+        </head>
+        <body>
+          <div id="invoice-content">
+          <div class="header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+              ${shopLogo ? `<img src="${shopLogo}" alt="Logo" style="max-height: 50px; max-width: 150px; object-fit: contain;" />` : ''}
+              <div>
+                <h1>FACTURE <span style="font-size: 20px; color: #777; font-weight: normal; letter-spacing: 0;">| ${shopName}</span></h1>
+                <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #555;">Réf: ${order.trackingNumber || order.tracking_number || order.id}</p>
+              </div>
+            </div>
+            <div class="header-right">
+              <p><strong>Date:</strong> ${new Date(order.date || order.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+              <p><strong>Heure:</strong> ${new Date(order.date || order.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+            </div>
+          </div>
+          
+          <div class="info-section">
+            <div class="info-box">
+              <h3>Facturé à</h3>
+              <p style="font-weight: bold; font-size: 16px; color: #000;">${order.customer?.name}</p>
+              <p>${order.customer?.phone}</p>
+              ${(order.deliveryMethod === 'delivery' || order.delivery_method === 'delivery') ? `
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ddd;">
+                  <p style="font-weight: bold; margin-bottom: 4px;">🚚 Livraison à domicile</p>
+                  ${order.deliveryZone || order.delivery_zone ? `<p style="font-size: 13px; color: #555; margin: 2px 0;"><strong>Zone :</strong> ${order.deliveryZone || order.delivery_zone}</p>` : ''}
+                  ${order.customer?.address || order.customer_address ? `<p style="font-size: 13px; color: #555; margin: 2px 0;"><strong>Adresse :</strong> ${order.customer?.address || order.customer_address}</p>` : ''}
+                  ${order.customer?.instructions || order.delivery_instructions ? `<p style="font-size: 13px; color: #555; margin: 2px 0;"><strong>Note :</strong> ${order.customer?.instructions || order.delivery_instructions}</p>` : ''}
+                </div>
+              ` : (order.deliveryMethod === 'pickup' || order.delivery_method === 'pickup') ? `
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ddd;">
+                  <p style="font-weight: bold;">🏬 Retrait en boutique</p>
+                </div>
+              ` : ''}
+            </div>
+            <div class="info-box">
+              <h3>Informations de commande</h3>
+              <p><strong>Statut:</strong> ${order.status || 'En attente'}</p>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Désignation</th>
+                <th style="text-align: center;">Qté</th>
+                <th style="text-align: right;">P.U</th>
+                <th style="text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div class="totals">
+            ${order.pointsUsed ? `
+            <div class="total-row">
+              <span>Points Fidélité utilisés</span>
+              <span>-${displayPrice(order.pointsUsed * 10, currency)}</span>
+            </div>
+            ` : ''}
+            <div class="total-row final">
+              <span>TOTAL NET</span>
+              <span>${displayPrice(order.total || order.total_amount, currency)}</span>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>Merci de votre confiance !</p>
+            <p>Document généré informatiquement par OnyxOps.</p>
+          </div>
+          </div>
+          ${isPdf ? `
+          <script>
+            window.onload = () => {
+              const element = document.getElementById('invoice-content');
+              const opt = {
+                margin:       10,
+                filename:     'Facture_${order.trackingNumber || order.tracking_number || order.id}.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+              };
+              html2pdf().set(opt).from(element).save().then(() => {
+                 setTimeout(() => window.close(), 1000);
+              });
+            };
+          </script>
+          ` : `
+          <script>
+            window.onload = () => {
+              setTimeout(() => { window.print(); }, 250);
+            };
+          </script>
+          `}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+  };
+
   const handleExportDayOrdersToCSV = (dayOrders: {date: string, orders: any[]}) => {
       if (!dayOrders || dayOrders.orders.length === 0) {
           alert("Aucune commande à exporter pour ce jour.");
@@ -3341,8 +3579,9 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
       </p>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <StatCard icon={<span className="font-black text-xl">XOF</span>} label="Revenu Total" value={displayPrice(totalRevenue, currency)} colorClass="text-green-500" trend={revenueTrend} />
+        <StatCard icon={<Wallet size={32} />} label="Marge Nette" value={displayPrice(netMargin, currency)} colorClass="text-[#39FF14]" trend={marginTrend} />
         <StatCard icon={<ShoppingCart size={32} />} label="Commandes" value={totalOrders} colorClass="text-blue-500" trend={ordersTrend} />
         <StatCard icon={<Users size={32} />} label="Clients" value={totalClients} colorClass="text-orange-500" trend={clientsTrend} />
         <StatCard icon={<BarChart size={32} />} label="Panier Moyen" value={displayPrice(averageOrderValue, currency)} colorClass="text-purple-500" trend={avgOrderTrend} />
@@ -3632,13 +3871,55 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                                             </select>
                                         </div>
                                     </div>
-                                    <p className="mt-3 text-xs text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-800 pt-3">
-                                        <span className="font-bold text-zinc-500 mr-1">Articles:</span>
-                                        {order.items.map((item: CartItem) => `${item.name} (x${item.quantity})`).join(', ')}
-                                    </p>
+                                    <div className="mt-3 flex justify-between items-center border-t border-zinc-200 dark:border-zinc-800 pt-3">
+                                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                                            <span className="font-bold text-zinc-500 mr-1">Articles:</span>
+                                            {order.items.map((item: CartItem) => `${item.name} (x${item.quantity})`).join(', ')}
+                                        </p>
+                                        <div className="flex gap-2 ml-4">
+                                            <button onClick={() => setHistoryModalOrder(order)} className="text-[10px] font-bold bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition shrink-0" title="Voir l'historique">
+                                                <Clock size={12}/> Historique
+                                            </button>
+                                            <button onClick={() => handlePrintSingleInvoice(order, true)} className="text-[10px] font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition shrink-0" title="Télécharger en PDF">
+                                                <Download size={12}/> PDF
+                                            </button>
+                                            <button onClick={() => handlePrintSingleInvoice(order, false)} className="text-[10px] font-bold bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition shrink-0" title="Imprimer la facture">
+                                                <Printer size={12}/> Imprimer
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             ))
                         )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* MODALE HISTORIQUE STATUT */}
+        {historyModalOrder && (
+            <div id="modal-overlay" onClick={() => setHistoryModalOrder(null)} className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] w-full max-w-md shadow-2xl animate-in zoom-in-95 flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-black text-lg uppercase">Historique Commande</h3>
+                            <p className="text-xs text-zinc-500 font-bold mt-1">Réf: {historyModalOrder.trackingNumber || historyModalOrder.tracking_number}</p>
+                        </div>
+                        <button onClick={() => setHistoryModalOrder(null)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition"><X size={20}/></button>
+                    </div>
+                    <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
+                        {(historyModalOrder.history || []).map((entry: any, index: number) => (
+                            <div key={index} className="flex gap-4 items-start relative">
+                                {index !== (historyModalOrder.history?.length || 0) - 1 && <div className="absolute left-3 top-8 bottom-[-16px] w-[2px] bg-zinc-200 dark:bg-zinc-800"></div>}
+                                <div className="w-6 h-6 rounded-full bg-[#39FF14]/20 text-[#39FF14] flex items-center justify-center shrink-0 border-2 border-white dark:border-zinc-950 relative z-10">
+                                    <CheckCircle size={12} />
+                                </div>
+                                <div className="flex-1 pb-2">
+                                    <p className="font-bold text-sm text-black dark:text-white">Statut : <span className="uppercase text-[#39FF14]">{entry.status}</span></p>
+                                    <p className="text-xs text-zinc-500 mt-1">{new Date(entry.date).toLocaleString('fr-FR')} • par {entry.user}</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

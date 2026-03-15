@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import Link from "next/link";
-import { BarChart2, Settings, History, User, LogOut, Sparkles } from "lucide-react";
+import { BarChart2, Settings, History, User, LogOut, Sparkles, AlertTriangle } from "lucide-react";
 
 // Définition de l'interface pour le profil utilisateur
 interface UserProfile {
@@ -111,8 +111,23 @@ export default function Dashboard() {
       day: "numeric",
     });
   };
+
+  const expiryStatus = (() => {
+    if (!profile?.expiry_date) return null;
+    const expDate = new Date(profile.expiry_date);
+    const today = new Date();
+    const diffTime = expDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { expired: true, days: Math.abs(diffDays) };
+    if (diffDays <= 3) return { expired: false, days: diffDays };
+    return null;
+  })();
   
   const isModuleActive = (moduleName: string) => {
+    // Si l'abonnement est expiré, on bloque tous les modules
+    if (expiryStatus?.expired) return false;
+
     const modules = profile?.active_modules || profile?.active_saas;
     const saas = profile?.saas;
     const lowerCaseModuleName = moduleName.toLowerCase();
@@ -127,6 +142,12 @@ export default function Dashboard() {
     if (!isActive && saas) isActive = saas.toLowerCase().includes(lowerCaseModuleName);
     
     return isActive;
+  };
+
+  const handleRenewSubscription = () => {
+    const adminPhone = "221785338417"; // Numéro du support/admin OnyxOps
+    const message = `Bonjour, je suis ${profile?.full_name || 'un client'}. Je souhaite prolonger mon abonnement OnyxOps (qui se termine le ${formatDate(profile?.expiry_date)}). Pouvons-nous procéder au renouvellement ?`;
+    window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   if (!profile) return <div className="p-20 text-center font-bold">Chargement de votre empire...</div>;
@@ -166,6 +187,27 @@ export default function Dashboard() {
           </div>
         </header>
 
+        {expiryStatus && (
+          <div className="mb-8 bg-red-50 border-l-4 border-red-500 p-4 sm:p-6 rounded-r-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+            <div className="flex items-start gap-4">
+            <div className="p-2 bg-red-100 rounded-xl text-red-500 shrink-0">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <p className="font-black text-red-800 text-sm sm:text-base uppercase tracking-tight mb-1">
+                {expiryStatus.expired ? "Votre accès a expiré" : `Attention,votre accès expire dans ${expiryStatus.days} jour${expiryStatus.days > 1 ? 's' : ''}`}
+              </p>
+              <p className="text-xs sm:text-sm text-red-600 font-medium">
+                {expiryStatus.expired ? "Veuillez renouveler votre abonnement pour continuer à utiliser vos outils sans interruption." : "Pensez à prolonger votre abonnement rapidement pour éviter toute coupure de vos services."}
+              </p>
+            </div>
+            </div>
+            <button onClick={handleRenewSubscription} className="w-full sm:w-auto bg-red-500 text-white px-6 py-3 rounded-xl font-black text-[10px] sm:text-xs uppercase hover:bg-red-600 transition-colors shadow-lg shrink-0">
+               {expiryStatus.expired ? "Renouveler l'accès" : "Prolonger maintenant"}
+            </button>
+          </div>
+        )}
+
         {view === 'profile' ? (
           <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm max-w-xl">
              <h3 className="font-black uppercase mb-6 text-xl">Sécurité & Mot de passe</h3>
@@ -190,7 +232,9 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <SaasCard name="Onyx Jaay" href="/vente" isActive={onyxJaayActive} />
                 {/* Vous pouvez ajouter d'autres SaaS ici sur le même modèle */}
-                <button className="w-full mt-4 py-3 bg-black text-[#39FF14] rounded-xl font-bold text-xs uppercase">Acheter ou gérer un pack</button>
+                <button onClick={handleRenewSubscription} className="w-full mt-4 py-3 bg-black text-[#39FF14] rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition-colors shadow-lg shadow-[#39FF14]/10">
+                  Prolonger mon abonnement
+                </button>
               </div>
             </div>
 
