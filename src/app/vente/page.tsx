@@ -4821,6 +4821,21 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
 
   return (
     <div id="dashboard-section" className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in print:p-0">
+      {/* EN-TÊTE INVISIBLE SUR ÉCRAN - VISIBLE SEULEMENT EN EXPORT PDF */}
+      <div className="hidden print:flex items-center justify-between mb-8 border-b border-zinc-200 dark:border-zinc-800 pb-4">
+         <div className="flex items-center gap-4">
+            {shopLogo && <img src={shopLogo} alt="Logo Boutique" className="h-16 w-auto object-contain" />}
+            <div>
+                <h1 className="text-2xl font-black uppercase">{shopName}</h1>
+                <p className="text-sm font-bold text-zinc-500">Rapport de Performance Global</p>
+            </div>
+         </div>
+         <div className="text-right">
+            <p className="font-bold text-sm">Édité le {new Date().toLocaleDateString('fr-FR')}</p>
+            <p className="text-xs text-zinc-500">Période : {dateFilter.start && dateFilter.end ? `${new Date(dateFilter.start).toLocaleDateString('fr-FR')} au ${new Date(dateFilter.end).toLocaleDateString('fr-FR')}` : 'Toutes les ventes depuis le début'}</p>
+         </div>
+      </div>
+
       <div className="flex flex-wrap justify-between items-center gap-4 mb-4 print:hidden">
         <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Tableau de <span className="text-[#39FF14]">Bord</span></h2>
         <div className="flex gap-2 bg-white dark:bg-zinc-900 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -4840,8 +4855,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                     className="bg-transparent text-xs font-bold outline-none text-black dark:text-white w-28"
                 />
                 {(dateFilter.start || dateFilter.end) && (
-                    <button onClick={() => setDateFilter({ start: '', end: '' })} className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition ml-2">
-                        <X size={16} />
+                    <button onClick={() => setDateFilter({ start: '', end: '' })} className="px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition ml-2 text-xs font-bold flex items-center gap-1 shadow-sm">
+                        <X size={14} /> Vider les filtres
                     </button>
                 )}
             </div>
