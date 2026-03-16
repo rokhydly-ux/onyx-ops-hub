@@ -736,10 +736,9 @@ export default function DynamicShopPage() {
         try { const parsed = JSON.parse(savedWishlist); if (Array.isArray(parsed)) setWishlist(parsed); } catch(e) {}
     }
 
-    const savedLayout = localStorage.getItem('onyx_jaay_homepage_layout');
-    if (savedLayout) {
-      setHomepageLayout(JSON.parse(savedLayout));
-    }
+    // On supprime la récupération du layout depuis le localStorage du navigateur client
+    // car c'est une donnée de la boutique qui doit toujours venir fraîchement de Supabase 
+    // pour refléter les choix de l'administrateur en temps réel.
 
     const handleScroll = (e: any) => {
       if (e.target.scrollTop > 400) {
