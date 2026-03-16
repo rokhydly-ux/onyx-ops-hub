@@ -51,9 +51,9 @@ const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {}
             <div className="flex overflow-x-auto gap-4 pb-4 custom-scrollbar snap-x animate-in fade-in">
                 {categories.map((cat: string) => (
                     <div key={cat} onClick={() => setActiveCategory(cat)} className="snap-start shrink-0 w-48 h-64 rounded-3xl overflow-hidden cursor-pointer relative group">
-                        <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat.includes(' / ') ? cat.split(' / ')[1] : cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                         <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center p-4 text-center">
-                            <h3 className="text-xl font-black text-white uppercase tracking-tighter drop-shadow-md">{cat}</h3>
+                            <h3 className="text-xl font-black text-white uppercase tracking-tighter drop-shadow-md">{cat.includes(' / ') ? cat.split(' / ')[1] : cat}</h3>
                         </div>
                     </div>
                 ))}
@@ -64,9 +64,9 @@ const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
         {categories.map((cat) => (
             <div key={cat} onClick={() => setActiveCategory(cat)} className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800">
-                <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat.includes(' / ') ? cat.split(' / ')[1] : cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
-                    <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
+                    <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat.includes(' / ') ? cat.split(' / ')[1] : cat}</h3>
                     <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
                     Voir la collection
                     </span>
@@ -1291,7 +1291,7 @@ export default function DynamicShopPage() {
     const catMatch = p.category ? String(p.category).toLowerCase().includes(search) : false;
     const matchesSearch = search === '' || nameMatch || descMatch || catMatch;
 
-    const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
+    const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : (p.category === activeCategory || (p.category && p.category.startsWith(activeCategory + ' / '))));
     const matchesMinPrice = minPrice === '' || (p.price || 0) >= Number(minPrice);
     const matchesMaxPrice = maxPrice === '' || (p.price || 0) <= Number(maxPrice);
     const matchesColor = activeColor.length === 0 || (p.variants?.colors && Array.isArray(p.variants.colors) && p.variants.colors.some((c: string) => activeColor.includes(c)));
@@ -1336,10 +1336,10 @@ export default function DynamicShopPage() {
                 <div className="px-4 space-y-2">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
                   {categories.map(cat => (
-                    <button key={cat} onClick={() => { setActiveCategory(cat); setIsMobileMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeCategory === cat ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'}`}>
-                    <span className="flex items-center gap-2">
+                    <button key={cat} onClick={() => { setActiveCategory(cat); setIsMobileMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${activeCategory === cat ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'}`}>
+                    <span className="flex items-center gap-2 truncate">
                       {cat === 'Favoris' && <Heart size={14} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />}
-                      {cat}
+                      {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
                       {cat === 'Favoris' && wishlist.length > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full leading-none">{wishlist.length}</span>}
                     </span>
                       {activeCategory === cat && <ChevronRight size={14} />}
@@ -1349,7 +1349,10 @@ export default function DynamicShopPage() {
 
                 {availableColors.length > 0 && (
                   <div className="px-4 space-y-2 mt-8">
-                    <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Couleurs</p>
+                    <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between gap-2">
+                      Couleurs
+                      {activeColor.length > 0 && <button onClick={() => setActiveColor([])} className="text-red-500 hover:text-red-600 transition"><X size={14}/></button>}
+                    </p>
                     <div className="flex flex-wrap gap-2 px-4">
                       {availableColors.map(color => (
                         <button key={color} onClick={() => setActiveColor(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor.includes(color) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
@@ -1360,7 +1363,10 @@ export default function DynamicShopPage() {
 
                 {availableSizes.length > 0 && (
                   <div className="px-4 space-y-2 mt-8">
-                    <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Tailles</p>
+                    <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between gap-2">
+                      Tailles
+                      {activeSize.length > 0 && <button onClick={() => setActiveSize([])} className="text-red-500 hover:text-red-600 transition"><X size={14}/></button>}
+                    </p>
                     <div className="flex flex-wrap gap-2 px-4">
                       {availableSizes.map(size => (
                         <button key={size} onClick={() => setActiveSize(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeSize.includes(size) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{size}</button>
@@ -1406,10 +1412,10 @@ export default function DynamicShopPage() {
           <div className="px-4 space-y-2">
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
             {categories.map(cat => (
-              <button key={cat} onClick={() => setActiveCategory(cat)} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeCategory === cat ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
-              <span className="flex items-center gap-2">
+              <button key={cat} onClick={() => setActiveCategory(cat)} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${activeCategory === cat ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+              <span className="flex items-center gap-2 truncate">
                 {cat === 'Favoris' && <Heart size={14} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />}
-                {cat}
+                {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
                 {cat === 'Favoris' && wishlist.length > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full leading-none">{wishlist.length}</span>}
               </span>
                 {activeCategory === cat && <ChevronRight size={14} />}
@@ -1419,7 +1425,10 @@ export default function DynamicShopPage() {
 
           {availableColors.length > 0 && (
             <div className="px-4 space-y-2 mt-8">
-              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Couleurs</p>
+              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between gap-2">
+                Couleurs
+                {activeColor.length > 0 && <button onClick={() => setActiveColor([])} className="text-red-500 hover:text-red-600 transition"><X size={14}/></button>}
+              </p>
               <div className="flex flex-wrap gap-2 px-4">
                 {availableColors.map(color => (
                   <button key={color} onClick={() => setActiveColor(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor.includes(color) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
@@ -1430,7 +1439,10 @@ export default function DynamicShopPage() {
 
           {availableSizes.length > 0 && (
             <div className="px-4 space-y-2 mt-8">
-              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Tailles</p>
+              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between gap-2">
+                Tailles
+                {activeSize.length > 0 && <button onClick={() => setActiveSize([])} className="text-red-500 hover:text-red-600 transition"><X size={14}/></button>}
+              </p>
               <div className="flex flex-wrap gap-2 px-4">
                 {availableSizes.map(size => (
                   <button key={size} onClick={() => setActiveSize(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeSize.includes(size) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{size}</button>
