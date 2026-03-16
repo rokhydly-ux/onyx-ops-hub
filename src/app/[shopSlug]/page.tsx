@@ -640,8 +640,10 @@ export default function DynamicShopPage() {
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'popular' | null>(null);
   const [categories, setCategories] = useState<string[]>(['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires']);
-  const [activeColor, setActiveColor] = useState<string | null>(null);
+  const [activeColor, setActiveColor] = useState<string[]>([]);
   const [availableColors, setAvailableColors] = useState<string[]>([]);
+  const [activeSize, setActiveSize] = useState<string[]>([]);
+  const [availableSizes, setAvailableSizes] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [viewingProduct, setViewingProduct] = useState<any | null>(null);
@@ -784,12 +786,28 @@ export default function DynamicShopPage() {
         setCategories(Array.from(new Set(["Toutes", "Favoris", ...adminCats, ...uniqueCategories])));
 
         const colorsSet = new Set<string>();
+        const sizesSet = new Set<string>();
         shopProducts.forEach((p: any) => {
             if (p.variants?.colors && Array.isArray(p.variants.colors)) {
                 p.variants.colors.forEach((c: string) => colorsSet.add(c));
             }
+            if (p.variants?.sizes && Array.isArray(p.variants.sizes)) {
+                p.variants.sizes.forEach((s: string) => sizesSet.add(s));
+            }
         });
-        setAvailableColors(Array.from(colorsSet));
+        setAvailableColors(Array.from(colorsSet).sort());
+        const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
+        setAvailableSizes(Array.from(sizesSet).sort((a, b) => {
+            const indexA = sizeOrder.indexOf(a.toUpperCase());
+            const indexB = sizeOrder.indexOf(b.toUpperCase());
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            const numA = parseInt(a);
+            const numB = parseInt(b);
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return a.localeCompare(b);
+        }));
       }
       setIsLoading(false);
     };
@@ -1270,9 +1288,10 @@ export default function DynamicShopPage() {
     const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
     const matchesMinPrice = minPrice === '' || (p.price || 0) >= Number(minPrice);
     const matchesMaxPrice = maxPrice === '' || (p.price || 0) <= Number(maxPrice);
-    const matchesColor = activeColor === null || (p.variants?.colors && Array.isArray(p.variants.colors) && p.variants.colors.includes(activeColor));
+    const matchesColor = activeColor.length === 0 || (p.variants?.colors && Array.isArray(p.variants.colors) && p.variants.colors.some((c: string) => activeColor.includes(c)));
+    const matchesSize = activeSize.length === 0 || (p.variants?.sizes && Array.isArray(p.variants.sizes) && p.variants.sizes.some((s: string) => activeSize.includes(s)));
 
-    return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch && matchesColor;
+    return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch && matchesColor && matchesSize;
   }).sort((a, b) => {
     if (sortOrder === 'asc') return (a.price || 0) - (b.price || 0);
     if (sortOrder === 'desc') return (b.price || 0) - (a.price || 0);
@@ -1297,7 +1316,7 @@ export default function DynamicShopPage() {
                 
                 <nav className="px-4 space-y-2 mb-8">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
-                  <button onClick={() => { setSearchTerm(''); setActiveCategory('Toutes'); setActiveColor(null); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:text-black dark:hover:text-white`}>
+                  <button onClick={() => { setSearchTerm(''); setActiveCategory('Toutes'); setActiveColor([]); setActiveSize([]); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:text-black dark:hover:text-white`}>
                     <Store size={18} /> Accueil
                   </button>
                   <button onClick={() => { setIsTrackingModalOpen(true); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:text-black dark:hover:text-white`}>
@@ -1327,7 +1346,18 @@ export default function DynamicShopPage() {
                     <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Couleurs</p>
                     <div className="flex flex-wrap gap-2 px-4">
                       {availableColors.map(color => (
-                        <button key={color} onClick={() => setActiveColor(activeColor === color ? null : color)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor === color ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
+                        <button key={color} onClick={() => setActiveColor(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor.includes(color) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {availableSizes.length > 0 && (
+                  <div className="px-4 space-y-2 mt-8">
+                    <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Tailles</p>
+                    <div className="flex flex-wrap gap-2 px-4">
+                      {availableSizes.map(size => (
+                        <button key={size} onClick={() => setActiveSize(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeSize.includes(size) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{size}</button>
                       ))}
                     </div>
                   </div>
@@ -1359,7 +1389,7 @@ export default function DynamicShopPage() {
           
           <nav className="px-4 space-y-2 mb-8">
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
-            <button onClick={() => { setSearchTerm(''); setActiveCategory('Toutes'); setActiveColor(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+            <button onClick={() => { setSearchTerm(''); setActiveCategory('Toutes'); setActiveColor([]); setActiveSize([]); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
               <Store size={18} /> Accueil
             </button>
             <button onClick={() => setIsTrackingModalOpen(true)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
@@ -1386,7 +1416,18 @@ export default function DynamicShopPage() {
               <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Couleurs</p>
               <div className="flex flex-wrap gap-2 px-4">
                 {availableColors.map(color => (
-                  <button key={color} onClick={() => setActiveColor(activeColor === color ? null : color)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor === color ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
+                  <button key={color} onClick={() => setActiveColor(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor.includes(color) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {availableSizes.length > 0 && (
+            <div className="px-4 space-y-2 mt-8">
+              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Tailles</p>
+              <div className="flex flex-wrap gap-2 px-4">
+                {availableSizes.map(size => (
+                  <button key={size} onClick={() => setActiveSize(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeSize.includes(size) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{size}</button>
                 ))}
               </div>
             </div>
