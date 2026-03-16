@@ -5280,19 +5280,24 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
           </div>
           ${isPdf ? `
           <script>
-            window.onload = () => {
-              const element = document.getElementById('invoice-content');
-              const opt = {
-                margin:       10,
-                filename:     'Facture_${order.trackingNumber || order.tracking_number || order.id}.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            const checkAndGenerate = () => {
+              if (typeof html2pdf !== 'undefined' && document.readyState === 'complete') {
+                const element = document.getElementById('invoice-content');
+                const opt = {
+                  margin:       10,
+                  filename:     'Facture_${order.trackingNumber || order.tracking_number || order.id}.pdf',
+                  image:        { type: 'jpeg', quality: 0.98 },
+                  html2canvas:  { scale: 2, useCORS: true },
+                  jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                html2pdf().set(opt).from(element).save().then(() => {
+                   setTimeout(() => window.close(), 1000);
+                }).catch(err => console.error('Erreur PDF:', err));
+              } else {
+                setTimeout(checkAndGenerate, 200);
               };
-              html2pdf().set(opt).from(element).save().then(() => {
-                 setTimeout(() => window.close(), 1000);
-              });
             };
+            checkAndGenerate();
           </script>
           ` : `
           <script>
@@ -5322,7 +5327,9 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
               'Produit': item.name,
               'Quantité': item.quantity,
               'Prix Unitaire (FCFA)': item.price,
+              'Coût Unitaire (FCFA)': item.costPrice || 0,
               'Total Ligne (FCFA)': item.price * item.quantity,
+              'Marge Ligne (FCFA)': (item.price - (item.costPrice || 0)) * item.quantity,
               'ID Commande': order.id,
           }))
       );
