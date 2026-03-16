@@ -758,6 +758,11 @@ export default function DynamicShopPage() {
       setIsLoading(true);
       
       const { data: shop, error: shopError } = await supabase.from("shops").select("*").eq("slug", shopSlug).single();
+      
+      console.log("FETCH BOUTIQUE - Data reçue :", shop);
+      if (shopError) console.error("FETCH BOUTIQUE - Erreur :", shopError);
+      if (shop) console.log("CONFIG CATÉGORIES :", shop.category_covers);
+
       if (shopError || !shop) { setError(true); setIsLoading(false); return; }
 
       setCurrentShopId(shop.id);

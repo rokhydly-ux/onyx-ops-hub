@@ -6069,12 +6069,13 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
 
   const handleSaveCategoriesSilently = async (newCategories: string[], newCovers: any) => {
       if (shopId) {
-          const { error } = await supabase.from('shops').update({
-              categories: newCategories,
-              category_covers: newCovers,
-          }).eq('id', shopId);
+          const dataToSave = { categories: newCategories, category_covers: newCovers };
+          console.log("TENTATIVE D'ENREGISTREMENT SUPABASE :", dataToSave);
+          const { data, error } = await supabase.from('shops').update(dataToSave).eq('id', shopId).select();
           if (error) {
-              console.error("❌ Erreur de sauvegarde silencieuse Supabase :", error.message);
+              console.error("ERREUR SUPABASE LORS DE L'UPDATE :", error);
+          } else {
+              console.log("RÉPONSE SUPABASE OK :", data);
           }
       }
   };
