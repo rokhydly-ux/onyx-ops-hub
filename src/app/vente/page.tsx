@@ -3029,7 +3029,7 @@ export default function OnyxJaayShop() {
                 const { error } = await supabase.from('reviews').insert([{
                    shop_id: shopId,
                    type: 'order',
-                   reference_id: reviewOrderId,
+                     reference_id: String(reviewOrderId),
                    name: orderReview.name,
                    rating: orderReview.rating,
                    comment: orderReview.comment
@@ -3037,7 +3037,7 @@ export default function OnyxJaayShop() {
 
                 if (error) {
                     console.error("Erreur:", error);
-                    alert("Une erreur est survenue lors de l'envoi de l'avis.");
+                      alert("Erreur lors de l'envoi (Supabase) : " + error.message);
                     return;
                 }
                 

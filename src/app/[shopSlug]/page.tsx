@@ -1919,7 +1919,7 @@ export default function DynamicShopPage() {
                   const { error } = await supabase.from('reviews').insert([{
                      shop_id: currentShopId, // LIAISON VITALE AVEC LE BACKEND
                      type: 'order',
-                     reference_id: reviewOrderId,
+                     reference_id: String(reviewOrderId),
                      name: orderReview.name,
                      rating: orderReview.rating,
                      comment: orderReview.comment
@@ -1927,7 +1927,7 @@ export default function DynamicShopPage() {
 
                   if (error) {
                       console.error("Erreur:", error);
-                      alert("Une erreur est survenue lors de l'envoi de l'avis.");
+                      alert("Erreur lors de l'envoi (Supabase) : " + error.message);
                       return;
                   }
                   
