@@ -286,15 +286,24 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories, products }: 
                 <h3 className="text-xl font-black uppercase mb-6 pr-8">Paramètres: {widget.name}</h3>
                 
                 {widgetType === 'category-grid' && (
-                    <div>
-                        <p className="text-sm font-bold mb-3">Sélectionnez les catégories à afficher :</p>
-                        <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-sm font-bold mb-3">Sélectionnez les catégories à afficher :</p>
+                            <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2">
                             {categories.filter((c: string) => c !== 'Toutes' && c !== 'Favoris').map((cat: string) => (
                                 <label key={cat} className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl cursor-pointer hover:border-black transition border border-transparent hover:border-zinc-300 dark:hover:border-zinc-700">
                                     <input type="checkbox" checked={(settings.categories || []).includes(cat)} onChange={() => toggleCategory(cat)} className="w-5 h-5 accent-black" />
                                     <span className="font-bold text-sm text-black dark:text-white">{cat}</span>
                                 </label>
                             ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-bold mb-2 block">Style d'affichage :</label>
+                            <select value={settings.layout || 'grid'} onChange={e => setSettings({ ...settings, layout: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold">
+                                <option value="grid">Grille classique</option>
+                                <option value="carousel">Carrousel horizontal</option>
+                            </select>
                         </div>
                     </div>
                 )}
@@ -321,6 +330,18 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories, products }: 
                             </div>
                         </div>
                         <div>
+                            <label className="text-sm font-bold mb-2 block">Hauteur de la bannière :</label>
+                            <select value={settings.height || 'medium'} onChange={e => setSettings({...settings, height: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none text-xs font-bold text-black dark:text-white">
+                                <option value="small">Petite (150px)</option>
+                                <option value="medium">Moyenne (250px)</option>
+                                <option value="large">Grande (400px)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-sm font-bold mb-2 block">Texte superposé (Optionnel) :</label>
+                            <input type="text" value={settings.textOverlay || ''} onChange={e => setSettings({ ...settings, textOverlay: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold" placeholder="Ex: SOLDES D'ÉTÉ -50%" />
+                        </div>
+                        <div>
                             <label className="text-sm font-bold mb-2 block">Lien au clic (Optionnel) :</label>
                             <div className="flex gap-2">
                                 <select value={settings.linkType || ''} onChange={e => setSettings({...settings, linkType: e.target.value, linkTarget: ''})} className="w-1/3 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none text-xs font-bold text-black dark:text-white">
@@ -345,14 +366,34 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories, products }: 
                     </div>
                 )}
 
-                {(widgetType === 'new-arrivals' || widgetType === 'best-sellers') && (
-                    <div>
-                        <label className="text-sm font-bold mb-2 block">Titre de la section :</label>
-                        <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase" placeholder="Ex: Nouveautés" />
+                {(widgetType === 'new-arrivals' || widgetType === 'best-sellers' || widgetType === 'featured-category') && (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-bold mb-2 block">Titre de la section :</label>
+                            <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase" placeholder="Ex: Nouveautés" />
+                        </div>
                         
+                        {widgetType === 'featured-category' && (
+                            <div>
+                                <label className="text-sm font-bold mt-2 mb-2 block">Catégorie à mettre en avant :</label>
+                                <select value={settings.category || ''} onChange={e => setSettings({ ...settings, category: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white cursor-pointer">
+                                    <option value="">Sélectionner une catégorie...</option>
+                                    {categories.filter((c: string) => c !== 'Toutes' && c !== 'Favoris').map((c: string) => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                        )}
+
+                        <div>
+                            <label className="text-sm font-bold mb-2 block">Style d'affichage :</label>
+                            <select value={settings.layout || 'marquee'} onChange={e => setSettings({ ...settings, layout: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold">
+                                <option value="marquee">Défilement continu (Marquee)</option>
+                                <option value="grid">Grille fixe (Grid)</option>
+                            </select>
+                        </div>
+
                         {widgetType === 'new-arrivals' && (
-                            <>
-                                <label className="text-sm font-bold mt-4 mb-2 block">Sélectionner des produits (Optionnel) :</label>
+                            <div>
+                                <label className="text-sm font-bold mt-2 mb-2 block">Sélectionner des produits (Optionnel) :</label>
                                 <div className="max-h-40 overflow-y-auto space-y-2 custom-scrollbar p-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
                                     {products?.map((p: any) => (
                                         <label key={p.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition">
@@ -361,34 +402,27 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories, products }: 
                                         </label>
                                     ))}
                                 </div>
-                            </>
+                            </div>
                         )}
-                    </div>
-                )}
-
-                {widgetType === 'featured-category' && (
-                    <div>
-                        <label className="text-sm font-bold mb-2 block">Titre de la section :</label>
-                        <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase" placeholder="Ex: Notre Sélection" />
-                        
-                        <label className="text-sm font-bold mt-4 mb-2 block">Catégorie à mettre en avant :</label>
-                        <select value={settings.category || ''} onChange={e => setSettings({ ...settings, category: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white cursor-pointer">
-                            <option value="">Sélectionner une catégorie...</option>
-                            {categories.filter((c: string) => c !== 'Toutes' && c !== 'Favoris').map((c: string) => <option key={c} value={c}>{c}</option>)}
-                        </select>
                     </div>
                 )}
 
                 {widgetType === 'promo-day' && (
                     <div>
                         <label className="text-sm font-bold mb-2 block">Titre de l'encart :</label>
-                        <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase" placeholder="Ex: Offre Flash" />
+                        <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase mb-4" placeholder="Ex: Offre Flash" />
                         
                         <label className="text-sm font-bold mt-4 mb-2 block">Produit en promotion :</label>
-                        <select value={settings.selectedProduct || ''} onChange={e => setSettings({ ...settings, selectedProduct: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white cursor-pointer">
+                        <select value={settings.selectedProduct || ''} onChange={e => setSettings({ ...settings, selectedProduct: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white cursor-pointer mb-4">
                             <option value="">Sélectionner un produit...</option>
                             {products?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
+
+                        <label className="text-sm font-bold mb-2 block">Texte du bouton :</label>
+                        <input type="text" value={settings.buttonText || ''} onChange={e => setSettings({ ...settings, buttonText: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold mb-4" placeholder="Ex: Profiter de l'offre" />
+
+                        <label className="text-sm font-bold mb-2 block">Description personnalisée (Optionnel) :</label>
+                        <textarea value={settings.customDescription || ''} onChange={e => setSettings({ ...settings, customDescription: e.target.value })} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm mb-4 resize-none h-20 custom-scrollbar" placeholder="Laissez vide pour utiliser la description du produit..." />
                     </div>
                 )}
 
@@ -456,11 +490,40 @@ function ShopPageBuilder({ categories, products, shopId }: { categories: string[
     }
   }
 
+  const generateAutoLayout = () => {
+      const hasCategories = categories.filter(c => c !== 'Toutes' && c !== 'Favoris').length > 0;
+      const hasPromos = products.some(p => p.oldPrice && p.oldPrice > p.price);
+      
+      const newLayout: WidgetProps[] = [];
+      
+      if (hasCategories) {
+          newLayout.push({ id: `category-grid-${Date.now()}-1`, type: 'category-grid', name: 'Grille de Catégories', settings: { categories: [], layout: 'carousel' } });
+      }
+
+      newLayout.push({ id: `new-arrivals-${Date.now()}-2`, type: 'new-arrivals', name: 'Nouveautés', settings: { title: 'Nouveautés', layout: 'marquee' } });
+      
+      if (hasPromos) {
+          const promoProduct = products.find(p => p.oldPrice && p.oldPrice > p.price);
+          newLayout.push({ id: `promo-day-${Date.now()}-3`, type: 'promo-day', name: 'Promo du Jour', settings: { title: 'Offre Spéciale', selectedProduct: promoProduct?.id } });
+      }
+
+      newLayout.push({ id: `best-sellers-${Date.now()}-4`, type: 'best-sellers', name: 'Meilleures Ventes', settings: { title: 'Les plus populaires', layout: 'grid' } });
+
+      setPageWidgets(newLayout);
+  };
+
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
         <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
-        <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Mettre à jour mon site</h2>
-        <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Faites glisser et déposez des composants pour construire votre page d&apos;accueil.</p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
+            <div>
+                <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-2">Mettre à jour mon site</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 max-w-xl">Faites glisser et déposez des composants pour construire votre page d'accueil ou laissez l'IA le faire.</p>
+            </div>
+            <button onClick={generateAutoLayout} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-6 py-3 rounded-xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition-transform shadow-lg shrink-0">
+                <Sparkles size={16} /> Suggestions (IA)
+            </button>
+        </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
@@ -513,48 +576,61 @@ interface CategoryGridWidgetProps {
     categories: string[];
     setActiveCategory: (category: string) => void;
     categoryCovers?: Record<string, string>;
+    layout?: 'grid' | 'carousel';
 }
 
-const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {} }: CategoryGridWidgetProps) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
-    {categories.map((cat) => (
-        <div 
-        key={cat}
-        onClick={() => setActiveCategory(cat)}
-        className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
-        >
-        <img 
-            src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${cat}`} 
-            alt={cat}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-        />
-        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
-            <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
-            <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
-            Voir la collection
-            </span>
+const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {}, layout = 'grid' }: CategoryGridWidgetProps) => {
+    if (layout === 'carousel') {
+        return (
+            <div className="flex overflow-x-auto gap-4 pb-4 custom-scrollbar snap-x animate-in fade-in">
+                {categories.map((cat: string) => (
+                    <div key={cat} onClick={() => setActiveCategory(cat)} className="snap-start shrink-0 w-48 h-64 rounded-3xl overflow-hidden cursor-pointer relative group">
+                        <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center p-4 text-center">
+                            <h3 className="text-xl font-black text-white uppercase tracking-tighter drop-shadow-md">{cat}</h3>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
+        {categories.map((cat) => (
+            <div key={cat} onClick={() => setActiveCategory(cat)} className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800">
+                <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
+                    <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
+                    <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                    Voir la collection
+                    </span>
+                </div>
+            </div>
+        ))}
         </div>
-        </div>
-    ))}
-    </div>
-);
+    );
+};
 
-const PromoBannerWidget = ({ imageUrl, onClick }: { imageUrl?: string, onClick?: () => void }) => (
-    <div 
-        onClick={onClick}
-        className={`w-full max-w-[600px] mx-auto h-[200px] rounded-[2rem] overflow-hidden relative my-8 shadow-xl flex items-center justify-center bg-black transition-all ${onClick ? 'cursor-pointer hover:shadow-2xl hover:scale-[1.02]' : ''}`}
-        style={{
-            backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-            backgroundAttachment: 'fixed',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'cover'
-        }}
-    >
-        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
-        {!imageUrl && <p className="relative z-10 text-white font-black text-xl opacity-50 uppercase tracking-widest text-center px-4">Bannière Promotionnelle<br/><span className="text-sm">Parallax (600x200)</span></p>}
-    </div>
-);
+const PromoBannerWidget = ({ settings, onClick }: { settings?: any, onClick?: () => void }) => {
+    const heightClass = settings?.height === 'small' ? 'h-[150px]' : settings?.height === 'large' ? 'h-[400px]' : 'h-[250px]';
+    return (
+        <div 
+            onClick={onClick}
+            className={`w-full max-w-[800px] mx-auto ${heightClass} rounded-[2.5rem] overflow-hidden relative my-8 shadow-xl flex items-center justify-center bg-black transition-all ${onClick ? 'cursor-pointer hover:shadow-2xl hover:scale-[1.02]' : ''}`}
+            style={{
+                backgroundImage: settings?.imageUrl ? `url(${settings.imageUrl})` : undefined,
+                backgroundAttachment: 'fixed',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover'
+            }}
+        >
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
+            {!settings?.imageUrl && !settings?.textOverlay && <p className="relative z-10 text-white font-black text-xl opacity-50 uppercase tracking-widest text-center px-4">Bannière Promotionnelle<br/><span className="text-sm">Parallax</span></p>}
+            {settings?.textOverlay && <h3 className="relative z-10 text-white font-black text-3xl md:text-5xl uppercase tracking-tighter text-center px-6 drop-shadow-2xl">{settings.textOverlay}</h3>}
+        </div>
+    );
+};
 
 const PromoDayWidget = ({ settings, products, onViewProduct, addToCart, currency, cart }: any) => {
     const product = products.find((p: any) => String(p.id) === String(settings?.selectedProduct));
@@ -569,13 +645,13 @@ const PromoDayWidget = ({ settings, products, onViewProduct, addToCart, currency
             <div className="w-full md:w-1/2 relative z-10 text-white">
                 <h3 className="text-[#39FF14] font-black uppercase tracking-widest text-sm mb-2">{settings?.title || "Offre du Jour"}</h3>
                 <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">{product.name}</h2>
-                <p className="text-zinc-400 mb-8 line-clamp-3">{product.description}</p>
+                <p className="text-zinc-400 mb-8 line-clamp-3">{settings?.customDescription || product.description}</p>
                 <div className="flex items-center gap-4 mb-8">
                     <span className="text-4xl font-black">{displayPrice(product.price, currency)}</span>
                     {((product.oldPrice || product.old_price) || 0) > product.price && <span className="text-xl text-zinc-500 line-through">{displayPrice(product.oldPrice || product.old_price, currency)}</span>}
                 </div>
                 <button onClick={() => { if ((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) { onViewProduct(product); } else { addToCart(product, undefined, false); } }} disabled={isOutOfStock || isMaxedOut} className="bg-[#39FF14] text-black px-8 py-4 rounded-full font-black uppercase text-sm hover:bg-white transition-colors disabled:opacity-50 shadow-[0_10px_30px_rgba(57,255,20,0.3)] w-full sm:w-auto text-center">
-                    {isOutOfStock ? 'Épuisé' : 'Profiter de l\'offre'}
+                    {isOutOfStock ? 'Épuisé' : (settings?.buttonText || 'Profiter de l\'offre')}
                 </button>
             </div>
             <div className="w-full md:w-1/2 relative z-10 flex justify-center">
@@ -957,10 +1033,10 @@ export default function OnyxJaayShop() {
     switch (widgetType) {
       case 'category-grid':
         const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
-        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo.categoryCovers} />;
+        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo.categoryCovers} layout={widget.settings?.layout} />;
       case 'promo-banner':
         return <PromoBannerWidget 
-            imageUrl={widget.settings?.imageUrl} 
+            settings={widget.settings} 
             onClick={(!isEditingMode && widget.settings?.linkType) ? () => {
                 if (widget.settings.linkType === 'category' && widget.settings.linkTarget) setActiveCategory(widget.settings.linkTarget);
                 else if (widget.settings.linkType === 'product' && widget.settings.linkTarget) {
@@ -969,13 +1045,13 @@ export default function OnyxJaayShop() {
                 }
             } : undefined} />;
       case 'new-arrivals':
-        return <NewArrivalsWidget title={widget.settings?.title} products={products} selectedProductIds={widget.settings?.selectedProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
+        return <NewArrivalsWidget settings={widget.settings} products={products} selectedProductIds={widget.settings?.selectedProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
       case 'best-sellers':
         const bestSellersProducts = [...products].sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
-        return <NewArrivalsWidget title={widget.settings?.title || 'Meilleures Ventes'} products={bestSellersProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
+        return <NewArrivalsWidget settings={widget.settings} products={bestSellersProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
       case 'featured-category':
         const featProducts = products.filter(p => p.category === widget.settings?.category);
-        return <NewArrivalsWidget title={widget.settings?.title || widget.settings?.category} products={featProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
+        return <NewArrivalsWidget settings={widget.settings} products={featProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
       case 'promo-day':
         return <PromoDayWidget settings={widget.settings} products={products} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
       default:

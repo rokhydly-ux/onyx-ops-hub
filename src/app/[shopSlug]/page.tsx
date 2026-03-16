@@ -42,48 +42,61 @@ interface CategoryGridWidgetProps {
     categories: string[];
     setActiveCategory: (cat: string) => void;
     categoryCovers?: Record<string, string>;
+    layout?: 'grid' | 'carousel';
 }
 
-const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {} }: CategoryGridWidgetProps) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
-    {categories.map((cat) => (
-        <div 
-        key={cat}
-        onClick={() => setActiveCategory(cat)}
-        className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
-        >
-        <img 
-            src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} 
-            alt={cat}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-        />
-        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
-            <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
-            <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
-            Voir la collection
-            </span>
+const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {}, layout = 'grid' }: CategoryGridWidgetProps) => {
+    if (layout === 'carousel') {
+        return (
+            <div className="flex overflow-x-auto gap-4 pb-4 custom-scrollbar snap-x animate-in fade-in">
+                {categories.map((cat: string) => (
+                    <div key={cat} onClick={() => setActiveCategory(cat)} className="snap-start shrink-0 w-48 h-64 rounded-3xl overflow-hidden cursor-pointer relative group">
+                        <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center p-4 text-center">
+                            <h3 className="text-xl font-black text-white uppercase tracking-tighter drop-shadow-md">{cat}</h3>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
+        {categories.map((cat) => (
+            <div key={cat} onClick={() => setActiveCategory(cat)} className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800">
+                <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
+                    <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
+                    <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                    Voir la collection
+                    </span>
+                </div>
+            </div>
+        ))}
         </div>
-        </div>
-    ))}
-    </div>
-);
+    );
+};
 
-const PromoBannerWidget = ({ imageUrl, onClick }: { imageUrl?: string, onClick?: () => void }) => (
-    <div 
-        onClick={onClick}
-        className={`w-full max-w-[600px] mx-auto h-[200px] rounded-[2rem] overflow-hidden relative my-8 shadow-xl flex items-center justify-center bg-black transition-all ${onClick ? 'cursor-pointer hover:shadow-2xl hover:scale-[1.02]' : ''}`}
-        style={{
-            backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-            backgroundAttachment: 'fixed',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'cover'
-        }}
-    >
-        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
-        {!imageUrl && <p className="relative z-10 text-white font-black text-xl opacity-50 uppercase tracking-widest text-center px-4">Bannière Promotionnelle<br/><span className="text-sm">Parallax (600x200)</span></p>}
-    </div>
-);
+const PromoBannerWidget = ({ settings, onClick }: { settings?: any, onClick?: () => void }) => {
+    const heightClass = settings?.height === 'small' ? 'h-[150px]' : settings?.height === 'large' ? 'h-[400px]' : 'h-[250px]';
+    return (
+        <div 
+            onClick={onClick}
+            className={`w-full max-w-[800px] mx-auto ${heightClass} rounded-[2.5rem] overflow-hidden relative my-8 shadow-xl flex items-center justify-center bg-black transition-all ${onClick ? 'cursor-pointer hover:shadow-2xl hover:scale-[1.02]' : ''}`}
+            style={{
+                backgroundImage: settings?.imageUrl ? `url(${settings.imageUrl})` : undefined,
+                backgroundAttachment: 'fixed',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover'
+            }}
+        >
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
+            {!settings?.imageUrl && !settings?.textOverlay && <p className="relative z-10 text-white font-black text-xl opacity-50 uppercase tracking-widest text-center px-4">Bannière Promotionnelle<br/><span className="text-sm">Parallax</span></p>}
+            {settings?.textOverlay && <h3 className="relative z-10 text-white font-black text-3xl md:text-5xl uppercase tracking-tighter text-center px-6 drop-shadow-2xl">{settings.textOverlay}</h3>}
+        </div>
+    );
+};
 
 const PromoDayWidget = ({ settings, products, onViewProduct, addToCart, currency, cart }: any) => {
     const product = products.find((p: any) => String(p.id) === String(settings?.selectedProduct));
@@ -98,13 +111,13 @@ const PromoDayWidget = ({ settings, products, onViewProduct, addToCart, currency
             <div className="w-full md:w-1/2 relative z-10 text-white">
                 <h3 className="text-[#39FF14] font-black uppercase tracking-widest text-sm mb-2">{settings?.title || "Offre du Jour"}</h3>
                 <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">{product.name}</h2>
-                <p className="text-zinc-400 mb-8 line-clamp-3">{product.description}</p>
+                <p className="text-zinc-400 mb-8 line-clamp-3">{settings?.customDescription || product.description}</p>
                 <div className="flex items-center gap-4 mb-8">
                     <span className="text-4xl font-black">{displayPrice(product.price, currency)}</span>
                     {((product.oldPrice || product.old_price) || 0) > product.price && <span className="text-xl text-zinc-500 line-through">{displayPrice(product.oldPrice || product.old_price, currency)}</span>}
                 </div>
                 <button onClick={() => { if ((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) { onViewProduct(product); } else { addToCart(product, undefined, false); } }} disabled={isOutOfStock || isMaxedOut} className="bg-[#39FF14] text-black px-8 py-4 rounded-full font-black uppercase text-sm hover:bg-white transition-colors disabled:opacity-50 shadow-[0_10px_30px_rgba(57,255,20,0.3)] w-full sm:w-auto text-center">
-                    {isOutOfStock ? 'Épuisé' : 'Profiter de l\'offre'}
+                    {isOutOfStock ? 'Épuisé' : (settings?.buttonText || 'Profiter de l\'offre')}
                 </button>
             </div>
             <div className="w-full md:w-1/2 relative z-10 flex justify-center">
@@ -627,6 +640,8 @@ export default function DynamicShopPage() {
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'popular' | null>(null);
   const [categories, setCategories] = useState<string[]>(['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires']);
+  const [activeColor, setActiveColor] = useState<string | null>(null);
+  const [availableColors, setAvailableColors] = useState<string[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [viewingProduct, setViewingProduct] = useState<any | null>(null);
@@ -767,6 +782,14 @@ export default function DynamicShopPage() {
         const uniqueCategories = Array.from(new Set(shopProducts.map((p:any) => p.category).filter(Boolean))) as string[];
         const adminCats = shop.categories || [];
         setCategories(Array.from(new Set(["Toutes", "Favoris", ...adminCats, ...uniqueCategories])));
+
+        const colorsSet = new Set<string>();
+        shopProducts.forEach((p: any) => {
+            if (p.variants?.colors && Array.isArray(p.variants.colors)) {
+                p.variants.colors.forEach((c: string) => colorsSet.add(c));
+            }
+        });
+        setAvailableColors(Array.from(colorsSet));
       }
       setIsLoading(false);
     };
@@ -974,10 +997,10 @@ export default function DynamicShopPage() {
     switch (widgetType) {
       case 'category-grid':
         const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
-        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo?.category_covers || {}} />;
+        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo?.category_covers || {}} layout={widget.settings?.layout} />;
       case 'promo-banner':
         return <PromoBannerWidget 
-            imageUrl={widget.settings?.imageUrl} 
+            settings={widget.settings} 
             onClick={widget.settings?.linkType ? () => {
                 if (widget.settings.linkType === 'category' && widget.settings.linkTarget) setActiveCategory(widget.settings.linkTarget);
                 else if (widget.settings.linkType === 'product' && widget.settings.linkTarget) {
@@ -986,13 +1009,13 @@ export default function DynamicShopPage() {
                 }
             } : undefined} />;
       case 'new-arrivals':
-        return <NewArrivalsWidget title={widget.settings?.title} products={products} selectedProductIds={widget.settings?.selectedProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
+        return <NewArrivalsWidget settings={widget.settings} products={products} selectedProductIds={widget.settings?.selectedProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
       case 'best-sellers':
         const bestSellersProducts = [...products].sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
-        return <NewArrivalsWidget title={widget.settings?.title || 'Meilleures Ventes'} products={bestSellersProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
+        return <NewArrivalsWidget settings={widget.settings} products={bestSellersProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
       case 'featured-category':
         const featProducts = products.filter(p => p.category === widget.settings?.category);
-        return <NewArrivalsWidget title={widget.settings?.title || widget.settings?.category} products={featProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
+        return <NewArrivalsWidget settings={widget.settings} products={featProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
       case 'promo-day':
         return <PromoDayWidget settings={widget.settings} products={products} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
       default:
@@ -1247,8 +1270,9 @@ export default function DynamicShopPage() {
     const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
     const matchesMinPrice = minPrice === '' || (p.price || 0) >= Number(minPrice);
     const matchesMaxPrice = maxPrice === '' || (p.price || 0) <= Number(maxPrice);
+    const matchesColor = activeColor === null || (p.variants?.colors && Array.isArray(p.variants.colors) && p.variants.colors.includes(activeColor));
 
-    return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
+    return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch && matchesColor;
   }).sort((a, b) => {
     if (sortOrder === 'asc') return (a.price || 0) - (b.price || 0);
     if (sortOrder === 'desc') return (b.price || 0) - (a.price || 0);
@@ -1273,7 +1297,7 @@ export default function DynamicShopPage() {
                 
                 <nav className="px-4 space-y-2 mb-8">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
-                  <button onClick={() => { setSearchTerm(''); setActiveCategory('Toutes'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:text-black dark:hover:text-white`}>
+                  <button onClick={() => { setSearchTerm(''); setActiveCategory('Toutes'); setActiveColor(null); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:text-black dark:hover:text-white`}>
                     <Store size={18} /> Accueil
                   </button>
                   <button onClick={() => { setIsTrackingModalOpen(true); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:text-black dark:hover:text-white`}>
@@ -1297,6 +1321,17 @@ export default function DynamicShopPage() {
                     </button>
                   ))}
                 </div>
+
+                {availableColors.length > 0 && (
+                  <div className="px-4 space-y-2 mt-8">
+                    <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Couleurs</p>
+                    <div className="flex flex-wrap gap-2 px-4">
+                      {availableColors.map(color => (
+                        <button key={color} onClick={() => setActiveColor(activeColor === color ? null : color)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor === color ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="px-4 space-y-2 mt-8">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2"><Filter size={12}/> Prix ({shopInfo.currency})</p>
@@ -1324,7 +1359,7 @@ export default function DynamicShopPage() {
           
           <nav className="px-4 space-y-2 mb-8">
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
-            <button onClick={() => { setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+            <button onClick={() => { setSearchTerm(''); setActiveCategory('Toutes'); setActiveColor(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
               <Store size={18} /> Accueil
             </button>
             <button onClick={() => setIsTrackingModalOpen(true)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
@@ -1345,6 +1380,17 @@ export default function DynamicShopPage() {
               </button>
             ))}
           </div>
+
+          {availableColors.length > 0 && (
+            <div className="px-4 space-y-2 mt-8">
+              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Couleurs</p>
+              <div className="flex flex-wrap gap-2 px-4">
+                {availableColors.map(color => (
+                  <button key={color} onClick={() => setActiveColor(activeColor === color ? null : color)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor === color ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="px-4 space-y-2 mt-8">
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2"><Filter size={12}/> Prix ({shopInfo.currency})</p>
