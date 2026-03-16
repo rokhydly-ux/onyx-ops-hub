@@ -130,7 +130,10 @@ const initialShopInfo = {
   slug: '',
   categoryCovers: {} as Record<string, string>,
   instagramUrl: '',
-  facebookUrl: ''
+  facebookUrl: '',
+  tiktokUrl: '',
+  twitterUrl: '',
+  youtubeUrl: ''
 };
 
 const CONVERSION_RATES: Record<string, { rate: number; symbol: string }> = {
@@ -219,7 +222,7 @@ function SortableWidget({ id, name, settings, type, onEdit, onDelete }: WidgetPr
       <div className="flex justify-between items-start mb-2">
         <div {...attributes} {...listeners} className="flex-1 cursor-grab font-bold flex items-center">
           {name}
-          <span className="ml-2 text-[10px] font-normal text-zinc-500 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md">{type || id.split('-')[0]}</span>
+          <span className="ml-2 text-[10px] font-normal text-zinc-500 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md">{type || (id.startsWith('category-grid') ? 'category-grid' : id.startsWith('promo-banner') ? 'promo-banner' : id.startsWith('new-arrivals') ? 'new-arrivals' : id.startsWith('best-sellers') ? 'best-sellers' : id.startsWith('featured-category') ? 'featured-category' : id.startsWith('promo-day') ? 'promo-day' : id.split('-')[0])}</span>
         </div>
         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
            {onEdit && <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1.5 bg-zinc-100 dark:bg-zinc-700 rounded text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"><Edit size={14}/></button>}
@@ -265,7 +268,7 @@ function DroppableCanvas({ children }: { children: React.ReactNode }) {
 
 function WidgetSettingsModal({ widget, onClose, onSave, categories, products }: any) {
     const [settings, setSettings] = useState(widget.settings || {});
-    const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : '');
+    const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : widget.id.startsWith('best-sellers') ? 'best-sellers' : widget.id.startsWith('featured-category') ? 'featured-category' : widget.id.startsWith('promo-day') ? 'promo-day' : '');
 
     const toggleCategory = (cat: string) => {
         const current = settings.categories || [];
@@ -342,20 +345,50 @@ function WidgetSettingsModal({ widget, onClose, onSave, categories, products }: 
                     </div>
                 )}
 
-                {widgetType === 'new-arrivals' && (
+                {(widgetType === 'new-arrivals' || widgetType === 'best-sellers') && (
                     <div>
                         <label className="text-sm font-bold mb-2 block">Titre de la section :</label>
                         <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase" placeholder="Ex: Nouveautés" />
                         
-                        <label className="text-sm font-bold mt-4 mb-2 block">Sélectionner des produits (Optionnel) :</label>
-                        <div className="max-h-40 overflow-y-auto space-y-2 custom-scrollbar p-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                            {products?.map((p: any) => (
-                                <label key={p.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition">
-                                    <input type="checkbox" checked={(settings.selectedProducts || []).includes(p.id)} onChange={(e) => { const curr = settings.selectedProducts || []; setSettings({ ...settings, selectedProducts: e.target.checked ? [...curr, p.id] : curr.filter((id: number) => id !== p.id) }); }} className="w-4 h-4 accent-black dark:accent-[#39FF14]" />
-                                    <span className="text-xs font-bold text-black dark:text-white truncate">{p.name}</span>
-                                </label>
-                            ))}
-                        </div>
+                        {widgetType === 'new-arrivals' && (
+                            <>
+                                <label className="text-sm font-bold mt-4 mb-2 block">Sélectionner des produits (Optionnel) :</label>
+                                <div className="max-h-40 overflow-y-auto space-y-2 custom-scrollbar p-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                    {products?.map((p: any) => (
+                                        <label key={p.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition">
+                                            <input type="checkbox" checked={(settings.selectedProducts || []).includes(p.id)} onChange={(e) => { const curr = settings.selectedProducts || []; setSettings({ ...settings, selectedProducts: e.target.checked ? [...curr, p.id] : curr.filter((id: number) => id !== p.id) }); }} className="w-4 h-4 accent-black dark:accent-[#39FF14]" />
+                                            <span className="text-xs font-bold text-black dark:text-white truncate">{p.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {widgetType === 'featured-category' && (
+                    <div>
+                        <label className="text-sm font-bold mb-2 block">Titre de la section :</label>
+                        <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase" placeholder="Ex: Notre Sélection" />
+                        
+                        <label className="text-sm font-bold mt-4 mb-2 block">Catégorie à mettre en avant :</label>
+                        <select value={settings.category || ''} onChange={e => setSettings({ ...settings, category: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white cursor-pointer">
+                            <option value="">Sélectionner une catégorie...</option>
+                            {categories.filter((c: string) => c !== 'Toutes' && c !== 'Favoris').map((c: string) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                )}
+
+                {widgetType === 'promo-day' && (
+                    <div>
+                        <label className="text-sm font-bold mb-2 block">Titre de l'encart :</label>
+                        <input type="text" value={settings.title || ''} onChange={e => setSettings({ ...settings, title: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold uppercase" placeholder="Ex: Offre Flash" />
+                        
+                        <label className="text-sm font-bold mt-4 mb-2 block">Produit en promotion :</label>
+                        <select value={settings.selectedProduct || ''} onChange={e => setSettings({ ...settings, selectedProduct: e.target.value })} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white cursor-pointer">
+                            <option value="">Sélectionner un produit...</option>
+                            {products?.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
                     </div>
                 )}
 
@@ -803,7 +836,10 @@ export default function OnyxJaayShop() {
               slug: shop.slug || '',
               categoryCovers: shop.category_covers || {},
               instagramUrl: shop.instagram_url || '',
-              facebookUrl: shop.facebook_url || ''
+              facebookUrl: shop.facebook_url || '',
+              tiktokUrl: shop.tiktok_url || '',
+              twitterUrl: shop.twitter_url || '',
+              youtubeUrl: shop.youtube_url || ''
           });
 
           const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
@@ -917,7 +953,7 @@ export default function OnyxJaayShop() {
   }, [plannedEvents]);
 
   const renderWidget = (widget: WidgetProps) => {
-    const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : '');
+    const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : widget.id.startsWith('best-sellers') ? 'best-sellers' : widget.id.startsWith('featured-category') ? 'featured-category' : widget.id.startsWith('promo-day') ? 'promo-day' : '');
     switch (widgetType) {
       case 'category-grid':
         const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
@@ -4076,7 +4112,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   {/* VARIANTS SELECTION */}
                   {product?.variants?.sizes && Array.isArray(product.variants.sizes) && product.variants.sizes.length > 0 && (
                     <div className="mb-6">
-                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Taille</p>
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Taille <span className="text-red-500">* (Obligatoire)</span></p>
                       <div className="flex flex-wrap gap-2">
                         {product.variants.sizes.map((size: string) => (
                           <button 
@@ -4093,7 +4129,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
                   {product?.variants?.colors && Array.isArray(product.variants.colors) && product.variants.colors.length > 0 && (
                     <div className="mb-6">
-                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Couleur</p>
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Couleur <span className="text-red-500">* (Obligatoire)</span></p>
                       <div className="flex flex-wrap gap-2">
                         {product.variants.colors.map((color: string) => (
                           <button 
@@ -5800,7 +5836,10 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
         categories: categories,
         category_covers: shopInfo.categoryCovers || {},
         instagram_url: shopInfo.instagramUrl,
-        facebook_url: shopInfo.facebookUrl
+        facebook_url: shopInfo.facebookUrl,
+        tiktok_url: shopInfo.tiktokUrl,
+        twitter_url: shopInfo.twitterUrl,
+        youtube_url: shopInfo.youtubeUrl
     }).eq('id', shopId);
     if (error) { alert("Erreur lors de la sauvegarde des paramètres : " + error.message); } else { alert("Paramètres de la boutique mis à jour avec succès !"); }
   };
@@ -5905,6 +5944,21 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                           <input type="checkbox" checked={shopInfo.deliveryOptions?.pickup !== false} onChange={(e) => setShopInfo({...shopInfo, deliveryOptions: { ...shopInfo.deliveryOptions, pickup: e.target.checked }})} className="w-5 h-5 accent-[#39FF14]" />
                           <span className="text-sm font-bold text-black dark:text-white">Retrait en boutique</span>
                       </label>
+                  </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Lien TikTok</label>
+                      <input type="url" value={shopInfo.tiktokUrl || ''} onChange={(e) => setShopInfo({...shopInfo, tiktokUrl: e.target.value})} placeholder="https://tiktok.com/@..." className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+                  </div>
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Lien X (Twitter)</label>
+                      <input type="url" value={shopInfo.twitterUrl || ''} onChange={(e) => setShopInfo({...shopInfo, twitterUrl: e.target.value})} placeholder="https://x.com/..." className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+                  </div>
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Lien YouTube</label>
+                      <input type="url" value={shopInfo.youtubeUrl || ''} onChange={(e) => setShopInfo({...shopInfo, youtubeUrl: e.target.value})} placeholder="https://youtube.com/..." className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
                   </div>
               </div>
 
