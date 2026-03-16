@@ -3329,6 +3329,7 @@ interface ProductModalProps {
 
 function ProductModal({ product, onClose, onSave, onImageUpload, categories, currency }: ProductModalProps) {
     const [isGenerating, setIsGenerating] = useState(false);
+    const [galleryUrlInput, setGalleryUrlInput] = useState('');
     
     // Simulateur de Rentabilité
     const [simulator, setSimulator] = useState({
@@ -3384,9 +3385,21 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
         onSave({ ...product, ...formData } as Product);
     };
 
+    const handleAddGalleryUrl = () => {
+        if (!galleryUrlInput) return;
+        if ((formData.gallery?.length || 0) >= 7) {
+            return alert("Vous ne pouvez ajouter que 7 images supplémentaires maximum.");
+        }
+        setFormData(prev => ({ ...prev, gallery: [...(prev.gallery || []), galleryUrlInput] }));
+        setGalleryUrlInput('');
+    };
+
     const handleAddGalleryImage = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
+        let currentLength = formData.gallery?.length || 0;
         files.forEach(file => {
+            if (currentLength >= 7) return;
+            currentLength++;
             const reader = new FileReader();
             reader.onloadend = () => {
                 setFormData(prev => ({ ...prev, gallery: [...(prev.gallery || []), reader.result as string] }));
@@ -3397,6 +3410,16 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
 
     const removeGalleryImage = (index: number) => {
         setFormData(prev => ({ ...prev, gallery: prev.gallery?.filter((_, i) => i !== index) }));
+    };
+
+    const moveGalleryImage = (index: number, direction: 'left' | 'right') => {
+        const newGallery = [...(formData.gallery || [])];
+        if (direction === 'left' && index > 0) {
+            [newGallery[index - 1], newGallery[index]] = [newGallery[index], newGallery[index - 1]];
+        } else if (direction === 'right' && index < newGallery.length - 1) {
+            [newGallery[index + 1], newGallery[index]] = [newGallery[index], newGallery[index + 1]];
+        }
+        setFormData(prev => ({ ...prev, gallery: newGallery }));
     };
 
     const handleGenerateIA = () => {
@@ -3537,14 +3560,39 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 </div>
                             </div>
                             <div className="relative group pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                            <label className="text-xs font-bold text-zinc-500 uppercase mb-3 block">Galerie d&apos;images supplémentaires</label>
-                                <input type="file" accept="image/*" multiple onChange={handleAddGalleryImage} className="w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] hover:file:text-black transition cursor-pointer mb-4" />
+                            <label className="text-xs font-bold text-zinc-500 uppercase mb-3 flex justify-between items-center">
+                                Galerie d&apos;images supplémentaires
+                                <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded-md text-zinc-600 dark:text-zinc-300">{(formData.gallery?.length || 0)} / 7</span>
+                            </label>
+                                <div className="flex flex-col gap-3 mb-4">
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="url" 
+                                            placeholder="Coller l'URL d'une image..." 
+                                            value={galleryUrlInput} 
+                                            onChange={(e) => setGalleryUrlInput(e.target.value)} 
+                                            className="flex-1 text-xs bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 text-black dark:text-white outline-none focus:border-[#39FF14] transition-all"
+                                            disabled={(formData.gallery?.length || 0) >= 7}
+                                        />
+                                        <button type="button" onClick={handleAddGalleryUrl} disabled={(formData.gallery?.length || 0) >= 7 || !galleryUrlInput} className="bg-black text-[#39FF14] px-4 rounded-lg text-xs font-bold uppercase disabled:opacity-50">Ajouter</button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-zinc-500">OU</span>
+                                        <input type="file" accept="image/*" multiple onChange={handleAddGalleryImage} disabled={(formData.gallery?.length || 0) >= 7} className="flex-1 text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] hover:file:text-black transition cursor-pointer disabled:opacity-50" />
+                                    </div>
+                                </div>
                                 {(formData.gallery?.length || 0) > 0 && (
                                     <div className="flex flex-wrap gap-3">
                                         {formData.gallery?.map((img, idx) => (
                                             <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 group/gal shadow-sm">
                                                 <img src={img} className="w-full h-full object-cover bg-zinc-100 dark:bg-zinc-900" />
-                                                <button type="button" onClick={() => removeGalleryImage(idx)} className="absolute inset-0 bg-red-500/90 text-white flex items-center justify-center opacity-0 group-hover/gal:opacity-100 transition-all"><Trash2 size={16}/></button>
+                                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover/gal:opacity-100 transition-all">
+                                                    <div className="flex gap-1 mb-1">
+                                                        <button type="button" onClick={() => moveGalleryImage(idx, 'left')} disabled={idx === 0} className="text-white hover:text-[#39FF14] disabled:opacity-30"><ChevronLeft size={14}/></button>
+                                                        <button type="button" onClick={() => moveGalleryImage(idx, 'right')} disabled={idx === (formData.gallery?.length || 0) - 1} className="text-white hover:text-[#39FF14] disabled:opacity-30"><ChevronRight size={14}/></button>
+                                                    </div>
+                                                    <button type="button" onClick={() => removeGalleryImage(idx)} className="text-red-400 hover:text-red-500"><Trash2 size={14}/></button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -3991,8 +4039,8 @@ interface ProductDetailModalProps {
 }
 
 function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: ProductDetailModalProps) {
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedQty, setSelectedQty] = useState(1);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
   const [mediaView, setMediaView] = useState<'image' | 'video'>('image');
@@ -4034,8 +4082,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
   React.useEffect(() => {
     if (product) {
-      setSelectedSize(null);
-      setSelectedColor(null);
+      setSelectedSizes([]);
+      setSelectedColors([]);
       setSelectedQty(1);
       setMediaView('image');
       setActiveImage(product.image);
@@ -4215,8 +4263,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         {product.variants.sizes.map((size: string) => (
                           <button 
                             key={size} 
-                            onClick={() => setSelectedSize(size)}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedSize === size ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                            onClick={() => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedSizes.includes(size) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
                           >
                             {size}
                           </button>
@@ -4232,8 +4280,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         {product.variants.colors.map((color: string) => (
                           <button 
                             key={color} 
-                            onClick={() => setSelectedColor(color)}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedColor === color ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                            onClick={() => setSelectedColors(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedColors.includes(color) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
                           >
                             {color}
                           </button>
@@ -4270,9 +4318,9 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   <div className="flex flex-col sm:flex-row gap-3">
                       <button 
                         onClick={() => { 
-                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
-                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true, selectedQty || 1); 
+                          if ((product.variants?.sizes?.length || 0) > 0 && selectedSizes.length === 0) return alert("Veuillez sélectionner au moins une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && selectedColors.length === 0) return alert("Veuillez sélectionner au moins une couleur.");
+                          onAddToCart(product, { size: selectedSizes.join(', ') || undefined, color: selectedColors.join(', ') || undefined }, true, selectedQty || 1); 
                           onClose();
                         }} 
                         disabled={isOutOfStock || selectedQty === 0}
@@ -4282,9 +4330,9 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                       </button>
                       <button 
                         onClick={() => { 
-                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
-                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }, selectedQty || 1); 
+                          if ((product.variants?.sizes?.length || 0) > 0 && selectedSizes.length === 0) return alert("Veuillez sélectionner au moins une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && selectedColors.length === 0) return alert("Veuillez sélectionner au moins une couleur.");
+                          onBuyDirectly(product, { size: selectedSizes.join(', ') || undefined, color: selectedColors.join(', ') || undefined }, selectedQty || 1); 
                           onClose();
                         }} 
                         disabled={isOutOfStock || selectedQty === 0}
@@ -6144,13 +6192,33 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                     )}
                  </div>
                  {cat !== 'Toutes' && cat !== 'Favoris' && (
-                   <input 
-                      type="url" 
-                      placeholder="URL de l'image de couverture..." 
-                      value={shopInfo.categoryCovers?.[cat] || ''}
-                      onChange={(e) => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: e.target.value } })}
-                      className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-4 py-2 text-xs outline-none focus:border-[#39FF14] w-full"
-                   />
+                    <div className="flex-1 flex items-center gap-3 w-full">
+                        {shopInfo.categoryCovers?.[cat] && (
+                            <img src={shopInfo.categoryCovers[cat]} alt={cat} className="w-10 h-10 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700 shrink-0" />
+                        )}
+                        <div className="flex-1 flex flex-col gap-2 w-full">
+                            <input 
+                                type="url" 
+                                placeholder="URL de l'image de couverture..." 
+                                value={shopInfo.categoryCovers?.[cat] || ''}
+                                onChange={(e) => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: e.target.value } })}
+                                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#39FF14]"
+                            />
+                            <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: reader.result as string } });
+                                        reader.readAsDataURL(file);
+                                    }
+                                }} 
+                                className="w-full text-[10px] text-zinc-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] transition cursor-pointer" 
+                            />
+                        </div>
+                    </div>
                  )}
               </div>
            ))}

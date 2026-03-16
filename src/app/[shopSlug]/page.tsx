@@ -205,8 +205,8 @@ const INITIAL_ZONES = [
 ];
 
 function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: any) {
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedQty, setSelectedQty] = useState(1);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
   const [mediaView, setMediaView] = useState<'image' | 'video'>('image');
@@ -248,8 +248,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
   React.useEffect(() => {
     if (product) {
-      setSelectedSize(null);
-      setSelectedColor(null);
+      setSelectedSizes([]);
+      setSelectedColors([]);
       setSelectedQty(1);
       setMediaView('image');
       setActiveImage(product.image);
@@ -415,8 +415,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         {product.variants.sizes.map((size: string) => (
                           <button 
                             key={size} 
-                            onClick={() => setSelectedSize(size)}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedSize === size ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                            onClick={() => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedSizes.includes(size) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
                           >
                             {size}
                           </button>
@@ -432,8 +432,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         {product.variants.colors.map((color: string) => (
                           <button 
                             key={color} 
-                            onClick={() => setSelectedColor(color)}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedColor === color ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                            onClick={() => setSelectedColors(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedColors.includes(color) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
                           >
                             {color}
                           </button>
@@ -469,9 +469,9 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   <div className="flex flex-col sm:flex-row gap-3">
                       <button 
                         onClick={() => { 
-                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
-                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true, selectedQty); 
+                          if ((product.variants?.sizes?.length || 0) > 0 && selectedSizes.length === 0) return alert("Veuillez sélectionner au moins une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && selectedColors.length === 0) return alert("Veuillez sélectionner au moins une couleur.");
+                          onAddToCart(product, { size: selectedSizes.join(', ') || undefined, color: selectedColors.join(', ') || undefined }, true, selectedQty); 
                           onClose();
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
@@ -481,9 +481,9 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                       </button>
                       <button 
                         onClick={() => { 
-                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
-                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }, selectedQty); 
+                          if ((product.variants?.sizes?.length || 0) > 0 && selectedSizes.length === 0) return alert("Veuillez sélectionner au moins une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && selectedColors.length === 0) return alert("Veuillez sélectionner au moins une couleur.");
+                          onBuyDirectly(product, { size: selectedSizes.join(', ') || undefined, color: selectedColors.join(', ') || undefined }, selectedQty); 
                           onClose();
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
