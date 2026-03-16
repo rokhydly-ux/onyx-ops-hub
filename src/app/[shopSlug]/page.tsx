@@ -1387,6 +1387,7 @@ export default function DynamicShopPage() {
                       {cat === 'Favoris' && <Heart size={14} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />}
                       {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
                       {cat === 'Favoris' && wishlist.length > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full leading-none">{wishlist.length}</span>}
+                      {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
                     </span>
                       {activeCategory === cat && <ChevronRight size={14} />}
                     </button>
@@ -1489,6 +1490,7 @@ export default function DynamicShopPage() {
                 {cat === 'Favoris' && <Heart size={14} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />}
                 {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
                 {cat === 'Favoris' && wishlist.length > 0 && <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full leading-none">{wishlist.length}</span>}
+                {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
               </span>
                 {activeCategory === cat && <ChevronRight size={14} />}
               </button>
@@ -1763,7 +1765,7 @@ export default function DynamicShopPage() {
               </div>
               <div className="flex flex-col items-center gap-2 mt-8 border-t border-zinc-200 dark:border-zinc-800 pt-6">
                   <p className="text-xs text-zinc-400 dark:text-zinc-600">&copy; {new Date().getFullYear()} {shopInfo.name}. Propulsé par <a href="https://onyxops.com" target="_blank" className="font-bold text-black dark:text-white hover:text-[#39FF14]">OnyxOps</a>.</p>
-                  <button onClick={() => router.push('/login')} className="text-[10px] font-bold text-zinc-300 dark:text-zinc-700 hover:text-black dark:hover:text-white transition-colors uppercase tracking-widest mt-2">Connexion Vendeur</button>
+                  <button onClick={() => router.push('/vente')} className="text-[10px] font-bold text-zinc-300 dark:text-zinc-700 hover:text-black dark:hover:text-white transition-colors uppercase tracking-widest mt-2">Accès Administrateur</button>
               </div>
           </footer>
         </div>

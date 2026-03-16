@@ -761,16 +761,7 @@ export default function OnyxJaayShop() {
     { id: 1, code: 'BIENVENUE10', discount: 10, type: 'percentage', active: true },
     { id: 2, code: 'SOLDE5000', discount: 5000, type: 'fixed', active: false },
   ]);
-  const [shopInfo, setShopInfo] = useState(() => {
-    if (typeof window === 'undefined') return initialShopInfo;
-    try {
-      const saved = localStorage.getItem('onyx_jaay_shop_info');
-      // Merge saved data with initial data to handle new properties
-      return saved ? { ...initialShopInfo, ...JSON.parse(saved) } : initialShopInfo;
-    } catch {
-      return initialShopInfo;
-    }
-  });
+  const [shopInfo, setShopInfo] = useState<typeof initialShopInfo>(initialShopInfo);
   const [promoInput, setPromoInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
@@ -957,7 +948,13 @@ export default function OnyxJaayShop() {
               youtubeUrl: shop.youtube_url || ''
           });
           
+          if (shop.delivery_zones && Array.isArray(shop.delivery_zones) && shop.delivery_zones.length > 0) {
+              setDeliveryZones(shop.delivery_zones);
+          }
+
+          let loadedCategories = ['Toutes', 'Favoris', 'Homme', 'Femme', 'Enfant', 'Sport', 'Accessoires'];
           if (shop.categories && Array.isArray(shop.categories) && shop.categories.length > 0) {
+              loadedCategories = shop.categories;
               setCategories(shop.categories);
           }
 
@@ -970,10 +967,8 @@ export default function OnyxJaayShop() {
             // S'assure que toutes les catégories de produits sont dans la liste des catégories
             const productCats = new Set<string>();
             productsData.forEach((p: any) => { if (p.category) productCats.add(p.category); });
-            setCategories(prev => {
-                const combined = new Set([...prev, ...Array.from(productCats)]);
-                return Array.from(combined);
-            });
+            const combined = new Set([...loadedCategories, ...Array.from(productCats)]);
+            setCategories(Array.from(combined));
 
             setProducts(productsData.map(p => {
                 const productReviews = reviewsData ? reviewsData.filter(r => String(r.reference_id) === String(p.id)) : [];
@@ -1129,14 +1124,6 @@ export default function OnyxJaayShop() {
         console.error("Erreur chargement wishlist", e);
       }
     }
-    const savedZones = localStorage.getItem('onyx_jaay_zones');
-    if (savedZones) {
-      try {
-        setDeliveryZones(JSON.parse(savedZones));
-      } catch (e) {
-        console.error("Erreur chargement zones", e);
-      }
-    }
     const savedViews = localStorage.getItem('onyx_jaay_views');
     if (savedViews) {
       try {
@@ -1168,10 +1155,6 @@ export default function OnyxJaayShop() {
   }, [wishlist]);
 
   useEffect(() => {
-    localStorage.setItem('onyx_jaay_zones', JSON.stringify(deliveryZones));
-  }, [deliveryZones]);
-
-  useEffect(() => {
     localStorage.setItem('onyx_jaay_views', JSON.stringify(productViews));
   }, [productViews]);
 
@@ -1180,25 +1163,8 @@ export default function OnyxJaayShop() {
   }, [viewHistory]);
 
   useEffect(() => {
-    localStorage.setItem('onyx_jaay_shop_info', JSON.stringify(shopInfo));
-  }, [shopInfo]);
-
-  useEffect(() => {
     localStorage.setItem('onyx_jaay_address', customerAddress);
   }, [customerAddress]);
-
-  useEffect(() => {
-    const savedCategories = localStorage.getItem('onyx_jaay_categories');
-    if (savedCategories) {
-      try {
-        setCategories(JSON.parse(savedCategories));
-      } catch (e) {}
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('onyx_jaay_categories', JSON.stringify(categories));
-  }, [categories]);
 
   // --- THEME LOGIC ---
   useEffect(() => {
@@ -2222,7 +2188,11 @@ export default function OnyxJaayShop() {
                           : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
                       }`}
                     >
-                      <span className="flex items-center gap-2 truncate">{cat === 'Favoris' && <Heart size={14} />}{cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}</span>
+                      <span className="flex items-center gap-2 truncate">
+                        {cat === 'Favoris' && <Heart size={14} />}
+                        {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
+                        {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
+                      </span>
                       {activeCategory === cat && <ChevronRight size={14} />}
                     </button>
                   ))}
@@ -2415,6 +2385,7 @@ export default function OnyxJaayShop() {
                 <span className="flex items-center gap-2 truncate">
                   {cat === 'Favoris' && <Heart size={14} />}
                   {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
+                  {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
                 </span>
                 {activeCategory === cat && <ChevronRight size={14} />}
               </button>
@@ -6096,6 +6067,15 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editCategoryName, setEditCategoryName] = useState('');
 
+  const handleSaveCategoriesSilently = async (newCategories: string[], newCovers: any) => {
+      if (shopId) {
+          await supabase.from('shops').update({
+              categories: newCategories,
+              category_covers: newCovers,
+          }).eq('id', shopId);
+      }
+  };
+
   const handleAddCode = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCode.code || !newCode.discount) return;
@@ -6187,7 +6167,8 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
         facebook_url: shopInfo.facebookUrl,
         tiktok_url: shopInfo.tiktokUrl,
         twitter_url: shopInfo.twitterUrl,
-        youtube_url: shopInfo.youtubeUrl
+        youtube_url: shopInfo.youtubeUrl,
+        delivery_zones: deliveryZones
     }).eq('id', shopId);
     if (error) { alert("Erreur lors de la sauvegarde des paramètres : " + error.message); } else { alert("Paramètres de la boutique mis à jour avec succès !"); }
   };
@@ -6196,7 +6177,9 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
     e.preventDefault();
     const finalCat = parentCat ? `${parentCat} / ${newCat}` : newCat;
     if (finalCat && !categories.includes(finalCat)) {
-        setCategories([...categories, finalCat]);
+        const newCats = [...categories, finalCat];
+        setCategories(newCats);
+        handleSaveCategoriesSilently(newCats, shopInfo.categoryCovers || {});
         setNewCat('');
         setParentCat('');
     }
@@ -6205,7 +6188,9 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
   const handleDeleteCategory = (cat: string) => {
     if (cat === 'Toutes' || cat === 'Favoris') return alert("Cette catégorie système ne peut pas être supprimée.");
     if (confirm(`Supprimer la catégorie "${cat}" ? Les produits associés ne seront pas supprimés.`)) {
-        setCategories(categories.filter(c => c !== cat));
+        const newCats = categories.filter(c => c !== cat);
+        setCategories(newCats);
+        handleSaveCategoriesSilently(newCats, shopInfo.categoryCovers || {});
     }
   };
 
@@ -6236,6 +6221,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
            });
       }
       setShopInfo({ ...shopInfo, categoryCovers: newCovers });
+      handleSaveCategoriesSilently(finalCategories, newCovers);
 
       if (shopId) {
           const { data: prods } = await supabase.from('products').select('id, category').eq('shop_id', shopId).ilike('category', `${oldCat}%`);
@@ -6260,7 +6246,9 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
       } else {
           return;
       }
-      setCategories([...fixedCats, ...movableCats]);
+      const newCats = [...fixedCats, ...movableCats];
+      setCategories(newCats);
+      handleSaveCategoriesSilently(newCats, shopInfo.categoryCovers || {});
   };
 
   const toggleCategoryVisibility = (cat: string) => {
@@ -6272,6 +6260,19 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
           newCovers[hiddenKey] = 'true';
       }
       setShopInfo({ ...shopInfo, categoryCovers: newCovers });
+      handleSaveCategoriesSilently(categories, newCovers);
+  };
+
+  const toggleCategoryBadge = (cat: string) => {
+      const badgeKey = '__new_' + cat;
+      const newCovers = { ...(shopInfo.categoryCovers || {}) };
+      if (newCovers[badgeKey]) {
+          delete newCovers[badgeKey];
+      } else {
+          newCovers[badgeKey] = 'true';
+      }
+      setShopInfo({ ...shopInfo, categoryCovers: newCovers });
+      handleSaveCategoriesSilently(categories, newCovers);
   };
 
   const handleSaveCategories = async () => {
@@ -6285,7 +6286,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
 
   return (
     <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
-      <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Paramètres de la <span className="text-[#39FF14]">Boutique</span></h2>
+      <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4">Paramètres de la <span className="text-[#39FF14]">Boutique</span> <span className="text-xs bg-[#39FF14] text-black px-3 py-1 rounded-full align-middle ml-2 shadow-lg">V 2.0</span></h2>
       <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">Gérez les informations générales et les promotions de votre boutique.</p>
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm mb-8">
@@ -6492,6 +6493,9 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                             <button type="button" onClick={() => toggleCategoryVisibility(cat)} className="text-zinc-400 hover:text-orange-500 transition shrink-0 p-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg" title={shopInfo.categoryCovers?.['__hidden_' + cat] ? 'Afficher la catégorie' : 'Masquer la catégorie'}>
                                 {shopInfo.categoryCovers?.['__hidden_' + cat] ? <EyeOff size={14}/> : <Eye size={14}/>}
                             </button>
+                            <button type="button" onClick={() => toggleCategoryBadge(cat)} className={`transition shrink-0 p-1 rounded-lg ${shopInfo.categoryCovers?.['__new_' + cat] ? 'bg-red-500/10 text-red-500 hover:text-red-600' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-400 hover:text-red-500'}`} title={shopInfo.categoryCovers?.['__new_' + cat] ? 'Retirer le badge Nouveau' : 'Ajouter le badge Nouveau'}>
+                                <Tag size={14}/>
+                            </button>
                             <div className="flex gap-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg p-1 shrink-0">
                                 <button type="button" onClick={() => handleMoveCategory(index, 'up')} disabled={index === 0} className="text-zinc-400 hover:text-black dark:hover:text-white disabled:opacity-30"><ArrowUp size={14}/></button>
                                 <button type="button" onClick={() => handleMoveCategory(index, 'down')} disabled={index === arr.length - 1} className="text-zinc-400 hover:text-black dark:hover:text-white disabled:opacity-30"><ArrowDown size={14}/></button>
@@ -6510,6 +6514,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                              placeholder="URL de l'image de couverture..." 
                              value={shopInfo.categoryCovers?.[cat] || ''}
                              onChange={(e) => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: e.target.value } })}
+                         onBlur={(e) => handleSaveCategoriesSilently(categories, { ...(shopInfo.categoryCovers || {}), [cat]: e.target.value })}
                              className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#39FF14] transition-colors"
                          />
                          <input 
@@ -6519,7 +6524,11 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                                  const file = e.target.files?.[0];
                                  if (file) {
                                      const reader = new FileReader();
-                                     reader.onloadend = () => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: reader.result as string } });
+                                 reader.onloadend = () => {
+                                     const newCovers = { ...(shopInfo.categoryCovers || {}), [cat]: reader.result as string };
+                                     setShopInfo({ ...shopInfo, categoryCovers: newCovers });
+                                     handleSaveCategoriesSilently(categories, newCovers);
+                                 };
                                      reader.readAsDataURL(file);
                                  }
                              }} 
