@@ -762,7 +762,18 @@ export default function DynamicShopPage() {
       if (shopError || !shop) { setError(true); setIsLoading(false); return; }
 
       setCurrentShopId(shop.id);
-      setShopInfo(shop);
+      setShopInfo({
+          ...shop,
+          logoUrl: shop.logo_url,
+          deliveryOptions: shop.delivery_options,
+          openingHours: shop.opening_hours,
+          categoryCovers: shop.category_covers,
+          instagramUrl: shop.instagram_url,
+          facebookUrl: shop.facebook_url,
+          tiktokUrl: shop.tiktok_url,
+          twitterUrl: shop.twitter_url,
+          youtubeUrl: shop.youtube_url
+      });
       if (shop.delivery_zones && shop.delivery_zones.length > 0) {
         setDeliveryZones(shop.delivery_zones);
       }
@@ -1020,8 +1031,9 @@ export default function DynamicShopPage() {
     const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : '');
     switch (widgetType) {
       case 'category-grid':
-        const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
-        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo?.category_covers || {}} layout={widget.settings?.layout} />;
+        let catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
+        catsToDisplay = catsToDisplay.filter((c: string) => !shopInfo?.categoryCovers?.['__hidden_' + c]);
+        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo?.categoryCovers || {}} layout={widget.settings?.layout} />;
       case 'promo-banner':
         return <PromoBannerWidget 
             settings={widget.settings} 
@@ -1311,6 +1323,8 @@ export default function DynamicShopPage() {
     return b.id - a.id; 
   });
 
+  const visibleCategories = categories.filter(cat => cat === 'Toutes' || cat === 'Favoris' || !shopInfo?.categoryCovers?.['__hidden_' + cat]);
+
   return (
     <div className="flex h-screen bg-zinc-100 dark:bg-black text-black dark:text-white font-sans overflow-hidden">
       
@@ -1324,7 +1338,33 @@ export default function DynamicShopPage() {
                 <button onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white"><X size={24}/></button>
               </div>
               <div className="flex-1 overflow-y-auto py-6">
-                <div className="px-4 mb-6"><input type="text" placeholder="Rechercher..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition" /></div>
+                <div className="px-4 mb-6">
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input type="text" placeholder="Rechercher..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                    {searchTerm && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[60vh]">
+                        <div className="overflow-y-auto custom-scrollbar">
+                        {filteredProducts.slice(0, 5).map(p => (
+                           <div key={p.id} onClick={() => { setViewingProduct(p); setSearchTerm(''); setIsMobileMenuOpen(false); }} className="p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0 transition-colors">
+                              <img src={p.image} className="w-10 h-10 rounded-lg object-cover bg-zinc-100 dark:bg-zinc-800 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                 <p className="text-xs font-bold text-black dark:text-white truncate">{p.name}</p>
+                                 <p className="text-[10px] text-[#39FF14] font-black mt-0.5">{displayPrice(p.price, shopInfo?.currency)}</p>
+                              </div>
+                           </div>
+                        ))}
+                        </div>
+                        {filteredProducts.length > 5 && (
+                           <button onClick={() => setIsMobileMenuOpen(false)} className="p-3 text-center text-[10px] font-black uppercase text-zinc-500 bg-zinc-50 dark:bg-zinc-950 hover:text-[#39FF14] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border-t border-zinc-200 dark:border-zinc-800">
+                              Voir les {filteredProducts.length} résultats
+                           </button>
+                        )}
+                        {filteredProducts.length === 0 && <div className="p-4 text-center text-xs text-zinc-500 font-medium">Aucun résultat</div>}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 
                 <nav className="px-4 space-y-2 mb-8">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
@@ -1341,7 +1381,7 @@ export default function DynamicShopPage() {
 
                 <div className="px-4 space-y-2">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
-                  {categories.map(cat => (
+                  {visibleCategories.map(cat => (
                     <button key={cat} onClick={() => { setActiveCategory(cat); setIsMobileMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${activeCategory === cat ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'}`}>
                     <span className="flex items-center gap-2 truncate">
                       {cat === 'Favoris' && <Heart size={14} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />}
@@ -1403,7 +1443,33 @@ export default function DynamicShopPage() {
           {shopInfo.logo_url ? <img src={shopInfo.logo_url} alt={shopInfo.name} className="h-10 w-auto object-contain" /> : <h1 className="text-2xl font-black tracking-tighter uppercase line-clamp-1">{shopInfo.name}</h1>}
         </div>
         <div className="flex-1 overflow-y-auto py-6">
-          <div className="px-4 mb-6"><input type="text" placeholder="Rechercher..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14]" /></div>
+          <div className="px-4 mb-6">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <input type="text" placeholder="Rechercher..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+              {searchTerm && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[60vh]">
+                  <div className="overflow-y-auto custom-scrollbar">
+                  {filteredProducts.slice(0, 5).map(p => (
+                     <div key={p.id} onClick={() => { setViewingProduct(p); setSearchTerm(''); }} className="p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0 transition-colors">
+                        <img src={p.image} className="w-10 h-10 rounded-lg object-cover bg-zinc-100 dark:bg-zinc-800 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                           <p className="text-xs font-bold text-black dark:text-white truncate">{p.name}</p>
+                           <p className="text-[10px] text-[#39FF14] font-black mt-0.5">{displayPrice(p.price, shopInfo?.currency)}</p>
+                        </div>
+                     </div>
+                  ))}
+                  </div>
+                  {filteredProducts.length > 5 && (
+                     <button className="w-full p-3 text-center text-[10px] font-black uppercase text-zinc-500 bg-zinc-50 dark:bg-zinc-950 hover:text-[#39FF14] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border-t border-zinc-200 dark:border-zinc-800">
+                        Voir les {filteredProducts.length} résultats
+                     </button>
+                  )}
+                  {filteredProducts.length === 0 && <div className="p-4 text-center text-xs text-zinc-500 font-medium">Aucun résultat</div>}
+                </div>
+              )}
+            </div>
+          </div>
           
           <nav className="px-4 space-y-2 mb-8">
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
@@ -1417,7 +1483,7 @@ export default function DynamicShopPage() {
 
           <div className="px-4 space-y-2">
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
-            {categories.map(cat => (
+            {visibleCategories.map(cat => (
               <button key={cat} onClick={() => setActiveCategory(cat)} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${activeCategory === cat ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
               <span className="flex items-center gap-2 truncate">
                 {cat === 'Favoris' && <Heart size={14} className={wishlist.length > 0 ? "fill-red-500 text-red-500" : ""} />}
@@ -1564,7 +1630,7 @@ export default function DynamicShopPage() {
             ) : (
               <>
                 {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice ? (
-              <CategoryGridWidget categories={categories.filter(c => c !== 'Toutes' && c !== 'Favoris')} setActiveCategory={setActiveCategory} categoryCovers={shopInfo?.category_covers || {}} />
+              <CategoryGridWidget categories={visibleCategories.filter(c => c !== 'Toutes' && c !== 'Favoris')} setActiveCategory={setActiveCategory} categoryCovers={shopInfo?.categoryCovers || {}} />
                 ) : (
                   filteredProducts.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

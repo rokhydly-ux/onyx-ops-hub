@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
-  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut, Megaphone, Send, XCircle, CheckCircle, Edit3, Copy, LogIn, Wallet, ExternalLink
+  Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, EyeOff, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut, Megaphone, Send, XCircle, CheckCircle, Edit3, Copy, LogIn, Wallet, ExternalLink
 , ChevronLeft } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
@@ -1083,8 +1083,9 @@ export default function OnyxJaayShop() {
     const widgetType = widget.type || (widget.id.startsWith('category-grid') ? 'category-grid' : widget.id.startsWith('promo-banner') ? 'promo-banner' : widget.id.startsWith('new-arrivals') ? 'new-arrivals' : widget.id.startsWith('best-sellers') ? 'best-sellers' : widget.id.startsWith('featured-category') ? 'featured-category' : widget.id.startsWith('promo-day') ? 'promo-day' : '');
     switch (widgetType) {
       case 'category-grid':
-        const catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
-        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo.categoryCovers} layout={widget.settings?.layout} />;
+        let catsToDisplay = widget.settings?.categories?.length > 0 ? widget.settings.categories : categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
+        catsToDisplay = catsToDisplay.filter((c: string) => !shopInfo?.categoryCovers?.['__hidden_' + c]);
+        return <CategoryGridWidget categories={catsToDisplay} setActiveCategory={setActiveCategory} categoryCovers={shopInfo.categoryCovers || {}} layout={widget.settings?.layout} />;
       case 'promo-banner':
         return <PromoBannerWidget 
             settings={widget.settings} 
@@ -2106,6 +2107,8 @@ export default function OnyxJaayShop() {
     return (b.id || 0) - (a.id || 0);
   });
 
+  const visibleCategories = categories.filter(cat => cat === 'Toutes' || cat === 'Favoris' || !shopInfo?.categoryCovers?.['__hidden_' + cat]);
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-black">
@@ -2137,8 +2140,30 @@ export default function OnyxJaayShop() {
                     placeholder="Rechercher..." 
                     value={searchTerm}
                     onChange={handleGlobalSearch}
-                    className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
+                    className="w-full pl-10 pr-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
                   />
+                  <Search size={16} className="absolute left-7 top-1/2 -translate-y-1/2 text-zinc-400 mt-5" />
+                  {searchTerm && shopView === 'boutique' && (
+                    <div className="absolute top-full left-4 right-4 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[60vh]">
+                      <div className="overflow-y-auto custom-scrollbar">
+                      {filteredProducts.slice(0, 5).map(p => (
+                         <div key={p.id} onClick={() => { handleViewProduct(p); setSearchTerm(''); setIsMobileMenuOpen(false); }} className="p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0 transition-colors">
+                            <img src={p.image} className="w-10 h-10 rounded-lg object-cover bg-zinc-100 dark:bg-zinc-800 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                               <p className="text-xs font-bold text-black dark:text-white truncate">{p.name}</p>
+                               <p className="text-[10px] text-[#39FF14] font-black mt-0.5">{displayPrice(p.price, shopInfo?.currency)}</p>
+                            </div>
+                         </div>
+                      ))}
+                      </div>
+                      {filteredProducts.length > 5 && (
+                         <button onClick={() => setIsMobileMenuOpen(false)} className="p-3 text-center text-[10px] font-black uppercase text-zinc-500 bg-zinc-50 dark:bg-zinc-950 hover:text-[#39FF14] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border-t border-zinc-200 dark:border-zinc-800 w-full">
+                            Voir les {filteredProducts.length} résultats
+                         </button>
+                      )}
+                      {filteredProducts.length === 0 && <div className="p-4 text-center text-xs text-zinc-500 font-medium">Aucun résultat</div>}
+                    </div>
+                  )}
                 </div>
                 <nav className="px-4 space-y-2 mb-8">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Menu</p>
@@ -2187,7 +2212,7 @@ export default function OnyxJaayShop() {
                 </nav>
                 <div className="px-4 space-y-2">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
-                  {categories.map(cat => (
+                  {visibleCategories.map(cat => (
                     <button 
                       key={cat} 
                       onClick={() => { setActiveCategory(cat); setShopView('boutique'); setIsMobileMenuOpen(false); }} 
@@ -2289,13 +2314,37 @@ export default function OnyxJaayShop() {
                         <ExternalLink size={16} /> Voir ma boutique
                       </button>
                   )}
-                  <input 
-                    type="text" 
-                    placeholder="Rechercher un produit..." 
-                    value={searchTerm}
-                    onChange={handleGlobalSearch}
-                    className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
-                  />
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Rechercher un produit..." 
+                      value={searchTerm}
+                      onChange={handleGlobalSearch}
+                      className="w-full pl-10 pr-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-black dark:text-white outline-none focus:border-[#39FF14] transition"
+                    />
+                    {searchTerm && shopView === 'boutique' && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[60vh]">
+                        <div className="overflow-y-auto custom-scrollbar">
+                        {filteredProducts.slice(0, 5).map(p => (
+                           <div key={p.id} onClick={() => { handleViewProduct(p); setSearchTerm(''); }} className="p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-3 border-b border-zinc-100 dark:border-zinc-800 last:border-0 transition-colors">
+                              <img src={p.image} className="w-10 h-10 rounded-lg object-cover bg-zinc-100 dark:bg-zinc-800 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                 <p className="text-xs font-bold text-black dark:text-white truncate">{p.name}</p>
+                                 <p className="text-[10px] text-[#39FF14] font-black mt-0.5">{displayPrice(p.price, shopInfo?.currency)}</p>
+                              </div>
+                           </div>
+                        ))}
+                        </div>
+                        {filteredProducts.length > 5 && (
+                           <button className="w-full p-3 text-center text-[10px] font-black uppercase text-zinc-500 bg-zinc-50 dark:bg-zinc-950 hover:text-[#39FF14] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border-t border-zinc-200 dark:border-zinc-800">
+                              Voir les {filteredProducts.length} résultats
+                           </button>
+                        )}
+                        {filteredProducts.length === 0 && <div className="p-4 text-center text-xs text-zinc-500 font-medium">Aucun résultat</div>}
+                      </div>
+                    )}
+                  </div>
                </>
             ) : (
                <div className="flex flex-col gap-4 items-center">
@@ -2353,7 +2402,7 @@ export default function OnyxJaayShop() {
 
           <div className={`px-4 space-y-2 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
-            {categories.map(cat => (
+            {visibleCategories.map(cat => (
               <button 
                 key={cat} 
                 onClick={() => { setActiveCategory(cat); setShopView('boutique'); }}
@@ -2577,7 +2626,7 @@ export default function OnyxJaayShop() {
               <>
                 {activeCategory === 'Toutes' && !searchTerm && !minPrice && !maxPrice ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
-                    {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map((cat) => (
+                    {visibleCategories.filter(c => c !== 'Toutes' && c !== 'Favoris').map((cat) => (
                       <div 
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
@@ -6214,6 +6263,17 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
       setCategories([...fixedCats, ...movableCats]);
   };
 
+  const toggleCategoryVisibility = (cat: string) => {
+      const hiddenKey = '__hidden_' + cat;
+      const newCovers = { ...(shopInfo.categoryCovers || {}) };
+      if (newCovers[hiddenKey]) {
+          delete newCovers[hiddenKey];
+      } else {
+          newCovers[hiddenKey] = 'true';
+      }
+      setShopInfo({ ...shopInfo, categoryCovers: newCovers });
+  };
+
   const handleSaveCategories = async () => {
     if (!shopId) return alert("Erreur: ID de la boutique non trouvé.");
     const { error } = await supabase.from('shops').update({
@@ -6429,6 +6489,9 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                     ) : (
                         <div className="flex items-center gap-2">
                             <span className="font-bold text-sm text-black dark:text-white flex-1 truncate" title={cat}>{cat}</span>
+                            <button type="button" onClick={() => toggleCategoryVisibility(cat)} className="text-zinc-400 hover:text-orange-500 transition shrink-0 p-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg" title={shopInfo.categoryCovers?.['__hidden_' + cat] ? 'Afficher la catégorie' : 'Masquer la catégorie'}>
+                                {shopInfo.categoryCovers?.['__hidden_' + cat] ? <EyeOff size={14}/> : <Eye size={14}/>}
+                            </button>
                             <div className="flex gap-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg p-1 shrink-0">
                                 <button type="button" onClick={() => handleMoveCategory(index, 'up')} disabled={index === 0} className="text-zinc-400 hover:text-black dark:hover:text-white disabled:opacity-30"><ArrowUp size={14}/></button>
                                 <button type="button" onClick={() => handleMoveCategory(index, 'down')} disabled={index === arr.length - 1} className="text-zinc-400 hover:text-black dark:hover:text-white disabled:opacity-30"><ArrowDown size={14}/></button>
