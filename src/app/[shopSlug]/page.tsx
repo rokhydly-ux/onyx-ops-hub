@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
-const displayPrice = (price: number, currency: string = 'FCFA') => {
-    return `${price.toLocaleString('fr-SN')} ${currency}`;
+const displayPrice = (price: number | null | undefined, currency: string = 'FCFA') => {
+    return `${(price || 0).toLocaleString('fr-SN')} ${currency}`;
 };
 
 const getEmbedUrl = (url: string) => {
@@ -1141,19 +1141,19 @@ export default function DynamicShopPage() {
   const filteredProducts = (products || []).filter(p => {
     if (!p) return false;
     const search = (searchTerm || '').toLowerCase().trim();
-    const nameMatch = p.name ? p.name.toLowerCase().includes(search) : false;
-    const descMatch = p.description ? p.description.toLowerCase().includes(search) : false;
-    const catMatch = p.category ? p.category.toLowerCase().includes(search) : false;
+    const nameMatch = p.name ? String(p.name).toLowerCase().includes(search) : false;
+    const descMatch = p.description ? String(p.description).toLowerCase().includes(search) : false;
+    const catMatch = p.category ? String(p.category).toLowerCase().includes(search) : false;
     const matchesSearch = search === '' || nameMatch || descMatch || catMatch;
 
     const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
-    const matchesMinPrice = minPrice === '' || p.price >= Number(minPrice);
-    const matchesMaxPrice = maxPrice === '' || p.price <= Number(maxPrice);
+    const matchesMinPrice = minPrice === '' || (p.price || 0) >= Number(minPrice);
+    const matchesMaxPrice = maxPrice === '' || (p.price || 0) <= Number(maxPrice);
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
   }).sort((a, b) => {
-    if (sortOrder === 'asc') return a.price - b.price;
-    if (sortOrder === 'desc') return b.price - a.price;
+    if (sortOrder === 'asc') return (a.price || 0) - (b.price || 0);
+    if (sortOrder === 'desc') return (b.price || 0) - (a.price || 0);
     if (sortOrder === 'popular') return (b.reviews || 0) - (a.reviews || 0);
     return b.id - a.id; 
   });
@@ -1367,8 +1367,8 @@ export default function DynamicShopPage() {
                       
                       <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
                          <span className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-[#39FF14] border border-zinc-200 dark:border-zinc-700 shadow-sm">{product.category}</span>
-                         {((product.oldPrice || product.old_price) || 0) > product.price && (
-                            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((((product.oldPrice || product.old_price) || 0) - product.price) / ((product.oldPrice || product.old_price) || 1)) * 100)}%</span>
+                         {((product.oldPrice || product.old_price) || 0) > (product.price || 0) && (
+                            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((((product.oldPrice || product.old_price) || 0) - (product.price || 0)) / ((product.oldPrice || product.old_price) || 1)) * 100)}%</span>
                          )}
                          {product.stock === 0 && (
                             <span className="bg-zinc-800 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Épuisé</span>
@@ -1389,7 +1389,7 @@ export default function DynamicShopPage() {
                       </button>
                     </div>
 
-                    {trackedOrder.delivery_driver && trackedOrder.status !== 'Livré' && (
+                    {trackedOrder?.delivery_driver && trackedOrder?.status !== 'Livré' && (
                        <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 p-3 rounded-xl mb-6 text-xs font-bold border border-orange-200 dark:border-orange-500/20">
                           <Truck size={16} /> Livreur assigné : {trackedOrder.delivery_driver}
                        </div>
