@@ -808,6 +808,7 @@ export default function OnyxJaayShop() {
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
 
   const [iaSuggestions, setIaSuggestions] = useState<any[]>([]);
   const [plannedEvents, setPlannedEvents] = useState<any[]>(() => {
@@ -829,6 +830,11 @@ export default function OnyxJaayShop() {
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+
+  const bestSellerIds = useMemo(() => {
+      if (!products || products.length === 0) return [];
+      return [...products].sort((a, b) => (b.reviews || 0) - (a.reviews || 0)).slice(0, 3).map(p => p.id);
+  }, [products]);
 
   const availableColors = useMemo(() => {
       const colorsSet = new Set<string>();
@@ -2614,6 +2620,11 @@ export default function OnyxJaayShop() {
                         <div className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700 text-[#39FF14]">
                           {product.category}
                         </div>
+                        {bestSellerIds.includes(product.id) && (
+                          <div className="bg-yellow-400 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1">
+                             <Star size={10} className="fill-black" /> Meilleure Vente
+                          </div>
+                        )}
                         {((product.oldPrice || (product as any).old_price) || 0) > (product.price || 0) && (
                            <div className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((((product.oldPrice || (product as any).old_price) || 0) - (product.price || 0)) / ((product.oldPrice || (product as any).old_price) || 1)) * 100)}%</div>
                         )}
@@ -2701,7 +2712,7 @@ export default function OnyxJaayShop() {
             {/* FOOTER */}
             {!isEditingMode && (
                 <footer className="mt-20 border-t border-zinc-200 dark:border-zinc-800 pt-12 pb-8 px-6 text-center animate-in fade-in shrink-0 print:hidden">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 text-left max-w-4xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 text-left max-w-5xl mx-auto">
                         <div>
                             <h4 className="font-black uppercase mb-4 text-black dark:text-white">Onyx Jaay</h4>
                             <p className="text-sm text-zinc-500 dark:text-zinc-400">{shopInfo.description || "Votre boutique propulsée par OnyxOps."}</p>
@@ -2718,6 +2729,14 @@ export default function OnyxJaayShop() {
                             <h4 className="font-black uppercase mb-4 text-black dark:text-white">Contact</h4>
                             <p className="text-sm text-zinc-500 dark:text-zinc-400">WhatsApp : {shopInfo.phone}</p>
                             <a href={`https://wa.me/${String(shopInfo.phone).replace(/[^0-9]/g, '')}`} target="_blank" className="mt-2 inline-block px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold hover:bg-[#39FF14] hover:text-black transition">Discuter avec nous</a>
+                        </div>
+                        <div>
+                            <h4 className="font-black uppercase mb-4 text-black dark:text-white">Newsletter</h4>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">Abonnez-vous pour recevoir nos offres.</p>
+                            <form onSubmit={(e) => { e.preventDefault(); alert("Merci de votre inscription à la newsletter !"); setNewsletterEmail(''); }} className="flex gap-2">
+                                <input type="email" placeholder="Votre email" value={newsletterEmail} onChange={(e) => setNewsletterEmail(e.target.value)} required className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs outline-none focus:border-[#39FF14]" />
+                                <button type="submit" className="bg-[#39FF14] text-black px-3 py-2 rounded-lg text-xs font-bold hover:bg-black hover:text-[#39FF14] transition-colors"><Send size={14}/></button>
+                            </form>
                         </div>
                     </div>
                     <p className="text-xs text-zinc-400 dark:text-zinc-600">&copy; {new Date().getFullYear()} {shopInfo.name}. Propulsé par <a href="https://onyxops.com" target="_blank" className="font-bold text-black dark:text-white">OnyxOps</a>.</p>
@@ -6025,6 +6044,8 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
   const [editingCodeData, setEditingCodeData] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed', singleUse: false, minPurchase: '', expirationDate: '' });
   const [newCat, setNewCat] = useState('');
   const [parentCat, setParentCat] = useState('');
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
 
   const handleAddCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -6137,6 +6158,60 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
     if (confirm(`Supprimer la catégorie "${cat}" ? Les produits associés ne seront pas supprimés.`)) {
         setCategories(categories.filter(c => c !== cat));
     }
+  };
+
+  const handleEditCategorySave = async (oldCat: string) => {
+      if (!editCategoryName.trim()) return;
+      const isSub = oldCat.includes(' / ');
+      const parent = isSub ? oldCat.substring(0, oldCat.lastIndexOf(' / ')) : '';
+      const newCatFull = isSub ? `${parent} / ${editCategoryName.trim()}` : editCategoryName.trim();
+
+      if (newCatFull === oldCat) {
+          setEditingCategory(null);
+          return;
+      }
+
+      const updatedCategories = categories.map(c => c === oldCat ? newCatFull : c);
+      const finalCategories = updatedCategories.map(c => (!isSub && c.startsWith(oldCat + ' / ')) ? c.replace(oldCat + ' / ', newCatFull + ' / ') : c);
+      setCategories(finalCategories);
+
+      const newCovers = { ...(shopInfo.categoryCovers || {}) };
+      if (newCovers[oldCat]) { newCovers[newCatFull] = newCovers[oldCat]; delete newCovers[oldCat]; }
+      if (!isSub) {
+           Object.keys(newCovers).forEach(key => {
+               if (key.startsWith(oldCat + ' / ')) {
+                   const newKey = key.replace(oldCat + ' / ', newCatFull + ' / ');
+                   newCovers[newKey] = newCovers[key];
+                   delete newCovers[key];
+               }
+           });
+      }
+      setShopInfo({ ...shopInfo, categoryCovers: newCovers });
+
+      if (shopId) {
+          const { data: prods } = await supabase.from('products').select('id, category').eq('shop_id', shopId).ilike('category', `${oldCat}%`);
+          if (prods && prods.length > 0) {
+              for (const p of prods) {
+                  let updatedCat = p.category === oldCat ? newCatFull : (!isSub && p.category.startsWith(oldCat + ' / ')) ? p.category.replace(oldCat + ' / ', newCatFull + ' / ') : p.category;
+                  if (updatedCat !== p.category) await supabase.from('products').update({ category: updatedCat }).eq('id', p.id);
+              }
+          }
+      }
+      setEditingCategory(null);
+  };
+
+  const handleMoveCategory = (index: number, direction: 'up' | 'down') => {
+      const fixedCats = categories.filter(c => c === 'Toutes' || c === 'Favoris');
+      const movableCats = categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
+      
+      if (direction === 'up' && index > 0) {
+          [movableCats[index - 1], movableCats[index]] = [movableCats[index], movableCats[index - 1]];
+      } else if (direction === 'down' && index < movableCats.length - 1) {
+          [movableCats[index + 1], movableCats[index]] = [movableCats[index], movableCats[index + 1]];
+      } else {
+          return;
+      }
+      setCategories([...fixedCats, ...movableCats]);
   };
 
   const handleSaveCategories = async () => {
@@ -6336,41 +6411,59 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
         </form>
 
         <div className="space-y-3">
-           {categories.map(cat => (
-              <div key={cat} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 ${cat.includes(' / ') ? 'ml-8 border-l-4 border-l-[#39FF14]' : ''}`}>
-                 <div className="flex items-center gap-4 w-full sm:w-1/3">
-                    <span className="font-bold text-sm text-black dark:text-white flex-1 truncate">{cat}</span>
-                    {cat !== 'Toutes' && cat !== 'Favoris' && (
-                        <button type="button" onClick={() => handleDeleteCategory(cat)} className="text-zinc-400 hover:text-red-500 transition shrink-0"><Trash2 size={16}/></button>
+           {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map((cat, index, arr) => (
+              <div key={cat} className={`flex flex-col sm:flex-row sm:items-start justify-between gap-4 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 ${cat.includes(' / ') ? 'ml-8 border-l-4 border-l-[#39FF14]' : ''}`}>
+                 <div className="flex flex-col gap-2 w-full sm:w-1/3 mt-1">
+                    {editingCategory === cat ? (
+                        <div className="flex items-center gap-2">
+                            <input 
+                                type="text" 
+                                value={editCategoryName} 
+                                onChange={(e) => setEditCategoryName(e.target.value)} 
+                                className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 text-sm font-bold outline-none focus:border-[#39FF14]"
+                                autoFocus
+                            />
+                            <button type="button" onClick={() => handleEditCategorySave(cat)} className="text-green-500 hover:text-green-600 bg-green-500/10 p-1.5 rounded-lg"><Check size={16}/></button>
+                            <button type="button" onClick={() => setEditingCategory(null)} className="text-zinc-400 hover:text-zinc-500 bg-zinc-200 dark:bg-zinc-700 p-1.5 rounded-lg"><X size={16}/></button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-black dark:text-white flex-1 truncate" title={cat}>{cat}</span>
+                            <div className="flex gap-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg p-1 shrink-0">
+                                <button type="button" onClick={() => handleMoveCategory(index, 'up')} disabled={index === 0} className="text-zinc-400 hover:text-black dark:hover:text-white disabled:opacity-30"><ArrowUp size={14}/></button>
+                                <button type="button" onClick={() => handleMoveCategory(index, 'down')} disabled={index === arr.length - 1} className="text-zinc-400 hover:text-black dark:hover:text-white disabled:opacity-30"><ArrowDown size={14}/></button>
+                            </div>
+                            <button type="button" onClick={() => { setEditingCategory(cat); setEditCategoryName(cat.includes(' / ') ? cat.split(' / ').pop() || '' : cat); }} className="text-zinc-400 hover:text-blue-500 transition shrink-0 p-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg"><Edit size={14}/></button>
+                            <button type="button" onClick={() => handleDeleteCategory(cat)} className="text-zinc-400 hover:text-red-500 transition shrink-0 p-1 bg-zinc-200 dark:bg-zinc-700 rounded-lg"><Trash2 size={14}/></button>
+                        </div>
                     )}
                  </div>
-                 {cat !== 'Toutes' && cat !== 'Favoris' && (
-                    <div className="flex-1 flex items-center gap-3 w-full">
-                        <img src={shopInfo.categoryCovers?.[cat] || `https://placehold.co/100x100/111/FFF?text=${encodeURIComponent(cat.includes(' / ') ? cat.split(' / ')[1] : cat)}`} alt={cat} className="w-10 h-10 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700 shrink-0" />
-                        <div className="flex-1 flex flex-col gap-2 w-full">
-                            <input 
-                                type="url" 
-                                placeholder="URL de l'image de couverture..." 
-                                value={shopInfo.categoryCovers?.[cat] || ''}
-                                onChange={(e) => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: e.target.value } })}
-                                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#39FF14]"
-                            />
-                            <input 
-                                type="file" 
-                                accept="image/*" 
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: reader.result as string } });
-                                        reader.readAsDataURL(file);
-                                    }
-                                }} 
-                                className="w-full text-[10px] text-zinc-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] transition cursor-pointer" 
-                            />
-                        </div>
-                    </div>
-                 )}
+                 
+                 <div className="flex-1 flex items-start gap-3 w-full">
+                     <img src={shopInfo.categoryCovers?.[cat] || `https://placehold.co/100x100/111/FFF?text=${encodeURIComponent(cat.includes(' / ') ? cat.split(' / ')[1] : cat)}`} alt={cat} className="w-16 h-16 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 shrink-0 bg-white" />
+                     <div className="flex-1 flex flex-col gap-2 w-full">
+                         <input 
+                             type="url" 
+                             placeholder="URL de l'image de couverture..." 
+                             value={shopInfo.categoryCovers?.[cat] || ''}
+                             onChange={(e) => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: e.target.value } })}
+                             className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#39FF14] transition-colors"
+                         />
+                         <input 
+                             type="file" 
+                             accept="image/*" 
+                             onChange={(e) => {
+                                 const file = e.target.files?.[0];
+                                 if (file) {
+                                     const reader = new FileReader();
+                                     reader.onloadend = () => setShopInfo({ ...shopInfo, categoryCovers: { ...(shopInfo.categoryCovers || {}), [cat]: reader.result as string } });
+                                     reader.readAsDataURL(file);
+                                 }
+                             }} 
+                             className="w-full text-[10px] text-zinc-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] transition cursor-pointer" 
+                         />
+                     </div>
+                 </div>
               </div>
            ))}
         </div>

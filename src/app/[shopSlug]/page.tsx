@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, RefreshCcw,
   Store, MessageSquare, Sparkles, Heart, ChevronRight, Menu, ArrowRight, Star, Sun, Moon,
-  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft, Printer, Clock,
+  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft, Printer, Clock, Send,
   Instagram, Facebook, Twitter, Youtube, Mail
 } from "lucide-react";
 import QRCode from "react-qr-code";
@@ -669,7 +669,13 @@ export default function DynamicShopPage() {
   const [isTracking, setIsTracking] = useState(false);
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
   const [orderReview, setOrderReview] = useState({ name: '', rating: 5, comment: '' });
+  const [newsletterEmail, setNewsletterEmail] = useState('');
   
+  const bestSellerIds = React.useMemo(() => {
+      if (!products || products.length === 0) return [];
+      return [...products].sort((a, b) => (b.reviews || 0) - (a.reviews || 0)).slice(0, 3).map(p => p.id);
+  }, [products]);
+
   // Stock update badge
   const [showStockUpdate, setShowStockUpdate] = useState(false);
   const stockUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1570,6 +1576,11 @@ export default function DynamicShopPage() {
                       
                       <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
                          <span className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-[#39FF14] border border-zinc-200 dark:border-zinc-700 shadow-sm">{product.category}</span>
+                         {bestSellerIds.includes(product.id) && (
+                            <span className="bg-yellow-400 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1">
+                               <Star size={10} className="fill-black" /> Meilleure Vente
+                            </span>
+                         )}
                          {((product.oldPrice || product.old_price) || 0) > (product.price || 0) && (
                             <span className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((((product.oldPrice || product.old_price) || 0) - (product.price || 0)) / ((product.oldPrice || product.old_price) || 1)) * 100)}%</span>
                          )}
@@ -1639,7 +1650,7 @@ export default function DynamicShopPage() {
           
           {/* Footer */}
           <footer className="mt-20 border-t border-zinc-200 dark:border-zinc-800 pt-12 pb-8 px-6 text-center animate-in fade-in shrink-0">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 text-left max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 text-left max-w-5xl mx-auto">
                   <div>
                       <h4 className="font-black uppercase mb-4 text-black dark:text-white">{shopInfo.name}</h4>
                       <p className="text-sm text-zinc-500 dark:text-zinc-400">{shopInfo.description || "Votre boutique propulsée par OnyxOps."}</p>
@@ -1674,6 +1685,14 @@ export default function DynamicShopPage() {
                               {shopInfo.youtube_url && <a href={shopInfo.youtube_url} target="_blank" rel="noreferrer" aria-label="YouTube" className="text-zinc-500 hover:text-[#39FF14] hover:scale-110 transition-all"><Youtube size={20} /></a>}
                           </div>
                       )}
+                  </div>
+                  <div>
+                      <h4 className="font-black uppercase mb-4 text-black dark:text-white">Newsletter</h4>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">Abonnez-vous pour recevoir nos offres.</p>
+                      <form onSubmit={(e) => { e.preventDefault(); alert("Merci de votre inscription à la newsletter !"); setNewsletterEmail(''); }} className="flex gap-2">
+                          <input type="email" placeholder="Votre email" value={newsletterEmail} onChange={(e) => setNewsletterEmail(e.target.value)} required className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs outline-none focus:border-[#39FF14]" />
+                          <button type="submit" className="bg-[#39FF14] text-black px-3 py-2 rounded-lg text-xs font-bold hover:bg-black hover:text-[#39FF14] transition-colors"><Send size={14}/></button>
+                      </form>
                   </div>
               </div>
               <div className="flex flex-col items-center gap-2 mt-8 border-t border-zinc-200 dark:border-zinc-800 pt-6">
