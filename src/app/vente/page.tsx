@@ -950,6 +950,10 @@ export default function OnyxJaayShop() {
               twitterUrl: shop.twitter_url || '',
               youtubeUrl: shop.youtube_url || ''
           });
+          
+          if (shop.categories && Array.isArray(shop.categories) && shop.categories.length > 0) {
+              setCategories(shop.categories);
+          }
 
           const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
           let productIds: string[] = [];
@@ -957,6 +961,14 @@ export default function OnyxJaayShop() {
             productIds = productsData.map(p => String(p.id));
             const { data: reviewsData } = await supabase.from('reviews').select('*').in('reference_id', productIds);
             
+            // S'assure que toutes les catégories de produits sont dans la liste des catégories
+            const productCats = new Set<string>();
+            productsData.forEach((p: any) => { if (p.category) productCats.add(p.category); });
+            setCategories(prev => {
+                const combined = new Set([...prev, ...Array.from(productCats)]);
+                return Array.from(combined);
+            });
+
             setProducts(productsData.map(p => {
                 const productReviews = reviewsData ? reviewsData.filter(r => String(r.reference_id) === String(p.id)) : [];
                 return {
@@ -2173,6 +2185,35 @@ export default function OnyxJaayShop() {
                     </button>
                   ))}
                 </div>
+
+                {availableColors.length > 0 && (
+                  <div className="px-4 space-y-2 mt-6">
+                    <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between gap-2">
+                      Couleurs
+                      {activeColor.length > 0 && <button onClick={() => setActiveColor([])} className="text-red-500 hover:text-red-600 transition"><X size={14}/></button>}
+                    </p>
+                    <div className="flex flex-wrap gap-2 px-4">
+                      {availableColors.map(color => (
+                        <button key={color} onClick={() => { setActiveColor(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color]); setShopView('boutique'); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor.includes(color) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {availableSizes.length > 0 && (
+                  <div className="px-4 space-y-2 mt-6">
+                    <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between gap-2">
+                      Tailles
+                      {activeSize.length > 0 && <button onClick={() => setActiveSize([])} className="text-red-500 hover:text-red-600 transition"><X size={14}/></button>}
+                    </p>
+                    <div className="flex flex-wrap gap-2 px-4">
+                      {availableSizes.map(size => (
+                        <button key={size} onClick={() => { setActiveSize(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]); setShopView('boutique'); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeSize.includes(size) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{size}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="px-4 space-y-2 mt-6">
                   <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">
                     <Filter size={12}/> Prix (FCFA)
@@ -2316,7 +2357,10 @@ export default function OnyxJaayShop() {
 
           {availableColors.length > 0 && (
             <div className={`px-4 space-y-2 mt-6 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
-              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Couleurs</p>
+              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between gap-2">
+                Couleurs
+                {activeColor.length > 0 && <button onClick={() => setActiveColor([])} className="text-red-500 hover:text-red-600 transition"><X size={14}/></button>}
+              </p>
               <div className="flex flex-wrap gap-2 px-4">
                 {availableColors.map(color => (
                   <button key={color} onClick={() => setActiveColor(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor.includes(color) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
@@ -2327,7 +2371,10 @@ export default function OnyxJaayShop() {
 
           {availableSizes.length > 0 && (
             <div className={`px-4 space-y-2 mt-6 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
-              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Tailles</p>
+              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between gap-2">
+                Tailles
+                {activeSize.length > 0 && <button onClick={() => setActiveSize([])} className="text-red-500 hover:text-red-600 transition"><X size={14}/></button>}
+              </p>
               <div className="flex flex-wrap gap-2 px-4">
                 {availableSizes.map(size => (
                   <button key={size} onClick={() => setActiveSize(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeSize.includes(size) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{size}</button>
@@ -3313,6 +3360,7 @@ export default function OnyxJaayShop() {
                     alert("Variantes appliquées à tous les produits !");
                 }
             }}
+            onAddCategory={(cat) => setCategories(prev => prev.includes(cat) ? prev : [...prev, cat])}
          />
       )}
 
@@ -3371,9 +3419,10 @@ interface ProductModalProps {
     categories: string[];
     currency: string;
     onApplyVariantsToAll?: (variants: any) => void;
+    onAddCategory?: (cat: string) => void;
 }
 
-function ProductModal({ product, onClose, onSave, onImageUpload, categories, currency, onApplyVariantsToAll }: ProductModalProps) {
+function ProductModal({ product, onClose, onSave, onImageUpload, categories, currency, onApplyVariantsToAll, onAddCategory }: ProductModalProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [galleryUrlInput, setGalleryUrlInput] = useState('');
     
@@ -3536,13 +3585,26 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 </div>
                             </div>
                             <div className="relative group">
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Catégorie</label>
-                                <input type="text" name="category" value={formData.category} onChange={handleChange} list="categories-list" className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
-                                <datalist id="categories-list">
-                                  {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map(c => (
-                                      <option key={c} value={c} />
-                                  ))}
-                                </datalist>
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 flex justify-between items-center">
+                                    Catégorie
+                                    {onAddCategory && (
+                                        <button type="button" onClick={() => {
+                                            const newCat = prompt("Nom de la nouvelle catégorie :");
+                                            if (newCat && newCat.trim()) {
+                                                onAddCategory(newCat.trim());
+                                                setFormData({...formData, category: newCat.trim()});
+                                            }
+                                        }} className="text-[#39FF14] hover:underline flex items-center gap-1 font-bold">
+                                            <Plus size={12}/> Nouvelle
+                                        </button>
+                                    )}
+                                </label>
+                                <select name="category" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition appearance-none">
+                                    <option value="">Sélectionner une catégorie...</option>
+                                    {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map(c => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
