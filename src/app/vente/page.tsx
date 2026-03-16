@@ -784,6 +784,29 @@ export default function OnyxJaayShop() {
   const [homepageLayout, setHomepageLayout] = useState<WidgetProps[] | null>(null);
   const [shopId, setShopId] = useState<string | null>(null);
   
+  const handleSaveCategoriesSilently = async (newCategories: string[], newCovers: any) => {
+      if (shopId) {
+          await supabase.from('shops').update({ categories: newCategories, category_covers: newCovers }).eq('id', shopId);
+      }
+  };
+
+  const toggleSidebarCategoryVisibility = (cat: string) => {
+      const hiddenKey = '__hidden_' + cat;
+      const newCovers = { ...(shopInfo.categoryCovers || {}) };
+      if (newCovers[hiddenKey]) delete newCovers[hiddenKey];
+      else newCovers[hiddenKey] = 'true';
+      setShopInfo({ ...shopInfo, categoryCovers: newCovers });
+      handleSaveCategoriesSilently(categories, newCovers);
+  };
+
+  const handleSidebarDeleteCategory = (cat: string) => {
+      if (confirm(`Supprimer la catégorie "${cat}" ? Les produits resteront dans le catalogue global.`)) {
+          const newCats = categories.filter(c => c !== cat);
+          setCategories(newCats);
+          handleSaveCategoriesSilently(newCats, shopInfo.categoryCovers || {});
+      }
+  };
+
   const [showStockUpdate, setShowStockUpdate] = useState(false);
   const stockUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const triggerStockUpdateBadge = () => {
@@ -2074,6 +2097,7 @@ export default function OnyxJaayShop() {
   });
 
   const visibleCategories = categories.filter(cat => cat === 'Toutes' || cat === 'Favoris' || !shopInfo?.categoryCovers?.['__hidden_' + cat]);
+  const sidebarCategories = isEditingMode ? categories : visibleCategories;
 
   if (isLoading) {
     return (
@@ -2176,25 +2200,44 @@ export default function OnyxJaayShop() {
                       </>
                   )}
                 </nav>
-                <div className="px-4 space-y-2">
-                  <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
-                  {visibleCategories.map(cat => (
-                    <button 
-                      key={cat} 
-                      onClick={() => { setActiveCategory(cat); setShopView('boutique'); setIsMobileMenuOpen(false); }} 
-                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${
-                        activeCategory === cat 
-                          ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
-                          : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2 truncate">
-                        {cat === 'Favoris' && <Heart size={14} />}
-                        {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
-                        {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
-                      </span>
-                      {activeCategory === cat && <ChevronRight size={14} />}
-                    </button>
+                <div className="px-4 space-y-1">
+                  <div className="flex items-center justify-between px-4 mb-2">
+                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Catégories</p>
+                    {isEditingMode && (
+                        <button onClick={() => { setShopView('settings'); setIsMobileMenuOpen(false); }} className="text-[10px] bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-500 hover:text-black dark:hover:text-white transition flex items-center gap-1">
+                            <Settings size={10} /> Gérer
+                        </button>
+                    )}
+                  </div>
+                  {sidebarCategories.map(cat => (
+                    <div key={cat} className="group relative flex items-center w-full">
+                      <button 
+                        onClick={() => { setActiveCategory(cat); setShopView('boutique'); setIsMobileMenuOpen(false); }} 
+                        className={`flex-1 flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${
+                          activeCategory === cat 
+                            ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
+                            : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'
+                        } ${shopInfo?.categoryCovers?.['__hidden_' + cat] ? 'opacity-50 line-through' : ''}`}
+                      >
+                        <span className="flex items-center gap-2 truncate">
+                          {cat === 'Favoris' && <Heart size={14} />}
+                          {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
+                          {shopInfo?.categoryCovers?.['__hidden_' + cat] && <EyeOff size={12} className="text-zinc-500" />}
+                          {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
+                        </span>
+                        {activeCategory === cat && <ChevronRight size={14} />}
+                      </button>
+                      {isEditingMode && cat !== 'Toutes' && cat !== 'Favoris' && (
+                          <div className="absolute right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-lg">
+                              <button onClick={(e) => { e.stopPropagation(); toggleSidebarCategoryVisibility(cat); }} title="Masquer/Afficher" className="p-1.5 hover:text-orange-500 text-zinc-500 transition-colors">
+                                  {shopInfo?.categoryCovers?.['__hidden_' + cat] ? <EyeOff size={14}/> : <Eye size={14}/>}
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); handleSidebarDeleteCategory(cat); }} title="Supprimer" className="p-1.5 hover:text-red-500 text-zinc-500 transition-colors">
+                                  <Trash2 size={14}/>
+                              </button>
+                          </div>
+                      )}
+                    </div>
                   ))}
                 </div>
 
@@ -2370,25 +2413,50 @@ export default function OnyxJaayShop() {
             )}
           </nav>
 
-          <div className={`px-4 space-y-2 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
-            <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Catégories</p>
-            {visibleCategories.map(cat => (
-              <button 
-                key={cat} 
-                onClick={() => { setActiveCategory(cat); setShopView('boutique'); }}
-                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${
-                  activeCategory === cat 
-                    ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
-                    : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'
-                }`}
-              >
-                <span className="flex items-center gap-2 truncate">
-                  {cat === 'Favoris' && <Heart size={14} />}
-                  {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
-                  {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
-                </span>
-                {activeCategory === cat && <ChevronRight size={14} />}
-              </button>
+          <div className={`px-4 space-y-1 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
+            <div className="flex items-center justify-between px-4 mb-2">
+              <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Catégories</p>
+              {isEditingMode && (
+                <button onClick={() => setShopView('settings')} className="text-[10px] bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-500 hover:text-black dark:hover:text-white transition flex items-center gap-1">
+                  <Settings size={10} /> Gérer
+                </button>
+              )}
+            </div>
+            {sidebarCategories.map(cat => (
+              <div key={cat} className="group relative flex items-center w-full">
+                <button 
+                  onClick={() => { setActiveCategory(cat); setShopView('boutique'); }}
+                  className={`flex-1 flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${
+                    activeCategory === cat 
+                      ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
+                      : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'
+                  } ${shopInfo?.categoryCovers?.['__hidden_' + cat] ? 'opacity-50 line-through' : ''}`}
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    {cat === 'Favoris' && <Heart size={14} />}
+                    {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
+                    {shopInfo?.categoryCovers?.['__hidden_' + cat] && <EyeOff size={12} className="text-zinc-500" />}
+                    {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
+                  </span>
+                  {activeCategory === cat && <ChevronRight size={14} />}
+                </button>
+                {isEditingMode && cat !== 'Toutes' && cat !== 'Favoris' && (
+                    <div className="absolute right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-lg">
+                        <button onClick={(e) => { e.stopPropagation(); toggleSidebarCategoryVisibility(cat); }} title="Masquer/Afficher" className="p-1.5 hover:text-orange-500 text-zinc-500 transition-colors">
+                            {shopInfo?.categoryCovers?.['__hidden_' + cat] ? <EyeOff size={14}/> : <Eye size={14}/>}
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); toggleSidebarCategoryBadge(cat); }} title="Badge Nouveau" className={`p-1.5 transition-colors ${shopInfo?.categoryCovers?.['__new_' + cat] ? 'text-red-500 hover:text-red-600' : 'text-zinc-500 hover:text-red-500'}`}>
+                            <Tag size={14}/>
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleSidebarRenameCategory(cat); }} title="Renommer" className="p-1.5 hover:text-blue-500 text-zinc-500 transition-colors">
+                            <Edit size={14}/>
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleSidebarDeleteCategory(cat); }} title="Supprimer" className="p-1.5 hover:text-red-500 text-zinc-500 transition-colors">
+                            <Trash2 size={14}/>
+                        </button>
+                    </div>
+                )}
+              </div>
             ))}
           </div>
 
