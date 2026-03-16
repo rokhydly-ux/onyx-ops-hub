@@ -555,7 +555,10 @@ export default function AdminDashboard() {
   e.preventDefault();
   if (!editingContact.full_name || !editingContact.phone) return alert("Nom et Téléphone requis");
   
-  const phoneClean = (editingContact.phone || "").replace(/\s+/g, "");
+  let phoneClean = (editingContact.phone || "").replace(/\s+/g, "");
+  if (phoneClean.length === 9 && /^(7[05678]\d{7})$/.test(phoneClean)) {
+      phoneClean = `+221${phoneClean}`;
+  }
 
   const payload: any = {
     full_name: editingContact.full_name,

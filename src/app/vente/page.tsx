@@ -147,6 +147,17 @@ const displayPrice = (priceInCfa: number | null | undefined, currency: string = 
     return `${convertedPrice.toFixed(2)} ${config.symbol}`;
 };
 
+const validateSenegalPhone = (phone: string) => {
+    const cleaned = phone.replace(/\s+/g, '');
+    return /^(?:\+221)?(7[05678]\d{7})$/.test(cleaned);
+};
+
+const formatSenegalPhone = (phone: string) => {
+    const cleaned = phone.replace(/\s+/g, '');
+    if (cleaned.length === 9) return `+221${cleaned}`;
+    return cleaned;
+};
+
 const getEmbedUrl = (url: string) => {
     if (!url) return '';
     let videoId = '';
@@ -1288,12 +1299,19 @@ export default function OnyxJaayShop() {
 
   const confirmOrder = async (skipWhatsApp: boolean = false) => {
     // Validation assouplie pour les commandes "Sur place"
-    const finalName = skipWhatsApp && !customerInfo.name ? "Client en boutique" : customerInfo.name;
-    const finalPhone = skipWhatsApp && !customerInfo.phone ? "Sur place" : customerInfo.phone;
+    let finalName = skipWhatsApp && !customerInfo.name ? "Client en boutique" : customerInfo.name;
+    let finalPhone = skipWhatsApp && !customerInfo.phone ? "Sur place" : customerInfo.phone;
 
-    if (!skipWhatsApp && (!finalName || !finalPhone)) {
-        alert("Veuillez remplir le nom et le téléphone pour valider la commande en ligne.");
-        return;
+    if (!skipWhatsApp) {
+        if (!finalName || !finalPhone) {
+            alert("Veuillez remplir le nom et le téléphone pour valider la commande en ligne.");
+            return;
+        }
+        if (!validateSenegalPhone(finalPhone)) {
+            alert("Veuillez entrer un numéro de téléphone sénégalais valide (ex: 77 123 45 67 ou +221...).");
+            return;
+        }
+        finalPhone = formatSenegalPhone(finalPhone);
     }
 
     if (deliveryMethod === 'delivery' && shopInfo.deliveryOptions?.delivery === false) return alert("La livraison n'est pas disponible actuellement.");
@@ -1428,6 +1446,7 @@ export default function OnyxJaayShop() {
   const handleAddReview = async (productId: number, review: Omit<Review, 'id' | 'date'>) => {
     try {
         const { data, error } = await supabase.from('reviews').insert([{
+            shop_id: shopId,
             type: 'product',
             reference_id: String(productId),
             name: review.name,
@@ -2864,9 +2883,37 @@ export default function OnyxJaayShop() {
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Vos Coordonnées</p>
                 <input type="text" placeholder="Votre Nom *" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black" />
                 <input type="tel" placeholder="Votre Téléphone *" value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black" />
-                <textarea placeholder="Instructions de livraison (Optionnel)" value={deliveryInstructions} onChange={e => setDeliveryInstructions(e.target.value)} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[80px] resize-none" />
             </div>
             
+            <div className="mb-6 space-y-3 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Mode de réception</p>
+                <div className="flex gap-3 mb-4">
+                    {shopInfo.deliveryOptions?.delivery !== false && (
+                        <button onClick={() => setDeliveryMethod('delivery')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400'}`}>
+                            <Truck size={20} /> <span className="text-[10px] font-black uppercase">Livraison</span>
+                        </button>
+                    )}
+                    {shopInfo.deliveryOptions?.pickup !== false && (
+                        <button onClick={() => setDeliveryMethod('pickup')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400'}`}>
+                            <Store size={20} /> <span className="text-[10px] font-black uppercase">Retrait</span>
+                        </button>
+                    )}
+                </div>
+                {deliveryMethod === 'delivery' && (
+                    <div className="space-y-3">
+                        <select value={selectedZoneId || ''} onChange={(e) => setSelectedZoneId(Number(e.target.value))} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-3 text-sm font-bold outline-none focus:border-[#39FF14]">
+                            <option value="">Sélectionner votre zone de livraison *</option>
+                            {deliveryZones.map(zone => (
+                                <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
+                            ))}
+                        </select>
+                        {selectedZoneId && <p className="text-[10px] text-zinc-400 italic px-1">{deliveryZones.find(z => z.id === selectedZoneId)?.quartiers.join(', ')}</p>}
+                        <textarea placeholder="Adresse détaillée (Quartier, rue, repère...)" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black resize-none min-h-[60px]" />
+                    </div>
+                )}
+                <textarea placeholder="Instructions de livraison (Optionnel)" value={deliveryInstructions} onChange={e => setDeliveryInstructions(e.target.value)} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] resize-none" />
+            </div>
+
             {currentCustomerPoints > 0 && (
                 <div className="mb-6 space-y-3 bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl border border-green-200 dark:border-green-800">
                     <div className="flex items-center justify-between">
@@ -2980,6 +3027,7 @@ export default function OnyxJaayShop() {
                 if (!orderReview.name || !orderReview.comment) return alert("Veuillez remplir votre nom et votre commentaire.");
                 
                 const { error } = await supabase.from('reviews').insert([{
+                   shop_id: shopId,
                    type: 'order',
                    reference_id: reviewOrderId,
                    name: orderReview.name,
@@ -3877,8 +3925,9 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         type="number" 
                         min={1} 
                         max={maxAvailable !== Infinity ? maxAvailable : undefined}
-                        value={selectedQty}
+                        value={selectedQty || ''}
                         onChange={(e) => {
+                          if (e.target.value === '') return setSelectedQty(0 as any); // Permet de vider la case temporairement
                           const val = parseInt(e.target.value);
                           if (isNaN(val)) return;
                           setSelectedQty(Math.min(Math.max(1, val), maxAvailable !== Infinity ? maxAvailable : val));
@@ -3897,22 +3946,22 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         onClick={() => { 
                           if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
                           if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true, selectedQty); 
+                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true, selectedQty || 1); 
                           onClose();
                         }} 
-                        disabled={isOutOfStock || isMaxedOut}
+                        disabled={isOutOfStock || selectedQty === 0}
                         className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                         <Plus size={18} /> {isMaxedOut && !isOutOfStock ? "Limite atteinte" : "Ajouter"}
+                         <Plus size={18} /> {maxAvailable === 0 && product.stock !== 0 ? "Limite panier" : "Ajouter"}
                       </button>
                       <button 
                         onClick={() => { 
                           if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
                           if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }, selectedQty); 
+                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }, selectedQty || 1); 
                           onClose();
                         }} 
-                        disabled={isOutOfStock || isMaxedOut}
+                        disabled={isOutOfStock || selectedQty === 0}
                         className="flex-[2] bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition flex items-center justify-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
                       >
                          <ShoppingCart size={18} /> Acheter Directement
@@ -5139,17 +5188,24 @@ function ShopClients({ currency, orders, onClientSelect, onRunIaScan }: { curren
         e.preventDefault();
         if (!newClient.name || !newClient.phone) return;
 
-        if (clients.some(c => c.phone === newClient.phone)) {
+        if (!validateSenegalPhone(newClient.phone)) {
+            alert("Veuillez entrer un numéro de téléphone sénégalais valide (ex: 77 123 45 67).");
+            return;
+        }
+        const formattedPhone = formatSenegalPhone(newClient.phone);
+
+        if (clients.some(c => c.phone === formattedPhone)) {
             alert('Un client avec ce numéro de téléphone existe déjà.');
             return;
         }
 
         const manualClients = JSON.parse(localStorage.getItem('onyx_jaay_manual_clients') || '[]');
-        manualClients.push(newClient);
+        manualClients.push({ ...newClient, phone: formattedPhone });
         localStorage.setItem('onyx_jaay_manual_clients', JSON.stringify(manualClients));
 
         setClients(prev => [...prev, {
             ...newClient,
+            phone: formattedPhone,
             totalSpent: 0,
             ordersCount: 0,
             cancelledCount: 0,

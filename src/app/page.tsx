@@ -168,7 +168,7 @@ export default function OnyxOpsElite() {
   const validatePhone = (code: string, number: string) => {
     const cleanNumber = number.replace(/\s+/g, '');
     if (code === '+221') {
-      const regexSenegal = /^(7[05678]\d{7})$/; // Commence par 70, 75, 76, 77 ou 78 suivi de 7 chiffres
+      const regexSenegal = /^(?:\+221)?(7[05678]\d{7})$/; // Accepte avec ou sans préfixe
       return regexSenegal.test(cleanNumber);
     }
     return cleanNumber.length >= 6; // Minimum syndical pour l'international
@@ -380,7 +380,7 @@ export default function OnyxOpsElite() {
       return;
     }
 
-    const finalPhone = `${countryCode} ${leadData.phone.replace(/\s+/g, '')}`;
+    const finalPhone = leadData.phone.replace(/\s+/g, '').startsWith('+221') ? leadData.phone.replace(/\s+/g, '') : `${countryCode}${leadData.phone.replace(/\s+/g, '')}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
     const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte._`;
 
@@ -407,7 +407,7 @@ export default function OnyxOpsElite() {
       return;
     }
 
-    const finalPhone = `${countryCode} ${leadData.phone.replace(/\s+/g, '')}`;
+    const finalPhone = leadData.phone.replace(/\s+/g, '').startsWith('+221') ? leadData.phone.replace(/\s+/g, '') : `${countryCode}${leadData.phone.replace(/\s+/g, '')}`;
     const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n\n_Le client souhaite un diagnostic gratuit._`;
 
     await saveLead({
@@ -536,12 +536,17 @@ export default function OnyxOpsElite() {
       return alert("Veuillez remplir les champs obligatoires (*) : Nom, Téléphone, Statut, Pays.");
     }
     
+    let cleanContact = partnerForm.contact.replace(/\s+/g, '');
+    if (partnerForm.country === 'Sénégal' && cleanContact.length === 9) {
+       cleanContact = `+221${cleanContact}`;
+    }
+
     try {
        // 1. On prépare l'objet pour la table 'ambassadors' avec les clés exactes
        const ambassadorPayload = {
           full_name: partnerForm.full_name,
-          contact: partnerForm.contact,
-          phone: partnerForm.contact, // Redondance pour robustesse
+          contact: cleanContact,
+          phone: cleanContact, // Redondance pour robustesse
           city: partnerForm.city,
           address: partnerForm.address,
           country: partnerForm.country,

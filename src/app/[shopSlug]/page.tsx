@@ -10,6 +10,17 @@ import {
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
+const validateSenegalPhone = (phone: string) => {
+    const cleaned = phone.replace(/\s+/g, '');
+    return /^(?:\+221)?(7[05678]\d{7})$/.test(cleaned);
+};
+
+const formatSenegalPhone = (phone: string) => {
+    const cleaned = phone.replace(/\s+/g, '');
+    if (cleaned.length === 9) return `+221${cleaned}`;
+    return cleaned;
+};
+
 const displayPrice = (price: number | null | undefined, currency: string = 'FCFA') => {
     return `${(price || 0).toLocaleString('fr-SN')} ${currency}`;
 };
@@ -603,6 +614,7 @@ export default function DynamicShopPage() {
   const [trackedOrder, setTrackedOrder] = useState<any>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+  const [orderReview, setOrderReview] = useState({ name: '', rating: 5, comment: '' });
   
   // Stock update badge
   const [showStockUpdate, setShowStockUpdate] = useState(false);
@@ -1011,8 +1023,10 @@ export default function DynamicShopPage() {
     }
 
     if (!customerInfo.name || !customerInfo.phone) return alert("Veuillez remplir votre nom et téléphone.");
+    if (!validateSenegalPhone(customerInfo.phone)) return alert("Veuillez entrer un numéro de téléphone sénégalais valide (ex: 77 123 45 67).");
     if (deliveryMethod === 'delivery' && !selectedZoneId) return alert("Veuillez sélectionner une zone de livraison.");
 
+    const finalPhone = formatSenegalPhone(customerInfo.phone);
     const trackingNumber = `CMD-${Math.floor(100000 + Math.random() * 900000)}`;
     const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
     const pointsToUse = useLoyaltyPoints ? Math.floor(loyaltyDiscountAmount / 10) : 0;
@@ -1020,7 +1034,7 @@ export default function DynamicShopPage() {
     const orderPayload = {
       shop_id: currentShopId, // VITAL POUR LA LIAISON
       customer_name: customerInfo.name,
-      customer_phone: customerInfo.phone,
+      customer_phone: finalPhone,
       customer_address: customerInfo.address || '',
       delivery_instructions: customerInfo.instructions || '',
       items: cart,
@@ -1150,6 +1164,7 @@ export default function DynamicShopPage() {
   const handleAddReview = async (productId: number, review: Omit<any, 'id' | 'date'>) => {
     try {
         const { data, error } = await supabase.from('reviews').insert([{
+            shop_id: currentShopId,
             type: 'product',
             reference_id: String(productId),
             name: review.name,
@@ -1699,7 +1714,31 @@ export default function DynamicShopPage() {
                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Vos Coordonnées</p>
                  <input type="text" placeholder="Votre Nom *" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black text-black dark:text-white transition" />
                  <input type="tel" placeholder="Votre Téléphone *" value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black text-black dark:text-white transition" />
-                 {deliveryMethod === 'delivery' && <textarea placeholder="Adresse de livraison détaillée (Numéro de rue, repère...)" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none transition" />}
+              </div>
+
+              <div className="mb-6 space-y-3 bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Mode de réception</p>
+                 <div className="flex gap-3 mb-4">
+                     <button onClick={() => setDeliveryMethod('delivery')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400'}`}>
+                         <Truck size={20} /> <span className="text-[10px] font-black uppercase">Livraison</span>
+                     </button>
+                     <button onClick={() => setDeliveryMethod('pickup')} className={`flex-1 py-3 px-2 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'border-black dark:border-white bg-white dark:bg-zinc-800 text-black dark:text-white shadow-md' : 'border-transparent bg-zinc-200 dark:bg-zinc-800 text-zinc-400'}`}>
+                         <Store size={20} /> <span className="text-[10px] font-black uppercase">Retrait</span>
+                     </button>
+                 </div>
+                 {deliveryMethod === 'delivery' && (
+                     <div className="space-y-3">
+                         <select value={selectedZoneId || ''} onChange={(e) => setSelectedZoneId(Number(e.target.value))} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-3 text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white">
+                             <option value="">Sélectionner votre zone de livraison *</option>
+                             {deliveryZones.map(zone => (
+                                 <option key={zone.id} value={zone.id}>{zone.name} - {zone.price.toLocaleString()} F</option>
+                             ))}
+                         </select>
+                         {selectedZoneId && <p className="text-[10px] text-zinc-400 italic px-1">{deliveryZones.find(z => z.id === selectedZoneId)?.quartiers.join(', ')}</p>}
+                         <textarea placeholder="Adresse détaillée (Quartier, rue, repère...)" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none transition" />
+                     </div>
+                 )}
+                 <textarea placeholder="Instructions de livraison (Optionnel)" value={customerInfo.instructions} onChange={e => setCustomerInfo({...customerInfo, instructions: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none transition" />
               </div>
 
               {currentCustomerPoints > 0 && (
@@ -1858,6 +1897,67 @@ export default function DynamicShopPage() {
                     </div>
                  </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* --- ORDER REVIEW MODAL --- */}
+        {reviewOrderId && (
+          <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setReviewOrderId(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95">
+              <button onClick={() => setReviewOrderId(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+              <div className="flex items-center gap-3 mb-6">
+                 <div className="p-3 bg-yellow-400/10 rounded-xl text-yellow-500"><Star size={24} className="fill-yellow-500"/></div>
+                 <h3 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white">Votre Avis</h3>
+              </div>
+              <p className="text-sm text-zinc-500 mb-6">Merci pour votre commande ! Comment s'est passée votre expérience avec la boutique ?</p>
+              
+              <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!orderReview.name || !orderReview.comment) return alert("Veuillez remplir votre nom et votre commentaire.");
+                  
+                  const { error } = await supabase.from('reviews').insert([{
+                     shop_id: currentShopId, // LIAISON VITALE AVEC LE BACKEND
+                     type: 'order',
+                     reference_id: reviewOrderId,
+                     name: orderReview.name,
+                     rating: orderReview.rating,
+                     comment: orderReview.comment
+                  }]);
+
+                  if (error) {
+                      console.error("Erreur:", error);
+                      alert("Une erreur est survenue lors de l'envoi de l'avis.");
+                      return;
+                  }
+                  
+                  alert("Merci pour votre avis ! Il a été enregistré avec succès.");
+                  setReviewOrderId(null);
+                  setOrderReview({ name: '', rating: 5, comment: '' });
+                  window.history.replaceState({}, document.title, window.location.pathname);
+              }} className="space-y-4">
+                 <div>
+                   <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Votre prénom / nom</label>
+                   <input type="text" value={orderReview.name} onChange={e => setOrderReview({...orderReview, name: e.target.value})} required className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                 </div>
+                 <div>
+                   <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Note</label>
+                   <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map(star => (
+                         <button key={star} type="button" onClick={() => setOrderReview({...orderReview, rating: star})} className="p-2 hover:scale-110 transition-transform">
+                            <Star size={32} className={star <= orderReview.rating ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-300 dark:text-zinc-700'} />
+                         </button>
+                      ))}
+                   </div>
+                 </div>
+                 <div>
+                   <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Votre commentaire</label>
+                   <textarea value={orderReview.comment} onChange={e => setOrderReview({...orderReview, comment: e.target.value})} required className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none focus:border-[#39FF14] min-h-[100px] resize-none text-black dark:text-white" placeholder="Racontez-nous..."></textarea>
+                 </div>
+                 <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:bg-white transition shadow-lg mt-4">
+                    Envoyer mon avis
+                 </button>
+              </form>
             </div>
           </div>
         )}
