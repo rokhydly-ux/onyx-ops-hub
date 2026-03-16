@@ -1834,9 +1834,9 @@ export default function OnyxJaayShop() {
   const filteredProducts = (products || []).filter(p => {
     if (!p) return false;
     const search = (searchTerm || '').toLowerCase().trim();
-    const nameMatch = p.name ? p.name.toLowerCase().includes(search) : false;
-    const descMatch = p.description ? p.description.toLowerCase().includes(search) : false;
-    const catMatch = p.category ? p.category.toLowerCase().includes(search) : false;
+    const nameMatch = p.name && typeof p.name === 'string' ? p.name.toLowerCase().includes(search) : false;
+    const descMatch = p.description && typeof p.description === 'string' ? p.description.toLowerCase().includes(search) : false;
+    const catMatch = p.category && typeof p.category === 'string' ? p.category.toLowerCase().includes(search) : false;
     const matchesSearch = search === '' || nameMatch || descMatch || catMatch;
 
     const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
@@ -1845,9 +1845,9 @@ export default function OnyxJaayShop() {
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
   }).sort((a, b) => {
-    if (sortOrder === 'asc') return a.price - b.price;
-    if (sortOrder === 'desc') return b.price - a.price;
-    return b.id - a.id; // Trie par nouveautés (identifiant le plus récent) par défaut
+    if (sortOrder === 'asc') return (a.price || 0) - (b.price || 0);
+    if (sortOrder === 'desc') return (b.price || 0) - (a.price || 0);
+    return (b.id || 0) - (a.id || 0);
   });
 
   if (isLoading) {
@@ -3882,7 +3882,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                        <Share2 size={18} /> Partager
                     </button>
                     <button onClick={() => onGenerateQR(product)} className="flex-1 bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white py-4 rounded-xl font-bold uppercase text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-800">
-                       <QrCode size={18} /> QR Code
+                       <QrCode size={18} /> QRCode
                     </button>
                   </div>
                </div>
