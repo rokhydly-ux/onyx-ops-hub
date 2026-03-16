@@ -4323,7 +4323,14 @@ function ClientDetailModal({ client, orders, shopName, currency, onClose, refres
                                             <p className="text-xs font-bold">{new Date(order.date).toLocaleDateString('fr-FR')} à {new Date(order.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</p>
                                             {order.trackingNumber && <p className="text-[10px] font-black uppercase text-zinc-400 mt-1">Réf: {order.trackingNumber}</p>}
                                         </div>
-                                        <p className="font-black text-sm text-[#39FF14]">{displayPrice(order.total, currency)}</p>
+                                        <div className="text-right">
+                                            <p className="font-black text-sm text-[#39FF14]">{displayPrice(order.total, currency)}</p>
+                                            {(() => {
+                                                const orderCost = order.items?.reduce((sum: number, item: any) => sum + ((item.costPrice || 0) * item.quantity), 0) || 0;
+                                                const orderMargin = order.total - orderCost;
+                                                return <p className="text-[10px] font-bold text-zinc-500 mt-0.5">Marge: <span className="text-[#39FF14]">{displayPrice(orderMargin, currency)}</span></p>;
+                                            })()}
+                                        </div>
                                     </div>
                                     <p className="text-xs text-zinc-500 mt-1 mb-3">{order.items.map((i: any) => `${i.name} (x${i.quantity})`).join(', ')}</p>
                                     
@@ -5863,7 +5870,17 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
             <div id="modal-overlay" onClick={() => setSelectedDayOrders(null)} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
                 <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] w-full max-w-2xl shadow-2xl animate-in zoom-in-95 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
                     <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-                        <h3 className="font-black text-lg uppercase">Commandes du {new Date(selectedDayOrders.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</h3>
+                        <div>
+                            <h3 className="font-black text-lg uppercase">Commandes du {new Date(selectedDayOrders.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</h3>
+                            {(() => {
+                                const dayRev = selectedDayOrders.orders.reduce((sum, o) => sum + o.total, 0);
+                                const dayCost = selectedDayOrders.orders.reduce((sum, o) => sum + o.items.reduce((iSum: number, item: any) => iSum + ((item.costPrice || 0) * item.quantity), 0), 0);
+                                const dayMargin = dayRev - dayCost;
+                                return (
+                                    <p className="text-xs font-bold text-zinc-500 mt-1">CA: <span className="text-black dark:text-white">{displayPrice(dayRev, currency)}</span> <span className="mx-2">•</span> Marge Brute: <span className="text-[#39FF14]">{displayPrice(dayMargin, currency)}</span></p>
+                                );
+                            })()}
+                        </div>
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={() => handleExportDayOrdersToCSV(selectedDayOrders)} 
@@ -5892,7 +5909,12 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                                             {order.deliveryZone && <p className="text-[10px] font-bold text-zinc-500 mt-1 flex items-center gap-1">📍 {order.deliveryZone}</p>}
                                         </div>
                                         <div className="text-right flex flex-col items-end">
-                                            <p className="font-black text-lg text-[#39FF14] leading-none mb-2">{displayPrice(order.total, currency)}</p>
+                                            <p className="font-black text-lg text-[#39FF14] leading-none mb-1">{displayPrice(order.total, currency)}</p>
+                                            {(() => {
+                                                const orderCost = order.items.reduce((sum: number, item: any) => sum + ((item.costPrice || 0) * item.quantity), 0);
+                                                const orderMargin = order.total - orderCost;
+                                                return <p className="text-[10px] font-bold text-zinc-500 mb-2">Marge: <span className="text-[#39FF14]">{displayPrice(orderMargin, currency)}</span></p>;
+                                            })()}
                                             <select 
                                                 value={order.status || 'En attente'} 
                                                 onChange={(e) => updateOrderStatus(order.id, e.target.value)}
@@ -5972,10 +5994,31 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         {historyModalOrder && (
             <div id="modal-overlay" onClick={() => setHistoryModalOrder(null)} className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
                 <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] w-full max-w-md shadow-2xl animate-in zoom-in-95 flex flex-col" onClick={e => e.stopPropagation()}>
-                    <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+                    <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-start">
                         <div>
-                            <h3 className="font-black text-lg uppercase">Historique Commande</h3>
+                            <h3 className="font-black text-lg uppercase">Détails Commande</h3>
                             <p className="text-xs text-zinc-500 font-bold mt-1">Réf: {historyModalOrder.trackingNumber || historyModalOrder.tracking_number}</p>
+                            {(() => {
+                                const orderTotal = historyModalOrder.total || historyModalOrder.total_amount || 0;
+                                const orderCost = historyModalOrder.items?.reduce((sum: number, item: any) => sum + ((item.costPrice || 0) * item.quantity), 0) || 0;
+                                const orderMargin = orderTotal - orderCost;
+                                const customerPhone = historyModalOrder.customer?.phone || historyModalOrder.customer_phone || '';
+                                const cleanPhone = String(customerPhone).replace(/[^0-9]/g, '');
+                                const phoneWithPrefix = cleanPhone.startsWith('221') ? cleanPhone : (cleanPhone ? `221${cleanPhone}` : '');
+                                return (
+                                    <div className="mt-4 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                                        <p className="text-sm font-black">CA: <span className="text-black dark:text-white">{displayPrice(orderTotal, currency)}</span></p>
+                                        <div className="flex items-center justify-between mt-0.5">
+                                            <p className="text-xs font-bold text-zinc-500">Marge Nette: <span className="text-[#39FF14]">{displayPrice(orderMargin, currency)}</span></p>
+                                            {phoneWithPrefix && (
+                                                <button onClick={() => window.open(`https://wa.me/${phoneWithPrefix}`, '_blank')} className="bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white px-2 py-1 rounded flex items-center gap-1 text-[10px] font-black uppercase transition-colors shadow-sm">
+                                                    <MessageSquare size={12} /> WhatsApp
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                         <button onClick={() => setHistoryModalOrder(null)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition"><X size={20}/></button>
                     </div>
