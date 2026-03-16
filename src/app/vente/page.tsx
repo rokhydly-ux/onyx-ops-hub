@@ -7,7 +7,7 @@ import React, { useState, useRef, DragEvent, useEffect, useMemo, useCallback } f
 import { useRouter } from 'next/navigation';
 import { 
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download,
-  Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, 
+  Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, GripVertical,
   Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, EyeOff, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut, Megaphone, Send, XCircle, CheckCircle, Edit3, Copy, LogIn, Wallet, ExternalLink
 , ChevronLeft } from 'lucide-react';
 import QRCode from "react-qr-code";
@@ -247,6 +247,29 @@ function SortableWidget({ id, name, settings, type, onEdit, onDelete }: WidgetPr
   );
 }
 
+
+function SortableSidebarCategoryItem({ id, isEditingMode, children }: { id: string, isEditingMode: boolean, children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      position: 'relative' as any,
+      zIndex: isDragging ? 50 : 1,
+  };
+  const isDraggable = isEditingMode && id !== 'Toutes' && id !== 'Favoris';
+
+  return (
+      <div ref={isDraggable ? setNodeRef : undefined} style={isDraggable ? style : {}} className="group/cat relative flex items-center w-full">
+          {isDraggable && (
+              <div {...attributes} {...listeners} className="absolute left-1 z-10 cursor-grab opacity-0 group-hover/cat:opacity-100 p-1 text-zinc-400 hover:text-black dark:hover:text-white hidden md:block" title="Déplacer">
+                 <GripVertical size={14} />
+              </div>
+          )}
+          {children}
+      </div>
+  );
+}
 
 function DroppableCanvas({ children }: { children: React.ReactNode }) {
   const { isOver, setNodeRef } = useDroppable({
@@ -797,6 +820,85 @@ export default function OnyxJaayShop() {
       else newCovers[hiddenKey] = 'true';
       setShopInfo({ ...shopInfo, categoryCovers: newCovers });
       handleSaveCategoriesSilently(categories, newCovers);
+  };
+
+  const handleCategoryDragEnd = (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) {
+          if (active.id === 'Toutes' || active.id === 'Favoris' || over.id === 'Toutes' || over.id === 'Favoris') return;
+
+          const fixedCats = categories.filter(c => c === 'Toutes' || c === 'Favoris');
+          const movableCats = categories.filter(c => c !== 'Toutes' && c !== 'Favoris');
+
+          const oldIndex = movableCats.indexOf(active.id as string);
+          const newIndex = movableCats.indexOf(over.id as string);
+          
+          if (oldIndex !== -1 && newIndex !== -1) {
+              const newMovableCats = arrayMove(movableCats, oldIndex, newIndex);
+              const newCats = [...fixedCats, ...newMovableCats];
+              
+              setCategories(newCats);
+              handleSaveCategoriesSilently(newCats, shopInfo.categoryCovers || {});
+          }
+      }
+  };
+
+  const getCategoryCount = useCallback((cat: string) => {
+      if (cat === 'Toutes') return products.length;
+      if (cat === 'Favoris') return wishlist.length;
+      return products.filter(p => p.category === cat || (p.category && p.category.startsWith(cat + ' / '))).length;
+  }, [products, wishlist.length]);
+
+  const categorySensors = useSensors(
+      useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const toggleSidebarCategoryBadge = (cat: string) => {
+      const badgeKey = '__new_' + cat;
+      const newCovers = { ...(shopInfo.categoryCovers || {}) };
+      if (newCovers[badgeKey]) delete newCovers[badgeKey];
+      else newCovers[badgeKey] = 'true';
+      setShopInfo({ ...shopInfo, categoryCovers: newCovers });
+      handleSaveCategoriesSilently(categories, newCovers);
+  };
+
+  const handleSidebarRenameCategory = (oldCat: string) => {
+      const newCatName = prompt(`Renommer la catégorie "${oldCat}" en :`, oldCat.includes(' / ') ? oldCat.split(' / ').pop() : oldCat);
+      if (newCatName && newCatName.trim() && newCatName.trim() !== oldCat) {
+          const newCatFull = oldCat.includes(' / ') 
+            ? `${oldCat.substring(0, oldCat.lastIndexOf(' / '))} / ${newCatName.trim()}` 
+            : newCatName.trim();
+
+          const updatedCategories = categories.map(c => c === oldCat ? newCatFull : c);
+          const finalCategories = updatedCategories.map(c => (!oldCat.includes(' / ') && c.startsWith(oldCat + ' / ')) ? c.replace(oldCat + ' / ', newCatFull + ' / ') : c);
+          
+          setCategories(finalCategories);
+
+          const newCovers = { ...(shopInfo.categoryCovers || {}) };
+          if (newCovers[oldCat]) { newCovers[newCatFull] = newCovers[oldCat]; delete newCovers[oldCat]; }
+          if (!oldCat.includes(' / ')) {
+              Object.keys(newCovers).forEach(key => {
+                  if (key.startsWith(oldCat + ' / ')) {
+                      const newKey = key.replace(oldCat + ' / ', newCatFull + ' / ');
+                      newCovers[newKey] = newCovers[key];
+                      delete newCovers[key];
+                  }
+              });
+          }
+          setShopInfo({ ...shopInfo, categoryCovers: newCovers });
+          handleSaveCategoriesSilently(finalCategories, newCovers);
+
+          if (shopId) {
+              supabase.from('products').select('id, category').eq('shop_id', shopId).ilike('category', `${oldCat}%`).then(({ data: prods }) => {
+                  if (prods && prods.length > 0) {
+                      for (const p of prods) {
+                          let updatedCat = p.category === oldCat ? newCatFull : (!oldCat.includes(' / ') && p.category.startsWith(oldCat + ' / ')) ? p.category.replace(oldCat + ' / ', newCatFull + ' / ') : p.category;
+                          if (updatedCat !== p.category) supabase.from('products').update({ category: updatedCat }).eq('id', p.id).then();
+                      }
+                  }
+              });
+          }
+      }
   };
 
   const handleSidebarDeleteCategory = (cat: string) => {
@@ -2222,6 +2324,9 @@ export default function OnyxJaayShop() {
                         <span className="flex items-center gap-2 truncate">
                           {cat === 'Favoris' && <Heart size={14} />}
                           {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full leading-none font-bold ${cat === 'Favoris' ? (wishlist.length > 0 ? 'bg-red-500 text-white' : 'hidden') : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'}`}>
+                             {getCategoryCount(cat)}
+                          </span>
                           {shopInfo?.categoryCovers?.['__hidden_' + cat] && <EyeOff size={12} className="text-zinc-500" />}
                           {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
                         </span>
@@ -2422,42 +2527,49 @@ export default function OnyxJaayShop() {
                 </button>
               )}
             </div>
-            {sidebarCategories.map(cat => (
-              <div key={cat} className="group relative flex items-center w-full">
-                <button 
-                  onClick={() => { setActiveCategory(cat); setShopView('boutique'); }}
-                  className={`flex-1 flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${
-                    activeCategory === cat 
-                      ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
-                      : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'
-                  } ${shopInfo?.categoryCovers?.['__hidden_' + cat] ? 'opacity-50 line-through' : ''}`}
-                >
-                  <span className="flex items-center gap-2 truncate">
-                    {cat === 'Favoris' && <Heart size={14} />}
-                    {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
-                    {shopInfo?.categoryCovers?.['__hidden_' + cat] && <EyeOff size={12} className="text-zinc-500" />}
-                    {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
-                  </span>
-                  {activeCategory === cat && <ChevronRight size={14} />}
-                </button>
-                {isEditingMode && cat !== 'Toutes' && cat !== 'Favoris' && (
-                    <div className="absolute right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-lg">
-                        <button onClick={(e) => { e.stopPropagation(); toggleSidebarCategoryVisibility(cat); }} title="Masquer/Afficher" className="p-1.5 hover:text-orange-500 text-zinc-500 transition-colors">
-                            {shopInfo?.categoryCovers?.['__hidden_' + cat] ? <EyeOff size={14}/> : <Eye size={14}/>}
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); toggleSidebarCategoryBadge(cat); }} title="Badge Nouveau" className={`p-1.5 transition-colors ${shopInfo?.categoryCovers?.['__new_' + cat] ? 'text-red-500 hover:text-red-600' : 'text-zinc-500 hover:text-red-500'}`}>
-                            <Tag size={14}/>
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); handleSidebarRenameCategory(cat); }} title="Renommer" className="p-1.5 hover:text-blue-500 text-zinc-500 transition-colors">
-                            <Edit size={14}/>
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); handleSidebarDeleteCategory(cat); }} title="Supprimer" className="p-1.5 hover:text-red-500 text-zinc-500 transition-colors">
-                            <Trash2 size={14}/>
-                        </button>
-                    </div>
-                )}
-              </div>
-            ))}
+            <DndContext sensors={categorySensors} onDragEnd={handleCategoryDragEnd} collisionDetection={closestCenter}>
+              <SortableContext items={sidebarCategories} strategy={verticalListSortingStrategy}>
+                {sidebarCategories.map(cat => (
+                  <SortableSidebarCategoryItem key={cat} id={cat} isEditingMode={isEditingMode}>
+                    <button 
+                      onClick={() => { setActiveCategory(cat); setShopView('boutique'); }}
+                      className={`flex-1 flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${
+                        activeCategory === cat 
+                          ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
+                          : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'
+                      } ${shopInfo?.categoryCovers?.['__hidden_' + cat] ? 'opacity-50 line-through' : ''} ${isEditingMode && cat !== 'Toutes' && cat !== 'Favoris' ? 'pl-7' : ''}`}
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        {cat === 'Favoris' && <Heart size={14} />}
+                        {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full leading-none font-bold ${cat === 'Favoris' ? (wishlist.length > 0 ? 'bg-red-500 text-white' : 'hidden') : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'}`}>
+                           {getCategoryCount(cat)}
+                        </span>
+                        {shopInfo?.categoryCovers?.['__hidden_' + cat] && <EyeOff size={12} className="text-zinc-500" />}
+                        {shopInfo?.categoryCovers?.['__new_' + cat] && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full leading-none font-black uppercase tracking-widest shrink-0 mt-0.5">Nouveau</span>}
+                      </span>
+                      {activeCategory === cat && <ChevronRight size={14} />}
+                    </button>
+                    {isEditingMode && cat !== 'Toutes' && cat !== 'Favoris' && (
+                        <div className="absolute right-2 flex items-center gap-1 opacity-0 group-hover/cat:opacity-100 transition-opacity bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-lg">
+                            <button onClick={(e) => { e.stopPropagation(); toggleSidebarCategoryVisibility(cat); }} title="Masquer/Afficher" className="p-1.5 hover:text-orange-500 text-zinc-500 transition-colors">
+                                {shopInfo?.categoryCovers?.['__hidden_' + cat] ? <EyeOff size={14}/> : <Eye size={14}/>}
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); toggleSidebarCategoryBadge(cat); }} title="Badge Nouveau" className={`p-1.5 transition-colors ${shopInfo?.categoryCovers?.['__new_' + cat] ? 'text-red-500 hover:text-red-600' : 'text-zinc-500 hover:text-red-500'}`}>
+                                <Tag size={14}/>
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); handleSidebarRenameCategory(cat); }} title="Renommer" className="p-1.5 hover:text-blue-500 text-zinc-500 transition-colors">
+                                <Edit size={14}/>
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); handleSidebarDeleteCategory(cat); }} title="Supprimer" className="p-1.5 hover:text-red-500 text-zinc-500 transition-colors">
+                                <Trash2 size={14}/>
+                            </button>
+                        </div>
+                    )}
+                  </SortableSidebarCategoryItem>
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
 
           {availableColors.length > 0 && (
@@ -5007,6 +5119,10 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
       return;
     }
 
+    const dayRev = dayOrders.orders.reduce((sum, o) => sum + o.total, 0);
+    const dayCost = dayOrders.orders.reduce((sum, o) => sum + o.items.reduce((iSum: number, item: any) => iSum + ((item.costPrice || 0) * item.quantity), 0), 0);
+    const dayMargin = dayRev - dayCost;
+
     const ordersHtml = dayOrders.orders.map(order => `
       <div style="border-bottom: 1px solid #eee; padding: 16px 0; margin-bottom: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -5030,6 +5146,10 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         </head>
         <body>
           <h1>Commandes du ${new Date(dayOrders.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</h1>
+          <div style="display: flex; gap: 20px; font-weight: bold; margin-bottom: 30px; font-size: 16px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+              <p style="margin: 0;">Chiffre d'affaires : ${dayRev.toLocaleString('fr-FR')} F</p>
+              <p style="margin: 0; color: #2ecc71;">Marge Brute : ${dayMargin.toLocaleString('fr-FR')} F</p>
+          </div>
           ${ordersHtml}
         </body>
       </html>
