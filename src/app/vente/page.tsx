@@ -2278,6 +2278,28 @@ export default function OnyxJaayShop() {
             ))}
           </div>
 
+          {availableColors.length > 0 && (
+            <div className={`px-4 space-y-2 mt-6 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
+              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Couleurs</p>
+              <div className="flex flex-wrap gap-2 px-4">
+                {availableColors.map(color => (
+                  <button key={color} onClick={() => setActiveColor(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeColor.includes(color) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{color}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {availableSizes.length > 0 && (
+            <div className={`px-4 space-y-2 mt-6 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
+              <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">Tailles</p>
+              <div className="flex flex-wrap gap-2 px-4">
+                {availableSizes.map(size => (
+                  <button key={size} onClick={() => setActiveSize(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${activeSize.includes(size) ? 'bg-black text-[#39FF14] border-black dark:bg-white dark:text-black dark:border-white' : 'bg-transparent text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white'}`}>{size}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className={`px-4 space-y-2 mt-6 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
             <p className="px-4 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">
               <Filter size={12}/> Prix (FCFA)

@@ -1086,7 +1086,13 @@ export default function DynamicShopPage() {
           </style>
         </head>
         <body>
-          <div class="header"><div><h1>DEVIS</h1><p><strong>${shopInfo?.name || 'Boutique'}</strong></p></div><div><p>Date : ${new Date().toLocaleDateString('fr-FR')}</p></div></div>
+              <div class="header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                  ${shopInfo?.logo_url ? `<img src="${shopInfo.logo_url}" alt="Logo" style="max-height: 70px; max-width: 150px; object-fit: contain; border-radius: 8px;" />` : ''}
+                  <div><h1 style="line-height: 1;">DEVIS</h1><p><strong>${shopInfo?.name || 'Boutique'}</strong></p></div>
+                </div>
+                <div><p>Date : ${new Date().toLocaleDateString('fr-FR')}</p></div>
+              </div>
           <table>
             <thead><tr><th>Désignation</th><th style="text-align: center;">Qté</th><th style="text-align: right;">P.U</th><th style="text-align: right;">Total</th></tr></thead>
             <tbody>${itemsHtml}</tbody>
