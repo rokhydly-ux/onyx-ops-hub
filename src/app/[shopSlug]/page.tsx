@@ -6,7 +6,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   ShoppingCart, Search, Plus, Filter, AlertTriangle, X, Minus, Trash2, Truck, RefreshCcw,
   Store, MessageSquare, Sparkles, Heart, ChevronRight, Menu, ArrowRight, Star, Sun, Moon,
-  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft, Printer, Clock
+  Package, QrCode, Share2, ArrowUp, ArrowDown, Gift, Save, ChevronLeft, Printer, Clock,
+  Instagram, Facebook, Twitter, Youtube
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
@@ -1548,15 +1549,18 @@ export default function DynamicShopPage() {
                   </div>
                   <div>
                       <h4 className="font-black uppercase mb-4 text-black dark:text-white">Contact</h4>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">WhatsApp : {shopInfo.phone}</p>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#25D366]"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
+                          WhatsApp : {shopInfo.phone}
+                      </p>
                       <a href={`https://wa.me/${String(shopInfo.phone).replace(/[^0-9]/g, '')}`} target="_blank" className="mt-2 inline-block px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold hover:bg-[#39FF14] hover:text-black transition">Discuter avec nous</a>
                       {(shopInfo.instagram_url || shopInfo.facebook_url || shopInfo.tiktok_url || shopInfo.twitter_url || shopInfo.youtube_url) && (
                           <div className="flex gap-4 mt-4">
-                              {shopInfo.instagram_url && <a href={shopInfo.instagram_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">Instagram</a>}
-                              {shopInfo.facebook_url && <a href={shopInfo.facebook_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">Facebook</a>}
-                              {shopInfo.tiktok_url && <a href={shopInfo.tiktok_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">TikTok</a>}
-                              {shopInfo.twitter_url && <a href={shopInfo.twitter_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">X (Twitter)</a>}
-                              {shopInfo.youtube_url && <a href={shopInfo.youtube_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">YouTube</a>}
+                              {shopInfo.instagram_url && <a href={shopInfo.instagram_url} target="_blank" rel="noreferrer" aria-label="Instagram" className="text-zinc-500 hover:text-[#39FF14] hover:scale-110 transition-all"><Instagram size={20} /></a>}
+                              {shopInfo.facebook_url && <a href={shopInfo.facebook_url} target="_blank" rel="noreferrer" aria-label="Facebook" className="text-zinc-500 hover:text-[#39FF14] hover:scale-110 transition-all"><Facebook size={20} /></a>}
+                              {shopInfo.tiktok_url && <a href={shopInfo.tiktok_url} target="_blank" rel="noreferrer" aria-label="TikTok" className="text-zinc-500 hover:text-[#39FF14] hover:scale-110 transition-all"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" /></svg></a>}
+                              {shopInfo.twitter_url && <a href={shopInfo.twitter_url} target="_blank" rel="noreferrer" aria-label="X (Twitter)" className="text-zinc-500 hover:text-[#39FF14] hover:scale-110 transition-all"><Twitter size={20} /></a>}
+                              {shopInfo.youtube_url && <a href={shopInfo.youtube_url} target="_blank" rel="noreferrer" aria-label="YouTube" className="text-zinc-500 hover:text-[#39FF14] hover:scale-110 transition-all"><Youtube size={20} /></a>}
                           </div>
                       )}
                   </div>
