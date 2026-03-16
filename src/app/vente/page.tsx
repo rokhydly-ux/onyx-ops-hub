@@ -741,6 +741,8 @@ export default function OnyxJaayShop() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeCategory, setActiveCategory] = useState('Toutes');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeColor, setActiveColor] = useState<string[]>([]);
+  const [activeSize, setActiveSize] = useState<string[]>([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -827,6 +829,37 @@ export default function OnyxJaayShop() {
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+
+  const availableColors = useMemo(() => {
+      const colorsSet = new Set<string>();
+      products.forEach((p: any) => {
+          if (p.variants?.colors && Array.isArray(p.variants.colors)) {
+              p.variants.colors.forEach((c: string) => colorsSet.add(c));
+          }
+      });
+      return Array.from(colorsSet).sort();
+  }, [products]);
+
+  const availableSizes = useMemo(() => {
+      const sizesSet = new Set<string>();
+      products.forEach((p: any) => {
+          if (p.variants?.sizes && Array.isArray(p.variants.sizes)) {
+              p.variants.sizes.forEach((s: string) => sizesSet.add(s));
+          }
+      });
+      const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
+      return Array.from(sizesSet).sort((a, b) => {
+          const indexA = sizeOrder.indexOf(a.toUpperCase());
+          const indexB = sizeOrder.indexOf(b.toUpperCase());
+          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+          const numA = parseInt(a);
+          const numB = parseInt(b);
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+          return a.localeCompare(b);
+      });
+  }, [products]);
 
   const fetchOrders = async (targetShopId?: string) => {
       const idToFetch = targetShopId || shopId;
@@ -2034,7 +2067,10 @@ export default function OnyxJaayShop() {
     const matchesMinPrice = minPrice === '' || (p.price || 0) >= Number(minPrice);
     const matchesMaxPrice = maxPrice === '' || (p.price || 0) <= Number(maxPrice);
 
-    return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
+    const matchesColor = activeColor.length === 0 || (p.variants?.colors && Array.isArray(p.variants.colors) && p.variants.colors.some((c: string) => activeColor.includes(c)));
+    const matchesSize = activeSize.length === 0 || (p.variants?.sizes && Array.isArray(p.variants.sizes) && p.variants.sizes.some((s: string) => activeSize.includes(s)));
+
+    return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch && matchesColor && matchesSize;
   }).sort((a, b) => {
     if (sortOrder === 'asc') return (a.price || 0) - (b.price || 0);
     if (sortOrder === 'desc') return (b.price || 0) - (a.price || 0);
@@ -3268,6 +3304,15 @@ export default function OnyxJaayShop() {
             onImageUpload={handleImageUpload}
             categories={categories}
             currency={shopInfo.currency}
+            onApplyVariantsToAll={async (variants) => {
+                if(confirm("Appliquer ces tailles et couleurs à TOUS les produits de votre catalogue ?")) {
+                    setProducts(prev => prev.map(p => ({ ...p, variants })));
+                    if (shopId) {
+                        await supabase.from('products').update({ variants }).eq('shop_id', shopId);
+                    }
+                    alert("Variantes appliquées à tous les produits !");
+                }
+            }}
          />
       )}
 
@@ -3325,9 +3370,10 @@ interface ProductModalProps {
     onImageUpload: (e: React.ChangeEvent<HTMLInputElement>, setFormData: any, formData: any) => void;
     categories: string[];
     currency: string;
+    onApplyVariantsToAll?: (variants: any) => void;
 }
 
-function ProductModal({ product, onClose, onSave, onImageUpload, categories, currency }: ProductModalProps) {
+function ProductModal({ product, onClose, onSave, onImageUpload, categories, currency, onApplyVariantsToAll }: ProductModalProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [galleryUrlInput, setGalleryUrlInput] = useState('');
     
@@ -3535,6 +3581,11 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 <input type="text" value={formData.variants?.colors?.join(', ')} onChange={e => setFormData({...formData, variants: {...formData.variants, colors: e.target.value.split(',').map(s => s.trim()).filter(Boolean)}})} placeholder="Rouge, Bleu, Noir" className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
                             </div>
                         </div>
+                        {onApplyVariantsToAll && (formData.variants?.sizes?.length || formData.variants?.colors?.length) ? (
+                            <button type="button" onClick={() => onApplyVariantsToAll(formData.variants)} className="text-[10px] font-bold text-[#39FF14] bg-black dark:bg-white dark:text-black px-4 py-2 rounded-lg hover:scale-105 transition-transform shadow-md">
+                                Appliquer ces tailles et couleurs à TOUS mes produits
+                            </button>
+                        ) : null}
 
                         <div className="space-y-3">
                             <div className="flex justify-between items-center bg-zinc-100/50 dark:bg-zinc-900/50 p-3 rounded-t-xl border-b border-zinc-200 dark:border-zinc-800">
@@ -3560,8 +3611,8 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 </div>
                             </div>
                             <div className="relative group pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                            <label className="text-xs font-bold text-zinc-500 uppercase mb-3 flex justify-between items-center">
-                                Galerie d&apos;images supplémentaires
+                            <label className="text-xs font-bold text-[#39FF14] uppercase mb-3 flex justify-between items-center">
+                                Galerie d&apos;images supplémentaires (Max 7)
                                 <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 px-2 py-1 rounded-md text-zinc-600 dark:text-zinc-300">{(formData.gallery?.length || 0)} / 7</span>
                             </label>
                                 <div className="flex flex-col gap-3 mb-4">
@@ -4258,7 +4309,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   {/* VARIANTS SELECTION */}
                   {product?.variants?.sizes && Array.isArray(product.variants.sizes) && product.variants.sizes.length > 0 && (
                     <div className="mb-6">
-                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Taille <span className="text-red-500">* (Obligatoire)</span></p>
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Taille(s) <span className="text-red-500">* (Sélection multiple possible)</span></p>
                       <div className="flex flex-wrap gap-2">
                         {product.variants.sizes.map((size: string) => (
                           <button 
@@ -4275,7 +4326,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
                   {product?.variants?.colors && Array.isArray(product.variants.colors) && product.variants.colors.length > 0 && (
                     <div className="mb-6">
-                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Couleur <span className="text-red-500">* (Obligatoire)</span></p>
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Couleur(s) <span className="text-red-500">* (Sélection multiple possible)</span></p>
                       <div className="flex flex-wrap gap-2">
                         {product.variants.colors.map((color: string) => (
                           <button 
@@ -6174,7 +6225,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
       {/* GESTION DES CATÉGORIES */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm mb-8">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="font-black uppercase text-xl flex items-center gap-3"><Tag size={20} className="text-[#39FF14]" /> Catégories & Couvertures</h3>
+          <h3 className="font-black uppercase text-xl flex items-center gap-3"><Tag size={20} className="text-[#39FF14]" /> Gestion des Catégories & Couvertures</h3>
         </div>
         
         <form onSubmit={handleAddCategory} className="flex flex-wrap gap-4 mb-6">

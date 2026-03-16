@@ -410,7 +410,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   {/* VARIANTS SELECTION */}
                   {product?.variants?.sizes && Array.isArray(product.variants.sizes) && product.variants.sizes.length > 0 && (
                     <div className="mb-6">
-                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Taille <span className="text-red-500">* (Obligatoire)</span></p>
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Taille(s) <span className="text-red-500">* (Sélection multiple possible)</span></p>
                       <div className="flex flex-wrap gap-2">
                         {product.variants.sizes.map((size: string) => (
                           <button 
@@ -427,7 +427,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
                   {product?.variants?.colors && Array.isArray(product.variants.colors) && product.variants.colors.length > 0 && (
                     <div className="mb-6">
-                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Couleur <span className="text-red-500">* (Obligatoire)</span></p>
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Couleur(s) <span className="text-red-500">* (Sélection multiple possible)</span></p>
                       <div className="flex flex-wrap gap-2">
                         {product.variants.colors.map((color: string) => (
                           <button 
