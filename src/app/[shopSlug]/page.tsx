@@ -1550,6 +1550,15 @@ export default function DynamicShopPage() {
                       <h4 className="font-black uppercase mb-4 text-black dark:text-white">Contact</h4>
                       <p className="text-sm text-zinc-500 dark:text-zinc-400">WhatsApp : {shopInfo.phone}</p>
                       <a href={`https://wa.me/${String(shopInfo.phone).replace(/[^0-9]/g, '')}`} target="_blank" className="mt-2 inline-block px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold hover:bg-[#39FF14] hover:text-black transition">Discuter avec nous</a>
+                      {(shopInfo.instagram_url || shopInfo.facebook_url || shopInfo.tiktok_url || shopInfo.twitter_url || shopInfo.youtube_url) && (
+                          <div className="flex gap-4 mt-4">
+                              {shopInfo.instagram_url && <a href={shopInfo.instagram_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">Instagram</a>}
+                              {shopInfo.facebook_url && <a href={shopInfo.facebook_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">Facebook</a>}
+                              {shopInfo.tiktok_url && <a href={shopInfo.tiktok_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">TikTok</a>}
+                              {shopInfo.twitter_url && <a href={shopInfo.twitter_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">X (Twitter)</a>}
+                              {shopInfo.youtube_url && <a href={shopInfo.youtube_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition">YouTube</a>}
+                          </div>
+                      )}
                   </div>
               </div>
               <div className="flex flex-col items-center gap-2 mt-8 border-t border-zinc-200 dark:border-zinc-800 pt-6">

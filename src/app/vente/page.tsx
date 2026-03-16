@@ -128,7 +128,9 @@ const initialShopInfo = {
   deliveryOptions: { delivery: true, pickup: true },
   openingHours: { start: '09:00', end: '18:00', enabled: false },
   slug: '',
-  categoryCovers: {} as Record<string, string>
+  categoryCovers: {} as Record<string, string>,
+  instagramUrl: '',
+  facebookUrl: ''
 };
 
 const CONVERSION_RATES: Record<string, { rate: number; symbol: string }> = {
@@ -799,7 +801,9 @@ export default function OnyxJaayShop() {
               deliveryOptions: shop.delivery_options || { delivery: true, pickup: true },
               openingHours: shop.opening_hours || { start: '09:00', end: '18:00', enabled: false },
               slug: shop.slug || '',
-              categoryCovers: shop.category_covers || {}
+              categoryCovers: shop.category_covers || {},
+              instagramUrl: shop.instagram_url || '',
+              facebookUrl: shop.facebook_url || ''
           });
 
           const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
@@ -4821,6 +4825,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
 
   return (
     <div id="dashboard-section" className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in print:p-0">
+      <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: landscape !important; margin: 10mm; } }` }} />
+      
       {/* EN-TÊTE INVISIBLE SUR ÉCRAN - VISIBLE SEULEMENT EN EXPORT PDF */}
       <div className="hidden print:flex items-center justify-between mb-8 border-b border-zinc-200 dark:border-zinc-800 pb-4">
          <div className="flex items-center gap-4">
@@ -4854,6 +4860,12 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                     onChange={(e) => setDateFilter({...dateFilter, end: e.target.value})} 
                     className="bg-transparent text-xs font-bold outline-none text-black dark:text-white w-28"
                 />
+                <button onClick={() => { const t = new Date().toISOString().split('T')[0]; setDateFilter({ start: t, end: t }); }} className="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition ml-2 text-xs font-bold shadow-sm">
+                    Aujourd'hui
+                </button>
+                <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 1); const t = d.toISOString().split('T')[0]; setDateFilter({ start: t, end: t }); }} className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition ml-2 text-xs font-bold shadow-sm">
+                    Hier
+                </button>
                 {(dateFilter.start || dateFilter.end) && (
                     <button onClick={() => setDateFilter({ start: '', end: '' })} className="px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition ml-2 text-xs font-bold flex items-center gap-1 shadow-sm">
                         <X size={14} /> Vider les filtres
@@ -5678,7 +5690,7 @@ interface PromoCode {
 interface ShopSettingsProps {
   promoCodes: PromoCode[];
   setPromoCodes: React.Dispatch<React.SetStateAction<PromoCode[]>>;
-  shopInfo: typeof initialShopInfo & { currency: string, categoryCovers?: Record<string, string> };
+  shopInfo: typeof initialShopInfo & { currency: string, categoryCovers?: Record<string, string>, instagramUrl?: string, facebookUrl?: string };
   setShopInfo: React.Dispatch<React.SetStateAction<typeof initialShopInfo>>;
   deliveryZones: DeliveryZone[];
   setDeliveryZones: React.Dispatch<React.SetStateAction<DeliveryZone[]>>;
@@ -5786,7 +5798,9 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
         opening_hours: shopInfo.openingHours,
         slug: shopInfo.slug,
         categories: categories,
-        category_covers: shopInfo.categoryCovers || {}
+        category_covers: shopInfo.categoryCovers || {},
+        instagram_url: shopInfo.instagramUrl,
+        facebook_url: shopInfo.facebookUrl
     }).eq('id', shopId);
     if (error) { alert("Erreur lors de la sauvegarde des paramètres : " + error.message); } else { alert("Paramètres de la boutique mis à jour avec succès !"); }
   };
@@ -5846,6 +5860,17 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                   </div>
               </div>
               
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Lien Instagram</label>
+                      <input type="url" value={shopInfo.instagramUrl || ''} onChange={(e) => setShopInfo({...shopInfo, instagramUrl: e.target.value})} placeholder="https://instagram.com/..." className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+                  </div>
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Lien Facebook</label>
+                      <input type="url" value={shopInfo.facebookUrl || ''} onChange={(e) => setShopInfo({...shopInfo, facebookUrl: e.target.value})} placeholder="https://facebook.com/..." className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 font-bold text-sm outline-none focus:border-[#39FF14]" />
+                  </div>
+              </div>
+
               <div>
                   <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Devise de la boutique</label>
                   <select 
