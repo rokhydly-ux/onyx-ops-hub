@@ -2477,7 +2477,7 @@ export default function OnyxJaayShop() {
             <MarketingPlanner suggestions={iaSuggestions} plannedEvents={plannedEvents} setPlannedEvents={setPlannedEvents} />
         )}
         {shopView === 'reviews' && (
-            <ShopReviews shopId={shopId} products={products} />
+            <ShopReviews shopId={shopId} products={products} orders={orders} shopName={shopInfo.name} />
         )}
       </main>
 
@@ -3361,7 +3361,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
     );
 }
 
-function ShopReviews({ shopId, products }: { shopId: string | null, products: Product[] }) {
+function ShopReviews({ shopId, products, orders, shopName }: { shopId: string | null, products: Product[], orders: any[], shopName: string }) {
     const [reviews, setReviews] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [replyingTo, setReplyingTo] = useState<number | null>(null);
@@ -3411,6 +3411,29 @@ function ShopReviews({ shopId, products }: { shopId: string | null, products: Pr
             if (error) throw error;
 
             setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, admin_reply: replyText } : r));
+            
+            // --- NOTIFICATION WHATSAPP AU CLIENT ---
+            const review = reviews.find(r => r.id === reviewId);
+            let phone = '';
+            if (review?.type === 'order') {
+                const order = orders.find(o => String(o.id) === String(review.reference_id) || o.trackingNumber === review.reference_id || o.tracking_number === review.reference_id);
+                if (order && order.customer?.phone) phone = order.customer.phone;
+            }
+            
+            if (confirm("Réponse enregistrée avec succès.\n\nVoulez-vous notifier le client de votre réponse sur WhatsApp ?")) {
+                let userPhone = phone;
+                if (!userPhone) {
+                    userPhone = prompt("Numéro de téléphone introuvable (Avis Produit anonyme). Veuillez entrer le numéro du client (ex: 77 123 45 67) pour le notifier :") || "";
+                }
+                
+                if (userPhone) {
+                    const msg = `Bonjour ${review?.name} ! 🌟\n\nNous vous remercions pour votre avis suite à votre expérience chez ${shopName}.\n\n*Notre réponse :*\n"${replyText}"\n\nÀ très bientôt !`;
+                    const rawPhone = String(userPhone).replace(/\s+/g, '').replace(/[^0-9]/g, '');
+                    const phoneWithPrefix = rawPhone.startsWith('221') ? rawPhone : `221${rawPhone}`;
+                    window.open(`https://wa.me/${phoneWithPrefix}?text=${encodeURIComponent(msg)}`, '_blank');
+                }
+            }
+
             setReplyingTo(null);
             setReplyText("");
         } catch (err: any) {
@@ -3418,6 +3441,26 @@ function ShopReviews({ shopId, products }: { shopId: string | null, products: Pr
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleExportReviews = () => {
+        if (reviews.length === 0) return alert("Aucun avis à exporter.");
+        const exportData = reviews.map(r => {
+            const product = products.find(p => String(p.id) === String(r.reference_id));
+            return {
+                'Date': new Date(r.created_at || Date.now()).toLocaleDateString('fr-FR'),
+                'Client': r.name,
+                'Note / 5': r.rating,
+                'Commentaire': r.comment,
+                'Réponse Vendeur': r.admin_reply || 'Aucune réponse',
+                'Contexte': r.type === 'product' ? 'Avis Produit' : 'Avis Commande',
+                'Référence': r.type === 'product' ? (product ? product.name : `Produit #${r.reference_id}`) : `Cmd #${r.reference_id}`
+            };
+        });
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Avis_Clients");
+        XLSX.writeFile(workbook, `Avis_${shopName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     return (
@@ -3431,6 +3474,9 @@ function ShopReviews({ shopId, products }: { shopId: string | null, products: Pr
                         </div>
                     )}
                 </div>
+                <button onClick={handleExportReviews} className="bg-[#39FF14] text-black px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-white transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#39FF14]/20">
+                    <Download size={16} /> Exporter en Excel
+                </button>
             </div>
             
             {isLoading ? (
