@@ -146,6 +146,7 @@ const INITIAL_ZONES = [
 function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: any) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedQty, setSelectedQty] = useState(1);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
   const [mediaView, setMediaView] = useState<'image' | 'video'>('image');
   const [activeImage, setActiveImage] = useState(product?.image);
@@ -188,6 +189,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
     if (product) {
       setSelectedSize(null);
       setSelectedColor(null);
+      setSelectedQty(1);
       setMediaView('image');
       setActiveImage(product.image);
       setIsLightboxOpen(false);
@@ -233,8 +235,9 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
   const similarProducts = allProducts.filter((p: any) => p.category === product.category && p.id !== product.id && p.stock !== 0).slice(0, 3);
   const qtyInCart = (cart || []).filter((i: any) => i.id === product.id).reduce((sum: any, i: any) => sum + i.quantity, 0);
-  const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
-  const isOutOfStock = product.stock === 0;
+  const maxAvailable = product.stock !== undefined ? Math.max(0, product.stock - qtyInCart) : Infinity;
+  const isMaxedOut = selectedQty >= maxAvailable;
+  const isOutOfStock = product.stock === 0 || maxAvailable === 0;
 
   const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -377,6 +380,28 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                       </div>
                     </div>
                   )}
+
+                  {/* QUANTITY SELECTION */}
+                  <div className="mb-6 flex items-center gap-4 bg-zinc-100 dark:bg-zinc-900 w-max p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <span className="text-xs font-bold text-zinc-500 uppercase ml-2">Quantité</span>
+                    <div className="flex items-center gap-3 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg shadow-sm">
+                      <button onClick={() => setSelectedQty(Math.max(1, selectedQty - 1))} className="p-1 hover:text-[#39FF14] transition-colors"><Minus size={14}/></button>
+                      <input 
+                        type="number" 
+                        min={1} 
+                        max={maxAvailable !== Infinity ? maxAvailable : undefined}
+                        value={selectedQty}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (isNaN(val)) return;
+                          setSelectedQty(Math.min(Math.max(1, val), maxAvailable !== Infinity ? maxAvailable : val));
+                        }}
+                        disabled={isOutOfStock}
+                        className="font-black text-sm w-12 text-center bg-transparent outline-none text-black dark:text-white disabled:opacity-50"
+                      />
+                      <button onClick={() => setSelectedQty(isMaxedOut ? selectedQty : selectedQty + 1)} disabled={isMaxedOut || isOutOfStock} className="p-1 hover:text-[#39FF14] transition-colors disabled:opacity-50"><Plus size={14}/></button>
+                    </div>
+                  </div>
                </div>
                
                <div className="flex flex-col gap-3 mb-8 mt-auto">
@@ -385,7 +410,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         onClick={() => { 
                           if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
                           if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true); 
+                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true, selectedQty); 
                           onClose();
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
@@ -397,7 +422,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         onClick={() => { 
                           if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
                           if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }); 
+                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }, selectedQty); 
+                          onClose();
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
                         className="flex-[2] bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition flex items-center justify-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
@@ -861,17 +887,18 @@ export default function DynamicShopPage() {
     setWishlist(prev => prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]);
   };
 
-  const addToCart = (product: any, variant?: any, openCart = true) => {
+  const addToCart = (product: any, variant?: any, openCart = true, qty = 1) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id && JSON.stringify(item.selectedVariant) === JSON.stringify(variant));
       
       const totalProductQuantityInCart = prev.filter(item => item.id === product.id).reduce((sum, item) => sum + item.quantity, 0);
-      if (product.stock !== undefined && totalProductQuantityInCart >= product.stock) {
+      if (product.stock !== undefined && (totalProductQuantityInCart + qty) > product.stock) {
+        alert(`Stock insuffisant. Il ne reste que ${product.stock} unité(s).`);
         return prev;
       }
 
-      if (existing) return prev.map(item => (item.id === product.id && JSON.stringify(item.selectedVariant) === JSON.stringify(variant)) ? { ...item, quantity: item.quantity + 1 } : item);
-      return [...prev, { ...product, quantity: 1, selectedVariant: variant }];
+      if (existing) return prev.map(item => (item.id === product.id && JSON.stringify(item.selectedVariant) === JSON.stringify(variant)) ? { ...item, quantity: item.quantity + qty } : item);
+      return [...prev, { ...product, quantity: qty, selectedVariant: variant }];
     });
     if (openCart) setIsCartOpen(true);
     triggerStockUpdateBadge();
@@ -1023,6 +1050,14 @@ export default function DynamicShopPage() {
       }
     }
 
+    // 🚀 DÉCRÉMENTER LE STOCK EN TEMPS RÉEL (ADMIN)
+    cart.forEach(async (item) => {
+        if (item.stock !== undefined && item.stock > 0) {
+            const newStock = Math.max(0, item.stock - item.quantity);
+            await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
+        }
+    });
+
     try {
         await fetch('/api/send-email', {
             method: 'POST',
@@ -1132,7 +1167,10 @@ export default function DynamicShopPage() {
             return p;
         }));
         alert("Avis envoyé avec succès !");
-    } catch (err) { console.error("Erreur sauvegarde avis:", err); alert("Erreur lors de l'envoi de l'avis."); }
+    } catch (err: any) { 
+        console.error("Erreur sauvegarde avis:", err); 
+        alert("Erreur lors de l'envoi de l'avis: " + (err.message || "Erreur inconnue.")); 
+    }
   };
 
   if (isLoading) return <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-black"><div className="w-16 h-16 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_#39FF14]"></div></div>;
@@ -1862,8 +1900,8 @@ export default function DynamicShopPage() {
           allProducts={products}
           isOpen={!!viewingProduct}
           onClose={() => setViewingProduct(null)}
-          onAddToCart={addToCart}
-          onBuyDirectly={(p: any, v: any) => { addToCart(p, v, false); setIsCheckoutModalOpen(true); }}
+          onAddToCart={(p: any, v: any, openCart: boolean, qty: number) => addToCart(p, v, openCart, qty)}
+          onBuyDirectly={(p: any, v: any, qty: number) => { addToCart(p, v, false, qty); setIsCheckoutModalOpen(true); }}
           onShare={handleShareProduct}
           onViewProduct={setViewingProduct}
           onAddReview={handleAddReview}

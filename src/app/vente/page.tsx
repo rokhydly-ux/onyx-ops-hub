@@ -137,9 +137,9 @@ const CONVERSION_RATES: Record<string, { rate: number; symbol: string }> = {
     'USD': { rate: 1 / 610, symbol: '$' },
 };
 
-const displayPrice = (priceInCfa: number, currency: string = 'FCFA') => {
+const displayPrice = (priceInCfa: number | null | undefined, currency: string = 'FCFA') => {
     const config = CONVERSION_RATES[currency] || CONVERSION_RATES['FCFA'];
-    const convertedPrice = priceInCfa * config.rate;
+    const convertedPrice = (priceInCfa || 0) * config.rate;
     
     if (currency === 'FCFA') {
         return `${convertedPrice.toLocaleString('fr-SN')} ${config.symbol}`;
@@ -1005,7 +1005,7 @@ export default function OnyxJaayShop() {
     }
   }, [products]);
 
-  const addToCart = (product: Product, variant?: { size?: string; color?: string }, openCart: boolean = true) => {
+  const addToCart = (product: Product, variant?: { size?: string; color?: string }, openCart: boolean = true, qty: number = 1) => {
     setCart(prev => {
       const existing = prev.find(item => 
         item.id === product.id && 
@@ -1014,14 +1014,15 @@ export default function OnyxJaayShop() {
       
       // Check stock
       const totalProductQuantityInCart = prev.filter(item => item.id === product.id).reduce((sum, item) => sum + item.quantity, 0);
-      if (product.stock !== undefined && totalProductQuantityInCart >= product.stock) {
+      if (product.stock !== undefined && (totalProductQuantityInCart + qty) > product.stock) {
+        alert(`Stock insuffisant. Il ne reste que ${product.stock} unité(s).`);
         return prev;
       }
 
       if (existing) {
-        return prev.map(item => (item.id === product.id && JSON.stringify(item.selectedVariant) === JSON.stringify(variant)) ? { ...item, quantity: item.quantity + 1 } : item);
+        return prev.map(item => (item.id === product.id && JSON.stringify(item.selectedVariant) === JSON.stringify(variant)) ? { ...item, quantity: item.quantity + qty } : item);
       }
-      return [...prev, { ...product, quantity: 1, selectedVariant: variant }];
+      return [...prev, { ...product, quantity: qty, selectedVariant: variant }];
     });
     if (openCart) setIsCartOpen(true);
     triggerStockUpdateBadge();
@@ -1338,6 +1339,14 @@ export default function OnyxJaayShop() {
       if (error) {
         console.error("Erreur d'insertion Supabase:", error.message);
       } else {
+        // 🚀 DÉCRÉMENTER LE STOCK EN TEMPS RÉEL (ADMIN)
+        cart.forEach(async (item) => {
+            if (item.stock !== undefined && item.stock > 0) {
+                const newStock = Math.max(0, item.stock - item.quantity);
+                await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
+            }
+        });
+
         // --- ALERTE EMAIL AUTO ADMIN ---
         try {
             await fetch('/api/send-email', {
@@ -1437,9 +1446,9 @@ export default function OnyxJaayShop() {
             }
             return p;
         }));
-    } catch (err) {
+    } catch (err: any) {
         console.error("Erreur sauvegarde avis:", err);
-        alert("Erreur lors de l'envoi de l'avis.");
+        alert("Erreur lors de l'envoi de l'avis: " + (err.message || "Erreur inconnue."));
     }
   };
 
@@ -1834,14 +1843,14 @@ export default function OnyxJaayShop() {
   const filteredProducts = (products || []).filter(p => {
     if (!p) return false;
     const search = (searchTerm || '').toLowerCase().trim();
-    const nameMatch = p.name && typeof p.name === 'string' ? p.name.toLowerCase().includes(search) : false;
-    const descMatch = p.description && typeof p.description === 'string' ? p.description.toLowerCase().includes(search) : false;
-    const catMatch = p.category && typeof p.category === 'string' ? p.category.toLowerCase().includes(search) : false;
+    const nameMatch = p.name ? String(p.name).toLowerCase().includes(search) : false;
+    const descMatch = p.description ? String(p.description).toLowerCase().includes(search) : false;
+    const catMatch = p.category ? String(p.category).toLowerCase().includes(search) : false;
     const matchesSearch = search === '' || nameMatch || descMatch || catMatch;
 
     const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
-    const matchesMinPrice = minPrice === '' || p.price >= Number(minPrice);
-    const matchesMaxPrice = maxPrice === '' || p.price <= Number(maxPrice);
+    const matchesMinPrice = minPrice === '' || (p.price || 0) >= Number(minPrice);
+    const matchesMaxPrice = maxPrice === '' || (p.price || 0) <= Number(maxPrice);
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch;
   }).sort((a, b) => {
@@ -2307,8 +2316,8 @@ export default function OnyxJaayShop() {
                         <div className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700 text-[#39FF14]">
                           {product.category}
                         </div>
-                        {((product.oldPrice || (product as any).old_price) || 0) > product.price && (
-                           <div className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((((product.oldPrice || (product as any).old_price) || 0) - product.price) / ((product.oldPrice || (product as any).old_price) || 1)) * 100)}%</div>
+                        {((product.oldPrice || (product as any).old_price) || 0) > (product.price || 0) && (
+                           <div className="bg-red-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Promo -{Math.round(((((product.oldPrice || (product as any).old_price) || 0) - (product.price || 0)) / ((product.oldPrice || (product as any).old_price) || 1)) * 100)}%</div>
                         )}
                         {product.stock === 0 && (
                           <div className="bg-zinc-800 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Épuisé</div>
@@ -3036,8 +3045,8 @@ export default function OnyxJaayShop() {
           allProducts={products}
           isOpen={!!viewingProduct}
           onClose={() => setViewingProduct(null)}
-          onAddToCart={addToCart}
-          onBuyDirectly={(p: any, v: any) => { addToCart(p, v, false); setIsCheckoutModalOpen(true); }}
+          onAddToCart={(p: any, v: any, openCart?: boolean, qty?: number) => addToCart(p, v, openCart, qty)}
+          onBuyDirectly={(p: any, v: any, qty?: number) => { addToCart(p, v, false, qty); setIsCheckoutModalOpen(true); }}
           onShare={handleShareProduct}
           onViewProduct={handleViewProduct}
           onGenerateQR={setQrCodeProduct}
@@ -3444,10 +3453,25 @@ function ClientDetailModal({ client, orders, shopName, currency, onClose, refres
             const { error } = await supabase.from('orders').update({ status: newStatus, history: newHistory }).eq('id', orderId);
             if (!error) {
                 refreshOrders();
-                if (newStatus === 'Livré' && order?.customer?.phone) {
-                    if (confirm("La commande est marquée comme Livrée. Voulez-vous envoyer une demande d'avis vérifié au client sur WhatsApp ?")) {
+                
+                // --- NOTIFICATION WHATSAPP CLIENT AUTOMATISÉE ---
+                if (order && order.customer?.phone) {
+                    let msg = '';
+                    const customerName = order.customer.name.split(' ')[0];
+                    const tracking = order.trackingNumber || order.tracking_number || order.id;
+                    
+                    if (newStatus === 'En cours de préparation') {
+                        msg = `Bonjour ${customerName} ! 📦\nVotre commande (${tracking}) est actuellement en cours de préparation par notre équipe. Nous vous informerons dès qu'elle sera prête !`;
+                    } else if (newStatus === 'Expédié') {
+                        msg = `Bonjour ${customerName} ! 🚚\nBonne nouvelle ! Votre commande (${tracking}) a été expédiée et est en route vers vous.`;
+                    } else if (newStatus === 'Livré') {
                         const reviewLink = `${window.location.origin}/vente?order_review=${order.id}`;
-                        const msg = `Bonjour ${order.customer.name.split(' ')[0]} ! 🌟\n\nVotre commande a été livrée avec succès. Nous espérons que vous êtes satisfait !\n\nPourriez-vous prendre 1 minute pour nous laisser un avis vérifié ? C'est très important pour nous.\n\nCliquez ici : ${reviewLink}\n\nMerci pour votre confiance !`;
+                        msg = `Bonjour ${customerName} ! 🌟\nVotre commande (${tracking}) a été livrée avec succès.\n\nPourriez-vous prendre 1 minute pour nous laisser un avis vérifié ? C'est très important pour nous.\nCliquez ici : ${reviewLink}\n\nMerci pour votre confiance !`;
+                    } else if (newStatus === 'Annulé') {
+                        msg = `Bonjour ${customerName},\nNous vous informons que votre commande (${tracking}) a été annulée. N'hésitez pas à nous contacter si vous avez des questions.`;
+                    }
+
+                    if (msg && confirm(`Le statut de la commande est passé à "${newStatus}".\n\nVoulez-vous envoyer une notification automatique au client sur WhatsApp ?`)) {
                         const rawPhone = String(order.customer.phone).replace(/\s+/g, '').replace(/[^0-9]/g, '');
                         const phoneWithPrefix = rawPhone.startsWith('221') ? rawPhone : `221${rawPhone}`;
                         window.open(`https://wa.me/${phoneWithPrefix}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -3581,8 +3605,8 @@ interface ProductDetailModalProps {
   allProducts: Product[];
   isOpen: boolean;
   onClose: () => void;
-  onAddToCart: (product: Product, variant?: { size?: string; color?: string }, openCart?: boolean) => void;
-  onBuyDirectly: (product: Product, variant?: { size?: string; color?: string }) => void;
+  onAddToCart: (product: Product, variant?: { size?: string; color?: string }, openCart?: boolean, qty?: number) => void;
+  onBuyDirectly: (product: Product, variant?: { size?: string; color?: string }, qty?: number) => void;
   onShare: (product: Product) => void;
   onViewProduct: (product: Product) => void;
   onAddReview: (productId: number, review: Omit<Review, 'id' | 'date'>) => void;
@@ -3595,6 +3619,7 @@ interface ProductDetailModalProps {
 function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: ProductDetailModalProps) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedQty, setSelectedQty] = useState(1);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
   const [mediaView, setMediaView] = useState<'image' | 'video'>('image');
   const [activeImage, setActiveImage] = useState(product?.image);
@@ -3637,6 +3662,7 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
     if (product) {
       setSelectedSize(null);
       setSelectedColor(null);
+      setSelectedQty(1);
       setMediaView('image');
       setActiveImage(product.image);
       setIsLightboxOpen(false);
@@ -3682,8 +3708,9 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
   const similarProducts = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
   const qtyInCart = cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0);
-  const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
-  const isOutOfStock = product.stock === 0;
+  const maxAvailable = product.stock !== undefined ? Math.max(0, product.stock - qtyInCart) : Infinity;
+  const isMaxedOut = selectedQty >= maxAvailable;
+  const isOutOfStock = product.stock === 0 || maxAvailable === 0;
 
   const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -3840,6 +3867,28 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                       </div>
                     </div>
                   )}
+
+                  {/* QUANTITY SELECTION */}
+                  <div className="mb-6 flex items-center gap-4 bg-zinc-100 dark:bg-zinc-900 w-max p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <span className="text-xs font-bold text-zinc-500 uppercase ml-2">Quantité</span>
+                    <div className="flex items-center gap-3 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg shadow-sm">
+                      <button onClick={() => setSelectedQty(Math.max(1, selectedQty - 1))} className="p-1 hover:text-[#39FF14] transition-colors"><Minus size={14}/></button>
+                      <input 
+                        type="number" 
+                        min={1} 
+                        max={maxAvailable !== Infinity ? maxAvailable : undefined}
+                        value={selectedQty}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (isNaN(val)) return;
+                          setSelectedQty(Math.min(Math.max(1, val), maxAvailable !== Infinity ? maxAvailable : val));
+                        }}
+                        disabled={isOutOfStock}
+                        className="font-black text-sm w-12 text-center bg-transparent outline-none text-black dark:text-white disabled:opacity-50"
+                      />
+                      <button onClick={() => setSelectedQty(isMaxedOut ? selectedQty : selectedQty + 1)} disabled={isMaxedOut || isOutOfStock} className="p-1 hover:text-[#39FF14] transition-colors disabled:opacity-50"><Plus size={14}/></button>
+                    </div>
+                  </div>
                </div>
                
                <div className="flex flex-col gap-3 mb-8 mt-auto">
@@ -3848,7 +3897,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         onClick={() => { 
                           if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
                           if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true); 
+                          onAddToCart(product, { size: selectedSize || undefined, color: selectedColor || undefined }, true, selectedQty); 
+                          onClose();
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
                         className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -3859,7 +3909,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                         onClick={() => { 
                           if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
                           if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
-                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }); 
+                          onBuyDirectly(product, { size: selectedSize || undefined, color: selectedColor || undefined }, selectedQty); 
+                          onClose();
                         }} 
                         disabled={isOutOfStock || isMaxedOut}
                         className="flex-[2] bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition flex items-center justify-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
@@ -4026,20 +4077,29 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                 // Rafraîchir la liste depuis la source de données principale
                 refreshOrders();
 
-                    // --- DEMANDE D'AVIS AUTOMATIQUE ---
-                    if (newStatus === 'Livré') {
-                        const order = orders.find(o => o.id === orderId);
-                        if (order && order.customer?.phone) {
-                            if (confirm("La commande est marquée comme Livrée. Voulez-vous envoyer une demande d'avis vérifié au client sur WhatsApp ?")) {
-                                const reviewLink = `${window.location.origin}/vente?order_review=${order.id}`;
-                                const msg = `Bonjour ${order.customer.name} ! 🌟\n\nVotre commande a été livrée avec succès. Nous espérons que vous êtes satisfait !\n\nPourriez-vous prendre 1 minute pour nous laisser un avis vérifié ? C'est très important pour nous.\n\nCliquez ici : ${reviewLink}\n\nMerci pour votre confiance !`;
-                                
-                                const rawPhone = String(order.customer.phone).replace(/\s+/g, '').replace(/[^0-9]/g, '');
-                                const phoneWithPrefix = rawPhone.startsWith('221') ? rawPhone : `221${rawPhone}`;
-                                window.open(`https://wa.me/${phoneWithPrefix}?text=${encodeURIComponent(msg)}`, '_blank');
-                            }
-                        }
+                // --- NOTIFICATION WHATSAPP CLIENT AUTOMATISÉE ---
+                if (order && order.customer?.phone) {
+                    let msg = '';
+                    const customerName = order.customer.name.split(' ')[0];
+                    const tracking = order.trackingNumber || order.tracking_number || order.id;
+                    
+                    if (newStatus === 'En cours de préparation') {
+                        msg = `Bonjour ${customerName} ! 📦\nVotre commande (${tracking}) est actuellement en cours de préparation par notre équipe. Nous vous informerons dès qu'elle sera remise au livreur.`;
+                    } else if (newStatus === 'Expédié') {
+                        msg = `Bonjour ${customerName} ! 🚚\nBonne nouvelle ! Votre commande (${tracking}) a été expédiée et est en route vers vous.`;
+                    } else if (newStatus === 'Livré') {
+                        const reviewLink = `${window.location.origin}/vente?order_review=${order.id}`;
+                        msg = `Bonjour ${customerName} ! 🌟\nVotre commande (${tracking}) a été livrée avec succès.\n\nPourriez-vous prendre 1 minute pour nous laisser un avis vérifié ? C'est très important pour nous.\nCliquez ici : ${reviewLink}\n\nMerci pour votre confiance !`;
+                    } else if (newStatus === 'Annulé') {
+                        msg = `Bonjour ${customerName},\nNous vous informons que votre commande (${tracking}) a été annulée. N'hésitez pas à nous contacter si vous avez des questions.`;
                     }
+
+                    if (msg && confirm(`Le statut de la commande est passé à "${newStatus}".\n\nVoulez-vous envoyer automatiquement la notification de suivi au client sur WhatsApp ?`)) {
+                        const rawPhone = String(order.customer.phone).replace(/\s+/g, '').replace(/[^0-9]/g, '');
+                        const phoneWithPrefix = rawPhone.startsWith('221') ? rawPhone : `221${rawPhone}`;
+                        window.open(`https://wa.me/${phoneWithPrefix}?text=${encodeURIComponent(msg)}`, '_blank');
+                    }
+                }
             }
         } catch (err) {
             console.error(err);
