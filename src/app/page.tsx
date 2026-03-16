@@ -126,7 +126,7 @@ const RECENT_NOTIFICATIONS = [
 
 const PaymentMethods = () => (
   <div className="flex flex-wrap items-center justify-center gap-6 mt-6">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-6 md:h-8 object-contain" />
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm9rYPURKIok7K0ZF22oqFgMbzIHgNCauVQA&s" alt="Wave" className="h-6 md:h-8 rounded-md object-contain" />
     <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-6 md:h-8 object-contain" />
     <div className="h-6 md:h-8 px-4 bg-black text-white rounded-lg flex items-center justify-center font-black italic text-[10px] md:text-xs tracking-widest shadow-md">
       <span className="text-[#39FF14]">YAS</span> MONEY

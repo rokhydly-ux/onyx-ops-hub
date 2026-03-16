@@ -84,6 +84,42 @@ const PromoBannerWidget = ({ imageUrl, onClick }: { imageUrl?: string, onClick?:
     </div>
 );
 
+const PromoDayWidget = ({ settings, products, onViewProduct, addToCart, currency, cart }: any) => {
+    const product = products.find((p: any) => String(p.id) === String(settings?.selectedProduct));
+    if (!product) return null;
+    const isOutOfStock = product.stock === 0;
+    const qtyInCart = cart ? cart.filter((i:any) => i.id === product.id).reduce((sum:any, i:any) => sum + i.quantity, 0) : 0;
+    const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
+
+    return (
+        <div className="my-12 bg-black dark:bg-zinc-900 rounded-[3rem] p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 shadow-2xl relative overflow-hidden animate-in fade-in">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14] opacity-10 blur-3xl rounded-full pointer-events-none"></div>
+            <div className="w-full md:w-1/2 relative z-10 text-white">
+                <h3 className="text-[#39FF14] font-black uppercase tracking-widest text-sm mb-2">{settings?.title || "Offre du Jour"}</h3>
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">{product.name}</h2>
+                <p className="text-zinc-400 mb-8 line-clamp-3">{product.description}</p>
+                <div className="flex items-center gap-4 mb-8">
+                    <span className="text-4xl font-black">{displayPrice(product.price, currency)}</span>
+                    {((product.oldPrice || product.old_price) || 0) > product.price && <span className="text-xl text-zinc-500 line-through">{displayPrice(product.oldPrice || product.old_price, currency)}</span>}
+                </div>
+                <button onClick={() => { if ((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) { onViewProduct(product); } else { addToCart(product, undefined, false); } }} disabled={isOutOfStock || isMaxedOut} className="bg-[#39FF14] text-black px-8 py-4 rounded-full font-black uppercase text-sm hover:bg-white transition-colors disabled:opacity-50 shadow-[0_10px_30px_rgba(57,255,20,0.3)] w-full sm:w-auto text-center">
+                    {isOutOfStock ? 'Épuisé' : 'Profiter de l\'offre'}
+                </button>
+            </div>
+            <div className="w-full md:w-1/2 relative z-10 flex justify-center">
+                <div className="relative w-full max-w-[280px] aspect-square rounded-[2rem] overflow-hidden group cursor-pointer border-4 border-zinc-800 hover:border-[#39FF14] transition-colors bg-white" onClick={() => onViewProduct(product)}>
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    {((product.oldPrice || product.old_price) || 0) > product.price && (
+                        <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1.5 rounded-full font-black text-xs uppercase shadow-lg transform rotate-12">
+                            -{Math.round(((((product.oldPrice || product.old_price) || 0) - product.price) / ((product.oldPrice || product.old_price) || 1)) * 100)}%
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct, addToCart, currency, cart }: any) => {
     let displayProducts: any[] = [...products].filter(p => p.stock !== 0);
     if (selectedProductIds && selectedProductIds.length > 0) {
@@ -950,6 +986,14 @@ export default function DynamicShopPage() {
             } : undefined} />;
       case 'new-arrivals':
         return <NewArrivalsWidget title={widget.settings?.title} products={products} selectedProductIds={widget.settings?.selectedProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
+      case 'best-sellers':
+        const bestSellersProducts = [...products].sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
+        return <NewArrivalsWidget title={widget.settings?.title || 'Meilleures Ventes'} products={bestSellersProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
+      case 'featured-category':
+        const featProducts = products.filter(p => p.category === widget.settings?.category);
+        return <NewArrivalsWidget title={widget.settings?.title || widget.settings?.category} products={featProducts} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
+      case 'promo-day':
+        return <PromoDayWidget settings={widget.settings} products={products} onViewProduct={setViewingProduct} addToCart={addToCart} currency={shopInfo?.currency || 'FCFA'} cart={cart} />;
       default:
         return null;
     }
@@ -1360,7 +1404,7 @@ export default function DynamicShopPage() {
            </div>
            <div className="flex items-center gap-3 px-4 pb-3">
               <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Paiements acceptés :</span>
-              <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-3 object-contain" />
+              <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm9rYPURKIok7K0ZF22oqFgMbzIHgNCauVQA&s" alt="Wave" className="h-3 rounded-sm object-contain" />
               <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-3 object-contain" />
            </div>
         </div>
@@ -1369,7 +1413,7 @@ export default function DynamicShopPage() {
         <header className={`absolute ${isBannerVisible ? 'top-10' : 'top-0'} left-0 right-0 p-6 z-10 flex justify-between items-start pointer-events-none hidden md:flex transition-all duration-300`}>
           <div className="flex items-center gap-3 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md px-4 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-800 pointer-events-auto shadow-sm">
              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Paiements acceptés :</span>
-             <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-4 object-contain" />
+             <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm9rYPURKIok7K0ZF22oqFgMbzIHgNCauVQA&s" alt="Wave" className="h-4 rounded-sm object-contain" />
              <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="Orange Money" className="h-4 object-contain" />
           </div>
 
@@ -1793,7 +1837,7 @@ export default function DynamicShopPage() {
                        <span className="text-[10px] font-black uppercase text-center leading-tight">À la livraison</span>
                     </button>
                     <button onClick={() => setPaymentProvider('wave')} className={`py-3 px-2 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${paymentProvider === 'wave' ? 'border-[#1eb2e8] bg-[#1eb2e8]/10 text-[#1eb2e8] shadow-md' : 'border-transparent bg-zinc-50 dark:bg-zinc-900 text-zinc-500'}`}>
-                       <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Wave_Mobile_Money_logo.png" alt="Wave" className="h-4 object-contain" />
+                       <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm9rYPURKIok7K0ZF22oqFgMbzIHgNCauVQA&s" alt="Wave" className="h-4 rounded-sm object-contain" />
                        <span className="text-[10px] font-black uppercase">Wave</span>
                     </button>
                     <button onClick={() => setPaymentProvider('orange_money')} className={`py-3 px-2 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${paymentProvider === 'orange_money' ? 'border-[#ff6600] bg-[#ff6600]/10 text-[#ff6600] shadow-md' : 'border-transparent bg-zinc-50 dark:bg-zinc-900 text-zinc-500'}`}>

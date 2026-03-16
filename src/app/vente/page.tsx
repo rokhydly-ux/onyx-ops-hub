@@ -369,7 +369,10 @@ function ShopPageBuilder({ categories, products, shopId }: { categories: string[
   const availableWidgets = [
     { id: 'category-grid', type: 'category-grid', name: 'Grille de Catégories', settings: { categories: [] } },
     { id: 'promo-banner', type: 'promo-banner', name: 'Bannière Promotionnelle', settings: { imageUrl: '' } },
-    { id: 'new-arrivals', type: 'new-arrivals', name: 'Nouveautés', settings: { title: 'Nouveautés' } }
+    { id: 'new-arrivals', type: 'new-arrivals', name: 'Nouveautés', settings: { title: 'Nouveautés' } },
+    { id: 'best-sellers', type: 'best-sellers', name: 'Meilleures Ventes', settings: { title: 'Populaires' } },
+    { id: 'promo-day', type: 'promo-day', name: 'Promo du Jour', settings: { title: 'Offres Éclair', selectedProduct: null } },
+    { id: 'featured-category', type: 'featured-category', name: 'Catégorie à la une', settings: { category: '', title: 'Notre Sélection' } }
   ];
 
   const [pageWidgets, setPageWidgets] = useState<WidgetProps[]>([]);
@@ -517,6 +520,42 @@ const PromoBannerWidget = ({ imageUrl, onClick }: { imageUrl?: string, onClick?:
         {!imageUrl && <p className="relative z-10 text-white font-black text-xl opacity-50 uppercase tracking-widest text-center px-4">Bannière Promotionnelle<br/><span className="text-sm">Parallax (600x200)</span></p>}
     </div>
 );
+
+const PromoDayWidget = ({ settings, products, onViewProduct, addToCart, currency, cart }: any) => {
+    const product = products.find((p: any) => String(p.id) === String(settings?.selectedProduct));
+    if (!product) return null;
+    const isOutOfStock = product.stock === 0;
+    const qtyInCart = cart ? cart.filter((i:any) => i.id === product.id).reduce((sum:any, i:any) => sum + i.quantity, 0) : 0;
+    const isMaxedOut = product.stock !== undefined && qtyInCart >= product.stock;
+
+    return (
+        <div className="my-12 bg-black dark:bg-zinc-900 rounded-[3rem] p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 shadow-2xl relative overflow-hidden animate-in fade-in">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14] opacity-10 blur-3xl rounded-full pointer-events-none"></div>
+            <div className="w-full md:w-1/2 relative z-10 text-white">
+                <h3 className="text-[#39FF14] font-black uppercase tracking-widest text-sm mb-2">{settings?.title || "Offre du Jour"}</h3>
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">{product.name}</h2>
+                <p className="text-zinc-400 mb-8 line-clamp-3">{product.description}</p>
+                <div className="flex items-center gap-4 mb-8">
+                    <span className="text-4xl font-black">{displayPrice(product.price, currency)}</span>
+                    {((product.oldPrice || product.old_price) || 0) > product.price && <span className="text-xl text-zinc-500 line-through">{displayPrice(product.oldPrice || product.old_price, currency)}</span>}
+                </div>
+                <button onClick={() => { if ((product.variants?.sizes?.length || 0) > 0 || (product.variants?.colors?.length || 0) > 0) { onViewProduct(product); } else { addToCart(product, undefined, false); } }} disabled={isOutOfStock || isMaxedOut} className="bg-[#39FF14] text-black px-8 py-4 rounded-full font-black uppercase text-sm hover:bg-white transition-colors disabled:opacity-50 shadow-[0_10px_30px_rgba(57,255,20,0.3)] w-full sm:w-auto text-center">
+                    {isOutOfStock ? 'Épuisé' : 'Profiter de l\'offre'}
+                </button>
+            </div>
+            <div className="w-full md:w-1/2 relative z-10 flex justify-center">
+                <div className="relative w-full max-w-[280px] aspect-square rounded-[2rem] overflow-hidden group cursor-pointer border-4 border-zinc-800 hover:border-[#39FF14] transition-colors bg-white" onClick={() => onViewProduct(product)}>
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    {((product.oldPrice || product.old_price) || 0) > product.price && (
+                        <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1.5 rounded-full font-black text-xs uppercase shadow-lg transform rotate-12">
+                            -{Math.round(((((product.oldPrice || product.old_price) || 0) - product.price) / ((product.oldPrice || product.old_price) || 1)) * 100)}%
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const NewArrivalsWidget = ({ title, products, selectedProductIds, onViewProduct, addToCart, currency, cart }: any) => {
     let displayProducts: Product[] = [...products];
@@ -891,6 +930,14 @@ export default function OnyxJaayShop() {
             } : undefined} />;
       case 'new-arrivals':
         return <NewArrivalsWidget title={widget.settings?.title} products={products} selectedProductIds={widget.settings?.selectedProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
+      case 'best-sellers':
+        const bestSellersProducts = [...products].sort((a, b) => (b.reviews || 0) - (a.reviews || 0));
+        return <NewArrivalsWidget title={widget.settings?.title || 'Meilleures Ventes'} products={bestSellersProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
+      case 'featured-category':
+        const featProducts = products.filter(p => p.category === widget.settings?.category);
+        return <NewArrivalsWidget title={widget.settings?.title || widget.settings?.category} products={featProducts} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
+      case 'promo-day':
+        return <PromoDayWidget settings={widget.settings} products={products} onViewProduct={handleViewProduct} addToCart={addToCart} currency={shopInfo.currency} cart={cart} />;
       default:
         return <div className="p-4 bg-red-200 rounded-lg">Widget inconnu: {widget.name}</div>;
     }
@@ -3144,6 +3191,18 @@ interface ProductModalProps {
 
 function ProductModal({ product, onClose, onSave, onImageUpload, categories, currency }: ProductModalProps) {
     const [isGenerating, setIsGenerating] = useState(false);
+    
+    // Simulateur de Rentabilité
+    const [simulator, setSimulator] = useState({
+        taxRate: 18,
+        shippingCost: 0,
+        packagingCost: 0,
+        marketingCac: 0,
+        customsFee: 0,
+        paymentFeePct: 1, // 1% par defaut (Wave/OM)
+        targetMarginPct: 20,
+        show: false
+    });
     const [formData, setFormData] = useState<Partial<Product>>({
         name: product?.name || '',
         price: product?.price || 0,
@@ -3163,6 +3222,23 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const simTVA = (formData.price || 0) - ((formData.price || 0) / (1 + simulator.taxRate / 100));
+    const simPrixHT = (formData.price || 0) - simTVA;
+    const simCharges = (formData.costPrice || 0) + simulator.shippingCost + simulator.packagingCost + simulator.marketingCac + simulator.customsFee + ((formData.price || 0) * simulator.paymentFeePct / 100);
+    const simNetProfit = (formData.price || 0) - simTVA - simCharges;
+    const simMarginPct = simPrixHT > 0 ? (simNetProfit / simPrixHT) * 100 : 0;
+
+    const calculateIdealPrice = () => {
+        const Cf = (formData.costPrice || 0) + simulator.shippingCost + simulator.packagingCost + simulator.marketingCac + simulator.customsFee;
+        const T = simulator.taxRate / 100;
+        const Fee = simulator.paymentFeePct / 100;
+        const M = (simulator.targetMarginPct || 0) / 100;
+        const denominator = 1 - M - Fee * (1 + T);
+        if (denominator <= 0) return alert("Marge impossible à atteindre avec ces frais de transaction et TVA. Veuillez réduire la marge cible ou les frais.");
+        const idealPrice = (Cf * (1 + T)) / denominator;
+        setFormData(prev => ({...prev, price: Math.ceil(idealPrice / 100) * 100}));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -3348,6 +3424,72 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 placeholder="https://www.youtube.com/embed/..."
                                 className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition"
                             />
+                        </div>
+
+                        {/* SIMULATEUR DE RENTABILITÉ INTELLIGENT */}
+                        <div className="pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                            <button type="button" onClick={() => setSimulator({...simulator, show: !simulator.show})} className="flex items-center gap-2 text-sm font-black uppercase text-[#39FF14] mb-4 hover:underline w-full text-left">
+                                <BarChart size={16}/> {simulator.show ? 'Masquer le simulateur de rentabilité' : 'Afficher le Simulateur de Rentabilité 💰'}
+                            </button>
+                            
+                            {simulator.show && (
+                                <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-6 animate-in slide-in-from-top-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase">TVA Applicable</label>
+                                            <select value={simulator.taxRate} onChange={e => setSimulator({...simulator, taxRate: Number(e.target.value)})} className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold cursor-pointer">
+                                                <option value="18">18% (Standard)</option>
+                                                <option value="10">10% (Réduit)</option>
+                                                <option value="0">0% (Exonéré)</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1 cursor-help" title="Wave/OM prennent environ 1% sur les paiements marchands.">Frais paiement ℹ️</label>
+                                            <select value={simulator.paymentFeePct} onChange={e => setSimulator({...simulator, paymentFeePct: Number(e.target.value)})} className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold cursor-pointer">
+                                                <option value="1">Wave / OM (~1%)</option>
+                                                <option value="3.5">Carte Bancaire (~3.5%)</option>
+                                                <option value="0">À la livraison (0%)</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase">Logistique (Livreur)</label>
+                                            <input type="number" value={simulator.shippingCost || ''} onChange={e => setSimulator({...simulator, shippingCost: Number(e.target.value)})} placeholder="Ex: 1500" className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold"/>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase">Emballage (Carton)</label>
+                                            <input type="number" value={simulator.packagingCost || ''} onChange={e => setSimulator({...simulator, packagingCost: Number(e.target.value)})} placeholder="Ex: 500" className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold"/>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase">Coût Acq. (Pub)</label>
+                                            <input type="number" value={simulator.marketingCac || ''} onChange={e => setSimulator({...simulator, marketingCac: Number(e.target.value)})} placeholder="Ex: 1000" className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold"/>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-zinc-500 uppercase">Douane / Import</label>
+                                            <input type="number" value={simulator.customsFee || ''} onChange={e => setSimulator({...simulator, customsFee: Number(e.target.value)})} placeholder="Ex: 2500" className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold"/>
+                                        </div>
+                                    </div>
+
+                                    {/* CALCUL INVERSE (PRIX IDÉAL) */}
+                                    <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-xl border border-blue-200 dark:border-blue-500/20 flex flex-col sm:flex-row items-end gap-4">
+                                        <div className="flex-1 w-full space-y-1">
+                                            <label className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase">Calculer le prix idéal selon la marge voulue (%)</label>
+                                            <div className="flex gap-2">
+                                                <input type="number" value={simulator.targetMarginPct || ''} onChange={e => setSimulator({...simulator, targetMarginPct: Number(e.target.value)})} placeholder="Ex: 20" className="w-24 p-3 bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-500/30 rounded-xl outline-none focus:border-blue-500 text-xs font-bold text-blue-700 dark:text-blue-300"/>
+                                                <button type="button" onClick={calculateIdealPrice} className="bg-blue-600 text-white px-4 py-3 rounded-xl text-xs font-black uppercase hover:bg-blue-700 transition shadow-md whitespace-nowrap">
+                                                    Calculer & Appliquer
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div><p className="text-[10px] font-bold text-zinc-500 uppercase">TVA à reverser</p><p className="font-bold text-sm text-zinc-700 dark:text-zinc-300">{displayPrice(Math.round(simTVA), currency)}</p></div>
+                                        <div><p className="text-[10px] font-bold text-zinc-500 uppercase">Prix de vente HT</p><p className="font-bold text-sm text-zinc-700 dark:text-zinc-300">{displayPrice(Math.round(simPrixHT), currency)}</p></div>
+                                        <div><p className="text-[10px] font-bold text-zinc-500 uppercase">Total des Charges</p><p className="font-bold text-sm text-red-500">{displayPrice(Math.round(simCharges), currency)}</p></div>
+                                        <div className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm"><p className="text-[10px] font-black uppercase text-zinc-500 mb-1">Bénéfice Net</p><p className={`font-black text-xl leading-none ${simNetProfit > 0 ? 'text-[#39FF14] dark:text-[#39FF14]' : 'text-red-500'}`}>{simNetProfit > 0 ? '+' : ''}{displayPrice(Math.round(simNetProfit), currency)}</p><p className={`text-xs font-bold mt-1 ${simMarginPct > 0 ? 'text-green-600' : 'text-red-500'}`}>Marge : {simMarginPct.toFixed(1)}%</p></div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -4152,6 +4294,16 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   const [popularCategory, setPopularCategory] = useState('Toutes');
   const [showAbandoned, setShowAbandoned] = useState(false);
 
+  const [simulator, setSimulator] = useState({
+      taxRate: 18,
+      shippingSpend: 0,
+      packagingSpend: 0,
+      marketingSpend: 0,
+      customsSpend: 0,
+      paymentFeePct: 1,
+      show: false
+  });
+
   const productCategories = ['Toutes', ...Array.from(new Set(products.map(p => p.category)))];
 
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
@@ -4219,7 +4371,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   }, [products]);
 
   const { 
-    totalRevenue, totalOrders, totalClients, averageOrderValue, netMargin,
+    totalRevenue, totalCost, totalOrders, totalClients, averageOrderValue, netMargin,
     revenueTrend, ordersTrend, clientsTrend, avgOrderTrend, marginTrend,
     bestSellers
   } = useMemo(() => {
@@ -4295,7 +4447,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
     const localBestSellers = [...productSales.entries()].sort((a, b) => b[1].quantity - a[1].quantity).slice(0, 5);
 
     return { 
-        totalRevenue: revenue, totalOrders: TOrders, totalClients: TClients, averageOrderValue: avgOrder, netMargin: margin,
+        totalRevenue: revenue, totalCost: totalCost, totalOrders: TOrders, totalClients: TClients, averageOrderValue: avgOrder, netMargin: margin,
         ...trends,
         bestSellers: localBestSellers
     };
@@ -4408,6 +4560,15 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   const maxNewClients = Math.max(...newClientsChartData.map(d => d.count), 5);
 
   const maxTotal = Math.max(...chartData.map(d => d.total), 1);
+
+  const simTVA = totalRevenue - (totalRevenue / (1 + simulator.taxRate / 100));
+  const simRevHT = totalRevenue - simTVA;
+  const simCogs = totalCost;
+  const simFees = totalRevenue * (simulator.paymentFeePct / 100);
+  const simOtherCharges = simulator.marketingSpend + simulator.packagingSpend + simulator.shippingSpend + simulator.customsSpend;
+  const simTotalCharges = simCogs + simFees + simOtherCharges;
+  const simNetProfit = simRevHT - simTotalCharges;
+  const simMarginPct = simRevHT > 0 ? (simNetProfit / simRevHT) * 100 : 0;
 
   const handlePrint = () => {
     window.print();
@@ -4693,6 +4854,48 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
               <Printer size={16} /> Imprimer
             </button>
         </div>
+      </div>
+
+      {/* SIMULATEUR DE SANTÉ GLOBALE */}
+      <div className="mb-8">
+          <button type="button" onClick={() => setSimulator({...simulator, show: !simulator.show})} className="flex items-center gap-2 text-sm font-black uppercase text-[#39FF14] mb-4 hover:underline w-max">
+              <BarChart size={16}/> {simulator.show ? 'Masquer le simulateur global' : 'Simulateur de Santé Financière (Masqué)'}
+          </button>
+          
+          {simulator.show && (
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 space-y-6 animate-in slide-in-from-top-2">
+                  <h3 className="font-black uppercase text-lg">Santé Financière Globale</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase">TVA Applicable</label>
+                          <select value={simulator.taxRate} onChange={e => setSimulator({...simulator, taxRate: Number(e.target.value)})} className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold cursor-pointer">
+                              <option value="18">18% (Standard)</option>
+                              <option value="10">10% (Réduit)</option>
+                              <option value="0">0% (Exonéré)</option>
+                          </select>
+                      </div>
+                      <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1 cursor-help" title="Frais des plateformes (Wave/OM/Stripe)">Frais de paiement ℹ️</label>
+                          <select value={simulator.paymentFeePct} onChange={e => setSimulator({...simulator, paymentFeePct: Number(e.target.value)})} className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold cursor-pointer">
+                              <option value="1">Wave / OM (~1%)</option>
+                              <option value="3.5">Carte Bancaire (~3.5%)</option>
+                              <option value="0">Aucun (0%)</option>
+                          </select>
+                      </div>
+                      <div className="space-y-1"><label className="text-[10px] font-bold text-zinc-500 uppercase">Total Logistique Payé</label><input type="number" value={simulator.shippingSpend || ''} onChange={e => setSimulator({...simulator, shippingSpend: Number(e.target.value)})} placeholder="Ex: 50000" className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold"/></div>
+                      <div className="space-y-1"><label className="text-[10px] font-bold text-zinc-500 uppercase">Total Emballage (Cartons)</label><input type="number" value={simulator.packagingSpend || ''} onChange={e => setSimulator({...simulator, packagingSpend: Number(e.target.value)})} placeholder="Ex: 15000" className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold"/></div>
+                      <div className="space-y-1"><label className="text-[10px] font-bold text-zinc-500 uppercase">Total Marketing (Pub)</label><input type="number" value={simulator.marketingSpend || ''} onChange={e => setSimulator({...simulator, marketingSpend: Number(e.target.value)})} placeholder="Ex: 100000" className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold"/></div>
+                      <div className="space-y-1"><label className="text-[10px] font-bold text-zinc-500 uppercase">Total Douane / Import</label><input type="number" value={simulator.customsSpend || ''} onChange={e => setSimulator({...simulator, customsSpend: Number(e.target.value)})} placeholder="Ex: 250000" className="w-full p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#39FF14] text-xs font-bold"/></div>
+                  </div>
+                  <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700 grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div><p className="text-[10px] font-bold text-zinc-500 uppercase">TVA Globale</p><p className="font-bold text-sm text-zinc-700 dark:text-zinc-300">{displayPrice(Math.round(simTVA), currency)}</p></div>
+                      <div><p className="text-[10px] font-bold text-zinc-500 uppercase">CA Brut HT</p><p className="font-bold text-sm text-zinc-700 dark:text-zinc-300">{displayPrice(Math.round(simRevHT), currency)}</p></div>
+                      <div><p className="text-[10px] font-bold text-zinc-500 uppercase">Coût Marchandises</p><p className="font-bold text-sm text-red-500">{displayPrice(Math.round(simCogs), currency)}</p></div>
+                      <div><p className="text-[10px] font-bold text-zinc-500 uppercase">Autres Charges</p><p className="font-bold text-sm text-red-500">{displayPrice(Math.round(simFees + simOtherCharges), currency)}</p></div>
+                      <div className="col-span-2 md:col-span-1 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm"><p className="text-[10px] font-black uppercase text-zinc-500 mb-1">Bénéfice Net Réel</p><p className={`font-black text-xl leading-none ${simNetProfit > 0 ? 'text-[#39FF14] dark:text-[#39FF14]' : 'text-red-500'}`}>{simNetProfit > 0 ? '+' : ''}{displayPrice(Math.round(simNetProfit), currency)}</p><p className={`text-xs font-bold mt-1 ${simMarginPct > 0 ? 'text-green-600' : 'text-red-500'}`}>Marge : {simMarginPct.toFixed(1)}%</p></div>
+                  </div>
+              </div>
+          )}
       </div>
       <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mb-12">
           Aperçu des performances globales {dateFilter.start || dateFilter.end ? 'sur la période sélectionnée' : 'globales'}.
