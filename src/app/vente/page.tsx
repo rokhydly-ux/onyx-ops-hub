@@ -6069,10 +6069,13 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
 
   const handleSaveCategoriesSilently = async (newCategories: string[], newCovers: any) => {
       if (shopId) {
-          await supabase.from('shops').update({
+          const { error } = await supabase.from('shops').update({
               categories: newCategories,
               category_covers: newCovers,
           }).eq('id', shopId);
+          if (error) {
+              console.error("❌ Erreur de sauvegarde silencieuse Supabase :", error.message);
+          }
       }
   };
 
