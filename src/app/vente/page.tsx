@@ -235,9 +235,9 @@ function SortableWidget({ id, name, settings, type, onEdit, onDelete }: WidgetPr
       {(type === 'category-grid' || id.startsWith('category-grid')) && (
          <div className="grid grid-cols-3 gap-2 mt-4 pointer-events-none">
            {(settings?.categories?.length > 0 ? settings.categories : ['Toutes', 'Catégorie 1', 'Catégorie 2']).slice(0, 3).map((cat: string) => (
-             <div key={cat} className="h-20 rounded-xl bg-zinc-100 dark:bg-zinc-900 bg-cover bg-center border border-zinc-200 dark:border-zinc-700 relative overflow-hidden shadow-sm" style={{ backgroundImage: `url(https://placehold.co/800x800/111/FFF?text=${cat})` }}>
+             <div key={cat} className="h-20 rounded-xl bg-zinc-100 dark:bg-zinc-900 bg-cover bg-center border border-zinc-200 dark:border-zinc-700 relative overflow-hidden shadow-sm" style={{ backgroundImage: `url(https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat.includes(' / ') ? cat.split(' / ')[1] : cat)})` }}>
                <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-2 text-center">
-                  <span className="text-white font-black text-[10px] uppercase tracking-wider drop-shadow-md truncate w-full">{cat}</span>
+                  <span className="text-white font-black text-[10px] uppercase tracking-wider drop-shadow-md truncate w-full">{cat.includes(' / ') ? cat.split(' / ')[1] : cat}</span>
                </div>
              </div>
            ))}
@@ -585,9 +585,9 @@ const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {}
             <div className="flex overflow-x-auto gap-4 pb-4 custom-scrollbar snap-x animate-in fade-in">
                 {categories.map((cat: string) => (
                     <div key={cat} onClick={() => setActiveCategory(cat)} className="snap-start shrink-0 w-48 h-64 rounded-3xl overflow-hidden cursor-pointer relative group">
-                        <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat.includes(' / ') ? cat.split(' / ')[1] : cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                         <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center p-4 text-center">
-                            <h3 className="text-xl font-black text-white uppercase tracking-tighter drop-shadow-md">{cat}</h3>
+                            <h3 className="text-xl font-black text-white uppercase tracking-tighter drop-shadow-md">{cat.includes(' / ') ? cat.split(' / ')[1] : cat}</h3>
                         </div>
                     </div>
                 ))}
@@ -598,9 +598,9 @@ const CategoryGridWidget = ({ categories, setActiveCategory, categoryCovers = {}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
         {categories.map((cat) => (
             <div key={cat} onClick={() => setActiveCategory(cat)} className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800">
-                <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <img src={categoryCovers[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat.includes(' / ') ? cat.split(' / ')[1] : cat)}`} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
-                    <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
+                    <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat.includes(' / ') ? cat.split(' / ')[1] : cat}</h3>
                     <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
                     Voir la collection
                     </span>
@@ -2008,17 +2008,28 @@ export default function OnyxJaayShop() {
     const cleanTrackingInput = trackingInput.trim(); 
     
     try {
-        const { data, error } = await supabase.from('orders').select('*').eq('tracking_number', cleanTrackingInput).maybeSingle();
+        // Permet la recherche par numéro de suivi ou numéro de téléphone
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .or(`tracking_number.eq.${cleanTrackingInput},customer_phone.ilike.%${cleanTrackingInput}%`)
+            .order('created_at', { ascending: false })
+            .limit(1);
         
-        if (data && !error) {
-            setTrackedOrder(data);
+        if (data && data.length > 0 && !error) {
+            setTrackedOrder(data[0]);
         } else {
             const savedOrders = JSON.parse(localStorage.getItem('onyx_jaay_orders') || '[]');
-            const localOrder = savedOrders.find((o: any) => o.trackingNumber === cleanTrackingInput || o.tracking_number === cleanTrackingInput);
+            const localOrder = savedOrders.find((o: any) => 
+                o.trackingNumber === cleanTrackingInput || 
+                o.tracking_number === cleanTrackingInput ||
+                (o.customer?.phone && o.customer.phone.includes(cleanTrackingInput)) ||
+                (o.customer_phone && o.customer_phone.includes(cleanTrackingInput))
+            );
             if (localOrder) {
                 setTrackedOrder(localOrder);
             } else {
-                alert("Aucune commande trouvée avec ce numéro de suivi.");
+                alert("Aucune commande trouvée avec cet identifiant ou numéro de téléphone.");
             }
         }
     } catch (err) {
@@ -2075,7 +2086,7 @@ export default function OnyxJaayShop() {
     const catMatch = p.category ? String(p.category).toLowerCase().includes(search) : false;
     const matchesSearch = search === '' || nameMatch || descMatch || catMatch;
 
-    const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : p.category === activeCategory);
+    const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : (p.category === activeCategory || (p.category && p.category.startsWith(activeCategory + ' / '))));
     const matchesMinPrice = minPrice === '' || (p.price || 0) >= Number(minPrice);
     const matchesMaxPrice = maxPrice === '' || (p.price || 0) <= Number(maxPrice);
 
@@ -2174,13 +2185,13 @@ export default function OnyxJaayShop() {
                     <button 
                       key={cat} 
                       onClick={() => { setActiveCategory(cat); setShopView('boutique'); setIsMobileMenuOpen(false); }} 
-                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${
                         activeCategory === cat 
                           ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
                           : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
                       }`}
                     >
-                      <span className="flex items-center gap-2">{cat === 'Favoris' && <Heart size={14} />}{cat}</span>
+                      <span className="flex items-center gap-2 truncate">{cat === 'Favoris' && <Heart size={14} />}{cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}</span>
                       {activeCategory === cat && <ChevronRight size={14} />}
                     </button>
                   ))}
@@ -2340,15 +2351,15 @@ export default function OnyxJaayShop() {
               <button 
                 key={cat} 
                 onClick={() => { setActiveCategory(cat); setShopView('boutique'); }}
-                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-medium transition ${cat.includes(' / ') ? 'pl-8 text-xs' : 'text-sm'} ${
                   activeCategory === cat 
                     ? cat === 'Favoris' ? 'bg-red-500/10 text-red-400' : 'bg-[#39FF14]/10 text-[#39FF14]' 
                     : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'
                 }`}
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-2 truncate">
                   {cat === 'Favoris' && <Heart size={14} />}
-                  {cat}
+                  {cat.includes(' / ') ? `↳ ${cat.split(' / ').slice(1).join(' / ')}` : cat}
                 </span>
                 {activeCategory === cat && <ChevronRight size={14} />}
               </button>
@@ -2567,12 +2578,12 @@ export default function OnyxJaayShop() {
                         className="group relative h-80 rounded-[2.5rem] overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-500 border border-zinc-200 dark:border-zinc-800"
                       >
                         <img 
-                          src={shopInfo.categoryCovers?.[cat] || `https://placehold.co/800x800/111/FFF?text=${cat}`} 
+                          src={shopInfo.categoryCovers?.[cat] || `https://placehold.co/800x800/111/FFF?text=${encodeURIComponent(cat.includes(' / ') ? cat.split(' / ')[1] : cat)}`} 
                           alt={cat}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
                         <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex flex-col items-center justify-center p-6 text-center">
-                          <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat}</h3>
+                          <h3 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{cat.includes(' / ') ? cat.split(' / ')[1] : cat}</h3>
                           <span className="mt-4 px-6 py-2 bg-[#39FF14] text-black text-xs font-bold uppercase rounded-full opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
                             Voir la collection
                           </span>
@@ -3058,7 +3069,7 @@ export default function OnyxJaayShop() {
             <form onSubmit={handleTrackOrder} className="mb-6 flex gap-2">
                <input 
                   type="text" 
-                  placeholder="Ex: CMD-123456" 
+                  placeholder="Ex: CMD-123456 ou 77..." 
                   value={trackingInput} 
                   onChange={(e) => setTrackingInput(e.target.value.toUpperCase())}
                   required
@@ -3808,6 +3819,7 @@ function ShopReviews({ shopId, products, orders, shopName }: { shopId: string | 
     const [replyingTo, setReplyingTo] = useState<number | null>(null);
     const [replyText, setReplyText] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
         const fetchReviews = async () => {
@@ -3903,6 +3915,12 @@ function ShopReviews({ shopId, products, orders, shopName }: { shopId: string | 
         XLSX.utils.book_append_sheet(workbook, worksheet, "Avis_Clients");
         XLSX.writeFile(workbook, `Avis_${shopName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
+
+    const filteredReviews = reviews.filter(r => 
+        (r.name && r.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (r.comment && r.comment.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (r.admin_reply && r.admin_reply.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
     return (
         <div className="p-8 md:p-12 pt-32 max-w-7xl mx-auto text-black dark:text-white animate-in fade-in">
@@ -6006,6 +6024,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
   const [editingCodeId, setEditingCodeId] = useState<number | null>(null);
   const [editingCodeData, setEditingCodeData] = useState({ code: '', discount: '', type: 'percentage' as 'percentage' | 'fixed', singleUse: false, minPurchase: '', expirationDate: '' });
   const [newCat, setNewCat] = useState('');
+  const [parentCat, setParentCat] = useState('');
 
   const handleAddCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -6105,9 +6124,11 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newCat && !categories.includes(newCat)) {
-        setCategories([...categories, newCat]);
+    const finalCat = parentCat ? `${parentCat} / ${newCat}` : newCat;
+    if (finalCat && !categories.includes(finalCat)) {
+        setCategories([...categories, finalCat]);
         setNewCat('');
+        setParentCat('');
     }
   };
 
@@ -6116,6 +6137,15 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
     if (confirm(`Supprimer la catégorie "${cat}" ? Les produits associés ne seront pas supprimés.`)) {
         setCategories(categories.filter(c => c !== cat));
     }
+  };
+
+  const handleSaveCategories = async () => {
+    if (!shopId) return alert("Erreur: ID de la boutique non trouvé.");
+    const { error } = await supabase.from('shops').update({
+        categories: categories,
+        category_covers: shopInfo.categoryCovers || {},
+    }).eq('id', shopId);
+    if (error) { alert("Erreur lors de la sauvegarde : " + error.message); } else { alert("Catégories et couvertures enregistrées avec succès !"); }
   };
 
   return (
@@ -6290,14 +6320,24 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
           <h3 className="font-black uppercase text-xl flex items-center gap-3"><Tag size={20} className="text-[#39FF14]" /> Gestion des Catégories & Couvertures</h3>
         </div>
         
-        <form onSubmit={handleAddCategory} className="flex flex-wrap gap-4 mb-6">
-           <input type="text" placeholder="Nouvelle catégorie (ex: Électronique)" value={newCat} onChange={e => setNewCat(e.target.value)} className="flex-1 min-w-[200px] bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#39FF14]" required />
-           <button type="submit" className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-[#39FF14] hover:text-black transition flex items-center gap-2"><Plus size={16}/> Ajouter</button>
+        <form onSubmit={handleAddCategory} className="flex flex-wrap gap-4 mb-6 items-end">
+           <div className="flex-1 min-w-[200px]">
+               <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Catégorie Parente (Optionnel)</label>
+               <select value={parentCat} onChange={e => setParentCat(e.target.value)} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#39FF14]">
+                   <option value="">Aucune (Catégorie principale)</option>
+                   {categories.filter(c => c !== 'Toutes' && c !== 'Favoris' && !c.includes(' / ')).map(c => <option key={c} value={c}>{c}</option>)}
+               </select>
+           </div>
+           <div className="flex-1 min-w-[200px]">
+               <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Nom de la catégorie</label>
+               <input type="text" placeholder="Nouvelle catégorie (ex: Électronique)" value={newCat} onChange={e => setNewCat(e.target.value)} className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#39FF14]" required />
+           </div>
+           <button type="submit" className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-[#39FF14] hover:text-black transition flex items-center gap-2 h-[46px]"><Plus size={16}/> Ajouter</button>
         </form>
 
         <div className="space-y-3">
            {categories.map(cat => (
-              <div key={cat} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+              <div key={cat} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 ${cat.includes(' / ') ? 'ml-8 border-l-4 border-l-[#39FF14]' : ''}`}>
                  <div className="flex items-center gap-4 w-full sm:w-1/3">
                     <span className="font-bold text-sm text-black dark:text-white flex-1 truncate">{cat}</span>
                     {cat !== 'Toutes' && cat !== 'Favoris' && (
@@ -6306,9 +6346,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                  </div>
                  {cat !== 'Toutes' && cat !== 'Favoris' && (
                     <div className="flex-1 flex items-center gap-3 w-full">
-                        {shopInfo.categoryCovers?.[cat] && (
-                            <img src={shopInfo.categoryCovers[cat]} alt={cat} className="w-10 h-10 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700 shrink-0" />
-                        )}
+                        <img src={shopInfo.categoryCovers?.[cat] || `https://placehold.co/100x100/111/FFF?text=${encodeURIComponent(cat.includes(' / ') ? cat.split(' / ')[1] : cat)}`} alt={cat} className="w-10 h-10 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700 shrink-0" />
                         <div className="flex-1 flex flex-col gap-2 w-full">
                             <input 
                                 type="url" 
@@ -6335,6 +6373,11 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
                  )}
               </div>
            ))}
+        </div>
+        <div className="pt-6 mt-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
+            <button onClick={handleSaveCategories} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition flex items-center gap-2 shadow-lg">
+                <Save size={16} /> Enregistrer Catégories & Covers
+            </button>
         </div>
       </div>
 
