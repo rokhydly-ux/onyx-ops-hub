@@ -410,14 +410,15 @@ export default function OnyxOpsElite() {
     }
 
     const finalPhone = leadData.phone.replace(/\s+/g, '').startsWith('+221') ? leadData.phone.replace(/\s+/g, '') : `${countryCode}${leadData.phone.replace(/\s+/g, '')}`;
-    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n\n_Le client souhaite un diagnostic gratuit._`;
+    const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
+    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Activité:* ${finalCategory || 'Non renseignée'}\n\n_Le client souhaite un diagnostic gratuit._`;
 
     await saveLead({
        source: 'Exit Intent',
        intent: `Diagnostic Gratuit`,
        contact: finalPhone,
        full_name: leadData.name || 'Visiteur',
-       message: `Demande de diagnostic gratuit | Email: ${leadData.email}`
+       message: `Demande de diagnostic gratuit | Activité: ${finalCategory || 'Non renseignée'} | Email: ${leadData.email}`
     });
 
     setShowExitIntent(false);
@@ -1528,6 +1529,17 @@ export default function OnyxOpsElite() {
                      className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" 
                    />
                  </div>
+
+                 <select 
+                   value={leadData.category} 
+                   onChange={e => setLeadData({...leadData, category: e.target.value})}
+                   required
+                   className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition cursor-pointer"
+                 >
+                   <option value="" disabled>Votre secteur d'activité *</option>
+                   {ONBOARDING_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                 </select>
+                 {leadData.category === 'Autre' && <input type="text" placeholder="Précisez votre activité *" required value={leadData.customCategory} onChange={e => setLeadData({...leadData, customCategory: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />}
 
                  <input type="email" placeholder="Email (Optionnel)" value={leadData.email} onChange={e => setLeadData({...leadData, email: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
 
