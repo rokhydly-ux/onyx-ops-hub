@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Truck, ArrowLeft, Package, Smartphone, Box, 
+  Truck, ChevronLeft, Package, Smartphone, Box, 
   ArrowRight, Zap, CheckCircle, ShieldCheck
 } from "lucide-react";
 
@@ -16,7 +16,7 @@ export default function PackTrioLanding() {
       {/* Navigation minimale */}
       <nav className="fixed top-0 left-0 right-0 p-6 z-50 flex items-center justify-between pointer-events-none">
          <button onClick={() => router.push('/')} className="pointer-events-auto bg-white/80 backdrop-blur-md p-3 rounded-full border border-zinc-200 hover:bg-black hover:text-white transition-colors shadow-sm">
-            <ArrowLeft size={20} />
+            <ChevronLeft size={20} />
          </button>
       </nav>
 
