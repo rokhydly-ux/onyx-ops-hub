@@ -40,6 +40,7 @@ type Contact = {
   saas?: string;
   avatar_url?: string;
   password_temp?: string | null;
+  activity?: string;
 };
 
 type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help";
@@ -323,6 +324,12 @@ export default function AdminDashboard() {
    const trialEndDate = new Date();
    trialEndDate.setDate(trialEndDate.getDate() + 7);
 
+   let extractedActivity = '';
+   if (lead.message) {
+     const match = lead.message.match(/Activit[eé]:\s*([^|]+)/i);
+     if (match) extractedActivity = match[1].trim();
+   }
+
    try {
      const payload: any = {
        full_name: lead.full_name || 'Test Ambassadeur',
@@ -335,6 +342,7 @@ export default function AdminDashboard() {
 
      if (type === 'client') {
        if (saasName) payload.saas = saasName;
+       if (extractedActivity) payload.activity = extractedActivity;
        payload.expiration_date = trialEndDate.toISOString().split('T')[0];
      }
 
@@ -569,6 +577,7 @@ export default function AdminDashboard() {
     saas: editingContact.saas || '',
     active_saas: editingContact.active_saas || [],
     address: editingContact.address || '',
+    activity: editingContact.activity || '',
     avatar_url: editingContact.avatar_url || '',
     expiration_date: editingContact.expiration_date || null,
     source: editingContact.source || 'Admin',
@@ -620,7 +629,8 @@ export default function AdminDashboard() {
         full_name: selectedPartner.full_name,
         phone: selectedPartner.contact,
         type: 'Client',
-        status: 'Converti Ambassadeur'
+        status: 'Converti Ambassadeur',
+        activity: selectedPartner.activity || ''
       });
       if(error) alert(error.message);
       else { alert("Ambassadeur ajouté au CRM Clients !"); fetchSupabaseData(); }
@@ -801,6 +811,7 @@ export default function AdminDashboard() {
       expiration_date: trialEndDate.toISOString().split('T')[0],
       type: "Prospect",
       saas: "",
+      activity: "",
       source: "Admin",
     });
     setShowContactModal(true);
@@ -1644,6 +1655,7 @@ export default function AdminDashboard() {
                         <td className="p-5 lg:p-6">
                           <div className="flex flex-col gap-2">
                              <span className={`px-4 py-2 text-[9px] lg:text-[10px] font-black uppercase rounded-2xl w-max tracking-widest ${c.type === 'Client' ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20' : 'bg-zinc-100 text-zinc-500'}`}>{c.type}</span>
+                             {c.activity && <span className="text-[9px] lg:text-[10px] font-black bg-zinc-200 text-black px-2 py-0.5 rounded-lg uppercase w-max ml-2">{c.activity}</span>}
                              <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 mt-1.5 uppercase ml-2">{c.status || 'Non catégorisé'}</p>
                           </div>
                         </td>
@@ -2295,6 +2307,10 @@ export default function AdminDashboard() {
               <div className="space-y-2">
                  <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Quartier / Adresse</label>
                  <input type="text" value={editingContact?.address || ""} onChange={e => setEditingContact({...editingContact, address: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="Quartier ou adresse postale" />
+              </div>
+              <div className="space-y-2">
+                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Secteur d'Activité</label>
+                 <input type="text" value={editingContact?.activity || ""} onChange={e => setEditingContact({...editingContact, activity: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="Ex: E-commerce, Restauration..." />
               </div>
               <div className="space-y-2">
                  <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Photo de profil (URL)</label>
