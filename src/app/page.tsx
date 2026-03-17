@@ -1356,7 +1356,7 @@ export default function OnyxOpsElite() {
                     <button 
                        onClick={() => {
                           if (showSaasChoice.id === 'Onyx Jaay') {
-                             router.push('/solutions/onyx-jaay');
+                             router.push('/jaay');
                           } else {
                              alert("La page détaillée pour ce module sera bientôt disponible !");
                           }
