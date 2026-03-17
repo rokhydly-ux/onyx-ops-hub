@@ -67,7 +67,7 @@ export default function OnyxJaayLanding() {
   };
 
   const handleDirectWaClick = async (intent: string, msg: string) => {
-    await saveLead({ source: 'Bouton Site Onyx Jaay', intent, message: msg, contact: '' });
+    await saveLead({ source: 'Bouton Site Onyx Jaay', intent, message: msg, contact: leadData.phone || '', full_name: leadData.name || 'Visiteur Anonyme' });
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -315,14 +315,28 @@ export default function OnyxJaayLanding() {
                  <div className="space-y-6 animate-in slide-in-from-right-8">
                    <div className="mb-8">
                       <h2 className="font-sans text-3xl font-black uppercase mt-4">Comment souhaitez-vous <span className="text-[#39FF14] bg-black px-2 py-0.5 rounded-lg">démarrer</span> ?</h2>
-                      <p className="text-zinc-500 font-bold mt-4">Choisissez l'option qui vous convient le mieux.</p>
+                      <p className="text-zinc-500 font-bold mt-4">Saisissez vos informations et choisissez l'option qui vous convient.</p>
+                   </div>
+
+                   <div className="space-y-3">
+                     <input type="text" placeholder="Votre Prénom *" value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" />
+                     <input type="tel" placeholder="Votre Numéro WhatsApp *" value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" />
                    </div>
 
                    <div className="space-y-4">
-                      <button onClick={() => setOnboardingStep(1)} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-105 transition flex items-center justify-center gap-3">
+                      <button onClick={() => { 
+                          if(!leadData.name || !leadData.phone) return alert('Veuillez saisir votre prénom et numéro WhatsApp.'); 
+                          saveLead({ 
+                            source: 'Onboarding Onyx Jaay', 
+                            intent: 'Lead Partiel (Abandon Étape 1)', 
+                            contact: leadData.phone, 
+                            full_name: leadData.name 
+                          });
+                          setOnboardingStep(1); 
+                      }} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-105 transition flex items-center justify-center gap-3">
                          <UserPlus size={20} /> Créer mon compte moi-même
                       </button>
-                      <button onClick={() => handleDirectWaClick('Démarrage Onyx Jaay', 'Bonjour, je souhaite démarrer un essai pour Onyx Jaay.')} className="w-full bg-zinc-100 text-black py-5 rounded-[2rem] font-black uppercase text-sm shadow-sm hover:bg-zinc-200 transition flex items-center justify-center gap-3">
+                      <button onClick={() => { if(!leadData.name || !leadData.phone) return alert('Veuillez saisir votre prénom et numéro WhatsApp.'); handleDirectWaClick('Démarrage Onyx Jaay', `Bonjour, je m'appelle ${leadData.name} et je souhaite démarrer un essai pour Onyx Jaay.`); }} className="w-full bg-zinc-100 text-black py-5 rounded-[2rem] font-black uppercase text-sm shadow-sm hover:bg-zinc-200 transition flex items-center justify-center gap-3">
                          <MessageSquare size={20} /> Démarrer via WhatsApp
                       </button>
                    </div>

@@ -333,7 +333,7 @@ export default function OnyxOpsElite() {
   };
 
   const handleWaClick = async (intent: string, msg: string) => {
-    await saveLead({ source: 'Bouton Site', intent, message: msg });
+    await saveLead({ source: 'Bouton Site', intent, message: msg, contact: leadData.phone || '', full_name: leadData.name || 'Visiteur Web' });
     window.open(getWaLink(msg), "_blank");
   };
 
@@ -1306,7 +1306,12 @@ export default function OnyxOpsElite() {
                 {modalTab === 'prix' ? (
                   <>
                     <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{showSaasChoice.id}</h2>
-                    <p className="text-sm font-bold text-zinc-500 mb-8 px-4">{showSaasChoice.solution}</p>
+                    <p className="text-sm font-bold text-zinc-500 mb-6 px-4">{showSaasChoice.solution}</p>
+
+                    <div className="flex flex-col sm:flex-row gap-3 mb-8 px-4 max-w-lg mx-auto">
+                       <input type="text" placeholder="Votre Prénom *" value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="flex-1 p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition" />
+                       <input type="tel" placeholder="Votre WhatsApp *" value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="flex-1 p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition" />
+                    </div>
 
                     <div className="grid md:grid-cols-2 gap-6 animate-in slide-in-from-left-4">
                        {/* OPTION BASIQUE */}
@@ -1316,10 +1321,21 @@ export default function OnyxOpsElite() {
                              <span className="text-2xl font-black mb-4">{showSaasChoice.price.toLocaleString()} F</span>
                           </div>
                           <div className="w-full flex flex-col gap-2 mt-2 z-10">
-                             <button onClick={() => { setShowSaasChoice(null); setLeadData(prev => ({...prev, saas: showSaasChoice.id})); setShowOnboarding(true); }} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-800 transition shadow-md flex items-center justify-center">
+                             <button onClick={() => { 
+                                 if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp.");
+                                 saveLead({ 
+                                    source: 'Upsell Modal', 
+                                    intent: `Lead Partiel (${showSaasChoice.id})`, 
+                                    contact: leadData.phone, 
+                                    full_name: leadData.name 
+                                 });
+                                 setShowSaasChoice(null); 
+                                 setLeadData(prev => ({...prev, saas: showSaasChoice.id})); 
+                                 setShowOnboarding(true); 
+                             }} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-800 transition shadow-md flex items-center justify-center">
                                 Créer mon compte
                              </button>
-                             <button onClick={() => { handleWaClick("Essai Basique", `Bonjour, je souhaite démarrer un essai pour ${showSaasChoice.id} à ${showSaasChoice.price.toLocaleString()}F.`); setShowSaasChoice(null); }} className="w-full bg-white text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-100 transition border border-zinc-200 shadow-sm flex items-center justify-center gap-2">
+                             <button onClick={() => { if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp."); handleWaClick("Essai Basique", `Bonjour, je m'appelle ${leadData.name} et je souhaite démarrer un essai pour ${showSaasChoice.id} à ${showSaasChoice.price.toLocaleString()}F.`); setShowSaasChoice(null); }} className="w-full bg-white text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-100 transition border border-zinc-200 shadow-sm flex items-center justify-center gap-2">
                                 <MessageSquare size={14}/> Essai via WhatsApp
                              </button>
                           </div>
@@ -1340,10 +1356,21 @@ export default function OnyxOpsElite() {
                           </div>
                           
                           <div className="w-full flex flex-col gap-2 mt-auto z-10">
-                             <button onClick={() => { setShowSaasChoice(null); setLeadData(prev => ({...prev, saas: showSaasChoice.upsellName})); setShowOnboarding(true); }} className="w-full bg-[#39FF14] text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-white transition shadow-xl flex items-center justify-center gap-1">
+                             <button onClick={() => { 
+                                 if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp.");
+                                 saveLead({ 
+                                    source: 'Upsell Modal', 
+                                    intent: `Lead Partiel (${showSaasChoice.upsellName})`, 
+                                    contact: leadData.phone, 
+                                    full_name: leadData.name 
+                                 });
+                                 setShowSaasChoice(null); 
+                                 setLeadData(prev => ({...prev, saas: showSaasChoice.upsellName})); 
+                                 setShowOnboarding(true); 
+                             }} className="w-full bg-[#39FF14] text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-white transition shadow-xl flex items-center justify-center gap-1">
                                 Profiter de l'offre <ArrowRight size={14}/>
                              </button>
-                             <button onClick={() => { handleWaClick("Essai Upsell Flash", `Bonjour, je veux profiter de l'offre flash pour le ${showSaasChoice.upsellName} à ${upsellDiscountPrice.toLocaleString()}F !`); setShowSaasChoice(null); }} className="w-full bg-zinc-800 text-white py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-700 transition flex items-center justify-center gap-2">
+                             <button onClick={() => { if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp."); handleWaClick("Essai Upsell Flash", `Bonjour, je m'appelle ${leadData.name} et je veux profiter de l'offre flash pour le ${showSaasChoice.upsellName} à ${upsellDiscountPrice.toLocaleString()}F !`); setShowSaasChoice(null); }} className="w-full bg-zinc-800 text-white py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-700 transition flex items-center justify-center gap-2">
                                 <MessageSquare size={14}/> Essai via WhatsApp
                              </button>
                           </div>

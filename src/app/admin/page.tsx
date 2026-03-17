@@ -181,6 +181,7 @@ export default function AdminDashboard() {
   const [saasCreateType, setSaasCreateType] = useState<"manual" | "prospect">("manual");
   const [saasCreateForm, setSaasCreateForm] = useState<{ name: string; phone: string; password: string; prospectId?: string }>({ name: "", phone: "", password: "" });
   const [crmTypeFilter, setCrmTypeFilter] = useState("Tous");
+  const [crmActivityFilter, setCrmActivityFilter] = useState("Tous");
   const [crmSearch, setCrmSearch] = useState("");
   const [crmCardFilter, setCrmCardFilter] = useState<string | null>(null);
   const [financeSearch, setFinanceSearch] = useState("");
@@ -212,6 +213,7 @@ export default function AdminDashboard() {
   const maxCa = Math.max(...histogramData.map(d => d.ca), 1);
   const [showHubsMap, setShowHubsMap] = useState(false);
   const [leadSearch, setLeadSearch] = useState("");
+  const [leadFilter, setLeadFilter] = useState("Tous");
   const [partnerSearch, setPartnerSearch] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
   const [leadActionsOpen, setLeadActionsOpen] = useState<string | null>(null);
@@ -313,13 +315,14 @@ export default function AdminDashboard() {
 
   // --- LOGIQUE DE CRÉATION DE COMPTE MODIFIÉE (J+7, Identifiants de test Ambassadeur) ---
   const handleCreateAccount = async (lead: any, type: 'client' | 'ambassadeur', saasName?: string) => {
-   const table = type === 'client' ? 'clients' : 'partners';
+   const table = type === 'client' ? 'clients' : 'ambassadors';
    const tempPass = "central2026"; // Mot de passe fixe demandé
    
-   // Forcer le numéro de test pour les ambassadeurs, sinon utiliser celui du lead
-   const phone = type === 'ambassadeur' ? '+221762237425' : (lead.phone || '').replace(/\s+/g, '');
+   // On utilise le VRAI numéro du prospect pour qu'il puisse se connecter (Clients et Ambassadeurs)
+   const phone = (lead.phone || '').replace(/\s+/g, '');
    const phoneColumn = type === 'client' ? 'phone' : 'contact';
 
+   try {
    // Calcul de la date d'expiration (J+7 pour l'essais gratuit)
    const trialEndDate = new Date();
    trialEndDate.setDate(trialEndDate.getDate() + 7);
@@ -330,7 +333,6 @@ export default function AdminDashboard() {
      if (match) extractedActivity = match[1].trim();
    }
 
-   try {
      const payload: any = {
        full_name: lead.full_name || 'Test Ambassadeur',
        [phoneColumn]: phone, 
@@ -349,9 +351,10 @@ export default function AdminDashboard() {
      const { error } = await supabase.from(table).upsert(payload, { onConflict: phoneColumn });
      if (error) throw error;
 
-     await supabase.from('leads').delete().eq('id', lead.id);
+     // NOUVEAU : On supprime TOUS les leads (partiels ou complets) liés à ce numéro pour éviter les doublons
+     await supabase.from('leads').delete().eq('phone', lead.phone);
 
-     const portal = type === 'client' ? 'onyxops.com/login' : 'onyxops.com/ambassadeurs';
+     const portal = type === 'client' ? 'https://onyx-ops-hub.vercel.app/login' : 'https://onyx-ops-hub.vercel.app/ambassadeurs';
      const welcomeMsg = `Félicitations ! Ton compte est prêt.\n🔗 Accès : ${portal}\n📱 ID : ${phone}\n🔑 Pass : ${tempPass}`;
 
      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(welcomeMsg)}`, '_blank');
@@ -516,6 +519,49 @@ export default function AdminDashboard() {
   const replyToLead = (lead: any) => {
      const msg = `Bonjour ${lead.full_name}, je suis l'administrateur d'OnyxOps. J'ai bien reçu votre demande concernant "${lead.intent}". Comment puis-je vous aider ?`;
      window.open(`https://wa.me/${lead.phone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const runAbandonedCartsScan = async () => {
+     const partials = leads.filter(l => (l.intent || '').toLowerCase().includes('partiel'));
+     const completedLeads = leads.filter(l => !(l.intent || '').toLowerCase().includes('partiel'));
+
+     // Vérification : Le prospect a-t-il finalement terminé son inscription ou est-il déjà client ?
+     const trueAbandoned = partials.filter(p => {
+        const isClient = contacts.some(c => c.phone === p.phone);
+        const isCompletedLead = completedLeads.some(cl => cl.phone === p.phone && new Date(cl.created_at) >= new Date(p.created_at));
+        return !isClient && !isCompletedLead;
+     });
+
+     // Nettoyage automatique silencieux des "faux abandons" (ceux qui ont fusionné)
+     const falseAbandoned = partials.filter(p => !trueAbandoned.includes(p));
+     if (falseAbandoned.length > 0) {
+         for (const fa of falseAbandoned) {
+             await supabase.from('leads').delete().eq('id', fa.id);
+         }
+         fetchSupabaseData(); // On met à jour l'affichage
+     }
+
+     if (trueAbandoned.length === 0) return alert("Aucun panier abandonné réel détecté. Les leads partiels convertis ont été automatiquement nettoyés.");
+     
+     const newActions: IAAction[] = trueAbandoned.map(p => ({
+        id: `ia-abandon-${p.id}-${Date.now()}`,
+        module: 'Relance Lead',
+        title: `Panier Abandonné : ${p.full_name}`,
+        desc: `Le prospect a commencé l'inscription sans la terminer. Intention : ${p.intent}`,
+        date: todayStr,
+        status: 'En attente',
+        phone: p.phone,
+        msg: `Bonjour ${p.full_name}, c'est Maïmouna d'OnyxOps. J'ai vu que vous aviez commencé votre inscription sans aller au bout, puis-je vous aider à la finaliser ?`
+     }));
+     
+     setActionsIA(prev => {
+        const updated = [...newActions, ...prev];
+        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+        return updated;
+     });
+     
+     alert(`${trueAbandoned.length} relance(s) de paniers abandonnés générée(s) et ajoutée(s) au Planificateur IA !`);
+     setActiveView('journal-ia');
   };
 
   const handleDeleteLead = async (id: string) => {
@@ -715,6 +761,7 @@ export default function AdminDashboard() {
      await supabase.from('clients').upsert({
         full_name: targetName,
         phone: targetPhone,
+        password_temp: saasCreateForm.password, // IMPORTANT: Sauvegarde du mot de passe pour la connexion
         type: 'Client',
         saas: showSaasLogin.name,
         status: 'Compte Créé',
@@ -932,6 +979,7 @@ export default function AdminDashboard() {
 
   const filteredContacts = (contacts || []).filter(c => {
     if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
+    if (crmActivityFilter !== 'Tous' && (c.activity || 'Non défini') !== crmActivityFilter) return false;
     const search = (globalSearch || crmSearch).toLowerCase();
     if (search && !(c.full_name || '').toLowerCase().includes(search) && !(c.phone || '').includes(search) && !(c.saas || '').toLowerCase().includes(search)) return false;
     if (crmCardFilter === 'new_clients' && c.type !== 'Client') return false;
@@ -1435,8 +1483,15 @@ export default function AdminDashboard() {
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Capture en temps réel • Hub WhatsApp : 78 533 84 17</p>
                       </div>
                    </div>
-                   <div className="flex items-center gap-4">
-                      <input type="search" placeholder="Rechercher un lead…" value={leadSearch} onChange={e => setLeadSearch(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium w-56 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
+                  <div className="flex flex-wrap items-center gap-4">
+                     <select value={leadFilter} onChange={e => setLeadFilter(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14] bg-white cursor-pointer">
+                       <option value="Tous">Tous les leads</option>
+                       <option value="Partiel">Paniers Abandonnés</option>
+                     </select>
+                     <input type="search" placeholder="Rechercher un lead…" value={leadSearch} onChange={e => setLeadSearch(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium w-48 md:w-56 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
+                     <button onClick={runAbandonedCartsScan} className="bg-black text-[#39FF14] px-5 py-3 rounded-2xl font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-2 shrink-0">
+                       <Sparkles size={16}/> Relancer Abandons
+                     </button>
                       <div className="bg-zinc-50 border border-zinc-100 px-6 py-4 rounded-2xl flex items-center gap-3">
                          <span className="w-2 h-2 bg-[#39FF14] rounded-full animate-ping"></span>
                          <span className="text-[10px] lg:text-[11px] font-black uppercase text-zinc-500">Flux Connecté</span>
@@ -1455,8 +1510,15 @@ export default function AdminDashboard() {
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
-                         {(leadSearch || globalSearch ? leads.filter(l => [l.full_name, l.phone, l.intent, l.message].some(v => String(v||'').toLowerCase().includes((globalSearch || leadSearch).toLowerCase()))) : leads).map(l => (
-                            <tr key={l.id} className="hover:bg-zinc-50/50 transition-all group">
+                        {leads.filter(l => {
+                           if (leadFilter === 'Partiel' && !(l.intent || '').toLowerCase().includes('partiel')) return false;
+                           const search = (globalSearch || leadSearch).toLowerCase();
+                           if (search && ![l.full_name, l.phone, l.intent, l.message].some(v => String(v||'').toLowerCase().includes(search))) return false;
+                           return true;
+                        }).map(l => {
+                           const isPartial = (l.intent || '').toLowerCase().includes('partiel');
+                           return (
+                           <tr key={l.id} className={`hover:bg-zinc-50/50 transition-all group ${isPartial ? 'bg-orange-50/30' : ''}`}>
                                <td className="p-6 lg:p-5">
                                   <p className="font-black text-sm uppercase text-black">{l.full_name}</p>
                                   <p className="text-xs text-[#39FF14] font-black mt-1">{l.phone}</p>
@@ -1464,7 +1526,7 @@ export default function AdminDashboard() {
                                </td>
                                <td className="p-6 lg:p-5">
                                   <div className="flex flex-col gap-2">
-                                     <span className="bg-black text-[#39FF14] text-[9px] lg:text-[10px] font-black px-3 py-1.5 rounded-xl uppercase inline-block shadow-lg w-max tracking-widest">{l.intent}</span>
+                                    <span className={`text-[9px] lg:text-[10px] font-black px-3 py-1.5 rounded-xl uppercase inline-block shadow-lg w-max tracking-widest ${isPartial ? 'bg-orange-500 text-white shadow-orange-500/20' : 'bg-black text-[#39FF14]'}`}>{l.intent}</span>
                                      <p className="text-[9px] font-bold text-zinc-400 uppercase ml-2 mt-1">{l.created_at ? new Date(l.created_at).toLocaleDateString() : todayStr}</p>
                                   </div>
                                </td>
@@ -1492,8 +1554,14 @@ export default function AdminDashboard() {
                                   </div>
                                </td>
                             </tr>
-                         ))}
-                         {(leadSearch || globalSearch ? leads.filter(l => [l.full_name, l.phone, l.intent, l.message].some(v => String(v||'').toLowerCase().includes((globalSearch || leadSearch).toLowerCase()))) : leads).length === 0 && (
+                           );
+                        })}
+                        {leads.filter(l => {
+                           if (leadFilter === 'Partiel' && !(l.intent || '').toLowerCase().includes('partiel')) return false;
+                           const search = (globalSearch || leadSearch).toLowerCase();
+                           if (search && ![l.full_name, l.phone, l.intent, l.message].some(v => String(v||'').toLowerCase().includes(search))) return false;
+                           return true;
+                        }).length === 0 && (
                             <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-widest italic opacity-50">Aucun lead actif dans le flux pour le moment.</td></tr>
                          )}
                       </tbody>
@@ -1551,6 +1619,15 @@ export default function AdminDashboard() {
                       <option value="Tous">Base Complète</option>
                       <option value="Client">Clients Officiels</option>
                       <option value="Prospect">Prospects Leads</option>
+                   </select>
+                   <select 
+                     value={crmActivityFilter} 
+                     onChange={(e) => setCrmActivityFilter(e.target.value)} 
+                     className="px-6 lg:px-8 py-4 lg:py-5 bg-zinc-50 rounded-[2rem] font-black text-[10px] lg:text-[11px] uppercase tracking-[0.15em] outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black transition-colors"
+                   >
+                      <option value="Tous">Tous Secteurs</option>
+                      {Array.from(new Set(contacts.map(c => c.activity).filter((a): a is string => Boolean(a)))).map(act => <option key={act} value={act}>{act}</option>)}
+                      <option value="Non défini">Non défini</option>
                    </select>
                    <button onClick={handleFixMissingExpiryDates} className="flex items-center justify-center gap-3 bg-blue-500 text-white px-8 lg:px-12 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95">
                       <Clock size={18} /> Régulariser Dates
@@ -1759,7 +1836,10 @@ export default function AdminDashboard() {
                                </td>
                                <td className="p-6 lg:p-5">
                                   <p className="font-black text-sm lg:text-base uppercase text-black tracking-tighter">{t.client}</p>
-                                  <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 mt-1">{t.type}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                     <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400">{t.type}</p>
+                                     {(contacts.find(c => c.full_name === t.client)?.activity || t.activity) && <span className="text-[8px] lg:text-[9px] font-black bg-zinc-200 text-black px-2 py-0.5 rounded-md uppercase">{contacts.find(c => c.full_name === t.client)?.activity || t.activity}</span>}
+                                  </div>
                                </td>
                                <td className="p-6 lg:p-5">
                                   <div className={`flex items-baseline gap-2 font-black text-xl lg:text-2xl tracking-tighter ${t.amount > 0 ? 'text-[#39FF14]' : 'text-red-500'}`}>
