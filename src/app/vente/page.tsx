@@ -1104,38 +1104,13 @@ export default function OnyxJaayShop() {
                     videoUrl: p.video_url, reviewsList: productReviews
                 };
             }));
-          } else if (productsData && productsData.length === 0) {
-            // 🚀 AUTO-REMPLISSAGE AGRESSIF SANS BLOCAGE
-            console.log("Catalogue vide détecté. Injection automatique des 40 produits...");
-            setProducts(initialProducts);
-            const seedData = initialProducts.map(p => ({
-                shop_id: shop.id, name: p.name, price: p.price, cost_price: p.costPrice || 0, old_price: p.oldPrice || null,
-                description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
-                stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] }, video_url: p.videoUrl || null
-            }));
-            const { error: seedError } = await supabase.from('products').insert(seedData);
-            if (!seedError) {
-                const { data: refetched } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false });
-                if (refetched) {
-                    setProducts(refetched.map(p => ({
-                        id: p.id, name: p.name, price: p.price, costPrice: p.cost_price, oldPrice: p.old_price,
-                        description: p.description, image: p.image, gallery: p.gallery || [], category: p.category,
-                        stock: p.stock, rating: p.rating, reviews: p.reviews, variants: p.variants || { sizes: [], colors: [] },
-                        videoUrl: p.video_url, reviewsList: []
-                    })));
-                }
-            }
-            else {
-                console.error("Erreur Auto-Remplissage:", seedError);
-            }
           }
           fetchOrders(shop.id);
 
           // Récupération des derniers avis pour les notifications
-          const { data: reviewsData } = await supabase.from('reviews').select('*').order('created_at', { ascending: false }).limit(10);
+          const { data: reviewsData } = await supabase.from('reviews').select('*').eq('shop_id', shop.id).order('created_at', { ascending: false }).limit(10);
           if (reviewsData) {
-              const shopReviews = reviewsData.filter(r => r.type === 'product' ? productIds.includes(String(r.reference_id)) : true);
-              setRecentReviews(shopReviews);
+              setRecentReviews(reviewsData);
           }
       }
   };
@@ -4050,14 +4025,11 @@ function ShopReviews({ shopId, products, orders, shopName }: { shopId: string | 
             const { data, error } = await supabase
                 .from('reviews')
                 .select('*')
+                .eq('shop_id', shopId)
                 .order('created_at', { ascending: false });
 
             if (data && !error) {
-                const shopReviews = data.filter((r: any) => {
-                    if (r.type === 'product') return productIds.includes(String(r.reference_id));
-                    return true; 
-                });
-                setReviews(shopReviews);
+                setReviews(data);
             }
             setIsLoading(false);
         };

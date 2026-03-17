@@ -788,7 +788,7 @@ export default function DynamicShopPage() {
       const { data: shopProducts } = await supabase.from("products").select("*").eq("shop_id", shop.id);
       if (shopProducts) {
         const productIds = shopProducts.map((p: any) => String(p.id));
-        const { data: reviewsData } = await supabase.from('reviews').select('*').in('reference_id', productIds);
+        const { data: reviewsData } = await supabase.from('reviews').select('*').eq('shop_id', shop.id);
 
         setProducts(shopProducts.map((p: any) => {
             const productReviews = reviewsData ? reviewsData.filter((r: any) => String(r.reference_id) === String(p.id)) : [];
@@ -880,7 +880,7 @@ export default function DynamicShopPage() {
       const { data: shopProducts } = await supabase.from("products").select("*").eq("shop_id", shopInfo.id);
       if (shopProducts) {
         const productIds = shopProducts.map((p: any) => String(p.id));
-        const { data: reviewsData } = await supabase.from('reviews').select('*').in('reference_id', productIds);
+        const { data: reviewsData } = await supabase.from('reviews').select('*').eq('shop_id', shopInfo.id);
         setProducts(shopProducts.map((p: any) => {
             const productReviews = reviewsData ? reviewsData.filter((r: any) => String(r.reference_id) === String(p.id)) : [];
             return {
