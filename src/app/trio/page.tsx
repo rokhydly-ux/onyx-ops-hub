@@ -1,14 +1,52 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import { 
   Truck, ChevronLeft, Package, Smartphone, Box, 
-  ArrowRight, Zap, CheckCircle, ShieldCheck
+  ArrowRight, Zap, CheckCircle, ShieldCheck, X
 } from "lucide-react";
 
 export default function PackTrioLanding() {
   const router = useRouter();
+
+  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [leadData, setLeadData] = useState({ name: '', phone: '', email: '' });
+  const waNumber = "221785338417";
+
+  const saveLead = async (data: any) => {
+    try {
+      const payload: Record<string, any> = {
+        source: data.source || 'Landing Page Pack Trio',
+        intent: data.intent || 'Contact',
+        phone: data.contact || '',
+        full_name: data.full_name || 'Visiteur Anonyme',
+        message: data.message || '',
+        status: 'Nouveau',
+      };
+      if (data.email) payload.email = data.email;
+      
+      const { error } = await supabase.from('leads').insert([payload]);
+      if (error) console.error("ERREUR SUPABASE (Leads) :", error.message);
+    } catch (e) { 
+      console.error("ERREUR CATCH (Leads) :", e); 
+    }
+  };
+
+  const handleDirectWaClick = async (intent: string, msg: string) => {
+    await saveLead({ source: 'Bouton Site Pack Trio', intent, message: msg, contact: '' });
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const submitLeadForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leadData.name || !leadData.phone) return alert("Veuillez remplir les champs obligatoires.");
+    const msg = `🚀 *Nouveau Lead (Pack Trio)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${leadData.phone}\n*Email:* ${leadData.email || 'Non renseigné'}\n\n_Le client souhaite démarrer avec le Pack Trio._`;
+    await saveLead({ source: 'Landing Page Pack Trio', intent: 'Démarrage Pack Trio', contact: leadData.phone, full_name: leadData.name, message: `Email: ${leadData.email}`, email: leadData.email });
+    setShowLeadModal(false);
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   return (
     <main className="min-h-screen bg-zinc-50 text-black overflow-x-hidden selection:bg-[#39FF14]/30 pb-0">
@@ -33,7 +71,7 @@ export default function PackTrioLanding() {
              Le <span className="text-black font-black uppercase tracking-widest bg-[#39FF14]/20 px-2 py-0.5 rounded">Pack Trio</span> combine la puissance d'Onyx Jaay (Vente), Onyx Stock et Onyx Tiak (Logistique). Suivez vos livreurs, maîtrisez vos encaissements et ne tombez plus jamais en rupture de stock.
          </p>
          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-             <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour,%20je%20veux%20tester%20le%20Pack%20Trio', '_blank')} className="w-full sm:w-auto bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-2">
+             <button onClick={() => setShowLeadModal(true)} className="w-full sm:w-auto bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-2">
                  Démarrer l'essai (24 900 F/mois) <ArrowRight size={18} />
              </button>
          </div>
@@ -105,11 +143,37 @@ export default function PackTrioLanding() {
          <div className="relative z-10 max-w-4xl mx-auto">
             <h2 className="font-sans text-4xl md:text-6xl font-black uppercase tracking-tighter mb-8 leading-[0.95]">Prêt à structurer votre entreprise ?</h2>
             <p className="text-zinc-400 font-bold text-lg md:text-xl mb-12">Passez au niveau supérieur. Le Pack Trio est tout ce dont vous avez besoin pour scaler au Sénégal.</p>
-            <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour,%20je%20suis%20prêt%20à%20passer%20au%20Pack%20Trio', '_blank')} className="bg-[#39FF14] text-black px-12 py-6 rounded-[2rem] font-black uppercase tracking-widest text-base hover:scale-105 hover:bg-white transition-all shadow-[0_20px_50px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto">
+            <button onClick={() => setShowLeadModal(true)} className="bg-[#39FF14] text-black px-12 py-6 rounded-[2rem] font-black uppercase tracking-widest text-base hover:scale-105 hover:bg-white transition-all shadow-[0_20px_50px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto">
                <Package size={24} /> Obtenir le Pack Trio
             </button>
          </div>
       </section>
+
+      {/* MODALE DE CAPTURE DE LEAD */}
+      {showLeadModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white p-8 md:p-10 rounded-[3rem] max-w-md w-full relative shadow-2xl animate-in zoom-in">
+            <button onClick={() => setShowLeadModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition">
+              <X size={20} />
+            </button>
+            <h2 className="font-sans text-2xl font-black uppercase tracking-tighter mb-6 text-center">Démarrer avec le Pack Trio</h2>
+            <form onSubmit={submitLeadForm} className="space-y-4">
+              <div>
+                <input type="text" placeholder="Votre Nom *" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+              </div>
+              <div>
+                <input type="tel" placeholder="Numéro WhatsApp *" required value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+              </div>
+              <div>
+                <input type="email" placeholder="Email (Optionnel)" value={leadData.email} onChange={e => setLeadData({...leadData, email: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+              </div>
+              <button type="submit" className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition flex justify-center items-center gap-2 mt-4">
+                Valider & Continuer vers WhatsApp <ArrowRight size={16} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

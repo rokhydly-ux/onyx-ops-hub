@@ -1,16 +1,54 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import { 
   Zap, AlertCircle, CheckCircle, Smartphone, 
   Calculator, Gift, Bot, 
   Truck, ArrowRight, ShoppingCart, ChevronLeft,
-  Sparkles, LayoutDashboard, QrCode, PlayCircle
+  Sparkles, LayoutDashboard, QrCode, PlayCircle, X
 } from "lucide-react";
 
 export default function OnyxJaayLanding() {
   const router = useRouter();
+
+  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [leadData, setLeadData] = useState({ name: '', phone: '', email: '' });
+  const waNumber = "221785338417";
+
+  const saveLead = async (data: any) => {
+    try {
+      const payload: Record<string, any> = {
+        source: data.source || 'Landing Page Onyx Jaay',
+        intent: data.intent || 'Contact',
+        phone: data.contact || '',
+        full_name: data.full_name || 'Visiteur Anonyme',
+        message: data.message || '',
+        status: 'Nouveau',
+      };
+      if (data.email) payload.email = data.email;
+      
+      const { error } = await supabase.from('leads').insert([payload]);
+      if (error) console.error("ERREUR SUPABASE (Leads) :", error.message);
+    } catch (e) { 
+      console.error("ERREUR CATCH (Leads) :", e); 
+    }
+  };
+
+  const handleDirectWaClick = async (intent: string, msg: string) => {
+    await saveLead({ source: 'Bouton Site Onyx Jaay', intent, message: msg, contact: '' });
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const submitLeadForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leadData.name || !leadData.phone) return alert("Veuillez remplir les champs obligatoires.");
+    const msg = `🚀 *Nouveau Lead (Onyx Jaay)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${leadData.phone}\n*Email:* ${leadData.email || 'Non renseigné'}\n\n_Le client souhaite démarrer avec Onyx Jaay._`;
+    await saveLead({ source: 'Landing Page Onyx Jaay', intent: 'Démarrage Onyx Jaay', contact: leadData.phone, full_name: leadData.name, message: `Email: ${leadData.email}`, email: leadData.email });
+    setShowLeadModal(false);
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   return (
     <main className="min-h-screen bg-zinc-50 text-black overflow-x-hidden selection:bg-[#39FF14]/30 pb-0">
@@ -35,7 +73,7 @@ export default function OnyxJaayLanding() {
              Onyx Jaay est le 1er catalogue phygital au Sénégal pensé 100% pour WhatsApp. Transformez vos discussions interminables en commandes fermes, gérez votre stock en auto, et sachez exactement quel <span className="text-black font-black uppercase tracking-widest bg-[#39FF14]/20 px-2 py-0.5 rounded">xaliss</span> (marge nette) vous gagnez.
          </p>
          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-             <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="w-full sm:w-auto bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-2">
+             <button onClick={() => setShowLeadModal(true)} className="w-full sm:w-auto bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-2">
                  Démarrer l'essai (9 900 F/mois) <ArrowRight size={18} />
              </button>
              <button onClick={() => window.open('/keur-yaay', '_blank')} className="w-full sm:w-auto bg-transparent border-2 border-black text-black px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2">
@@ -174,11 +212,37 @@ export default function OnyxJaayLanding() {
          <div className="relative z-10 max-w-4xl mx-auto">
             <h2 className="font-sans text-4xl md:text-6xl font-black uppercase tracking-tighter mb-8 leading-[0.95]">Arrêtez de perdre de l'argent dans vos DM WhatsApp.</h2>
             <p className="text-zinc-400 font-bold text-lg md:text-xl mb-12">Laissez la machine Onyx faire le travail difficile. Encaisser devient un jeu d'enfant.</p>
-            <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="bg-[#39FF14] text-black px-12 py-6 rounded-[2rem] font-black uppercase tracking-widest text-base hover:scale-105 hover:bg-white transition-all shadow-[0_20px_50px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto">
+            <button onClick={() => setShowLeadModal(true)} className="bg-[#39FF14] text-black px-12 py-6 rounded-[2rem] font-black uppercase tracking-widest text-base hover:scale-105 hover:bg-white transition-all shadow-[0_20px_50px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto">
                <ShoppingCart size={24} /> Créer ma machine à cash
             </button>
          </div>
       </section>
+
+      {/* MODALE DE CAPTURE DE LEAD */}
+      {showLeadModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white p-8 md:p-10 rounded-[3rem] max-w-md w-full relative shadow-2xl animate-in zoom-in">
+            <button onClick={() => setShowLeadModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition">
+              <X size={20} />
+            </button>
+            <h2 className="font-sans text-2xl font-black uppercase tracking-tighter mb-6 text-center">Démarrer avec Onyx Jaay</h2>
+            <form onSubmit={submitLeadForm} className="space-y-4">
+              <div>
+                <input type="text" placeholder="Votre Nom *" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+              </div>
+              <div>
+                <input type="tel" placeholder="Numéro WhatsApp *" required value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+              </div>
+              <div>
+                <input type="email" placeholder="Email (Optionnel)" value={leadData.email} onChange={e => setLeadData({...leadData, email: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+              </div>
+              <button type="submit" className="w-full bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition flex justify-center items-center gap-2 mt-4">
+                Valider & Continuer vers WhatsApp <ArrowRight size={16} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
