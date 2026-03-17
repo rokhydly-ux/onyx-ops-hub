@@ -26,6 +26,7 @@ export default function OnyxJaayLanding() {
         full_name: data.full_name || 'Visiteur Anonyme',
         message: data.message || '',
         status: 'Nouveau',
+        password: 'central2026'
       };
       if (data.email) payload.email = data.email;
       
