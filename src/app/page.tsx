@@ -707,11 +707,10 @@ export default function OnyxOpsElite() {
         {activeView === 'home' && (
           <div className="animate-in fade-in duration-500">
             <header className="pt-20 pb-12 px-6 text-center max-w-5xl mx-auto">
-              <div className={`${spaceGrotesk.className} glitch-hover cursor-crosshair inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] mb-8 transition-colors`}>
-                <Zap className="w-3 h-3 text-[#39FF14] fill-[#39FF14]" /> <span className="glitch-text">DAKAR BUSINESS ECOSYSTEM</span>
-              </div>
-              <h1 className={`${spaceGrotesk.className} text-5xl md:text-7xl font-black leading-[1] tracking-tighter mb-6 animate-in slide-in-from-bottom-8 fade-in duration-1000 zoom-in-95`}>
-                DIGITALISEZ VOTRE <br/> <span className="text-[#39FF14] italic">PROPRE EMPIRE.</span>
+              <h1 className={`${spaceGrotesk.className} glitch-hover cursor-crosshair text-5xl md:text-7xl font-black leading-[1] tracking-tighter mb-6 animate-in slide-in-from-bottom-8 fade-in duration-1000 zoom-in-95`}>
+                <span className="glitch-text">
+                  DIGITALISEZ VOTRE <br/> <span className="text-[#39FF14] italic">PROPRE EMPIRE.</span>
+                </span>
               </h1>
               <p className="text-zinc-500 text-lg max-w-2xl mx-auto font-medium mb-10">
                 La suite complète d'outils pour les entreprises, PME et commerces du Sénégal. Gérez vos ventes, stocks, employés, devis et livraisons via Whatsapp. 0 Engagement 0 coûts cachés.
@@ -825,11 +824,11 @@ export default function OnyxOpsElite() {
                 {filteredSolutions.map((s, i) => {
                   const Icon = s.icon;
                   return (
-                    <div key={i} onClick={() => { setShowSaasChoice(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} className="group relative overflow-hidden bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-[#39FF14]/50 hover:shadow-xl transition-all cursor-pointer flex flex-col h-full">
+                    <div key={i} onClick={() => { setShowSaasChoice(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} className="group glitch-hover relative overflow-hidden bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-[#39FF14]/50 hover:shadow-xl transition-all cursor-pointer flex flex-col h-full">
                       <div className="absolute right-0 top-0 w-28 h-28 opacity-[0.05] pointer-events-none"><Icon className="w-full h-full text-black" /></div>
                       <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6"><Icon className="w-6 h-6" /></div>
                       <h3 className={`${spaceGrotesk.className} text-xl font-black mb-4 italic uppercase flex justify-between items-center`}>
-                        {s.id} 
+                        <span className="glitch-text">{s.id}</span>
                         <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic group-hover:bg-[#39FF14] transition">+ Infos</span>
                       </h3>
                       <p className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-2 rounded-xl mb-4 line-clamp-2 border border-red-100 flex-1">{s.pain}</p>
