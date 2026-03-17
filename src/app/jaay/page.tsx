@@ -154,7 +154,7 @@ export default function OnyxJaayLanding() {
             <Truck size={56} className="mx-auto text-[#39FF14] mb-8 animate-bounce" />
             <h2 className="font-sans text-3xl md:text-5xl font-black uppercase text-white tracking-tighter mb-6 leading-tight">Vous gérez des livreurs <br/> et un gros stock ?</h2>
             <p className="text-zinc-400 font-medium text-lg max-w-2xl mx-auto mb-10 leading-relaxed">Passez au <span className="text-white font-bold bg-[#39FF14]/20 px-2 py-1 rounded">Pack Trio à 24 900 FCFA</span>. Ne tombez jamais en rupture et contrôlez tout le cash encaissé par vos livreurs en temps réel.</p>
-            <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-white hover:scale-105 transition-all shadow-2xl relative z-10 flex items-center justify-center gap-2 mx-auto">
+            <button onClick={() => router.push('/trio')} className="bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-white hover:scale-105 transition-all shadow-2xl relative z-10 flex items-center justify-center gap-2 mx-auto">
                Découvrir le Pack Trio <ArrowRight size={18} />
             </button>
          </div>
