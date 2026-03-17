@@ -11,8 +11,8 @@ import {
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
   Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search,
   ChevronDown,
-  ShieldAlert, ChevronLeft, Activity, 
-  Crosshair
+  ShieldAlert, ChevronLeft, Activity, Rocket,
+  Crosshair 
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -143,6 +143,7 @@ export default function OnyxOpsElite() {
   
   // MODALES & FILTRES
   const [showSaasChoice, setShowSaasChoice] = useState<any>(null);
+  const [modalTab, setModalTab] = useState<'prix' | 'details'>('prix');
   const [fomoTime, setFomoTime] = useState(900); // 15 mins for Upsell timer
   const [saasFilter, setSaasFilter] = useState("Tout");
   const saasCategories = ["Tout", "Vente & Boutique", "Restauration", "Logistique", "Gestion & RH", "Services", "Finance", "Marketing"];
@@ -1291,55 +1292,82 @@ export default function OnyxOpsElite() {
               <div className="bg-white p-8 md:p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14]">
                 <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-50" onClick={() => setShowSaasChoice(null)}><X size={20}/></button>
                 
-                <span className="text-[10px] font-black uppercase tracking-widest bg-zinc-100 px-3 py-1 rounded-full text-zinc-500 mb-4 inline-block">Étape 1/2 : Sélection de l'offre</span>
+                {/* SYSTÈME D'ONGLETS */}
+                <div className="flex bg-zinc-100 p-1.5 rounded-2xl mb-8 w-max mx-auto relative z-10">
+                   <button onClick={() => setModalTab('prix')} className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${modalTab === 'prix' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>💰 Tarifs & Offre Flash</button>
+                   <button onClick={() => setModalTab('details')} className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${modalTab === 'details' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>🔍 Détails & Fonctionnalités</button>
+                </div>
 
                 <div className="bg-black text-[#39FF14] w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                   <SaasIcon size={32} />
                 </div>
-                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{showSaasChoice.id}</h2>
-                <p className="text-sm font-bold text-zinc-500 mb-8 px-4">{showSaasChoice.solution}</p>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                   {/* OPTION BASIQUE */}
-                   <div className="w-full bg-zinc-50 text-black border-2 border-zinc-200 py-6 px-4 rounded-3xl flex flex-col items-center justify-between relative group">
-                      <div className="flex flex-col items-center w-full">
-                         <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Offre Basique</span>
-                         <span className="text-2xl font-black mb-4">{showSaasChoice.price.toLocaleString()} F</span>
-                      </div>
-                      <div className="w-full flex flex-col gap-2 mt-2 z-10">
-                         <button onClick={() => { setShowSaasChoice(null); setLeadData(prev => ({...prev, saas: showSaasChoice.id})); setShowOnboarding(true); }} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-800 transition shadow-md flex items-center justify-center">
-                            Créer mon compte
-                         </button>
-                         <button onClick={() => { handleWaClick("Essai Basique", `Bonjour, je souhaite démarrer un essai pour ${showSaasChoice.id} à ${showSaasChoice.price.toLocaleString()}F.`); setShowSaasChoice(null); }} className="w-full bg-white text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-100 transition border border-zinc-200 shadow-sm flex items-center justify-center gap-2">
-                            <MessageSquare size={14}/> Essai via WhatsApp
-                         </button>
-                      </div>
-                   </div>
-                   
-                   {/* OPTION UPSELL AVEC FOMO */}
-                   <div className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-3xl shadow-[0_15px_30px_rgba(57,255,20,0.2)] flex flex-col items-center justify-between border-2 border-[#39FF14] relative overflow-hidden">
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase animate-pulse w-max z-20 flex items-center gap-1 shadow-lg">
-                         🔥 Offre Flash : {formatTime(fomoTime)}
-                      </div>
-                      
-                      <div className="flex flex-col items-center w-full mt-4">
-                         <span className="text-[10px] font-black uppercase text-white tracking-widest mb-1">Offre Complète</span>
-                         <span className="text-lg font-black leading-tight mb-2 text-white">Passer au <br/> {showSaasChoice.upsellName}</span>
-                         <div className="flex flex-col items-center bg-[#39FF14]/10 w-full rounded-2xl py-3 border border-[#39FF14]/20 mb-4">
-                            <span className="text-3xl font-black text-[#39FF14]">{upsellDiscountPrice.toLocaleString()} F</span>
-                         </div>
-                      </div>
-                      
-                      <div className="w-full flex flex-col gap-2 mt-auto z-10">
-                         <button onClick={() => { setShowSaasChoice(null); setLeadData(prev => ({...prev, saas: showSaasChoice.upsellName})); setShowOnboarding(true); }} className="w-full bg-[#39FF14] text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-white transition shadow-xl flex items-center justify-center gap-1">
-                            Profiter de l'offre <ArrowRight size={14}/>
-                         </button>
-                         <button onClick={() => { handleWaClick("Essai Upsell Flash", `Bonjour, je veux profiter de l'offre flash pour le ${showSaasChoice.upsellName} à ${upsellDiscountPrice.toLocaleString()}F !`); setShowSaasChoice(null); }} className="w-full bg-zinc-800 text-white py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-700 transition flex items-center justify-center gap-2">
-                            <MessageSquare size={14}/> Essai via WhatsApp
-                         </button>
-                      </div>
-                   </div>
-                </div>
+                {modalTab === 'prix' ? (
+                  <>
+                    <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{showSaasChoice.id}</h2>
+                    <p className="text-sm font-bold text-zinc-500 mb-8 px-4">{showSaasChoice.solution}</p>
+
+                    <div className="grid md:grid-cols-2 gap-6 animate-in slide-in-from-left-4">
+                       {/* OPTION BASIQUE */}
+                       <div className="w-full bg-zinc-50 text-black border-2 border-zinc-200 py-6 px-4 rounded-3xl flex flex-col items-center justify-between relative group">
+                          <div className="flex flex-col items-center w-full">
+                             <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Offre Basique</span>
+                             <span className="text-2xl font-black mb-4">{showSaasChoice.price.toLocaleString()} F</span>
+                          </div>
+                          <div className="w-full flex flex-col gap-2 mt-2 z-10">
+                             <button onClick={() => { setShowSaasChoice(null); setLeadData(prev => ({...prev, saas: showSaasChoice.id})); setShowOnboarding(true); }} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-800 transition shadow-md flex items-center justify-center">
+                                Créer mon compte
+                             </button>
+                             <button onClick={() => { handleWaClick("Essai Basique", `Bonjour, je souhaite démarrer un essai pour ${showSaasChoice.id} à ${showSaasChoice.price.toLocaleString()}F.`); setShowSaasChoice(null); }} className="w-full bg-white text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-100 transition border border-zinc-200 shadow-sm flex items-center justify-center gap-2">
+                                <MessageSquare size={14}/> Essai via WhatsApp
+                             </button>
+                          </div>
+                       </div>
+                       
+                       {/* OPTION UPSELL AVEC FOMO */}
+                       <div className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-3xl shadow-[0_15px_30px_rgba(57,255,20,0.2)] flex flex-col items-center justify-between border-2 border-[#39FF14] relative overflow-hidden">
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase animate-pulse w-max z-20 flex items-center gap-1 shadow-lg">
+                             🔥 Offre Flash : {formatTime(fomoTime)}
+                          </div>
+                          
+                          <div className="flex flex-col items-center w-full mt-4">
+                             <span className="text-[10px] font-black uppercase text-white tracking-widest mb-1">Offre Complète</span>
+                             <span className="text-lg font-black leading-tight mb-2 text-white">Passer au <br/> {showSaasChoice.upsellName}</span>
+                             <div className="flex flex-col items-center bg-[#39FF14]/10 w-full rounded-2xl py-3 border border-[#39FF14]/20 mb-4">
+                                <span className="text-3xl font-black text-[#39FF14]">{upsellDiscountPrice.toLocaleString()} F</span>
+                             </div>
+                          </div>
+                          
+                          <div className="w-full flex flex-col gap-2 mt-auto z-10">
+                             <button onClick={() => { setShowSaasChoice(null); setLeadData(prev => ({...prev, saas: showSaasChoice.upsellName})); setShowOnboarding(true); }} className="w-full bg-[#39FF14] text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-white transition shadow-xl flex items-center justify-center gap-1">
+                                Profiter de l'offre <ArrowRight size={14}/>
+                             </button>
+                             <button onClick={() => { handleWaClick("Essai Upsell Flash", `Bonjour, je veux profiter de l'offre flash pour le ${showSaasChoice.upsellName} à ${upsellDiscountPrice.toLocaleString()}F !`); setShowSaasChoice(null); }} className="w-full bg-zinc-800 text-white py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-700 transition flex items-center justify-center gap-2">
+                                <MessageSquare size={14}/> Essai via WhatsApp
+                             </button>
+                          </div>
+                       </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="animate-in slide-in-from-right-4">
+                    <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Découvrez la puissance de <br/><span className="text-[#39FF14]">{showSaasChoice.id}</span></h2>
+                    <p className="text-lg font-bold text-zinc-600 mb-8 max-w-xl mx-auto">Automatisez vos ventes, gérez vos stocks et fidélisez vos clients sans quitter WhatsApp. Découvrez pourquoi nos partenaires doublent leur chiffre d'affaires.</p>
+                    <button 
+                       onClick={() => {
+                          if (showSaasChoice.id === 'Onyx Jaay') {
+                             router.push('/solutions/onyx-jaay');
+                          } else {
+                             alert("La page détaillée pour ce module sera bientôt disponible !");
+                          }
+                          setShowSaasChoice(null);
+                       }}
+                       className="bg-black text-[#39FF14] px-8 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto mx-auto"
+                    >
+                       <Rocket size={20} /> Voir toutes les fonctionnalités en détail
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );
