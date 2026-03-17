@@ -10,7 +10,9 @@ import {
   ArrowRight, Users, Target, 
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
   Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search,
-  ChevronDown
+  ChevronDown,
+  ShieldAlert, ChevronLeft, Activity, 
+  Crosshair
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -304,7 +306,6 @@ export default function OnyxOpsElite() {
   const saveLead = async (data: { source: string; intent: string; contact?: string; message?: string; full_name?: string; name?: string; address?: string; country?: string; [key: string]: any }) => {
     try {
       const extra = { city: data.city, address: data.address, country: data.country, status: data.status, sales_exp: data.sales_exp, objective: data.objective, strategy: data.strategy };
-      
       const finalName = data.full_name || data.name || 'Visiteur Web';
 
       const payload: Record<string, any> = {
@@ -610,6 +611,30 @@ export default function OnyxOpsElite() {
     <div className={`${inter.className} min-h-screen bg-white text-black overflow-x-hidden pt-20 relative`}>
       <div className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none bg-zinc-50" style={{ backgroundImage: `url('https://i.ibb.co/chCcXT7p/back-site.png')`, backgroundRepeat: 'repeat', backgroundSize: '400px' }} />
 
+      <style dangerouslySetInnerHTML={{__html: `
+        .glitch-hover:hover {
+          animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+        }
+        .glitch-hover:hover .glitch-text {
+          animation: glitch-anim 0.2s linear infinite;
+        }
+        @keyframes glitch-skew {
+          0% { transform: skew(0deg); }
+          20% { transform: skew(-10deg); }
+          40% { transform: skew(10deg); }
+          60% { transform: skew(-5deg); }
+          80% { transform: skew(5deg); }
+          100% { transform: skew(0deg); }
+        }
+        @keyframes glitch-anim {
+          0% { text-shadow: 2px 0 #39FF14, -2px 0 #ff00ff; }
+          25% { text-shadow: -2px 0 #39FF14, 2px 0 #ff00ff; }
+          50% { text-shadow: 2px 0 #ff00ff, -2px 0 #39FF14; }
+          75% { text-shadow: -2px 0 #ff00ff, 2px 0 #39FF14; }
+          100% { text-shadow: 2px 0 #39FF14, -2px 0 #ff00ff; }
+        }
+      `}} />
+
       {/* MODULE DE NOTIFICATIONS FLOTTANT */}
       <div className={`fixed bottom-28 md:bottom-8 left-6 z-[100] transition-all duration-500 transform ${showNotification ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
          <div className="bg-white p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-center gap-4 max-w-[320px] cursor-pointer hover:scale-105 transition" onClick={() => navigateTo('home', 'tarifs')}>
@@ -682,10 +707,10 @@ export default function OnyxOpsElite() {
         {activeView === 'home' && (
           <div className="animate-in fade-in duration-500">
             <header className="pt-20 pb-12 px-6 text-center max-w-5xl mx-auto">
-              <div className={`${spaceGrotesk.className} inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] mb-8`}>
-                <Zap className="w-3 h-3 text-[#39FF14] fill-[#39FF14]" /> DAKAR BUSINESS ECOSYSTEM
+              <div className={`${spaceGrotesk.className} glitch-hover cursor-crosshair inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] mb-8 transition-colors`}>
+                <Zap className="w-3 h-3 text-[#39FF14] fill-[#39FF14]" /> <span className="glitch-text">DAKAR BUSINESS ECOSYSTEM</span>
               </div>
-              <h1 className={`${spaceGrotesk.className} text-5xl md:text-7xl font-black leading-[1] tracking-tighter mb-6`}>
+              <h1 className={`${spaceGrotesk.className} text-5xl md:text-7xl font-black leading-[1] tracking-tighter mb-6 animate-in slide-in-from-bottom-8 fade-in duration-1000 zoom-in-95`}>
                 DIGITALISEZ VOTRE <br/> <span className="text-[#39FF14] italic">PROPRE EMPIRE.</span>
               </h1>
               <p className="text-zinc-500 text-lg max-w-2xl mx-auto font-medium mb-10">
