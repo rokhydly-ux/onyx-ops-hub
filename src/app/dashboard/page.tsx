@@ -69,7 +69,14 @@ export default function Dashboard() {
           const customSession = localStorage.getItem('onyx_custom_session');
           if (customSession) {
               try {
-                  setProfile(JSON.parse(customSession));
+                  const parsedSession = JSON.parse(customSession);
+                  const { data } = await supabase.from('clients').select('*').eq('id', parsedSession.id).maybeSingle();
+                  if (data) {
+                      setProfile(data);
+                      localStorage.setItem('onyx_custom_session', JSON.stringify(data));
+                  } else {
+                      setProfile(parsedSession);
+                  }
                   return;
               } catch (e) {}
           }

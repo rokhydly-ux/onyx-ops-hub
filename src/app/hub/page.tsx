@@ -37,7 +37,14 @@ export default function OnyxHubPortal() {
         const customSession = localStorage.getItem('onyx_custom_session');
         if (customSession) {
           try {
-            setUser(JSON.parse(customSession));
+            const parsedSession = JSON.parse(customSession);
+            const { data } = await supabase.from('clients').select('*').eq('id', parsedSession.id).maybeSingle();
+            if (data) {
+                setUser(data);
+                localStorage.setItem('onyx_custom_session', JSON.stringify(data));
+            } else {
+                setUser(parsedSession);
+            }
           } catch(e) {}
         } else {
           window.location.href = '/login';
