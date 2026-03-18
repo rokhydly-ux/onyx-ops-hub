@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Script from "next/script";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send } from "lucide-react";
+import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send, ChevronDown, Star } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -13,6 +14,12 @@ const URL_IMAGE_AVANT = "URL_IMAGE_AVANT";
 const URL_IMAGE_APRES = "URL_IMAGE_APRES";
 const URL_AUDIO_VOICE_NOTE = "URL_AUDIO_VOICE_NOTE"; // Remplace par l'URL de ton fichier .mp3 ou .ogg
 const URL_IMAGE_BOT_RESPONSE = "URL_IMAGE_BOT_RESPONSE"; // Remplace par l'URL de ton image explicative
+
+const TONTINE_REVIEWS = [
+  { name: "Aïssatou Diop", role: "Présidente de Mutuelle", text: "Depuis qu'on utilise Onyx Tontine, il n'y a plus aucune dispute. Tout le monde reçoit le rappel et paie par Wave. Un soulagement total !", rating: 5 },
+  { name: "Fatou Ndiaye", role: "Gérante de Tontine Familiale", text: "Le tirage au sort animé est génial ! Je l'envoie dans le groupe WhatsApp et tout le monde voit que c'est 100% transparent. Fini les suspicions.", rating: 5 },
+  { name: "Ousmane Fall", role: "Membre d'un groupe", text: "Je n'ai même pas eu besoin de télécharger d'application. Je reçois mon message le 5 du mois, je clique, je paie. Super simple.", rating: 5 }
+];
 
 const WORKFLOW_STEPS = [
   {
@@ -26,13 +33,13 @@ const WORKFLOW_STEPS = [
     id: 1,
     title: "Relances Automatiques",
     tag: "Le 5 du mois",
-    desc: "Le système envoie un message WhatsApp bienveillant mais ferme à tous les membres pour réclamer l'argent. Fini la gêne de devoir réclamer vous-même.",
+    desc: "Le système envoie un message WhatsApp bienveillant mais ferme à tous les membres pour réclamer l'argent. Fini la gêne (Sutura) de devoir réclamer vous-même.",
     img: URL_IMAGE_ETAPE_2
   },
   {
     id: 2,
     title: "Tirage au sort animé",
-    tag: "100% Transparent",
+    tag: "Transparent (Leer nañ)",
     desc: "À chaque fin de mois, l'outil génère une animation de tirage au sort certifiée. Partagez la vidéo dans votre groupe : la confiance est absolue.",
     img: URL_IMAGE_ETAPE_3
   }
@@ -51,10 +58,17 @@ export default function OnyxTontineLanding() {
   const [botMessages, setBotMessages] = useState<any[]>([
     { 
       sender: 'bot', 
-      text: "👋 Bonjour ! Je suis Fanta. Avez-vous des questions sur Onyx Tontine ? (ex: prix, sécurité, fonctionnement...)",
+      text: "👋 Nanga def ! Je suis Fanta. Avez-vous des questions sur Onyx Tontine ? (ex: prix, sécurité, fonctionnement...)",
       options: ["Oui", "Non"]
     }
   ]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsBotOpen(true);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (showLeadModal || selectedStep !== null) {
@@ -140,6 +154,11 @@ export default function OnyxTontineLanding() {
       
       if (error) console.error(error);
       
+      // FB Pixel Track Lead : Informe Facebook qu'un prospect a été capturé
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+         (window as any).fbq('track', 'Lead');
+      }
+      
       const msg = `Bonjour l'équipe Onyx ! Je suis ${leadData.name}. Je veux digitaliser mon groupe de Tontine pour arrêter de courir après l'argent.`;
       window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, '_blank');
       
@@ -158,17 +177,75 @@ export default function OnyxTontineLanding() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-[#39FF14]/30 pb-24">
+      {/* PIXEL FACEBOOK */}
+      <Script id="fb-pixel" strategy="afterInteractive">
+        {`
+          !function(f,b,e,v,n,t,s)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(window, document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init', 'VOTRE_ID_PIXEL_ICI'); // ⚠️ Remplace ceci par ton vrai ID de Pixel
+          fbq('track', 'PageView');
+        `}
+      </Script>
+
+      {/* CSS Animation Glitch Button */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .glitch-hover:hover {
+          animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+        }
+        .glitch-hover:hover .glitch-text {
+          animation: glitch-anim 0.2s linear infinite;
+        }
+        @keyframes glitch-skew {
+          0% { transform: skew(0deg); }
+          20% { transform: skew(-10deg); }
+          40% { transform: skew(10deg); }
+          60% { transform: skew(-5deg); }
+          80% { transform: skew(5deg); }
+          100% { transform: skew(0deg); }
+        }
+        @keyframes glitch-anim {
+          0% { text-shadow: 2px 0 #39FF14, -2px 0 #ff00ff; }
+          25% { text-shadow: -2px 0 #39FF14, 2px 0 #ff00ff; }
+          50% { text-shadow: 2px 0 #ff00ff, -2px 0 #39FF14; }
+          75% { text-shadow: -2px 0 #ff00ff, 2px 0 #39FF14; }
+          100% { text-shadow: 2px 0 #39FF14, -2px 0 #ff00ff; }
+        }
+      `}} />
+
       {/* Navbar */}
-      <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto">
-         <div className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black`}>
+      <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
+         <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black hover:scale-105 transition-transform`}>
             ONYX<span className="text-[#39FF14] drop-shadow-sm">TONTINE</span>
+         </button>
+         
+         <div className="flex items-center gap-4">
+             <div className="relative group">
+                 <button className="text-xs font-bold text-zinc-500 uppercase tracking-widest hover:text-black flex items-center gap-1 transition-colors">
+                    Autres Solutions <ChevronDown size={14} />
+                 </button>
+                 <div className="absolute top-full right-0 mt-2 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 w-48 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity flex flex-col z-50">
+                    <button onClick={() => window.location.href = '/'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🏠 Accueil Onyx</button>
+                    <button onClick={() => window.location.href = '/vente'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🛍️ Onyx Jaay</button>
+                    <button onClick={() => window.location.href = '/tiak'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🚚 Onyx Tiak</button>
+                    <button onClick={() => window.location.href = '/menu'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🍽️ Onyx Menu</button>
+                 </div>
+             </div>
+             <button onClick={() => window.location.href = '/'} className="bg-zinc-100 text-black px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-black hover:text-[#39FF14] transition-colors flex items-center gap-1">
+                 <ChevronLeft size={14}/> Accueil
+             </button>
          </div>
       </nav>
 
       {/* Section A : Hero */}
       <section className="pt-16 pb-20 px-6 text-center max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
          <div className="inline-flex items-center gap-2 bg-white border border-zinc-200 text-zinc-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-8 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span> Fini les relances gênantes sur WhatsApp
+            <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span> Fini les relances gênantes sur WhatsApp (Faye ma sama xaliss)
          </div>
          <h1 className={`${spaceGrotesk.className} text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>
             Jetez votre cahier. <br/>
@@ -176,10 +253,10 @@ export default function OnyxTontineLanding() {
             <span className="text-[#39FF14] drop-shadow-sm">votre Tontine</span> pour vous.
          </h1>
          <p className="text-zinc-600 text-lg md:text-xl font-medium max-w-2xl mx-auto mb-10 leading-relaxed">
-            Gagnez du temps, sécurisez l'argent et ramenez la confiance dans votre groupe. 100% digital, zéro mot de passe pour vos membres.
+            Gagnez du temps, sécurisez l'argent et ramenez la confiance dans votre groupe. Xaliss bi dafay leer ! 100% digital, zéro mot de passe.
          </p>
-         <button onClick={() => setShowLeadModal(true)} className="bg-[#39FF14] text-black px-10 py-5 rounded-[2rem] font-black text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_15px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto border-2 border-black/5">
-            Digitaliser ma Tontine <ArrowRight size={24}/>
+         <button onClick={() => setShowLeadModal(true)} className="glitch-hover bg-[#39FF14] text-black px-10 py-5 rounded-[2rem] font-black text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_15px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto border-2 border-black/5">
+            <span className="glitch-text">Digitaliser ma Tontine</span> <ArrowRight size={24}/>
          </button>
       </section>
 
@@ -194,7 +271,7 @@ export default function OnyxTontineLanding() {
                </div>
                <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-8 text-black`}>Le Cahier (Avant)</h3>
                <ul className="space-y-4 text-zinc-600 font-bold w-full text-left">
-                  <li className="flex items-center gap-3 bg-zinc-50 p-4 rounded-2xl"><X className="text-red-500 shrink-0" /> Vous courez après l'argent</li>
+                  <li className="flex items-center gap-3 bg-zinc-50 p-4 rounded-2xl"><X className="text-red-500 shrink-0" /> Vous courez après l'argent (Faye ma sama xaliss)</li>
                   <li className="flex items-center gap-3 bg-zinc-50 p-4 rounded-2xl"><X className="text-red-500 shrink-0" /> Disputes constantes sur les retards</li>
                   <li className="flex items-center gap-3 bg-zinc-50 p-4 rounded-2xl"><X className="text-red-500 shrink-0" /> Cahier perdu ou calculs compliqués</li>
                </ul>
@@ -246,6 +323,33 @@ export default function OnyxTontineLanding() {
                   </div>
                </div>
             ))}
+         </div>
+      </section>
+
+      {/* Section C2 : Avis Clients */}
+      <section className="py-20 bg-white border-t border-zinc-200">
+         <div className="max-w-6xl mx-auto px-6">
+            <div className="text-center mb-16">
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>Ils ont digitalisé <span className="text-[#39FF14] drop-shadow-sm">leur groupe</span></h2>
+               <p className="text-zinc-600 font-bold">Fini les disputes, place à la confiance totale.</p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+               {TONTINE_REVIEWS.map((review, idx) => (
+                  <div key={idx} className="bg-zinc-50 border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all flex flex-col">
+                     <div className="flex gap-1 mb-6">
+                        {[...Array(review.rating)].map((_, i) => <Star key={i} size={20} className="text-[#39FF14] fill-[#39FF14]" />)}
+                     </div>
+                     <p className="text-zinc-700 font-medium leading-relaxed flex-1 italic mb-8">"{review.text}"</p>
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black text-lg">{review.name.charAt(0)}</div>
+                        <div>
+                           <p className="font-black text-sm text-black uppercase">{review.name}</p>
+                           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">{review.role}</p>
+                        </div>
+                     </div>
+                  </div>
+               ))}
+            </div>
          </div>
       </section>
 
