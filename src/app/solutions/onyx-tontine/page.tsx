@@ -1,10 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft } from "lucide-react";
+import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
+
+const URL_IMAGE_ETAPE_1 = "https://i.ibb.co/Y79tQ2yH/W1.png";
+const URL_IMAGE_ETAPE_2 = "https://i.ibb.co/YTWMH9vd/W2.png";
+const URL_IMAGE_ETAPE_3 = "URL_IMAGE_ETAPE_3";
+const URL_IMAGE_AVANT = "URL_IMAGE_AVANT";
+const URL_IMAGE_APRES = "URL_IMAGE_APRES";
+const URL_AUDIO_VOICE_NOTE = "URL_AUDIO_VOICE_NOTE"; // Remplace par l'URL de ton fichier .mp3 ou .ogg
+const URL_IMAGE_BOT_RESPONSE = "URL_IMAGE_BOT_RESPONSE"; // Remplace par l'URL de ton image explicative
 
 const WORKFLOW_STEPS = [
   {
@@ -12,21 +20,21 @@ const WORKFLOW_STEPS = [
     title: "Importez vos membres",
     tag: "Zéro mot de passe",
     desc: "Tapez simplement le numéro WhatsApp de vos membres. L'outil génère leur profil sans qu'ils n'aient à télécharger d'application ou créer de compte.",
-    img: "https://placehold.co/600x800/f8fafc/94a3b8?text=Image+IA+Import+Membres"
+    img: URL_IMAGE_ETAPE_1
   },
   {
     id: 1,
     title: "Relances Automatiques",
     tag: "Le 5 du mois",
     desc: "Le système envoie un message WhatsApp bienveillant mais ferme à tous les membres pour réclamer l'argent. Fini la gêne de devoir réclamer vous-même.",
-    img: "https://placehold.co/600x800/f8fafc/94a3b8?text=Image+IA+Relance+Auto"
+    img: URL_IMAGE_ETAPE_2
   },
   {
     id: 2,
     title: "Tirage au sort animé",
     tag: "100% Transparent",
     desc: "À chaque fin de mois, l'outil génère une animation de tirage au sort certifiée. Partagez la vidéo dans votre groupe : la confiance est absolue.",
-    img: "https://placehold.co/600x800/f8fafc/94a3b8?text=Image+IA+Tirage+Animé"
+    img: URL_IMAGE_ETAPE_3
   }
 ];
 
@@ -36,6 +44,14 @@ export default function OnyxTontineLanding() {
   const [leadData, setLeadData] = useState({ name: "", phone: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Configuration Bot Fanta (FAQ Auto)
+  const [isBotOpen, setIsBotOpen] = useState(false);
+  const [userReply, setUserReply] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [botMessages, setBotMessages] = useState<any[]>([
+    { sender: 'bot', text: "👋 Bonjour ! Je suis Fanta. Avez-vous des questions sur Onyx Tontine ? (ex: prix, sécurité, fonctionnement...)" }
+  ]);
+
   useEffect(() => {
     if (showLeadModal || selectedStep !== null) {
       document.body.style.overflow = "hidden";
@@ -44,6 +60,62 @@ export default function OnyxTontineLanding() {
     }
     return () => { document.body.style.overflow = ""; };
   }, [showLeadModal, selectedStep]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [botMessages]);
+
+  const processBotReply = (reply: string) => {
+    if(!reply.trim()) return;
+    const newMsgs = [...botMessages, { sender: 'client', text: reply }];
+    setBotMessages(newMsgs);
+    setUserReply("");
+
+    // Détection FAQ
+    setTimeout(async () => {
+        const lowerReply = reply.toLowerCase();
+        let botResponse = "";
+        let botAudio = "";
+        let botImage = "";
+        let botPaymentUrl = "";
+
+        if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
+            botResponse = "Onyx Tontine coûte seulement 9 900 F/mois pour tout le groupe, peu importe le nombre de membres. C'est sans engagement !";
+        } else if (lowerReply.includes("sécurité") || lowerReply.includes("confiance") || lowerReply.includes("vol") || lowerReply.includes("arnaque")) {
+            botResponse = "La sécurité est notre priorité absolue. L'argent est tracé, les paiements se font par Wave, et notre système de tirage au sort animé est 100% transparent.";
+        } else if (lowerReply.includes("compte") || lowerReply.includes("télécharger") || lowerReply.includes("application") || lowerReply.includes("comment")) {
+            botResponse = "C'est très simple : ajoutez vos membres avec leur numéro WhatsApp. Ils n'ont rien à télécharger ni de mot de passe à créer ! Le système les relance automatiquement le 5 du mois.";
+        } else if (lowerReply.includes("paiement") || lowerReply.includes("payer") || lowerReply.includes("wave") || lowerReply.includes("orange money") || lowerReply.includes("moyen")) {
+            botResponse = "Les membres de votre tontine paient très facilement via Wave ou Orange Money en un clic. Un lien sécurisé est directement intégré dans leur message de relance WhatsApp !";
+        } else if (lowerReply.includes("vocal") || lowerReply.includes("audio") || lowerReply.includes("voix")) {
+            botResponse = "Voici une petite note vocale pour tout vous expliquer 🎤 :";
+            botAudio = URL_AUDIO_VOICE_NOTE;
+        } else if (lowerReply.includes("image") || lowerReply.includes("photo") || lowerReply.includes("capture") || lowerReply.includes("exemple")) {
+            botResponse = "Voici une image pour vous donner une idée plus claire 📸 :";
+            botImage = URL_IMAGE_BOT_RESPONSE;
+        } else if (lowerReply.includes("lien") || lowerReply.includes("payer maintenant") || lowerReply.includes("abonnement") || lowerReply.includes("souscrire")) {
+            botResponse = "Parfait ! Voici votre lien pour valider votre espace Tontine. Cliquez ci-dessous pour payer votre accès via Wave :";
+            botPaymentUrl = "https://pay.wave.com/m/onyxops"; // À remplacer par ton vrai lien marchand Wave
+        } else {
+            botResponse = "C'est noté ! Voulez-vous que je vous mette en relation avec un conseiller humain sur WhatsApp pour en discuter ?";
+        }
+
+        setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, audioUrl: botAudio || undefined, imageUrl: botImage || undefined, paymentUrl: botPaymentUrl || undefined }]);
+
+        // Enregistrement silencieux de la question dans Supabase
+        try {
+            await supabase.from('leads').insert([{
+                full_name: 'Visiteur Tontine',
+                intent: 'Question Bot Tontine',
+                source: 'Bot Fanta FAQ',
+                message: reply,
+                status: 'Nouveau'
+            }]);
+        } catch (err) {
+            console.error("Erreur enregistrement question:", err);
+        }
+    }, 1000);
+  };
 
   const saveLead = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,8 +181,8 @@ export default function OnyxTontineLanding() {
             {/* AVANT */}
             <div className="bg-white border border-red-100 rounded-[3rem] p-8 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
                <div className="absolute top-0 left-0 right-0 h-2 bg-red-500"></div>
-               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-6">
-                  <BookX size={40} strokeWidth={1.5} />
+               <div className="w-full aspect-video bg-zinc-100 rounded-2xl mb-6 overflow-hidden border border-zinc-200">
+                  <img src={URL_IMAGE_AVANT} alt="Le problème (Avant)" className="w-full h-full object-cover" />
                </div>
                <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-8 text-black`}>Le Cahier (Avant)</h3>
                <ul className="space-y-4 text-zinc-600 font-bold w-full text-left">
@@ -123,8 +195,8 @@ export default function OnyxTontineLanding() {
             {/* APRÈS */}
             <div className="bg-black border border-black rounded-[3rem] p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform md:-translate-y-4">
                <div className="absolute top-0 left-0 right-0 h-2 bg-[#39FF14]"></div>
-               <div className="w-20 h-20 bg-[#39FF14]/20 rounded-full flex items-center justify-center text-[#39FF14] mb-6">
-                  <Smartphone size={40} strokeWidth={1.5} />
+               <div className="w-full aspect-video bg-zinc-800 rounded-2xl mb-6 overflow-hidden">
+                  <img src={URL_IMAGE_APRES} alt="La solution (Après)" className="w-full h-full object-cover" />
                </div>
                <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-8 text-white`}>Avec Onyx Tontine</h3>
                <ul className="space-y-4 text-white font-bold w-full text-left">
@@ -195,6 +267,62 @@ export default function OnyxTontineLanding() {
           </div>
         </div>
       )}
+
+      {/* BOT FANTA FAQ */}
+      <div className="fixed bottom-24 right-6 z-[90] flex flex-col items-end">
+        {isBotOpen && (
+          <div className="bg-white rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[340px] h-[400px] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
+             <div className="bg-black p-4 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                   <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl">👩🏾‍💻</div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
+                   </div>
+                   <div><p className="text-[#39FF14] font-black uppercase text-xs">Fanta - Conseillère</p></div>
+                </div>
+                <button onClick={() => setIsBotOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
+             </div>
+             
+             <div className="flex-1 bg-zinc-50 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar">
+                {botMessages.map((msg, i) => (
+                   <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? 'bg-white border border-zinc-200 text-zinc-800 rounded-tl-none shadow-sm' : 'bg-black text-[#39FF14] rounded-tr-none shadow-md'}`}>
+                         {msg.text}
+                         {msg.audioUrl && (
+                            <audio controls className="w-full mt-3 h-10 max-w-[200px]">
+                               <source src={msg.audioUrl} type="audio/mpeg" />
+                            </audio>
+                         )}
+                         {msg.imageUrl && (
+                            <div className="mt-3 w-full rounded-xl overflow-hidden border border-zinc-200 shadow-sm">
+                               <img src={msg.imageUrl} alt="Illustration Fanta" className="w-full h-auto object-cover" />
+                            </div>
+                         )}
+                         {msg.paymentUrl && (
+                            <a href={msg.paymentUrl} target="_blank" rel="noopener noreferrer" className="mt-3 w-full bg-[#1eb2e8] text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-md hover:scale-105 transition-transform">
+                               <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm9rYPURKIok7K0ZF22oqFgMbzIHgNCauVQA&s" alt="Wave" className="h-4 rounded-sm object-contain" />
+                               Payer avec Wave (9 900 F)
+                            </a>
+                         )}
+                      </div>
+                   </div>
+                ))}
+                <div ref={chatEndRef} />
+             </div>
+
+             <div className="p-3 bg-white border-t border-zinc-200 flex gap-2">
+                <input type="text" value={userReply} onChange={e => setUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processBotReply(userReply)} placeholder="Poser une question..." className="flex-1 bg-zinc-100 rounded-xl px-4 outline-none text-sm font-bold focus:ring-1 focus:ring-black" />
+                <button onClick={() => processBotReply(userReply)} className="bg-[#39FF14] p-3 rounded-xl text-black hover:scale-105 transition"><Send size={18}/></button>
+             </div>
+          </div>
+        )}
+        
+        {!isBotOpen && (
+           <button onClick={() => setIsBotOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative group animate-bounce flex items-center justify-center text-2xl">
+             👩🏾‍💻
+           </button>
+        )}
+      </div>
 
       {/* Section E : Modal Lead Capture (CRM Integration) */}
       {showLeadModal && (
