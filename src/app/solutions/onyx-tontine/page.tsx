@@ -8,7 +8,7 @@ const spaceGrotesk = { className: "font-sans" };
 
 const URL_IMAGE_ETAPE_1 = "https://i.ibb.co/Y79tQ2yH/W1.png";
 const URL_IMAGE_ETAPE_2 = "https://i.ibb.co/YTWMH9vd/W2.png";
-const URL_IMAGE_ETAPE_3 = "URL_IMAGE_ETAPE_3";
+const URL_IMAGE_ETAPE_3 = "https://i.ibb.co/gL4wxzTr/W3.png";
 const URL_IMAGE_AVANT = "URL_IMAGE_AVANT";
 const URL_IMAGE_APRES = "URL_IMAGE_APRES";
 const URL_AUDIO_VOICE_NOTE = "URL_AUDIO_VOICE_NOTE"; // Remplace par l'URL de ton fichier .mp3 ou .ogg
@@ -49,7 +49,11 @@ export default function OnyxTontineLanding() {
   const [userReply, setUserReply] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [botMessages, setBotMessages] = useState<any[]>([
-    { sender: 'bot', text: "👋 Bonjour ! Je suis Fanta. Avez-vous des questions sur Onyx Tontine ? (ex: prix, sécurité, fonctionnement...)" }
+    { 
+      sender: 'bot', 
+      text: "👋 Bonjour ! Je suis Fanta. Avez-vous des questions sur Onyx Tontine ? (ex: prix, sécurité, fonctionnement...)",
+      options: ["Oui", "Non"]
+    }
   ]);
 
   useEffect(() => {
@@ -79,7 +83,11 @@ export default function OnyxTontineLanding() {
         let botImage = "";
         let botPaymentUrl = "";
 
-        if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
+        if (lowerReply === "oui") {
+            botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, la sécurité, ou le fonctionnement de l'application.";
+        } else if (lowerReply === "non") {
+            botResponse = "Très bien ! N'hésitez pas à cliquer sur le bouton 'Digitaliser ma Tontine' au milieu de la page pour commencer votre essai gratuit.";
+        } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
             botResponse = "Onyx Tontine coûte seulement 9 900 F/mois pour tout le groupe, peu importe le nombre de membres. C'est sans engagement !";
         } else if (lowerReply.includes("sécurité") || lowerReply.includes("confiance") || lowerReply.includes("vol") || lowerReply.includes("arnaque")) {
             botResponse = "La sécurité est notre priorité absolue. L'argent est tracé, les paiements se font par Wave, et notre système de tirage au sort animé est 100% transparent.";
@@ -305,6 +313,13 @@ export default function OnyxTontineLanding() {
                             </a>
                          )}
                       </div>
+                      {msg.options && (
+                         <div className="flex flex-wrap gap-2 mt-2 w-full">
+                            {msg.options.map((opt: string, idx: number) => (
+                               <button key={idx} onClick={() => processBotReply(opt)} className="bg-white border border-zinc-200 text-black text-xs font-bold px-4 py-2 rounded-xl hover:bg-black hover:text-[#39FF14] shadow-sm transition-colors">{opt}</button>
+                            ))}
+                         </div>
+                      )}
                    </div>
                 ))}
                 <div ref={chatEndRef} />
