@@ -1290,7 +1290,7 @@ export default function OnyxOpsElite() {
 
           return (
             <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasChoice)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-              <div className="bg-white p-8 md:p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14]">
+              <div className="bg-white p-8 md:p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14] max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-50" onClick={() => setShowSaasChoice(null)}><X size={20}/></button>
                 
                 {/* SYSTÈME D'ONGLETS */}
@@ -1380,11 +1380,32 @@ export default function OnyxOpsElite() {
                 ) : (
                   <div className="animate-in slide-in-from-right-4">
                     <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Découvrez la puissance de <br/><span className="text-[#39FF14]">{showSaasChoice.id}</span></h2>
-                    <p className="text-lg font-bold text-zinc-600 mb-8 max-w-xl mx-auto">Automatisez vos ventes, gérez vos stocks et fidélisez vos clients sans quitter WhatsApp. Découvrez pourquoi nos partenaires doublent leur chiffre d'affaires.</p>
+                    
+                    {showSaasChoice.id === 'Onyx Tontine' ? (
+                       <div className="flex flex-col gap-4 mb-8">
+                          <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200 flex items-center gap-4 text-left">
+                             <div className="p-3 bg-black text-[#39FF14] rounded-xl"><Users size={20}/></div>
+                             <div><p className="font-black uppercase text-sm">Zéro mot de passe</p><p className="text-xs text-zinc-500">Importez vos membres avec juste leur numéro WhatsApp.</p></div>
+                          </div>
+                          <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200 flex items-center gap-4 text-left">
+                             <div className="p-3 bg-black text-[#39FF14] rounded-xl"><MessageSquare size={20}/></div>
+                             <div><p className="font-black uppercase text-sm">Relances WhatsApp Auto</p><p className="text-xs text-zinc-500">L'application réclame les cotisations à votre place.</p></div>
+                          </div>
+                          <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200 flex items-center gap-4 text-left">
+                             <div className="p-3 bg-black text-[#39FF14] rounded-xl"><Sparkles size={20}/></div>
+                             <div><p className="font-black uppercase text-sm">Tirage au sort animé</p><p className="text-xs text-zinc-500">Transparent et excitant, partagé en temps réel.</p></div>
+                          </div>
+                       </div>
+                    ) : (
+                       <p className="text-lg font-bold text-zinc-600 mb-8 max-w-xl mx-auto">Automatisez vos ventes, gérez vos stocks et fidélisez vos clients sans quitter WhatsApp. Découvrez pourquoi nos partenaires doublent leur chiffre d'affaires.</p>
+                    )}
+                    
                     <button 
                        onClick={() => {
                           if (showSaasChoice.id === 'Onyx Jaay') {
                              router.push('/jaay');
+                          } else if (showSaasChoice.id === 'Onyx Tontine') {
+                             router.push('/solutions/onyx-tontine');
                           } else {
                              alert("La page détaillée pour ce module sera bientôt disponible !");
                           }
