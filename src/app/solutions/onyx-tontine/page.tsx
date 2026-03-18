@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck } from "lucide-react";
+import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle } from "lucide-react";
 
 export default function OnyxTontineLanding() {
   const [showLeadModal, setShowLeadModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
   const [leadData, setLeadData] = useState({ name: "", phone: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -109,8 +110,9 @@ export default function OnyxTontineLanding() {
                </div>
 
                {/* Carte 3 */}
-               <div className="bg-zinc-900 border border-zinc-800 rounded-[3rem] p-8 flex flex-col items-center text-center aspect-[9/16] max-h-[600px] hover:border-[#39FF14]/50 transition-colors group relative overflow-hidden">
+               <div onClick={() => setShowVideoModal(true)} className="bg-zinc-900 border border-zinc-800 rounded-[3rem] p-8 flex flex-col items-center text-center aspect-[9/16] max-h-[600px] hover:border-[#39FF14]/50 transition-all group relative overflow-hidden cursor-pointer hover:scale-105 hover:shadow-[0_0_40px_rgba(57,255,20,0.15)]">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14] opacity-[0.03] rounded-full blur-2xl group-hover:opacity-10 transition-opacity"></div>
+                  <div className="absolute top-6 right-6 text-zinc-600 group-hover:text-[#39FF14] transition-colors"><PlayCircle size={28} /></div>
                   <div className="w-16 h-16 bg-black border border-zinc-800 rounded-2xl flex items-center justify-center text-[#39FF14] mb-8 shadow-2xl">
                      <span className="font-black text-2xl">3</span>
                   </div>
@@ -147,6 +149,25 @@ export default function OnyxTontineLanding() {
                   {isSubmitting ? '...' : 'Valider & Continuer sur WhatsApp'}
                </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Video (Démo Tirage en 9:16) */}
+      {showVideoModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-in fade-in" onClick={() => setShowVideoModal(false)}>
+          <div className="w-full max-w-sm aspect-[9/16] relative bg-black rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(57,255,20,0.3)] border-2 border-[#39FF14] animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+             <button onClick={() => setShowVideoModal(false)} className="absolute top-6 right-6 text-white bg-black/50 p-3 rounded-full hover:bg-[#39FF14] hover:text-black transition z-10 backdrop-blur-sm">
+                <X size={20}/>
+             </button>
+             {/* Remplacer cette URL YouTube par le vrai lien vertical du tirage */}
+             <iframe 
+               src="https://www.youtube.com/embed/acFsObjm2E0?autoplay=1&mute=0&loop=1&playlist=acFsObjm2E0&controls=0&rel=0&modestbranding=1&playsinline=1" 
+               title="Démo Tirage au Sort"
+               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+               allowFullScreen
+               className="absolute top-0 left-0 w-full h-full object-cover"
+             ></iframe>
           </div>
         </div>
       )}
