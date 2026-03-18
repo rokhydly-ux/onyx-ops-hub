@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Truck, MapPin, Search, CheckCircle, Home, Phone, Printer, MessageSquare, PlusCircle } from "lucide-react";
+import { Truck, MapPin, Search, CheckCircle, Home, Phone, Printer, MessageSquare, PlusCircle, Store } from "lucide-react";
 
 export default function OnyxTiakDashboard() {
   const router = useRouter();
@@ -218,6 +218,9 @@ export default function OnyxTiakDashboard() {
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                   <input type="text" placeholder="Rechercher une course..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 bg-zinc-100 dark:bg-zinc-900 border-none rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-orange-500/50" />
               </div>
+              <button onClick={() => router.push('/vente')} className="hidden md:flex items-center gap-2 p-2 px-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition font-bold text-sm" title="Retourner à ma boutique (Onyx Jaay)">
+                  <Store size={16}/> Onyx Jaay
+              </button>
               <button onClick={() => router.push('/dashboard')} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"><Home size={18}/></button>
           </div>
       </header>

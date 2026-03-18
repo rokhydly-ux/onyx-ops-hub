@@ -2311,6 +2311,9 @@ export default function OnyxJaayShop() {
                           <button onClick={() => { setShopView('reviews'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'reviews' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
                             <Star size={18} className={shopView === 'reviews' ? "text-[#39FF14]" : ""} /> Avis Clients
                           </button>
+                          <button onClick={() => window.location.href = '/tiak'} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white`}>
+                            <Truck size={18} /> Onyx Tiak (Logistique)
+                          </button>
                       </>
                   )}
                   <button onClick={() => { setShopView('boutique'); setIsMobileMenuOpen(false); setSearchTerm(''); setActiveCategory('Toutes'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'boutique' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
@@ -2525,6 +2528,9 @@ export default function OnyxJaayShop() {
                     </button>
                     <button onClick={() => setShopView('reviews')} title="Avis Clients" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left ${shopView === 'reviews' ? 'bg-zinc-200 dark:bg-zinc-900 text-black dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
                       <Star size={18} className={shopView === 'reviews' ? "text-[#39FF14]" : ""} /> {!isSidebarCollapsed && 'Avis Clients'}
+                    </button>
+                    <button onClick={() => window.location.href = '/tiak'} title="Onyx Tiak (Logistique)" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition text-left text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
+                      <Truck size={18} /> {!isSidebarCollapsed && 'Onyx Tiak'}
                     </button>
                 </>
             )}
