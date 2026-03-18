@@ -166,6 +166,7 @@ export default function Dashboard() {
   if (!profile) return <div className="p-20 text-center font-bold">Chargement de votre empire...</div>;
 
   const onyxJaayActive = isModuleActive("onyxjaay") || isModuleActive("jaay");
+  const onyxTiakActive = isModuleActive("onyxtiak") || isModuleActive("tiak");
 
   return (
     <div className="min-h-screen bg-white p-6 md:p-12">
@@ -244,7 +245,7 @@ export default function Dashboard() {
               <h3 className="font-black uppercase mb-6">Mes Solutions Pro</h3>
               <div className="space-y-4">
                 <SaasCard name="Onyx Jaay" href="/vente" isActive={onyxJaayActive} />
-                {/* Vous pouvez ajouter d'autres SaaS ici sur le même modèle */}
+                <SaasCard name="Onyx Tiak" href="/tiak" isActive={onyxTiakActive} />
                 <button onClick={handleRenewSubscription} className="w-full mt-4 py-3 bg-black text-[#39FF14] rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition-colors shadow-lg shadow-[#39FF14]/10">
                   Prolonger mon abonnement
                 </button>

@@ -17,17 +17,36 @@ export default function OnyxTiakDashboard() {
     const verifyAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       let userId = session?.user?.id;
+      let userData: any = null;
 
       // Fallback custom session
       if (!userId) {
         const customSession = localStorage.getItem('onyx_custom_session');
         if (customSession) {
-            try { userId = JSON.parse(customSession).id; } catch (e) {}
+            try { 
+                userData = JSON.parse(customSession);
+                userId = userData.id; 
+            } catch (e) {}
         }
+      } else {
+         // Récupération des droits du client depuis Supabase
+         const { data } = await supabase.from('clients').select('saas, active_saas').eq('id', userId).maybeSingle();
+         userData = data;
       }
 
       if (!userId) {
           router.push('/');
+          return;
+      }
+
+      // --- VÉRIFICATION D'ACCÈS SAAS (BLOCAGE URL DIRECTE) ---
+      const activeModules = userData?.active_saas || [];
+      const mainSaas = userData?.saas || '';
+      const hasTiakAccess = activeModules.includes('tiak') || activeModules.includes('onyxtiak') || mainSaas.toLowerCase().includes('tiak');
+
+      if (!hasTiakAccess) {
+          alert("Accès refusé 🔒\n\nVous n'avez pas souscrit au module logistique Onyx Tiak. Redirection vers votre Hub.");
+          router.push('/dashboard');
           return;
       }
 
