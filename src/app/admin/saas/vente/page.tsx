@@ -27,6 +27,17 @@ export default function OnyxJaayAdmin() {
     fetchShops();
   }, []);
 
+  const handleDeleteShop = async (shopId: string) => {
+      if (!confirm(`⚠️ ATTENTION : Voulez-vous vraiment supprimer DÉFINITIVEMENT cette boutique et toutes ses données associées ? Cette action est irréversible.`)) return;
+      
+      const { error } = await supabase.from('shops').delete().eq('id', shopId);
+      if (!error) {
+          setShops(prev => prev.filter(s => s.id !== shopId));
+      } else {
+          alert("Erreur lors de la suppression : " + error.message);
+      }
+  };
+
   const handleToggleShopStatus = async (shopId: string, currentStatus: string) => {
       const newStatus = currentStatus === 'Actif' ? 'Suspendu' : 'Actif';
       if (!confirm(`Voulez-vous vraiment passer cette boutique en statut : ${newStatus} ?`)) return;
@@ -56,7 +67,7 @@ export default function OnyxJaayAdmin() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <button className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 hover:scale-105 transition-transform">
+          <button onClick={() => alert("Module de configuration tarifaire et limites d'offres en cours de déploiement pour la v2.1.")} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 hover:scale-105 transition-transform">
              <Settings size={16} /> Configurer l'Offre
           </button>
         </div>
@@ -139,7 +150,7 @@ export default function OnyxJaayAdmin() {
                              >
                                 <Power size={16} />
                              </button>
-                             <button className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors" title="Supprimer la boutique">
+                             <button onClick={() => handleDeleteShop(shop.id)} className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors" title="Supprimer la boutique">
                                 <Trash2 size={16} />
                              </button>
                           </td>
@@ -148,6 +159,10 @@ export default function OnyxJaayAdmin() {
                  </tbody>
               </table>
            </div>
+          
+          <footer className="mt-12 py-8 border-t border-zinc-200 dark:border-zinc-800 text-center text-xs text-zinc-500 font-bold uppercase tracking-widest">
+             &copy; {new Date().getFullYear()} OnyxOps. Module Super-Admin Vente.
+          </footer>
         </div>
       </main>
     </div>

@@ -1994,7 +1994,17 @@ export default function DynamicShopPage() {
                              ))}
                          </select>
                          {selectedZoneId && <p className="text-[10px] text-zinc-400 italic px-1">{deliveryZones.find(z => z.id === selectedZoneId)?.quartiers.join(', ')}</p>}
-                         <textarea placeholder="Adresse détaillée (Quartier, rue, repère...)" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none transition" />
+                         <textarea placeholder="Adresse détaillée (Quartier, rue, repère...)" value={customerInfo.address} onChange={e => {
+                             const val = e.target.value;
+                             setCustomerInfo({...customerInfo, address: val});
+                             const lowerVal = val.toLowerCase();
+                             for (const zone of deliveryZones) {
+                                 if (zone.quartiers && zone.quartiers.some((q: string) => q.trim() && lowerVal.includes(q.trim().toLowerCase()))) {
+                                     setSelectedZoneId(zone.id);
+                                     break;
+                                 }
+                             }
+                         }} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none transition" />
                      </div>
                  )}
                  <textarea placeholder="Instructions de livraison (Optionnel)" value={customerInfo.instructions} onChange={e => setCustomerInfo({...customerInfo, instructions: e.target.value})} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] text-black dark:text-white resize-none transition" />

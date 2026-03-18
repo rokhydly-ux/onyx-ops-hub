@@ -814,6 +814,7 @@ export default function OnyxJaayShop() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [homepageLayout, setHomepageLayout] = useState<WidgetProps[] | null>(null);
   const [shopId, setShopId] = useState<string | null>(null);
+  const [bulkSelection, setBulkSelection] = useState<number[]>([]);
   
   const handleSaveCategoriesSilently = async (newCategories: string[], newCovers: any) => {
       if (shopId) {
@@ -1525,6 +1526,60 @@ export default function OnyxJaayShop() {
         } else if (error) {
             console.error("Erreur de duplication:", error);
             alert("Erreur lors de la duplication: " + error.message);
+        }
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Voulez-vous vraiment supprimer ${bulkSelection.length} produit(s) ?`)) return;
+    setProducts(prev => prev.filter(p => !bulkSelection.includes(p.id)));
+    const idsToDelete = [...bulkSelection];
+    setBulkSelection([]);
+    setToastMessage(`${idsToDelete.length} produits supprimés !`);
+    setTimeout(() => setToastMessage(null), 3000);
+
+    if (shopId) {
+        await supabase.from('products').delete().in('id', idsToDelete);
+    }
+  };
+
+  const handleBulkDuplicate = async () => {
+    if (!confirm(`Voulez-vous dupliquer ${bulkSelection.length} produit(s) ?`)) return;
+    const productsToDuplicate = products.filter(p => bulkSelection.includes(p.id));
+    
+    const newProducts = productsToDuplicate.map((p, index) => ({
+        ...p,
+        id: Date.now() + index, // Temp ID
+        name: `${p.name} (Copie)`,
+        reviews: 0,
+        reviewsList: [],
+        rating: 5
+    }));
+    
+    setProducts(prev => [...newProducts, ...prev]);
+    setBulkSelection([]);
+    setToastMessage(`${newProducts.length} produits dupliqués !`);
+    setTimeout(() => setToastMessage(null), 3000);
+
+    if (shopId) {
+        const payloads = newProducts.map(dp => ({
+            shop_id: shopId, name: dp.name, price: dp.price, cost_price: dp.costPrice || 0, old_price: dp.oldPrice || null,
+            description: dp.description, image: dp.image, gallery: dp.gallery || [], category: dp.category, stock: dp.stock,
+            barcode: dp.barcode || null, rating: dp.rating, reviews: dp.reviews, variants: dp.variants || { sizes: [], colors: [] }, video_url: dp.videoUrl || null
+        }));
+        const { data, error } = await supabase.from('products').insert(payloads).select();
+        if (data && !error) {
+            setProducts(prev => {
+                const next = [...prev];
+                data.forEach((realProd: any, idx: number) => {
+                    const tempProd = newProducts[idx];
+                    const indexToUpdate = next.findIndex(p => p.id === tempProd.id);
+                    if (indexToUpdate !== -1) {
+                        next[indexToUpdate].id = realProd.id;
+                    }
+                });
+                return next;
+            });
         }
     }
   };
@@ -2749,6 +2804,24 @@ export default function OnyxJaayShop() {
                 <button onClick={handleExportProducts} className="w-full sm:w-auto bg-white text-black border-2 border-zinc-200 px-8 py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2">
                   <Share2 size={20} /> Exporter
                 </button>
+
+                {filteredProducts.length > 0 && (
+                   <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2 rounded-2xl shadow-sm ml-auto animate-in fade-in">
+                      <label className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition">
+                         <input type="checkbox" checked={bulkSelection.length > 0 && bulkSelection.length === filteredProducts.length} onChange={(e) => e.target.checked ? setBulkSelection(filteredProducts.map(p => p.id)) : setBulkSelection([])} className="w-4 h-4 accent-black dark:accent-[#39FF14]" />
+                         <span className="text-xs font-bold whitespace-nowrap text-black dark:text-white">Tout sélectionner</span>
+                      </label>
+                      {bulkSelection.length > 0 && (
+                         <>
+                            <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800 mx-1"></div>
+                            <span className="text-xs font-black text-[#39FF14] px-2">{bulkSelection.length}</span>
+                            <button onClick={handleBulkDuplicate} className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-500 hover:bg-blue-500 hover:text-white rounded-xl transition" title="Dupliquer la sélection"><Copy size={16}/></button>
+                            <button onClick={handleBulkDelete} className="p-2 bg-red-50 dark:bg-red-900/30 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition" title="Supprimer la sélection"><Trash2 size={16}/></button>
+                            <button onClick={() => setBulkSelection([])} className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition"><X size={16}/></button>
+                         </>
+                      )}
+                   </div>
+                )}
               </div>
             )}
 
@@ -2793,13 +2866,23 @@ export default function OnyxJaayShop() {
                     onDragEnd={handleDragEnd}
                   >
                     <div className="relative">
+                      {isEditingMode && (
+                         <div className="absolute top-4 left-4 z-30" onClick={(e) => e.stopPropagation()}>
+                            <input 
+                               type="checkbox" 
+                               checked={bulkSelection.includes(product.id)}
+                               onChange={() => setBulkSelection(prev => prev.includes(product.id) ? prev.filter(id => id !== product.id) : [...prev, product.id])}
+                               className="w-5 h-5 rounded cursor-pointer accent-black dark:accent-[#39FF14] shadow-md border-2 border-white dark:border-black"
+                            />
+                         </div>
+                      )}
                       <img src={product.image} alt={product.name} className="w-full h-72 object-cover group-hover:scale-105 transition-transform duration-500 bg-zinc-100 dark:bg-zinc-800" />
                       {product.stock === 0 && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
                           <span className="text-white font-black uppercase tracking-widest border-2 border-white px-4 py-2 rounded-lg">Épuisé</span>
                         </div>
                       )}
-                      <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
+                      <div className={`absolute ${isEditingMode ? 'top-12' : 'top-4'} left-4 flex flex-col items-start gap-2 transition-all`}>
                         <div className="bg-white/80 dark:bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700 text-[#39FF14]">
                           {product.category}
                         </div>
@@ -3121,7 +3204,17 @@ export default function OnyxJaayShop() {
                         <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mt-5 mb-2">Adresse détaillée</p>
                         <textarea 
                             value={customerAddress}
-                            onChange={(e) => setCustomerAddress(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setCustomerAddress(val);
+                                const lowerVal = val.toLowerCase();
+                                for (const zone of deliveryZones) {
+                                    if (zone.quartiers && zone.quartiers.some((q: string) => q.trim() && lowerVal.includes(q.trim().toLowerCase()))) {
+                                        setSelectedZoneId(zone.id);
+                                        break;
+                                    }
+                                }
+                            }}
                             placeholder="Quartier, rue, numéro de villa, repère..."
                             className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] resize-none h-20"
                         />
@@ -3389,7 +3482,17 @@ export default function OnyxJaayShop() {
                             ))}
                         </select>
                         {selectedZoneId && <p className="text-[10px] text-zinc-400 italic px-1">{deliveryZones.find(z => z.id === selectedZoneId)?.quartiers.join(', ')}</p>}
-                        <textarea placeholder="Adresse détaillée (Quartier, rue, repère...)" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black resize-none min-h-[60px]" />
+                        <textarea placeholder="Adresse détaillée (Quartier, rue, repère...)" value={customerAddress} onChange={e => {
+                            const val = e.target.value;
+                            setCustomerAddress(val);
+                            const lowerVal = val.toLowerCase();
+                            for (const zone of deliveryZones) {
+                                if (zone.quartiers && zone.quartiers.some((q: string) => q.trim() && lowerVal.includes(q.trim().toLowerCase()))) {
+                                    setSelectedZoneId(zone.id);
+                                    break;
+                                }
+                            }
+                        }} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black resize-none min-h-[60px]" />
                     </div>
                 )}
                 <textarea placeholder="Instructions de livraison (Optionnel)" value={deliveryInstructions} onChange={e => setDeliveryInstructions(e.target.value)} className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm outline-none focus:border-black min-h-[60px] resize-none" />
@@ -3642,17 +3745,6 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
     const [sizesInput, setSizesInput] = useState(product?.variants?.sizes?.map(s => s.name).join(', ') || '');
     const [colorsInput, setColorsInput] = useState(product?.variants?.colors?.map(c => c.name).join(', ') || '');
 
-    // États locaux en texte pour permettre la saisie libre sans bug de curseur
-    const [priceInput, setPriceInput] = useState(String(product?.price || ''));
-    const [oldPriceInput, setOldPriceInput] = useState(String(product?.oldPrice || product?.price || ''));
-    const [discountInput, setDiscountInput] = useState(() => {
-        if (product?.oldPrice && product?.price && product.oldPrice > product.price) {
-            return String(Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100));
-        }
-        return '';
-    });
-    const [costPriceInput, setCostPriceInput] = useState(String(product?.costPrice || ''));
-
     // Simulateur de Rentabilité
     const [simulator, setSimulator] = useState({
         taxRate: 18,
@@ -3685,8 +3777,8 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const priceVal = Number(priceInput) || 0;
-    const costPriceVal = Number(costPriceInput) || 0;
+    const priceVal = formData.price || 0;
+    const costPriceVal = formData.costPrice || 0;
 
     const simTVA = priceVal - (priceVal / (1 + Number(simulator.taxRate) / 100));
     const simPrixHT = priceVal - simTVA;
@@ -3695,7 +3787,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
     const simMarginPct = simPrixHT > 0 ? (simNetProfit / simPrixHT) * 100 : 0;
 
     const calculateIdealPrice = () => {
-        const Cf = Number(costPriceInput) + Number(simulator.shippingCost) + Number(simulator.packagingCost) + Number(simulator.marketingCac) + Number(simulator.customsFee);
+        const Cf = Number(formData.costPrice || 0) + Number(simulator.shippingCost) + Number(simulator.packagingCost) + Number(simulator.marketingCac) + Number(simulator.customsFee);
         const T = simulator.taxRate / 100;
         const Fee = simulator.paymentFeePct / 100;
         const M = (simulator.targetMarginPct || 0) / 100;
@@ -3704,17 +3796,14 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
         const idealPrice = (Cf * (1 + T)) / denominator;
         const roundedIdeal = Math.ceil(idealPrice / 100) * 100;
         
-        setPriceInput(String(roundedIdeal));
-        setFormData(prev => ({...prev, price: roundedIdeal}));
-        
-        const oldP = Number(oldPriceInput);
-        if (oldP > roundedIdeal) {
-            setDiscountInput(String(Math.round(((oldP - roundedIdeal) / oldP) * 100)));
-        } else {
-            setOldPriceInput(String(roundedIdeal));
-            setDiscountInput('');
-            setFormData(prev => ({...prev, oldPrice: roundedIdeal}));
-        }
+        setFormData(prev => {
+            const oldP = prev.oldPrice || 0;
+            return {
+                ...prev,
+                price: roundedIdeal,
+                oldPrice: oldP < roundedIdeal ? roundedIdeal : oldP
+            };
+        });
     };
 
     const handleSizesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -3816,20 +3905,15 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix Normal ({currency})</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" value={oldPriceInput} onChange={(e) => {
-                                        const val = e.target.value;
-                                        setOldPriceInput(val);
-                                        const oldP = Number(val);
-                                        setFormData(prev => ({...prev, oldPrice: oldP}));
-                                        const disc = Number(discountInput);
-                                        if (disc > 0 && disc <= 100) {
-                                            const newPrice = Math.round(oldP * (1 - disc / 100));
-                                            setPriceInput(String(newPrice));
-                                            setFormData(prev => ({...prev, price: newPrice}));
-                                        } else {
-                                            setPriceInput(val);
-                                            setFormData(prev => ({...prev, price: oldP}));
+                                    <input type="number" value={formData.oldPrice || formData.price || ''} onChange={(e) => {
+                                        if (e.target.value === '') {
+                                            setFormData(prev => ({...prev, oldPrice: 0}));
+                                            return;
                                         }
+                                        const val = Number(e.target.value);
+                                        const currentDiscount = formData.oldPrice && formData.price && formData.oldPrice > formData.price 
+                                            ? ((formData.oldPrice - formData.price) / formData.oldPrice) : 0;
+                                        setFormData(prev => ({...prev, oldPrice: val, price: Math.round(val * (1 - currentDiscount))}));
                                     }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Prix barré" />
                                 </div>
                             </div>
@@ -3837,18 +3921,18 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Remise (%)</label>
                                 <div className="relative">
                                     <Tag size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" min="0" max="100" value={discountInput} onChange={(e) => {
+                                    <input type="number" min="0" max="100" value={formData.oldPrice && formData.price && formData.oldPrice > formData.price ? Math.round(((formData.oldPrice - formData.price) / formData.oldPrice) * 100) : ''} onChange={(e) => {
                                         const val = e.target.value;
-                                        setDiscountInput(val);
-                                        const disc = Number(val);
-                                        const oldP = Number(oldPriceInput);
                                         if (val === '') {
-                                            setPriceInput(String(oldP));
-                                            setFormData(prev => ({...prev, price: oldP}));
-                                        } else if (disc >= 0 && disc <= 100) {
-                                            const newPrice = Math.round(oldP * (1 - disc / 100));
-                                            setPriceInput(String(newPrice));
-                                            setFormData(prev => ({...prev, price: newPrice}));
+                                            setFormData(prev => ({...prev, price: prev.oldPrice || prev.price}));
+                                            return;
+                                        }
+                                        const disc = Number(val);
+                                        if (disc >= 0 && disc <= 100) {
+                                            setFormData(prev => {
+                                                const basePrice = prev.oldPrice || prev.price || 0;
+                                                return { ...prev, oldPrice: basePrice, price: Math.round(basePrice * (1 - disc / 100)) };
+                                            });
                                         }
                                     }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Ex: 20" />
                                 </div>
@@ -3857,19 +3941,17 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix Final ({currency})</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" value={priceInput} onChange={(e) => {
-                                        const val = e.target.value;
-                                        setPriceInput(val);
-                                        const p = Number(val);
-                                        setFormData(prev => ({...prev, price: p}));
-                                        const oldP = Number(oldPriceInput);
-                                        if (oldP > 0 && oldP > p) {
-                                            setDiscountInput(String(Math.round(((oldP - p) / oldP) * 100)));
-                                        } else {
-                                            setDiscountInput('');
-                                            setOldPriceInput(val);
-                                            setFormData(prev => ({...prev, oldPrice: p}));
+                                    <input type="number" value={formData.price === 0 ? '' : formData.price} onChange={(e) => {
+                                        if (e.target.value === '') {
+                                            setFormData(prev => ({...prev, price: 0}));
+                                            return;
                                         }
+                                        const newPrice = Number(e.target.value);
+                                        setFormData(prev => ({
+                                            ...prev, 
+                                            price: newPrice,
+                                            oldPrice: (!prev.oldPrice || prev.oldPrice < newPrice) ? newPrice : prev.oldPrice
+                                        }));
                                     }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Prix de vente" />
                                 </div>
                             </div>
@@ -3877,8 +3959,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Coût d&apos;achat</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" value={costPriceInput} onChange={(e) => {
-                                        setCostPriceInput(e.target.value);
+                                    <input type="number" value={formData.costPrice === 0 ? '' : formData.costPrice} onChange={(e) => {
                                         setFormData(prev => ({...prev, costPrice: Number(e.target.value)}));
                                     }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Fournisseur" />
                                 </div>
@@ -4336,7 +4417,11 @@ function ClientDetailModal({ client, orders, shopName, currency, onClose, refres
                     if (newStatus === 'En cours de préparation') {
                         msg = `Bonjour ${customerName} ! 📦\nVotre commande (${tracking}) est actuellement en cours de préparation par notre équipe. Nous vous informerons dès qu'elle sera prête !`;
                     } else if (newStatus === 'Expédié') {
+                        const mapsLink = prompt("Veuillez coller le lien de suivi Google Maps du livreur (Laissez vide si vous n'en avez pas) :");
                         msg = `Bonjour ${customerName} ! 🚚\nBonne nouvelle ! Votre commande (${tracking}) a été expédiée et est en route vers vous.`;
+                        if (mapsLink) {
+                            msg += `\n\n📍 Suivez votre livreur en temps réel ici : ${mapsLink}`;
+                        }
                     } else if (newStatus === 'Livré') {
                         const reviewLink = `${window.location.origin}/vente?order_review=${order.id}`;
                         msg = `Bonjour ${customerName} ! 🌟\nVotre commande (${tracking}) a été livrée avec succès.\n\nPourriez-vous prendre 1 minute pour nous laisser un avis vérifié ? C'est très important pour nous.\nCliquez ici : ${reviewLink}\n\nMerci pour votre confiance !`;
@@ -4977,7 +5062,11 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
                     if (newStatus === 'En cours de préparation') {
                         msg = `Bonjour ${customerName} ! 📦\nVotre commande (${tracking}) est actuellement en cours de préparation par notre équipe. Nous vous informerons dès qu'elle sera remise au livreur.`;
                     } else if (newStatus === 'Expédié') {
+                        const mapsLink = prompt("Veuillez coller le lien de suivi Google Maps du livreur (Laissez vide si vous n'en avez pas) :");
                         msg = `Bonjour ${customerName} ! 🚚\nBonne nouvelle ! Votre commande (${tracking}) a été expédiée et est en route vers vous.`;
+                        if (mapsLink) {
+                            msg += `\n\n📍 Suivez votre livreur en temps réel ici : ${mapsLink}`;
+                        }
                     } else if (newStatus === 'Livré') {
                         const reviewLink = `${window.location.origin}/vente?order_review=${order.id}`;
                         msg = `Bonjour ${customerName} ! 🌟\nVotre commande (${tracking}) a été livrée avec succès.\n\nPourriez-vous prendre 1 minute pour nous laisser un avis vérifié ? C'est très important pour nous.\nCliquez ici : ${reviewLink}\n\nMerci pour votre confiance !`;
@@ -5032,8 +5121,8 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
         return d >= start && d <= end;
     });
 
-    const revenue = currentOrders.reduce((sum, order) => sum + order.total, 0);
-    const totalCost = currentOrders.reduce((sum, order) => sum + order.items.reduce((iSum: number, item: CartItem) => iSum + ((item.costPrice || 0) * item.quantity), 0), 0);
+    const revenue = currentOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+    const totalCost = currentOrders.reduce((sum, order) => sum + (order.items || []).reduce((iSum: number, item: CartItem) => iSum + ((Number(item.costPrice) || 0) * (Number(item.quantity) || 0)), 0), 0);
     const margin = revenue - totalCost;
     const TOrders = currentOrders.length;
     const TClients = new Set(currentOrders.map(o => o.customer?.phone).filter(Boolean)).size;
