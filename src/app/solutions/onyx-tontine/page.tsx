@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Script from "next/script";
 import { supabase } from "@/lib/supabaseClient";
 import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send, ChevronDown, Star } from "lucide-react";
 
@@ -12,7 +11,7 @@ const URL_IMAGE_ETAPE_2 = "https://i.ibb.co/YTWMH9vd/W2.png";
 const URL_IMAGE_ETAPE_3 = "https://i.ibb.co/gL4wxzTr/W3.png";
 const URL_IMAGE_AVANT = "URL_IMAGE_AVANT";
 const URL_IMAGE_APRES = "URL_IMAGE_APRES";
-const URL_AUDIO_VOICE_NOTE = "URL_AUDIO_VOICE_NOTE"; // Remplace par l'URL de ton fichier .mp3 ou .ogg
+const URL_AUDIO_VOICE_NOTE = "https://www.w3schools.com/html/horse.ogg"; // ⚠️ Remplace par ta vraie note vocale (.mp3 ou .ogg)
 const URL_IMAGE_BOT_RESPONSE = "URL_IMAGE_BOT_RESPONSE"; // Remplace par l'URL de ton image explicative
 
 const TONTINE_REVIEWS = [
@@ -96,11 +95,19 @@ export default function OnyxTontineLanding() {
         let botAudio = "";
         let botImage = "";
         let botPaymentUrl = "";
+        let botOptions: string[] | undefined = undefined;
 
         if (lowerReply === "oui") {
             botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, la sécurité, ou le fonctionnement de l'application.";
         } else if (lowerReply === "non") {
             botResponse = "Très bien ! N'hésitez pas à cliquer sur le bouton 'Digitaliser ma Tontine' au milieu de la page pour commencer votre essai gratuit.";
+        } else if (lowerReply === "non merci") {
+            botResponse = "D'accord, je reste à votre disposition si vous avez d'autres questions !";
+        } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
+            botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
+            setTimeout(() => {
+                window.open(`https://wa.me/221785338417?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Tontine et j'aimerais parler à un conseiller.")}`, '_blank');
+            }, 1000);
         } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
             botResponse = "Onyx Tontine coûte seulement 9 900 F/mois pour tout le groupe, peu importe le nombre de membres. C'est sans engagement !";
         } else if (lowerReply.includes("sécurité") || lowerReply.includes("confiance") || lowerReply.includes("vol") || lowerReply.includes("arnaque")) {
@@ -120,9 +127,10 @@ export default function OnyxTontineLanding() {
             botPaymentUrl = "https://pay.wave.com/m/onyxops"; // À remplacer par ton vrai lien marchand Wave
         } else {
             botResponse = "C'est noté ! Voulez-vous que je vous mette en relation avec un conseiller humain sur WhatsApp pour en discuter ?";
+            botOptions = ["Oui, parler à un conseiller", "Non merci"];
         }
 
-        setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, audioUrl: botAudio || undefined, imageUrl: botImage || undefined, paymentUrl: botPaymentUrl || undefined }]);
+        setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, audioUrl: botAudio || undefined, imageUrl: botImage || undefined, paymentUrl: botPaymentUrl || undefined, options: botOptions }]);
 
         // Enregistrement silencieux de la question dans Supabase
         try {
@@ -177,21 +185,6 @@ export default function OnyxTontineLanding() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-[#39FF14]/30 pb-24">
-      {/* PIXEL FACEBOOK */}
-      <Script id="fb-pixel" strategy="afterInteractive">
-        {`
-          !function(f,b,e,v,n,t,s)
-          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-          n.queue=[];t=b.createElement(e);t.async=!0;
-          t.src=v;s=b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t,s)}(window, document,'script',
-          'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', 'VOTRE_ID_PIXEL_ICI'); // ⚠️ Remplace ceci par ton vrai ID de Pixel
-          fbq('track', 'PageView');
-        `}
-      </Script>
 
       {/* CSS Animation Glitch Button */}
       <style dangerouslySetInnerHTML={{__html: `
