@@ -3642,6 +3642,17 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
     const [sizesInput, setSizesInput] = useState(product?.variants?.sizes?.map(s => s.name).join(', ') || '');
     const [colorsInput, setColorsInput] = useState(product?.variants?.colors?.map(c => c.name).join(', ') || '');
 
+    // États locaux en texte pour permettre la saisie libre sans bug de curseur
+    const [priceInput, setPriceInput] = useState(String(product?.price || ''));
+    const [oldPriceInput, setOldPriceInput] = useState(String(product?.oldPrice || product?.price || ''));
+    const [discountInput, setDiscountInput] = useState(() => {
+        if (product?.oldPrice && product?.price && product.oldPrice > product.price) {
+            return String(Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100));
+        }
+        return '';
+    });
+    const [costPriceInput, setCostPriceInput] = useState(String(product?.costPrice || ''));
+
     // Simulateur de Rentabilité
     const [simulator, setSimulator] = useState({
         taxRate: 18,
@@ -3674,8 +3685,8 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const priceVal = Number(formData.price) || 0;
-    const costPriceVal = Number(formData.costPrice) || 0;
+    const priceVal = Number(priceInput) || 0;
+    const costPriceVal = Number(costPriceInput) || 0;
 
     const simTVA = priceVal - (priceVal / (1 + Number(simulator.taxRate) / 100));
     const simPrixHT = priceVal - simTVA;
@@ -3684,14 +3695,26 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
     const simMarginPct = simPrixHT > 0 ? (simNetProfit / simPrixHT) * 100 : 0;
 
     const calculateIdealPrice = () => {
-        const Cf = costPriceVal + Number(simulator.shippingCost) + Number(simulator.packagingCost) + Number(simulator.marketingCac) + Number(simulator.customsFee);
+        const Cf = Number(costPriceInput) + Number(simulator.shippingCost) + Number(simulator.packagingCost) + Number(simulator.marketingCac) + Number(simulator.customsFee);
         const T = simulator.taxRate / 100;
         const Fee = simulator.paymentFeePct / 100;
         const M = (simulator.targetMarginPct || 0) / 100;
         const denominator = 1 - M - Fee * (1 + T);
         if (denominator <= 0) return alert("Marge impossible à atteindre avec ces frais de transaction et TVA. Veuillez réduire la marge cible ou les frais.");
         const idealPrice = (Cf * (1 + T)) / denominator;
-        setFormData(prev => ({...prev, price: Math.ceil(idealPrice / 100) * 100}));
+        const roundedIdeal = Math.ceil(idealPrice / 100) * 100;
+        
+        setPriceInput(String(roundedIdeal));
+        setFormData(prev => ({...prev, price: roundedIdeal}));
+        
+        const oldP = Number(oldPriceInput);
+        if (oldP > roundedIdeal) {
+            setDiscountInput(String(Math.round(((oldP - roundedIdeal) / oldP) * 100)));
+        } else {
+            setOldPriceInput(String(roundedIdeal));
+            setDiscountInput('');
+            setFormData(prev => ({...prev, oldPrice: roundedIdeal}));
+        }
     };
 
     const handleSizesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -3793,28 +3816,39 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix Normal ({currency})</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" name="oldPrice" value={formData.oldPrice || formData.price} onChange={(e) => {
-                                        const val = Number(e.target.value);
-                                        const currentDiscount = formData.oldPrice && formData.price && formData.oldPrice > formData.price 
-                                            ? ((Number(formData.oldPrice) - Number(formData.price)) / Number(formData.oldPrice)) : 0;
-                                        setFormData({...formData, oldPrice: val, price: Math.round(val * (1 - currentDiscount))});
-                                    }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                                    <input type="number" value={oldPriceInput} onChange={(e) => {
+                                        const val = e.target.value;
+                                        setOldPriceInput(val);
+                                        const oldP = Number(val);
+                                        setFormData(prev => ({...prev, oldPrice: oldP}));
+                                        const disc = Number(discountInput);
+                                        if (disc > 0 && disc <= 100) {
+                                            const newPrice = Math.round(oldP * (1 - disc / 100));
+                                            setPriceInput(String(newPrice));
+                                            setFormData(prev => ({...prev, price: newPrice}));
+                                        } else {
+                                            setPriceInput(val);
+                                            setFormData(prev => ({...prev, price: oldP}));
+                                        }
+                                    }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Prix barré" />
                                 </div>
                             </div>
                             <div className="relative group">
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Remise (%)</label>
                                 <div className="relative">
                                     <Tag size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" min="0" max="100" value={formData.oldPrice && formData.price && formData.oldPrice > formData.price ? Math.round(((Number(formData.oldPrice) - Number(formData.price)) / Number(formData.oldPrice)) * 100) : ''} onChange={(e) => {
+                                    <input type="number" min="0" max="100" value={discountInput} onChange={(e) => {
                                         const val = e.target.value;
+                                        setDiscountInput(val);
+                                        const disc = Number(val);
+                                        const oldP = Number(oldPriceInput);
                                         if (val === '') {
-                                            setFormData({...formData, price: formData.oldPrice || formData.price});
-                                            return;
-                                        }
-                                        const discount = Number(val);
-                                        if (discount >= 0 && discount <= 100) {
-                                            const basePrice = Number(formData.oldPrice) || Number(formData.price) || 0;
-                                            setFormData({ ...formData, oldPrice: basePrice, price: Math.round(basePrice * (1 - discount / 100)) });
+                                            setPriceInput(String(oldP));
+                                            setFormData(prev => ({...prev, price: oldP}));
+                                        } else if (disc >= 0 && disc <= 100) {
+                                            const newPrice = Math.round(oldP * (1 - disc / 100));
+                                            setPriceInput(String(newPrice));
+                                            setFormData(prev => ({...prev, price: newPrice}));
                                         }
                                     }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Ex: 20" />
                                 </div>
@@ -3823,14 +3857,30 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Prix Final ({currency})</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" name="price" value={formData.price} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                                    <input type="number" value={priceInput} onChange={(e) => {
+                                        const val = e.target.value;
+                                        setPriceInput(val);
+                                        const p = Number(val);
+                                        setFormData(prev => ({...prev, price: p}));
+                                        const oldP = Number(oldPriceInput);
+                                        if (oldP > 0 && oldP > p) {
+                                            setDiscountInput(String(Math.round(((oldP - p) / oldP) * 100)));
+                                        } else {
+                                            setDiscountInput('');
+                                            setOldPriceInput(val);
+                                            setFormData(prev => ({...prev, oldPrice: p}));
+                                        }
+                                    }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Prix de vente" />
                                 </div>
                             </div>
                             <div className="relative group">
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Coût d&apos;achat</label>
                                 <div className="relative">
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" name="costPrice" value={formData.costPrice || ''} onChange={handleChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Fournisseur" />
+                                    <input type="number" value={costPriceInput} onChange={(e) => {
+                                        setCostPriceInput(e.target.value);
+                                        setFormData(prev => ({...prev, costPrice: Number(e.target.value)}));
+                                    }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Fournisseur" />
                                 </div>
                             </div>
                             <div className="relative group">
