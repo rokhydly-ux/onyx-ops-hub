@@ -24,6 +24,11 @@ interface Review {
   admin_reply?: string;
 }
 
+interface VariantOption {
+  name: string;
+  priceModifier: number;
+}
+
 interface Product {
   id: number;
   name: string;
@@ -41,8 +46,8 @@ interface Product {
   barcode?: string;
   reviewsList?: Review[];
   variants?: {
-    sizes?: string[];
-    colors?: string[];
+    sizes?: VariantOption[];
+    colors?: VariantOption[];
   };
 }
 
@@ -75,6 +80,9 @@ const generateMockProducts = (): Product[] => {
     const isPromo = Math.random() > 0.7;
     const price = isPromo ? Math.floor(basePrice * 0.8) : basePrice;
 
+    const productSizes = [sizes[i % sizes.length], sizes[(i + 1) % sizes.length], sizes[(i + 2) % sizes.length]];
+    const productColors = [colors[i % colors.length], colors[(i + 1) % colors.length]];
+
     return {
       id: i + 1,
       name: `${type} Premium ${cat} ${i + 1}`,
@@ -92,8 +100,8 @@ const generateMockProducts = (): Product[] => {
       rating: Number((3.5 + Math.random() * 1.5).toFixed(1)),
       reviews: Math.floor(Math.random() * 100) + 5,
       variants: {
-        sizes: [sizes[i % sizes.length], sizes[(i + 1) % sizes.length], sizes[(i + 2) % sizes.length]],
-        colors: [colors[i % colors.length], colors[(i + 1) % colors.length]]
+        sizes: productSizes.map((s, idx) => ({ name: s, priceModifier: idx === 2 ? 2000 : 0 })), // Example: last size is more expensive
+        colors: productColors.map(c => ({ name: c, priceModifier: 0 }))
       },
       videoUrl: i % 4 === 0 ? "https://www.youtube.com/embed/dQw4w9WgXcQ" : "",
       reviewsList: [
@@ -956,7 +964,7 @@ export default function OnyxJaayShop() {
       const colorsSet = new Set<string>();
       products.forEach((p: any) => {
           if (p.variants?.colors && Array.isArray(p.variants.colors)) {
-              p.variants.colors.forEach((c: string) => colorsSet.add(c));
+              p.variants.colors.forEach((c: any) => colorsSet.add(typeof c === 'string' ? c : c.name));
           }
       });
       return Array.from(colorsSet).sort();
@@ -966,7 +974,7 @@ export default function OnyxJaayShop() {
       const sizesSet = new Set<string>();
       products.forEach((p: any) => {
           if (p.variants?.sizes && Array.isArray(p.variants.sizes)) {
-              p.variants.sizes.forEach((s: string) => sizesSet.add(s));
+              p.variants.sizes.forEach((s: any) => sizesSet.add(typeof s === 'string' ? s : s.name));
           }
       });
       const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
@@ -1844,8 +1852,8 @@ export default function OnyxJaayShop() {
       'Catégorie': p.category,
       'Stock': p.stock || 0,
       'Image': p.image,
-      'Tailles': p.variants?.sizes?.join(', ') || '',
-      'Couleurs': p.variants?.colors?.join(', ') || ''
+      'Tailles': p.variants?.sizes?.map((s: any) => typeof s === 'string' ? s : s.name).join(', ') || '',
+      'Couleurs': p.variants?.colors?.map((c: any) => typeof c === 'string' ? c : c.name).join(', ') || ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -1895,8 +1903,8 @@ export default function OnyxJaayShop() {
         reviews: 0,
         reviewsList: [],
         variants: {
-            sizes: (row['Tailles'] || row['sizes'] || '').toString().split(',').map((s: string) => s.trim()).filter(Boolean),
-            colors: (row['Couleurs'] || row['colors'] || '').toString().split(',').map((s: string) => s.trim()).filter(Boolean)
+            sizes: (row['Tailles'] || row['sizes'] || '').toString().split(',').map((s: string) => ({ name: s.trim(), priceModifier: 0 })).filter((v: any) => v.name),
+            colors: (row['Couleurs'] || row['colors'] || '').toString().split(',').map((s: string) => ({ name: s.trim(), priceModifier: 0 })).filter((v: any) => v.name)
         }
       }));
 
@@ -2163,8 +2171,8 @@ export default function OnyxJaayShop() {
     const matchesMinPrice = minPrice === '' || (p.price || 0) >= Number(minPrice);
     const matchesMaxPrice = maxPrice === '' || (p.price || 0) <= Number(maxPrice);
 
-    const matchesColor = activeColor.length === 0 || (p.variants?.colors && Array.isArray(p.variants.colors) && p.variants.colors.some((c: string) => activeColor.includes(c)));
-    const matchesSize = activeSize.length === 0 || (p.variants?.sizes && Array.isArray(p.variants.sizes) && p.variants.sizes.some((s: string) => activeSize.includes(s)));
+    const matchesColor = activeColor.length === 0 || (p.variants?.colors && Array.isArray(p.variants.colors) && p.variants.colors.some((c: any) => activeColor.includes(c.name || c)));
+    const matchesSize = activeSize.length === 0 || (p.variants?.sizes && Array.isArray(p.variants.sizes) && p.variants.sizes.some((s: any) => activeSize.includes(s.name || s)));
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch && matchesColor && matchesSize;
   }).sort((a, b) => {
@@ -3631,6 +3639,9 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
     const [isGenerating, setIsGenerating] = useState(false);
     const [galleryUrlInput, setGalleryUrlInput] = useState('');
     
+    const [sizesInput, setSizesInput] = useState(product?.variants?.sizes?.map(s => s.name).join(', ') || '');
+    const [colorsInput, setColorsInput] = useState(product?.variants?.colors?.map(c => c.name).join(', ') || '');
+
     // Simulateur de Rentabilité
     const [simulator, setSimulator] = useState({
         taxRate: 18,
@@ -3663,14 +3674,17 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const simTVA = (formData.price || 0) - ((formData.price || 0) / (1 + simulator.taxRate / 100));
-    const simPrixHT = (formData.price || 0) - simTVA;
-    const simCharges = (formData.costPrice || 0) + simulator.shippingCost + simulator.packagingCost + simulator.marketingCac + simulator.customsFee + ((formData.price || 0) * simulator.paymentFeePct / 100);
-    const simNetProfit = (formData.price || 0) - simTVA - simCharges;
+    const priceVal = Number(formData.price) || 0;
+    const costPriceVal = Number(formData.costPrice) || 0;
+
+    const simTVA = priceVal - (priceVal / (1 + Number(simulator.taxRate) / 100));
+    const simPrixHT = priceVal - simTVA;
+    const simCharges = costPriceVal + Number(simulator.shippingCost) + Number(simulator.packagingCost) + Number(simulator.marketingCac) + Number(simulator.customsFee) + (priceVal * Number(simulator.paymentFeePct) / 100);
+    const simNetProfit = priceVal - simTVA - simCharges;
     const simMarginPct = simPrixHT > 0 ? (simNetProfit / simPrixHT) * 100 : 0;
 
     const calculateIdealPrice = () => {
-        const Cf = (formData.costPrice || 0) + simulator.shippingCost + simulator.packagingCost + simulator.marketingCac + simulator.customsFee;
+        const Cf = costPriceVal + Number(simulator.shippingCost) + Number(simulator.packagingCost) + Number(simulator.marketingCac) + Number(simulator.customsFee);
         const T = simulator.taxRate / 100;
         const Fee = simulator.paymentFeePct / 100;
         const M = (simulator.targetMarginPct || 0) / 100;
@@ -3678,6 +3692,28 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
         if (denominator <= 0) return alert("Marge impossible à atteindre avec ces frais de transaction et TVA. Veuillez réduire la marge cible ou les frais.");
         const idealPrice = (Cf * (1 + T)) / denominator;
         setFormData(prev => ({...prev, price: Math.ceil(idealPrice / 100) * 100}));
+    };
+
+    const handleSizesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setSizesInput(val);
+        const names = val.split(',').map(s => s.trim()).filter(Boolean);
+        const newSizes = names.map(name => {
+            const existing = formData.variants?.sizes?.find((s: any) => s.name === name);
+            return existing || { name, priceModifier: 0 };
+        });
+        setFormData(prev => ({ ...prev, variants: { ...prev.variants, sizes: newSizes } }));
+    };
+
+    const handleColorsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setColorsInput(val);
+        const names = val.split(',').map(s => s.trim()).filter(Boolean);
+        const newColors = names.map(name => {
+            const existing = formData.variants?.colors?.find((c: any) => c.name === name);
+            return existing || { name, priceModifier: 0 };
+        });
+        setFormData(prev => ({ ...prev, variants: { ...prev.variants, colors: newColors } }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -3759,7 +3795,9 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                     <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
                                     <input type="number" name="oldPrice" value={formData.oldPrice || formData.price} onChange={(e) => {
                                         const val = Number(e.target.value);
-                                        setFormData({...formData, oldPrice: val, price: val});
+                                        const currentDiscount = formData.oldPrice && formData.price && formData.oldPrice > formData.price 
+                                            ? ((Number(formData.oldPrice) - Number(formData.price)) / Number(formData.oldPrice)) : 0;
+                                        setFormData({...formData, oldPrice: val, price: Math.round(val * (1 - currentDiscount))});
                                     }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
                                 </div>
                             </div>
@@ -3767,10 +3805,16 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                 <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Remise (%)</label>
                                 <div className="relative">
                                     <Tag size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input type="number" min="0" max="100" value={formData.oldPrice && formData.price && formData.oldPrice > formData.price ? Math.round(((formData.oldPrice - formData.price) / formData.oldPrice) * 100) : ''} onChange={(e) => {
-                                        const discount = Number(e.target.value);
-                                        if (discount >= 0 && discount <= 100 && formData.oldPrice) {
-                                            setFormData({...formData, price: Math.round(formData.oldPrice * (1 - discount / 100))});
+                                    <input type="number" min="0" max="100" value={formData.oldPrice && formData.price && formData.oldPrice > formData.price ? Math.round(((Number(formData.oldPrice) - Number(formData.price)) / Number(formData.oldPrice)) * 100) : ''} onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') {
+                                            setFormData({...formData, price: formData.oldPrice || formData.price});
+                                            return;
+                                        }
+                                        const discount = Number(val);
+                                        if (discount >= 0 && discount <= 100) {
+                                            const basePrice = Number(formData.oldPrice) || Number(formData.price) || 0;
+                                            setFormData({ ...formData, oldPrice: basePrice, price: Math.round(basePrice * (1 - discount / 100)) });
                                         }
                                     }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 pl-10 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" placeholder="Ex: 20" />
                                 </div>
@@ -3794,7 +3838,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                     Catégorie
                                     {onAddCategory && (
                                         <button type="button" onClick={() => {
-                                            const newCat = prompt("Nom de la nouvelle catégorie :");
+                                            const newCat = prompt("Nom de la catégorie (Pour créer une sous-catégorie, utilisez ' / ' ex: Homme / Pantalons) :");
                                             if (newCat && newCat.trim()) {
                                                 onAddCategory(newCat.trim());
                                                 setFormData({...formData, category: newCat.trim()});
@@ -3804,7 +3848,7 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
                                         </button>
                                     )}
                                 </label>
-                                <select name="category" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition appearance-none">
+                                <select name="category" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition appearance-none cursor-pointer">
                                     <option value="">Sélectionner une catégorie...</option>
                                     {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map(c => (
                                         <option key={c} value={c}>{c}</option>
@@ -3840,15 +3884,50 @@ function ProductModal({ product, onClose, onSave, onImageUpload, categories, cur
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="relative group">
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Tailles (séparées par virgule)</label>
-                                <input type="text" value={formData.variants?.sizes?.join(', ')} onChange={e => setFormData({...formData, variants: {...formData.variants, sizes: e.target.value.split(',').map(s => s.trim()).filter(Boolean)}})} placeholder="S, M, L, XL" className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 flex justify-between items-center">
+                                    Tailles 
+                                    <span className="text-[10px] text-zinc-400 font-normal normal-case">Séparées par une virgule</span>
+                                </label>
+                                <input type="text" placeholder="Ex: S, M, L, XL" value={sizesInput} onChange={handleSizesChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                                {formData.variants?.sizes && formData.variants.sizes.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {formData.variants.sizes.map((s, idx) => (
+                                            <div key={idx} className="flex items-center gap-1 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                                <span className="text-xs font-bold">{s.name}</span>
+                                                <input type="number" placeholder="+ Prix" value={s.priceModifier || ''} onChange={(e) => {
+                                                    const newSizes = [...(formData.variants?.sizes || [])];
+                                                    newSizes[idx].priceModifier = Number(e.target.value) || 0;
+                                                    setFormData(prev => ({...prev, variants: {...prev.variants, sizes: newSizes}}));
+                                                }} className="w-16 bg-transparent outline-none text-xs text-[#39FF14] placeholder-zinc-500 ml-2" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div className="relative group">
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Couleurs (séparées par virgule)</label>
-                                <input type="text" value={formData.variants?.colors?.join(', ')} onChange={e => setFormData({...formData, variants: {...formData.variants, colors: e.target.value.split(',').map(s => s.trim()).filter(Boolean)}})} placeholder="Rouge, Bleu, Noir" className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 flex justify-between items-center">
+                                    Couleurs
+                                    <span className="text-[10px] text-zinc-400 font-normal normal-case">Séparées par une virgule</span>
+                                </label>
+                                <input type="text" placeholder="Ex: Noir, Blanc, Rouge" value={colorsInput} onChange={handleColorsChange} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 font-medium text-black dark:text-white outline-none focus:border-[#39FF14] transition" />
+                                {formData.variants?.colors && formData.variants.colors.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {formData.variants.colors.map((c, idx) => (
+                                            <div key={idx} className="flex items-center gap-1 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                                <span className="text-xs font-bold">{c.name}</span>
+                                                <input type="number" placeholder="+ Prix" value={c.priceModifier || ''} onChange={(e) => {
+                                                    const newColors = [...(formData.variants?.colors || [])];
+                                                    newColors[idx].priceModifier = Number(e.target.value) || 0;
+                                                    setFormData(prev => ({...prev, variants: {...prev.variants, colors: newColors}}));
+                                                }} className="w-16 bg-transparent outline-none text-xs text-[#39FF14] placeholder-zinc-500 ml-2" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        {onApplyVariantsToAll && (formData.variants?.sizes?.length || formData.variants?.colors?.length) ? (
+
+                        {onApplyVariantsToAll && (formData.variants?.sizes?.length || formData.variants?.colors?.length) ? ( // This logic might need adjustment if variants are now objects
                             <button type="button" onClick={() => onApplyVariantsToAll(formData.variants)} className="text-[10px] font-bold text-[#39FF14] bg-black dark:bg-white dark:text-black px-4 py-2 rounded-lg hover:scale-105 transition-transform shadow-md">
                                 Appliquer ces tailles et couleurs à TOUS mes produits
                             </button>
@@ -4589,13 +4668,13 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                     <div className="mb-6">
                       <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Taille(s) <span className="text-red-500">* (Sélection multiple possible)</span></p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants.sizes.map((size: string) => (
+                        {product.variants.sizes.map((size: VariantOption) => (
                           <button 
-                            key={size} 
-                            onClick={() => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedSizes.includes(size) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                            key={size.name} 
+                            onClick={() => setSelectedSizes(prev => prev.includes(size.name) ? prev.filter(s => s !== size.name) : [...prev, size.name])}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedSizes.includes(size.name) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
                           >
-                            {size}
+                            {size.name} {size.priceModifier !== 0 ? `(${size.priceModifier > 0 ? '+' : ''}${displayPrice(size.priceModifier, currency)})` : ''}
                           </button>
                         ))}
                       </div>
@@ -4606,13 +4685,13 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                     <div className="mb-6">
                       <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Couleur(s) <span className="text-red-500">* (Sélection multiple possible)</span></p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants.colors.map((color: string) => (
+                        {product.variants.colors.map((color: VariantOption) => (
                           <button 
-                            key={color} 
-                            onClick={() => setSelectedColors(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedColors.includes(color) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                            key={color.name} 
+                            onClick={() => setSelectedColors(prev => prev.includes(color.name) ? prev.filter(c => c !== color.name) : [...prev, color.name])}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedColors.includes(color.name) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
                           >
-                            {color}
+                            {color.name} {color.priceModifier !== 0 ? `(${color.priceModifier > 0 ? '+' : ''}${displayPrice(color.priceModifier, currency)})` : ''}
                           </button>
                         ))}
                       </div>

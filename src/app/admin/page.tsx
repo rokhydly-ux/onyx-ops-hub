@@ -59,46 +59,6 @@ const ECOSYSTEM_SAAS = [
 ];
 const ONYX_ELITE = { id: "elite", name: "Onyx Elite", desc: "Pack Sans Limit CRM + Studio Créatif", price: 78900, color: "bg-zinc-800", url: "https://onyxops.com" };
 
-const TestSupabaseInsert = () => {
-  const handleTestInsert = async () => {
-    const testPayload = { full_name: 'TEST INSERT BOUTON', phone: '+221779998877', password: 'test', intent: 'Test via bouton', source: 'Admin Test Button' };
-    
-    alert('Envoi du payload de test à la table "leads"...');
-    console.log("Payload de test :", testPayload);
-
-    const { data, error } = await supabase.from('leads').insert([testPayload]).select();
-
-    if (error) {
-      alert('CRASH SUPABASE : ' + JSON.stringify(error, null, 2));
-      console.error('CRASH SUPABASE:', error);
-    } else {
-      alert('SUCCÈS : ' + JSON.stringify(data, null, 2));
-      console.log('SUCCÈS:', data);
-    }
-  };
-
-  return (
-    <div style={{ position: 'fixed', top: '150px', right: '20px', zIndex: 9999 }}>
-      <button 
-        onClick={handleTestInsert}
-        style={{
-          backgroundColor: '#FF4136',
-          color: 'white',
-          padding: '12px 24px',
-          border: 'none',
-          borderRadius: '10px',
-          cursor: 'pointer',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          boxShadow: '0 4px 14px 0 rgba(255, 65, 54, 0.39)'
-        }}
-      >
-        TEST INSERT LEADS
-      </button>
-    </div>
-  );
-};
-
 export default function AdminDashboard() {
    const router = useRouter();
  
@@ -250,7 +210,11 @@ export default function AdminDashboard() {
      const { data: materialsData } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
      
      if (contactsData) setContacts(contactsData);
-     if (leadsData) setLeads(leadsData);
+     if (leadsData) {
+       const normalizePhone = (p: string) => (p || '').replace(/\s+/g, '').replace(/^\+221/, '');
+       const activeLeads = leadsData.filter(lead => !contactsData?.some(c => normalizePhone(c.phone) === normalizePhone(lead.phone)));
+       setLeads(activeLeads);
+     }
      if (partnersData) setPartners(partnersData);
      if (materialsData) setMarketingMaterials(materialsData);
      
@@ -1083,7 +1047,6 @@ export default function AdminDashboard() {
   
   return (
     <div className={`flex h-screen bg-[#fafafa] dark:bg-zinc-950 font-sans text-black dark:text-white overflow-hidden relative selection:bg-[#39FF14]/30 transition-colors`}>
-      <TestSupabaseInsert />
       
       {/* ================= SIDEBAR GAUCHE ================= */}
       <aside className="w-72 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col z-30 shadow-sm hidden md:flex transition-all">

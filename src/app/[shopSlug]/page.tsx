@@ -205,8 +205,8 @@ const INITIAL_ZONES = [
 ];
 
 function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart, onBuyDirectly, onShare, onViewProduct, onGenerateQR, onAddReview, currency, cart, shopPhone }: any) {
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [selectedSize, setSelectedSize] = useState<any | null>(null);
+  const [selectedColor, setSelectedColor] = useState<any | null>(null);
   const [selectedQty, setSelectedQty] = useState(1);
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
   const [mediaView, setMediaView] = useState<'image' | 'video'>('image');
@@ -248,8 +248,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
   React.useEffect(() => {
     if (product) {
-      setSelectedSizes([]);
-      setSelectedColors([]);
+      setSelectedSize(null);
+      setSelectedColor(null);
       setSelectedQty(1);
       setMediaView('image');
       setActiveImage(product.image);
@@ -383,8 +383,8 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                <div className="mb-8">
                   <span className="text-[#39FF14] text-xs font-bold uppercase tracking-widest border border-[#39FF14]/20 px-3 py-1 rounded-full mb-4 inline-block">{product.category}</span>
                   <h2 className="text-3xl font-black tracking-tighter text-black dark:text-white mb-2">{product.name}</h2>
-                  <div className="flex items-center gap-3 mb-6">
-                      <p className="text-2xl font-bold text-black dark:text-white">{displayPrice(product.price, currency)}</p>
+                  <div className="flex items-center gap-3 mb-6 h-10">
+                      <p className="text-2xl font-bold text-black dark:text-white">{displayPrice(product.price + (selectedSize?.priceModifier || 0) + (selectedColor?.priceModifier || 0), currency)}</p>
                       {product.oldPrice && product.oldPrice > product.price && (
                           <>
                               <p className="text-lg text-zinc-500 line-through">{displayPrice(product.oldPrice, currency)}</p>
@@ -410,15 +410,15 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   {/* VARIANTS SELECTION */}
                   {product?.variants?.sizes && Array.isArray(product.variants.sizes) && product.variants.sizes.length > 0 && (
                     <div className="mb-6">
-                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Taille(s) <span className="text-red-500">* (Sélection multiple possible)</span></p>
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Taille <span className="text-red-500">*</span></p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants.sizes.map((size: string) => (
+                        {product.variants.sizes.map((size: any) => (
                           <button 
-                            key={size} 
-                            onClick={() => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedSizes.includes(size) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                            key={size.name || size} 
+                            onClick={() => setSelectedSize(selectedSize?.name === size.name ? null : size)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedSize?.name === size.name ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
                           >
-                            {size}
+                            {size.name} {size.priceModifier !== 0 ? `(${size.priceModifier > 0 ? '+' : ''}${displayPrice(size.priceModifier, currency)})` : ''}
                           </button>
                         ))}
                       </div>
@@ -427,15 +427,15 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
 
                   {product?.variants?.colors && Array.isArray(product.variants.colors) && product.variants.colors.length > 0 && (
                     <div className="mb-6">
-                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Couleur(s) <span className="text-red-500">* (Sélection multiple possible)</span></p>
+                      <p className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1">Couleur <span className="text-red-500">*</span></p>
                       <div className="flex flex-wrap gap-2">
-                        {product.variants.colors.map((color: string) => (
+                        {product.variants.colors.map((color: any) => (
                           <button 
-                            key={color} 
-                            onClick={() => setSelectedColors(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color])}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedColors.includes(color) ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
+                            key={color.name || color} 
+                            onClick={() => setSelectedColor(selectedColor?.name === color.name ? null : color)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${selectedColor?.name === color.name ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white' : 'bg-transparent text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-zinc-500'}`}
                           >
-                            {color}
+                            {color.name} {color.priceModifier !== 0 ? `(${color.priceModifier > 0 ? '+' : ''}${displayPrice(color.priceModifier, currency)})` : ''}
                           </button>
                         ))}
                       </div>
@@ -469,24 +469,24 @@ function ProductDetailModal({ product, allProducts, isOpen, onClose, onAddToCart
                   <div className="flex flex-col sm:flex-row gap-3">
                       <button 
                         onClick={() => { 
-                          if ((product.variants?.sizes?.length || 0) > 0 && selectedSizes.length === 0) return alert("Veuillez sélectionner au moins une taille.");
-                          if ((product.variants?.colors?.length || 0) > 0 && selectedColors.length === 0) return alert("Veuillez sélectionner au moins une couleur.");
-                          onAddToCart(product, { size: selectedSizes.join(', ') || undefined, color: selectedColors.join(', ') || undefined }, true, selectedQty); 
+                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
+                          onAddToCart(product, { size: selectedSize?.name, color: selectedColor?.name, priceModifier: (selectedSize?.priceModifier || 0) + (selectedColor?.priceModifier || 0) }, true, selectedQty || 1); 
                           onClose();
                         }} 
-                        disabled={isOutOfStock || isMaxedOut}
+                        disabled={isOutOfStock || selectedQty === 0}
                         className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                         <Plus size={18} /> {isMaxedOut && !isOutOfStock ? "Limite atteinte" : "Ajouter au Panier"}
+                         <Plus size={18} /> {maxAvailable === 0 && product.stock !== 0 ? "Limite panier" : "Ajouter au Panier"}
                       </button>
                       <button 
                         onClick={() => { 
-                          if ((product.variants?.sizes?.length || 0) > 0 && selectedSizes.length === 0) return alert("Veuillez sélectionner au moins une taille.");
-                          if ((product.variants?.colors?.length || 0) > 0 && selectedColors.length === 0) return alert("Veuillez sélectionner au moins une couleur.");
-                          onBuyDirectly(product, { size: selectedSizes.join(', ') || undefined, color: selectedColors.join(', ') || undefined }, selectedQty); 
+                          if ((product.variants?.sizes?.length || 0) > 0 && !selectedSize) return alert("Veuillez sélectionner une taille.");
+                          if ((product.variants?.colors?.length || 0) > 0 && !selectedColor) return alert("Veuillez sélectionner une couleur.");
+                          onBuyDirectly(product, { size: selectedSize?.name, color: selectedColor?.name, priceModifier: (selectedSize?.priceModifier || 0) + (selectedColor?.priceModifier || 0) }, selectedQty || 1); 
                           onClose();
                         }} 
-                        disabled={isOutOfStock || isMaxedOut}
+                        disabled={isOutOfStock || selectedQty === 0}
                         className="flex-[2] bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-[11px] sm:text-sm hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition flex items-center justify-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
                       >
                          <ShoppingCart size={18} /> Acheter Directement
@@ -810,10 +810,10 @@ export default function DynamicShopPage() {
         const sizesSet = new Set<string>();
         shopProducts.forEach((p: any) => {
             if (p.variants?.colors && Array.isArray(p.variants.colors)) {
-                p.variants.colors.forEach((c: string) => colorsSet.add(c));
+                p.variants.colors.forEach((c: any) => colorsSet.add(typeof c === 'string' ? c : c.name));
             }
             if (p.variants?.sizes && Array.isArray(p.variants.sizes)) {
-                p.variants.sizes.forEach((s: string) => sizesSet.add(s));
+                p.variants.sizes.forEach((s: any) => sizesSet.add(typeof s === 'string' ? s : s.name));
             }
         });
         setAvailableColors(Array.from(colorsSet).sort());
@@ -1316,8 +1316,8 @@ export default function DynamicShopPage() {
     const matchesCategory = activeCategory === 'Toutes' || (activeCategory === 'Favoris' ? wishlist.includes(p.id) : (p.category === activeCategory || (p.category && p.category.startsWith(activeCategory + ' / '))));
     const matchesMinPrice = minPrice === '' || (p.price || 0) >= Number(minPrice);
     const matchesMaxPrice = maxPrice === '' || (p.price || 0) <= Number(maxPrice);
-    const matchesColor = activeColor.length === 0 || (p.variants?.colors && Array.isArray(p.variants.colors) && p.variants.colors.some((c: string) => activeColor.includes(c)));
-    const matchesSize = activeSize.length === 0 || (p.variants?.sizes && Array.isArray(p.variants.sizes) && p.variants.sizes.some((s: string) => activeSize.includes(s)));
+    const matchesColor = activeColor.length === 0 || (p.variants?.colors && Array.isArray(p.variants.colors) && p.variants.colors.some((c: any) => activeColor.includes(c.name || c)));
+    const matchesSize = activeSize.length === 0 || (p.variants?.sizes && Array.isArray(p.variants.sizes) && p.variants.sizes.some((s: any) => activeSize.includes(s.name || s)));
 
     return matchesCategory && matchesMinPrice && matchesMaxPrice && matchesSearch && matchesColor && matchesSize;
   }).sort((a, b) => {
