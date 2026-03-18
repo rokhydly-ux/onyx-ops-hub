@@ -144,7 +144,19 @@ export default function OnyxHubPortal() {
   
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 sm:gap-8">
             {APPS.map((app) => {
-              const isUnlocked = user?.active_saas?.includes(app.id) || user?.saas === app.name;
+              let expDate = null;
+              if (user?.saas_expiration_dates && user.saas_expiration_dates[app.id]) {
+                  expDate = new Date(user.saas_expiration_dates[app.id]);
+              } else if (user?.expiration_date) {
+                  expDate = new Date(user.expiration_date);
+              }
+              const isExpired = expDate ? new Date(expDate).setHours(23,59,59,999) < new Date().getTime() : false;
+              
+              const saasNameLower = (user?.saas || '').toLowerCase();
+              const isPack = saasNameLower.includes('duo') || saasNameLower.includes('trio');
+              const hasAccess = user?.active_saas?.includes(app.id) || saasNameLower.includes(app.id.toLowerCase()) || isPack;
+              
+              const isUnlocked = hasAccess && !isExpired;
 
               const AppIcon = app.icon;
               
@@ -165,6 +177,7 @@ export default function OnyxHubPortal() {
                   <div className="text-center">
                      <h3 className="font-black text-sm uppercase text-zinc-800 tracking-tight">{app.name}</h3>
                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{app.desc}</p>
+                     {hasAccess && isExpired && <p className="text-[10px] font-black text-red-500 uppercase mt-1 border border-red-500 rounded-md px-1 inline-block">Expiré</p>}
                   </div>
                 </div>
               );
@@ -178,7 +191,7 @@ export default function OnyxHubPortal() {
               }
   
               return (
-                <div key={app.id} onClick={() => alert("Vous n'avez pas encore souscrit à cette application. Contactez le support sur WhatsApp pour l'activer !")}>
+                <div key={app.id} onClick={() => alert(hasAccess && isExpired ? `Votre abonnement pour ${app.name} a expiré. Veuillez contacter le support pour le renouveler.` : "Vous n'avez pas encore souscrit à cette application. Contactez le support sur WhatsApp pour l'activer !")}>
                   {cardContent}
                 </div>
               );

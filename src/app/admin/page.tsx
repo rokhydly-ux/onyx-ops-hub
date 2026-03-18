@@ -37,6 +37,7 @@ type Contact = {
   created_at: string;
   expiration_date?: string | null;
   active_saas?: string[] | null;
+  saas_expiration_dates?: Record<string, string>;
   saas?: string;
   avatar_url?: string;
   password_temp?: string | null;
@@ -45,6 +46,14 @@ type Contact = {
 
 type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help";
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
+
+const AVAILABLE_MODULES = [
+  { id: 'vente', name: 'Onyx Jaay' },
+  { id: 'stock', name: 'Onyx Stock' },
+  { id: 'tiak', name: 'Onyx Tiak' },
+  { id: 'menu', name: 'Onyx Menu' },
+  { id: 'formation', name: 'Onyx Formation' }
+];
 
 const ECOSYSTEM_SAAS = [
   { id: "vente", name: "Onyx Jaay", desc: "Catalogue & Devis WhatsApp", price: 9900, color: "bg-[#39FF14]", url: "/vente" },
@@ -108,6 +117,7 @@ export default function AdminDashboard() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
+  const [prorataMsg, setProrataMsg] = useState("");
   const [adminProfile, setAdminProfile] = useState({ 
     name: "Cruella Ly", 
     email: "rokhydly@gmail.com", 
@@ -561,6 +571,45 @@ export default function AdminDashboard() {
    alert("Action planifiée avec succès dans le Journal IA !");
 };
 
+  const handleApplyPack = (packName: 'Solo' | 'Duo' | 'Trio') => {
+      let packPrice = packName === 'Solo' ? 9900 : packName === 'Duo' ? 17500 : 24900;
+      let packSaas = packName === 'Solo' ? ['vente'] : packName === 'Duo' ? ['vente', 'tiak'] : ['vente', 'tiak', 'stock'];
+      
+      const currentExp = editingContact.expiration_date;
+      let newExpDate = new Date();
+      newExpDate.setDate(newExpDate.getDate() + 30); // par defaut +30j
+      let msg = "";
+
+      // Calcul Prorata si upgrade
+      if (currentExp && (editingContact.saas === 'Pack Solo' || editingContact.saas === 'Onyx Jaay') && packName !== 'Solo') {
+          const expDate = new Date(currentExp);
+          const today = new Date();
+          const diffTime = expDate.getTime() - today.getTime();
+          const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (remainingDays > 0) {
+              const remainingValue = (9900 / 30) * remainingDays;
+              const extraDays = Math.floor(remainingValue / (packPrice / 30));
+              newExpDate = new Date();
+              newExpDate.setDate(newExpDate.getDate() + 30 + extraDays);
+              msg = `✅ Prorata appliqué : Il restait ${remainingDays}j de Solo (${Math.round(remainingValue)}F). Valeur convertie en +${extraDays} jours offerts sur le ${packName}.`;
+          }
+      }
+
+      const formattedExpDate = newExpDate.toISOString().split('T')[0];
+      const newDates: any = { ...(editingContact.saas_expiration_dates || {}) };
+      packSaas.forEach(s => newDates[s] = formattedExpDate);
+
+      setEditingContact(prev => ({ 
+          ...prev, 
+          saas: `Pack ${packName}`, 
+          active_saas: Array.from(new Set([...(prev.active_saas || []), ...packSaas])), 
+          expiration_date: formattedExpDate, 
+          saas_expiration_dates: newDates 
+      }));
+      setProrataMsg(msg);
+  };
+
   const handleDeleteItem = async (table: string, id: string) => {
     if (!supabase) return; 
     if(!confirm("⚠️ Attention : Suppression irréversible. Confirmer ?")) return;
@@ -586,6 +635,7 @@ export default function AdminDashboard() {
     status: editingContact.status || 'Client',
     saas: editingContact.saas || '',
     active_saas: editingContact.active_saas || [],
+    saas_expiration_dates: editingContact.saas_expiration_dates || {},
     address: editingContact.address || '',
     activity: editingContact.activity || '',
     avatar_url: editingContact.avatar_url || '',
@@ -819,6 +869,7 @@ export default function AdminDashboard() {
       phone: "",
       password_temp: "",
       active_saas: [],
+      saas_expiration_dates: {},
       expiration_date: trialEndDate.toISOString().split('T')[0],
       type: "Prospect",
       saas: "",
@@ -826,6 +877,7 @@ export default function AdminDashboard() {
       source: "Admin",
     });
     setShowContactModal(true);
+    setProrataMsg("");
   };
 
   const runAutomatedFollowUps = async () => {
@@ -2285,66 +2337,69 @@ export default function AdminDashboard() {
                  <input type="tel" required value={editingContact?.phone || ""} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="+221 7x xxx xx xx" />
               </div>
 
-              {/* GESTION DES ACCÈS SAAS */}
-              <div className="space-y-2 pt-4 border-t border-zinc-100">
-                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">
-                  Applications Débloquées
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {["vente", "stock", "tiak", "menu", "formation"].map((app) => (
-                    <label
-                      key={app}
-                      className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:border-black transition"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={(editingContact.active_saas || []).includes(app)}
-                        onChange={(e) => {
-                          const currentSaas = editingContact.active_saas || [];
-                          if (e.target.checked) {
-                            setEditingContact({
-                              ...editingContact,
-                              active_saas: [...currentSaas, app],
-                            });
-                          } else {
-                            setEditingContact({
-                              ...editingContact,
-                              active_saas: currentSaas.filter(
-                                (s: string) => s !== app
-                              ),
-                            });
-                          }
-                        }}
-                        className="w-4 h-4 accent-black"
-                      />
-                      <span className="text-xs font-bold uppercase text-zinc-700">
-                        {app}
-                      </span>
+              {/* GESTION DES PACKS & PRORATA */}
+              <div className="space-y-4 pt-4 border-t border-zinc-100">
+                <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">
+                    Abonnements & Packs
                     </label>
-                  ))}
                 </div>
-              </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button type="button" onClick={() => handleApplyPack('Solo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Solo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Solo (9.900F)</button>
+                    <button type="button" onClick={() => handleApplyPack('Duo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Duo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Duo (17.500F)</button>
+                    <button type="button" onClick={() => handleApplyPack('Trio')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Trio' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Trio (24.900F)</button>
+                </div>
+                
+                {prorataMsg && <p className="text-xs text-black font-bold bg-[#39FF14]/20 p-3 rounded-xl animate-in fade-in">{prorataMsg}</p>}
 
-              {/* DATE D'EXPIRATION */}
-              <div className="space-y-2 pt-4">
-                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">
-                  Date de fin d'abonnement / d'essai
-                </label>
-                <input
-                  type="date"
-                  value={
-                    editingContact.expiration_date
-                      ? String(editingContact.expiration_date).split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setEditingContact({
-                      ...editingContact,
-                      expiration_date: e.target.value,
-                    })
-                  }
-                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-[1.5rem] font-bold text-sm outline-none focus:border-black transition-all"
-                />
+                <div className="space-y-3 mt-4">
+                  {AVAILABLE_MODULES.map((app) => {
+                    const isActive = (editingContact.active_saas || []).includes(app.id);
+                    const appExpDate = editingContact.saas_expiration_dates?.[app.id] || editingContact.expiration_date;
+
+                    return (
+                        <div key={app.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border transition ${isActive ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-zinc-200 bg-zinc-50'}`}>
+                            <label className="flex items-center gap-3 cursor-pointer flex-1">
+                                <input
+                                    type="checkbox"
+                                    checked={isActive}
+                                    onChange={(e) => {
+                                        const currentSaas = editingContact.active_saas || [];
+                                        const newDates = { ...(editingContact.saas_expiration_dates || {}) };
+                                        if (e.target.checked) {
+                                            newDates[app.id] = editingContact.expiration_date || new Date().toISOString().split('T')[0];
+                                            setEditingContact({ ...editingContact, active_saas: [...currentSaas, app.id], saas_expiration_dates: newDates });
+                                        } else {
+                                            delete newDates[app.id];
+                                            setEditingContact({ ...editingContact, active_saas: currentSaas.filter((s: string) => s !== app.id), saas_expiration_dates: newDates });
+                                        }
+                                    }}
+                                    className="w-4 h-4 accent-black"
+                                />
+                                <span className="text-xs font-bold uppercase text-zinc-700">{app.name}</span>
+                            </label>
+                            {isActive && (
+                                <input 
+                                    type="date"
+                                    value={appExpDate ? String(appExpDate).split('T')[0] : ''}
+                                    onChange={(e) => {
+                                        setEditingContact({
+                                            ...editingContact,
+                                            saas_expiration_dates: {
+                                                ...(editingContact.saas_expiration_dates || {}),
+                                                [app.id]: e.target.value
+                                            }
+                                        });
+                                    }}
+                                    className="p-2 bg-white border border-zinc-200 rounded-lg text-xs font-bold outline-none focus:border-black shrink-0 cursor-pointer"
+                                    title="Date d'expiration individuelle pour ce module"
+                                />
+                            )}
+                        </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-2">

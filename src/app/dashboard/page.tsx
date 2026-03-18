@@ -9,8 +9,10 @@ interface UserProfile {
   id: string;
   full_name?: string;
   expiry_date?: string;
+  expiration_date?: string;
   active_modules?: string[] | string;
   active_saas?: string[] | string;
+  saas_expiration_dates?: Record<string, string>;
   saas?: string;
   role?: string;
   ia_credits?: number;
@@ -138,21 +140,43 @@ export default function Dashboard() {
   })();
   
   const isModuleActive = (moduleName: string) => {
-    // Si l'abonnement est expiré, on bloque tous les modules
-    if (expiryStatus?.expired) return false;
+    let moduleId = moduleName.toLowerCase();
+    if (moduleId.includes('jaay')) moduleId = 'vente';
+    else if (moduleId.includes('tiak')) moduleId = 'tiak';
+    else if (moduleId.includes('stock')) moduleId = 'stock';
+    else if (moduleId.includes('menu')) moduleId = 'menu';
+    else if (moduleId.includes('formation')) moduleId = 'formation';
 
+    let expDate = null;
+    if (profile?.saas_expiration_dates && profile.saas_expiration_dates[moduleId]) {
+        expDate = new Date(profile.saas_expiration_dates[moduleId]);
+    } else if (profile?.expiration_date) {
+        expDate = new Date(profile.expiration_date);
+    } else if (profile?.expiry_date) {
+        expDate = new Date(profile.expiry_date);
+    }
+
+    if (expDate) {
+        const today = new Date();
+        const diffTime = expDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) return false; // Bloqué car expiré !
+    }
+    
     const modules = profile?.active_modules || profile?.active_saas;
     const saas = profile?.saas;
-    const lowerCaseModuleName = moduleName.toLowerCase();
     
     let isActive = false;
     if (Array.isArray(modules)) {
-      isActive = modules.some(m => m.toLowerCase().includes(lowerCaseModuleName));
+      isActive = modules.some(m => m.toLowerCase() === moduleId || m.toLowerCase() === moduleName.toLowerCase());
     } else if (typeof modules === 'string') {
-      isActive = modules.toLowerCase().includes(lowerCaseModuleName);
+      isActive = modules.toLowerCase().includes(moduleId) || modules.toLowerCase().includes(moduleName.toLowerCase());
     }
     
-    if (!isActive && saas) isActive = saas.toLowerCase().includes(lowerCaseModuleName);
+    if (!isActive && saas) {
+        const saasLower = saas.toLowerCase();
+        isActive = saasLower.includes(moduleId) || saasLower.includes(moduleName.toLowerCase()) || saasLower.includes('duo') || saasLower.includes('trio');
+    }
     
     return isActive;
   };
