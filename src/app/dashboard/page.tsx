@@ -175,7 +175,15 @@ export default function Dashboard() {
     
     if (!isActive && saas) {
         const saasLower = saas.toLowerCase();
-        isActive = saasLower.includes(moduleId) || saasLower.includes(moduleName.toLowerCase()) || saasLower.includes('duo') || saasLower.includes('trio');
+            if (saasLower.includes('trio')) {
+                isActive = ['vente', 'tiak', 'stock'].includes(moduleId);
+            } else if (saasLower.includes('duo')) {
+                isActive = ['vente', 'tiak'].includes(moduleId);
+            } else if (saasLower.includes('solo')) {
+                isActive = ['vente'].includes(moduleId);
+            } else {
+                isActive = saasLower.includes(moduleId) || saasLower.includes(moduleName.toLowerCase());
+            }
     }
     
     return isActive;

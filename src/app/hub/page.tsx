@@ -153,8 +153,13 @@ export default function OnyxHubPortal() {
               const isExpired = expDate ? new Date(expDate).setHours(23,59,59,999) < new Date().getTime() : false;
               
               const saasNameLower = (user?.saas || '').toLowerCase();
-              const isPack = saasNameLower.includes('duo') || saasNameLower.includes('trio');
-              const hasAccess = user?.active_saas?.includes(app.id) || saasNameLower.includes(app.id.toLowerCase()) || isPack;
+              
+              let isPackAccess = false;
+              if (saasNameLower.includes('trio') && ['vente', 'tiak', 'stock'].includes(app.id)) isPackAccess = true;
+              else if (saasNameLower.includes('duo') && ['vente', 'tiak'].includes(app.id)) isPackAccess = true;
+              else if (saasNameLower.includes('solo') && ['vente'].includes(app.id)) isPackAccess = true;
+
+              const hasAccess = user?.active_saas?.includes(app.id) || saasNameLower.includes(app.id.toLowerCase()) || isPackAccess;
               
               const isUnlocked = hasAccess && !isExpired;
 

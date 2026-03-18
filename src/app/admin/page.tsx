@@ -2346,9 +2346,9 @@ export default function AdminDashboard() {
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <button type="button" onClick={() => handleApplyPack('Solo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Solo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Solo (9.900F)</button>
-                    <button type="button" onClick={() => handleApplyPack('Duo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Duo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Duo (17.500F)</button>
-                    <button type="button" onClick={() => handleApplyPack('Trio')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Trio' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Trio (24.900F)</button>
+                    <button type="button" onClick={() => handleApplyPack('Solo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Solo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Solo<br/><span className="text-[9px] font-normal">Jaay (9.900F)</span></button>
+                    <button type="button" onClick={() => handleApplyPack('Duo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Duo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Duo<br/><span className="text-[9px] font-normal">Jaay + Tiak (17.500F)</span></button>
+                    <button type="button" onClick={() => handleApplyPack('Trio')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Trio' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Trio<br/><span className="text-[9px] font-normal">Jaay + Tiak + Stock (24.900F)</span></button>
                 </div>
                 
                 {prorataMsg && <p className="text-xs text-black font-bold bg-[#39FF14]/20 p-3 rounded-xl animate-in fade-in">{prorataMsg}</p>}
