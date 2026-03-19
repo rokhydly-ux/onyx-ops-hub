@@ -13,6 +13,7 @@ const URL_IMAGE_AVANT = "URL_IMAGE_AVANT";
 const URL_IMAGE_APRES = "URL_IMAGE_APRES";
 const URL_AUDIO_VOICE_NOTE = "https://www.w3schools.com/html/horse.ogg"; // ⚠️ Remplace par ta vraie note vocale (.mp3 ou .ogg)
 const URL_IMAGE_BOT_RESPONSE = "URL_IMAGE_BOT_RESPONSE"; // Remplace par l'URL de ton image explicative
+const URL_VIDEO_EXPLICATIVE = "https://www.youtube.com/embed/acFsObjm2E0"; // ⚠️ Remplace par ton vrai lien YouTube (format embed)
 
 const TONTINE_REVIEWS = [
   { name: "Aïssatou Diop", role: "Présidente de Mutuelle", text: "Depuis qu'on utilise Onyx Tontine, il n'y a plus aucune dispute. Tout le monde reçoit le rappel et paie par Wave. Un soulagement total !", rating: 5 },
@@ -58,7 +59,8 @@ export default function OnyxTontineLanding() {
     { 
       sender: 'bot', 
       text: "👋 Nanga def ! Je suis Fanta. Avez-vous des questions sur Onyx Tontine ? (ex: prix, sécurité, fonctionnement...)",
-      options: ["Oui", "Non"]
+      options: ["Oui", "Non"],
+      audioUrl: URL_AUDIO_VOICE_NOTE
     }
   ]);
 
@@ -95,6 +97,7 @@ export default function OnyxTontineLanding() {
         let botAudio = "";
         let botImage = "";
         let botPaymentUrl = "";
+        let botVideoUrl = "";
         let botOptions: string[] | undefined = undefined;
 
         if (lowerReply === "oui") {
@@ -122,6 +125,9 @@ export default function OnyxTontineLanding() {
         } else if (lowerReply.includes("image") || lowerReply.includes("photo") || lowerReply.includes("capture") || lowerReply.includes("exemple")) {
             botResponse = "Voici une image pour vous donner une idée plus claire 📸 :";
             botImage = URL_IMAGE_BOT_RESPONSE;
+        } else if (lowerReply.includes("vidéo") || lowerReply.includes("video") || lowerReply.includes("youtube") || lowerReply.includes("démo") || lowerReply.includes("demo")) {
+            botResponse = "Voici une courte vidéo de démonstration pour tout vous expliquer en images 🎥 :";
+            botVideoUrl = URL_VIDEO_EXPLICATIVE;
         } else if (lowerReply.includes("lien") || lowerReply.includes("payer maintenant") || lowerReply.includes("abonnement") || lowerReply.includes("souscrire")) {
             botResponse = "Parfait ! Voici votre lien pour valider votre espace Tontine. Cliquez ci-dessous pour payer votre accès via Wave :";
             botPaymentUrl = "https://pay.wave.com/m/onyxops"; // À remplacer par ton vrai lien marchand Wave
@@ -130,7 +136,7 @@ export default function OnyxTontineLanding() {
             botOptions = ["Oui, parler à un conseiller", "Non merci"];
         }
 
-        setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, audioUrl: botAudio || undefined, imageUrl: botImage || undefined, paymentUrl: botPaymentUrl || undefined, options: botOptions }]);
+        setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, audioUrl: botAudio || undefined, imageUrl: botImage || undefined, paymentUrl: botPaymentUrl || undefined, videoUrl: botVideoUrl || undefined, options: botOptions }]);
 
         // Enregistrement silencieux de la question dans Supabase
         try {
@@ -401,6 +407,17 @@ export default function OnyxTontineLanding() {
                          {msg.imageUrl && (
                             <div className="mt-3 w-full rounded-xl overflow-hidden border border-zinc-200 shadow-sm">
                                <img src={msg.imageUrl} alt="Illustration Fanta" className="w-full h-auto object-cover" />
+                            </div>
+                         )}
+                         {msg.videoUrl && (
+                            <div className="mt-3 w-full aspect-video rounded-xl overflow-hidden border border-zinc-200 shadow-sm bg-black">
+                               <iframe 
+                                 src={msg.videoUrl} 
+                                 title="Vidéo YouTube"
+                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                 allowFullScreen
+                                 className="w-full h-full border-0"
+                               ></iframe>
                             </div>
                          )}
                          {msg.paymentUrl && (
