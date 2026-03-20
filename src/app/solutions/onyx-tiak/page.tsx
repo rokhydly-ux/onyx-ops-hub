@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Truck, MapPin, ShieldCheck, AlertTriangle, CheckCircle, 
-  Smartphone, TrendingUp, ArrowRight, ChevronLeft, PackageCheck, Zap, Crosshair
+  Smartphone, TrendingUp, ArrowRight, ChevronLeft, PackageCheck, Zap, Crosshair, ChevronDown
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -11,6 +11,20 @@ const spaceGrotesk = { className: "font-sans" };
 export default function OnyxTiakLanding() {
   const waNumber = "221785338417";
   
+  // Navigation & UI
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleWaClick = (pack: string) => {
     const msg = `Bonjour l'équipe Onyx ! Je suis intéressé(e) par la solution logistique ${pack} pour sécuriser mes livraisons.`;
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
@@ -23,9 +37,23 @@ export default function OnyxTiakLanding() {
          <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-white hover:scale-105 transition-transform`}>
             ONYX<span className="text-[#39FF14] drop-shadow-sm">TIAK</span>
          </button>
-         <button onClick={() => window.location.href = '/'} className="bg-zinc-900 text-white border border-zinc-800 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-white hover:text-black transition-colors flex items-center gap-1">
-             <ChevronLeft size={14}/> Accueil
-         </button>
+         
+         <div className="flex items-center gap-4">
+             <div className="relative" ref={dropdownRef}>
+                 <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-white flex items-center gap-1 transition-colors">
+                    Autres Solutions <ChevronDown size={14} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                 </button>
+                 <div className={`absolute top-full right-0 mt-2 bg-zinc-900 border border-zinc-800 shadow-2xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                    <button onClick={() => window.location.href = '/'} className="text-left px-4 py-2 text-xs font-bold text-zinc-400 hover:bg-black hover:text-[#39FF14] rounded-xl transition">🏠 Accueil Onyx</button>
+                    <button onClick={() => window.location.href = '/jaay'} className="text-left px-4 py-2 text-xs font-bold text-zinc-400 hover:bg-black hover:text-[#39FF14] rounded-xl transition">🛍️ Onyx Jaay</button>
+                    <button onClick={() => window.location.href = '/solutions/onyx-tontine'} className="text-left px-4 py-2 text-xs font-bold text-zinc-400 hover:bg-black hover:text-[#39FF14] rounded-xl transition">💰 Onyx Tontine</button>
+                    <button onClick={() => window.location.href = '/solutions/onyx-menu'} className="text-left px-4 py-2 text-xs font-bold text-zinc-400 hover:bg-black hover:text-[#39FF14] rounded-xl transition">🍽️ Onyx Menu</button>
+                 </div>
+             </div>
+             <button onClick={() => window.location.href = '/'} className="bg-zinc-900 text-white border border-zinc-800 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-white hover:text-black transition-colors flex items-center gap-1">
+                 <ChevronLeft size={14}/> Accueil
+             </button>
+         </div>
       </nav>
 
       {/* 1. HERO SECTION */}

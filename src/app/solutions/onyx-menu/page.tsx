@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Utensils, QrCode, Smartphone, TrendingUp, CheckCircle, 
-  ArrowRight, ChevronLeft, Printer, AlertTriangle, Zap
+  ArrowRight, ChevronLeft, Printer, AlertTriangle, Zap, ChevronDown
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -11,6 +11,20 @@ const spaceGrotesk = { className: "font-sans" };
 export default function OnyxMenuLanding() {
   const waNumber = "221785338417";
   
+  // Navigation & UI
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleWaClick = (pack: string) => {
     const msg = `Bonjour l'équipe Onyx ! Je veux moderniser mon restaurant avec ${pack}.`;
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
@@ -23,9 +37,23 @@ export default function OnyxMenuLanding() {
          <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black hover:scale-105 transition-transform`}>
             ONYX<span className="text-[#FF5722] drop-shadow-sm">MENU</span>
          </button>
-         <button onClick={() => window.location.href = '/'} className="bg-white border border-zinc-200 text-black px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-black hover:text-white transition-colors flex items-center gap-1 shadow-sm">
-             <ChevronLeft size={14}/> Accueil
-         </button>
+         
+         <div className="flex items-center gap-4">
+             <div className="relative" ref={dropdownRef}>
+                 <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="text-xs font-bold text-zinc-500 uppercase tracking-widest hover:text-black flex items-center gap-1 transition-colors">
+                    Autres Solutions <ChevronDown size={14} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                 </button>
+                 <div className={`absolute top-full right-0 mt-2 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                    <button onClick={() => window.location.href = '/'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#FF5722] rounded-xl transition">🏠 Accueil Onyx</button>
+                    <button onClick={() => window.location.href = '/jaay'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#FF5722] rounded-xl transition">🛍️ Onyx Jaay</button>
+                    <button onClick={() => window.location.href = '/solutions/onyx-tontine'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#FF5722] rounded-xl transition">💰 Onyx Tontine</button>
+                    <button onClick={() => window.location.href = '/solutions/onyx-tiak'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-[#FF5722] rounded-xl transition">🚚 Onyx Tiak</button>
+                 </div>
+             </div>
+             <button onClick={() => window.location.href = '/'} className="bg-white border border-zinc-200 text-black px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-black hover:text-white transition-colors flex items-center gap-1 shadow-sm">
+                 <ChevronLeft size={14}/> Accueil
+             </button>
+         </div>
       </nav>
 
       {/* 1. HERO SECTION */}
