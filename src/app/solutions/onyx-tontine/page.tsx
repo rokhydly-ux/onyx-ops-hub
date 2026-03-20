@@ -9,8 +9,8 @@ const spaceGrotesk = { className: "font-sans" };
 const URL_IMAGE_ETAPE_1 = "https://i.ibb.co/Y79tQ2yH/W1.png";
 const URL_IMAGE_ETAPE_2 = "https://i.ibb.co/YTWMH9vd/W2.png";
 const URL_IMAGE_ETAPE_3 = "https://i.ibb.co/gL4wxzTr/W3.png";
-const URL_IMAGE_AVANT = "URL_IMAGE_AVANT";
-const URL_IMAGE_APRES = "URL_IMAGE_APRES";
+const URL_IMAGE_AVANT = "https://i.ibb.co/5XY2vs7Y/A1.png";
+const URL_IMAGE_APRES = "https://i.ibb.co/rRBM6bmV/T1.png"; // Image de la section "Avec Onyx Tontine"
 const URL_AUDIO_VOICE_NOTE = "https://www.w3schools.com/html/horse.ogg"; // ⚠️ Remplace par ta vraie note vocale (.mp3 ou .ogg)
 const URL_IMAGE_BOT_RESPONSE = "URL_IMAGE_BOT_RESPONSE"; // Remplace par l'URL de ton image explicative
 const URL_VIDEO_EXPLICATIVE = "https://www.youtube.com/embed/acFsObjm2E0"; // ⚠️ Remplace par ton vrai lien YouTube (format embed)
@@ -400,9 +400,11 @@ export default function OnyxTontineLanding() {
                       <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? 'bg-white border border-zinc-200 text-zinc-800 rounded-tl-none shadow-sm' : 'bg-black text-[#39FF14] rounded-tr-none shadow-md'}`}>
                          {msg.text}
                          {msg.audioUrl && (
-                            <audio controls className="w-full mt-3 h-10 max-w-[200px]">
-                               <source src={msg.audioUrl} type="audio/mpeg" />
-                            </audio>
+                            <div className="mt-3 w-full max-w-[220px] rounded-[2rem] shadow-[0_0_15px_rgba(57,255,20,0.6)] animate-pulse border-2 border-[#39FF14] p-1 bg-black/50">
+                               <audio controls className="w-full h-10">
+                                  <source src={msg.audioUrl} type="audio/mpeg" />
+                               </audio>
+                            </div>
                          )}
                          {msg.imageUrl && (
                             <div className="mt-3 w-full rounded-xl overflow-hidden border border-zinc-200 shadow-sm">
