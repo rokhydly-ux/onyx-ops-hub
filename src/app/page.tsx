@@ -662,7 +662,10 @@ export default function OnyxOpsElite() {
           <div className="hidden lg:flex gap-8 font-bold text-sm uppercase items-center">
             <button onClick={() => navigateTo('home', 'solutions')} className="hover:text-[#39FF14] transition">Solutions</button>
             <button onClick={() => navigateTo('home', 'tarifs')} className="hover:text-[#39FF14] transition">Tarifs</button>
-            <button onClick={() => navigateTo('home', 'premium')} className="hover:text-[#00E5FF] transition text-zinc-600">Solutions Premium</button>
+            <button onClick={() => navigateTo('home', 'premium')} className="hover:text-[#00E5FF] transition text-zinc-600 flex items-center gap-1.5">
+              Solutions Premium
+              <span className="bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[#00E5FF] text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse">Nouveau</span>
+            </button>
             <button onClick={() => navigateTo('dashboard')} className={`${activeView === 'dashboard' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>Partenaires</button>
             <button onClick={() => navigateTo('blog')} className={`${activeView === 'blog' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>Blog</button>
             <button onClick={() => router.push('/boutiques')} className="hover:text-[#39FF14] transition py-1">Boutiques</button>
@@ -698,7 +701,10 @@ export default function OnyxOpsElite() {
           <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-8 lg:hidden animate-in fade-in">
             <button onClick={() => navigateTo('home', 'solutions')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Solutions</button>
             <button onClick={() => navigateTo('home', 'tarifs')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Tarifs</button>
-            <button onClick={() => navigateTo('home', 'premium')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase text-[#00E5FF]`}>Solutions Premium</button>
+            <button onClick={() => navigateTo('home', 'premium')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase text-[#00E5FF] flex items-center gap-3`}>
+              Solutions Premium
+              <span className="font-sans bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[#00E5FF] text-xs font-black px-2 py-1 rounded uppercase tracking-widest animate-pulse">Nouveau</span>
+            </button>
             <button onClick={() => navigateTo('dashboard')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Partenaires</button>
             <button onClick={() => navigateTo('blog')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Blog</button>
             <button onClick={() => { router.push('/boutiques'); setIsMobileMenuOpen(false); }} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Boutiques</button>
