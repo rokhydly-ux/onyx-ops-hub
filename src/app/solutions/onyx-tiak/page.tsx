@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { 
   Truck, MapPin, ShieldCheck, AlertTriangle, CheckCircle, 
-  Smartphone, TrendingUp, ArrowRight, ChevronLeft, PackageCheck, Zap, Crosshair, ChevronDown
+  Smartphone, TrendingUp, ArrowRight, ChevronLeft, PackageCheck, Zap, Crosshair, ChevronDown,
+  Send, X
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -15,6 +17,14 @@ export default function OnyxTiakLanding() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Configuration Bot Fanta
+  const [isBotOpen, setIsBotOpen] = useState(false);
+  const [userReply, setUserReply] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [botMessages, setBotMessages] = useState<any[]>([
+    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta. Avez-vous des questions sur Onyx Tiak, notre outil pour gérer vos livreurs ?", options: ["Oui", "Non"] }
+  ]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -24,6 +34,52 @@ export default function OnyxTiakLanding() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsBotOpen(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [botMessages]);
+
+  const processBotReply = (reply: string) => {
+    if(!reply.trim()) return;
+    const newMsgs = [...botMessages, { sender: 'client', text: reply }];
+    setBotMessages(newMsgs);
+    setUserReply("");
+
+    setTimeout(async () => {
+        const lowerReply = reply.toLowerCase();
+        let botResponse = "";
+        let botOptions: string[] | undefined = undefined;
+
+        if (lowerReply === "oui") {
+            botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, le suivi GPS, ou la gestion de la caisse.";
+        } else if (lowerReply === "non" || lowerReply === "non merci") {
+            botResponse = "Très bien ! N'hésitez pas à cliquer sur 'Démarrer l'essai' en bas de la page pour commencer votre mois gratuit.";
+        } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
+            botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Tiak et j'aimerais parler à un conseiller.")}`, '_blank'); }, 1000);
+        } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
+            botResponse = "Onyx Tiak coûte seulement 13 000 F/mois. Mais nous recommandons fortement le Pack Trio (Vente + Stock + Tiak) à 22 900 F pour tout sécuriser !";
+        } else if (lowerReply.includes("livreur") || lowerReply.includes("suivi") || lowerReply.includes("gps") || lowerReply.includes("comment")) {
+            botResponse = "Vous assignez les courses en 1 clic. Le livreur valide sur son WhatsApp, et vous suivez sa position et le statut de la course en temps réel.";
+        } else if (lowerReply.includes("caisse") || lowerReply.includes("argent") || lowerReply.includes("vol") || lowerReply.includes("perte")) {
+            botResponse = "Fini les écarts de caisse ! Le système calcule exactement ce que le livreur doit vous verser à la fin de la journée (Cash, Wave, OM).";
+        } else {
+            botResponse = "C'est noté ! Voulez-vous que je vous mette en relation avec un conseiller humain sur WhatsApp pour en discuter ?";
+            botOptions = ["Oui, parler à un conseiller", "Non merci"];
+        }
+
+        setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
+
+        try {
+            await supabase.from('leads').insert([{ full_name: 'Visiteur Tiak', intent: 'Question Bot Tiak', source: 'Bot Fanta FAQ', message: reply, status: 'Nouveau' }]);
+        } catch (err) {}
+    }, 1000);
+  };
 
   const handleWaClick = (pack: string) => {
     const msg = `Bonjour l'équipe Onyx ! Je suis intéressé(e) par la solution logistique ${pack} pour sécuriser mes livraisons.`;
@@ -189,6 +245,53 @@ export default function OnyxTiakLanding() {
             </div>
          </div>
       </section>
+
+      {/* BOT FANTA FAQ ONYX TIAK */}
+      <div className="fixed bottom-24 right-6 z-[90] flex flex-col items-end">
+        {isBotOpen && (
+          <div className="bg-white rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[340px] h-[400px] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
+             <div className="bg-black p-4 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                   <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl">👩🏾‍💻</div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
+                   </div>
+                   <div><p className="text-[#39FF14] font-black uppercase text-xs">Fanta - Conseillère</p></div>
+                </div>
+                <button onClick={() => setIsBotOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
+             </div>
+             
+             <div className="flex-1 bg-zinc-50 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar">
+                {botMessages.map((msg, i) => (
+                   <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? 'bg-white border border-zinc-200 text-zinc-800 rounded-tl-none shadow-sm' : 'bg-black text-[#39FF14] rounded-tr-none shadow-md'}`}>
+                         {msg.text}
+                      </div>
+                      {msg.options && (
+                         <div className="flex flex-wrap gap-2 mt-2 w-full">
+                            {msg.options.map((opt: string, idx: number) => (
+                               <button key={idx} onClick={() => processBotReply(opt)} className="bg-white border border-zinc-200 text-black text-xs font-bold px-4 py-2 rounded-xl hover:bg-black hover:text-[#39FF14] shadow-sm transition-colors">{opt}</button>
+                            ))}
+                         </div>
+                      )}
+                   </div>
+                ))}
+                <div ref={chatEndRef} />
+             </div>
+
+             <div className="p-3 bg-white border-t border-zinc-200 flex gap-2">
+                <input type="text" value={userReply} onChange={e => setUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processBotReply(userReply)} placeholder="Poser une question..." className="flex-1 bg-zinc-100 rounded-xl px-4 outline-none text-sm font-bold focus:ring-1 focus:ring-black" />
+                <button onClick={() => processBotReply(userReply)} className="bg-[#39FF14] p-3 rounded-xl text-black hover:scale-105 transition"><Send size={18}/></button>
+             </div>
+          </div>
+        )}
+        
+        {!isBotOpen && (
+           <button onClick={() => setIsBotOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative group animate-bounce flex items-center justify-center text-2xl">
+             👩🏾‍💻
+           </button>
+        )}
+      </div>
 
       {/* STICKY BOTTOM BAR */}
       <div className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800 p-4 z-40 shadow-[0_-20px_40px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full">
