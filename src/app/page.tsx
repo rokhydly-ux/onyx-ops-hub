@@ -63,7 +63,7 @@ const SOLUTIONS = [
   { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 9900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "full", upsellName: "Pack Full" },
   { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 29900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "master", upsellName: "Onyx Master (Formation + SaaS)" },
   { id: "Onyx Fit", icon: Flame, category: "Services", price: 6000, pain: "Suivi diététique brouillon et perte de motivation des clientes.", solution: "Rééquilibrage alimentaire à l'africaine avec la coach Amina, suivi interactif et relances auto.", upsellPack: "full", upsellName: "Pack Full" },
-  { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6000, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "full", upsellName: "Pack Full" },
 ];
 
 const PACKS: Array<{ id: PlanKey | "elite"; name: string; price: number | string; label: string; rating: string; avis: number; isUnique?: boolean }> = [

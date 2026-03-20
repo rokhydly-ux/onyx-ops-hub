@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send, ChevronDown, Star } from "lucide-react";
+import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send, ChevronDown, Star, ArrowUp } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -51,6 +51,11 @@ export default function OnyxTontineLanding() {
   const [leadData, setLeadData] = useState({ name: "", phone: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Navigation & UI
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
   // Configuration Bot Fanta (FAQ Auto)
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [userReply, setUserReply] = useState("");
@@ -63,6 +68,26 @@ export default function OnyxTontineLanding() {
       audioUrl: URL_AUDIO_VOICE_NOTE
     }
   ]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    document.addEventListener("mousedown", handleClickOutside);
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -112,7 +137,7 @@ export default function OnyxTontineLanding() {
                 window.open(`https://wa.me/221785338417?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Tontine et j'aimerais parler à un conseiller.")}`, '_blank');
             }, 1000);
         } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
-            botResponse = "Onyx Tontine coûte seulement 9 900 F/mois pour tout le groupe, peu importe le nombre de membres. C'est sans engagement !";
+            botResponse = "Onyx Tontine coûte seulement 6 900 F/mois pour tout le groupe, peu importe le nombre de membres. C'est sans engagement !";
         } else if (lowerReply.includes("sécurité") || lowerReply.includes("confiance") || lowerReply.includes("vol") || lowerReply.includes("arnaque")) {
             botResponse = "La sécurité est notre priorité absolue. L'argent est tracé, les paiements se font par Wave, et notre système de tirage au sort animé est 100% transparent.";
         } else if (lowerReply.includes("compte") || lowerReply.includes("télécharger") || lowerReply.includes("application") || lowerReply.includes("comment")) {
@@ -224,11 +249,11 @@ export default function OnyxTontineLanding() {
          </button>
          
          <div className="flex items-center gap-4">
-             <div className="relative group">
-                 <button className="text-xs font-bold text-zinc-500 uppercase tracking-widest hover:text-black flex items-center gap-1 transition-colors">
-                    Autres Solutions <ChevronDown size={14} />
+             <div className="relative" ref={dropdownRef}>
+                 <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="text-xs font-bold text-zinc-500 uppercase tracking-widest hover:text-black flex items-center gap-1 transition-colors">
+                    Autres Solutions <ChevronDown size={14} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                  </button>
-                 <div className="absolute top-full right-0 mt-2 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 w-48 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity flex flex-col z-50">
+                 <div className={`absolute top-full right-0 mt-2 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
                     <button onClick={() => window.location.href = '/'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🏠 Accueil Onyx</button>
                     <button onClick={() => window.location.href = '/vente'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🛍️ Onyx Jaay</button>
                     <button onClick={() => window.location.href = '/tiak'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🚚 Onyx Tiak</button>
@@ -425,7 +450,7 @@ export default function OnyxTontineLanding() {
                          {msg.paymentUrl && (
                             <a href={msg.paymentUrl} target="_blank" rel="noopener noreferrer" className="mt-3 w-full bg-[#1eb2e8] text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-md hover:scale-105 transition-transform">
                                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm9rYPURKIok7K0ZF22oqFgMbzIHgNCauVQA&s" alt="Wave" className="h-4 rounded-sm object-contain" />
-                               Payer avec Wave (9 900 F)
+                               Payer avec Wave (6 900 F)
                             </a>
                          )}
                       </div>
@@ -479,11 +504,21 @@ export default function OnyxTontineLanding() {
         </div>
       )}
 
+      {/* BOUTON REMONTER EN HAUT */}
+      {showScrollTop && (
+         <button 
+           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+           className="fixed bottom-24 left-6 z-[90] bg-white text-black p-3 md:p-4 rounded-full shadow-2xl border border-zinc-200 hover:scale-110 hover:border-black transition-all animate-in fade-in slide-in-from-bottom-4"
+         >
+           <ArrowUp size={24} />
+         </button>
+      )}
+
       {/* Section F : Appel à l'action final (Sticky bottom bar) */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom-full">
           <div className="max-w-4xl mx-auto flex justify-between items-center px-2">
              <div>
-                <p className="font-black text-sm md:text-base text-black">9 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
+                <p className="font-black text-sm md:text-base text-black">6 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
                 <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Pour tout le groupe, sans engagement.</p>
              </div>
              <button onClick={() => setShowLeadModal(true)} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-black/20">
