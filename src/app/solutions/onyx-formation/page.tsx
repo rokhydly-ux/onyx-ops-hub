@@ -126,6 +126,15 @@ export default function OnyxFormationLanding() {
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
             <MonitorPlay size={24} className="relative z-10" /> <span className="relative z-10">Rejoindre la Formation</span>
          </button>
+
+         {/* HERO IMAGE PLACEHOLDER */}
+         <div className="mt-20 relative max-w-4xl mx-auto">
+            <div className="absolute inset-0 bg-[#D946EF] opacity-[0.05] blur-[100px] rounded-full"></div>
+            <div className="w-full aspect-video bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-2xl relative z-10 flex items-center justify-center overflow-hidden group">
+               <MonitorPlay size={64} className="text-zinc-800 group-hover:scale-110 transition-transform duration-700" />
+               <p className="absolute bottom-4 text-zinc-700 font-bold text-xs uppercase tracking-widest">[ Illustration Formation (À venir) ]</p>
+            </div>
+         </div>
       </section>
 
       {/* 2. PROBLÈME VS SOLUTION */}
