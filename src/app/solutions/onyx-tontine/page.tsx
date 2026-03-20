@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send, ChevronDown, Star, ArrowUp } from "lucide-react";
+import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send, ChevronDown, Star, ArrowUp, MessageSquare } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -16,9 +16,11 @@ const URL_IMAGE_BOT_RESPONSE = "URL_IMAGE_BOT_RESPONSE"; // Remplace par l'URL d
 const URL_VIDEO_EXPLICATIVE = "https://www.youtube.com/embed/acFsObjm2E0"; // ⚠️ Remplace par ton vrai lien YouTube (format embed)
 
 const TONTINE_REVIEWS = [
-  { name: "Aïssatou Diop", role: "Présidente de Mutuelle", text: "Depuis qu'on utilise Onyx Tontine, il n'y a plus aucune dispute. Tout le monde reçoit le rappel et paie par Wave. Un soulagement total !", rating: 5 },
-  { name: "Fatou Ndiaye", role: "Gérante de Tontine Familiale", text: "Le tirage au sort animé est génial ! Je l'envoie dans le groupe WhatsApp et tout le monde voit que c'est 100% transparent. Fini les suspicions.", rating: 5 },
-  { name: "Ousmane Fall", role: "Membre d'un groupe", text: "Je n'ai même pas eu besoin de télécharger d'application. Je reçois mon message le 5 du mois, je clique, je paie. Super simple.", rating: 5 }
+  { name: "Aïssatou Diop", role: "Présidente de Mutuelle", text: "Depuis qu'on utilise Onyx Tontine, il n'y a plus aucune dispute. Tout le monde reçoit le rappel et paie par Wave. Un soulagement total !", rating: 5, img: "https://ui-avatars.com/api/?name=Aissatou+D&background=000&color=39FF14" },
+  { name: "Fatou Ndiaye", role: "Gérante de Tontine Familiale", text: "Le tirage au sort animé est génial ! Je l'envoie dans le groupe WhatsApp et tout le monde voit que c'est 100% transparent. Fini les suspicions.", rating: 5, img: "https://ui-avatars.com/api/?name=Fatou+N&background=000&color=39FF14" },
+  { name: "Ousmane Fall", role: "Membre d'un groupe", text: "Je n'ai même pas eu besoin de télécharger d'application. Je reçois mon message le 5 du mois, je clique, je paie. Super simple.", rating: 5, img: "https://ui-avatars.com/api/?name=Ousmane+F&background=000&color=39FF14" },
+  { name: "Mariama Sy", role: "Secrétaire de Tontine", text: "Avant je courais derrière les retardataires. Maintenant Fanta (le bot) s'occupe des relances, c'est la paix !", rating: 5, img: "https://ui-avatars.com/api/?name=Mariama+S&background=000&color=39FF14" },
+  { name: "Cheikh Tidiane", role: "Gérant", text: "Les paiements par Wave s'enregistrent tout seuls. Le premier mois gratuit m'a convaincu et depuis on ne le quitte plus.", rating: 5, img: "https://ui-avatars.com/api/?name=Cheikh+T&background=000&color=39FF14" }
 ];
 
 const WORKFLOW_STEPS = [
@@ -26,21 +28,24 @@ const WORKFLOW_STEPS = [
     id: 0,
     title: "Importez vos membres",
     tag: "Zéro mot de passe",
-    desc: "Tapez simplement le numéro WhatsApp de vos membres. L'outil génère leur profil sans qu'ils n'aient à télécharger d'application ou créer de compte.",
+    desc: "📲 Ajoute juste les numéros de tes membres.\n👵🏾 Tes tantes et amis n'ont RIEN à télécharger.\n⚡ Le groupe de tontine est créé en 1 minute chrono.",
+    icon: Users,
     img: URL_IMAGE_ETAPE_1
   },
   {
     id: 1,
     title: "Relances Automatiques",
     tag: "Le 5 du mois",
-    desc: "Le système envoie un message WhatsApp bienveillant mais ferme à tous les membres pour réclamer l'argent. Fini la gêne (Sutura) de devoir réclamer vous-même.",
+    desc: "🤖 L'appli envoie un rappel WhatsApp poli et automatique.\n💸 Fini la honte de devoir réclamer ton argent (Faye ma sama xaliss).\n💳 Paiement direct par Wave en un clic depuis le message.",
+    icon: MessageSquare,
     img: URL_IMAGE_ETAPE_2
   },
   {
     id: 2,
     title: "Tirage au sort animé",
     tag: "Transparent (Leer nañ)",
-    desc: "À chaque fin de mois, l'outil génère une animation de tirage au sort certifiée. Partagez la vidéo dans votre groupe : la confiance est absolue.",
+    desc: "🎲 Un tirage au sort automatique et impartial.\n🎥 Une petite vidéo est envoyée dans le groupe WhatsApp.\n✅ Tout le monde voit qui gagne : zéro triche, confiance totale.",
+    icon: Sparkles,
     img: URL_IMAGE_ETAPE_3
   }
 ];
@@ -69,6 +74,9 @@ export default function OnyxTontineLanding() {
     }
   ]);
 
+  // Rotation Témoignages
+  const [reviewIndex, setReviewIndex] = useState(0);
+
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 400);
@@ -94,6 +102,14 @@ export default function OnyxTontineLanding() {
       setIsBotOpen(true);
     }, 5000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Rotation Testimonials automatique
+  useEffect(() => {
+    const reviewInterval = setInterval(() => {
+      setReviewIndex((prev) => (prev + 1) % TONTINE_REVIEWS.length);
+    }, 4500);
+    return () => clearInterval(reviewInterval);
   }, []);
 
   useEffect(() => {
@@ -240,7 +256,20 @@ export default function OnyxTontineLanding() {
           75% { text-shadow: -2px 0 #ff00ff, 2px 0 #39FF14; }
           100% { text-shadow: 2px 0 #39FF14, -2px 0 #ff00ff; }
         }
+        @keyframes float-neon {
+          0% { transform: translateY(0px); box-shadow: 0 0 30px rgba(57,255,20,0.4); }
+          50% { transform: translateY(-12px); box-shadow: 0 0 70px rgba(57,255,20,0.8); }
+          100% { transform: translateY(0px); box-shadow: 0 0 30px rgba(57,255,20,0.4); }
+        }
+        .animate-float-neon {
+          animation: float-neon 4s ease-in-out infinite;
+        }
       `}} />
+
+      {/* BANNIÈRE PROMO HAUT DE PAGE */}
+      <div className="bg-[#39FF14] text-black text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md">
+          🎁 Créez votre groupe aujourd'hui : Le 1er mois d'utilisation est 100% Gratuit !
+      </div>
 
       {/* Navbar */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
@@ -282,6 +311,9 @@ export default function OnyxTontineLanding() {
          <button onClick={() => setShowLeadModal(true)} className="glitch-hover bg-[#39FF14] text-black px-10 py-5 rounded-[2rem] font-black text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_15px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto border-2 border-black/5">
             <span className="glitch-text">Digitaliser ma Tontine</span> <ArrowRight size={24}/>
          </button>
+         <p className="mt-6 text-xs md:text-sm font-black uppercase tracking-widest text-zinc-500">
+            🎁 Le premier mois est <span className="text-[#39FF14] bg-black px-2 py-1 rounded-md shadow-sm">100% Gratuit</span>
+         </p>
       </section>
 
       {/* Section B : Problème/Solution (Avant/Après) */}
@@ -302,16 +334,18 @@ export default function OnyxTontineLanding() {
             </div>
 
             {/* APRÈS */}
-            <div className="bg-black border border-black rounded-[3rem] p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform md:-translate-y-4">
+            <div className="bg-black border-2 border-[#39FF14] rounded-[3rem] p-8 flex flex-col items-center text-center relative overflow-hidden animate-float-neon md:-translate-y-4 shadow-[0_0_50px_rgba(57,255,20,0.4)]">
                <div className="absolute top-0 left-0 right-0 h-2 bg-[#39FF14]"></div>
-               <div className="w-full aspect-video bg-zinc-800 rounded-2xl mb-6 overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-br from-[#39FF14]/20 to-transparent pointer-events-none"></div>
+               <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#39FF14] opacity-30 blur-[60px] rounded-full animate-pulse"></div>
+               <div className="w-full aspect-video bg-zinc-800 rounded-2xl mb-6 overflow-hidden relative z-10 border border-[#39FF14]/30">
                   <img src={URL_IMAGE_APRES} alt="La solution (Après)" className="w-full h-full object-cover" />
                </div>
-               <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-8 text-white`}>Avec Onyx Tontine</h3>
-               <ul className="space-y-4 text-white font-bold w-full text-left">
-                  <li className="flex items-center gap-3 bg-zinc-900 p-4 rounded-2xl"><CheckCircle className="text-[#39FF14] shrink-0" /> L'appli relance sur WhatsApp</li>
-                  <li className="flex items-center gap-3 bg-zinc-900 p-4 rounded-2xl"><CheckCircle className="text-[#39FF14] shrink-0" /> Les membres paient par Wave en 1 clic</li>
-                  <li className="flex items-center gap-3 bg-zinc-900 p-4 rounded-2xl"><CheckCircle className="text-[#39FF14] shrink-0" /> Tirage au sort animé et transparent</li>
+               <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-8 text-white relative z-10`}>Avec Onyx Tontine</h3>
+               <ul className="space-y-4 text-white font-bold w-full text-left relative z-10">
+                  <li className="flex items-center gap-3 bg-zinc-900 p-4 rounded-2xl border border-zinc-800"><CheckCircle className="text-[#39FF14] shrink-0" /> L'appli relance sur WhatsApp</li>
+                  <li className="flex items-center gap-3 bg-zinc-900 p-4 rounded-2xl border border-zinc-800"><CheckCircle className="text-[#39FF14] shrink-0" /> Les membres paient par Wave en 1 clic</li>
+                  <li className="flex items-center gap-3 bg-zinc-900 p-4 rounded-2xl border border-zinc-800"><CheckCircle className="text-[#39FF14] shrink-0" /> Tirage au sort animé et transparent</li>
                </ul>
             </div>
          </div>
@@ -357,22 +391,20 @@ export default function OnyxTontineLanding() {
                <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>Ils ont digitalisé <span className="text-[#39FF14] drop-shadow-sm">leur groupe</span></h2>
                <p className="text-zinc-600 font-bold">Fini les disputes, place à la confiance totale.</p>
             </div>
-            <div className="grid md:grid-cols-3 gap-6">
-               {TONTINE_REVIEWS.map((review, idx) => (
-                  <div key={idx} className="bg-zinc-50 border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all flex flex-col">
-                     <div className="flex gap-1 mb-6">
-                        {[...Array(review.rating)].map((_, i) => <Star key={i} size={20} className="text-[#39FF14] fill-[#39FF14]" />)}
-                     </div>
-                     <p className="text-zinc-700 font-medium leading-relaxed flex-1 italic mb-8">"{review.text}"</p>
-                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black text-lg">{review.name.charAt(0)}</div>
-                        <div>
-                           <p className="font-black text-sm text-black uppercase">{review.name}</p>
-                           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">{review.role}</p>
-                        </div>
+            <div className="flex justify-center min-h-[280px]">
+               <div key={`testimony-${reviewIndex}`} className="bg-zinc-50 border border-zinc-200 p-8 md:p-10 rounded-[3rem] shadow-xl max-w-3xl w-full animate-in slide-in-from-right-8 duration-500 flex flex-col">
+                  <div className="flex justify-center gap-1 mb-6">
+                     {[...Array(TONTINE_REVIEWS[reviewIndex].rating)].map((_, i) => <Star key={i} size={24} className="text-[#39FF14] fill-[#39FF14]" />)}
+                  </div>
+                  <p className="text-zinc-800 text-lg md:text-2xl italic font-black mb-8 leading-relaxed text-center flex-1">"{TONTINE_REVIEWS[reviewIndex].text}"</p>
+                  <div className="flex flex-col items-center gap-3">
+                     <img src={TONTINE_REVIEWS[reviewIndex].img} alt="Avatar" className="w-14 h-14 rounded-full border-4 border-[#39FF14] shadow-md" />
+                     <div className="text-center">
+                        <p className="font-black uppercase text-base text-black">{TONTINE_REVIEWS[reviewIndex].name}</p>
+                        <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">{TONTINE_REVIEWS[reviewIndex].role}</p>
                      </div>
                   </div>
-               ))}
+               </div>
             </div>
          </div>
       </section>
@@ -380,17 +412,26 @@ export default function OnyxTontineLanding() {
       {/* SECTION D : MODALE DE DÉTAILS WORKFLOW */}
       {selectedStep !== null && (
         <div id="modal-overlay" className="fixed inset-0 z-[200] bg-zinc-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in" onClick={(e) => { if ((e.target as any).id === "modal-overlay") setSelectedStep(null); }}>
-          <div className="bg-white rounded-[3rem] w-full max-w-lg p-6 sm:p-8 shadow-2xl relative flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[3rem] w-full max-w-md p-6 sm:p-8 shadow-2xl relative flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <button onClick={() => setSelectedStep(null)} className="absolute top-4 right-4 bg-zinc-100 p-2 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
             
             <div className="w-full aspect-square bg-zinc-100 rounded-[2rem] overflow-hidden mb-6 shrink-0 relative">
                <img src={WORKFLOW_STEPS[selectedStep].img} alt={WORKFLOW_STEPS[selectedStep].title} className="w-full h-full object-cover" />
             </div>
             
-            <div className="flex-1 overflow-y-auto mb-6 text-center px-2">
-               <span className="text-[#39FF14] bg-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">{WORKFLOW_STEPS[selectedStep].tag}</span>
-               <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 text-black`}>{WORKFLOW_STEPS[selectedStep].title}</h3>
-               <p className="text-zinc-600 font-medium leading-relaxed">{WORKFLOW_STEPS[selectedStep].desc}</p>
+            <div className="flex-1 overflow-y-auto mb-6 text-center">
+               <span className="text-[#39FF14] bg-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 inline-block">{WORKFLOW_STEPS[selectedStep].tag}</span>
+               <h3 className={`${spaceGrotesk.className} text-xl md:text-2xl font-black uppercase mb-6 text-black flex items-center justify-center gap-3`}>
+                   <div className="bg-black text-[#39FF14] p-2 rounded-xl shadow-md">
+                      {React.createElement(WORKFLOW_STEPS[selectedStep].icon, { size: 24 })}
+                   </div>
+                   {WORKFLOW_STEPS[selectedStep].title}
+               </h3>
+               <div className="text-zinc-700 font-bold leading-relaxed bg-zinc-50 p-5 rounded-2xl border border-zinc-200 text-sm md:text-base text-left flex flex-col gap-3">
+                   {WORKFLOW_STEPS[selectedStep].desc.split('\n').map((line, idx) => (
+                       <p key={idx} className="flex items-start gap-2">{line}</p>
+                   ))}
+               </div>
             </div>
             
             <div className="flex items-center justify-between gap-4 mt-auto">
@@ -519,7 +560,7 @@ export default function OnyxTontineLanding() {
           <div className="max-w-4xl mx-auto flex justify-between items-center px-2">
              <div>
                 <p className="font-black text-sm md:text-base text-black">6 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
-                <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Pour tout le groupe, sans engagement.</p>
+                <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Pour tout le groupe. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">1er MOIS GRATUIT</span></p>
              </div>
              <button onClick={() => setShowLeadModal(true)} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-black/20">
                 Créer ma Tontine
