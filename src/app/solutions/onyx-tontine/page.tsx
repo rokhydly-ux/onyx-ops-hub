@@ -412,14 +412,14 @@ export default function OnyxTontineLanding() {
       {/* SECTION D : MODALE DE DÉTAILS WORKFLOW */}
       {selectedStep !== null && (
         <div id="modal-overlay" className="fixed inset-0 z-[200] bg-zinc-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in" onClick={(e) => { if ((e.target as any).id === "modal-overlay") setSelectedStep(null); }}>
-          <div className="bg-white rounded-[3rem] w-full max-w-md p-6 sm:p-8 shadow-2xl relative flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[3rem] w-full max-w-md p-6 sm:p-8 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
             <button onClick={() => setSelectedStep(null)} className="absolute top-4 right-4 bg-zinc-100 p-2 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
             
-            <div className="w-full aspect-square bg-zinc-100 rounded-[2rem] overflow-hidden mb-6 shrink-0 relative">
+            <div className="w-full aspect-video bg-zinc-100 rounded-[2rem] overflow-hidden mb-6 shrink-0 relative mt-4">
                <img src={WORKFLOW_STEPS[selectedStep].img} alt={WORKFLOW_STEPS[selectedStep].title} className="w-full h-full object-cover" />
             </div>
             
-            <div className="flex-1 overflow-y-auto mb-6 text-center">
+            <div className="flex-1 mb-6 text-center">
                <span className="text-[#39FF14] bg-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 inline-block">{WORKFLOW_STEPS[selectedStep].tag}</span>
                <h3 className={`${spaceGrotesk.className} text-xl md:text-2xl font-black uppercase mb-6 text-black flex items-center justify-center gap-3`}>
                    <div className="bg-black text-[#39FF14] p-2 rounded-xl shadow-md">
@@ -434,12 +434,12 @@ export default function OnyxTontineLanding() {
                </div>
             </div>
             
-            <div className="flex items-center justify-between gap-4 mt-auto">
-               <button onClick={handlePrev} disabled={selectedStep === 0} className="p-4 bg-zinc-100 rounded-2xl hover:bg-zinc-200 disabled:opacity-50 transition"><ChevronLeft size={20}/></button>
-               <button onClick={() => { setSelectedStep(null); setShowLeadModal(true); }} className="flex-1 bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition shadow-xl">
+            <div className="flex items-center justify-between gap-4 mt-auto pt-2">
+               <button onClick={handlePrev} disabled={selectedStep === 0} className="p-4 bg-zinc-100 rounded-2xl hover:bg-zinc-200 disabled:opacity-50 transition shrink-0"><ChevronLeft size={20}/></button>
+               <button onClick={() => { setSelectedStep(null); setShowLeadModal(true); }} className="flex-1 bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition shadow-xl truncate px-2">
                   Ouvrir ma Tontine
                </button>
-               <button onClick={handleNext} disabled={selectedStep === WORKFLOW_STEPS.length - 1} className="p-4 bg-zinc-100 rounded-2xl hover:bg-zinc-200 disabled:opacity-50 transition"><ChevronRight size={20}/></button>
+               <button onClick={handleNext} disabled={selectedStep === WORKFLOW_STEPS.length - 1} className="p-4 bg-zinc-100 rounded-2xl hover:bg-zinc-200 disabled:opacity-50 transition shrink-0"><ChevronRight size={20}/></button>
             </div>
           </div>
         </div>

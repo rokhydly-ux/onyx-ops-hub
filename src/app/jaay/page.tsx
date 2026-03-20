@@ -8,7 +8,7 @@ import {
   Calculator, Gift, Bot, 
   Truck, ArrowRight, ShoppingCart, ChevronLeft,
   Sparkles, LayoutDashboard, QrCode, PlayCircle, X,
-  UserPlus, MessageSquare
+  UserPlus, MessageSquare, ArrowUp
 } from "lucide-react";
 
 const ONBOARDING_CATEGORIES = [
@@ -30,6 +30,16 @@ export default function OnyxJaayLanding() {
 
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [hasTriggeredExitIntent, setHasTriggeredExitIntent] = useState(false);
+
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const handleMouseLeave = (e: MouseEvent) => {
@@ -126,17 +136,22 @@ export default function OnyxJaayLanding() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-50 text-black overflow-x-hidden selection:bg-[#39FF14]/30 pb-0">
+    <main className="min-h-screen bg-zinc-50 text-black overflow-x-hidden selection:bg-[#39FF14]/30 pb-24">
       
+      {/* BANNIÈRE PROMO HAUT DE PAGE */}
+      <div className="bg-[#39FF14] text-black text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md">
+          🎁 Lancez votre catalogue aujourd'hui : Le 1er mois d'utilisation est 100% Gratuit !
+      </div>
+
       {/* Navigation minimale */}
-      <nav className="fixed top-0 left-0 right-0 p-6 z-50 flex items-center justify-between pointer-events-none">
-         <button onClick={() => router.push('/')} className="pointer-events-auto bg-white/80 backdrop-blur-md p-3 rounded-full border border-zinc-200 hover:bg-black hover:text-white transition-colors shadow-sm">
+      <nav className="p-6 z-50 flex items-center justify-between relative">
+         <button onClick={() => router.push('/')} className="bg-white/80 backdrop-blur-md p-3 rounded-full border border-zinc-200 hover:bg-black hover:text-white transition-colors shadow-sm">
             <ChevronLeft size={20} />
          </button>
       </nav>
 
       {/* 1. HERO SECTION */}
-      <section className="pt-32 pb-20 px-6 max-w-5xl mx-auto text-center">
+      <section className="pt-10 pb-20 px-6 max-w-5xl mx-auto text-center">
          <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest mb-8 shadow-[0_10px_20px_rgba(57,255,20,0.2)]">
              <Zap size={14} className="fill-[#39FF14]" /> Fini le bricolage sur WhatsApp
          </div>
@@ -503,6 +518,29 @@ export default function OnyxJaayLanding() {
           </div>
         </div>
       )}
+
+      {/* BOUTON REMONTER EN HAUT */}
+      {showScrollTop && (
+         <button 
+           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+           className="fixed bottom-24 left-6 z-[90] bg-white text-black p-3 md:p-4 rounded-full shadow-2xl border border-zinc-200 hover:scale-110 hover:border-black transition-all animate-in fade-in slide-in-from-bottom-4"
+         >
+           <ArrowUp size={24} />
+         </button>
+      )}
+
+      {/* STICKY BOTTOM BAR (Offre Gratuite) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom-full">
+          <div className="max-w-4xl mx-auto flex justify-between items-center px-2">
+             <div>
+                <p className="font-black text-sm md:text-base text-black">9 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
+                <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Sans engagement. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">1er MOIS GRATUIT</span></p>
+             </div>
+             <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-black/20">
+                Créer mon catalogue
+             </button>
+          </div>
+      </div>
 
     </main>
   );
