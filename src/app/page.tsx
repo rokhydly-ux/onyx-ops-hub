@@ -18,7 +18,7 @@ import {
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
-type PlanKey = "solo" | "tekki" | "tekkipro";
+type PlanKey = "solo" | "tekki" | "tekkipro" | "gold";
 
 // --- DATA ---
 const ECOSYSTEM_SAAS = [
@@ -45,6 +45,7 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
   solo: { title: "Onyx Solo", desc: "Jaay, Stock OU Tiak. Un besoin précis, une solution pro.", benefits: ["1 Outil au choix (Catalogue, Stock...)", "Stop au chaos sur WhatsApp", "Caisse sécurisée"], why: "Arrêter le bricolage.", cible: "Vendeurs WhatsApp", avantage: "Simple et efficace.", chiffreCle: "Zéro perte" },
   tekki: { title: "OnyxTekki (Trio)", desc: "Gérez votre caisse, votre stock et vos livreurs en 1 clic. Mathématiquement incontestable.", benefits: ["Vente, Stock & Livreurs", "Zéro perte de CFA", "Feuille de route auto"], why: "Contrôle total du cash.", cible: "Commerçants & PME", avantage: "Écosystème parfait.", chiffreCle: "Bénéfice immédiat" },
   tekkipro: { title: "OnyxTekki Pro (+Formation)", desc: "Les outils OnyxTekki + Stratégies de vente. Gagnez du khaliss, ne le dépensez pas.", benefits: ["Suite OnyxTekki complète", "Stratégies Marketing (Ads, Canva)", "Domination du marché"], why: "Croissance agressive.", cible: "Ambitieux", avantage: "Tout inclus.", chiffreCle: "Ventes x2" },
+  gold: { title: "Onyx Gold (Total)", desc: "Trio + Formation + CRM Complet. La domination absolue.", benefits: ["Suite OnyxTekki Pro", "CRM & Fidélisation", "Support Ultra-Prioritaire"], why: "Pour tout écraser.", cible: "Entreprises", avantage: "La totale.", chiffreCle: "Sans limite" },
 };
 
 const SOLUTIONS = [
@@ -63,6 +64,7 @@ const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: s
   { id: "solo", name: "Onyx Solo", price: 13000, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
   { id: "tekki", name: "OnyxTekki", price: 22900, label: "OnyxTekki", rating: "5.0/5", avis: 312 },
   { id: "tekkipro", name: "OnyxTekki Pro", price: 27900, label: "OnyxTekki Pro", rating: "5.0/5", avis: 189 },
+  { id: "gold", name: "Onyx Gold", price: 34900, label: "Onyx Gold", rating: "5.0/5", avis: 120 },
 ];
 
 const AMBASSADOR_TESTIMONIALS = [
@@ -187,7 +189,7 @@ export default function OnyxOpsElite() {
 
   // WORKFLOW PARTENAIRE
   const [partnerStep, setPartnerStep] = useState<'landing' | 'form' | 'success' | 'dashboard'>('landing');
-  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, tekkipro: 1 });
+  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, tekkipro: 1, gold: 0 });
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", address: "", country: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
@@ -579,8 +581,8 @@ export default function OnyxOpsElite() {
 };
 
   // Mises à jour des tarifs sur la simulation des commissions
-  const commissionM1 = Math.round((packCounts.solo || 0) * 13000 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30);
-  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13000 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10);
+  const commissionM1 = Math.round((packCounts.solo || 0) * 13000 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30 + (packCounts.gold || 0) * 34900 * 0.30);
+  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13000 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10 + (packCounts.gold || 0) * 34900 * 0.10);
 
   const navigateTo = (view: any, scrollId?: string) => {
     setIsMobileMenuOpen(false); 
@@ -929,21 +931,22 @@ export default function OnyxOpsElite() {
                     const planDetails = PLAN_DETAILS[pack.id];
                     const isRecommended = quizResult && quizResult.packId === pack.id;
                     const isTekki = pack.id === 'tekki';
+                    const isGold = pack.id === 'gold';
 
                     return (
-                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] md:scale-105 shadow-[0_0_40px_rgba(57,255,20,0.3)] z-20' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition flex flex-col relative`}>
+                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] md:scale-105 shadow-[0_0_40px_rgba(57,255,20,0.3)] z-20' : isGold ? 'bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.15)] z-10' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition flex flex-col relative`}>
                         
-                        {/* BULLE PROMOTIONNELLE TEKKI */}
-                        {(isTekki || isRecommended) && (
-                           <div className={`absolute -top-5 left-1/2 -translate-x-1/2 ${isTekki ? 'bg-red-600 border-2 border-red-400 text-white' : 'bg-[#39FF14] text-black'} px-5 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-2`}>
-                              {isTekki ? <><Flame size={14}/> PREMIER MOIS OFFERT ! (Économisez 16 100 F)</> : <><Sparkles size={14}/> Choix Idéal</>}
+                        {/* BULLE PROMOTIONNELLE TEKKI / GOLD */}
+                        {(isTekki || isRecommended || isGold) && (
+                           <div className={`absolute -top-5 left-1/2 -translate-x-1/2 ${isTekki ? 'bg-red-600 border-2 border-red-400 text-white' : isGold ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black border-2 border-yellow-300' : 'bg-[#39FF14] text-black'} px-5 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-2`}>
+                              {isTekki ? <><Flame size={14}/> PREMIER MOIS OFFERT ! (Économisez 16 100 F)</> : isGold ? <><Target size={14}/> 👑 PREMIUM</> : <><Sparkles size={14}/> Choix Idéal</>}
                            </div>
                         )}
 
                         <div className="flex items-center gap-2 mb-1 mt-2">
-                           <p className={`text-[10px] font-black tracking-[0.3em] ${isTekki || isRecommended ? 'text-[#39FF14]' : 'text-zinc-500'} uppercase`}>{pack.label}</p>
-                           {(pack.id === 'tekki' || pack.id === 'tekkipro') && (
-                              <span className="bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[#00E5FF] text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse">
+                           <p className={`text-[10px] font-black tracking-[0.3em] ${isTekki || isRecommended ? 'text-[#39FF14]' : isGold ? 'text-yellow-400' : 'text-zinc-500'} uppercase`}>{pack.label}</p>
+                           {(pack.id === 'tekki' || pack.id === 'tekkipro' || pack.id === 'gold') && (
+                              <span className={`${isGold ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400' : 'bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF]'} border text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse`}>
                                  Nouveau
                               </span>
                            )}
@@ -952,7 +955,11 @@ export default function OnyxOpsElite() {
                           {[...Array(5)].map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < 4 || pack.rating.startsWith('5') ? 'text-yellow-400 fill-yellow-400' : 'text-yellow-400/30 fill-yellow-400/30'}`} />))}
                           <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis})</span>
                         </div>
-                        <div className={`text-3xl font-black mb-6 italic ${pack.id === 'tekkipro' ? 'text-white' : 'text-white'}`}>{pack.price.toLocaleString()} F <span className="text-xs text-zinc-500 font-normal not-italic">{pack.isUnique ? ' (Unique)' : '/ mois'}</span></div>
+                        <div className={`text-3xl font-black mb-6 italic text-white flex items-center`}>
+                           {pack.price.toLocaleString()} F
+                           {pack.id === 'tekkipro' && <TrendingUp size={20} className="inline-block ml-3 text-[#00E5FF]" />}
+                           <span className="text-xs text-zinc-500 font-normal not-italic ml-2">{pack.isUnique ? ' (Unique)' : '/ mois'}</span>
+                        </div>
                         
                         {/* TEXTE DYNAMIQUE DU QUIZ */}
                         {isRecommended && (
@@ -961,7 +968,7 @@ export default function OnyxOpsElite() {
                            </div>
                         )}
 
-                        <ul className={`text-xs space-y-3 mb-8 flex-1 ${isTekki || isRecommended ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                        <ul className={`text-xs space-y-3 mb-8 flex-1 ${isTekki || isRecommended ? 'text-zinc-300' : isGold ? 'text-yellow-100/80' : 'text-zinc-400'}`}>
                           {planDetails.benefits.map((ben, i) => <li key={i} className="flex gap-2">✔ {ben}</li>)}
                         </ul>
                         <button 
@@ -969,7 +976,7 @@ export default function OnyxOpsElite() {
     setLeadData(prev => ({ ...prev, saas: pack.label })); 
     setShowOnboarding(true); 
   }} 
-  className={`w-full block text-center py-4 rounded-2xl font-black uppercase transition-transform ${isTekki ? 'bg-[#39FF14] text-black hover:scale-105 shadow-xl text-base' : 'bg-white text-black hover:bg-[#39FF14] text-sm'}`}
+  className={`w-full block text-center py-4 rounded-2xl font-black uppercase transition-transform ${isTekki ? 'bg-[#39FF14] text-black hover:scale-105 shadow-xl text-base' : isGold ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black hover:scale-105 shadow-xl text-sm' : 'bg-white text-black hover:bg-[#39FF14] text-sm'}`}
 >
   {isTekki ? 'LANCER MON COMMERCE' : 'Commencer'}
 </button>
@@ -977,6 +984,54 @@ export default function OnyxOpsElite() {
                     );
                   })}
                 </div>
+              </div>
+            </section>
+
+            {/* --- SECTION : NOS SOLUTIONS RADICALES (BENTO GRID) --- */}
+            <section id="solutions" className="py-24 px-6 max-w-5xl mx-auto mt-10">
+              <div className="text-center mb-12">
+                 <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>MENU <span className="text-[#39FF14] drop-shadow-sm">À LA CARTE</span></h2>
+                 <p className="text-zinc-600 font-bold max-w-2xl mx-auto mb-8 text-lg">Ajoutez des briques à votre écosystème au fur et à mesure. Survolez une application pour voir ce qu'elle fait.</p>
+                 
+                 <div className="flex flex-wrap justify-center gap-3">
+                    {saasCategories.map(cat => (
+                       <button 
+                         key={cat} 
+                         onClick={() => setSaasFilter(cat)} 
+                         className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all shadow-sm border ${saasFilter === cat ? 'bg-black text-[#39FF14] border-black scale-105' : 'bg-white text-zinc-600 border-zinc-200 hover:border-black hover:text-black'}`}
+                       >
+                         {cat}
+                       </button>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in duration-500">
+                {filteredSolutions.map((s, i) => {
+                  const Icon = s.icon;
+                  return (
+                    <div 
+                      key={i} 
+                      onClick={() => { setShowSaasChoice(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} 
+                      className="group relative overflow-hidden bg-white border-2 border-zinc-100 rounded-[2rem] shadow-sm cursor-pointer aspect-square flex flex-col items-center justify-center p-4 text-center transition-all duration-300 hover:bg-black hover:border-[#39FF14] hover:shadow-[0_0_30px_rgba(57,255,20,0.2)]"
+                    >
+                      {/* Face par défaut (Visible) */}
+                      <div className="flex flex-col items-center justify-center w-full h-full group-hover:opacity-0 transition-opacity duration-300 absolute inset-0 p-4">
+                         <div className="bg-zinc-50 border border-zinc-100 text-black w-16 h-16 rounded-[1.2rem] flex items-center justify-center mb-4 shadow-sm group-hover:scale-90 transition-transform">
+                            <Icon className="w-8 h-8" />
+                         </div>
+                         <h3 className={`${spaceGrotesk.className} text-sm md:text-base font-black uppercase tracking-tighter text-black leading-tight px-2`}>{s.id}</h3>
+                      </div>
+
+                      {/* Face au survol (Cachée par défaut) */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute inset-0 flex flex-col items-center justify-center p-4 bg-black z-10">
+                         <Icon className="w-8 h-8 text-[#39FF14] mb-3 opacity-80 scale-75 group-hover:scale-100 transition-transform duration-500" />
+                         <p className="text-[10px] sm:text-xs font-bold text-white leading-tight mb-4 px-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{s.solution}</p>
+                         <span className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-100">+ INFOS</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
 
