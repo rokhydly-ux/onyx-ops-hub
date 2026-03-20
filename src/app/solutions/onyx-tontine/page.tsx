@@ -227,6 +227,13 @@ export default function OnyxTontineLanding() {
     }
   };
 
+  const openModalWithSound = () => {
+    const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"); // Son de caisse enregistreuse !
+    audio.volume = 0.5; // Un peu plus doux
+    audio.play().catch(() => {}); // Catch au cas où le navigateur bloque l'autoplay
+    setShowLeadModal(true);
+  };
+
   const handleNext = () => setSelectedStep(prev => prev !== null && prev < WORKFLOW_STEPS.length - 1 ? prev + 1 : prev);
   const handlePrev = () => setSelectedStep(prev => prev !== null && prev > 0 ? prev - 1 : prev);
 
@@ -308,7 +315,7 @@ export default function OnyxTontineLanding() {
          <p className="text-zinc-600 text-lg md:text-xl font-medium max-w-2xl mx-auto mb-10 leading-relaxed">
             Gagnez du temps, sécurisez l'argent et ramenez la confiance dans votre groupe. Xaliss bi dafay leer ! 100% digital, zéro mot de passe.
          </p>
-         <button onClick={() => setShowLeadModal(true)} className="glitch-hover bg-[#39FF14] text-black px-10 py-5 rounded-[2rem] font-black text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_15px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto border-2 border-black/5">
+         <button onClick={openModalWithSound} className="glitch-hover bg-[#39FF14] text-black px-10 py-5 rounded-[2rem] font-black text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_15px_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto border-2 border-black/5">
             <span className="glitch-text">Digitaliser ma Tontine</span> <ArrowRight size={24}/>
          </button>
          <p className="mt-6 text-xs md:text-sm font-black uppercase tracking-widest text-zinc-500">
@@ -436,7 +443,7 @@ export default function OnyxTontineLanding() {
             
             <div className="flex items-center justify-between gap-4 mt-auto pt-2">
                <button onClick={handlePrev} disabled={selectedStep === 0} className="p-4 bg-zinc-100 rounded-2xl hover:bg-zinc-200 disabled:opacity-50 transition shrink-0"><ChevronLeft size={20}/></button>
-               <button onClick={() => { setSelectedStep(null); setShowLeadModal(true); }} className="flex-1 bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition shadow-xl truncate px-2">
+               <button onClick={() => { setSelectedStep(null); openModalWithSound(); }} className="flex-1 bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition shadow-xl truncate px-2">
                   Ouvrir ma Tontine
                </button>
                <button onClick={handleNext} disabled={selectedStep === WORKFLOW_STEPS.length - 1} className="p-4 bg-zinc-100 rounded-2xl hover:bg-zinc-200 disabled:opacity-50 transition shrink-0"><ChevronRight size={20}/></button>
@@ -562,7 +569,7 @@ export default function OnyxTontineLanding() {
                 <p className="font-black text-sm md:text-base text-black">6 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
                 <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Pour tout le groupe. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">1er MOIS GRATUIT</span></p>
              </div>
-             <button onClick={() => setShowLeadModal(true)} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-black/20">
+             <button onClick={openModalWithSound} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-black/20">
                 Créer ma Tontine
              </button>
           </div>

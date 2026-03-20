@@ -988,6 +988,54 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
+            {/* --- SECTION : NOS SOLUTIONS RADICALES (BENTO GRID) --- */}
+            <section id="solutions" className="py-24 px-6 max-w-5xl mx-auto mt-10">
+              <div className="text-center mb-12">
+                 <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>MENU <span className="text-[#39FF14] drop-shadow-sm">À LA CARTE</span></h2>
+                 <p className="text-zinc-600 font-bold max-w-2xl mx-auto mb-8 text-lg">Ajoutez des briques à votre écosystème au fur et à mesure. Survolez une application pour voir ce qu'elle fait.</p>
+                 
+                 <div className="flex flex-wrap justify-center gap-3">
+                    {saasCategories.map(cat => (
+                       <button 
+                         key={cat} 
+                         onClick={() => setSaasFilter(cat)} 
+                         className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all shadow-sm border ${saasFilter === cat ? 'bg-black text-[#39FF14] border-black scale-105' : 'bg-white text-zinc-600 border-zinc-200 hover:border-black hover:text-black'}`}
+                       >
+                         {cat}
+                       </button>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in duration-500">
+                {filteredSolutions.map((s, i) => {
+                  const Icon = s.icon;
+                  return (
+                    <div 
+                      key={i} 
+                      onClick={() => { setShowSaasChoice(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} 
+                      className="group relative overflow-hidden bg-white border-2 border-zinc-100 rounded-[2rem] shadow-sm cursor-pointer aspect-square flex flex-col items-center justify-center p-4 text-center transition-all duration-300 hover:bg-black hover:border-[#39FF14] hover:shadow-[0_0_30px_rgba(57,255,20,0.2)]"
+                    >
+                      {/* Face par défaut (Visible) */}
+                      <div className="flex flex-col items-center justify-center w-full h-full group-hover:opacity-0 transition-opacity duration-300 absolute inset-0 p-4">
+                         <div className="bg-zinc-50 border border-zinc-100 text-black w-16 h-16 rounded-[1.2rem] flex items-center justify-center mb-4 shadow-sm group-hover:scale-90 transition-transform">
+                            <Icon className="w-8 h-8" />
+                         </div>
+                         <h3 className={`${spaceGrotesk.className} text-sm md:text-base font-black uppercase tracking-tighter text-black leading-tight px-2`}>{s.id}</h3>
+                      </div>
+
+                      {/* Face au survol (Cachée par défaut) */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute inset-0 flex flex-col items-center justify-center p-4 bg-black z-10">
+                         <Icon className="w-8 h-8 text-[#39FF14] mb-3 opacity-80 scale-75 group-hover:scale-100 transition-transform duration-500" />
+                         <p className="text-[10px] sm:text-xs font-bold text-white leading-tight mb-4 px-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{s.solution}</p>
+                         <span className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-100">+ INFOS</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
             {/* --- NOUVEAU : ONYXBUSINESS BRIDGE --- */}
             <section id="premium" className="py-24 bg-black border-t-8 border-[#00E5FF] relative overflow-hidden mt-10">
                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00E5FF] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
