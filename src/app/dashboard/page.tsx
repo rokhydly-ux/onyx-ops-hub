@@ -182,6 +182,13 @@ export default function Dashboard() {
     
     if (!isActive && saas) {
         const saasLower = saas.toLowerCase();
+        
+        if (saasLower.includes('gold') || saasLower.includes('tekkipro')) {
+            isActive = ['vente', 'tiak', 'stock', 'formation'].includes(moduleId);
+        } else if (saasLower.includes('tekki') || saasLower.includes('trio')) {
+            isActive = ['vente', 'tiak', 'stock'].includes(moduleId);
+        } else if (saasLower.includes('duo')) {
+            isActive = ['vente', 'tiak'].includes(moduleId);
         } else if (saasLower.includes('solo')) {
             isActive = ['vente'].includes(moduleId);
         } else {

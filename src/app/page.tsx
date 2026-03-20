@@ -49,14 +49,14 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
 };
 
 const SOLUTIONS = [
-  { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 13000, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 13000, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 13000, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 13000, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 13000, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 13000, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 9900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 9900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 9900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 9900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 9900, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 9900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "tekki", upsellName: "OnyxTekki" },
   { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 29900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "tekkipro", upsellName: "OnyxTekki Pro" },
-  { id: "Onyx Fit", icon: Flame, category: "Services", price: 13000, pain: "Suivi diététique brouillon et perte de motivation des clientes.", solution: "Rééquilibrage alimentaire à l'africaine avec la coach Amina, suivi interactif et relances auto.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Fit", icon: Flame, category: "Services", price: 6000, pain: "Suivi diététique brouillon et perte de motivation des clientes.", solution: "Rééquilibrage alimentaire à l'africaine avec la coach Amina, suivi interactif et relances auto.", upsellPack: "tekki", upsellName: "OnyxTekki" },
   { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "tekki", upsellName: "OnyxTekki" },
 ];
 
@@ -926,7 +926,7 @@ export default function OnyxOpsElite() {
                   <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché.</p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
                   {PACKS.map((pack) => {
                     const planDetails = PLAN_DETAILS[pack.id];
                     const isRecommended = quizResult && quizResult.packId === pack.id;
@@ -934,12 +934,12 @@ export default function OnyxOpsElite() {
                     const isGold = pack.id === 'gold';
 
                     return (
-                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-b from-[#39FF14]/30 via-black to-black border-[4px] border-[#39FF14] md:scale-110 shadow-[0_0_60px_rgba(57,255,20,0.5)] z-30' : isGold ? 'bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.15)] z-10' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition-all duration-300 flex flex-col relative`}>
+                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-b from-[#39FF14]/30 via-black to-black border-[4px] border-[#39FF14] md:scale-110 shadow-[0_0_60px_rgba(57,255,20,0.5)] z-30' : isGold ? 'bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.15)] z-10' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition-all duration-300 flex flex-col relative group`}>
                         
                         {/* BULLE PROMOTIONNELLE TEKKI / GOLD */}
                         {(isTekki || isRecommended || isGold) && (
                            <div className={`absolute -top-5 left-1/2 -translate-x-1/2 ${isTekki ? 'bg-red-600 border-2 border-red-400 text-white' : isGold ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black border-2 border-yellow-300' : 'bg-[#39FF14] text-black'} px-5 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-2`}>
-                              {isTekki ? <><Flame size={14}/> PREMIER MOIS OFFERT ! (Économisez 16 100 F)</> : isGold ? <><Target size={14}/> 👑 PREMIUM</> : <><Sparkles size={14}/> Choix Idéal</>}
+                              {isTekki ? <><Flame size={14}/> PREMIER MOIS OFFERT ! (Économisez 16 100 F)</> : isGold ? <><Target size={14} className="group-hover:animate-[spin_4s_linear_infinite]"/> 👑 PREMIUM</> : <><Sparkles size={14}/> Choix Idéal</>}
                            </div>
                         )}
 
@@ -958,6 +958,7 @@ export default function OnyxOpsElite() {
                         <div className={`text-3xl font-black mb-6 italic text-white flex items-center`}>
                            {pack.price.toLocaleString()} F
                            {pack.id === 'tekkipro' && <TrendingUp size={20} className="inline-block ml-3 text-[#00E5FF]" />}
+                           {pack.id === 'gold' && <Target size={20} className="inline-block ml-3 text-yellow-400 group-hover:animate-[spin_4s_linear_infinite]" />}
                            <span className="text-xs text-zinc-500 font-normal not-italic ml-2">{pack.isUnique ? ' (Unique)' : '/ mois'}</span>
                         </div>
                         
@@ -968,7 +969,7 @@ export default function OnyxOpsElite() {
                            </div>
                         )}
 
-                        <ul className={`text-xs space-y-3 mb-8 flex-1 ${isTekki || isRecommended ? 'text-zinc-300' : isGold ? 'text-yellow-100/80' : 'text-zinc-400'}`}>
+                        <ul className={`text-xs space-y-3 mb-8 flex-1 ${isTekki || isRecommended ? 'text-zinc-300' : 'text-zinc-400'}`}>
                           {planDetails.benefits.map((ben, i) => <li key={i} className="flex gap-2">✔ {ben}</li>)}
                         </ul>
                         <button 
@@ -976,7 +977,7 @@ export default function OnyxOpsElite() {
     setLeadData(prev => ({ ...prev, saas: pack.label })); 
     setShowOnboarding(true); 
   }} 
-  className={`w-full block text-center py-4 rounded-2xl font-black uppercase transition-transform ${isTekki ? 'bg-[#39FF14] text-black hover:scale-105 shadow-xl text-base' : isGold ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black hover:scale-105 shadow-xl text-sm' : 'bg-white text-black hover:bg-[#39FF14] text-sm'}`}
+  className={`w-full block text-center py-4 rounded-2xl font-black uppercase transition-transform ${isTekki ? 'bg-[#39FF14] text-black hover:scale-105 shadow-xl text-base' : 'bg-white text-black hover:bg-[#39FF14] text-sm'}`}
 >
   {isTekki ? 'LANCER MON COMMERCE' : 'Commencer'}
 </button>
@@ -984,54 +985,6 @@ export default function OnyxOpsElite() {
                     );
                   })}
                 </div>
-              </div>
-            </section>
-
-            {/* --- SECTION : NOS SOLUTIONS RADICALES (BENTO GRID) --- */}
-            <section id="solutions" className="py-24 px-6 max-w-5xl mx-auto mt-10">
-              <div className="text-center mb-12">
-                 <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>MENU <span className="text-[#39FF14] drop-shadow-sm">À LA CARTE</span></h2>
-                 <p className="text-zinc-600 font-bold max-w-2xl mx-auto mb-8 text-lg">Ajoutez des briques à votre écosystème au fur et à mesure. Survolez une application pour voir ce qu'elle fait.</p>
-                 
-                 <div className="flex flex-wrap justify-center gap-3">
-                    {saasCategories.map(cat => (
-                       <button 
-                         key={cat} 
-                         onClick={() => setSaasFilter(cat)} 
-                         className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all shadow-sm border ${saasFilter === cat ? 'bg-black text-[#39FF14] border-black scale-105' : 'bg-white text-zinc-600 border-zinc-200 hover:border-black hover:text-black'}`}
-                       >
-                         {cat}
-                       </button>
-                    ))}
-                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in duration-500">
-                {filteredSolutions.map((s, i) => {
-                  const Icon = s.icon;
-                  return (
-                    <div 
-                      key={i} 
-                      onClick={() => { setShowSaasChoice(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} 
-                      className="group relative overflow-hidden bg-white border-2 border-zinc-100 rounded-[2rem] shadow-sm cursor-pointer aspect-square flex flex-col items-center justify-center p-4 text-center transition-all duration-300 hover:bg-black hover:border-[#39FF14] hover:shadow-[0_0_30px_rgba(57,255,20,0.2)]"
-                    >
-                      {/* Face par défaut (Visible) */}
-                      <div className="flex flex-col items-center justify-center w-full h-full group-hover:opacity-0 transition-opacity duration-300 absolute inset-0 p-4">
-                         <div className="bg-zinc-50 border border-zinc-100 text-black w-16 h-16 rounded-[1.2rem] flex items-center justify-center mb-4 shadow-sm group-hover:scale-90 transition-transform">
-                            <Icon className="w-8 h-8" />
-                         </div>
-                         <h3 className={`${spaceGrotesk.className} text-sm md:text-base font-black uppercase tracking-tighter text-black leading-tight px-2`}>{s.id}</h3>
-                      </div>
-
-                      {/* Face au survol (Cachée par défaut) */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute inset-0 flex flex-col items-center justify-center p-4 bg-black z-10">
-                         <Icon className="w-8 h-8 text-[#39FF14] mb-3 opacity-80 scale-75 group-hover:scale-100 transition-transform duration-500" />
-                         <p className="text-[10px] sm:text-xs font-bold text-white leading-tight mb-4 px-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{s.solution}</p>
-                         <span className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-100">+ INFOS</span>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </section>
 
