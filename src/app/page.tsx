@@ -940,7 +940,14 @@ export default function OnyxOpsElite() {
                            </div>
                         )}
 
-                        <p className={`text-[10px] font-black tracking-[0.3em] ${isTekki || isRecommended ? 'text-[#39FF14]' : 'text-zinc-500'} mb-1 uppercase mt-2`}>{pack.label}</p>
+                        <div className="flex items-center gap-2 mb-1 mt-2">
+                           <p className={`text-[10px] font-black tracking-[0.3em] ${isTekki || isRecommended ? 'text-[#39FF14]' : 'text-zinc-500'} uppercase`}>{pack.label}</p>
+                           {(pack.id === 'tekki' || pack.id === 'tekkipro') && (
+                              <span className="bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[#00E5FF] text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse">
+                                 Nouveau
+                              </span>
+                           )}
+                        </div>
                         <div className="flex items-center gap-1 mb-4">
                           {[...Array(5)].map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < 4 || pack.rating.startsWith('5') ? 'text-yellow-400 fill-yellow-400' : 'text-yellow-400/30 fill-yellow-400/30'}`} />))}
                           <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis})</span>
@@ -1159,6 +1166,7 @@ export default function OnyxOpsElite() {
                         { id: 'solo', label: 'Pack Solo (13.000F)', max: 50 },
                         { id: 'tekki', label: 'OnyxTekki (22.900F)', max: 40 },
                         { id: 'tekkipro', label: 'OnyxTekki Pro (27.900F)', max: 30 },
+                        { id: 'gold', label: 'Onyx Gold (34.900F)', max: 20 },
                       ].map(pack => (
                         <div key={pack.id}>
                           <div className="flex justify-between mb-2">
