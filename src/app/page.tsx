@@ -811,47 +811,6 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
-            {/* --- SECTION : NOS SOLUTIONS RADICALES --- */}
-            <section id="solutions" className="py-20 px-6 max-w-7xl mx-auto border-t border-zinc-100">
-              <div className="text-center mb-10">
-                 <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter mb-4`}>NOS <span className="text-[#39FF14]">SOLUTIONS RADICALES</span></h2>
-                 <p className="text-zinc-600 font-bold max-w-2xl mx-auto mb-8">Découvrez nos outils sur-mesure pour automatiser chaque aspect de votre business. Filtrez par catégorie pour trouver votre solution idéale.</p>
-                 
-                 <div className="flex flex-wrap justify-center gap-3">
-                    {saasCategories.map(cat => (
-                       <button 
-                         key={cat} 
-                         onClick={() => setSaasFilter(cat)} 
-                         className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-sm border ${saasFilter === cat ? 'bg-black text-[#39FF14] border-black scale-105' : 'bg-white text-zinc-600 border-zinc-200 hover:border-black hover:text-black'}`}
-                       >
-                         {cat}
-                       </button>
-                    ))}
-                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-                {filteredSolutions.map((s, i) => {
-                  const Icon = s.icon;
-                  return (
-                    <div key={i} onClick={() => { setShowSaasChoice(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} className="group glitch-hover relative overflow-hidden bg-white border border-zinc-200 p-8 rounded-[2.5rem] shadow-sm hover:border-[#39FF14]/50 hover:shadow-xl transition-all cursor-pointer flex flex-col h-full">
-                      <div className="absolute right-0 top-0 w-28 h-28 opacity-[0.05] pointer-events-none"><Icon className="w-full h-full text-black" /></div>
-                      <div className="bg-black text-[#39FF14] w-12 h-12 rounded-2xl flex items-center justify-center mb-6"><Icon className="w-6 h-6" /></div>
-                      <h3 className={`${spaceGrotesk.className} text-xl font-black mb-4 italic uppercase flex justify-between items-center`}>
-                        <span className="glitch-text">{s.id}</span>
-                        <span className="bg-zinc-100 text-black text-[9px] px-3 py-1 rounded-full not-italic group-hover:bg-[#39FF14] transition">+ Infos</span>
-                      </h3>
-                      <p className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-2 rounded-xl mb-4 line-clamp-2 border border-red-100 flex-1">{s.pain}</p>
-                      <div className="bg-[#39FF14]/10 p-4 rounded-2xl border-l-4 border-[#39FF14]">
-                        <p className="text-[10px] font-black text-[#39FF14] uppercase mb-1">Solution Onyx</p>
-                        <p className="text-xs font-bold text-black">{s.solution}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
             {/* --- SECTION QUIZ INTERACTIF --- */}
             <section id="quiz-section" className="py-24 bg-zinc-50 border-t border-zinc-200 mt-10">
                <div className="max-w-4xl mx-auto px-6 text-center">
