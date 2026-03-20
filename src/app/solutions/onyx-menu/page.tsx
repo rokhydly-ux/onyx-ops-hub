@@ -133,8 +133,7 @@ export default function OnyxMenuLanding() {
          <div className="mt-20 relative max-w-4xl mx-auto">
             <div className="absolute inset-0 bg-[#FF5722] opacity-[0.05] blur-[100px] rounded-full"></div>
             <div className="w-full aspect-video bg-white border border-zinc-200 rounded-[2rem] shadow-2xl relative z-10 flex items-center justify-center overflow-hidden group">
-               <Smartphone size={64} className="text-zinc-300 group-hover:scale-110 transition-transform duration-700" />
-               <p className="absolute bottom-4 text-zinc-400 font-bold text-xs uppercase tracking-widest">[ Illustration Menu Téléphone ]</p>
+               <img src="https://i.ibb.co/tT5Zq8kX/Sans-titre-1024-x-768-px-1.png" alt="Illustration Menu Téléphone" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             </div>
          </div>
       </section>

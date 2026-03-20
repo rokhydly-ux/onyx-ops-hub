@@ -133,8 +133,7 @@ export default function OnyxTiakLanding() {
          <div className="mt-20 relative max-w-4xl mx-auto">
             <div className="absolute inset-0 bg-[#39FF14] opacity-[0.05] blur-[100px] rounded-full"></div>
             <div className="w-full aspect-video bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-2xl relative z-10 flex items-center justify-center overflow-hidden group">
-               <MapPin size={64} className="text-zinc-800 group-hover:scale-110 transition-transform duration-700" />
-               <p className="absolute bottom-4 text-zinc-700 font-bold text-xs uppercase tracking-widest">[ Illustration Interface Tiak ]</p>
+               <img src="https://i.ibb.co/Gv1ZR1BF/Sans-titre-1024-x-768-px-Pr-sentation.png" alt="Illustration Onyx Tiak" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             </div>
          </div>
       </section>
