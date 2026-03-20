@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
@@ -8,7 +8,7 @@ import {
   Calculator, Gift, Bot, 
   Truck, ArrowRight, ShoppingCart, ChevronLeft,
   Sparkles, LayoutDashboard, QrCode, PlayCircle, X,
-  UserPlus, MessageSquare, ArrowUp
+  UserPlus, MessageSquare, ArrowUp, ChevronDown, Send
 } from "lucide-react";
 
 const ONBOARDING_CATEGORIES = [
@@ -33,13 +33,45 @@ export default function OnyxJaayLanding() {
 
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  // Navigation Menu
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Configuration Bot Fanta (FAQ Auto - Onyx Jaay)
+  const [isBotOpen, setIsBotOpen] = useState(false);
+  const [userReply, setUserReply] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [botMessages, setBotMessages] = useState<any[]>([
+    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta. Avez-vous des questions sur Onyx Jaay, notre catalogue digital pour WhatsApp ?", options: ["Oui", "Non"] }
+  ]);
+
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 400);
     };
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsBotOpen(true);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [botMessages]);
 
   useEffect(() => {
     const handleMouseLeave = (e: MouseEvent) => {
@@ -131,6 +163,47 @@ export default function OnyxJaayLanding() {
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
+  const processBotReply = (reply: string) => {
+    if(!reply.trim()) return;
+    const newMsgs = [...botMessages, { sender: 'client', text: reply }];
+    setBotMessages(newMsgs);
+    setUserReply("");
+
+    setTimeout(async () => {
+        const lowerReply = reply.toLowerCase();
+        let botResponse = "";
+        let botOptions: string[] | undefined = undefined;
+
+        if (lowerReply === "oui") {
+            botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, la création du catalogue, ou la livraison.";
+        } else if (lowerReply === "non" || lowerReply === "non merci") {
+            botResponse = "Très bien ! N'hésitez pas à cliquer sur le bouton 'Créer mon catalogue' en bas de la page pour commencer votre mois gratuit.";
+        } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
+            botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Jaay et j'aimerais parler à un conseiller.")}`, '_blank'); }, 1000);
+        } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
+            botResponse = "Onyx Jaay coûte seulement 9 900 F/mois. C'est sans engagement, et votre 1er mois est 100% gratuit !";
+        } else if (lowerReply.includes("catalogue") || lowerReply.includes("produit") || lowerReply.includes("ajouter") || lowerReply.includes("comment")) {
+            botResponse = "C'est super simple : vous ajoutez vos photos et prix depuis votre téléphone. Vos clients auront un beau lien pour commander directement sans vous poser 20 fois la même question !";
+        } else if (lowerReply.includes("livraison") || lowerReply.includes("tiak") || lowerReply.includes("livreur")) {
+            botResponse = "Onyx Jaay calcule automatiquement les frais de livraison selon la zone de votre client. (Si vous voulez aussi suivre vos livreurs en temps réel, regardez notre Pack Trio !)";
+        } else if (lowerReply.includes("paiement") || lowerReply.includes("payer") || lowerReply.includes("wave") || lowerReply.includes("orange money")) {
+            botResponse = "Le client valide son panier sur WhatsApp avec le montant total exact (produits + livraison). Vous pouvez encaisser par Wave, Orange Money ou à la livraison en toute simplicité.";
+        } else {
+            botResponse = "C'est noté ! Voulez-vous que je vous mette en relation avec un conseiller humain sur WhatsApp pour voir comment adapter ça à votre boutique ?";
+            botOptions = ["Oui, parler à un conseiller", "Non merci"];
+        }
+
+        setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
+
+        try {
+            await supabase.from('leads').insert([{
+                full_name: 'Visiteur Jaay', intent: 'Question Bot Jaay', source: 'Bot Fanta FAQ', message: reply, status: 'Nouveau'
+            }]);
+        } catch (err) {}
+    }, 1000);
+  };
+
   const handleOutsideClick = (setter: any) => (e: any) => {
     if (e.target.id === "modal-overlay") setter(false);
   };
@@ -143,11 +216,28 @@ export default function OnyxJaayLanding() {
           🎁 Lancez votre catalogue aujourd'hui : Le 1er mois d'utilisation est 100% Gratuit !
       </div>
 
-      {/* Navigation minimale */}
-      <nav className="p-6 z-50 flex items-center justify-between relative">
-         <button onClick={() => router.push('/')} className="bg-white/80 backdrop-blur-md p-3 rounded-full border border-zinc-200 hover:bg-black hover:text-white transition-colors shadow-sm">
-            <ChevronLeft size={20} />
+      {/* Navbar */}
+      <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
+         <button onClick={() => window.location.href = '/'} className="font-sans text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black hover:scale-105 transition-transform">
+            ONYX<span className="text-[#39FF14] drop-shadow-sm">JAAY</span>
          </button>
+         
+         <div className="flex items-center gap-4">
+             <div className="relative" ref={dropdownRef}>
+                 <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="text-xs font-bold text-zinc-500 uppercase tracking-widest hover:text-black flex items-center gap-1 transition-colors">
+                    Autres Solutions <ChevronDown size={14} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                 </button>
+                 <div className={`absolute top-full right-0 mt-2 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                    <button onClick={() => window.location.href = '/'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🏠 Accueil Onyx</button>
+                    <button onClick={() => window.location.href = '/solutions/onyx-tontine'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">💰 Onyx Tontine</button>
+                    <button onClick={() => window.location.href = '/tiak'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🚚 Onyx Tiak</button>
+                    <button onClick={() => window.location.href = '/menu'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🍽️ Onyx Menu</button>
+                 </div>
+             </div>
+             <button onClick={() => window.location.href = '/'} className="bg-zinc-100 text-black px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-black hover:text-[#39FF14] transition-colors flex items-center gap-1">
+                 <ChevronLeft size={14}/> Accueil
+             </button>
+         </div>
       </nav>
 
       {/* 1. HERO SECTION */}
@@ -528,6 +618,53 @@ export default function OnyxJaayLanding() {
            <ArrowUp size={24} />
          </button>
       )}
+
+      {/* BOT FANTA FAQ ONYX JAAY */}
+      <div className="fixed bottom-24 right-6 z-[90] flex flex-col items-end">
+        {isBotOpen && (
+          <div className="bg-white rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[340px] h-[400px] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
+             <div className="bg-black p-4 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                   <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl">👩🏾‍💻</div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
+                   </div>
+                   <div><p className="text-[#39FF14] font-black uppercase text-xs">Fanta - Conseillère</p></div>
+                </div>
+                <button onClick={() => setIsBotOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
+             </div>
+             
+             <div className="flex-1 bg-zinc-50 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar">
+                {botMessages.map((msg, i) => (
+                   <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? 'bg-white border border-zinc-200 text-zinc-800 rounded-tl-none shadow-sm' : 'bg-black text-[#39FF14] rounded-tr-none shadow-md'}`}>
+                         {msg.text}
+                      </div>
+                      {msg.options && (
+                         <div className="flex flex-wrap gap-2 mt-2 w-full">
+                            {msg.options.map((opt: string, idx: number) => (
+                               <button key={idx} onClick={() => processBotReply(opt)} className="bg-white border border-zinc-200 text-black text-xs font-bold px-4 py-2 rounded-xl hover:bg-black hover:text-[#39FF14] shadow-sm transition-colors">{opt}</button>
+                            ))}
+                         </div>
+                      )}
+                   </div>
+                ))}
+                <div ref={chatEndRef} />
+             </div>
+
+             <div className="p-3 bg-white border-t border-zinc-200 flex gap-2">
+                <input type="text" value={userReply} onChange={e => setUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processBotReply(userReply)} placeholder="Poser une question..." className="flex-1 bg-zinc-100 rounded-xl px-4 outline-none text-sm font-bold focus:ring-1 focus:ring-black" />
+                <button onClick={() => processBotReply(userReply)} className="bg-[#39FF14] p-3 rounded-xl text-black hover:scale-105 transition"><Send size={18}/></button>
+             </div>
+          </div>
+        )}
+        
+        {!isBotOpen && (
+           <button onClick={() => setIsBotOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative group animate-bounce flex items-center justify-center text-2xl">
+             👩🏾‍💻
+           </button>
+        )}
+      </div>
 
       {/* STICKY BOTTOM BAR (Offre Gratuite) */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom-full">
