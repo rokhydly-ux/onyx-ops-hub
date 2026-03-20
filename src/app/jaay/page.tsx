@@ -182,7 +182,7 @@ export default function OnyxJaayLanding() {
             botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Jaay et j'aimerais parler à un conseiller.")}`, '_blank'); }, 1000);
         } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
-            botResponse = "Onyx Jaay coûte seulement 9 900 F/mois. C'est sans engagement, et votre 1er mois est 100% gratuit !";
+            botResponse = "Onyx Jaay coûte seulement 13 000 F/mois. C'est sans engagement, et votre 1er mois est 100% gratuit !";
         } else if (lowerReply.includes("catalogue") || lowerReply.includes("produit") || lowerReply.includes("ajouter") || lowerReply.includes("comment")) {
             botResponse = "C'est super simple : vous ajoutez vos photos et prix depuis votre téléphone. Vos clients auront un beau lien pour commander directement sans vous poser 20 fois la même question !";
         } else if (lowerReply.includes("livraison") || lowerReply.includes("tiak") || lowerReply.includes("livreur")) {
@@ -254,7 +254,7 @@ export default function OnyxJaayLanding() {
          </p>
          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
              <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className="w-full sm:w-auto bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-2">
-                 Démarrer l'essai (9 900 F/mois) <ArrowRight size={18} />
+                 Démarrer l'essai (13 000 F/mois) <ArrowRight size={18} />
              </button>
              <button onClick={() => window.open('/keur-yaay', '_blank')} className="w-full sm:w-auto bg-transparent border-2 border-black text-black px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2">
                  <PlayCircle size={18} /> Voir une démo
@@ -670,7 +670,7 @@ export default function OnyxJaayLanding() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom-full">
           <div className="max-w-4xl mx-auto flex justify-between items-center px-2">
              <div>
-                <p className="font-black text-sm md:text-base text-black">9 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
+                <p className="font-black text-sm md:text-base text-black">13 000 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
                 <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Sans engagement. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">1er MOIS GRATUIT</span></p>
              </div>
              <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-black/20">

@@ -228,9 +228,20 @@ export default function AdminDashboard() {
      if (partnersData) setPartners(partnersData);
      if (materialsData) setMarketingMaterials(materialsData);
      
+     // Nouveau calcul précis du revenu MRR
+     const realRevenue = contactsData?.reduce((acc: number, c: any) => {
+        if (c.type !== 'Client') return acc;
+        if (c.saas === 'Onyx Gold') return acc + 34900;
+        if (c.saas === 'OnyxTekki Pro') return acc + 27900;
+        if (c.saas === 'OnyxTekki' || c.saas === 'Pack Trio') return acc + 22900;
+        if (c.saas === 'Onyx Solo') return acc + 13000;
+        if (c.saas === 'Pack Duo') return acc + 17500;
+        return acc + 9900; // Plan individuel par défaut
+     }, 0) || 0;
+
      setStats({
-       revenue: contactsData?.length ? contactsData.length * 9900 : 0,
-       activeClients: contactsData?.length || 0,
+       revenue: realRevenue,
+       activeClients: contactsData?.filter(c => c.type === 'Client').length || 0,
        pendingLeads: leadsData?.length || 0,
        newPartners: partnersData?.length || 0
      });
@@ -571,9 +582,9 @@ export default function AdminDashboard() {
    alert("Action planifiée avec succès dans le Journal IA !");
 };
 
-  const handleApplyPack = (packName: 'Solo' | 'Duo' | 'Trio') => {
-      let packPrice = packName === 'Solo' ? 9900 : packName === 'Duo' ? 17500 : 24900;
-      let packSaas = packName === 'Solo' ? ['vente'] : packName === 'Duo' ? ['vente', 'tiak'] : ['vente', 'tiak', 'stock'];
+  const handleApplyPack = (packName: 'Solo' | 'Tekki' | 'Tekki Pro' | 'Gold') => {
+      let packPrice = packName === 'Solo' ? 13000 : packName === 'Tekki' ? 22900 : packName === 'Tekki Pro' ? 27900 : 34900;
+      let packSaas = packName === 'Solo' ? ['vente'] : packName === 'Tekki' ? ['vente', 'tiak', 'stock'] : ['vente', 'tiak', 'stock', 'formation'];
       
       const currentExp = editingContact.expiration_date;
       let newExpDate = new Date();
@@ -581,18 +592,18 @@ export default function AdminDashboard() {
       let msg = "";
 
       // Calcul Prorata si upgrade
-      if (currentExp && (editingContact.saas === 'Pack Solo' || editingContact.saas === 'Onyx Jaay') && packName !== 'Solo') {
+      if (currentExp && (editingContact.saas === 'Onyx Solo' || editingContact.saas === 'Pack Solo' || editingContact.saas === 'Onyx Jaay') && packName !== 'Solo') {
           const expDate = new Date(currentExp);
           const today = new Date();
           const diffTime = expDate.getTime() - today.getTime();
           const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
           if (remainingDays > 0) {
-              const remainingValue = (9900 / 30) * remainingDays;
+              const remainingValue = (13000 / 30) * remainingDays;
               const extraDays = Math.floor(remainingValue / (packPrice / 30));
               newExpDate = new Date();
               newExpDate.setDate(newExpDate.getDate() + 30 + extraDays);
-              msg = `✅ Prorata appliqué : Il restait ${remainingDays}j de Solo (${Math.round(remainingValue)}F). Valeur convertie en +${extraDays} jours offerts sur le ${packName}.`;
+              msg = `✅ Prorata appliqué : Il restait ${remainingDays}j de Solo (${Math.round(remainingValue)}F). Valeur convertie en +${extraDays} jours offerts sur l'offre ${packName}.`;
           }
       }
 
@@ -600,9 +611,11 @@ export default function AdminDashboard() {
       const newDates: any = { ...(editingContact.saas_expiration_dates || {}) };
       packSaas.forEach(s => newDates[s] = formattedExpDate);
 
+      const saasLabel = packName === 'Solo' ? 'Onyx Solo' : packName === 'Tekki' ? 'OnyxTekki' : packName === 'Tekki Pro' ? 'OnyxTekki Pro' : 'Onyx Gold';
+
       setEditingContact(prev => ({ 
           ...prev, 
-          saas: `Pack ${packName}`, 
+          saas: saasLabel, 
           active_saas: Array.from(new Set([...(prev.active_saas || []), ...packSaas])), 
           expiration_date: formattedExpDate, 
           saas_expiration_dates: newDates 
@@ -2345,10 +2358,11 @@ export default function AdminDashboard() {
                     </label>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <button type="button" onClick={() => handleApplyPack('Solo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Solo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Solo<br/><span className="text-[9px] font-normal">Jaay (9.900F)</span></button>
-                    <button type="button" onClick={() => handleApplyPack('Duo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Duo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Duo<br/><span className="text-[9px] font-normal">Jaay + Tiak (17.500F)</span></button>
-                    <button type="button" onClick={() => handleApplyPack('Trio')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Trio' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Trio<br/><span className="text-[9px] font-normal">Jaay + Tiak + Stock (24.900F)</span></button>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                    <button type="button" onClick={() => handleApplyPack('Solo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Onyx Solo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Onyx Solo<br/><span className="text-[9px] font-normal">Jaay (13.000F)</span></button>
+                    <button type="button" onClick={() => handleApplyPack('Tekki')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'OnyxTekki' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>OnyxTekki<br/><span className="text-[9px] font-normal">Trio (22.900F)</span></button>
+                    <button type="button" onClick={() => handleApplyPack('Tekki Pro')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'OnyxTekki Pro' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>OnyxTekki Pro<br/><span className="text-[9px] font-normal">+ IA (27.900F)</span></button>
+                    <button type="button" onClick={() => handleApplyPack('Gold')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Onyx Gold' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black border-yellow-500 shadow-md' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Onyx Gold<br/><span className="text-[9px] font-normal">Total (34.900F)</span></button>
                 </div>
                 
                 {prorataMsg && <p className="text-xs text-black font-bold bg-[#39FF14]/20 p-3 rounded-xl animate-in fade-in">{prorataMsg}</p>}
@@ -2428,6 +2442,10 @@ export default function AdminDashboard() {
                     <select value={editingContact?.saas || ""} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-[11px] sm:text-xs uppercase outline-none cursor-pointer appearance-none transition-all focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10">
                       <option value="" disabled>Choisir un SaaS</option>
                       <option value="À définir">À définir</option>
+                        <option value="Onyx Solo">Onyx Solo</option>
+                        <option value="OnyxTekki">OnyxTekki</option>
+                        <option value="OnyxTekki Pro">OnyxTekki Pro</option>
+                        <option value="Onyx Gold">Onyx Gold</option>
                       <option value="Onyx Jaay">Onyx Jaay</option>
                       {ECOSYSTEM_SAAS.filter(s => s.name !== "Onyx Jaay").map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                     </select>
@@ -2728,6 +2746,10 @@ export default function AdminDashboard() {
               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4">Sélectionner l'outil principal</label>
               <select id="saas-select" className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10 cursor-pointer appearance-none">
                 <option value="">-- Aucun / À définir --</option>
+                <option value="Onyx Solo">Onyx Solo (13.000 F)</option>
+                <option value="OnyxTekki">OnyxTekki (22.900 F)</option>
+                <option value="OnyxTekki Pro">OnyxTekki Pro (27.900 F)</option>
+                <option value="Onyx Gold">Onyx Gold (34.900 F)</option>
                 {ECOSYSTEM_SAAS.map(s => (
                   <option key={s.id} value={s.name}>{s.name} ({(s as any).price?.toLocaleString('fr-FR')} F)</option>
                 ))}

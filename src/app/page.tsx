@@ -49,14 +49,14 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
 };
 
 const SOLUTIONS = [
-  { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 9900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 9900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 9900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 9900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 9900, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 9900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 13000, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 13000, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 13000, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 13000, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 13000, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 13000, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "tekki", upsellName: "OnyxTekki" },
   { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 29900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "tekkipro", upsellName: "OnyxTekki Pro" },
-  { id: "Onyx Fit", icon: Flame, category: "Services", price: 6000, pain: "Suivi diététique brouillon et perte de motivation des clientes.", solution: "Rééquilibrage alimentaire à l'africaine avec la coach Amina, suivi interactif et relances auto.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Fit", icon: Flame, category: "Services", price: 13000, pain: "Suivi diététique brouillon et perte de motivation des clientes.", solution: "Rééquilibrage alimentaire à l'africaine avec la coach Amina, suivi interactif et relances auto.", upsellPack: "tekki", upsellName: "OnyxTekki" },
   { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "tekki", upsellName: "OnyxTekki" },
 ];
 
@@ -934,7 +934,7 @@ export default function OnyxOpsElite() {
                     const isGold = pack.id === 'gold';
 
                     return (
-                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] md:scale-105 shadow-[0_0_40px_rgba(57,255,20,0.3)] z-20' : isGold ? 'bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.15)] z-10' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition flex flex-col relative`}>
+                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-b from-[#39FF14]/30 via-black to-black border-[4px] border-[#39FF14] md:scale-110 shadow-[0_0_60px_rgba(57,255,20,0.5)] z-30' : isGold ? 'bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.15)] z-10' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition-all duration-300 flex flex-col relative`}>
                         
                         {/* BULLE PROMOTIONNELLE TEKKI / GOLD */}
                         {(isTekki || isRecommended || isGold) && (
