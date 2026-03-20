@@ -18,7 +18,7 @@ import {
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
-type PlanKey = "solo" | "duo" | "trio" | "full" | "premium" | "master" | "elite";
+type PlanKey = "solo" | "tekki" | "tekkipro";
 
 // --- DATA ---
 const ECOSYSTEM_SAAS = [
@@ -31,9 +31,6 @@ const ECOSYSTEM_SAAS = [
   { id: "formation", name: "Onyx Formation", type: "Marketing & Ads" },
   { id: "fit", name: "Onyx Fit", type: "Rééquilibrage Alimentaire" },
   { id: "tontine", name: "Onyx Tontine", type: "Finance & Tontine" },
-  { id: "duo", name: "Pack Duo", type: "Vente + Stock" },
-  { id: "trio", name: "Pack Trio", type: "Vente + Stock + Tiak" },
-  { id: "master", name: "Onyx Master", type: "Formation + SaaS" },
 ];
 
 const ONBOARDING_CATEGORIES = [
@@ -45,33 +42,27 @@ const ONBOARDING_CATEGORIES = [
 ];
 
 const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
-  solo: { title: "Onyx Solo", desc: "La porte d'entrée pour digitaliser.", benefits: ["Catalogue interactif & Devis", "Lien de commande unique", "Fidélisation automatique"], why: "Gagner 2h par jour.", cible: "Vendeurs WhatsApp", avantage: "Fini les devis raturés.", chiffreCle: "+15% de ventes" },
-  duo: { title: "Pack Duo", desc: "Vente + Stock automatisé (Phydigital).", benefits: ["Catalogue pro interactif", "Inventaire mis à jour", "Alertes WhatsApp ruptures"], why: "Sécuriser vos ventes.", cible: "Boutiques physiques", avantage: "Stop aux vols et oublis.", chiffreCle: "Marge +20%" },
-  trio: { title: "Pack Trio", desc: "Vente + Stock + Logistique (Tiak).", benefits: ["Inventaire temps réel", "Facturation pro", "Suivi livreurs"], why: "Contrôle total du cash.", cible: "E-commerçants", avantage: "Maîtrise complète.", chiffreCle: "0 rupture" },
-  full: { title: "Pack Full", desc: "Les 6 SaaS Onyx ensemble.", benefits: ["RH, Paie & Logistique", "Menu QR & Réservations", "Rapports hebdo"], why: "Pour scaler rapidement.", cible: "PME & Agences", avantage: "Digitalisation 360°.", chiffreCle: "Gain de 10h/sem" },
-  premium: { title: "Onyx Premium", desc: "IA et Marketing.", benefits: ["Studio Créatif IA", "CRM & Relance auto", "Conseiller dédié"], why: "Pour dominer le marché.", cible: "Franchises", avantage: "IA intégrée.", chiffreCle: "Croissance X2" },
-  master: { title: "Onyx Master", desc: "Formation + 1 Mois Solo Offert.", benefits: ["Formation complète", "1 mois d'Onyx Solo offert", "Support prioritaire"], why: "Pour partir de zéro.", cible: "Débutants & Nouveaux", avantage: "L'offre ultime.", chiffreCle: "Lancement réussi" },
-  elite: { title: "Onyx Elite", desc: "Pack Sans Limit avec CRM + Studio Créatif.", benefits: ["CRM complet", "Studio Créatif IA", "Accès illimité aux 9 SaaS", "Conseiller dédié"], why: "Pour dominer le marché.", cible: "Franchises & Grandes structures", avantage: "Tout inclus.", chiffreCle: "Sans limite" },
+  solo: { title: "Onyx Solo", desc: "Jaay, Stock OU Tiak. Un besoin précis, une solution pro.", benefits: ["1 Outil au choix (Catalogue, Stock...)", "Stop au chaos sur WhatsApp", "Caisse sécurisée"], why: "Arrêter le bricolage.", cible: "Vendeurs WhatsApp", avantage: "Simple et efficace.", chiffreCle: "Zéro perte" },
+  tekki: { title: "OnyxTekki (Trio)", desc: "Gérez votre caisse, votre stock et vos livreurs en 1 clic. Mathématiquement incontestable.", benefits: ["Vente, Stock & Livreurs", "Zéro perte de CFA", "Feuille de route auto"], why: "Contrôle total du cash.", cible: "Commerçants & PME", avantage: "Écosystème parfait.", chiffreCle: "Bénéfice immédiat" },
+  tekkipro: { title: "OnyxTekki Pro (+Formation)", desc: "Les outils OnyxTekki + Stratégies de vente. Gagnez du khaliss, ne le dépensez pas.", benefits: ["Suite OnyxTekki complète", "Stratégies Marketing (Ads, Canva)", "Domination du marché"], why: "Croissance agressive.", cible: "Ambitieux", avantage: "Tout inclus.", chiffreCle: "Ventes x2" },
 };
 
 const SOLUTIONS = [
-  { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 9900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "duo", upsellName: "Pack Duo (Jaay + Stock)" },
-  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 9900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "trio", upsellName: "Pack Trio (Logistique incluse)" },
-  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 9900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "duo", upsellName: "Pack Duo (Vente + Stock)" },
-  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 9900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "trio", upsellName: "Pack Trio (Encaissements)" },
-  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 9900, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "full", upsellName: "Pack Full" },
-  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 9900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "full", upsellName: "Pack Full" },
-  { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 29900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "master", upsellName: "Onyx Master (Formation + SaaS)" },
-  { id: "Onyx Fit", icon: Flame, category: "Services", price: 6000, pain: "Suivi diététique brouillon et perte de motivation des clientes.", solution: "Rééquilibrage alimentaire à l'africaine avec la coach Amina, suivi interactif et relances auto.", upsellPack: "full", upsellName: "Pack Full" },
-  { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "full", upsellName: "Pack Full" },
+  { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 9900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 9900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 9900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 9900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 9900, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 9900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 29900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "tekkipro", upsellName: "OnyxTekki Pro" },
+  { id: "Onyx Fit", icon: Flame, category: "Services", price: 6000, pain: "Suivi diététique brouillon et perte de motivation des clientes.", solution: "Rééquilibrage alimentaire à l'africaine avec la coach Amina, suivi interactif et relances auto.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "tekki", upsellName: "OnyxTekki" },
 ];
 
-const PACKS: Array<{ id: PlanKey | "elite"; name: string; price: number | string; label: string; rating: string; avis: number; isUnique?: boolean }> = [
-  { id: "solo", name: "Solo", price: 9900, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
-  { id: "duo", name: "Pack Duo", price: 17500, label: "Pack Duo", rating: "4.8/5", avis: 95 },
-  { id: "trio", name: "Pack Trio", price: 24900, label: "Pack Trio", rating: "5.0/5", avis: 89 },
-  { id: "elite", name: "Onyx Elite", price: 78900, label: "Onyx Elite", rating: "5.0/5", avis: 89, isUnique: true },
-  { id: "master", name: "Onyx Master", price: 39900, label: "Bundle Master", rating: "5.0/5", avis: 215, isUnique: true },
+const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: string; rating: string; avis: number; isUnique?: boolean }> = [
+  { id: "solo", name: "Onyx Solo", price: 13000, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
+  { id: "tekki", name: "OnyxTekki", price: 22900, label: "OnyxTekki", rating: "5.0/5", avis: 312 },
+  { id: "tekkipro", name: "OnyxTekki Pro", price: 27900, label: "OnyxTekki Pro", rating: "5.0/5", avis: 189 },
 ];
 
 const AMBASSADOR_TESTIMONIALS = [
@@ -118,12 +109,12 @@ const RANDOM_SCENARIOS = [
 ];
 
 const RECENT_NOTIFICATIONS = [
-  { name: "Aïcha S.", action: "vient de souscrire au", product: "Pack Trio", time: "à l'instant", icon: Package },
+  { name: "Aïcha S.", action: "vient de souscrire à", product: "OnyxTekki", time: "à l'instant", icon: Package },
   { name: "Resto Dakar", action: "a activé", product: "Onyx Menu", time: "il y a 2 min", icon: Utensils },
   { name: "Mamadou Fall", action: "a démarré son essai", product: "Onyx Jaay", time: "il y a 5 min", icon: Smartphone },
-  { name: "Boutique Fanta", action: "a généré 45 devis avec", product: "Pack Solo", time: "il y a 12 min", icon: FileText },
+  { name: "Boutique Fanta", action: "a sécurisé sa caisse avec", product: "Onyx Solo", time: "il y a 12 min", icon: FileText },
   { name: "Ousmane D.", action: "est devenu partenaire", product: "Ambassadeur", time: "il y a 20 min", icon: Handshake },
-  { name: "Agence Digital", action: "a acheté le", product: "Pack Full", time: "il y a 35 min", icon: Star },
+  { name: "Agence Digital", action: "a acheté", product: "OnyxTekki Pro", time: "il y a 35 min", icon: Star },
 ];
 
 const PaymentMethods = () => (
@@ -196,7 +187,7 @@ export default function OnyxOpsElite() {
 
   // WORKFLOW PARTENAIRE
   const [partnerStep, setPartnerStep] = useState<'landing' | 'form' | 'success' | 'dashboard'>('landing');
-  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, duo: 1, trio: 1, full: 0, premium: 0, master: 0, elite: 0 });
+  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, tekkipro: 1 });
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", address: "", country: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
@@ -353,20 +344,20 @@ export default function OnyxOpsElite() {
         let msg = '';
         
         if (value === 'Oui') { 
-           packId = 'master'; 
-           msg = "En fonction de vos réponses, Onyx Master avec notre formation complète est la clé absolue de votre croissance (+100% de prospects visés)."; 
+           packId = 'tekkipro'; 
+           msg = "En fonction de vos réponses, OnyxTekki Pro avec nos stratégies de vente est la clé pour doubler vos bénéfices CFA. Zéro perte, croissance maximale."; 
         }
         else if (newAns.sector === 'Restauration') { 
-           packId = 'trio'; 
-           msg = "Pour un établissement de restauration, l'automatisation de vos encaissements et livraisons est vitale. Le Pack Trio est parfait."; 
+           packId = 'tekki'; 
+           msg = "Pour un établissement de restauration, l'automatisation de vos encaissements et livraisons est vitale. OnyxTekki est parfait."; 
         }
-        else if (newAns.size !== 'Petit commerçant (1-3 employés)') { 
-           packId = 'trio'; 
-           msg = "En tant que PME structurée, la centralisation des stocks et de la logistique est obligatoire pour scaler sans stress."; 
+        else if (newAns.size !== 'Vendeur WhatsApp') { 
+           packId = 'tekki'; 
+           msg = "En tant que structure, la centralisation des stocks et de la logistique est obligatoire. OnyxTekki va sécuriser votre caisse avec un bénéfice immédiat."; 
         }
         else { 
-           packId = 'duo'; 
-           msg = "Pour démarrer efficacement, contrôler vos ventes et votre stock est la priorité absolue. Le Pack Duo réduit vos ruptures à 0."; 
+           packId = 'solo'; 
+           msg = "Pour démarrer efficacement et arrêter le chaos sur WhatsApp, Onyx Solo est l'outil parfait pour sécuriser vos ventes."; 
         }
 
         setQuizResult({ packId, message: msg });
@@ -468,12 +459,12 @@ export default function OnyxOpsElite() {
         let msg = "";
         let options: string[] = [];
         if(reply.includes("Boutique")) {
-           msg = "Excellent. Pour une boutique, voici mes recommandations :\n⭐ Le Meilleur : Pack Trio (Vente + Stock + Tiak)\n💰 L'Essentiel moins cher : Onyx Jaay (Catalogue)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
-           options = ["1. Pack Trio", "2. Onyx Jaay"];
+           msg = "Excellent. Pour une boutique, voici mes recommandations :\n⭐ Le Meilleur : OnyxTekki (Vente + Stock + Tiak)\n💰 L'Essentiel moins cher : Onyx Jaay (Catalogue)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
+           options = ["1. OnyxTekki", "2. Onyx Jaay"];
         }
         else if(reply.includes("Restaurant")) {
-           msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : Pack Trio (Encaissement & Stock)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
-           options = ["1. Pack Trio", "2. Onyx Menu"];
+           msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : OnyxTekki (Encaissement & Stock)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
+           options = ["1. OnyxTekki", "2. Onyx Menu"];
         }
         else if(reply.includes("Autre")) {
            msg = "Je vois ! Expliquez-moi brièvement ce que vous faites et ce que vous aimeriez améliorer, je vais analyser ça pour vous proposer l'outil parfait.";
@@ -482,8 +473,8 @@ export default function OnyxOpsElite() {
            return;
         }
         else {
-           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : Pack Trio\n💰 L'Essentiel moins cher : Onyx Jaay\n\nQue choisissez-vous ?";
-           options = ["1. Pack Trio", "2. Onyx Jaay"];
+           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : OnyxTekki\n💰 L'Essentiel moins cher : Onyx Jaay\n\nQue choisissez-vous ?";
+           options = ["1. OnyxTekki", "2. Onyx Jaay"];
         }
         
         setBotMessages(prev => [...prev, { sender: 'bot', text: msg, options }]);
@@ -495,15 +486,15 @@ export default function OnyxOpsElite() {
        setTimeout(() => {
           setBotMessages(prev => [...prev, { 
              sender: 'bot', 
-             text: `D'après ce que vous me dites, je vous recommande vivement le **Pack Duo**. Il s'adapte à 100% à votre activité.\n\nSouhaitez-vous en discuter avec moi sur WhatsApp pour une démo ?`,
+             text: `D'après ce que vous me dites, je vous recommande vivement l'offre **OnyxTekki**. Il s'adapte à 100% à votre activité.\n\nSouhaitez-vous en discuter avec moi sur WhatsApp pour une démo ?`,
              options: ["Parler à Fanta (WhatsApp)"] 
           }]);
-          setBotUserData({...currentData, product: 'Pack Duo'});
+          setBotUserData({...currentData, product: 'OnyxTekki'});
           setBotStep(4);
        }, 1500);
     }
     else if (botStep === 3) {
-      const selected = reply.includes("1") || reply.includes("Trio") || reply.includes("Full") ? (reply.includes("Full") ? "Pack Full" : "Pack Trio") : (reply.includes("Menu") ? "Onyx Menu" : "Onyx Jaay");
+      const selected = reply.includes("1") || reply.includes("Tekki") ? "OnyxTekki" : (reply.includes("Menu") ? "Onyx Menu" : "Onyx Jaay");
       currentData.product = selected;
       setBotUserData(currentData);
       saveLead({ source: 'Bot Fanta', intent: `Choix Produit: ${selected} (${currentData.sector})`, contact: currentData.phone, full_name: currentData.name });
@@ -588,8 +579,8 @@ export default function OnyxOpsElite() {
 };
 
   // Mises à jour des tarifs sur la simulation des commissions
-  const commissionM1 = Math.round(packCounts.solo * 9900 * 0.30 + packCounts.duo * 17500 * 0.30 + packCounts.trio * 24900 * 0.30 + packCounts.full * 30000 * 0.30 + packCounts.premium * 39900 * 0.30);
-  const recurrentPerMonth = Math.round(packCounts.solo * 9900 * 0.10 + packCounts.duo * 17500 * 0.10 + packCounts.trio * 24900 * 0.10 + packCounts.full * 30000 * 0.10 + packCounts.premium * 39900 * 0.10);
+  const commissionM1 = Math.round((packCounts.solo || 0) * 13000 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30);
+  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13000 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10);
 
   const navigateTo = (view: any, scrollId?: string) => {
     setIsMobileMenuOpen(false); 
@@ -643,9 +634,16 @@ export default function OnyxOpsElite() {
             <div className="bg-black text-[#39FF14] p-3 rounded-xl flex-shrink-0">
                {React.createElement(RECENT_NOTIFICATIONS[notificationIndex].icon, { size: 24 })}
             </div>
-            <div>
-               <p className="text-sm text-zinc-800 leading-tight">
-                  <span className="font-black">{RECENT_NOTIFICATIONS[notificationIndex].name}</span> {RECENT_NOTIFICATIONS[notificationIndex].action} <span className="font-bold text-black">{RECENT_NOTIFICATIONS[notificationIndex].product}</span>
+            <div className="flex-1">
+               <div className="flex items-center gap-1.5 mb-1">
+                 <span className="flex h-2 w-2 relative">
+                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#39FF14] opacity-75"></span>
+                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#39FF14]"></span>
+                 </span>
+                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Achat Récent</p>
+               </div>
+               <p className="text-sm text-zinc-800 leading-tight pr-2">
+                  <span className="font-black">{RECENT_NOTIFICATIONS[notificationIndex].name}</span> {RECENT_NOTIFICATIONS[notificationIndex].action} <span className="font-black text-black bg-[#39FF14]/20 px-1 rounded inline-block mt-0.5">{RECENT_NOTIFICATIONS[notificationIndex].product}</span>
                </p>
                <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase tracking-wider">{RECENT_NOTIFICATIONS[notificationIndex].time}</p>
             </div>
@@ -664,6 +662,7 @@ export default function OnyxOpsElite() {
           <div className="hidden lg:flex gap-8 font-bold text-sm uppercase items-center">
             <button onClick={() => navigateTo('home', 'solutions')} className="hover:text-[#39FF14] transition">Solutions</button>
             <button onClick={() => navigateTo('home', 'tarifs')} className="hover:text-[#39FF14] transition">Tarifs</button>
+            <button onClick={() => navigateTo('home', 'premium')} className="hover:text-[#00E5FF] transition text-zinc-600">Solutions Premium</button>
             <button onClick={() => navigateTo('dashboard')} className={`${activeView === 'dashboard' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>Partenaires</button>
             <button onClick={() => navigateTo('blog')} className={`${activeView === 'blog' ? 'text-[#39FF14] border-b-2 border-[#39FF14]' : ''} hover:text-[#39FF14] transition py-1`}>Blog</button>
             <button onClick={() => router.push('/boutiques')} className="hover:text-[#39FF14] transition py-1">Boutiques</button>
@@ -699,6 +698,7 @@ export default function OnyxOpsElite() {
           <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-8 lg:hidden animate-in fade-in">
             <button onClick={() => navigateTo('home', 'solutions')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Solutions</button>
             <button onClick={() => navigateTo('home', 'tarifs')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Tarifs</button>
+            <button onClick={() => navigateTo('home', 'premium')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase text-[#00E5FF]`}>Solutions Premium</button>
             <button onClick={() => navigateTo('dashboard')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Partenaires</button>
             <button onClick={() => navigateTo('blog')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Blog</button>
             <button onClick={() => { router.push('/boutiques'); setIsMobileMenuOpen(false); }} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Boutiques</button>
@@ -847,8 +847,8 @@ export default function OnyxOpsElite() {
             {/* --- SECTION QUIZ INTERACTIF --- */}
             <section id="quiz-section" className="py-24 bg-zinc-50 border-t border-zinc-200 mt-10">
                <div className="max-w-4xl mx-auto px-6 text-center">
-                  <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase mb-4`}>Vous ne savez pas par où commencer ?</h2>
-                  <p className="text-zinc-600 font-bold text-lg mb-12">Laissez-nous vous guider vers la configuration parfaite en fonction de vos besoins réels.</p>
+                  <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase mb-4`}>CHAOS DE STOCK OÙ VENTES EN BAISSE ?</h2>
+                  <p className="text-zinc-600 font-bold text-lg mb-12">En 2 clics, trouvez l'outil Onyx pour sécuriser votre caisse ou doubler vos bénéfices CFA.</p>
                   
                   <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-zinc-200 max-w-2xl mx-auto relative overflow-hidden transition-all duration-300">
                      {quizStep === 0 && (
@@ -856,7 +856,7 @@ export default function OnyxOpsElite() {
                            <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 1/3</span>
                            <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Quelle est la taille de votre entreprise ?</h3>
                            <div className="space-y-3">
-                              {["Petit commerçant (1-3 employés)", "Moyenne PME (4-10 employés)", "Grosse PME/Entreprise (+10 employés)"].map(size => (
+                              {["Vendeur WhatsApp", "Boutique Physique / PME", "Restauration / Fast Food"].map(size => (
                                  <button key={size} onClick={() => handleQuizSubmit('size', size)} className="w-full bg-zinc-50 border-2 border-zinc-200 text-black p-4 rounded-2xl font-bold text-sm hover:border-black hover:bg-black hover:text-[#39FF14] transition text-left">
                                     {size}
                                  </button>
@@ -870,7 +870,7 @@ export default function OnyxOpsElite() {
                            <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 2/3</span>
                            <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Quel est votre secteur d'activité ?</h3>
                            <div className="space-y-3">
-                              {["Boutique/Retail", "Restauration", "Prestation de services", "Autre"].map(sector => (
+                              {["Prêt-à-porter / Beauté", "Prestation de services", "E-commerce", "Autre"].map(sector => (
                                  <button key={sector} onClick={() => handleQuizSubmit('sector', sector)} className={`w-full border-2 text-left p-4 rounded-2xl font-bold text-sm transition ${quizAnswers.sector === sector ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
                                     {sector}
                                  </button>
@@ -922,23 +922,24 @@ export default function OnyxOpsElite() {
                   {PACKS.map((pack) => {
                     const planDetails = PLAN_DETAILS[pack.id];
                     const isRecommended = quizResult && quizResult.packId === pack.id;
+                    const isTekki = pack.id === 'tekki';
 
                     return (
-                      <div key={pack.id} className={`${pack.id === 'trio' || isRecommended ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] scale-105 shadow-[0_0_40px_rgba(57,255,20,0.3)] z-20' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition flex flex-col relative`}>
+                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-br from-[#39FF14]/20 to-black border-2 border-[#39FF14] md:scale-105 shadow-[0_0_40px_rgba(57,255,20,0.3)] z-20' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition flex flex-col relative`}>
                         
-                        {/* BADGE NÉON RECOMMANDÉ */}
-                        {isRecommended && (
-                           <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-1">
-                              <Sparkles size={12}/> Choix Idéal
+                        {/* BULLE PROMOTIONNELLE TEKKI */}
+                        {(isTekki || isRecommended) && (
+                           <div className={`absolute -top-5 left-1/2 -translate-x-1/2 ${isTekki ? 'bg-red-600 border-2 border-red-400 text-white' : 'bg-[#39FF14] text-black'} px-5 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-2`}>
+                              {isTekki ? <><Flame size={14}/> PREMIER MOIS OFFERT ! (Économisez 16 100 F)</> : <><Sparkles size={14}/> Choix Idéal</>}
                            </div>
                         )}
 
-                        <p className={`text-[10px] font-black tracking-[0.3em] ${pack.id === 'trio' || isRecommended ? 'text-[#39FF14]' : 'text-zinc-500'} mb-1 uppercase`}>{pack.label}</p>
+                        <p className={`text-[10px] font-black tracking-[0.3em] ${isTekki || isRecommended ? 'text-[#39FF14]' : 'text-zinc-500'} mb-1 uppercase mt-2`}>{pack.label}</p>
                         <div className="flex items-center gap-1 mb-4">
                           {[...Array(5)].map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < 4 || pack.rating.startsWith('5') ? 'text-yellow-400 fill-yellow-400' : 'text-yellow-400/30 fill-yellow-400/30'}`} />))}
                           <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis})</span>
                         </div>
-                        <div className={`text-2xl font-bold mb-6 italic ${pack.id === 'master' ? 'text-red-500' : 'text-white'}`}>{pack.price.toLocaleString()}F <span className="text-xs text-zinc-500 font-normal">{pack.isUnique ? ' (Unique)' : '/ mois'}</span></div>
+                        <div className={`text-3xl font-black mb-6 italic ${pack.id === 'tekkipro' ? 'text-white' : 'text-white'}`}>{pack.price.toLocaleString()} F <span className="text-xs text-zinc-500 font-normal not-italic">{pack.isUnique ? ' (Unique)' : '/ mois'}</span></div>
                         
                         {/* TEXTE DYNAMIQUE DU QUIZ */}
                         {isRecommended && (
@@ -947,7 +948,7 @@ export default function OnyxOpsElite() {
                            </div>
                         )}
 
-                        <ul className={`text-xs space-y-3 mb-8 flex-1 ${pack.id === 'trio' || isRecommended ? 'text-zinc-300' : 'text-zinc-400'}`}>
+                        <ul className={`text-xs space-y-3 mb-8 flex-1 ${isTekki || isRecommended ? 'text-zinc-300' : 'text-zinc-400'}`}>
                           {planDetails.benefits.map((ben, i) => <li key={i} className="flex gap-2">✔ {ben}</li>)}
                         </ul>
                         <button 
@@ -955,9 +956,9 @@ export default function OnyxOpsElite() {
     setLeadData(prev => ({ ...prev, saas: pack.label })); 
     setShowOnboarding(true); 
   }} 
-  className={`w-full block text-center py-4 rounded-2xl font-black text-sm uppercase ${pack.id === 'trio' || isRecommended ? 'bg-[#39FF14] text-black hover:bg-white' : 'bg-white text-black hover:bg-[#39FF14]'}`}
+  className={`w-full block text-center py-4 rounded-2xl font-black uppercase transition-transform ${isTekki ? 'bg-[#39FF14] text-black hover:scale-105 shadow-xl text-base' : 'bg-white text-black hover:bg-[#39FF14] text-sm'}`}
 >
-  Commencer
+  {isTekki ? 'LANCER MON COMMERCE' : 'Commencer'}
 </button>
                       </div>
                     );
@@ -966,8 +967,45 @@ export default function OnyxOpsElite() {
               </div>
             </section>
 
+            {/* --- NOUVEAU : ONYXBUSINESS BRIDGE --- */}
+            <section id="premium" className="py-24 bg-black border-t-8 border-[#00E5FF] relative overflow-hidden mt-10">
+               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#00E5FF] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
+               <div className="max-w-6xl mx-auto px-6 relative z-10 text-center">
+                  <h2 className={`${spaceGrotesk.className} text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4 text-white`}>
+                     TROP DE VISIBILITÉ, <br className="md:hidden"/> <span className="text-[#00E5FF]">PAS ASSEZ DE CFA ?</span>
+                  </h2>
+                  <p className="text-zinc-400 font-bold max-w-2xl mx-auto mb-16 text-lg">Passez de la gestion basique à la domination de votre marché avec nos offres High-Ticket pour entreprises structurées.</p>
+                  
+                  <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                     {/* Card 1 */}
+                     <div className="bg-zinc-900 border border-zinc-800 p-10 rounded-[3rem] text-left hover:border-[#00E5FF]/50 transition-colors shadow-2xl relative overflow-hidden group">
+                        <div className="bg-[#00E5FF]/10 text-[#00E5FF] w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border border-[#00E5FF]/20 group-hover:scale-110 transition-transform">
+                           <Activity size={32} />
+                        </div>
+                        <h3 className={`${spaceGrotesk.className} text-3xl font-black text-white mb-4 uppercase`}>Onyx Modernize</h3>
+                        <p className="text-zinc-400 font-medium mb-8 text-sm md:text-base leading-relaxed">Implémentation Système CRM Ventes & Stock sur-mesure. Éliminez le chaos et structurez vos données pour de bon.</p>
+                        <button onClick={() => handleWaClick("Lead High-Ticket", "Je souhaite un audit pour Onyx Modernize.")} className="w-full bg-transparent border-2 border-[#00E5FF] text-[#00E5FF] hover:bg-[#00E5FF] hover:text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-[0_0_20px_rgba(0,229,255,0.1)] flex justify-center items-center gap-2">
+                           Prendre un RDV Audit <ChevronRight size={16}/>
+                        </button>
+                     </div>
+
+                     {/* Card 2 */}
+                     <div className="bg-zinc-900 border border-zinc-800 p-10 rounded-[3rem] text-left hover:border-[#00E5FF]/50 transition-colors shadow-2xl relative overflow-hidden group">
+                        <div className="bg-[#00E5FF]/10 text-[#00E5FF] w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border border-[#00E5FF]/20 group-hover:scale-110 transition-transform">
+                           <Crosshair size={32} />
+                        </div>
+                        <h3 className={`${spaceGrotesk.className} text-3xl font-black text-white mb-4 uppercase`}>Onyx Boost</h3>
+                        <p className="text-zinc-400 font-medium mb-8 text-sm md:text-base leading-relaxed">Stratégie Digitale & Coaching Exécution. Acquérez des clients qui paient. On vous montre exactement la méthode.</p>
+                        <button onClick={() => handleWaClick("Lead High-Ticket", "Je souhaite un RDV pour Onyx Boost.")} className="w-full bg-[#00E5FF] text-black hover:bg-white hover:border-white border-2 border-[#00E5FF] py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-[0_0_30px_rgba(0,229,255,0.3)] flex justify-center items-center gap-2">
+                           Prendre un RDV Croissance <ChevronRight size={16}/>
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            </section>
+
             {/* SECTION TEMOIGNAGES ALEATOIRES INFINIS */}
-            <section className="py-20 bg-zinc-50 border-t border-zinc-200 mt-10">
+            <section className="py-20 bg-zinc-50 border-t border-zinc-200">
                <div className="max-w-7xl mx-auto px-6">
                   <div className="text-center mb-16">
                      <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Ils réussissent avec <span className="text-[#39FF14]">Onyx</span></h2>
@@ -1112,10 +1150,9 @@ export default function OnyxOpsElite() {
                   <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-6">
                       {[
-                        { id: 'solo', label: 'Pack Solo (Vendus/mois)', max: 50 },
-                        { id: 'duo', label: 'Pack Duo (Vendus/mois)', max: 40 },
-                        { id: 'trio', label: 'Pack Trio (Vendus/mois)', max: 30 },
-                        { id: 'master', label: 'Onyx Master (Vendus/mois)', max: 20 },
+                        { id: 'solo', label: 'Pack Solo (13.000F)', max: 50 },
+                        { id: 'tekki', label: 'OnyxTekki (22.900F)', max: 40 },
+                        { id: 'tekkipro', label: 'OnyxTekki Pro (27.900F)', max: 30 },
                       ].map(pack => (
                         <div key={pack.id}>
                           <div className="flex justify-between mb-2">
@@ -1282,11 +1319,9 @@ export default function OnyxOpsElite() {
         {showSaasChoice && (() => {
           const SaasIcon = showSaasChoice.icon || Star;
           
-          let upsellNormalPrice = 17500; // Duo calculation
-          let upsellDiscountPrice = 17500;
-          if (showSaasChoice.upsellName.includes("Trio")) { upsellNormalPrice = 24900; upsellDiscountPrice = 24900; }
-          else if (showSaasChoice.upsellName.includes("Full")) { upsellNormalPrice = 30000; upsellDiscountPrice = 30000; }
-          else if (showSaasChoice.upsellName.includes("Master")) { upsellNormalPrice = 39900; upsellDiscountPrice = 39900; }
+          let upsellNormalPrice = 22900; 
+          let upsellDiscountPrice = 22900;
+          if (showSaasChoice.upsellName.includes("Pro")) { upsellNormalPrice = 27900; upsellDiscountPrice = 27900; }
 
           return (
             <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasChoice)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
