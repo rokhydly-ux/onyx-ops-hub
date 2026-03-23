@@ -7,7 +7,7 @@ import {
   Plus, Edit, Trash2, CheckCircle, 
   AlertCircle, X, Shuffle, ArrowRight,
   Medal, Search, Download, Copy, Check, Clock,
-  RotateCcw, LogOut, Home, Settings, Loader2
+  RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" }; // Remplacement par ta police Space Grotesk si configurée globalement
@@ -309,6 +309,14 @@ export default function TontineAdminDashboard() {
     window.location.href = '/login';
   };
 
+  // --- PARTAGE WHATSAPP GAGNANTS ---
+  const handleNotifyGroup = () => {
+    if (!latestWinners) return;
+    const names = latestWinners.map(w => w.prenom_nom).join(" et ");
+    const msg = `🎉 *TIRAGE ONYX TONTINE - MOIS ${currentMonth}* 🎉\n\nFélicitations à *${names}* qui remportent chacun *${montantParGagnant.toLocaleString()} F CFA* !\n\nL'argent sera transféré sous peu. Merci à tous pour votre confiance !`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   if (loading) {
      return (
         <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
@@ -458,7 +466,14 @@ export default function TontineAdminDashboard() {
                           </div>
                        ))}
                     </div>
-                    <button onClick={() => setLatestWinners(null)} className="mt-6 text-zinc-500 hover:text-white text-xs font-black uppercase tracking-widest transition-colors">Fermer</button>
+                    <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                       <button onClick={handleNotifyGroup} className="flex-1 text-black px-6 py-3 rounded-xl text-xs font-black uppercase hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
+                          <MessageCircle size={16}/> Partager dans le groupe WhatsApp
+                       </button>
+                       <button onClick={() => setLatestWinners(null)} className="flex-1 sm:flex-none text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-colors">
+                          Fermer
+                       </button>
+                    </div>
                  </div>
               )}
            </div>
