@@ -40,12 +40,13 @@ function TontineMembreContent() {
     try {
       const tontineId = searchParams.get('id');
       
-      if (!tontineId || tontineId === 'undefined' || tontineId === 'null') {
+      if (!tontineId || tontineId === 'null') {
         setInvalidLink(true);
         return;
       }
       
-      const { data: tData, error } = await supabase.from('tontines').select('*').eq('id', tontineId).single();
+      // Utilisation de maybeSingle() pour éviter l'erreur de crash PostgreSQL (PGRST116)
+      const { data: tData, error } = await supabase.from('tontines').select('*').eq('id', tontineId).maybeSingle();
       
       if (error || !tData) {
         setInvalidLink(true);

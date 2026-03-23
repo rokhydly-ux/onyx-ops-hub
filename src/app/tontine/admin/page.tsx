@@ -49,79 +49,81 @@ export default function TontineAdminDashboard() {
 
   useEffect(() => {
     const initializeAdmin = async () => {
-      setLoading(true);
-      let user = null;
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        user = session.user;
-        const { data } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
-        if (data) user = { ...user, ...data };
-      } else {
-        const customSession = localStorage.getItem('onyx_custom_session');
-        if (customSession) {
-          try {
-            const parsedSession = JSON.parse(customSession);
-            user = parsedSession;
-            const { data } = await supabase.from('clients').select('*').eq('id', parsedSession.id).maybeSingle();
-            if (data) user = { ...user, ...data };
-          } catch(e) {}
+      try {
+        setLoading(true);
+        let user = null;
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) user = session.user;
+        else {
+          const customSession = localStorage.getItem('onyx_custom_session');
+          if (customSession) {
+            try { user = JSON.parse(customSession); } catch(e) {}
+          }
         }
-      }
-      
-      if (user) {
-        setCurrentUser(user);
-
-        // 1. Récupération ou création de la tontine
-        let { data: tData } = await supabase
-          .from('tontines')
-          .select('*')
-          .eq('owner_id', user.id)
-          .maybeSingle();
-
-        if (!tData) {
-          // INSERT automatique si aucune tontine n'existe
-          const { data: newTontine } = await supabase
+        
+        if (user) {
+          setCurrentUser(user);
+  
+          // 1. Récupération robuste (sans owner_id car la colonne n'existe pas)
+          let { data: tData } = await supabase
             .from('tontines')
-            .insert({
-              nom: 'Ma Tontine',
-              theme_color: '#39FF14',
-              owner_id: user.id,
-              montant_mensuel: 20000,
-              gagnants_par_mois: 2,
-              duree_mois: 10,
-              start_date: new Date().toISOString().split('T')[0]
-            })
-            .select()
-            .single();
-            
-          if (newTontine) tData = newTontine;
-        }
-
-        if (tData) {
-          setTontine(tData);
-          setTontineSettings({
-            nom: tData.nom || 'Ma Tontine',
-            logo_url: tData.logo_url || '',
-            theme_color: tData.theme_color || '#39FF14',
-            duree_mois: tData.duree_mois || 10,
-            start_date: tData.start_date || new Date().toISOString().split('T')[0]
-          });
-
-          // Récupération des membres
-          const { data: mData } = await supabase
-            .from('membres')
             .select('*')
-            .eq('tontine_id', tData.id)
-            .order('created_at', { ascending: true });
-
-          const fetchedMembers = (mData || []).map(m => ({ ...m, statutPaiement: m.statut_paiement || 'À jour' }));
-          setMembers(fetchedMembers);
-          if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+  
+          if (!tData) {
+            const { data: newTontine } = await supabase
+              .from('tontines')
+              .insert({
+                nom: 'Ma Tontine',
+                theme_color: '#39FF14',
+                montant_mensuel: 20000,
+                gagnants_par_mois: 2,
+                duree_mois: 10
+              })
+              .select()
+              .single();
+            if (newTontine) tData = newTontine;
+          }
+  
+          if (tData) {
+            setTontine(tData);
+            setTontineSettings({
+              nom: tData.nom || 'Ma Tontine',
+              logo_url: tData.logo_url || '',
+              theme_color: tData.theme_color || '#39FF14',
+              duree_mois: tData.duree_mois || 10,
+              start_date: new Date().toISOString().split('T')[0] // Gardé en local pour l'UI
+            });
+  
+            const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tData.id).order('created_at', { ascending: true });
+            const { data: cData } = await supabase.from('cotisations').select('*');
+            
+            // Calcul du mois en cours
+            const totalGagnants = tData.gagnants_par_mois || 2;
+            const gagnantsCount = (mData || []).filter(m => m.a_gagne).length;
+            const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
+            setCurrentMonth(cMonth);
+  
+            // Déduction intelligente du statut de paiement
+            const fetchedMembers = (mData || []).map(m => {
+                const hasPaid = (cData || []).some(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
+                return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
+            });
+            
+            setMembers(fetchedMembers);
+            if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
+          }
         }
+      } catch (err) {
+        console.error("Erreur Init:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
+
     initializeAdmin();
   }, []);
 
@@ -138,7 +140,17 @@ export default function TontineAdminDashboard() {
   const refreshMembers = async () => {
     if (!tontine) return;
     const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
-    const fetchedMembers = (mData || []).map(m => ({ ...m, statutPaiement: 'À jour' as const }));
+    const { data: cData } = await supabase.from('cotisations').select('*');
+    
+    const totalGagnants = tontine.gagnants_par_mois || 2;
+    const cMonth = Math.floor((mData || []).filter(m => m.a_gagne).length / totalGagnants) + 1;
+    setCurrentMonth(cMonth);
+
+    const fetchedMembers = (mData || []).map(m => {
+        const hasPaid = (cData || []).some(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
+        return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
+    });
+    
     setMembers(fetchedMembers);
     if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
   };
@@ -209,17 +221,34 @@ export default function TontineAdminDashboard() {
     if (!editingMember?.prenom_nom || !editingMember?.telephone) return alert("Veuillez remplir le nom et le téléphone.");
 
     setIsSavingMember(true);
-    if (editingMember.id) {
-      // Modification
-      await supabase.from('membres').update({ prenom_nom: editingMember.prenom_nom, telephone: editingMember.telephone, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', editingMember.id);
-    } else {
-      // Ajout
-      await supabase.from('membres').insert({
-        tontine_id: tontine.id,
-        prenom_nom: editingMember.prenom_nom,
-        telephone: editingMember.telephone,
-      });
+    try {
+      let memberId = editingMember.id;
+      if (memberId) {
+        await supabase.from('membres').update({ prenom_nom: editingMember.prenom_nom, telephone: editingMember.telephone, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', memberId);
+      } else {
+        const { data: newM } = await supabase.from('membres').insert({
+          tontine_id: tontine.id,
+          prenom_nom: editingMember.prenom_nom,
+          telephone: editingMember.telephone,
+        }).select().single();
+        if (newM) memberId = newM.id;
+      }
+
+      // Gestion intelligente du paiement (Table cotisations)
+      if (memberId) {
+         if (editingMember.statutPaiement === 'À jour') {
+             const { data: existing } = await supabase.from('cotisations').select('*').eq('membre_id', memberId).eq('mois_numero', currentMonth).eq('statut', 'Payé').maybeSingle();
+             if (!existing) {
+                 await supabase.from('cotisations').insert({ membre_id: memberId, mois_numero: currentMonth, montant: tontine.montant_mensuel, statut: 'Payé', date_paiement: new Date().toISOString() });
+             }
+         } else {
+             await supabase.from('cotisations').delete().eq('membre_id', memberId).eq('mois_numero', currentMonth);
+         }
+      }
+    } catch (err: any) {
+      alert("Erreur d'enregistrement : " + err.message);
     }
+    
     await refreshMembers();
     setIsSavingMember(false);
     setShowMemberModal(false);
@@ -237,7 +266,7 @@ export default function TontineAdminDashboard() {
         nom: tontineSettings.nom,
         logo_url: tontineSettings.logo_url,
         theme_color: tontineSettings.theme_color,
-        duree_mois: tontineSettings.duree_mois,
+        duree_mois: tontineSettings.duree_mois
       })
       .eq('id', tontine.id);
 
