@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   Smartphone, Truck, Utensils, Box, Lock, LogOut, 
-  User, GraduationCap, ArrowRight, ShieldCheck, Wallet
+  User, GraduationCap, ArrowRight, ShieldCheck, Wallet, AlertTriangle, HelpCircle, X
 } from "lucide-react";
 import AccountModal from "@/components/AccountModal"; // Import de la modale
 import { supabase } from "@/lib/supabaseClient";
@@ -25,6 +25,7 @@ export default function OnyxHubPortal() {
   const [loading, setLoading] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,6 +91,24 @@ export default function OnyxHubPortal() {
     return `${day}/${month}/${year}`;
   };
 
+  const expiryStatus = (() => {
+    let expDate;
+    if (user?.expiration_date) expDate = new Date(user.expiration_date);
+    else if (user?.expiry_date) expDate = new Date(user.expiry_date);
+    else if (user?.created_at) {
+        expDate = new Date(user.created_at);
+        expDate.setDate(expDate.getDate() + 7);
+    } else return null;
+
+    const today = new Date();
+    const diffTime = expDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { expired: true, days: Math.abs(diffDays) };
+    if (diffDays <= 5) return { expired: false, days: diffDays };
+    return null;
+  })();
+
   if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-zinc-950 text-white">
@@ -111,10 +130,15 @@ export default function OnyxHubPortal() {
           </div>
           
           <div className="relative" ref={profileMenuRef}>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setShowHelpModal(true)} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-colors text-xs font-bold mr-2">
+                 <HelpCircle size={14} /> <span className="hidden sm:inline">Aide</span>
+              </button>
             <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center gap-3 bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-800 hover:border-[#39FF14] transition-colors">
                <img src={user?.avatar_url || 'https://ui-avatars.com/api/?name=' + user?.full_name} alt="Avatar" className="w-6 h-6 rounded-full object-cover border border-[#39FF14]" />
                <span className="text-xs font-bold uppercase">{user?.full_name || 'Utilisateur'}</span>
             </button>
+            </div>
             
             {isProfileMenuOpen && (
               <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-2xl border border-zinc-200 py-1 animate-in fade-in zoom-in-95">
@@ -130,22 +154,43 @@ export default function OnyxHubPortal() {
         </header>
   
         <main className="max-w-6xl mx-auto p-8 pt-12 animate-in fade-in">
+          {expiryStatus && (
+            <div className="mb-8 bg-red-50 border-l-4 border-red-500 p-4 sm:p-6 rounded-r-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-red-100 rounded-xl text-red-500 shrink-0">
+                  <AlertTriangle size={24} />
+                </div>
+                <div>
+                  <p className="font-black text-red-800 text-sm sm:text-base uppercase tracking-tight mb-1">
+                    {expiryStatus.expired ? "Votre accès a expiré" : `Attention, votre accès expire dans ${expiryStatus.days} jour${expiryStatus.days > 1 ? 's' : ''}`}
+                  </p>
+                  <p className="text-xs sm:text-sm text-red-600 font-medium">
+                    {expiryStatus.expired ? "Veuillez renouveler votre abonnement pour continuer à utiliser vos outils sans interruption." : "Pensez à prolonger votre abonnement rapidement pour éviter toute coupure de vos services."}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => window.open(`https://wa.me/221785338417?text=${encodeURIComponent(`Bonjour, je souhaite ${expiryStatus.expired ? 'renouveler' : 'prolonger'} mon accès aux outils OnyxOps.`)}`, '_blank')} className="w-full sm:w-auto bg-red-500 text-white px-6 py-3 rounded-xl font-black text-[10px] sm:text-xs uppercase hover:bg-red-600 transition-colors shadow-lg shrink-0">
+                 {expiryStatus.expired ? "Renouveler l'accès" : "Prolonger maintenant"}
+              </button>
+            </div>
+          )}
+
           <div className="mb-12 text-center sm:text-left">
              <h2 className="text-3xl sm:text-4xl font-black uppercase text-zinc-900 tracking-tighter mb-2">
                Bonjour, {user?.full_name?.split(' ')[0] || 'Gérant'} !
              </h2>
              <p className="text-zinc-500 font-medium">Sélectionnez une application pour commencer à travailler.</p>
              <p className="text-sm text-gray-600 mt-2">
-                Fin d'accès : {formatDate(user?.expiry_date)}
+                Fin d'accès : {formatDate(user?.expiration_date || user?.expiry_date)}
               </p>
-             {user?.expiry_date && (
+             {(user?.expiration_date || user?.expiry_date) && (
               <div className="mt-4 inline-flex items-center gap-2 bg-white border border-zinc-200 shadow-sm text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-full">
                 <ShieldCheck size={16} className={user.type === 'Client' ? 'text-green-500' : 'text-yellow-500'} />
                 <span className="text-zinc-600">Statut :</span> 
                 <span className={user.type === 'Client' ? 'text-green-600' : 'text-yellow-600'}>{user.type || 'Essai'}</span>
                 <span className="text-zinc-400 mx-1">|</span>
                 <span className="text-zinc-600">Valide jusqu'au :</span> 
-                <span className="text-zinc-800">{formatDate(user.expiry_date)}</span>
+                <span className="text-zinc-800">{formatDate(user.expiration_date || user.expiry_date)}</span>
               </div>
              )}
           </div>
@@ -231,6 +276,33 @@ export default function OnyxHubPortal() {
           onClose={() => setIsAccountModalOpen(false)}
           onUpdate={setUser}
         />
+      )}
+
+      {/* --- MODALE D'AIDE ET TUTORIEL --- */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in" onClick={(e: any) => e.target === e.currentTarget && setShowHelpModal(false)}>
+           <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-lg w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14]">
+              <button onClick={() => setShowHelpModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+              
+              <h2 className="text-2xl font-black uppercase tracking-tighter mb-2 text-black">Comment utiliser le Hub ?</h2>
+              <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-6">Guide de démarrage rapide</p>
+
+              <div className="space-y-4 mb-8">
+                 <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
+                    <h3 className="font-black text-sm uppercase flex items-center gap-2 mb-1"><span className="w-5 h-5 rounded-full bg-[#39FF14] text-black flex items-center justify-center text-[10px]">1</span> Applications déverrouillées</h3>
+                    <p className="text-xs text-zinc-600 font-medium">Les outils colorés sont ceux inclus dans votre abonnement. Cliquez dessus pour y accéder instantanément.</p>
+                 </div>
+                 <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
+                    <h3 className="font-black text-sm uppercase flex items-center gap-2 mb-1"><span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">2</span> Applications verrouillées <Lock size={12}/></h3>
+                    <p className="text-xs text-zinc-600 font-medium">Les outils grisés nécessitent un abonnement. Contactez le support pour les débloquer ou ajouter un module.</p>
+                 </div>
+              </div>
+
+              <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite être accompagné sur l\'utilisation de mon Hub OnyxOps.', '_blank')} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-xs uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-xl">
+                 Contacter un expert sur WhatsApp
+              </button>
+           </div>
+        </div>
       )}
     </>
   );

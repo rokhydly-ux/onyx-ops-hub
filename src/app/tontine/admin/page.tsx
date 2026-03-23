@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   Users, Wallet, Calendar, Trophy, 
   Plus, Edit, Trash2, CheckCircle, 
   AlertCircle, X, Shuffle, ArrowRight,
   Medal, Search, Download, Copy, Check, Clock,
-  RotateCcw
+  RotateCcw, LogOut, Home
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" }; // Remplacement par ta police Space Grotesk si configurée globalement
@@ -35,6 +35,9 @@ export default function TontineAdminDashboard() {
   const [editingMember, setEditingMember] = useState<Partial<Member> | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   // --- CHARGEMENT DEPUIS SUPABASE ---
   const fetchData = async () => {
@@ -55,6 +58,35 @@ export default function TontineAdminDashboard() {
 
   useEffect(() => {
     fetchData();
+
+    // Authentification de l'utilisateur
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
+        setCurrentUser(data ? { ...session.user, ...data } : session.user);
+      } else {
+        const customSession = localStorage.getItem('onyx_custom_session');
+        if (customSession) {
+          try {
+            const parsedSession = JSON.parse(customSession);
+            const { data } = await supabase.from('clients').select('*').eq('id', parsedSession.id).maybeSingle();
+            setCurrentUser(data || parsedSession);
+          } catch(e) {}
+        }
+      }
+    };
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // --- KPIs DYNAMIQUES ---
@@ -195,6 +227,12 @@ export default function TontineAdminDashboard() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  const handleLogout = async () => {
+    localStorage.removeItem('onyx_custom_session');
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 text-black font-sans pb-24 selection:bg-[#39FF14]/30">
       
@@ -227,13 +265,33 @@ export default function TontineAdminDashboard() {
                </div>
              </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative" ref={profileMenuRef}>
              <span className="bg-zinc-100 text-zinc-600 px-3 py-1.5 rounded-lg text-xs font-black uppercase flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span> Mode Live
              </span>
-             <div className="w-10 h-10 bg-zinc-200 rounded-full border-2 border-white shadow-sm overflow-hidden">
-                <img src="https://ui-avatars.com/api/?name=Admin&background=000&color=39FF14" alt="Admin" className="w-full h-full object-cover" />
-             </div>
+             {currentUser ? (
+               <>
+                 <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 bg-zinc-900 text-white rounded-full border-2 border-white shadow-sm flex items-center justify-center font-black text-sm hover:scale-105 transition-transform uppercase">
+                    {currentUser.full_name ? currentUser.full_name.substring(0, 2) : 'AD'}
+                 </button>
+                 {isProfileMenuOpen && (
+                    <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-zinc-200 shadow-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 flex flex-col">
+                       <div className="px-4 py-3 border-b border-zinc-100 mb-2">
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Connecté en tant que</p>
+                          <p className="text-sm font-black text-black truncate">{currentUser.full_name || 'Utilisateur'}</p>
+                       </div>
+                       <button onClick={() => window.location.href = '/hub'} className="w-full text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition flex items-center gap-2">
+                          <Home size={14} /> Retour au Hub
+                       </button>
+                       <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition flex items-center gap-2">
+                          <LogOut size={14} /> Se déconnecter
+                       </button>
+                    </div>
+                 )}
+               </>
+             ) : (
+                <div className="w-10 h-10 border-2 border-zinc-200 border-t-black rounded-full animate-spin"></div>
+             )}
           </div>
         </div>
       </header>
