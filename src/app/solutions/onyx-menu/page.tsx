@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Utensils, QrCode, Smartphone, TrendingUp, CheckCircle, 
   ArrowRight, ChevronLeft, Printer, AlertTriangle, Zap, ChevronDown,
-  Send, X
+  Send, X, ArrowUp
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -16,6 +16,7 @@ export default function OnyxMenuLanding() {
   // Navigation & UI
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Configuration Bot Fanta
   const [isBotOpen, setIsBotOpen] = useState(false);
@@ -26,13 +27,20 @@ export default function OnyxMenuLanding() {
   ]);
 
   useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
     };
+    window.addEventListener("scroll", handleScroll);
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -219,6 +227,16 @@ export default function OnyxMenuLanding() {
             </div>
          </div>
       </section>
+
+      {/* BOUTON REMONTER EN HAUT */}
+      {showScrollTop && (
+         <button 
+           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+           className="fixed bottom-24 left-6 z-[90] bg-white text-black p-3 md:p-4 rounded-full shadow-2xl border border-zinc-200 hover:scale-110 hover:border-black transition-all animate-in fade-in slide-in-from-bottom-4"
+         >
+           <ArrowUp size={24} />
+         </button>
+      )}
 
       {/* BOT FANTA FAQ ONYX MENU */}
       <div className="fixed bottom-24 right-6 z-[90] flex flex-col items-end">

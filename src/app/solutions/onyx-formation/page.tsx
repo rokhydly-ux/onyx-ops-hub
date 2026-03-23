@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   TrendingUp, Crosshair, PenTool, BarChart, 
   ArrowRight, ChevronLeft, AlertTriangle, CheckCircle, Zap,
-  Send, X, ChevronDown, MonitorPlay, Target
+  Send, X, ChevronDown, MonitorPlay, Target, ArrowUp
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -16,6 +16,7 @@ export default function OnyxFormationLanding() {
   // Navigation & UI
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Configuration Bot Fanta
   const [isBotOpen, setIsBotOpen] = useState(false);
@@ -26,13 +27,20 @@ export default function OnyxFormationLanding() {
   ]);
 
   useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
     };
+    window.addEventListener("scroll", handleScroll);
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -131,8 +139,7 @@ export default function OnyxFormationLanding() {
          <div className="mt-20 relative max-w-4xl mx-auto">
             <div className="absolute inset-0 bg-[#D946EF] opacity-[0.05] blur-[100px] rounded-full"></div>
             <div className="w-full aspect-video bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-2xl relative z-10 flex items-center justify-center overflow-hidden group">
-               <MonitorPlay size={64} className="text-zinc-800 group-hover:scale-110 transition-transform duration-700" />
-               <p className="absolute bottom-4 text-zinc-700 font-bold text-xs uppercase tracking-widest">[ Illustration Formation (À venir) ]</p>
+               <img src="https://i.ibb.co/twbXBK7P/fotmation.png" alt="Illustration Onyx Formation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             </div>
          </div>
       </section>
@@ -241,6 +248,16 @@ export default function OnyxFormationLanding() {
             </div>
          </div>
       </section>
+
+      {/* BOUTON REMONTER EN HAUT */}
+      {showScrollTop && (
+         <button 
+           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+           className="fixed bottom-24 left-6 z-[90] bg-zinc-900 text-white p-3 md:p-4 rounded-full shadow-2xl border border-zinc-800 hover:scale-110 hover:border-[#D946EF] transition-all animate-in fade-in slide-in-from-bottom-4"
+         >
+           <ArrowUp size={24} />
+         </button>
+      )}
 
       {/* BOT FANTA FAQ ONYX FORMATION */}
       <div className="fixed bottom-24 right-6 z-[90] flex flex-col items-end">
