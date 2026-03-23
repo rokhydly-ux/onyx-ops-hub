@@ -89,7 +89,7 @@ export default function OnyxMenuLanding() {
   return (
     <main className="min-h-screen bg-[#fafafa] text-zinc-900 overflow-x-hidden selection:bg-[#FF5722]/30 pb-24 font-sans">
       {/* NAVBAR */}
-      <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto relative z-50">
+      <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
          <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black hover:scale-105 transition-transform`}>
             ONYX<span className="text-[#FF5722] drop-shadow-sm">MENU</span>
          </button>
