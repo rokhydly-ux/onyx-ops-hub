@@ -130,16 +130,23 @@ export default function OnyxFormationLanding() {
             Maîtrisez la publicité Facebook/TikTok, créez des visuels professionnels sur Canva et rédigez des textes qui vendent. <strong className="text-white">Le marketing digital pensé pour le marché africain.</strong>
          </p>
          
-         <button onClick={() => handleWaClick("Onyx Formation")} className="bg-[#D946EF] text-white px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(217,70,239,0.3)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group">
+         <button onClick={() => handleWaClick("Onyx Formation")} className="bg-[#B026FF] text-white px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-110 transition-all shadow-[0_0_40px_rgba(176,38,255,0.6)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group animate-pulse hover:animate-none border-2 border-[#B026FF]/50">
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
             <MonitorPlay size={24} className="relative z-10" /> <span className="relative z-10">Rejoindre la Formation</span>
          </button>
 
-         {/* HERO IMAGE PLACEHOLDER */}
+         {/* HERO VIDEO YOUTUBE */}
          <div className="mt-20 relative max-w-4xl mx-auto">
-            <div className="absolute inset-0 bg-[#D946EF] opacity-[0.05] blur-[100px] rounded-full"></div>
-            <div className="w-full aspect-video bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-2xl relative z-10 flex items-center justify-center overflow-hidden group">
-               <img src="https://i.ibb.co/twbXBK7P/fotmation.png" alt="Illustration Onyx Formation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+            <div className="absolute inset-0 bg-[#D946EF] opacity-[0.15] blur-[100px] rounded-full"></div>
+            <div className="w-full aspect-video bg-black border-[3px] border-[#D946EF] rounded-[2rem] shadow-[0_0_60px_rgba(217,70,239,0.5)] relative z-10 flex items-center justify-center overflow-hidden group">
+               {/* ⚠️ Remplace l'URL src ci-dessous par le vrai lien "embed" de ta vidéo YouTube */}
+               <iframe 
+                 src="https://www.youtube.com/embed/acFsObjm2E0?rel=0&modestbranding=1" 
+                 title="Présentation Onyx Formation"
+                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                 allowFullScreen
+                 className="w-full h-full object-cover"
+               ></iframe>
             </div>
          </div>
       </section>
@@ -180,17 +187,17 @@ export default function OnyxFormationLanding() {
          </div>
          <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] hover:border-[#D946EF]/50 transition-colors">
-               <Target size={40} className="text-[#D946EF] mb-6"/>
+               <Target size={40} className="text-[#D946EF] mb-6 drop-shadow-[0_0_25px_rgba(217,70,239,1)] animate-pulse"/>
                <h3 className="text-xl font-black uppercase mb-3">Facebook & TikTok Ads</h3>
                <p className="text-zinc-400 font-medium text-sm leading-relaxed">Arrêtez le bouton "Booster". Maîtrisez le Business Manager pour diviser vos coûts publicitaires par 3.</p>
             </div>
             <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] hover:border-[#D946EF]/50 transition-colors">
-               <PenTool size={40} className="text-[#D946EF] mb-6"/>
+               <PenTool size={40} className="text-[#D946EF] mb-6 drop-shadow-[0_0_25px_rgba(217,70,239,1)] animate-pulse"/>
                <h3 className="text-xl font-black uppercase mb-3">Maîtrise de Canva</h3>
                <p className="text-zinc-400 font-medium text-sm leading-relaxed">Apprenez à créer des flyers et vidéos qui captent l'attention en moins de 3 secondes, sans être designer.</p>
             </div>
             <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] hover:border-[#D946EF]/50 transition-colors">
-               <TrendingUp size={40} className="text-[#D946EF] mb-6"/>
+               <TrendingUp size={40} className="text-[#D946EF] mb-6 drop-shadow-[0_0_25px_rgba(217,70,239,1)] animate-pulse"/>
                <h3 className="text-xl font-black uppercase mb-3">Copywriting</h3>
                <p className="text-zinc-400 font-medium text-sm leading-relaxed">Les formules exactes pour rédiger vos annonces et transformer un "Je regarde" en "Je commande".</p>
             </div>
