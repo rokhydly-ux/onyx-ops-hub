@@ -52,7 +52,8 @@ const AVAILABLE_MODULES = [
   { id: 'stock', name: 'Onyx Stock' },
   { id: 'tiak', name: 'Onyx Tiak' },
   { id: 'menu', name: 'Onyx Menu' },
-  { id: 'formation', name: 'Onyx Formation' }
+  { id: 'formation', name: 'Onyx Formation' },
+  { id: 'tontine', name: 'Onyx Tontine' }
 ];
 
 const ECOSYSTEM_SAAS = [
@@ -64,7 +65,7 @@ const ECOSYSTEM_SAAS = [
   { id: "tiak", name: "Onyx Tiak", desc: "Logistique", price: 9900, color: "bg-orange-500", url: "https://onyxops.com" },
   { id: "formation", name: "Onyx Formation", desc: "Cours vidéo & Marketing", price: 29900, color: "bg-purple-500", url: "/formation" },
   { id: "fit", name: "Onyx Fit", desc: "Rééquilibrage alimentaire", price: 6000, color: "bg-rose-500", url: "https://onyxops.com" },
-  { id: "tontine", name: "Onyx Tontine", desc: "Finance & Tontine", price: 6000, color: "bg-emerald-500", url: "https://onyxops.com" },
+  { id: "tontine", name: "Onyx Tontine", desc: "Finance & Tontine", price: 6900, color: "bg-emerald-500", url: "https://onyxops.com" },
 ];
 const ONYX_ELITE = { id: "elite", name: "Onyx Elite", desc: "Pack Sans Limit CRM + Studio Créatif", price: 78900, color: "bg-zinc-800", url: "https://onyxops.com" };
 
@@ -236,6 +237,7 @@ export default function AdminDashboard() {
         if (c.saas === 'OnyxTekki' || c.saas === 'Pack Trio') return acc + 22900;
         if (c.saas === 'Onyx Solo') return acc + 13000;
         if (c.saas === 'Pack Duo') return acc + 17500;
+        if (c.saas === 'Onyx Tontine') return acc + 6900;
         return acc + 9900; // Plan individuel par défaut
      }, 0) || 0;
 

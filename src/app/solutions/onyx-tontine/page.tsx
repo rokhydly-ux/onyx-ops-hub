@@ -569,7 +569,7 @@ export default function OnyxTontineLanding() {
                 <p className="font-black text-sm md:text-base text-black">6 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
                 <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Pour tout le groupe. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">1er MOIS GRATUIT</span></p>
              </div>
-             <button onClick={openModalWithSound} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-black/20">
+             <button onClick={openModalWithSound} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-all shadow-lg shadow-black/20 animate-pulse hover:animate-none">
                 Créer ma Tontine
              </button>
           </div>
