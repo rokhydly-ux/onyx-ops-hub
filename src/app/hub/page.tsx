@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   Smartphone, Truck, Utensils, Box, Lock, LogOut, 
-  User, GraduationCap, ArrowRight, ShieldCheck 
+  User, GraduationCap, ArrowRight, ShieldCheck, Wallet
 } from "lucide-react";
 import AccountModal from "@/components/AccountModal"; // Import de la modale
 import { supabase } from "@/lib/supabaseClient";
@@ -16,6 +16,7 @@ const APPS = [
   { id: "tiak", name: "Onyx Tiak", icon: Truck, color: "bg-orange-600", route: "/tiak", desc: "Logistique & Livraisons" },
   { id: "menu", name: "Onyx Menu", icon: Utensils, color: "bg-red-600", route: "/menu", desc: "Menu QR & Commandes" },
   { id: "formation", name: "Onyx Formation", icon: GraduationCap, color: "bg-purple-600", route: "/formation", desc: "Académie Marketing" },
+  { id: "tontine", name: "Onyx Tontine", icon: Wallet, color: "bg-[#009FDF]", route: "/tontine/admin", desc: "Finance & Tontine" },
 ];
 
 export default function OnyxHubPortal() {

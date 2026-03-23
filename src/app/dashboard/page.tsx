@@ -153,6 +153,7 @@ export default function Dashboard() {
     else if (moduleId.includes('stock')) moduleId = 'stock';
     else if (moduleId.includes('menu')) moduleId = 'menu';
     else if (moduleId.includes('formation')) moduleId = 'formation';
+    else if (moduleId.includes('tontine')) moduleId = 'tontine';
 
     let expDate = null;
     if (profile?.saas_expiration_dates && profile.saas_expiration_dates[moduleId]) {
@@ -211,6 +212,7 @@ export default function Dashboard() {
   const onyxTiakActive = isModuleActive("onyxtiak") || isModuleActive("tiak");
   const onyxStockActive = isModuleActive("onyxstock") || isModuleActive("stock");
   const onyxMenuActive = isModuleActive("onyxmenu") || isModuleActive("menu");
+  const onyxTontineActive = isModuleActive("onyxtontine") || isModuleActive("tontine");
 
   return (
     <div className="min-h-screen bg-white p-6 md:p-12">
@@ -292,6 +294,7 @@ export default function Dashboard() {
                 <SaasCard name="Onyx Tiak" href="/tiak" isActive={onyxTiakActive} />
                 <SaasCard name="Onyx Stock" href="/stock" isActive={onyxStockActive} />
                 <SaasCard name="Onyx Menu" href="/menu" isActive={onyxMenuActive} />
+                <SaasCard name="Onyx Tontine" href="/tontine/admin" isActive={onyxTontineActive} />
                 <button onClick={handleRenewSubscription} className="w-full mt-4 py-3 bg-black text-[#39FF14] rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition-colors shadow-lg shadow-[#39FF14]/10">
                   Prolonger mon abonnement
                 </button>
