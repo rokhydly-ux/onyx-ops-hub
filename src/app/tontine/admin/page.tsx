@@ -7,7 +7,7 @@ import {
   Plus, Edit, Trash2, CheckCircle, 
   AlertCircle, X, Shuffle, ArrowRight,
   Medal, Search, Download, Copy, Check, Clock,
-  RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle
+  RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" }; // Remplacement par ta police Space Grotesk si configurée globalement
@@ -38,11 +38,11 @@ export default function TontineAdminDashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
-  const [kpiFilter, setKpiFilter] = useState<'all' | 'gagnants' | 'attente'>('all');
+  const [kpiFilter, setKpiFilter] = useState<'all' | 'gagnants' | 'attente' | 'retard'>('all');
   
   // Nouveaux états
   const [loading, setLoading] = useState(true);
-  const [tontineSettings, setTontineSettings] = useState({ nom: '', logo_url: '', theme_color: '#39FF14' });
+  const [tontineSettings, setTontineSettings] = useState({ nom: '', logo_url: '', theme_color: '#39FF14', duree_mois: 10, start_date: new Date().toISOString().split('T')[0] });
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isSavingMember, setIsSavingMember] = useState(false);
@@ -89,7 +89,8 @@ export default function TontineAdminDashboard() {
               owner_id: user.id,
               montant_mensuel: 20000,
               gagnants_par_mois: 2,
-              duree_mois: 10
+              duree_mois: 10,
+              start_date: new Date().toISOString().split('T')[0]
             })
             .select()
             .single();
@@ -102,7 +103,9 @@ export default function TontineAdminDashboard() {
           setTontineSettings({
             nom: tData.nom || 'Ma Tontine',
             logo_url: tData.logo_url || '',
-            theme_color: tData.theme_color || '#39FF14'
+            theme_color: tData.theme_color || '#39FF14',
+            duree_mois: tData.duree_mois || 10,
+            start_date: tData.start_date || new Date().toISOString().split('T')[0]
           });
 
           // Récupération des membres
@@ -112,7 +115,9 @@ export default function TontineAdminDashboard() {
             .eq('tontine_id', tData.id)
             .order('created_at', { ascending: true });
 
-          setMembers((mData || []).map(m => ({ ...m, statutPaiement: 'À jour' })));
+          const fetchedMembers = (mData || []).map(m => ({ ...m, statutPaiement: m.statut_paiement || 'À jour' }));
+          setMembers(fetchedMembers);
+          if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
         }
       }
       setLoading(false);
@@ -133,7 +138,9 @@ export default function TontineAdminDashboard() {
   const refreshMembers = async () => {
     if (!tontine) return;
     const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
-    setMembers((mData || []).map(m => ({ ...m, statutPaiement: 'À jour' })));
+    const fetchedMembers = (mData || []).map(m => ({ ...m, statutPaiement: 'À jour' as const }));
+    setMembers(fetchedMembers);
+    if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
   };
 
   // --- KPIs DYNAMIQUES ---
@@ -229,7 +236,8 @@ export default function TontineAdminDashboard() {
       .update({
         nom: tontineSettings.nom,
         logo_url: tontineSettings.logo_url,
-        theme_color: tontineSettings.theme_color
+        theme_color: tontineSettings.theme_color,
+        duree_mois: tontineSettings.duree_mois,
       })
       .eq('id', tontine.id);
 
@@ -262,12 +270,20 @@ export default function TontineAdminDashboard() {
     }
   };
 
+  const sendLateReminder = (m: Member) => {
+    const msg = `🚨 Bonjour ${m.prenom_nom}, sauf erreur de notre part, nous n'avons pas encore reçu votre cotisation de ${(tontine?.montant_mensuel || 20000).toLocaleString()} F pour la tontine "${tontine?.nom}". Merci de régulariser au plus vite 🙏`;
+    let phone = m.telephone.replace(/\s+/g, '');
+    if (phone.length === 9) phone = `221${phone}`;
+    window.open(`https://wa.me/${phone.startsWith('221') ? phone : phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   // --- FILTRES ---
   const filteredMembers = members.filter(m => {
     const matchSearch = m.prenom_nom.toLowerCase().includes(searchTerm.toLowerCase()) || m.telephone.includes(searchTerm);
     if (!matchSearch) return false;
     if (kpiFilter === 'gagnants' && !m.a_gagne) return false;
     if (kpiFilter === 'attente' && m.a_gagne) return false;
+    if (kpiFilter === 'retard' && m.statutPaiement !== 'En retard') return false;
     return true;
   });
 
@@ -415,6 +431,11 @@ export default function TontineAdminDashboard() {
                  <p className="text-2xl md:text-3xl font-black tracking-tighter text-black">{moisEcoules}/{dureeTotale}</p>
                  <p className="text-xs font-bold text-zinc-500 mb-1 leading-none">Mois écoulés</p>
               </div>
+           </div>
+           <div onClick={() => setKpiFilter('retard')} className={`bg-red-50 p-6 rounded-[2rem] border shadow-sm flex flex-col justify-between cursor-pointer hover:scale-105 transition-all ${kpiFilter === 'retard' ? 'border-red-500 ring-4 ring-red-500/20' : 'border-red-100'}`}>
+              <div className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center mb-4"><AlertTriangle size={20}/></div>
+              <p className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">Membres en retard</p>
+              <p className="text-2xl md:text-3xl font-black tracking-tighter text-red-600">{members.filter(m => m.statutPaiement === 'En retard').length}</p>
            </div>
         </div>
 
@@ -574,6 +595,11 @@ export default function TontineAdminDashboard() {
                              )}
                           </td>
                           <td className="p-5 text-right space-x-2">
+                             {m.statutPaiement === 'En retard' && (
+                               <button onClick={() => sendLateReminder(m)} className="p-2.5 text-zinc-400 hover:text-green-500 hover:bg-green-50 rounded-xl transition" title="Relancer sur WhatsApp">
+                                  <MessageCircle size={16}/>
+                               </button>
+                             )}
                              <button 
                                onClick={() => { setEditingMember(m); setShowMemberModal(true); }}
                                className="p-2.5 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-xl transition"
@@ -715,6 +741,41 @@ export default function TontineAdminDashboard() {
                      />
                   </div>
                   
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Date de début</label>
+                        <input 
+                          type="date" 
+                          required
+                          value={tontineSettings.start_date} 
+                          onChange={(e) => setTontineSettings({...tontineSettings, start_date: e.target.value})} 
+                          className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
+                        />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Durée (Mois)</label>
+                        <input 
+                          type="number" 
+                          required
+                          value={tontineSettings.duree_mois} 
+                          onChange={(e) => setTontineSettings({...tontineSettings, duree_mois: Number(e.target.value)})} 
+                          className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
+                        />
+                     </div>
+                  </div>
+
+                  <div className="p-4 bg-zinc-100 rounded-2xl flex flex-col gap-1 border border-zinc-200">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Lien Public (Espace Membre)</p>
+                     <div className="flex gap-2 items-center mt-1">
+                        <code className="flex-1 text-[10px] font-mono text-black truncate bg-white p-2 rounded-lg border border-zinc-200">
+                           {typeof window !== 'undefined' ? `${window.location.origin}/tontine/membre?id=${tontine?.id}` : ''}
+                        </code>
+                        <button type="button" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/tontine/membre?id=${tontine?.id}`); alert("Lien copié !"); }} className="p-2 bg-black text-white rounded-lg hover:bg-zinc-800 transition">
+                           <Copy size={14}/>
+                        </button>
+                     </div>
+                  </div>
+
                   <button type="submit" disabled={isSavingSettings} className="w-full bg-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50" style={{ color: tontineSettings.theme_color }}>
                      {isSavingSettings ? <span className="animate-spin text-white"><Loader2 size={16} /></span> : <CheckCircle size={16}/>}
                      {isSavingSettings ? 'Enregistrement...' : 'Sauvegarder'}

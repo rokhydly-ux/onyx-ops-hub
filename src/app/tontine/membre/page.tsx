@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useSearchParams } from "next/navigation";
 import { 
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
@@ -11,6 +12,14 @@ import {
 const spaceGrotesk = { className: "font-sans" };
 
 export default function TontineMembreDashboard() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6"><div className="w-10 h-10 border-4 border-t-black rounded-full animate-spin"></div></div>}>
+      <TontineMembreContent />
+    </React.Suspense>
+  );
+}
+
+function TontineMembreContent() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'historique' | 'attente'>('historique');
   const [isPaying, setIsPaying] = useState(false);
@@ -22,24 +31,36 @@ export default function TontineMembreDashboard() {
   const [cotisations, setCotisations] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [invalidLink, setInvalidLink] = useState(false);
+  
+  const searchParams = useSearchParams();
 
   // --- CHARGEMENT DES DONNÉES ---
   const fetchData = async () => {
-    // Récupération de l'ID depuis l'URL (ex: /tontine/membre?id=123)
-    const urlParams = new URLSearchParams(window.location.search);
-    const tontineId = urlParams.get('id');
-    
-    let query = supabase.from('tontines').select('*');
-    if (tontineId) query = query.eq('id', tontineId);
-    
-    const { data: tData } = await query.limit(1).single();
-    if (tData) {
+    try {
+      const tontineId = searchParams.get('id');
+      
+      if (!tontineId || tontineId === 'undefined' || tontineId === 'null') {
+        setInvalidLink(true);
+        return;
+      }
+      
+      const { data: tData, error } = await supabase.from('tontines').select('*').eq('id', tontineId).single();
+      
+      if (error || !tData) {
+        setInvalidLink(true);
+        return;
+      }
+      
       setTontine(tData);
       const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tData.id);
       setMembers(mData || []);
       
       const { data: cData } = await supabase.from('cotisations').select('*');
       setCotisations(cData || []);
+    } catch (err) {
+      console.error("Erreur Fetch Membre:", err);
+      setInvalidLink(true);
     }
   };
 
@@ -101,6 +122,18 @@ export default function TontineMembreDashboard() {
       alert(`Paiement de ${(tontine?.montant_mensuel || 20000).toLocaleString()} F via ${paymentMethod.toUpperCase()} enregistré avec succès !`);
     }, 1500);
   };
+
+  if (invalidLink) {
+     return (
+        <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6 text-center font-sans">
+           <div className="bg-white p-10 rounded-[3rem] shadow-xl max-w-md w-full border-t-[8px] border-red-500">
+              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-6"/>
+              <h1 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-4 text-black`}>Lien Invalide</h1>
+              <p className="text-zinc-500 font-bold text-sm">Le lien de cette tontine est introuvable ou a été désactivé. Veuillez demander le lien correct à votre administrateur.</p>
+           </div>
+        </div>
+     );
+  }
 
   if (!tontine) return <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6"><div className="w-10 h-10 border-4 border-t-black rounded-full animate-spin"></div></div>;
 
