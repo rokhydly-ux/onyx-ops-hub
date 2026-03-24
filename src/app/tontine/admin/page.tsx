@@ -23,6 +23,7 @@ type Member = {
   a_gagne: boolean;
   mois_victoire: number | null;
   statutPaiement?: 'À jour' | 'En retard';
+  date_paiement?: string;
 };
 
 export default function TontineAdminDashboard() {
@@ -115,8 +116,8 @@ export default function TontineAdminDashboard() {
         setCurrentMonth(cMonth);
   
         const fetchedMembers = (membersData || []).map(m => {
-            const hasPaid = (cData || []).some(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
-            return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
+            const cotis = (cData || []).find(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
+            return { ...m, statutPaiement: cotis ? 'À jour' : 'En retard', date_paiement: cotis ? cotis.date_paiement : undefined };
         });
         
         setMembres(fetchedMembers);
@@ -152,8 +153,8 @@ export default function TontineAdminDashboard() {
     setCurrentMonth(cMonth);
 
     const fetchedMembers = (mData || []).map(m => {
-        const hasPaid = (cData || []).some(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
-        return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
+        const cotis = (cData || []).find(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
+        return { ...m, statutPaiement: cotis ? 'À jour' : 'En retard', date_paiement: cotis ? cotis.date_paiement : undefined };
     });
     
     setMembres(fetchedMembers);
@@ -243,8 +244,14 @@ export default function TontineAdminDashboard() {
       if (memberId) {
          if (editingMember.statutPaiement === 'À jour') {
              const { data: existing } = await supabase.from('cotisations').select('*').eq('membre_id', memberId).eq('mois_numero', currentMonth).eq('statut', 'Payé').maybeSingle();
+             
+             let paymentDate = new Date().toISOString();
+             if (editingMember.date_paiement) paymentDate = new Date(editingMember.date_paiement).toISOString();
+
              if (!existing) {
-                 await supabase.from('cotisations').insert({ membre_id: memberId, mois_numero: currentMonth, montant: tontine.montant_mensuel, statut: 'Payé', date_paiement: new Date().toISOString() });
+                 await supabase.from('cotisations').insert({ membre_id: memberId, mois_numero: currentMonth, montant: tontine.montant_mensuel, statut: 'Payé', date_paiement: paymentDate });
+             } else {
+                 await supabase.from('cotisations').update({ date_paiement: paymentDate }).eq('id', existing.id);
              }
          } else {
              await supabase.from('cotisations').delete().eq('membre_id', memberId).eq('mois_numero', currentMonth);
@@ -782,7 +789,10 @@ export default function TontineAdminDashboard() {
                           </td>
                           <td className="p-5">
                              {m.statutPaiement === 'À jour' ? (
-                                <span className="text-[10px] font-black uppercase text-black bg-zinc-100 px-2 py-1 rounded-md">À Jour</span>
+                                <div className="flex flex-col items-start gap-1">
+                                   <span className="text-[10px] font-black uppercase text-black bg-zinc-100 px-2 py-1 rounded-md">À Jour</span>
+                                   {m.date_paiement && <span className="text-[9px] font-bold text-zinc-500 uppercase">{new Date(m.date_paiement).toLocaleDateString('fr-FR')}</span>}
+                                </div>
                              ) : (
                                 <span className="text-[10px] font-black uppercase text-white bg-red-500 px-2 py-1 rounded-md flex items-center gap-1 w-max">
                                    <AlertCircle size={10}/> En retard
@@ -868,6 +878,17 @@ export default function TontineAdminDashboard() {
                            <option value="En retard">En retard</option>
                         </select>
                      </div>
+                     {editingMember.statutPaiement === 'À jour' && (
+                        <div className="animate-in fade-in">
+                           <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Date de paiement</label>
+                           <input 
+                             type="date"
+                             value={editingMember.date_paiement ? editingMember.date_paiement.split('T')[0] : new Date().toISOString().split('T')[0]}
+                             onChange={(e) => setEditingMember({...editingMember, date_paiement: e.target.value})}
+                             className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition cursor-pointer"
+                           />
+                        </div>
+                     )}
                   </div>
 
                   {/* Option Avancée Admin */}
