@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useSearchParams } from "next/navigation";
 import { 
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
@@ -12,14 +11,6 @@ import {
 const spaceGrotesk = { className: "font-sans" };
 
 export default function TontineMembreDashboard() {
-  return (
-    <React.Suspense fallback={<div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6"><div className="w-10 h-10 border-4 border-t-black rounded-full animate-spin"></div></div>}>
-      <TontineMembreContent />
-    </React.Suspense>
-  );
-}
-
-function TontineMembreContent() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'historique' | 'attente'>('historique');
   const [isPaying, setIsPaying] = useState(false);
@@ -33,12 +24,10 @@ function TontineMembreContent() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [invalidLink, setInvalidLink] = useState(false);
   
-  const searchParams = useSearchParams();
-
   // --- CHARGEMENT DES DONNÉES ---
   const fetchData = async () => {
     try {
-      const tontineId = searchParams.get('id');
+      const tontineId = new URLSearchParams(window.location.search).get('id');
       
       if (!tontineId || tontineId === 'null') {
         setInvalidLink(true);

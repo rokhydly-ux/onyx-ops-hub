@@ -66,16 +66,20 @@ export default function TontineAdminDashboard() {
         if (user) {
           setCurrentUser(user);
   
-          // Recherche de la tontine avec owner_id
-          let { data: tData, error: fetchError } = await supabase
-            .from('tontines')
-            .select('*')
-            .eq('owner_id', user.id)
-            .single();
+          // 1. Récupération robuste (Gère le lien Super-Admin ?id=... et le fallback owner_id)
+          const urlId = new URLSearchParams(window.location.search).get('id');
+          let tData = null;
+
+          if (urlId) {
+             const { data } = await supabase.from('tontines').select('*').eq('id', urlId).maybeSingle();
+             tData = data;
+          } else {
+             const { data } = await supabase.from('tontines').select('*').eq('owner_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+             tData = data;
+          }
   
-          if (fetchError || !tData) {
-            // INSERT si aucune tontine n'est trouvée
-            const { data: newTontine, error: insertError } = await supabase
+          if (!tData && !urlId) {
+            const { data: newTontine } = await supabase
               .from('tontines')
               .insert({
                 nom: 'Nouvelle Tontine',
@@ -88,7 +92,6 @@ export default function TontineAdminDashboard() {
               .select()
               .single();
             
-            if (insertError) throw insertError;
             if (newTontine) tData = newTontine;
           }
   
@@ -133,7 +136,7 @@ export default function TontineAdminDashboard() {
   }, []);
 
   const refreshMembers = async () => {
-    if (!tontine) return;
+    if (!tontine || !tontine.id) return;
     const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
     const { data: cData } = await supabase.from('cotisations').select('*');
     
@@ -253,20 +256,27 @@ export default function TontineAdminDashboard() {
   // --- 3. SAUVEGARDE DES PARAMÈTRES ROBUSTE ---
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tontine) return;
+    if (!tontine || !tontine.id) {
+       alert("Erreur critique : Impossible d'identifier la tontine. Veuillez rafraîchir la page.");
+       return;
+    }
     setIsSaving(true);
     try {
+      const payload: any = {
+        nom: tontine.nom,
+        logo_url: tontine.logo_url,
+        theme_color: tontine.theme_color,
+        duree_mois: tontine.duree_mois,
+        montant_mensuel: tontine.montant_mensuel,
+        gagnants_par_mois: tontine.gagnants_par_mois
+      };
+      
+      if (tontine.start_date) payload.start_date = tontine.start_date;
+      else payload.start_date = null;
+
       const { error } = await supabase
         .from('tontines')
-        .update({
-          nom: tontine.nom,
-          logo_url: tontine.logo_url,
-          theme_color: tontine.theme_color,
-          duree_mois: tontine.duree_mois,
-          start_date: tontine.start_date,
-          montant_mensuel: tontine.montant_mensuel,
-          gagnants_par_mois: tontine.gagnants_par_mois
-        })
+        .update(payload)
         .eq('id', tontine.id);
 
       if (error) throw error;
