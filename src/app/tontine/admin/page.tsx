@@ -97,7 +97,7 @@ export default function TontineAdminDashboard() {
         // 4. On fetch les membres
         if (tontineData && tontineData.id) {
           const { data: membresData } = await supabase
-            .from('membres')
+            .from('tontine_members')
             .select('*')
             .eq('tontine_id', tontineData.id)
             .order('created_at', { ascending: true });
@@ -138,7 +138,7 @@ export default function TontineAdminDashboard() {
 
   const refreshMembers = async () => {
     if (!tontine || !tontine.id) return;
-    const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
+    const { data: mData } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
     const { data: cData } = await supabase.from('cotisations').select('*');
     
     const totalGagnants = tontine.gagnants_par_mois || 2;
@@ -193,7 +193,7 @@ export default function TontineAdminDashboard() {
 
       // Mise à jour SUPABASE
       const { error } = await supabase
-        .from('membres')
+        .from('tontine_members')
         .update({ a_gagne: true, mois_victoire: currentMonth })
         .in('id', winners.map(w => w.id));
 
@@ -223,9 +223,9 @@ export default function TontineAdminDashboard() {
     try {
       let memberId = editingMember.id;
       if (memberId) {
-        await supabase.from('membres').update({ prenom_nom: editingMember.prenom_nom, telephone: editingMember.telephone, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', memberId);
+        await supabase.from('tontine_members').update({ prenom_nom: editingMember.prenom_nom, telephone: editingMember.telephone, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', memberId);
       } else {
-        const { data: newM } = await supabase.from('membres').insert({
+        const { data: newM } = await supabase.from('tontine_members').insert({
           tontine_id: tontine.id,
           prenom_nom: editingMember.prenom_nom,
           telephone: editingMember.telephone,
@@ -292,49 +292,46 @@ export default function TontineAdminDashboard() {
   };
 
   // --- IMPORT EXCEL ---
-  const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !tontine) return;
-
+  const handleExcelImport = async (e: any) => {
+    const file = e.target.files[0];
+    if (!file || !tontine?.id) return alert("Veuillez sélectionner un fichier et vérifier que la tontine est chargée.");
     setIsImporting(true);
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      const jsonData = XLSX.utils.sheet_to_json<any>(worksheet);
 
-      const newMembers = jsonData
-        .filter(row => row.PRENOM || row.NUMERO)
-        .map(row => {
-          let phone = String(row.NUMERO || '').replace(/\s+/g, '');
-          return {
-            tontine_id: tontine.id,
-            prenom_nom: row.PRENOM || 'Membre Importé',
-            telephone: phone,
-            a_gagne: false,
-            statut_paiement: 'À jour'
-          };
-        });
+    const reader = new FileReader();
+    reader.onload = async (event: any) => {
+      try {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-      if (newMembers.length === 0) {
-        alert("Aucune donnée valide trouvée. Vérifiez que les colonnes s'appellent PRENOM et NUMERO.");
+        // Formatage pour Supabase
+        const formattedMembers = json.map((row) => ({
+          tontine_id: tontine.id,
+          prenom_nom: row.PRENOM || row['PRÉNOM'] || 'Nom Inconnu',
+          telephone: String(row.NUMERO || row['NUMÉRO'] || ''),
+          a_gagne: false
+        }));
+
+        const { error } = await supabase.from('tontine_members').insert(formattedMembers);
+        if (error) throw error;
+
+        alert(`${formattedMembers.length} membres importés avec succès !`);
+        
+        // Recharger la liste des membres
+        const { data: newMembers } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontine.id);
+        setMembres(newMembers || []);
+
+      } catch (err: any) {
+        console.error("Erreur Import Excel:", err);
+        alert("Erreur lors de l'import : " + err.message);
+      } finally {
         setIsImporting(false);
-        return;
+        e.target.value = null; // Reset l'input file
       }
-
-      const { error } = await supabase.from('membres').insert(newMembers);
-      if (error) throw error;
-
-      alert(`${newMembers.length} membres importés avec succès !`);
-      refreshMembers();
-    } catch (error: any) {
-      console.error("Erreur import Excel:", error);
-      alert("Erreur lors de l'import : " + error.message);
-    } finally {
-      setIsImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   // --- IMPORT OCR (TESSERACT) ---
@@ -397,7 +394,7 @@ export default function TontineAdminDashboard() {
            statut_paiement: 'À jour'
         }));
 
-        const { error } = await supabase.from('membres').insert(membersToInsert);
+        const { error } = await supabase.from('tontine_members').insert(membersToInsert);
         if (error) throw error;
 
         alert(`${membersToInsert.length} membres scannés ajoutés avec succès !`);
@@ -415,7 +412,7 @@ export default function TontineAdminDashboard() {
   // --- LOGIQUE RÉINITIALISATION TONTINE ---
   const handleResetTontine = async () => {
     if (confirm("Voulez-vous vraiment réinitialiser TOUS les tirages de cette tontine ? Cela annulera les victoires de tout le monde (Remise à zéro).")) {
-      const { error } = await supabase.from('membres').update({ a_gagne: false, mois_victoire: null }).eq('tontine_id', tontine.id);
+      const { error } = await supabase.from('tontine_members').update({ a_gagne: false, mois_victoire: null }).eq('tontine_id', tontine.id);
       if (error) alert("Erreur : " + error.message);
       else {
         alert("Tontine réinitialisée avec succès !");
@@ -426,7 +423,7 @@ export default function TontineAdminDashboard() {
 
   const handleDeleteMember = async (id: string) => {
     if (confirm("Voulez-vous vraiment supprimer ce membre de la tontine ?")) {
-      await supabase.from('membres').delete().eq('id', id);
+      await supabase.from('tontine_members').delete().eq('id', id);
       refreshMembers();
     }
   };
@@ -699,13 +696,13 @@ export default function TontineAdminDashboard() {
                  </button>
                  
                  <button 
-                   onClick={() => fileInputRef.current?.click()}
+                   onClick={() => document.getElementById('excel-upload')?.click()}
                    disabled={isImporting}
                    className="bg-zinc-800 text-white border border-zinc-700 px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-zinc-700 transition shadow-sm shrink-0 disabled:opacity-50"
                  >
                     {isImporting ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16}/>} Importer Excel
                  </button>
-                 <input type="file" accept=".xlsx, .xls, .csv" className="hidden" ref={fileInputRef} onChange={handleExcelImport} />
+                 <input type="file" id="excel-upload" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleExcelImport} />
                  <button 
                    onClick={() => ocrInputRef.current?.click()}
                    disabled={isScanning}
