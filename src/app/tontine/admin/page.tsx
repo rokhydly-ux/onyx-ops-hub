@@ -56,74 +56,80 @@ export default function TontineAdminDashboard() {
 
   // --- 2. LOGIQUE D'INITIALISATION ---
   useEffect(() => {
-    const initData = async () => {
+    const fetchInitData = async () => {
       setIsLoading(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        setCurrentUser(user);
-
-        // 1. On cherche la tontine existante
-        let { data: tontineData, error: fetchError } = await supabase
+        // 1. Récupération Utilisateur
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authError || !authData?.user) throw new Error("Non connecté");
+        const user = authData.user;
+        setCurrentUser(user); // Met fin au chargement du Header
+  
+        // 2. Recherche de la tontine (sans .single() pour éviter les crashs)
+        const { data: existingTontines, error: fetchErr } = await supabase
           .from('tontines')
           .select('*')
-          .eq('owner_id', user.id)
-          .single();
-
-        // 2. Si elle n'existe pas (erreur PGRST116 = 0 row), on la CRÉE et on la RÉCUPÈRE
-        if (fetchError && fetchError.code === 'PGRST116') {
-          const { data: newTontine, error: insertError } = await supabase
+          .eq('owner_id', user.id);
+  
+        if (fetchErr) throw fetchErr;
+  
+        let currentTontine = existingTontines && existingTontines.length > 0 ? existingTontines[0] : null;
+  
+        // 3. Création si inexistante
+        if (!currentTontine) {
+          const { data: newTontines, error: insertErr } = await supabase
             .from('tontines')
             .insert([{ 
               nom: 'Ma Tontine', 
-              theme_color: '#39FF14', 
+              theme_color: '#009FDF', 
               montant_mensuel: 20000, 
               gagnants_par_mois: 2, 
               duree_mois: 10, 
               owner_id: user.id 
             }])
-            .select() // CRUCIAL : Demande à Supabase de renvoyer la ligne créée avec son ID
-            .single();
-            
-          if (insertError) throw insertError;
-          tontineData = newTontine;
-        } else if (fetchError) {
-          throw fetchError;
+            .select('*'); // Force le retour de la donnée insérée
+  
+          if (insertErr) throw insertErr;
+          if (newTontines && newTontines.length > 0) {
+            currentTontine = newTontines[0];
+          }
         }
-
-        // 3. On sauvegarde dans le state (l'ID est maintenant garanti d'être là)
-        setTontine(tontineData);
-
-        // 4. On fetch les membres
-        if (tontineData && tontineData.id) {
-          const { data: membresData } = await supabase
-            .from('tontine_members')
-            .select('*')
-            .eq('tontine_id', tontineData.id)
-            .order('created_at', { ascending: true });
-            
-          const { data: cData } = await supabase.from('cotisations').select('*');
-          
-          const totalGagnants = tontineData.gagnants_par_mois || 2;
-          const gagnantsCount = (membresData || []).filter(m => m.a_gagne).length;
-          const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
-          setCurrentMonth(cMonth);
-
-          const fetchedMembers = (membresData || []).map(m => {
-              const hasPaid = (cData || []).some(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
-              return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
-          });
-          
-          setMembres(fetchedMembers);
-          if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
-        }
+  
+        if (!currentTontine || !currentTontine.id) throw new Error("Échec de récupération de l'ID Tontine.");
+  
+        // 4. Validation des states
+        setTontine(currentTontine);
+  
+        // 5. Récupération des membres et déductions logiques
+        const { data: membersData } = await supabase
+          .from('tontine_members')
+          .select('*')
+          .eq('tontine_id', currentTontine.id)
+          .order('created_at', { ascending: true });
+  
+        const { data: cData } = await supabase.from('cotisations').select('*');
+        
+        const totalGagnants = currentTontine.gagnants_par_mois || 2;
+        const gagnantsCount = (membersData || []).filter(m => m.a_gagne).length;
+        const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
+        setCurrentMonth(cMonth);
+  
+        const fetchedMembers = (membersData || []).map(m => {
+            const hasPaid = (cData || []).some(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
+            return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
+        });
+        
+        setMembres(fetchedMembers);
+        if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
+  
       } catch (error) {
-        console.error("Erreur d'initialisation:", error);
+        console.error("Erreur fatale d'initialisation:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    initData();
+  
+    fetchInitData();
   }, []);
 
   useEffect(() => {
@@ -294,7 +300,7 @@ export default function TontineAdminDashboard() {
   // --- IMPORT EXCEL ---
   const handleExcelImport = async (e: any) => {
     const file = e.target.files[0];
-    if (!file || !tontine?.id) return alert("Veuillez sélectionner un fichier et vérifier que la tontine est chargée.");
+    if (!file || !tontine?.id) return alert('Erreur: Tontine non initialisée');
     setIsImporting(true);
 
     const reader = new FileReader();
@@ -535,16 +541,18 @@ export default function TontineAdminDashboard() {
              <span className="bg-zinc-100 text-zinc-600 px-3 py-1.5 rounded-lg text-xs font-black uppercase flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span> Mode Live
              </span>
-             {currentUser ? (
+             {isLoading && !currentUser ? (
+                <div className="w-10 h-10 border-2 border-zinc-200 border-t-black rounded-full animate-spin"></div>
+             ) : currentUser ? (
                <>
                  <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 bg-zinc-900 text-white rounded-full border-2 border-white shadow-sm flex items-center justify-center font-black text-sm hover:scale-105 transition-transform uppercase">
-                    {currentUser.full_name ? currentUser.full_name.substring(0, 2) : 'AD'}
+                    {currentUser.email?.substring(0, 2).toUpperCase() || 'KY'}
                  </button>
                  {isProfileMenuOpen && (
                     <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-zinc-200 shadow-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 flex flex-col">
                        <div className="px-4 py-3 border-b border-zinc-100 mb-2">
                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Connecté en tant que</p>
-                          <p className="text-sm font-black text-black truncate">{currentUser.full_name || 'Utilisateur'}</p>
+                          <p className="text-sm font-black text-black truncate">{currentUser.email || 'Utilisateur'}</p>
                        </div>
                        <button onClick={() => window.location.href = '/hub'} className="w-full text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition flex items-center gap-2">
                           <Home size={14} /> Retour au Hub
@@ -555,9 +563,7 @@ export default function TontineAdminDashboard() {
                     </div>
                  )}
                </>
-             ) : (
-                <div className="w-10 h-10 border-2 border-zinc-200 border-t-black rounded-full animate-spin"></div>
-             )}
+             ) : null}
           </div>
         </div>
       </header>
