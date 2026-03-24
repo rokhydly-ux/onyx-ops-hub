@@ -70,7 +70,7 @@ export default function TontineAdminDashboard() {
           const urlId = new URLSearchParams(window.location.search).get('id');
           let tData = null;
 
-          if (urlId) {
+          if (urlId && urlId !== 'undefined' && urlId !== 'null') {
              const { data } = await supabase.from('tontines').select('*').eq('id', urlId).maybeSingle();
              tData = data;
           } else {

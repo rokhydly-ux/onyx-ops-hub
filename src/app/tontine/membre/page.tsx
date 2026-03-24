@@ -29,7 +29,7 @@ export default function TontineMembreDashboard() {
     try {
       const tontineId = new URLSearchParams(window.location.search).get('id');
       
-      if (!tontineId || tontineId === 'null') {
+      if (!tontineId || tontineId === 'null' || tontineId === 'undefined') {
         setInvalidLink(true);
         return;
       }
