@@ -8,7 +8,7 @@ import {
   AlertCircle, X, Shuffle, ArrowRight,
   Medal, Search, Download, Copy, Check, Clock,
   RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle,
-  Camera, FileSpreadsheet
+  Camera, FileSpreadsheet, UserPlus
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
@@ -56,84 +56,74 @@ export default function TontineAdminDashboard() {
 
   // --- 2. LOGIQUE D'INITIALISATION ---
   useEffect(() => {
-    const initializeAdmin = async () => {
+    const initData = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
-        let user = null;
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          user = session.user;
-          const { data } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
-          if (data) user = { ...user, ...data };
-        } else {
-          const customSession = localStorage.getItem('onyx_custom_session');
-          if (customSession) {
-            try { user = JSON.parse(customSession); } catch(e) {}
-          }
-        }
-        
-        if (user) {
-          setCurrentUser(user);
-  
-          // 1. Récupération robuste (Gère le lien Super-Admin ?id=... et le fallback owner_id)
-          const urlId = new URLSearchParams(window.location.search).get('id');
-          let tData = null;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        setCurrentUser(user);
 
-          if (urlId && urlId !== 'undefined' && urlId !== 'null') {
-             const { data } = await supabase.from('tontines').select('*').eq('id', urlId).maybeSingle();
-             tData = data;
-          } else {
-             // On retire owner_id car il n'existe pas, on prend juste la tontine la plus récente
-             const { data } = await supabase.from('tontines').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle();
-             tData = data;
-          }
-  
-          if (!tData && !urlId) {
-            const { data: newTontine, error } = await supabase
-              .from('tontines')
-              .insert({
-                nom: 'Nouvelle Tontine',
-                theme_color: '#39FF14',
-                montant_mensuel: 20000,
-                gagnants_par_mois: 2,
-                duree_mois: 10
-              })
-              .select()
-              .single();
+        // 1. On cherche la tontine existante
+        let { data: tontineData, error: fetchError } = await supabase
+          .from('tontines')
+          .select('*')
+          .eq('owner_id', user.id)
+          .single();
+
+        // 2. Si elle n'existe pas (erreur PGRST116 = 0 row), on la CRÉE et on la RÉCUPÈRE
+        if (fetchError && fetchError.code === 'PGRST116') {
+          const { data: newTontine, error: insertError } = await supabase
+            .from('tontines')
+            .insert([{ 
+              nom: 'Ma Tontine', 
+              theme_color: '#39FF14', 
+              montant_mensuel: 20000, 
+              gagnants_par_mois: 2, 
+              duree_mois: 10, 
+              owner_id: user.id 
+            }])
+            .select() // CRUCIAL : Demande à Supabase de renvoyer la ligne créée avec son ID
+            .single();
             
-            if (error) console.error("Erreur de création:", error);
-            if (newTontine) tData = newTontine;
-          }
-  
-          if (tData) {
-            setTontine(tData);
-  
-            const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tData.id).order('created_at', { ascending: true });
-            const { data: cData } = await supabase.from('cotisations').select('*');
-            
-            const totalGagnants = tData.gagnants_par_mois || 2;
-            const gagnantsCount = (mData || []).filter(m => m.a_gagne).length;
-            const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
-            setCurrentMonth(cMonth);
-  
-            const fetchedMembers = (mData || []).map(m => {
-                const hasPaid = (cData || []).some(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
-                return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
-            });
-            
-            setMembres(fetchedMembers);
-            if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
-          }
+          if (insertError) throw insertError;
+          tontineData = newTontine;
+        } else if (fetchError) {
+          throw fetchError;
         }
-      } catch (err) {
-        console.error("Erreur Init:", err);
+
+        // 3. On sauvegarde dans le state (l'ID est maintenant garanti d'être là)
+        setTontine(tontineData);
+
+        // 4. On fetch les membres
+        if (tontineData && tontineData.id) {
+          const { data: membresData } = await supabase
+            .from('membres')
+            .select('*')
+            .eq('tontine_id', tontineData.id)
+            .order('created_at', { ascending: true });
+            
+          const { data: cData } = await supabase.from('cotisations').select('*');
+          
+          const totalGagnants = tontineData.gagnants_par_mois || 2;
+          const gagnantsCount = (membresData || []).filter(m => m.a_gagne).length;
+          const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
+          setCurrentMonth(cMonth);
+
+          const fetchedMembers = (membresData || []).map(m => {
+              const hasPaid = (cData || []).some(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
+              return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
+          });
+          
+          setMembres(fetchedMembers);
+          if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
+        }
+      } catch (error) {
+        console.error("Erreur d'initialisation:", error);
       } finally {
         setIsLoading(false);
       }
     };
-
-    initializeAdmin();
+    initData();
   }, []);
 
   useEffect(() => {
@@ -265,8 +255,8 @@ export default function TontineAdminDashboard() {
   };
 
   // --- 3. SAUVEGARDE DES PARAMÈTRES ROBUSTE ---
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveSettings = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setIsSaving(true);
     try {
       if (!tontine || !tontine.id) throw new Error("ID de la tontine introuvable.");
@@ -721,7 +711,7 @@ export default function TontineAdminDashboard() {
                    disabled={isScanning}
                    className="bg-zinc-800 text-white border border-zinc-700 px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-zinc-700 transition shadow-sm shrink-0 disabled:opacity-50"
                  >
-                    {isScanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16}/>} Scanner (OCR)
+                    {isScanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16}/>} Scanner Cahier (OCR)
                  </button>
                  <input type="file" accept="image/*" capture="environment" className="hidden" ref={ocrInputRef} onChange={handleOcrImport} />
 
@@ -730,7 +720,7 @@ export default function TontineAdminDashboard() {
                    className="px-6 py-3 rounded-xl font-black text-black uppercase text-xs flex items-center justify-center gap-2 hover:scale-105 transition shadow-lg shrink-0"
                    style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}
                  >
-                    <Plus size={16}/> Ajouter
+                    <UserPlus size={16}/> Ajouter Manuellement
                  </button>
               </div>
            </div>
@@ -1000,7 +990,7 @@ export default function TontineAdminDashboard() {
                      </div>
                   </div>
 
-                  <button type="submit" disabled={isSaving} className="w-full text-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
+                  <button type="button" disabled={isSaving} onClick={handleSaveSettings} className="w-full text-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
                      {isSaving ? <span className="animate-spin"><Loader2 size={16} /></span> : <CheckCircle size={16}/>}
                      {isSaving ? 'Enregistrement...' : 'Sauvegarder les modifications'}
                   </button>
