@@ -23,39 +23,40 @@ type Member = {
 };
 
 export default function TontineAdminDashboard() {
-  // --- ETATS ---
+  // --- 1. ETATS OBLIGATOIRES & FONDAMENTAUX ---
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [tontine, setTontine] = useState<any>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [membres, setMembres] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // --- ETATS SECONDAIRES (UI & LOGIQUE) ---
   const [currentMonth, setCurrentMonth] = useState<number>(1);
   const [isDrawing, setIsDrawing] = useState(false);
   const [latestWinners, setLatestWinners] = useState<Member[] | null>(null);
-  
-  // Modales & CRUD
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Partial<Member> | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const [kpiFilter, setKpiFilter] = useState<'all' | 'gagnants' | 'attente' | 'retard'>('all');
-  
-  // Nouveaux états
-  const [loading, setLoading] = useState(true);
-  const [tontineSettings, setTontineSettings] = useState({ nom: '', logo_url: '', theme_color: '#39FF14', duree_mois: 10, start_date: new Date().toISOString().split('T')[0] });
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isSavingMember, setIsSavingMember] = useState(false);
 
+  // --- 2. LOGIQUE D'INITIALISATION ---
   useEffect(() => {
     const initializeAdmin = async () => {
       try {
-        setLoading(true);
+        setIsLoading(true);
         let user = null;
         
         const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) user = session.user;
-        else {
+        if (session?.user) {
+          user = session.user;
+          const { data } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
+          if (data) user = { ...user, ...data };
+        } else {
           const customSession = localStorage.getItem('onyx_custom_session');
           if (customSession) {
             try { user = JSON.parse(customSession); } catch(e) {}
@@ -65,62 +66,56 @@ export default function TontineAdminDashboard() {
         if (user) {
           setCurrentUser(user);
   
-          // 1. Récupération robuste (sans owner_id car la colonne n'existe pas)
-          let { data: tData } = await supabase
+          // Recherche de la tontine avec owner_id
+          let { data: tData, error: fetchError } = await supabase
             .from('tontines')
             .select('*')
-            .order('created_at', { ascending: true })
-            .limit(1)
-            .maybeSingle();
+            .eq('owner_id', user.id)
+            .single();
   
-          if (!tData) {
-            const { data: newTontine } = await supabase
+          if (fetchError || !tData) {
+            // INSERT si aucune tontine n'est trouvée
+            const { data: newTontine, error: insertError } = await supabase
               .from('tontines')
               .insert({
-                nom: 'Ma Tontine',
+                nom: 'Nouvelle Tontine',
                 theme_color: '#39FF14',
                 montant_mensuel: 20000,
                 gagnants_par_mois: 2,
-                duree_mois: 10
+                duree_mois: 10,
+                owner_id: user.id
               })
               .select()
               .single();
+            
+            if (insertError) throw insertError;
             if (newTontine) tData = newTontine;
           }
   
           if (tData) {
             setTontine(tData);
-            setTontineSettings({
-              nom: tData.nom || 'Ma Tontine',
-              logo_url: tData.logo_url || '',
-              theme_color: tData.theme_color || '#39FF14',
-              duree_mois: tData.duree_mois || 10,
-              start_date: new Date().toISOString().split('T')[0] // Gardé en local pour l'UI
-            });
   
             const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tData.id).order('created_at', { ascending: true });
             const { data: cData } = await supabase.from('cotisations').select('*');
             
-            // Calcul du mois en cours
             const totalGagnants = tData.gagnants_par_mois || 2;
             const gagnantsCount = (mData || []).filter(m => m.a_gagne).length;
             const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
             setCurrentMonth(cMonth);
   
-            // Déduction intelligente du statut de paiement
             const fetchedMembers = (mData || []).map(m => {
                 const hasPaid = (cData || []).some(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
                 return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
             });
             
-            setMembers(fetchedMembers);
+            setMembres(fetchedMembers);
             if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
           }
         }
       } catch (err) {
         console.error("Erreur Init:", err);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -151,16 +146,16 @@ export default function TontineAdminDashboard() {
         return { ...m, statutPaiement: hasPaid ? 'À jour' : 'En retard' };
     });
     
-    setMembers(fetchedMembers);
+    setMembres(fetchedMembers);
     if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
   };
 
   // --- KPIs DYNAMIQUES ---
-  const totalMembres = members.length;
+  const totalMembres = membres.length;
   const caisseMensuelle = totalMembres * (tontine?.montant_mensuel || 20000);
   const montantParGagnant = tontine?.gagnants_par_mois ? caisseMensuelle / tontine.gagnants_par_mois : caisseMensuelle / 2;
   const dureeTotale = tontine?.duree_mois || 10;
-  const moisEcoules = Math.floor(members.filter(m => m.a_gagne).length / (tontine?.gagnants_par_mois || 2));
+  const moisEcoules = Math.floor(membres.filter(m => m.a_gagne).length / (tontine?.gagnants_par_mois || 2));
 
   // Synchro du mois actuel avec le nombre de gagnants
   useEffect(() => {
@@ -168,13 +163,13 @@ export default function TontineAdminDashboard() {
     if (expectedMonth <= dureeTotale) {
       setCurrentMonth(expectedMonth);
     } else {
-      setCurrentMonth(dureeTotale); // Tontine terminée
+      setCurrentMonth(dureeTotale);
     }
   }, [moisEcoules, dureeTotale]);
 
   // --- LOGIQUE DE TIRAGE AU SORT ---
   const lancerTirage = async () => {
-    const eligibleMembers = members.filter(m => !m.a_gagne && m.statutPaiement === 'À jour');
+    const eligibleMembers = membres.filter(m => !m.a_gagne && m.statutPaiement === 'À jour');
     
     if (eligibleMembers.length < (tontine?.gagnants_par_mois || 2)) {
       alert(`Impossible de lancer le tirage : Il faut au moins ${tontine?.gagnants_par_mois || 2} membres éligibles.`);
@@ -255,28 +250,32 @@ export default function TontineAdminDashboard() {
     setEditingMember(null);
   };
 
-  // --- SAUVEGARDE DES PARAMÈTRES ---
+  // --- 3. SAUVEGARDE DES PARAMÈTRES ROBUSTE ---
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tontine) return;
-    setIsSavingSettings(true);
-    const { error } = await supabase
-      .from('tontines')
-      .update({
-        nom: tontineSettings.nom,
-        logo_url: tontineSettings.logo_url,
-        theme_color: tontineSettings.theme_color,
-        duree_mois: tontineSettings.duree_mois
-      })
-      .eq('id', tontine.id);
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('tontines')
+        .update({
+          nom: tontine.nom,
+          logo_url: tontine.logo_url,
+          theme_color: tontine.theme_color,
+          duree_mois: tontine.duree_mois,
+          start_date: tontine.start_date,
+          montant_mensuel: tontine.montant_mensuel,
+          gagnants_par_mois: tontine.gagnants_par_mois
+        })
+        .eq('id', tontine.id);
 
-    setIsSavingSettings(false);
-
-    if (error) {
-      alert("Erreur lors de la sauvegarde : " + error.message);
-    } else {
-      setTontine({ ...tontine, ...tontineSettings });
+      if (error) throw error;
+      alert('Sauvegardé avec succès !');
       setShowSettingsModal(false);
+    } catch (err: any) {
+      alert("Erreur lors de la sauvegarde : " + err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -307,7 +306,7 @@ export default function TontineAdminDashboard() {
   };
 
   // --- FILTRES ---
-  const filteredMembers = members.filter(m => {
+  const filteredMembers = membres.filter(m => {
     const matchSearch = m.prenom_nom.toLowerCase().includes(searchTerm.toLowerCase()) || m.telephone.includes(searchTerm);
     if (!matchSearch) return false;
     if (kpiFilter === 'gagnants' && !m.a_gagne) return false;
@@ -319,7 +318,7 @@ export default function TontineAdminDashboard() {
   // --- EXPORT EXCEL (CSV) ---
   const exportToCSV = () => {
     const headers = ["Nom Complet", "Téléphone", "Cotisation (F CFA)", "A Déjà Gagné ?", "Mois de Victoire", "Statut Paiement"];
-    const csvRows = members.map(m => [
+    const csvRows = membres.map(m => [
       `"${m.prenom_nom}"`,
       `"${m.telephone}"`,
       tontine?.montant_mensuel || 20000,
@@ -362,7 +361,7 @@ export default function TontineAdminDashboard() {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  if (loading) {
+  if (isLoading) {
      return (
         <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
            <Loader2 className="w-10 h-10 animate-spin text-black" />
@@ -464,7 +463,7 @@ export default function TontineAdminDashboard() {
            <div onClick={() => setKpiFilter('retard')} className={`bg-red-50 p-6 rounded-[2rem] border shadow-sm flex flex-col justify-between cursor-pointer hover:scale-105 transition-all ${kpiFilter === 'retard' ? 'border-red-500 ring-4 ring-red-500/20' : 'border-red-100'}`}>
               <div className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center mb-4"><AlertTriangle size={20}/></div>
               <p className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">Membres en retard</p>
-              <p className="text-2xl md:text-3xl font-black tracking-tighter text-red-600">{members.filter(m => m.statutPaiement === 'En retard').length}</p>
+              <p className="text-2xl md:text-3xl font-black tracking-tighter text-red-600">{membres.filter(m => m.statutPaiement === 'En retard').length}</p>
            </div>
         </div>
 
@@ -534,7 +533,7 @@ export default function TontineAdminDashboard() {
            <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6 mb-8">
               <div>
                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter`}>Liste des Membres</h3>
-                 <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Total: {members.length} participants</p>
+                 <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Total: {membres.length} participants</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
                  <div className="relative">
@@ -567,8 +566,8 @@ export default function TontineAdminDashboard() {
                  </button>
                  <button 
                    onClick={() => { setEditingMember({ statutPaiement: 'À jour' }); setShowMemberModal(true); }}
-                   className="bg-black px-6 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:scale-105 transition shadow-lg shrink-0"
-                   style={{ color: tontine?.theme_color || '#39FF14' }}
+                   className="px-6 py-3 rounded-xl font-black text-black uppercase text-xs flex items-center justify-center gap-2 hover:scale-105 transition shadow-lg shrink-0"
+                   style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}
                  >
                     <Plus size={16}/> Ajouter
                  </button>
@@ -587,7 +586,20 @@ export default function TontineAdminDashboard() {
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-zinc-50">
-                    {filteredMembers.map((m, idx) => (
+                    {membres.length === 0 ? (
+                       <tr>
+                          <td colSpan={5} className="p-16 text-center border-0">
+                             <p className="text-zinc-500 font-bold mb-6">Aucun membre dans cette tontine. Ajoutez vos participants.</p>
+                             <button 
+                               onClick={() => { setEditingMember({ statutPaiement: 'À jour' }); setShowMemberModal(true); }}
+                               className="px-6 py-3 rounded-xl font-black text-black uppercase text-xs inline-flex items-center justify-center gap-2 hover:scale-105 transition shadow-lg mx-auto"
+                               style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}
+                             >
+                                <Plus size={16}/> Ajouter le premier membre
+                             </button>
+                          </td>
+                       </tr>
+                    ) : filteredMembers.map((m, idx) => (
                        <tr key={m.id} className="hover:bg-zinc-50/50 transition-colors group">
                           <td className="p-5">
                              <div className="flex items-center gap-3">
@@ -644,9 +656,9 @@ export default function TontineAdminDashboard() {
                           </td>
                        </tr>
                     ))}
-                    {filteredMembers.length === 0 && (
+                    {membres.length > 0 && filteredMembers.length === 0 && (
                        <tr>
-                          <td colSpan={5} className="p-16 text-center text-zinc-400 font-bold uppercase text-xs tracking-widest">Aucun membre trouvé.</td>
+                          <td colSpan={5} className="p-16 text-center text-zinc-400 font-bold uppercase text-xs tracking-widest">Aucun membre trouvé pour cette recherche.</td>
                        </tr>
                     )}
                  </tbody>
@@ -719,8 +731,8 @@ export default function TontineAdminDashboard() {
                      </div>
                   )}
 
-                  <button type="submit" disabled={isSavingMember} className="w-full bg-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50"
-                    style={{ color: tontine?.theme_color || '#39FF14' }}>
+                  <button type="submit" disabled={isSavingMember} className="w-full text-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50"
+                    style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
                      {isSavingMember ? <span className="animate-spin"><Loader2 size={16}/></span> : <CheckCircle size={16}/>} 
                      {isSavingMember ? 'Enregistrement...' : 'Enregistrer le membre'}
                   </button>
@@ -745,8 +757,8 @@ export default function TontineAdminDashboard() {
                      <input 
                        type="text" 
                        required
-                       value={tontineSettings.nom} 
-                       onChange={(e) => setTontineSettings({...tontineSettings, nom: e.target.value})} 
+                       value={tontine?.nom || ''} 
+                       onChange={(e) => setTontine({...tontine, nom: e.target.value})} 
                        className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition uppercase"
                      />
                   </div>
@@ -754,8 +766,8 @@ export default function TontineAdminDashboard() {
                      <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Logo (URL)</label>
                      <input 
                        type="url" 
-                       value={tontineSettings.logo_url} 
-                       onChange={(e) => setTontineSettings({...tontineSettings, logo_url: e.target.value})} 
+                       value={tontine?.logo_url || ''} 
+                       onChange={(e) => setTontine({...tontine, logo_url: e.target.value})} 
                        className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
                        placeholder="https://..."
                      />
@@ -764,8 +776,8 @@ export default function TontineAdminDashboard() {
                      <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Couleur du Thème</label>
                      <input 
                        type="color" 
-                       value={tontineSettings.theme_color} 
-                       onChange={(e) => setTontineSettings({...tontineSettings, theme_color: e.target.value})} 
+                       value={tontine?.theme_color || '#39FF14'} 
+                       onChange={(e) => setTontine({...tontine, theme_color: e.target.value})} 
                        className="w-full h-14 p-2 bg-zinc-50 border border-zinc-200 rounded-2xl cursor-pointer"
                      />
                   </div>
@@ -775,9 +787,8 @@ export default function TontineAdminDashboard() {
                         <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Date de début</label>
                         <input 
                           type="date" 
-                          required
-                          value={tontineSettings.start_date} 
-                          onChange={(e) => setTontineSettings({...tontineSettings, start_date: e.target.value})} 
+                          value={tontine?.start_date || ''} 
+                          onChange={(e) => setTontine({...tontine, start_date: e.target.value})} 
                           className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
                         />
                      </div>
@@ -786,8 +797,31 @@ export default function TontineAdminDashboard() {
                         <input 
                           type="number" 
                           required
-                          value={tontineSettings.duree_mois} 
-                          onChange={(e) => setTontineSettings({...tontineSettings, duree_mois: Number(e.target.value)})} 
+                          value={tontine?.duree_mois || 10} 
+                          onChange={(e) => setTontine({...tontine, duree_mois: Number(e.target.value)})} 
+                          className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
+                        />
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Cotisation (F)</label>
+                        <input 
+                          type="number" 
+                          required
+                          value={tontine?.montant_mensuel || 20000} 
+                          onChange={(e) => setTontine({...tontine, montant_mensuel: Number(e.target.value)})} 
+                          className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
+                        />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Gagnants / mois</label>
+                        <input 
+                          type="number" 
+                          required
+                          value={tontine?.gagnants_par_mois || 2} 
+                          onChange={(e) => setTontine({...tontine, gagnants_par_mois: Number(e.target.value)})} 
                           className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
                         />
                      </div>
@@ -805,9 +839,9 @@ export default function TontineAdminDashboard() {
                      </div>
                   </div>
 
-                  <button type="submit" disabled={isSavingSettings} className="w-full bg-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50" style={{ color: tontineSettings.theme_color }}>
-                     {isSavingSettings ? <span className="animate-spin text-white"><Loader2 size={16} /></span> : <CheckCircle size={16}/>}
-                     {isSavingSettings ? 'Enregistrement...' : 'Sauvegarder'}
+                  <button type="submit" disabled={isSaving} className="w-full text-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
+                     {isSaving ? <span className="animate-spin"><Loader2 size={16} /></span> : <CheckCircle size={16}/>}
+                     {isSaving ? 'Enregistrement...' : 'Sauvegarder les modifications'}
                   </button>
                </form>
             </div>
