@@ -84,24 +84,25 @@ export default function TontineAdminDashboard() {
              const { data } = await supabase.from('tontines').select('*').eq('id', urlId).maybeSingle();
              tData = data;
           } else {
-             const { data } = await supabase.from('tontines').select('*').eq('owner_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+             // On retire owner_id car il n'existe pas, on prend juste la tontine la plus récente
+             const { data } = await supabase.from('tontines').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle();
              tData = data;
           }
   
           if (!tData && !urlId) {
-            const { data: newTontine } = await supabase
+            const { data: newTontine, error } = await supabase
               .from('tontines')
               .insert({
                 nom: 'Nouvelle Tontine',
                 theme_color: '#39FF14',
                 montant_mensuel: 20000,
                 gagnants_par_mois: 2,
-                duree_mois: 10,
-                owner_id: user.id
+                duree_mois: 10
               })
               .select()
               .single();
             
+            if (error) console.error("Erreur de création:", error);
             if (newTontine) tData = newTontine;
           }
   
@@ -274,8 +275,13 @@ export default function TontineAdminDashboard() {
       const payload: any = {
         nom: tontine.nom,
         logo_url: tontine.logo_url,
-        theme_color: tontine.theme_color
+        theme_color: tontine.theme_color,
+        duree_mois: tontine.duree_mois,
+        montant_mensuel: tontine.montant_mensuel,
+        gagnants_par_mois: tontine.gagnants_par_mois
       };
+
+      if (tontine.start_date) payload.start_date = tontine.start_date;
       
       const { data, error } = await supabase
         .from('tontines')
