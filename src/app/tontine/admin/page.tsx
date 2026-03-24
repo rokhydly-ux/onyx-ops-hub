@@ -7,8 +7,11 @@ import {
   Plus, Edit, Trash2, CheckCircle, 
   AlertCircle, X, Shuffle, ArrowRight,
   Medal, Search, Download, Copy, Check, Clock,
-  RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle
+  RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle,
+  Camera, FileSpreadsheet
 } from "lucide-react";
+import * as XLSX from 'xlsx';
+import Tesseract from 'tesseract.js';
 
 const spaceGrotesk = { className: "font-sans" }; // Remplacement par ta police Space Grotesk si configurée globalement
 
@@ -43,6 +46,13 @@ export default function TontineAdminDashboard() {
   const [kpiFilter, setKpiFilter] = useState<'all' | 'gagnants' | 'attente' | 'retard'>('all');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isSavingMember, setIsSavingMember] = useState(false);
+  
+  const [isImporting, setIsImporting] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [showOcrPreview, setShowOcrPreview] = useState(false);
+  const [scannedMembers, setScannedMembers] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const ocrInputRef = useRef<HTMLInputElement>(null);
 
   // --- 2. LOGIQUE D'INITIALISATION ---
   useEffect(() => {
@@ -256,30 +266,26 @@ export default function TontineAdminDashboard() {
   // --- 3. SAUVEGARDE DES PARAMÈTRES ROBUSTE ---
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tontine || !tontine.id) {
-       alert("Erreur critique : Impossible d'identifier la tontine. Veuillez rafraîchir la page.");
-       return;
-    }
     setIsSaving(true);
     try {
+      if (!tontine || !tontine.id) throw new Error("ID de la tontine introuvable.");
+      
+      // On force les noms exacts des colonnes de la BDD
       const payload: any = {
         nom: tontine.nom,
         logo_url: tontine.logo_url,
-        theme_color: tontine.theme_color,
-        duree_mois: tontine.duree_mois,
-        montant_mensuel: tontine.montant_mensuel,
-        gagnants_par_mois: tontine.gagnants_par_mois
+        theme_color: tontine.theme_color
       };
       
-      if (tontine.start_date) payload.start_date = tontine.start_date;
-      else payload.start_date = null;
-
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tontines')
         .update(payload)
-        .eq('id', tontine.id);
+        .eq('id', tontine.id)
+        .select(); // Le .select() force Supabase à renvoyer la ligne modifiée
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Aucune ligne modifiée. Vérifiez l'ID.");
+
       alert('Sauvegardé avec succès !');
       setShowSettingsModal(false);
     } catch (err: any) {
@@ -287,6 +293,127 @@ export default function TontineAdminDashboard() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // --- IMPORT EXCEL ---
+  const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !tontine) return;
+
+    setIsImporting(true);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json<any>(worksheet);
+
+      const newMembers = jsonData
+        .filter(row => row.PRENOM || row.NUMERO)
+        .map(row => {
+          let phone = String(row.NUMERO || '').replace(/\s+/g, '');
+          return {
+            tontine_id: tontine.id,
+            prenom_nom: row.PRENOM || 'Membre Importé',
+            telephone: phone,
+            a_gagne: false,
+            statut_paiement: 'À jour'
+          };
+        });
+
+      if (newMembers.length === 0) {
+        alert("Aucune donnée valide trouvée. Vérifiez que les colonnes s'appellent PRENOM et NUMERO.");
+        setIsImporting(false);
+        return;
+      }
+
+      const { error } = await supabase.from('membres').insert(newMembers);
+      if (error) throw error;
+
+      alert(`${newMembers.length} membres importés avec succès !`);
+      refreshMembers();
+    } catch (error: any) {
+      console.error("Erreur import Excel:", error);
+      alert("Erreur lors de l'import : " + error.message);
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // --- IMPORT OCR (TESSERACT) ---
+  const handleOcrImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsScanning(true);
+    try {
+      const result = await Tesseract.recognize(file, 'fra');
+      const text = result.data.text;
+      const lines = text.split('\n');
+      
+      const extractedMembers: any[] = [];
+      
+      // Regex pour détecter un numéro sénégalais (commençant par 77, 76, 78, 70, 75)
+      const phoneRegex = /(?:(?:\+|00)221)?\s*([7][05678]\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d)/;
+
+      lines.forEach(line => {
+        const match = line.match(phoneRegex);
+        if (match) {
+          const rawPhone = match[0];
+          const cleanPhone = match[1].replace(/\s+/g, '');
+          
+          // Le nom est ce qui précède le numéro
+          const namePart = line.replace(rawPhone, '').trim().replace(/^[^a-zA-Z]+/, '').replace(/[^a-zA-Z\s]+$/, '');
+          const finalName = namePart || 'Membre Scanner';
+
+          extractedMembers.push({
+            prenom_nom: finalName,
+            telephone: cleanPhone
+          });
+        }
+      });
+
+      if (extractedMembers.length === 0) {
+         alert("Aucun numéro de téléphone détecté. Assurez-vous que l'image est nette.");
+      } else {
+         setScannedMembers(extractedMembers);
+         setShowOcrPreview(true);
+      }
+    } catch (error: any) {
+      console.error("Erreur OCR:", error);
+      alert("Erreur lors de l'analyse de l'image.");
+    } finally {
+      setIsScanning(false);
+      if (ocrInputRef.current) ocrInputRef.current.value = '';
+    }
+  };
+
+  const confirmOcrImport = async () => {
+     if (!tontine || scannedMembers.length === 0) return;
+     setIsImporting(true); 
+     try {
+        const membersToInsert = scannedMembers.map(m => ({
+           tontine_id: tontine.id,
+           prenom_nom: m.prenom_nom,
+           telephone: m.telephone,
+           a_gagne: false,
+           statut_paiement: 'À jour'
+        }));
+
+        const { error } = await supabase.from('membres').insert(membersToInsert);
+        if (error) throw error;
+
+        alert(`${membersToInsert.length} membres scannés ajoutés avec succès !`);
+        setShowOcrPreview(false);
+        setScannedMembers([]);
+        refreshMembers();
+     } catch (error: any) {
+        console.error("Erreur insertion OCR:", error);
+        alert("Erreur lors de l'enregistrement : " + error.message);
+     } finally {
+        setIsImporting(false);
+     }
   };
 
   // --- LOGIQUE RÉINITIALISATION TONTINE ---
@@ -545,7 +672,7 @@ export default function TontineAdminDashboard() {
                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter`}>Liste des Membres</h3>
                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Total: {membres.length} participants</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 flex-wrap justify-end">
                  <div className="relative">
                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
                     <input 
@@ -574,6 +701,24 @@ export default function TontineAdminDashboard() {
                  >
                     <Download size={16}/> Exporter CSV
                  </button>
+                 
+                 <button 
+                   onClick={() => fileInputRef.current?.click()}
+                   disabled={isImporting}
+                   className="bg-zinc-800 text-white border border-zinc-700 px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-zinc-700 transition shadow-sm shrink-0 disabled:opacity-50"
+                 >
+                    {isImporting ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16}/>} Importer Excel
+                 </button>
+                 <input type="file" accept=".xlsx, .xls, .csv" className="hidden" ref={fileInputRef} onChange={handleExcelImport} />
+                 <button 
+                   onClick={() => ocrInputRef.current?.click()}
+                   disabled={isScanning}
+                   className="bg-zinc-800 text-white border border-zinc-700 px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-zinc-700 transition shadow-sm shrink-0 disabled:opacity-50"
+                 >
+                    {isScanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16}/>} Scanner (OCR)
+                 </button>
+                 <input type="file" accept="image/*" capture="environment" className="hidden" ref={ocrInputRef} onChange={handleOcrImport} />
+
                  <button 
                    onClick={() => { setEditingMember({ statutPaiement: 'À jour' }); setShowMemberModal(true); }}
                    className="px-6 py-3 rounded-xl font-black text-black uppercase text-xs flex items-center justify-center gap-2 hover:scale-105 transition shadow-lg shrink-0"
@@ -854,6 +999,39 @@ export default function TontineAdminDashboard() {
                      {isSaving ? 'Enregistrement...' : 'Sauvegarder les modifications'}
                   </button>
                </form>
+            </div>
+         </div>
+      )}
+
+      {/* MODALE PRÉVISUALISATION OCR */}
+      {showOcrPreview && (
+         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowOcrPreview(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white p-8 md:p-10 rounded-[3rem] w-full max-w-lg relative shadow-2xl animate-in zoom-in-95 border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+               <button onClick={() => setShowOcrPreview(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
+               
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-2`}>
+                  Membres Détectés
+               </h2>
+               <p className="text-zinc-500 text-sm font-bold mb-6">Voici les {scannedMembers.length} membres lus depuis l'image. Validez-vous ?</p>
+
+               <div className="max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar mb-6 space-y-2">
+                  {scannedMembers.map((m, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                      <span className="font-bold text-sm uppercase text-black">{m.prenom_nom}</span>
+                      <span className="font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg text-xs">{m.telephone}</span>
+                    </div>
+                  ))}
+               </div>
+
+               <div className="flex gap-3">
+                 <button onClick={() => setShowOcrPreview(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-200 transition">
+                    Annuler
+                 </button>
+                 <button onClick={confirmOcrImport} disabled={isImporting} className="flex-1 bg-black py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50 text-[#39FF14]" style={{ color: tontine?.theme_color || '#39FF14' }}>
+                    {isImporting ? <span className="animate-spin"><Loader2 size={16}/></span> : <CheckCircle size={16}/>}
+                    {isImporting ? 'Enregistrement...' : 'Valider & Importer'}
+                 </button>
+               </div>
             </div>
          </div>
       )}
