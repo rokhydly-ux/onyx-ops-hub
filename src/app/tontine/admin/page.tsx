@@ -62,22 +62,21 @@ export default function TontineAdminDashboard() {
       setIsLoading(true);
       console.log("1. Démarrage de l'initialisation...");
       try {
-        // 1. Récupération Utilisateur (Supabase Auth OU Session CRM Locale)
+        // 1. Récupération Utilisateur avec gestion de redirection
         const { data: authData, error: authErr } = await supabase.auth.getUser();
-        let user = authData?.user;
         
-        if (!user) {
-           const customSession = localStorage.getItem('onyx_custom_session');
-           if (customSession) { try { user = JSON.parse(customSession); } catch(e) {} }
+        if (authErr || !authData?.user) {
+          console.warn("Utilisateur non connecté ou session expirée. Redirection vers le Hub...");
+          // Redirection vers l'accueil ou le login au lieu de crasher
+          window.location.href = '/'; 
+          return; // On arrête l'exécution ici
         }
-
-        if (authErr) throw new Error("Erreur Auth Supabase: " + authErr.message);
-        if (!user) throw new Error("Aucun utilisateur connecté. Veuillez vous connecter.");
         
-        setCurrentUser(user); // Met fin au chargement du Header
-        console.log("2. Utilisateur chargé :", user.email || (user as any).full_name);
+        const user = authData.user;
+        setCurrentUser(user);
+        console.log("2. Utilisateur chargé :", user.email);
   
-        // 2. Recherche de la tontine (sans .single() pour éviter les crashs)
+        // 2. Recherche Tontine
         const { data: tontines, error: fetchErr } = await supabase
           .from('tontines')
           .select('*')
@@ -101,7 +100,7 @@ export default function TontineAdminDashboard() {
               logo_url: 'https://i.ibb.co/XkKJb43F/LES-QUEENS-2.png',
               owner_id: user.id 
             }])
-            .select('*'); // Force le retour de la donnée insérée
+            .select('*');
   
           if (insertErr) throw new Error("Erreur Insertion Tontine: " + insertErr.message);
           if (createdTontines && createdTontines.length > 0) {
@@ -114,36 +113,21 @@ export default function TontineAdminDashboard() {
   
         if (!targetTontine?.id) throw new Error("Échec critique de récupération de l'ID Tontine.");
   
-        // 4. Validation finale dans le state React
-        setTontine(targetTontine); // C'EST CETTE LIGNE QUI DÉBLOQUE TOUT
-        console.log("5. State Tontine mis à jour dans React.");
+        // 4. Validation finale
+        setTontine(targetTontine);
+        console.log("5. State Tontine mis à jour.");
   
-        // 5. Fetch des membres (Utilise tontine_members)
+        // 5. Fetch des membres
         const { data: members, error: membersErr } = await supabase
           .from('tontine_members')
           .select('*')
           .eq('tontine_id', targetTontine.id);
   
         if (membersErr) console.error("Erreur Fetch Membres:", membersErr.message);
-
-        // Logique pour le statut de paiement des membres
-        const { data: cData } = await supabase.from('cotisations').select('*');
-        const totalGagnants = targetTontine.gagnants_par_mois || 2;
-        const gagnantsCount = (members || []).filter((m: any) => m.a_gagne).length;
-        const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
-        setCurrentMonth(cMonth);
-
-        const fetchedMembers = (members || []).map((m: any) => {
-            const cotis = (cData || []).find((c: any) => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
-            return { ...m, statutPaiement: cotis ? 'À jour' : 'En retard', date_paiement: cotis ? cotis.date_paiement : undefined };
-        });
-        
-        setMembres(fetchedMembers);
-        if (fetchedMembers.some((m: any) => m.statutPaiement === 'En retard')) setKpiFilter('retard');
+        setMembres(members || []);
   
       } catch (err: any) {
         console.error("ERREUR FATALE INITIALISATION:", err.message);
-        alert("Une erreur est survenue lors du chargement. Vérifiez la console (F12).");
       } finally {
         setIsLoading(false);
         console.log("6. Initialisation terminée.");
