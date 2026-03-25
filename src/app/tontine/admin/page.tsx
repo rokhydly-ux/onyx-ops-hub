@@ -9,7 +9,7 @@ import {
   Medal, Search, Download, Copy, Check, Clock,
   RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle,
   Camera, FileSpreadsheet, UserPlus, ArrowUpDown,
-  Lock
+  Lock, FileText, History
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
@@ -56,40 +56,29 @@ export default function TontineAdminDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ocrInputRef = useRef<HTMLInputElement>(null);
   const [sortAlphabetically, setSortAlphabetically] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   // --- 2. LOGIQUE D'INITIALISATION ---
   useEffect(() => {
-    const startInitialization = async () => {
-      setIsLoading(true);
-      console.log("1. Démarrage de l'initialisation...");
+    let isMounted = true;
+
+    const loadTontineData = async (user: any) => {
       try {
-        // 1. Récupération douce de la Session (plus fiable côté client en Next.js)
-        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-        
-        if (sessionErr || !session?.user) {
-          console.warn("Aucune session active trouvée. L'utilisateur doit se reconnecter.");
-          setCurrentUser(null);
-          setIsLoading(false);
-          return; // On arrête ici, le rendu affichera un bouton de connexion ou une alerte
-        }
-        
-        const user = session.user;
         setCurrentUser(user);
-        console.log("2. Utilisateur chargé :", user.email);
-  
-        // 2. Recherche Tontine
+        console.log("Utilisateur détecté :", user.email || user.full_name);
+
+        // 1. Recherche Tontine
         const { data: tontines, error: fetchErr } = await supabase
           .from('tontines')
           .select('*')
           .eq('owner_id', user.id);
-  
-        if (fetchErr) throw new Error("Erreur Fetch Tontine: " + fetchErr.message);
-  
+
+        if (fetchErr) throw fetchErr;
+
         let targetTontine = tontines && tontines.length > 0 ? tontines[0] : null;
-  
-        // 3. Création si inexistante
+
+        // 2. Création si inexistante
         if (!targetTontine) {
-          console.log("3. Tontine inexistante, création en cours...");
           const { data: createdTontines, error: insertErr } = await supabase
             .from('tontines')
             .insert([{ 
@@ -102,54 +91,78 @@ export default function TontineAdminDashboard() {
               owner_id: user.id 
             }])
             .select('*');
-  
-          if (insertErr) throw new Error("Erreur Insertion Tontine: " + insertErr.message);
+
+          if (insertErr) throw insertErr;
           if (createdTontines && createdTontines.length > 0) {
             targetTontine = createdTontines[0];
-            console.log("4. Tontine créée avec succès. ID :", targetTontine.id);
           }
-        } else {
-          console.log("3. Tontine existante trouvée. ID :", targetTontine.id);
         }
-  
-        if (!targetTontine?.id) throw new Error("Échec critique de récupération de l'ID Tontine.");
-  
-        // 4. Validation finale dans le state React
-        setTontine(targetTontine);
-        console.log("5. State Tontine mis à jour.");
-  
-        // 5. Fetch des membres (Utilise tontine_members)
-        const { data: members, error: membersErr } = await supabase
+
+        if (!targetTontine?.id) throw new Error("ID introuvable après création.");
+
+        // 3. Application au State
+        if (isMounted) setTontine(targetTontine);
+
+        // 4. Fetch Membres & Cotisations
+        const { data: members } = await supabase
           .from('tontine_members')
           .select('*')
           .eq('tontine_id', targetTontine.id);
-  
-        if (membersErr) console.error("Erreur Fetch Membres:", membersErr.message);
-  
-        // Logique pour le statut de paiement des membres
+
         const { data: cData } = await supabase.from('cotisations').select('*');
         const totalGagnants = targetTontine.gagnants_par_mois || 2;
         const gagnantsCount = (members || []).filter((m: any) => m.a_gagne).length;
         const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
-        setCurrentMonth(cMonth);
-
-        const fetchedMembers = (members || []).map((m: any) => {
-            const cotis = (cData || []).find((c: any) => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
-            return { ...m, statutPaiement: cotis ? 'À jour' : 'En retard', date_paiement: cotis ? cotis.date_paiement : undefined };
-        });
         
-        setMembres(fetchedMembers);
-        if (fetchedMembers.some((m: any) => m.statutPaiement === 'En retard')) setKpiFilter('retard');
-  
+        if (isMounted) {
+          setCurrentMonth(cMonth);
+          const fetchedMembers = (members || []).map((m: any) => {
+              const cotis = (cData || []).find((c: any) => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
+              return { ...m, statutPaiement: cotis ? 'À jour' : 'En retard', date_paiement: cotis ? cotis.date_paiement : undefined };
+          });
+          setMembres(fetchedMembers);
+          if (fetchedMembers.some((m: any) => m.statutPaiement === 'En retard')) setKpiFilter('retard');
+        }
+
       } catch (err: any) {
-        console.error("ERREUR FATALE INITIALISATION:", err.message);
+        console.error("Erreur chargement données:", err.message);
       } finally {
-        setIsLoading(false);
-        console.log("6. Initialisation terminée.");
+        if (isMounted) setIsLoading(false);
       }
     };
-  
-    startInitialization();
+
+    // Étape 1 : Vérification immédiate
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted) {
+        if (session?.user) {
+          loadTontineData(session.user);
+        } else {
+           // Fallback pour la session de test local (depuis Onyx CRM)
+           const customSession = localStorage.getItem('onyx_custom_session');
+           if (customSession) { 
+               try { 
+                  const user = JSON.parse(customSession); 
+                  loadTontineData(user);
+                  return;
+               } catch(e) {} 
+           }
+           setIsLoading(false); // Affiche l'écran d'accès restreint
+        }
+      }
+    });
+
+    // Étape 2 : Écouteur actif (Attrape la session si elle arrive en retard après l'hydratation)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted && session?.user && !currentUser) {
+        setIsLoading(true);
+        loadTontineData(session.user);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe(); // Nettoyage
+    };
   }, []);
 
   useEffect(() => {
@@ -183,9 +196,22 @@ export default function TontineAdminDashboard() {
   // --- KPIs DYNAMIQUES ---
   const totalMembres = membres.length;
   const caisseMensuelle = totalMembres * (tontine?.montant_mensuel || 20000);
+  const aJourCount = membres.filter(m => m.statutPaiement === 'À jour').length;
+  const actuelCaisse = aJourCount * (tontine?.montant_mensuel || 20000);
+  const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
   const montantParGagnant = tontine?.gagnants_par_mois ? caisseMensuelle / tontine.gagnants_par_mois : caisseMensuelle / 2;
   const dureeTotale = tontine?.duree_mois || 10;
   const moisEcoules = Math.floor(membres.filter(m => m.a_gagne).length / (tontine?.gagnants_par_mois || 2));
+
+  // --- HISTORIQUE DES GAGNANTS ---
+  const winnersHistoryRaw = membres.filter(m => m.a_gagne).reduce((acc: any, m: Member) => {
+    const mois = m.mois_victoire;
+    if (!mois) return acc;
+    if (!acc[mois]) acc[mois] = [];
+    acc[mois].push(m.prenom_nom);
+    return acc;
+  }, {});
+  const pastMonthsList = Object.keys(winnersHistoryRaw).map(Number).sort((a, b) => b - a);
 
   // Synchro du mois actuel avec le nombre de gagnants
   useEffect(() => {
@@ -199,6 +225,11 @@ export default function TontineAdminDashboard() {
 
   // --- LOGIQUE DE TIRAGE AU SORT ---
   const lancerTirage = async () => {
+    if (progressPercentage < 100) {
+      alert("Action refusée : La caisse mensuelle n'est pas encore pleine.");
+      return;
+    }
+
     const eligibleMembers = membres.filter(m => !m.a_gagne && m.statutPaiement === 'À jour');
     
     if (eligibleMembers.length < (tontine?.gagnants_par_mois || 2)) {
@@ -527,6 +558,17 @@ export default function TontineAdminDashboard() {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  // --- PARTAGE BILAN MENSUEL ---
+  const handleSendBilan = () => {
+    if (!tontine) return;
+    const aJourCount = membres.filter(m => m.statutPaiement === 'À jour').length;
+    const retardCount = membres.filter(m => m.statutPaiement === 'En retard').length;
+    const montantCollecte = aJourCount * (tontine.montant_mensuel || 20000);
+    
+    const msg = `📊 *BILAN ONYX TONTINE - MOIS ${currentMonth}* 📊\n\n👥 Total membres : ${totalMembres}\n✅ Cotisations à jour : ${aJourCount}\n🚨 En retard : ${retardCount}\n💰 Caisse actuelle : ${montantCollecte.toLocaleString()} F / ${caisseMensuelle.toLocaleString()} F\n\n🙏 Merci à tous ceux qui sont à jour. Nous invitons les retardataires à régulariser rapidement pour le bon déroulement du tirage !`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 text-black font-sans flex flex-col selection:bg-[#39FF14]/30">
       
@@ -619,8 +661,13 @@ export default function TontineAdminDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
            <div onClick={() => setKpiFilter('all')} className={`bg-white p-6 rounded-[2rem] border shadow-sm flex flex-col justify-between cursor-pointer hover:scale-105 transition-all ${kpiFilter === 'all' ? 'border-black ring-4 ring-black/5' : 'border-zinc-200'}`}>
               <div className="w-10 h-10 bg-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center mb-4"><Wallet size={20}/></div>
-              <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Caisse Mensuelle</p>
-              <p className="text-2xl md:text-3xl font-black tracking-tighter text-black">{caisseMensuelle.toLocaleString()} <span className="text-sm font-bold text-zinc-400">F</span></p>
+              <div>
+                 <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Niveau de Cotisation</p>
+                 <p className="text-2xl md:text-3xl font-black tracking-tighter text-black">{actuelCaisse.toLocaleString()} <span className="text-sm font-bold text-zinc-400">/ {caisseMensuelle.toLocaleString()} F</span></p>
+              </div>
+              <div className="w-full bg-zinc-100 rounded-full h-1.5 mt-4 overflow-hidden">
+                 <div className="h-full transition-all duration-1000" style={{ width: `${progressPercentage}%`, backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
+              </div>
            </div>
            <div onClick={() => setKpiFilter('gagnants')} className={`bg-black p-6 rounded-[2rem] border-2 shadow-2xl flex flex-col justify-between cursor-pointer hover:scale-105 transition-all ${kpiFilter === 'gagnants' ? 'ring-4 ring-white/20' : ''}`} style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
               <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center mb-4" style={{ color: tontine?.theme_color || '#39FF14' }}><Trophy size={20}/></div>
@@ -665,18 +712,25 @@ export default function TontineAdminDashboard() {
                     🎉 Tontine Terminée (Tous les membres ont gagné)
                  </div>
               ) : (
-                 <button 
-                   onClick={lancerTirage} 
-                   disabled={isDrawing}
-                   className={`w-full md:w-auto px-10 py-6 rounded-[2rem] font-black text-lg md:text-xl uppercase tracking-widest transition-all flex items-center justify-center gap-3 mx-auto ${isDrawing ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed scale-95' : 'text-black hover:scale-105 animate-ring'}`}
-                   style={!isDrawing ? { backgroundColor: tontine?.theme_color || '#39FF14' } : {}}
-                 >
-                    {isDrawing ? (
-                       <><Shuffle size={24} className="animate-spin"/> Mélange en cours...</>
-                    ) : (
-                       <><Trophy size={24}/> Lancer le Tirage ({tontine?.gagnants_par_mois || 2} personnes)</>
+                 <div className="flex flex-col items-center gap-4">
+                    <button 
+                      onClick={lancerTirage} 
+                      disabled={isDrawing || progressPercentage < 100}
+                      className={`w-full md:w-auto px-10 py-6 rounded-[2rem] font-black text-lg md:text-xl uppercase tracking-widest transition-all flex items-center justify-center gap-3 mx-auto ${(isDrawing || progressPercentage < 100) ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed scale-95' : 'text-black hover:scale-105 animate-ring'}`}
+                      style={!(isDrawing || progressPercentage < 100) ? { backgroundColor: tontine?.theme_color || '#39FF14' } : {}}
+                    >
+                       {isDrawing ? (
+                          <><Shuffle size={24} className="animate-spin"/> Mélange en cours...</>
+                       ) : (
+                          <><Trophy size={24}/> Lancer le Tirage ({tontine?.gagnants_par_mois || 2} personnes)</>
+                       )}
+                    </button>
+                    {progressPercentage < 100 && (
+                       <p className="text-red-500 text-xs font-bold uppercase tracking-widest animate-pulse flex items-center gap-2">
+                          <AlertTriangle size={14}/> La caisse n'est pas encore pleine
+                       </p>
                     )}
-                 </button>
+                 </div>
               )}
 
               {/* AFFICHAGE DES GAGNANTS (ANIMATION) */}
@@ -708,6 +762,39 @@ export default function TontineAdminDashboard() {
               )}
            </div>
         </div>
+
+        {/* HISTORIQUE DES TIRAGES (BILANS PASSÉS) */}
+        {pastMonthsList.length > 0 && (
+           <div className="mb-12">
+              <div className="flex items-center justify-between mb-6 px-2">
+                 <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-3 text-black`}>
+                    <div className="p-2 bg-black text-[#39FF14] rounded-xl shadow-md"><History size={20} /></div>
+                    Historique des Bilans
+                 </h3>
+                 <button onClick={() => setShowHistory(!showHistory)} className="text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-black transition-colors bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-xl">
+                    {showHistory ? 'Masquer' : 'Voir tout'}
+                 </button>
+              </div>
+              {showHistory && (
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4">
+                    {pastMonthsList.map(mois => (
+                       <div key={mois} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col justify-between hover:border-black transition-colors group">
+                          <div className="flex justify-between items-start mb-4">
+                             <span className="bg-zinc-100 text-zinc-500 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest group-hover:bg-black group-hover:text-[#39FF14] transition-colors">
+                                Mois {mois}
+                             </span>
+                             <span className="text-xs font-black text-black">{((winnersHistoryRaw[mois]?.length || 0) * montantParGagnant).toLocaleString()} F</span>
+                          </div>
+                          <div>
+                             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Gagnants</p>
+                             <p className="font-black uppercase text-sm leading-tight text-black">{winnersHistoryRaw[mois].join(" & ")}</p>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
+              )}
+           </div>
+        )}
 
         {/* GESTION DES MEMBRES (CRUD) */}
         <div className="bg-white border border-zinc-200 rounded-[3rem] p-6 md:p-10 shadow-sm">
@@ -744,6 +831,12 @@ export default function TontineAdminDashboard() {
                    className="bg-white border border-zinc-200 text-red-500 px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-red-50 transition shadow-sm shrink-0"
                  >
                     <RotateCcw size={16}/> Réinitialiser
+                 </button>
+                 <button 
+                   onClick={handleSendBilan}
+                   className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:scale-105 transition shadow-sm shrink-0"
+                 >
+                    <FileText size={16}/> Bilan Mensuel
                  </button>
                  <button 
                    onClick={exportToCSV}

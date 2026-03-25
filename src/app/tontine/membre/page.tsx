@@ -235,7 +235,7 @@ export default function TontineMembreDashboard() {
            <div className="flex justify-between items-end mb-4 relative z-10">
               <div>
                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2 mb-1">
-                    <Wallet size={12} style={{ color: tontine.theme_color }} /> Caisse Mois {currentMonth}
+                    <Wallet size={12} style={{ color: tontine.theme_color }} /> Niveau de cotisation (Mois {currentMonth})
                  </p>
                  <p className="text-3xl font-black text-white tracking-tighter">{actuelCaisse.toLocaleString()} <span className="text-lg text-zinc-500 font-medium">/ {caisseMensuelle.toLocaleString()} F</span></p>
               </div>
