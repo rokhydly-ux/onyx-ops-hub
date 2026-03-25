@@ -22,7 +22,6 @@ export default function TontineMembreDashboard() {
   const [cotisations, setCotisations] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [invalidLink, setInvalidLink] = useState(false);
   
   // --- CHARGEMENT DES DONNÉES ---
   const fetchData = async () => {
@@ -30,7 +29,7 @@ export default function TontineMembreDashboard() {
       const tontineId = new URLSearchParams(window.location.search).get('id');
       
       if (!tontineId || tontineId === 'null' || tontineId === 'undefined') {
-        setInvalidLink(true);
+        window.location.href = '/';
         return;
       }
       
@@ -38,7 +37,7 @@ export default function TontineMembreDashboard() {
       const { data: tData, error } = await supabase.from('tontines').select('*').eq('id', tontineId).maybeSingle();
       
       if (error || !tData) {
-        setInvalidLink(true);
+        window.location.href = '/';
         return;
       }
       
@@ -50,7 +49,7 @@ export default function TontineMembreDashboard() {
       setCotisations(cData || []);
     } catch (err) {
       console.error("Erreur Fetch Membre:", err);
-      setInvalidLink(true);
+      window.location.href = '/';
     }
   };
 
@@ -112,18 +111,6 @@ export default function TontineMembreDashboard() {
       alert(`Paiement de ${(tontine?.montant_mensuel || 20000).toLocaleString()} F via ${paymentMethod.toUpperCase()} enregistré avec succès !`);
     }, 1500);
   };
-
-  if (invalidLink) {
-     return (
-        <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6 text-center font-sans">
-           <div className="bg-white p-10 rounded-[3rem] shadow-xl max-w-md w-full border-t-[8px] border-red-500">
-              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-6"/>
-              <h1 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-4 text-black`}>Lien Invalide</h1>
-              <p className="text-zinc-500 font-bold text-sm">Le lien de cette tontine est introuvable ou a été désactivé. Veuillez demander le lien correct à votre administrateur.</p>
-           </div>
-        </div>
-     );
-  }
 
   if (!tontine) return <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6"><div className="w-10 h-10 border-4 border-t-black rounded-full animate-spin"></div></div>;
 
