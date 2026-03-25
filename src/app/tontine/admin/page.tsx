@@ -8,7 +8,8 @@ import {
   AlertCircle, X, Shuffle, ArrowRight,
   Medal, Search, Download, Copy, Check, Clock,
   RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle,
-  Camera, FileSpreadsheet, UserPlus, ArrowUpDown
+  Camera, FileSpreadsheet, UserPlus, ArrowUpDown,
+  Lock
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
@@ -62,17 +63,17 @@ export default function TontineAdminDashboard() {
       setIsLoading(true);
       console.log("1. Démarrage de l'initialisation...");
       try {
-        // 1. Récupération Utilisateur avec gestion de redirection
-        const { data: authData, error: authErr } = await supabase.auth.getUser();
+        // 1. Récupération douce de la Session (plus fiable côté client en Next.js)
+        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
         
-        if (authErr || !authData?.user) {
-          console.warn("Utilisateur non connecté ou session expirée. Redirection vers le Hub...");
-          // Redirection vers l'accueil ou le login au lieu de crasher
-          window.location.href = '/'; 
-          return; // On arrête l'exécution ici
+        if (sessionErr || !session?.user) {
+          console.warn("Aucune session active trouvée. L'utilisateur doit se reconnecter.");
+          setCurrentUser(null);
+          setIsLoading(false);
+          return; // On arrête ici, le rendu affichera un bouton de connexion ou une alerte
         }
         
-        const user = authData.user;
+        const user = session.user;
         setCurrentUser(user);
         console.log("2. Utilisateur chargé :", user.email);
   
@@ -113,18 +114,32 @@ export default function TontineAdminDashboard() {
   
         if (!targetTontine?.id) throw new Error("Échec critique de récupération de l'ID Tontine.");
   
-        // 4. Validation finale
+        // 4. Validation finale dans le state React
         setTontine(targetTontine);
         console.log("5. State Tontine mis à jour.");
   
-        // 5. Fetch des membres
+        // 5. Fetch des membres (Utilise tontine_members)
         const { data: members, error: membersErr } = await supabase
           .from('tontine_members')
           .select('*')
           .eq('tontine_id', targetTontine.id);
   
         if (membersErr) console.error("Erreur Fetch Membres:", membersErr.message);
-        setMembres(members || []);
+  
+        // Logique pour le statut de paiement des membres
+        const { data: cData } = await supabase.from('cotisations').select('*');
+        const totalGagnants = targetTontine.gagnants_par_mois || 2;
+        const gagnantsCount = (members || []).filter((m: any) => m.a_gagne).length;
+        const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
+        setCurrentMonth(cMonth);
+
+        const fetchedMembers = (members || []).map((m: any) => {
+            const cotis = (cData || []).find((c: any) => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
+            return { ...m, statutPaiement: cotis ? 'À jour' : 'En retard', date_paiement: cotis ? cotis.date_paiement : undefined };
+        });
+        
+        setMembres(fetchedMembers);
+        if (fetchedMembers.some((m: any) => m.statutPaiement === 'En retard')) setKpiFilter('retard');
   
       } catch (err: any) {
         console.error("ERREUR FATALE INITIALISATION:", err.message);
@@ -578,10 +593,24 @@ export default function TontineAdminDashboard() {
       </header>
 
       <main className="flex-1 flex flex-col relative w-full">
-        {isLoading || !tontine ? (
+        {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center p-10 min-h-[60vh]">
              <Loader2 className="w-12 h-12 animate-spin text-black mb-4" />
              <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest animate-pulse">Initialisation du Terminal...</p>
+          </div>
+        ) : !currentUser ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-10 min-h-[60vh]">
+             <div className="w-20 h-20 bg-zinc-100 rounded-[2rem] flex items-center justify-center text-zinc-400 mb-6 shadow-sm"><Lock size={32}/></div>
+             <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-4 text-black`}>Accès Restreint</h2>
+             <p className="text-sm font-bold text-zinc-500 text-center max-w-sm mb-8">Veuillez vous connecter depuis le Hub pour accéder à votre espace Tontine.</p>
+             <button onClick={() => window.location.href = '/hub'} className="bg-black text-[#39FF14] px-8 py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex items-center gap-2">
+               <Home size={16}/> Retourner au Hub
+             </button>
+          </div>
+        ) : !tontine ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-10 min-h-[60vh]">
+             <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
+             <p className="text-sm font-bold text-red-500 uppercase tracking-widest">Erreur de chargement Tontine</p>
           </div>
         ) : (
           <div className="max-w-7xl w-full mx-auto px-6 pt-10 pb-24">
