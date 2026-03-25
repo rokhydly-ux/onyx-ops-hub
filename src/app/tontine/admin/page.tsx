@@ -8,7 +8,7 @@ import {
   AlertCircle, X, Shuffle, ArrowRight,
   Medal, Search, Download, Copy, Check, Clock,
   RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle,
-  Camera, FileSpreadsheet, UserPlus
+  Camera, FileSpreadsheet, UserPlus, ArrowUpDown
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
@@ -54,83 +54,103 @@ export default function TontineAdminDashboard() {
   const [scannedMembers, setScannedMembers] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ocrInputRef = useRef<HTMLInputElement>(null);
+  const [sortAlphabetically, setSortAlphabetically] = useState(false);
 
   // --- 2. LOGIQUE D'INITIALISATION ---
   useEffect(() => {
-    const fetchInitData = async () => {
+    const startInitialization = async () => {
       setIsLoading(true);
+      console.log("1. Démarrage de l'initialisation...");
       try {
-        // 1. Récupération Utilisateur
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-        if (authError || !authData?.user) throw new Error("Non connecté");
-        const user = authData.user;
+        // 1. Récupération Utilisateur (Supabase Auth OU Session CRM Locale)
+        const { data: authData, error: authErr } = await supabase.auth.getUser();
+        let user = authData?.user;
+        
+        if (!user) {
+           const customSession = localStorage.getItem('onyx_custom_session');
+           if (customSession) { try { user = JSON.parse(customSession); } catch(e) {} }
+        }
+
+        if (authErr) throw new Error("Erreur Auth Supabase: " + authErr.message);
+        if (!user) throw new Error("Aucun utilisateur connecté. Veuillez vous connecter.");
+        
         setCurrentUser(user); // Met fin au chargement du Header
+        console.log("2. Utilisateur chargé :", user.email || (user as any).full_name);
   
         // 2. Recherche de la tontine (sans .single() pour éviter les crashs)
-        const { data: existingTontines, error: fetchErr } = await supabase
+        const { data: tontines, error: fetchErr } = await supabase
           .from('tontines')
           .select('*')
           .eq('owner_id', user.id);
   
-        if (fetchErr) throw fetchErr;
+        if (fetchErr) throw new Error("Erreur Fetch Tontine: " + fetchErr.message);
   
-        let currentTontine = existingTontines && existingTontines.length > 0 ? existingTontines[0] : null;
+        let targetTontine = tontines && tontines.length > 0 ? tontines[0] : null;
   
         // 3. Création si inexistante
-        if (!currentTontine) {
-          const { data: newTontines, error: insertErr } = await supabase
+        if (!targetTontine) {
+          console.log("3. Tontine inexistante, création en cours...");
+          const { data: createdTontines, error: insertErr } = await supabase
             .from('tontines')
             .insert([{ 
-              nom: 'Ma Tontine', 
+              nom: 'Nouvelle Tontine', 
               theme_color: '#009FDF', 
               montant_mensuel: 20000, 
               gagnants_par_mois: 2, 
               duree_mois: 10, 
+              logo_url: 'https://i.ibb.co/XkKJb43F/LES-QUEENS-2.png',
               owner_id: user.id 
             }])
             .select('*'); // Force le retour de la donnée insérée
   
-          if (insertErr) throw insertErr;
-          if (newTontines && newTontines.length > 0) {
-            currentTontine = newTontines[0];
+          if (insertErr) throw new Error("Erreur Insertion Tontine: " + insertErr.message);
+          if (createdTontines && createdTontines.length > 0) {
+            targetTontine = createdTontines[0];
+            console.log("4. Tontine créée avec succès. ID :", targetTontine.id);
           }
+        } else {
+          console.log("3. Tontine existante trouvée. ID :", targetTontine.id);
         }
   
-        if (!currentTontine || !currentTontine.id) throw new Error("Échec de récupération de l'ID Tontine.");
+        if (!targetTontine?.id) throw new Error("Échec critique de récupération de l'ID Tontine.");
   
-        // 4. Validation des states
-        setTontine(currentTontine);
+        // 4. Validation finale dans le state React
+        setTontine(targetTontine); // C'EST CETTE LIGNE QUI DÉBLOQUE TOUT
+        console.log("5. State Tontine mis à jour dans React.");
   
-        // 5. Récupération des membres et déductions logiques
-        const { data: membersData } = await supabase
+        // 5. Fetch des membres (Utilise tontine_members)
+        const { data: members, error: membersErr } = await supabase
           .from('tontine_members')
           .select('*')
-          .eq('tontine_id', currentTontine.id)
-          .order('created_at', { ascending: true });
+          .eq('tontine_id', targetTontine.id);
   
+        if (membersErr) console.error("Erreur Fetch Membres:", membersErr.message);
+
+        // Logique pour le statut de paiement des membres
         const { data: cData } = await supabase.from('cotisations').select('*');
-        
-        const totalGagnants = currentTontine.gagnants_par_mois || 2;
-        const gagnantsCount = (membersData || []).filter(m => m.a_gagne).length;
+        const totalGagnants = targetTontine.gagnants_par_mois || 2;
+        const gagnantsCount = (members || []).filter((m: any) => m.a_gagne).length;
         const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
         setCurrentMonth(cMonth);
-  
-        const fetchedMembers = (membersData || []).map(m => {
-            const cotis = (cData || []).find(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
+
+        const fetchedMembers = (members || []).map((m: any) => {
+            const cotis = (cData || []).find((c: any) => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
             return { ...m, statutPaiement: cotis ? 'À jour' : 'En retard', date_paiement: cotis ? cotis.date_paiement : undefined };
         });
         
         setMembres(fetchedMembers);
-        if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
+        if (fetchedMembers.some((m: any) => m.statutPaiement === 'En retard')) setKpiFilter('retard');
   
-      } catch (error) {
-        console.error("Erreur fatale d'initialisation:", error);
+      } catch (err: any) {
+        console.error("ERREUR FATALE INITIALISATION:", err.message);
+        alert("Une erreur est survenue lors du chargement. Vérifiez la console (F12).");
       } finally {
         setIsLoading(false);
+        console.log("6. Initialisation terminée.");
       }
     };
   
-    fetchInitData();
+    startInitialization();
   }, []);
 
   useEffect(() => {
@@ -458,6 +478,10 @@ export default function TontineAdminDashboard() {
     return true;
   });
 
+  const displayedMembers = sortAlphabetically 
+    ? [...filteredMembers].sort((a, b) => a.prenom_nom.localeCompare(b.prenom_nom))
+    : filteredMembers;
+
   // --- EXPORT EXCEL (CSV) ---
   const exportToCSV = () => {
     const headers = ["Nom Complet", "Téléphone", "Cotisation (F CFA)", "A Déjà Gagné ?", "Mois de Victoire", "Statut Paiement"];
@@ -504,16 +528,8 @@ export default function TontineAdminDashboard() {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  if (isLoading) {
-     return (
-        <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-           <Loader2 className="w-10 h-10 animate-spin text-black" />
-        </div>
-     );
-  }
-
   return (
-    <div className="min-h-screen bg-zinc-50 text-black font-sans pb-24 selection:bg-[#39FF14]/30">
+    <div className="min-h-screen bg-zinc-50 text-black font-sans flex flex-col selection:bg-[#39FF14]/30">
       
       {/* CSS Anim */}
       <style dangerouslySetInnerHTML={{__html: `
@@ -525,15 +541,17 @@ export default function TontineAdminDashboard() {
         .animate-ring { animation: pulse-ring 2s infinite; }
       `}} />
 
-      {/* HEADER */}
-      <header className="bg-white border-b border-zinc-200 sticky top-0 z-40">
+      {/* HEADER FIXE (Toujours Visible) */}
+      <header className="bg-white border-b border-zinc-200 sticky top-0 z-40 shrink-0">
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-[#39FF14] shadow-md">
                 {tontine?.logo_url ? <img src={tontine.logo_url} alt="Logo" className="w-full h-full object-cover rounded-xl" /> : <Users size={20} />}
              </div>
              <div>
-               <h1 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter leading-none`} style={{ color: tontine?.theme_color || '#39FF14' }}>{tontine?.nom || "Onyx Tontine"}</h1>
+               <h1 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter leading-none`} style={{ color: tontine?.theme_color || '#39FF14' }}>
+                  {tontine?.nom || "Les Queens"}
+               </h1>
                <div className="flex items-center gap-3 mt-1.5">
                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Terminal Admin</p>
                  {tontine && (
@@ -548,18 +566,18 @@ export default function TontineAdminDashboard() {
              <span className="bg-zinc-100 text-zinc-600 px-3 py-1.5 rounded-lg text-xs font-black uppercase flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span> Mode Live
              </span>
-             {isLoading && !currentUser ? (
+             {!currentUser ? (
                 <div className="w-10 h-10 border-2 border-zinc-200 border-t-black rounded-full animate-spin"></div>
-             ) : currentUser ? (
+             ) : (
                <>
                  <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="w-10 h-10 bg-zinc-900 text-white rounded-full border-2 border-white shadow-sm flex items-center justify-center font-black text-sm hover:scale-105 transition-transform uppercase">
-                    {currentUser.email?.substring(0, 2).toUpperCase() || 'KY'}
+                    {currentUser.email?.substring(0, 2).toUpperCase() || currentUser.full_name?.substring(0, 2).toUpperCase() || 'AD'}
                  </button>
                  {isProfileMenuOpen && (
                     <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-zinc-200 shadow-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 flex flex-col">
                        <div className="px-4 py-3 border-b border-zinc-100 mb-2">
                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Connecté en tant que</p>
-                          <p className="text-sm font-black text-black truncate">{currentUser.email || 'Utilisateur'}</p>
+                          <p className="text-sm font-black text-black truncate">{currentUser.email || currentUser.full_name || 'Utilisateur'}</p>
                        </div>
                        <button onClick={() => window.location.href = '/hub'} className="w-full text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition flex items-center gap-2">
                           <Home size={14} /> Retour au Hub
@@ -570,12 +588,19 @@ export default function TontineAdminDashboard() {
                     </div>
                  )}
                </>
-             ) : null}
+             )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 pt-10">
+      <main className="flex-1 flex flex-col relative w-full">
+        {isLoading || !tontine ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-10 min-h-[60vh]">
+             <Loader2 className="w-12 h-12 animate-spin text-black mb-4" />
+             <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest animate-pulse">Initialisation du Terminal...</p>
+          </div>
+        ) : (
+          <div className="max-w-7xl w-full mx-auto px-6 pt-10 pb-24">
         
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
@@ -689,6 +714,12 @@ export default function TontineAdminDashboard() {
                       className="w-full sm:w-64 pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition"
                     />
                  </div>
+                 <button
+                   onClick={() => setSortAlphabetically(!sortAlphabetically)}
+                   className={`px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 transition shadow-sm shrink-0 border ${sortAlphabetically ? 'bg-black text-[#39FF14] border-black' : 'bg-white border-zinc-200 text-black hover:bg-zinc-50'}`}
+                 >
+                    <ArrowUpDown size={16}/> {sortAlphabetically ? 'Tri par défaut' : 'Tri A-Z'}
+                 </button>
                  <button 
                    onClick={() => setShowSettingsModal(true)}
                    className="bg-white border border-zinc-200 text-black px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-zinc-50 transition shadow-sm shrink-0"
@@ -760,7 +791,7 @@ export default function TontineAdminDashboard() {
                              </button>
                           </td>
                        </tr>
-                    ) : filteredMembers.map((m, idx) => (
+                    ) : displayedMembers.map((m, idx) => (
                        <tr key={m.id} className="hover:bg-zinc-50/50 transition-colors group">
                           <td className="p-5">
                              <div className="flex items-center gap-3">
@@ -820,7 +851,7 @@ export default function TontineAdminDashboard() {
                           </td>
                        </tr>
                     ))}
-                    {membres.length > 0 && filteredMembers.length === 0 && (
+                    {membres.length > 0 && displayedMembers.length === 0 && (
                        <tr>
                           <td colSpan={5} className="p-16 text-center text-zinc-400 font-bold uppercase text-xs tracking-widest">Aucun membre trouvé pour cette recherche.</td>
                        </tr>
@@ -829,6 +860,8 @@ export default function TontineAdminDashboard() {
               </table>
            </div>
         </div>
+        </div>
+        )}
       </main>
 
       {/* MODALE AJOUT/MODIFICATION MEMBRE */}
