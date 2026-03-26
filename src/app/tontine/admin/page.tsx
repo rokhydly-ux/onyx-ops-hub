@@ -8,8 +8,8 @@ import {
   AlertCircle, X, Shuffle, ArrowRight,
   Medal, Search, Download, Copy, Check, Clock,
   RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle,
-  Camera, FileSpreadsheet, UserPlus, ArrowUpDown,
-  Lock, FileText, History
+  Camera, FileSpreadsheet, UserPlus, ArrowUpDown, PiggyBank,
+  Lock, FileText, History 
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
@@ -59,6 +59,8 @@ export default function TontineAdminDashboard() {
   const ocrInputRef = useRef<HTMLInputElement>(null);
   const [sortAlphabetically, setSortAlphabetically] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [spinningName, setSpinningName] = useState("");
 
   // --- 2. LOGIQUE D'INITIALISATION ---
   useEffect(() => {
@@ -245,8 +247,16 @@ export default function TontineAdminDashboard() {
     setIsDrawing(true);
     setLatestWinners(null);
 
-    // Simulation d'animation de tirage (suspense)
+    // Animation de Roulette
+    const spinInterval = setInterval(() => {
+      const randomMember = eligibleMembers[Math.floor(Math.random() * eligibleMembers.length)];
+      setSpinningName(randomMember.prenom_nom);
+    }, 100);
+
+    // Simulation d'animation de tirage (suspense et roulette)
     setTimeout(async () => {
+      clearInterval(spinInterval);
+      
       // Mélange aléatoire du tableau (Fisher-Yates shuffle)
       const shuffled = [...eligibleMembers].sort(() => 0.5 - Math.random());
       
@@ -262,6 +272,8 @@ export default function TontineAdminDashboard() {
       if (!error) {
          refreshMembers();
          setLatestWinners(winners);
+         setShowConfetti(true);
+         setTimeout(() => setShowConfetti(false), 8000);
          
          // Petit son de victoire
          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
@@ -578,6 +590,33 @@ export default function TontineAdminDashboard() {
     <div className="min-h-screen bg-zinc-50 text-black font-sans flex flex-col selection:bg-[#39FF14]/30">
       <InteractiveParticles themeColor={tontine?.theme_color || '#009FDF'} />
       
+      {/* ANIMATION DE CONFETTIS */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-[200] pointer-events-none overflow-hidden">
+          {[...Array(80)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-[-10%] opacity-0"
+              style={{
+                left: `${Math.random() * 100}%`,
+                width: `${Math.random() * 10 + 6}px`,
+                height: `${Math.random() * 10 + 6}px`,
+                backgroundColor: ['#39FF14', '#FF5722', '#00E5FF', '#FACC15', '#B026FF', '#ffffff'][i % 6],
+                animation: `confetti-fall ${2 + Math.random() * 3}s linear forwards`,
+                animationDelay: `${Math.random() * 1.5}s`,
+                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none',
+              }}
+            />
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes confetti-fall {
+              0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+              100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+            }
+          `}} />
+        </div>
+      )}
+      
       {/* CSS Anim */}
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes pulse-ring {
@@ -671,51 +710,79 @@ export default function TontineAdminDashboard() {
         ) : (
           <div className="max-w-7xl w-full mx-auto px-6 pt-10 pb-24">
         
-        {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-           <div onClick={() => setKpiFilter('all')} className={`bg-white p-6 rounded-[2rem] border shadow-sm flex flex-col justify-between cursor-pointer hover:scale-105 transition-all ${kpiFilter === 'all' ? 'border-black ring-4 ring-black/5' : 'border-zinc-200'}`}>
-              <div className="w-10 h-10 bg-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center mb-4"><Wallet size={20}/></div>
+        {/* NOUVEAU KPI PRINCIPAL : MOTEUR FINANCIER */}
+        <div className="w-full rounded-3xl p-6 md:p-8 mb-6 flex flex-col md:flex-row items-center justify-between shadow-[0_0_40px_rgba(0,0,0,0.08)] relative overflow-hidden transition-all group"
+             style={{
+                 background: `linear-gradient(135deg, ${tontine?.theme_color || '#39FF14'}15 0%, ${tontine?.theme_color || '#39FF14'}05 100%)`,
+                 borderColor: `${tontine?.theme_color || '#39FF14'}40`,
+                 borderWidth: '1px',
+                 boxShadow: `0 0 20px ${tontine?.theme_color || '#39FF14'}20, inset 0 0 20px ${tontine?.theme_color || '#39FF14'}10`
+             }}>
+           <div className="absolute top-0 left-0 w-1.5 h-full" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
+
+           <div className="flex items-center gap-5 mb-4 md:mb-0 z-10">
+              <div className="p-4 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm text-black group-hover:scale-110 transition-transform">
+                 <PiggyBank size={32} style={{ color: tontine?.theme_color || '#39FF14' }} />
+              </div>
               <div>
-                 <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Niveau de Cotisation</p>
-                 <p className="text-2xl md:text-3xl font-black tracking-tighter text-black">{actuelCaisse.toLocaleString()} <span className="text-sm font-bold text-zinc-400">/ {caisseMensuelle.toLocaleString()} F</span></p>
-              </div>
-              <div className="w-full bg-zinc-100 rounded-full h-1.5 mt-4 overflow-hidden">
-                 <div className="h-full transition-all duration-1000" style={{ width: `${progressPercentage}%`, backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
-              </div>
-           </div>
-           <div onClick={() => setKpiFilter('gagnants')} className={`bg-black p-6 rounded-[2rem] border-2 shadow-2xl flex flex-col justify-between cursor-pointer hover:scale-105 transition-all ${kpiFilter === 'gagnants' ? 'ring-4 ring-white/20' : ''}`} style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
-              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center mb-4" style={{ color: tontine?.theme_color || '#39FF14' }}><Trophy size={20}/></div>
-              <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Gain par Gagnant (x{tontine?.gagnants_par_mois || 2})</p>
-              <p className="text-2xl md:text-3xl font-black tracking-tighter" style={{ color: tontine?.theme_color || '#39FF14' }}>{montantParGagnant.toLocaleString()} <span className="text-sm font-bold opacity-60">F</span></p>
-           </div>
-           <div onClick={() => setKpiFilter('all')} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col justify-between cursor-pointer hover:scale-105 transition-all">
-              <div className="w-10 h-10 bg-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center mb-4"><Calendar size={20}/></div>
-              <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Durée Totale</p>
-              <p className="text-2xl md:text-3xl font-black tracking-tighter text-black">{dureeTotale} <span className="text-sm font-bold text-zinc-400">Mois</span></p>
-           </div>
-           <div onClick={() => setKpiFilter('attente')} className={`bg-white p-6 rounded-[2rem] border shadow-sm flex flex-col justify-between relative overflow-hidden cursor-pointer hover:scale-105 transition-all ${kpiFilter === 'attente' ? 'border-black ring-4 ring-black/5' : 'border-zinc-200'}`}>
-              <div className="absolute top-0 right-0 w-24 h-24 bg-black opacity-[0.03] rounded-bl-[100%]"></div>
-              <div className="w-10 h-10 bg-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center mb-4"><CheckCircle size={20}/></div>
-              <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Progression</p>
-              <div>
-                <div className="flex justify-between items-end mb-1">
-                  <span className="text-2xl md:text-3xl font-black tracking-tighter text-black">{moisEcoules}/{dureeTotale}</span>
-                  <span className="text-xs font-bold text-zinc-500 mb-1 leading-none">Mois écoulés</span>
-                </div>
-                <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden mt-1">
-                  <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressionPourcentage}%`, backgroundColor: tontine?.theme_color || '#009FDF' }}></div>
-                </div>
+                 <p className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-1">Total Mensuel Collecté</p>
+                 <div className="flex items-baseline gap-2">
+                    <p className="text-4xl md:text-5xl font-black tracking-tighter text-black leading-none">
+                       {actuelCaisse.toLocaleString('fr-FR')} <span className="text-xl text-zinc-400">F CFA</span>
+                    </p>
+                 </div>
               </div>
            </div>
-           <div onClick={() => setKpiFilter('retard')} className={`bg-red-50 p-6 rounded-[2rem] border shadow-sm flex flex-col justify-between cursor-pointer hover:scale-105 transition-all ${kpiFilter === 'retard' ? 'border-red-500 ring-4 ring-red-500/20' : 'border-red-100'}`}>
-              <div className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center mb-4"><AlertTriangle size={20}/></div>
-              <p className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">Membres en retard</p>
-              <p className="text-2xl md:text-3xl font-black tracking-tighter text-red-600">{membres.filter(m => m.statutPaiement === 'En retard').length}</p>
+
+           <div className="flex items-center gap-3 bg-white/80 backdrop-blur-md px-6 py-3.5 rounded-2xl border border-white/50 shadow-sm z-10">
+              <Calendar size={20} className="text-zinc-500"/>
+              <p className="text-sm font-black uppercase tracking-widest text-zinc-700">Le 06 du mois</p>
            </div>
         </div>
 
+        {/* LA GRILLE DES 4 KPIs SECONDAIRES */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12">
+           {/* Carte 1 : Progression */}
+           <button onClick={() => { setKpiFilter('all'); document.getElementById('history-section')?.scrollIntoView({behavior: 'smooth'}) }} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col justify-between text-left cursor-pointer hover:scale-105 hover:shadow-xl transition-all group overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-black opacity-[0.02] rounded-bl-[100%] transition-transform group-hover:scale-110"></div>
+              <div className="w-12 h-12 bg-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-black group-hover:text-[#39FF14] transition-colors"><CheckCircle size={24}/></div>
+              <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-2">Progression</p>
+              <div className="w-full">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-2xl md:text-3xl font-black tracking-tighter text-black leading-none">{moisEcoules}/{dureeTotale}</span>
+                  <span className="text-[10px] font-bold text-zinc-500 mb-1">Mois</span>
+                </div>
+                <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressionPourcentage}%`, backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
+                </div>
+              </div>
+           </button>
+
+           {/* Carte 2 : Tirage du Mois */}
+           <button onClick={() => { setKpiFilter('all'); document.getElementById('draw-section')?.scrollIntoView({behavior: 'smooth'}) }} className="bg-black p-6 rounded-[2rem] border-2 shadow-xl flex flex-col justify-between text-left cursor-pointer hover:scale-105 hover:shadow-2xl transition-all group relative overflow-hidden" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+              <div className="absolute -right-4 -top-4 w-24 h-24 opacity-20 rounded-full blur-2xl group-hover:opacity-40 transition-opacity" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
+              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform" style={{ color: tontine?.theme_color || '#39FF14' }}><Shuffle size={24}/></div>
+              <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1 relative z-10">Tirage du mois</p>
+              <p className="text-3xl font-black tracking-tighter text-white relative z-10">Mois {currentMonth}</p>
+           </button>
+
+           {/* Carte 3 : Gagnants */}
+           <button onClick={() => { setKpiFilter('gagnants'); document.getElementById('members-section')?.scrollIntoView({behavior: 'smooth'}) }} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col justify-between text-left cursor-pointer hover:scale-105 hover:shadow-xl transition-all group relative overflow-hidden">
+              <div className="w-12 h-12 bg-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-black group-hover:text-yellow-400 transition-colors relative z-10"><Trophy size={24}/></div>
+              <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1 relative z-10">Gagnants (Total)</p>
+              <p className="text-3xl font-black tracking-tighter text-black leading-none relative z-10">{totalGagnants} <span className="text-sm font-bold text-zinc-400">Membres</span></p>
+           </button>
+
+           {/* Carte 4 : Durée Cycle */}
+           <button onClick={() => { setKpiFilter('all'); document.getElementById('history-section')?.scrollIntoView({behavior: 'smooth'}) }} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col justify-between text-left cursor-pointer hover:scale-105 hover:shadow-xl transition-all group relative overflow-hidden">
+              <div className="w-12 h-12 bg-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-black group-hover:text-[#00E5FF] transition-colors relative z-10"><Calendar size={24}/></div>
+              <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1 relative z-10">Durée Cycle</p>
+              <p className="text-3xl font-black tracking-tighter text-black leading-none relative z-10">{dureeTotale} <span className="text-sm font-bold text-zinc-400">Mois</span></p>
+           </button>
+        </div>
+
         {/* MOTEUR DE TIRAGE (LA FEATURE CENTRALE) */}
-        <div className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl mb-12 relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+        <div id="draw-section" className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl mb-12 relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
            
            <div className="relative z-10 w-full max-w-2xl mx-auto">
@@ -731,25 +798,29 @@ export default function TontineAdminDashboard() {
                     🎉 Tontine Terminée (Tous les membres ont gagné)
                  </div>
               ) : (
-                 <div className="flex flex-col items-center gap-4">
-                    <button 
-                      onClick={lancerTirage} 
-                      disabled={isDrawing || progressPercentage < 100}
-                      className={`w-full md:w-auto px-10 py-6 rounded-[2rem] font-black text-lg md:text-xl uppercase tracking-widest transition-all flex items-center justify-center gap-3 mx-auto ${(isDrawing || progressPercentage < 100) ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed scale-95' : 'text-black hover:scale-105 animate-ring'}`}
-                      style={!(isDrawing || progressPercentage < 100) ? { backgroundColor: tontine?.theme_color || '#39FF14' } : {}}
-                    >
-                       {isDrawing ? (
-                          <><Shuffle size={24} className="animate-spin"/> Mélange en cours...</>
-                       ) : (
-                          <><Trophy size={24}/> Lancer le Tirage ({tontine?.gagnants_par_mois || 2} personnes)</>
+                 isDrawing ? (
+                    <div className="flex flex-col items-center py-8">
+                       <div className="w-24 h-24 rounded-full border-4 border-t-transparent animate-spin mb-6" style={{ borderColor: `${tontine?.theme_color || '#39FF14'}40`, borderTopColor: tontine?.theme_color || '#39FF14' }}></div>
+                       <p className="text-3xl md:text-5xl font-black text-white uppercase tracking-widest animate-pulse drop-shadow-lg">{spinningName || "Mélange..."}</p>
+                       <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-4">Tirage en cours...</p>
+                    </div>
+                 ) : (
+                    <div className="flex flex-col items-center gap-4">
+                       <button 
+                         onClick={lancerTirage} 
+                         disabled={progressPercentage < 100}
+                         className={`w-full md:w-auto px-10 py-6 rounded-[2rem] font-black text-lg md:text-xl uppercase tracking-widest transition-all flex items-center justify-center gap-3 mx-auto ${progressPercentage < 100 ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed scale-95' : 'text-black hover:scale-105 animate-ring'}`}
+                         style={progressPercentage >= 100 ? { backgroundColor: tontine?.theme_color || '#39FF14' } : {}}
+                       >
+                          <Trophy size={24}/> Lancer le Tirage ({tontine?.gagnants_par_mois || 2} personnes)
+                       </button>
+                       {progressPercentage < 100 && (
+                          <p className="text-red-500 text-xs font-bold uppercase tracking-widest animate-pulse flex items-center gap-2">
+                             <AlertTriangle size={14}/> La caisse n'est pas encore pleine
+                          </p>
                        )}
-                    </button>
-                    {progressPercentage < 100 && (
-                       <p className="text-red-500 text-xs font-bold uppercase tracking-widest animate-pulse flex items-center gap-2">
-                          <AlertTriangle size={14}/> La caisse n'est pas encore pleine
-                       </p>
-                    )}
-                 </div>
+                    </div>
+                 )
               )}
 
               {/* AFFICHAGE DES GAGNANTS (ANIMATION) */}
@@ -784,7 +855,7 @@ export default function TontineAdminDashboard() {
 
         {/* HISTORIQUE DES TIRAGES (BILANS PASSÉS) */}
         {pastMonthsList.length > 0 && (
-           <div className="mb-12">
+           <div id="history-section" className="mb-12">
               <div className="flex items-center justify-between mb-6 px-2">
                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-3 text-black`}>
                     <div className="p-2 bg-black text-[#39FF14] rounded-xl shadow-md"><History size={20} /></div>
@@ -816,7 +887,7 @@ export default function TontineAdminDashboard() {
         )}
 
         {/* GESTION DES MEMBRES (CRUD) */}
-        <div className="bg-white border border-zinc-200 rounded-[3rem] p-6 md:p-10 shadow-sm">
+        <div id="members-section" className="bg-white border border-zinc-200 rounded-[3rem] p-6 md:p-10 shadow-sm">
            <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6 mb-8">
               <div>
                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter`}>Liste des Membres</h3>
