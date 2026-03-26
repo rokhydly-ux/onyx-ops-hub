@@ -5,8 +5,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
-  ArrowRight, Lock, Bell, LogOut
+  ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal
 } from "lucide-react";
+import InteractiveParticles from '@/components/InteractiveParticles';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -22,6 +23,9 @@ export default function TontineMembreDashboard() {
   const [cotisations, setCotisations] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [spinName, setSpinName] = useState("");
+  const [revealed, setRevealed] = useState(false);
   
   // --- CHARGEMENT DES DONNÉES ---
   const fetchData = async () => {
@@ -90,6 +94,30 @@ export default function TontineMembreDashboard() {
   // FILE D'ATTENTE
   const waitingList = members.filter(m => !m.a_gagne);
 
+  const maxMoisVictoire = Math.max(0, ...members.map(m => m.mois_victoire || 0));
+  const recentWinners = members.filter(m => m.a_gagne && m.mois_victoire === maxMoisVictoire);
+  const montantParGagnant = tontine?.gagnants_par_mois ? caisseMensuelle / tontine.gagnants_par_mois : caisseMensuelle / 2;
+
+  const handleReveal = () => {
+    setIsSpinning(true);
+    const eligible = members.length > 0 ? members : [{ prenom_nom: "Mélange..." }];
+    const spinInterval = setInterval(() => {
+      const random = eligible[Math.floor(Math.random() * eligible.length)].prenom_nom;
+      setSpinName(random);
+    }, 100);
+    
+    setTimeout(() => {
+      clearInterval(spinInterval);
+      setIsSpinning(false);
+      setRevealed(true);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 8000);
+      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+      audio.volume = 0.4;
+      audio.play().catch(()=>{});
+    }, 2500);
+  };
+
   // --- GESTION DU PAIEMENT ---
   const handlePayment = async () => {
     if (!paymentMethod) return alert("Veuillez sélectionner un moyen de paiement.");
@@ -143,6 +171,7 @@ export default function TontineMembreDashboard() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-black font-sans pb-28">
+      <InteractiveParticles themeColor={tontine?.theme_color || '#009FDF'} />
       
       {/* --- ANIMATION DE CONFETTIS (GAGNANT) --- */}
       {showConfetti && (
@@ -257,7 +286,55 @@ export default function TontineMembreDashboard() {
            </div>
         </section>
 
-        {/* --- 3. TRANSPARENCE (TIRAGES & ATTENTE) --- */}
+        {/* --- 3. MOTEUR DE TIRAGE (RÉVÉLATION GAGNANTS) --- */}
+        <section className="bg-black rounded-[3rem] p-8 md:p-10 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
+           
+           <div className="relative z-10 w-full">
+              <p className="font-black uppercase tracking-[0.3em] text-[10px] mb-4 flex items-center justify-center gap-2" style={{ color: tontine?.theme_color || '#39FF14' }}>
+                 <Shuffle size={14}/> Tirage du Mois {maxMoisVictoire > 0 ? maxMoisVictoire : 1}
+              </p>
+              
+              {maxMoisVictoire === 0 ? (
+                 <div className="py-8">
+                   <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black text-white uppercase mb-4`}>Aucun tirage pour le moment</h2>
+                   <p className="text-sm font-bold text-zinc-400">Le premier tirage n'a pas encore été effectué par l'administrateur.</p>
+                 </div>
+              ) : !revealed ? (
+                 isSpinning ? (
+                    <div className="flex flex-col items-center py-8">
+                       <div className="w-20 h-20 rounded-full border-4 border-t-transparent animate-spin mb-6" style={{ borderColor: `${tontine?.theme_color || '#39FF14'}40`, borderTopColor: tontine?.theme_color || '#39FF14' }}></div>
+                       <p className="text-2xl md:text-4xl font-black text-white uppercase tracking-widest animate-pulse drop-shadow-lg">{spinName || "Mélange..."}</p>
+                       <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-4">Découverte des gagnants...</p>
+                    </div>
+                 ) : (
+                    <div className="flex flex-col items-center py-8 gap-4">
+                       <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black text-white uppercase mb-4 leading-tight`}>Les gagnants ont été tirés !</h2>
+                       <button onClick={handleReveal} className="px-8 py-4 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:scale-105 flex items-center gap-3 animate-bounce" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
+                          <Trophy size={20}/> Découvrir les gagnants
+                       </button>
+                    </div>
+                 )
+              ) : (
+                 <div className="animate-in slide-in-from-bottom-8 fade-in duration-500 w-full">
+                    <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black text-white uppercase mb-6`}>Félicitations !</h2>
+                    <div className="grid sm:grid-cols-2 gap-4 max-w-lg mx-auto">
+                       {recentWinners.map((winner: any) => (
+                          <div key={winner.id} className="bg-zinc-900 border-2 p-4 rounded-3xl flex items-center gap-4 text-left shadow-lg" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+                             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center shrink-0"><Medal size={24} style={{ color: tontine?.theme_color || '#39FF14' }}/></div>
+                             <div className="flex-1 min-w-0">
+                                <p className="font-black text-white uppercase text-base leading-none truncate">{winner.prenom_nom}</p>
+                                <p className="font-black text-[10px] mt-1" style={{ color: tontine?.theme_color || '#39FF14' }}>{montantParGagnant.toLocaleString()} F CFA</p>
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              )}
+           </div>
+        </section>
+
+        {/* --- 4. TRANSPARENCE (TIRAGES & ATTENTE) --- */}
         <section>
            <div className="flex gap-2 p-1.5 bg-zinc-100 rounded-2xl mb-4">
               <button 
