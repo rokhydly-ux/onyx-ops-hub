@@ -98,7 +98,8 @@ export default function TontineMembreDashboard() {
   const winnersHistoryRaw = members.filter(m => m.a_gagne).reduce((acc: any, m: any) => {
     const mois = m.mois_victoire;
     if (!acc[mois]) acc[mois] = [];
-    acc[mois].push({ nom: m.prenom_nom, photo: m.photo_url
+    acc[mois].push({ nom: m.prenom_nom, photo: m.photo_url, is_admin: m.is_admin });
+    return acc;
   }, {});
   
   const winnersHistory = Object.keys(winnersHistoryRaw).map(mois => ({
@@ -475,7 +476,8 @@ export default function TontineMembreDashboard() {
                                              {w.photo ? <img src={w.photo} alt={w.nom} className="w-full h-full object-cover" /> : w.nom.substring(0, 2).toUpperCase()}
                                           </div>
                                           <span className="font-black text-black uppercase text-sm flex items-center gap-1">
-                                             {w.nom} {w.is_admin && <ShieldCheck size={14} classNt 
+                                             {w.nom} {w.is_admin && <ShieldCheck size={14} className="text-yellow-500" title="Gérant" />}
+                                          </span>
                                        </div>
                                        {wIdx < h.winners.length - 1 && <span className="text-zinc-300 font-black text-lg">&</span>}
                                     </div>
