@@ -204,7 +204,9 @@ export default function TontineAdminDashboard() {
   const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
   const montantParGagnant = tontine?.gagnants_par_mois ? caisseMensuelle / tontine.gagnants_par_mois : caisseMensuelle / 2;
   const dureeTotale = tontine?.duree_mois || 10;
-  const hosetessionPourcentage = Math.min((moisEcoules / dureeTotale) * 100, 100);
+  const totalGagnants = membres.filter(m => m.a_gagne).length;
+  const moisEcoules = Math.floor(totalGagnants / (tontine?.gagnants_par_mois || 2));
+  const progressionPourcentage = Math.min((moisEcoules / dureeTotale) * 100, 100);
 
   // --- HISTORIQUE DES GAGNANTS ---
   const winnersHistoryRaw = membres.filter(m => m.a_gagne).reduce((acc: any, m: Member) => {
@@ -696,9 +698,12 @@ export default function TontineAdminDashboard() {
               <div className="w-10 h-10 bg-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center mb-4"><CheckCircle size={20}/></div>
               <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Progression</p>
               <div>
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-2xl md:text-3xl font-black tracking-tighter text-black">{moisEcoules}/{dureeTotale}</span>
+                  <span className="text-xs font-bold text-zinc-500 mb-1 leading-none">Mois écoulés</span>
                 </div>
-                    style={{ width: `${progressionPourcentage}%`, backgroundColor: tontine?.theme_color || '#009FDF' }}
-                  ></div>
+                <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden mt-1">
+                  <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressionPourcentage}%`, backgroundColor: tontine?.theme_color || '#009FDF' }}></div>
                 </div>
               </div>
            </div>

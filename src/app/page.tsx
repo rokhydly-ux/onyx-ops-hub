@@ -14,6 +14,7 @@ import {
   ShieldAlert, ChevronLeft, Activity, Rocket,
   Crosshair 
 } from "lucide-react";
+import InteractiveParticles from "@/components/InteractiveParticles";
 
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
@@ -604,7 +605,7 @@ export default function OnyxOpsElite() {
 
   return (
     <div className={`${inter.className} min-h-screen bg-white text-black overflow-x-hidden pt-20 relative`}>
-      <div className="fixed inset-0 z-0 opacity-[0.15] pointer-events-none bg-zinc-50" style={{ backgroundImage: `url('https://i.ibb.co/chCcXT7p/back-site.png')`, backgroundRepeat: 'repeat', backgroundSize: '400px' }} />
+      <InteractiveParticles themeColor="#39FF14" />
 
       <style dangerouslySetInnerHTML={{__html: `
         .glitch-hover:hover {
