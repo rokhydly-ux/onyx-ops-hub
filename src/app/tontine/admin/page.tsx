@@ -9,7 +9,7 @@ import {
   Medal, Search, Download, Copy, Check, Clock,
   RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle,
   Camera, FileSpreadsheet, UserPlus, ArrowUpDown, PiggyBank,
-  Lock, FileText, History 
+  Lock, FileText, History, HelpCircle
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
@@ -63,6 +63,7 @@ export default function TontineAdminDashboard() {
   const [showHistory, setShowHistory] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [spinningName, setSpinningName] = useState("");
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // --- 2. LOGIQUE D'INITIALISATION ---
   useEffect(() => {
@@ -171,6 +172,21 @@ export default function TontineAdminDashboard() {
       subscription.unsubscribe(); // Nettoyage
     };
   }, []);
+
+  // --- AFFICHER LE TUTORIEL LA PREMIÈRE FOIS ---
+  useEffect(() => {
+    if (typeof window !== 'undefined' && currentUser && tontine) {
+      const hasSeenTutorial = localStorage.getItem(`onyx_tontine_tuto_${tontine.id}`);
+      if (!hasSeenTutorial) {
+        setShowHelpModal(true);
+      }
+    }
+  }, [currentUser, tontine]);
+
+  const closeHelpModal = () => {
+    if (tontine?.id) localStorage.setItem(`onyx_tontine_tuto_${tontine.id}`, 'true');
+    setShowHelpModal(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -661,6 +677,9 @@ export default function TontineAdminDashboard() {
              <span className="bg-zinc-100 text-zinc-600 px-3 py-1.5 rounded-lg text-xs font-black uppercase flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span> Mode Live
              </span>
+             <button onClick={() => setShowHelpModal(true)} className="bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-black px-3 py-1.5 rounded-lg text-xs font-black uppercase flex items-center gap-2 transition-colors">
+                <HelpCircle size={14} /> Aide
+             </button>
              {!currentUser ? (
                 <div className="w-10 h-10 border-2 border-zinc-200 border-t-black rounded-full animate-spin"></div>
              ) : (
@@ -1186,6 +1205,46 @@ export default function TontineAdminDashboard() {
                      {isSavingMember ? 'Enregistrement...' : 'Enregistrer le membre'}
                   </button>
                </form>
+            </div>
+         </div>
+      )}
+
+      {/* MODALE D'AIDE / TUTORIEL */}
+      {showHelpModal && (
+         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && closeHelpModal()} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white p-8 md:p-10 rounded-[3rem] w-full max-w-lg relative shadow-2xl animate-in zoom-in-95 border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+               <button onClick={closeHelpModal} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
+               
+               <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#39FF14] mb-6 shadow-lg">
+                  <HelpCircle size={32} style={{ color: tontine?.theme_color || '#39FF14' }} />
+               </div>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-2`}>
+                  Guide Rapide
+               </h2>
+               <p className="text-zinc-500 text-sm font-bold mb-6">Bienvenue dans votre Terminal de gestion de Tontine. Voici comment ça marche :</p>
+
+               <div className="space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2 mb-8">
+                  <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                     <h3 className="font-black text-sm uppercase flex items-center gap-2 mb-1"><span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">1</span> Ajouter les membres</h3>
+                     <p className="text-xs text-zinc-600 font-medium">Ajoutez vos participants manuellement ou importez-les (Excel/Scanner). Vous pouvez personnaliser la cotisation et la photo de chacun.</p>
+                  </div>
+                  <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                     <h3 className="font-black text-sm uppercase flex items-center gap-2 mb-1"><span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">2</span> Valider les paiements</h3>
+                     <p className="text-xs text-zinc-600 font-medium">Modifiez un membre pour indiquer qu'il est "À jour". La jauge principale (Moteur Financier) se remplira automatiquement.</p>
+                  </div>
+                  <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                     <h3 className="font-black text-sm uppercase flex items-center gap-2 mb-1"><span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">3</span> Lancer le tirage</h3>
+                     <p className="text-xs text-zinc-600 font-medium">Une fois la jauge à 100%, le bouton de tirage se débloque. L'application choisira aléatoirement les gagnants du mois !</p>
+                  </div>
+                  <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                     <h3 className="font-black text-sm uppercase flex items-center gap-2 mb-1"><span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">4</span> Transparence Totale</h3>
+                     <p className="text-xs text-zinc-600 font-medium">Partagez le "Lien Membres" (en haut à gauche) à vos participants pour qu'ils puissent suivre la caisse et voir l'animation du tirage.</p>
+                  </div>
+               </div>
+
+               <button onClick={closeHelpModal} className="w-full bg-black text-white py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition shadow-xl" style={{ color: tontine?.theme_color || '#39FF14' }}>
+                  J'ai compris, c'est parti !
+               </button>
             </div>
          </div>
       )}
