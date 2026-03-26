@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
+import InteractiveParticles from '@/components/InteractiveParticles';
 
 const spaceGrotesk = { className: "font-sans" }; // Remplacement par ta police Space Grotesk si configurée globalement
 
@@ -106,7 +107,7 @@ export default function TontineAdminDashboard() {
 
         // 4. Fetch Membres & Cotisations
         const { data: members } = await supabase
-          .from('tontine_members')
+          .from('membres')
           .select('*')
           .eq('tontine_id', targetTontine.id);
 
@@ -179,7 +180,7 @@ export default function TontineAdminDashboard() {
 
   const refreshMembers = async () => {
     if (!tontine || !tontine.id) return;
-    const { data: mData } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
+    const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
     const { data: cData } = await supabase.from('cotisations').select('*');
     
     const totalGagnants = tontine.gagnants_par_mois || 2;
@@ -203,7 +204,7 @@ export default function TontineAdminDashboard() {
   const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
   const montantParGagnant = tontine?.gagnants_par_mois ? caisseMensuelle / tontine.gagnants_par_mois : caisseMensuelle / 2;
   const dureeTotale = tontine?.duree_mois || 10;
-  const moisEcoules = Math.floor(membres.filter(m => m.a_gagne).length / (tontine?.gagnants_par_mois || 2));
+  const hosetessionPourcentage = Math.min((moisEcoules / dureeTotale) * 100, 100);
 
   // --- HISTORIQUE DES GAGNANTS ---
   const winnersHistoryRaw = membres.filter(m => m.a_gagne).reduce((acc: any, m: Member) => {
@@ -252,7 +253,7 @@ export default function TontineAdminDashboard() {
 
       // Mise à jour SUPABASE
       const { error } = await supabase
-        .from('tontine_members')
+        .from('membres')
         .update({ a_gagne: true, mois_victoire: currentMonth })
         .in('id', winners.map(w => w.id));
 
@@ -282,9 +283,9 @@ export default function TontineAdminDashboard() {
     try {
       let memberId = editingMember.id;
       if (memberId) {
-        await supabase.from('tontine_members').update({ prenom_nom: editingMember.prenom_nom, telephone: editingMember.telephone, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', memberId);
+        await supabase.from('membres').update({ prenom_nom: editingMember.prenom_nom, telephone: editingMember.telephone, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', memberId);
       } else {
-        const { data: newM } = await supabase.from('tontine_members').insert({
+        const { data: newM } = await supabase.from('membres').insert({
           tontine_id: tontine.id,
           prenom_nom: editingMember.prenom_nom,
           telephone: editingMember.telephone,
@@ -379,13 +380,13 @@ export default function TontineAdminDashboard() {
           a_gagne: false
         }));
 
-        const { error } = await supabase.from('tontine_members').insert(formattedMembers);
+        const { error } = await supabase.from('membres').insert(formattedMembers);
         if (error) throw error;
 
         alert(`${formattedMembers.length} membres importés avec succès !`);
         
         // Recharger la liste des membres
-        const { data: newMembers } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontine.id);
+        const { data: newMembers } = await supabase.from('membres').select('*').eq('tontine_id', tontine.id);
         setMembres(newMembers || []);
 
       } catch (err: any) {
@@ -459,7 +460,7 @@ export default function TontineAdminDashboard() {
            statut_paiement: 'À jour'
         }));
 
-        const { error } = await supabase.from('tontine_members').insert(membersToInsert);
+        const { error } = await supabase.from('membres').insert(membersToInsert);
         if (error) throw error;
 
         alert(`${membersToInsert.length} membres scannés ajoutés avec succès !`);
@@ -477,7 +478,7 @@ export default function TontineAdminDashboard() {
   // --- LOGIQUE RÉINITIALISATION TONTINE ---
   const handleResetTontine = async () => {
     if (confirm("Voulez-vous vraiment réinitialiser TOUS les tirages de cette tontine ? Cela annulera les victoires de tout le monde (Remise à zéro).")) {
-      const { error } = await supabase.from('tontine_members').update({ a_gagne: false, mois_victoire: null }).eq('tontine_id', tontine.id);
+      const { error } = await supabase.from('membres').update({ a_gagne: false, mois_victoire: null }).eq('tontine_id', tontine.id);
       if (error) alert("Erreur : " + error.message);
       else {
         alert("Tontine réinitialisée avec succès !");
@@ -488,7 +489,7 @@ export default function TontineAdminDashboard() {
 
   const handleDeleteMember = async (id: string) => {
     if (confirm("Voulez-vous vraiment supprimer ce membre de la tontine ?")) {
-      await supabase.from('tontine_members').delete().eq('id', id);
+      await supabase.from('membres').delete().eq('id', id);
       refreshMembers();
     }
   };
@@ -573,6 +574,7 @@ export default function TontineAdminDashboard() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-black font-sans flex flex-col selection:bg-[#39FF14]/30">
+      <InteractiveParticles themeColor={tontine?.theme_color || '#009FDF'} />
       
       {/* CSS Anim */}
       <style dangerouslySetInnerHTML={{__html: `
@@ -693,9 +695,11 @@ export default function TontineAdminDashboard() {
               <div className="absolute top-0 right-0 w-24 h-24 bg-black opacity-[0.03] rounded-bl-[100%]"></div>
               <div className="w-10 h-10 bg-zinc-100 text-zinc-600 rounded-xl flex items-center justify-center mb-4"><CheckCircle size={20}/></div>
               <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Progression</p>
-              <div className="flex items-end gap-2">
-                 <p className="text-2xl md:text-3xl font-black tracking-tighter text-black">{moisEcoules}/{dureeTotale}</p>
-                 <p className="text-xs font-bold text-zinc-500 mb-1 leading-none">Mois écoulés</p>
+              <div>
+                </div>
+                    style={{ width: `${progressionPourcentage}%`, backgroundColor: tontine?.theme_color || '#009FDF' }}
+                  ></div>
+                </div>
               </div>
            </div>
            <div onClick={() => setKpiFilter('retard')} className={`bg-red-50 p-6 rounded-[2rem] border shadow-sm flex flex-col justify-between cursor-pointer hover:scale-105 transition-all ${kpiFilter === 'retard' ? 'border-red-500 ring-4 ring-red-500/20' : 'border-red-100'}`}>
