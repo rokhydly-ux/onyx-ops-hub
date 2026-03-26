@@ -356,6 +356,11 @@ export default function TontineAdminDashboard() {
     setIsSavingMember(false);
     setShowMemberModal(false);
     setEditingMember(null);
+    
+    // Petit son de succès
+    const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
+    audio.volume = 0.4;
+    audio.play().catch(() => {});
   };
 
   // --- 3. SAUVEGARDE DES PARAMÈTRES ROBUSTE ---
@@ -389,6 +394,11 @@ export default function TontineAdminDashboard() {
 
       alert('Sauvegardé avec succès !');
       setShowSettingsModal(false);
+      
+      // Petit son de succès
+      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
+      audio.volume = 0.4;
+      audio.play().catch(() => {});
     } catch (err: any) {
       alert("Erreur lors de la sauvegarde : " + err.message);
     } finally {
