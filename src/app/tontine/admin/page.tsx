@@ -26,6 +26,8 @@ type Member = {
   mois_victoire: number | null;
   statutPaiement?: 'À jour' | 'En retard';
   date_paiement?: string;
+  cotisation_individuelle?: number;
+  photo_url?: string;
 };
 
 export default function TontineAdminDashboard() {
@@ -200,9 +202,8 @@ export default function TontineAdminDashboard() {
 
   // --- KPIs DYNAMIQUES ---
   const totalMembres = membres.length;
-  const caisseMensuelle = totalMembres * (tontine?.montant_mensuel || 20000);
-  const aJourCount = membres.filter(m => m.statutPaiement === 'À jour').length;
-  const actuelCaisse = aJourCount * (tontine?.montant_mensuel || 20000);
+  const caisseMensuelle = membres.reduce((sum, m) => sum + (m.cotisation_individuelle || tontine?.montant_mensuel || 20000), 0);
+  const actuelCaisse = membres.filter(m => m.statutPaiement === 'À jour').reduce((sum, m) => sum + (m.cotisation_individuelle || tontine?.montant_mensuel || 20000), 0);
   const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
   const montantParGagnant = tontine?.gagnants_par_mois ? caisseMensuelle / tontine.gagnants_par_mois : caisseMensuelle / 2;
   const dureeTotale = tontine?.duree_mois || 10;
@@ -303,12 +304,19 @@ export default function TontineAdminDashboard() {
           tontine_id: tontine.id,
           prenom_nom: editingMember.prenom_nom,
           telephone: editingMember.telephone,
+          cotisation_individuelle: editingMember.cotisation_individuelle,
+          photo_url: editingMember.photo_url
         }).select().single();
         if (newM) memberId = newM.id;
       }
 
       // Gestion intelligente du paiement (Table cotisations)
       if (memberId) {
+         await supabase.from('membres').update({ 
+            cotisation_individuelle: editingMember.cotisation_individuelle,
+            photo_url: editingMember.photo_url
+         }).eq('id', memberId);
+
          if (editingMember.statutPaiement === 'À jour') {
              const { data: existing } = await supabase.from('cotisations').select('*').eq('membre_id', memberId).eq('mois_numero', currentMonth).eq('statut', 'Payé').maybeSingle();
              
@@ -346,6 +354,7 @@ export default function TontineAdminDashboard() {
         nom: tontine.nom,
         logo_url: tontine.logo_url,
         theme_color: tontine.theme_color,
+        logo_scale: tontine.logo_scale || 100,
         duree_mois: tontine.duree_mois,
         montant_mensuel: tontine.montant_mensuel,
         gagnants_par_mois: tontine.gagnants_par_mois
@@ -632,7 +641,7 @@ export default function TontineAdminDashboard() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-[#39FF14] shadow-md">
-                {tontine?.logo_url ? <img src={tontine.logo_url} alt="Logo" className="w-full h-full object-cover rounded-xl" /> : <Users size={20} />}
+                {tontine?.logo_url ? <img src={tontine.logo_url} alt="Logo" className="w-full h-full object-cover rounded-xl" style={{ transform: `scale(${(tontine.logo_scale || 100) / 100})`, transformOrigin: 'top left' }} /> : <Users size={20} />}
              </div>
              <div>
                <h1 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter leading-none`} style={{ color: tontine?.theme_color || '#39FF14' }}>
@@ -991,8 +1000,12 @@ export default function TontineAdminDashboard() {
                        <tr key={m.id} className="hover:bg-zinc-50/50 transition-colors group">
                           <td className="p-5">
                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-zinc-100 rounded-xl flex items-center justify-center font-black text-black text-xs shadow-sm">
-                                   {idx + 1}
+                                <div className="w-10 h-10 bg-zinc-100 rounded-xl flex items-center justify-center font-black text-black text-xs shadow-sm overflow-hidden hover:scale-110 hover:shadow-[0_0_15px_#39FF14] transition-all duration-300">
+                                   {m.photo_url ? (
+                                      <img src={m.photo_url} alt={m.prenom_nom} className="w-full h-full object-cover" />
+                                   ) : (
+                                      m.prenom_nom.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+                                   )}
                                 </div>
                                 <div>
                                    <p className="font-black text-sm uppercase text-black">{m.prenom_nom}</p>
@@ -1001,7 +1014,7 @@ export default function TontineAdminDashboard() {
                              </div>
                           </td>
                           <td className="p-5">
-                             <p className="font-black text-black">{(tontine?.montant_mensuel || 20000).toLocaleString()} F</p>
+                             <p className="font-black text-black">{(m.cotisation_individuelle || tontine?.montant_mensuel || 20000).toLocaleString()} F</p>
                           </td>
                           <td className="p-5">
                              {m.a_gagne ? (
@@ -1097,6 +1110,28 @@ export default function TontineAdminDashboard() {
 
                   <div className="grid grid-cols-2 gap-4">
                      <div>
+                        <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Montant de cotisation</label>
+                        <input 
+                          type="number" 
+                          value={editingMember.cotisation_individuelle || tontine?.montant_mensuel || 20000} 
+                          onChange={(e) => setEditingMember({...editingMember, cotisation_individuelle: Number(e.target.value)})} 
+                          className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
+                        />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Photo de Profil (URL)</label>
+                        <input 
+                          type="url" 
+                          value={editingMember.photo_url || ''} 
+                          onChange={(e) => setEditingMember({...editingMember, photo_url: e.target.value})} 
+                          className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
+                          placeholder="https://..."
+                        />
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
                         <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Statut Paiement</label>
                         <select 
                           value={editingMember.statutPaiement || 'À jour'} 
@@ -1118,6 +1153,16 @@ export default function TontineAdminDashboard() {
                            />
                         </div>
                      )}
+                  </div>
+                  <div>
+                     <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Taille du Logo Tontine (%)</label>
+                     <input 
+                       type="range" 
+                       min="100" max="150" step="10"
+                       value={tontine?.logo_scale || 100} 
+                       onChange={(e) => setTontine({...tontine, logo_scale: Number(e.target.value)})} 
+                       className="w-full accent-black"
+                     />
                   </div>
 
                   {/* Option Avancée Admin */}

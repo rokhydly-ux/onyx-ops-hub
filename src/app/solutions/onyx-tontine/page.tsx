@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send, ChevronDown, Star, ArrowUp, MessageSquare } from "lucide-react";
+import { ArrowRight, Smartphone, Users, Sparkles, X, ShieldCheck, PlayCircle, BookX, CheckCircle, ChevronRight, ChevronLeft, Send, ChevronDown, Star, ArrowUp, MessageSquare, Trophy, Shuffle } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -76,6 +76,13 @@ export default function OnyxTontineLanding() {
 
   // Rotation Témoignages
   const [reviewIndex, setReviewIndex] = useState(0);
+  
+  // --- DÉMO INTERACTIVE TIRAGE ---
+  const [isSpinningDemo, setIsSpinningDemo] = useState(false);
+  const [spinNameDemo, setSpinNameDemo] = useState("");
+  const [demoRevealed, setDemoRevealed] = useState(false);
+  const [showConfettiDemo, setShowConfettiDemo] = useState(false);
+  const demoNames = ["Aïssatou Diop", "Mamadou Ndiaye", "Fatou Sow", "Ousmane Fall", "Aminata Tall"];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -194,6 +201,26 @@ export default function OnyxTontineLanding() {
     }, 1000);
   };
 
+  const handleDemoSpin = () => {
+    setIsSpinningDemo(true);
+    setDemoRevealed(false);
+    const spinInterval = setInterval(() => {
+      const random = demoNames[Math.floor(Math.random() * demoNames.length)];
+      setSpinNameDemo(random);
+    }, 100);
+    
+    setTimeout(() => {
+      clearInterval(spinInterval);
+      setIsSpinningDemo(false);
+      setDemoRevealed(true);
+      setShowConfettiDemo(true);
+      setTimeout(() => setShowConfettiDemo(false), 8000);
+      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+      audio.volume = 0.4;
+      audio.play().catch(()=>{});
+    }, 2500);
+  };
+
   const saveLead = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -271,7 +298,32 @@ export default function OnyxTontineLanding() {
         .animate-float-neon {
           animation: float-neon 4s ease-in-out infinite;
         }
+        @keyframes confetti-fall {
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
       `}} />
+
+      {/* --- ANIMATION DE CONFETTIS (DÉMO) --- */}
+      {showConfettiDemo && (
+        <div className="fixed inset-0 z-[200] pointer-events-none overflow-hidden">
+          {[...Array(80)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-[-10%] opacity-0"
+              style={{
+                left: `${Math.random() * 100}%`,
+                width: `${Math.random() * 10 + 6}px`,
+                height: `${Math.random() * 10 + 6}px`,
+                backgroundColor: ['#39FF14', '#FF5722', '#00E5FF', '#FACC15', '#B026FF', '#ffffff'][i % 6],
+                animation: `confetti-fall ${2 + Math.random() * 3}s linear forwards`,
+                animationDelay: `${Math.random() * 1.5}s`,
+                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none',
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* BANNIÈRE PROMO HAUT DE PAGE */}
       <div className="bg-[#39FF14] text-black text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md">
@@ -388,6 +440,55 @@ export default function OnyxTontineLanding() {
                   </div>
                </div>
             ))}
+         </div>
+      </section>
+
+      {/* Section C1.5 : Interactive Demo */}
+      <section className="py-16 px-6 max-w-5xl mx-auto">
+         <div className="text-center mb-12">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>Essayez le <span className="text-[#39FF14] drop-shadow-sm">Moteur de Tirage</span>.</h2>
+            <p className="text-zinc-600 font-bold">Vivez l'expérience de vos futurs membres. (Démo interactive)</p>
+         </div>
+
+         <div className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: '#39FF14' }}>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: '#39FF14' }}></div>
+
+            <div className="relative z-10 w-full max-w-lg mx-auto">
+               <p className="font-black uppercase tracking-[0.3em] text-[10px] mb-8 flex items-center justify-center gap-2 text-[#39FF14]">
+                  <Shuffle size={14}/> Simulation de Tirage
+               </p>
+
+               {!demoRevealed ? (
+                  isSpinningDemo ? (
+                     <div className="flex flex-col items-center py-8">
+                        <div className="w-20 h-20 rounded-full border-4 border-t-transparent animate-spin mb-6" style={{ borderColor: '#39FF1440', borderTopColor: '#39FF14' }}></div>
+                        <p className="text-3xl md:text-4xl font-black text-white uppercase tracking-widest animate-pulse drop-shadow-lg">{spinNameDemo || "Mélange..."}</p>
+                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-4">Découverte du gagnant...</p>
+                     </div>
+                  ) : (
+                     <div className="flex flex-col items-center py-8 gap-6">
+                        <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black text-white uppercase mb-2 leading-tight`}>À qui le tour ce mois-ci ?</h2>
+                        <button onClick={handleDemoSpin} className="px-10 py-5 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:scale-105 flex items-center gap-3 animate-bounce bg-[#39FF14] text-black">
+                           <Trophy size={20}/> Lancer la roulette
+                        </button>
+                     </div>
+                  )
+               ) : (
+                  <div className="animate-in slide-in-from-bottom-8 fade-in duration-500 w-full">
+                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black text-white uppercase mb-8`}>Félicitations !</h2>
+                     <div className="bg-zinc-900 border-2 p-6 rounded-3xl flex items-center justify-center gap-4 text-left shadow-lg border-[#39FF14] mb-8">
+                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center shrink-0"><Trophy size={32} className="text-[#39FF14]"/></div>
+                        <div className="min-w-0">
+                           <p className="font-black text-white uppercase text-xl md:text-2xl leading-none truncate">{spinNameDemo}</p>
+                           <p className="font-black text-sm mt-2 text-[#39FF14]">Remporte la cagnotte !</p>
+                        </div>
+                     </div>
+                     <button onClick={() => setDemoRevealed(false)} className="text-zinc-400 hover:text-white font-bold text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 mx-auto">
+                        Recommencer <ArrowRight size={14}/>
+                     </button>
+                  </div>
+               )}
+            </div>
          </div>
       </section>
 
