@@ -191,6 +191,14 @@ export default function TontineAdminDashboard() {
     setShowHelpModal(false);
   };
 
+  // --- ENVOI DE MESSAGE D'ANNIVERSAIRE ---
+  const sendBirthdayWish = (m: Member) => {
+    const msg = `🎉 Joyeux anniversaire ${m.prenom_nom} ! Toute la tontine "${tontine?.nom}" te souhaite le meilleur pour cette nouvelle année. Santé, succès et plein de bonnes choses ! 💸🎂`;
+    let phone = m.telephone.replace(/\s+/g, '');
+    if (phone.length === 9) phone = `221${phone}`;
+    window.open(`https://wa.me/${phone.startsWith('221') ? phone : phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
@@ -329,10 +337,10 @@ export default function TontineAdminDashboard() {
       const payload = {
           prenom_nom: editingMember.prenom_nom,
           telephone: editingMember.telephone,
-          cotisation_individuelle: editingMember.cotisation_individuelle,
-          photo_url: editingMember.photo_url,
-          poste: editingMember.poste,
-          date_naissance: editingMember.date_naissance,
+          cotisation_individuelle: editingMember.cotisation_individuelle || null,
+          photo_url: editingMember.photo_url || null,
+          poste: editingMember.poste || null,
+          date_naissance: editingMember.date_naissance || null,
           date_naissance_modifiee: false // Admin force la remise à zéro du verrou
       };
 
@@ -641,6 +649,20 @@ export default function TontineAdminDashboard() {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  // --- RELANCE GROUPÉE DES RETARDATAIRES ---
+  const handleBulkLateReminders = () => {
+    const retardataires = membres.filter(m => m.statutPaiement === 'En retard');
+    if (retardataires.length === 0) {
+      alert("Génial ! Aucun membre n'est en retard. 🎉");
+      return;
+    }
+    const names = retardataires.map(m => m.prenom_nom).join("\n- ");
+    const msg = `🚨 *RAPPEL COTISATION - ${tontine?.nom || "Tontine"}* 🚨\n\nSauf erreur de notre part, nous attendons toujours la cotisation de :\n\n- ${names}\n\n⏳ Merci de régulariser au plus vite pour le bon déroulement du tirage de ce mois ! 🙏`;
+    
+    // Ouvre WhatsApp pour choisir le groupe et coller le texte
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 text-black font-sans flex flex-col selection:bg-[#39FF14]/30">
       <InteractiveParticles themeColor={tontine?.theme_color || '#009FDF'} />
@@ -680,6 +702,13 @@ export default function TontineAdminDashboard() {
           100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(57, 255, 20, 0); }
         }
         .animate-ring { animation: pulse-ring 2s infinite; }
+        @keyframes vibrate {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-2px) rotate(-1deg); }
+          50% { transform: translateX(2px) rotate(1deg); }
+          75% { transform: translateX(-2px) rotate(-1deg); }
+        }
+        .animate-vibrate { animation: vibrate 0.3s linear infinite; }
       `}} />
 
       {/* HEADER FIXE (Toujours Visible) */}
@@ -769,7 +798,7 @@ export default function TontineAdminDashboard() {
           <div className="max-w-7xl w-full mx-auto px-6 pt-10 pb-24">
         
         {/* NOUVEAU KPI PRINCIPAL : MOTEUR FINANCIER */}
-        <div className="w-full rounded-3xl p-6 md:p-8 mb-6 flex flex-col md:flex-row items-center justify-between shadow-[0_0_40px_rgba(0,0,0,0.08)] relative overflow-hidden transition-all group"
+        <div className="w-full rounded-3xl p-6 md:p-8 mb-6 flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.08)] relative overflow-hidden transition-all group"
              style={{
                  background: `linear-gradient(135deg, ${tontine?.theme_color || '#39FF14'}15 0%, ${tontine?.theme_color || '#39FF14'}05 100%)`,
                  borderColor: `${tontine?.theme_color || '#39FF14'}40`,
@@ -778,23 +807,43 @@ export default function TontineAdminDashboard() {
              }}>
            <div className="absolute top-0 left-0 w-1.5 h-full" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
 
-           <div className="flex items-center gap-5 mb-4 md:mb-0 z-10">
-              <div className="p-4 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm text-black group-hover:scale-110 transition-transform">
-                 <PiggyBank size={32} style={{ color: tontine?.theme_color || '#39FF14' }} />
-              </div>
-              <div>
-                 <p className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-1">Total Mensuel Collecté</p>
-                 <div className="flex items-baseline gap-2">
-                    <p className="text-4xl md:text-5xl font-black tracking-tighter text-black leading-none">
-                       {actuelCaisse.toLocaleString('fr-FR')} <span className="text-xl text-zinc-400">F CFA</span>
-                    </p>
-                 </div>
-              </div>
+           <div className="flex flex-col md:flex-row items-start md:items-center justify-between z-10 w-full mb-6 md:mb-8">
+               <div className="flex items-center gap-5 mb-4 md:mb-0">
+                  <div className="p-4 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm text-black group-hover:scale-110 transition-transform">
+                     <PiggyBank size={32} style={{ color: tontine?.theme_color || '#39FF14' }} />
+                  </div>
+                  <div>
+                     <p className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-1">Total Mensuel Collecté</p>
+                     <div className="flex items-baseline gap-2">
+                        <p className="text-4xl md:text-5xl font-black tracking-tighter text-black leading-none">
+                           {actuelCaisse.toLocaleString('fr-FR')} <span className="text-xl text-zinc-400 font-bold">/ {caisseMensuelle.toLocaleString('fr-FR')} F</span>
+                        </p>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="flex items-center gap-3 bg-white/80 backdrop-blur-md px-6 py-3.5 rounded-2xl border border-white/50 shadow-sm">
+                  <Calendar size={20} className="text-zinc-500"/>
+                  <p className="text-sm font-black uppercase tracking-widest text-zinc-700">Le 06 du mois</p>
+               </div>
            </div>
 
-           <div className="flex items-center gap-3 bg-white/80 backdrop-blur-md px-6 py-3.5 rounded-2xl border border-white/50 shadow-sm z-10">
-              <Calendar size={20} className="text-zinc-500"/>
-              <p className="text-sm font-black uppercase tracking-widest text-zinc-700">Le 06 du mois</p>
+           {/* JAUGE D'ARGENT MANQUANT */}
+           <div className="w-full relative z-10">
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-500">Progression Caisse</span>
+                <span className={`text-[10px] md:text-xs font-black uppercase tracking-widest ${progressPercentage < 100 ? 'text-red-500 animate-pulse' : 'text-green-600'}`}>
+                  {progressPercentage < 100 ? `${(caisseMensuelle - actuelCaisse).toLocaleString('fr-FR')} F Manquant (${(100 - progressPercentage).toFixed(1)}%)` : 'Caisse Pleine 🎉'}
+                </span>
+              </div>
+              <div className="w-full bg-red-100/50 rounded-full h-3 md:h-4 overflow-hidden shadow-inner border border-red-100">
+                 <div 
+                   className="h-full rounded-full transition-all duration-1000 ease-out flex items-center justify-end px-2" 
+                   style={{ width: `${progressPercentage}%`, backgroundColor: tontine?.theme_color || '#39FF14' }}
+                 >
+                   {progressPercentage > 10 && <span className="text-[10px] font-black text-black/50">{progressPercentage.toFixed(0)}%</span>}
+                 </div>
+              </div>
            </div>
         </div>
 
@@ -841,13 +890,22 @@ export default function TontineAdminDashboard() {
 
         {/* ALERTE ANNIVERSAIRE */}
         {birthdayMembers.length > 0 && (
-           <div className="mb-12 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-[2rem] p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6 animate-in slide-in-from-bottom-4">
-              <div className="bg-white/20 p-4 rounded-full text-white animate-bounce shadow-sm">
-                 <Gift size={32} />
-              </div>
-              <div className="text-center md:text-left">
-                 <h3 className={`${spaceGrotesk.className} text-xl md:text-2xl font-black text-white uppercase tracking-tighter mb-1`}>🎉 Joyeux Anniversaire !</h3>
-                 <p className="text-yellow-900 font-bold text-sm md:text-base">C'est l'anniversaire de <span className="text-black font-black uppercase">{birthdayMembers.map(m => m.prenom_nom).join(', ')}</span> ce mois-ci ! Un tirage exceptionnel est peut-être de mise.</p>
+           <div className="mb-12 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-[2rem] p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in slide-in-from-bottom-4">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                 <div className="bg-white/20 p-4 rounded-full text-white animate-bounce shadow-sm shrink-0">
+                    <Gift size={32} />
+                 </div>
+                 <div className="text-center md:text-left">
+                    <h3 className={`${spaceGrotesk.className} text-xl md:text-2xl font-black text-white uppercase tracking-tighter mb-1`}>🎉 Joyeux Anniversaire !</h3>
+                    <p className="text-yellow-900 font-bold text-sm md:text-base mb-3">C'est l'anniversaire de <span className="text-black font-black uppercase">{birthdayMembers.map(m => m.prenom_nom).join(', ')}</span> ce mois-ci ! Un tirage exceptionnel est peut-être de mise.</p>
+                    <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                       {birthdayMembers.map(m => (
+                          <button key={m.id} onClick={() => sendBirthdayWish(m)} className="bg-black text-yellow-400 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md">
+                             <MessageCircle size={16}/> Souhaiter à {m.prenom_nom.split(' ')[0]}
+                          </button>
+                       ))}
+                    </div>
+                 </div>
               </div>
            </div>
         )}
@@ -980,6 +1038,12 @@ export default function TontineAdminDashboard() {
                    className={`px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 transition shadow-sm shrink-0 border ${sortAlphabetically ? 'bg-black text-[#39FF14] border-black' : 'bg-white border-zinc-200 text-black hover:bg-zinc-50'}`}
                  >
                     <ArrowUpDown size={16}/> {sortAlphabetically ? 'Tri par défaut' : 'Tri A-Z'}
+                 </button>
+                 <button 
+                   onClick={handleBulkLateReminders}
+                   className={`px-4 py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 transition shadow-sm shrink-0 ${membres.filter(m => m.statutPaiement === 'En retard').length > 5 ? 'bg-red-100 text-red-700 border-2 border-red-500 animate-vibrate shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:scale-105'}`}
+                 >
+                    <AlertTriangle size={16}/> Relancer Retards
                  </button>
                  <button 
                    onClick={() => setShowSettingsModal(true)}
