@@ -1016,7 +1016,7 @@ export default function TontineAdminDashboard() {
                                       </div>
                                       <span className="font-black uppercase text-xs leading-tight text-black truncate flex items-center gap-1" title={w.nom}>
                                          {w.nom}
-                                         {w.is_admin && <ShieldCheck size={12} className="text-yellow-500" title="Gérant" />}
+                                         {w.is_admin && <span title="Gérant"><ShieldCheck size={12} className="text-yellow-500" /></span>}
                                       </span>
                                    </div>
                                 ))}

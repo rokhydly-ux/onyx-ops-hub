@@ -476,7 +476,7 @@ export default function TontineMembreDashboard() {
                                              {w.photo ? <img src={w.photo} alt={w.nom} className="w-full h-full object-cover" /> : w.nom.substring(0, 2).toUpperCase()}
                                           </div>
                                           <span className="font-black text-black uppercase text-sm flex items-center gap-1">
-                                             {w.nom} {w.is_admin && <ShieldCheck size={14} className="text-yellow-500" title="Gérant" />}
+                                             {w.nom} {w.is_admin && <span title="Gérant"><ShieldCheck size={14} className="text-yellow-500" /></span>}
                                           </span>
                                        </div>
                                        {wIdx < h.winners.length - 1 && <span className="text-zinc-300 font-black text-lg">&</span>}
@@ -499,7 +499,8 @@ export default function TontineMembreDashboard() {
                            <div key={i} className={`flex items-center gap-3 p-4 rounded-2xl border ${m.id === currentUser.id ? 'bg-black text-white border-black shadow-lg' : 'bg-zinc-50 text-zinc-700 border-zinc-100 hover:border-zinc-300'}`}>
                               <Lock size={16} style={{ color: m.id === currentUser.id ? tontine.theme_color : '#a1a1aa' }} />
                               <span className="text-sm font-black uppercase truncate flex items-center gap-1.5">
-                                 {m.prenom_nom.split(' ')[0]} {m.id === currentUser.id && "(Vous)"} 
+                                 {m.prenom_nom.split(' ')[0]} {m.id === currentUser.id && "(Vous)"}
+                                 {m.is_admin && <span title="Gérant"><ShieldCheck size={14} className="text-yellow-500" /></span>}
                               </span>
                            </div>
                         ))}
