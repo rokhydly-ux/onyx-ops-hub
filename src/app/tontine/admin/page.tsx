@@ -34,6 +34,7 @@ export default function TontineAdminDashboard() {
   const [membres, setMembres] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // --- ETATS SECONDAIRES (UI & LOGIQUE) ---
   const [currentMonth, setCurrentMonth] = useState<number>(1);
@@ -126,6 +127,7 @@ export default function TontineAdminDashboard() {
 
       } catch (err: any) {
         console.error("Erreur chargement données:", err.message);
+        if (isMounted) setErrorMessage(err.message);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -653,6 +655,14 @@ export default function TontineAdminDashboard() {
           <div className="flex-1 flex flex-col items-center justify-center p-10 min-h-[60vh]">
              <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
              <p className="text-sm font-bold text-red-500 uppercase tracking-widest">Erreur de chargement Tontine</p>
+             {errorMessage && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-xl max-w-lg">
+                   <p className="text-xs font-mono text-red-600 text-center">{errorMessage}</p>
+                </div>
+             )}
+             <button onClick={() => window.location.reload()} className="mt-6 px-6 py-2 bg-zinc-100 hover:bg-zinc-200 text-black text-xs font-bold uppercase rounded-xl transition">
+                Réessayer
+             </button>
           </div>
         ) : (
           <div className="max-w-7xl w-full mx-auto px-6 pt-10 pb-24">
