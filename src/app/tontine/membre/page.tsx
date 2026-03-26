@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
-  ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal
+  ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal,
+  Camera, Save, Loader2
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 
@@ -26,11 +27,19 @@ export default function TontineMembreDashboard() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinName, setSpinName] = useState("");
   const [revealed, setRevealed] = useState(false);
+
+  // --- ETATS PROFIL MEMBRE ---
+  const [editPhotoUrl, setEditPhotoUrl] = useState("");
+  const [editDateNaissance, setEditDateNaissance] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [showPhotoInput, setShowPhotoInput] = useState(false);
   
   // --- CHARGEMENT DES DONNÉES ---
   const fetchData = async () => {
     try {
-      const tontineId = new URLSearchParams(window.location.search).get('id');
+      const urlParams = new URLSearchParams(window.location.search);
+      const tontineId = urlParams.get('id') || urlParams.get('tontine_id');
+      const membreId = urlParams.get('membre_id');
       
       if (!tontineId || tontineId === 'null' || tontineId === 'undefined') {
         window.location.href = '/';
@@ -49,6 +58,15 @@ export default function TontineMembreDashboard() {
       const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tData.id);
       setMembers(mData || []);
       
+      if (membreId && mData) {
+          const user = mData.find(m => m.id === membreId);
+          if (user) {
+              setCurrentUser(user);
+              setEditPhotoUrl(user.photo_url || '');
+              setEditDateNaissance(user.date_naissance || '');
+          }
+      }
+
       const { data: cData } = await supabase.from('cotisations').select('*');
       setCotisations(cData || []);
     } catch (err) {
@@ -118,6 +136,31 @@ export default function TontineMembreDashboard() {
     }, 2500);
   };
 
+  // --- GESTION PROFIL ---
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+        const payload: any = {};
+        if (editPhotoUrl !== (currentUser.photo_url || '')) {
+            payload.photo_url = editPhotoUrl;
+        }
+        if (editDateNaissance !== (currentUser.date_naissance || '')) {
+            payload.date_naissance = editDateNaissance;
+            payload.date_naissance_modifiee = true;
+        }
+
+        if (Object.keys(payload).length > 0) {
+            const { error } = await supabase.from('membres').update(payload).eq('id', currentUser.id);
+            if (error) throw error;
+            setCurrentUser({...currentUser, ...payload});
+        }
+    } catch (e) {
+        alert("Erreur lors de la mise à jour.");
+    } finally {
+        setIsSavingProfile(false);
+    }
+  };
+
   // --- GESTION DU PAIEMENT ---
   const handlePayment = async () => {
     if (!paymentMethod) return alert("Veuillez sélectionner un moyen de paiement.");
@@ -154,7 +197,9 @@ export default function TontineMembreDashboard() {
                 <button 
                   key={m.id} 
                   onClick={() => { 
-                     setCurrentUser(m); 
+                     setCurrentUser(m);
+                     setEditPhotoUrl(m.photo_url || '');
+                     setEditDateNaissance(m.date_naissance || '');
                      if(m.a_gagne) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 8000); } 
                   }} 
                   className="w-full text-left p-4 bg-zinc-50 hover:bg-zinc-100 hover:border-black rounded-xl font-black uppercase text-sm border border-zinc-200 transition"
@@ -184,7 +229,7 @@ export default function TontineMembreDashboard() {
                 left: `${Math.random() * 100}%`,
                 width: `${Math.random() * 10 + 6}px`,
                 height: `${Math.random() * 10 + 6}px`,
-                backgroundColor: ['#39FF14', '#FF5722', '#00E5FF', '#FACC15', '#B026FF', '#ffffff'][i % 6],
+                backgroundColor: i % 3 === 0 ? '#ffffff' : (tontine?.theme_color || '#39FF14'),
                 animation: `confetti-fall ${2 + Math.random() * 3}s linear forwards`,
                 animationDelay: `${Math.random() * 1.5}s`,
                 clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none', // Alterne carrés et triangles
@@ -203,195 +248,255 @@ export default function TontineMembreDashboard() {
       {/* --- HEADER --- */}
       <header className="bg-white border-b border-zinc-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-2xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-md font-black text-lg" style={{ color: tontine.theme_color }}>
-                {currentUser.prenom_nom.charAt(0)}
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.location.reload()}>
+             <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-md font-black overflow-hidden" style={{ color: tontine.theme_color }}>
+                {tontine.logo_url ? <img src={tontine.logo_url} alt="Logo Tontine" className="w-full h-full object-cover" /> : <Users size={20}/>}
              </div>
              <div>
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-none mb-1">{tontine.nom}</p>
-               <h1 className={`${spaceGrotesk.className} text-base font-black uppercase tracking-tighter leading-none`}>{currentUser.prenom_nom}</h1>
+               <p className={`${spaceGrotesk.className} text-base font-black uppercase tracking-tighter leading-none`}>Espace Membre</p>
              </div>
           </div>
-          <button onClick={() => setCurrentUser(null)} className="relative p-2 text-zinc-400 hover:text-red-500 transition-colors" title="Se déconnecter">
-            <LogOut size={20} />
-          </button>
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-zinc-200 rounded-full flex items-center justify-center shadow-sm font-black text-sm uppercase overflow-hidden text-black border-2 border-white">
+                {currentUser.photo_url ? <img src={currentUser.photo_url} alt="Avatar" className="w-full h-full object-cover" /> : currentUser.prenom_nom.substring(0, 2)}
+             </div>
+             <button onClick={() => setCurrentUser(null)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors bg-zinc-100 hover:bg-red-50 rounded-full" title="Se déconnecter">
+               <LogOut size={16} />
+             </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-28">
+        <div className="grid md:grid-cols-12 gap-6">
+          
+          {/* --- COLONNE GAUCHE : PROFIL MEMBRE --- */}
+          <div className="md:col-span-4 space-y-6">
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col items-center">
+                <div className="w-24 h-24 rounded-full bg-black flex items-center justify-center text-3xl font-black text-white overflow-hidden relative group shadow-lg mb-4" style={{ color: tontine.theme_color }}>
+                    {currentUser.photo_url ? (
+                        <img src={currentUser.photo_url} alt="Avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    ) : (
+                        currentUser.prenom_nom.charAt(0)
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                         <button onClick={() => setShowPhotoInput(!showPhotoInput)} className="text-white bg-black/50 p-2 rounded-full hover:scale-110 transition-transform"><Camera size={16}/></button>
+                    </div>
+                </div>
+                
+                {showPhotoInput && (
+                    <div className="w-full mb-4 animate-in fade-in slide-in-from-top-2">
+                        <input type="url" placeholder="URL de la nouvelle photo" value={editPhotoUrl} onChange={e => setEditPhotoUrl(e.target.value)} className="w-full text-xs font-bold p-3 rounded-xl border border-zinc-200 focus:border-black outline-none bg-zinc-50 transition-colors" />
+                    </div>
+                )}
+
+                <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter text-center leading-tight`}>{currentUser.prenom_nom}</h2>
+                {currentUser.poste && (
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 bg-zinc-100 px-3 py-1 rounded-full mt-3">
+                        {currentUser.poste}
+                    </p>
+                )}
+                <p className="text-xs font-bold text-zinc-400 mt-2">{currentUser.telephone}</p>
+
+                <div className="w-full mt-6">
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Date de Naissance</label>
+                    {currentUser.date_naissance_modifiee ? (
+                        <div>
+                            <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl border border-zinc-200 opacity-80">
+                                <Lock size={16} className="text-zinc-400" />
+                                <input type="date" disabled value={currentUser.date_naissance || ''} className="bg-transparent w-full text-sm font-bold text-zinc-500 outline-none cursor-not-allowed" />
+                            </div>
+                            <p className="text-[9px] text-zinc-400 mt-2 font-bold flex items-start gap-1.5 leading-tight"><AlertCircle size={12} className="shrink-0 text-red-400"/> Date verrouillée (Anti-Triche). Contactez l'admin pour modifier.</p>
+                        </div>
+                    ) : (
+                        <input type="date" value={editDateNaissance} onChange={e => setEditDateNaissance(e.target.value)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black transition" />
+                    )}
+                </div>
+
+                <button onClick={handleSaveProfile} disabled={isSavingProfile || (editDateNaissance === (currentUser.date_naissance || '') && editPhotoUrl === (currentUser.photo_url || ''))} className="w-full mt-6 py-4 rounded-xl font-black uppercase text-xs shadow-md hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2" style={{ backgroundColor: tontine.theme_color, color: '#000' }}>
+                    {isSavingProfile ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
+                    Mettre à jour le profil
+                </button>
+            </div>
+            
+            <section className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <div className="flex justify-between items-start mb-6">
+                  <div>
+                     <h2 className="text-lg font-black uppercase tracking-tighter">Votre Statut</h2>
+                     <p className="text-xs text-zinc-500 font-medium mt-1">Durée : {tontine.duree_mois} Mois</p>
+                  </div>
+                  <div className="flex flex-col gap-2 items-end">
+                     {currentUser.a_gagne && (
+                        <span className="bg-yellow-400 text-black border border-yellow-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1 animate-bounce">
+                           🎉 A DÉJÀ GAGNÉ
+                        </span>
+                     )}
+                     {isUserUpToDate ? (
+                        <span className="bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
+                           <CheckCircle size={12}/> À JOUR
+                        </span>
+                     ) : (
+                        <span className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
+                           <AlertCircle size={12}/> À PAYER
+                        </span>
+                     )}
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Cotisation</p>
+                     <p className="text-xl font-black tracking-tighter">{tontine.montant_mensuel.toLocaleString()} <span className="text-sm text-zinc-400">F</span></p>
+                  </div>
+                  <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Historique</p>
+                     <p className="text-xl font-black tracking-tighter">{cotisations.filter(c => c.membre_id === currentUser.id && c.statut === 'Payé').length} <span className="text-sm text-zinc-400">/ {tontine.duree_mois}</span></p>
+                  </div>
+               </div>
+            </section>
+          </div>
         
-        {/* --- 1. VUE D'ENSEMBLE PERSONNELLE --- */}
-        <section className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
-           <div className="flex justify-between items-start mb-6">
-              <div>
-                 <h2 className="text-xl font-black uppercase tracking-tighter">Votre Statut</h2>
-                 <p className="text-xs text-zinc-500 font-medium mt-1">Durée : {tontine.duree_mois} Mois</p>
-              </div>
-              <div className="flex flex-col gap-2 items-end">
-                 {currentUser.a_gagne && (
-                    <span className="bg-yellow-400 text-black border border-yellow-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1 animate-bounce">
-                       🎉 A DÉJÀ GAGNÉ
-                    </span>
-                 )}
-                 {isUserUpToDate ? (
-                    <span className="bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
-                       <CheckCircle size={12}/> À JOUR
-                    </span>
-                 ) : (
-                    <span className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
-                       <AlertCircle size={12}/> À PAYER
-                    </span>
-                 )}
-              </div>
-           </div>
+          {/* --- COLONNE DROITE : DASHBOARD TONTINE --- */}
+          <div className="md:col-span-8 space-y-6">
+            
+            {/* --- 2. SITUATION CAISSE GLOBALE --- */}
+            <section className="bg-black p-6 md:p-8 rounded-[2rem] border-2 shadow-2xl relative overflow-hidden" style={{ borderColor: tontine.theme_color }}>
+               <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.05] blur-3xl rounded-full" style={{ backgroundColor: tontine.theme_color }}></div>
+               
+               <div className="flex justify-between items-end mb-6 relative z-10">
+                  <div>
+                     <p className="text-xs font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2 mb-2">
+                        <Wallet size={14} style={{ color: tontine.theme_color }} /> Niveau de cotisation (Mois {currentMonth})
+                     </p>
+                     <p className="text-4xl font-black text-white tracking-tighter">{actuelCaisse.toLocaleString()} <span className="text-xl text-zinc-500 font-medium">/ {caisseMensuelle.toLocaleString()} F</span></p>
+                  </div>
+               </div>
 
-           <div className="grid grid-cols-2 gap-4">
-              <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Cotisation</p>
-                 <p className="text-xl font-black tracking-tighter">{tontine.montant_mensuel.toLocaleString()} <span className="text-sm text-zinc-400">F</span></p>
-              </div>
-              <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Historique</p>
-                 <p className="text-xl font-black tracking-tighter">{cotisations.filter(c => c.membre_id === currentUser.id && c.statut === 'Payé').length} <span className="text-sm text-zinc-400">/ {tontine.duree_mois} mois</span></p>
-              </div>
-           </div>
-        </section>
+               {/* Jauge de progression */}
+               <div className="w-full bg-zinc-800 rounded-full h-4 mb-4 relative z-10 overflow-hidden shadow-inner">
+                  <div 
+                    className="h-full rounded-full transition-all duration-1000 ease-out" 
+                    style={{ width: `${progressPercentage}%`, backgroundColor: tontine.theme_color, boxShadow: `0 0 15px ${tontine.theme_color}` }}
+                  ></div>
+               </div>
+               
+               <div className="flex justify-between items-center relative z-10">
+                  <p className="text-sm text-zinc-400 font-bold">{cotisationsCeMois.length} membres sur {totalMembres} ont payé</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-black px-3 py-1.5 rounded shadow-md flex items-center gap-2" style={{ backgroundColor: tontine.theme_color }}>
+                    <Calendar size={14} /> {dateTirage}
+                  </p>
+               </div>
+            </section>
 
-        {/* --- 2. SITUATION CAISSE GLOBALE --- */}
-        <section className="bg-black p-6 rounded-[2rem] border-2 shadow-2xl relative overflow-hidden" style={{ borderColor: tontine.theme_color }}>
-           <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.05] blur-2xl rounded-full" style={{ backgroundColor: tontine.theme_color }}></div>
-           
-           <div className="flex justify-between items-end mb-4 relative z-10">
-              <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2 mb-1">
-                    <Wallet size={12} style={{ color: tontine.theme_color }} /> Niveau de cotisation (Mois {currentMonth})
-                 </p>
-                 <p className="text-3xl font-black text-white tracking-tighter">{actuelCaisse.toLocaleString()} <span className="text-lg text-zinc-500 font-medium">/ {caisseMensuelle.toLocaleString()} F</span></p>
-              </div>
-           </div>
+            {/* --- 3. MOTEUR DE TIRAGE (RÉVÉLATION GAGNANTS) --- */}
+            <section className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
+               
+               <div className="relative z-10 w-full">
+                  <p className="font-black uppercase tracking-[0.3em] text-xs mb-6 flex items-center justify-center gap-2" style={{ color: tontine?.theme_color || '#39FF14' }}>
+                     <Shuffle size={14}/> Tirage du Mois {maxMoisVictoire > 0 ? maxMoisVictoire : 1}
+                  </p>
+                  
+                  {maxMoisVictoire === 0 ? (
+                     <div className="py-8">
+                       <h2 className={`${spaceGrotesk.className} text-3xl font-black text-white uppercase mb-4`}>Aucun tirage pour le moment</h2>
+                       <p className="text-base font-medium text-zinc-400">Le premier tirage n'a pas encore été effectué par l'administrateur.</p>
+                     </div>
+                  ) : !revealed ? (
+                     isSpinning ? (
+                        <div className="flex flex-col items-center py-8">
+                           <div className="w-24 h-24 rounded-full border-4 border-t-transparent animate-spin mb-8" style={{ borderColor: `${tontine?.theme_color || '#39FF14'}40`, borderTopColor: tontine?.theme_color || '#39FF14' }}></div>
+                           <p className="text-3xl md:text-5xl font-black text-white uppercase tracking-widest animate-pulse drop-shadow-lg">{spinName || "Mélange..."}</p>
+                           <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-6">Découverte des gagnants...</p>
+                        </div>
+                     ) : (
+                        <div className="flex flex-col items-center py-8 gap-6">
+                           <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black text-white uppercase mb-4 leading-tight`}>Les gagnants ont été tirés !</h2>
+                           <button onClick={handleReveal} className="px-10 py-5 rounded-[2.5rem] font-black text-base uppercase tracking-widest transition-all shadow-xl hover:scale-105 flex items-center gap-3 animate-bounce" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
+                              <Trophy size={24}/> Découvrir les gagnants
+                           </button>
+                        </div>
+                     )
+                  ) : (
+                     <div className="animate-in slide-in-from-bottom-8 fade-in duration-500 w-full">
+                        <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black text-white uppercase mb-8`}>Félicitations !</h2>
+                        <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                           {recentWinners.map((winner: any) => (
+                              <div key={winner.id} className="bg-zinc-900 border-2 p-5 md:p-6 rounded-3xl flex items-center gap-5 text-left shadow-lg" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+                                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center shrink-0"><Medal size={28} style={{ color: tontine?.theme_color || '#39FF14' }}/></div>
+                                 <div className="flex-1 min-w-0">
+                                    <p className="font-black text-white uppercase text-lg leading-tight truncate">{winner.prenom_nom}</p>
+                                    <p className="font-black text-sm mt-1" style={{ color: tontine?.theme_color || '#39FF14' }}>{montantParGagnant.toLocaleString()} F CFA</p>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  )}
+               </div>
+            </section>
 
-           {/* Jauge de progression */}
-           <div className="w-full bg-zinc-800 rounded-full h-3 mb-3 relative z-10 overflow-hidden">
-              <div 
-                className="h-3 rounded-full transition-all duration-1000" 
-                style={{ width: `${progressPercentage}%`, backgroundColor: tontine.theme_color, boxShadow: `0 0 10px ${tontine.theme_color}` }}
-              ></div>
-           </div>
-           
-           <div className="flex justify-between items-center relative z-10">
-              <p className="text-xs text-zinc-400 font-bold">{cotisationsCeMois.length} membres sur {totalMembres} ont payé</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-black px-2 py-1 rounded shadow-md flex items-center gap-1" style={{ backgroundColor: tontine.theme_color }}>
-                <Calendar size={10} /> {dateTirage}
-              </p>
-           </div>
-        </section>
+            {/* --- 4. TRANSPARENCE (TIRAGES & ATTENTE) --- */}
+            <section>
+               <div className="flex gap-2 p-2 bg-zinc-100 rounded-[1.5rem] mb-6">
+                  <button 
+                    onClick={() => setActiveTab('historique')} 
+                    className={`flex-1 py-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'historique' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'}`}
+                  >
+                    Historique Gagnants
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('attente')} 
+                    className={`flex-1 py-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'attente' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'}`}
+                  >
+                    En Attente ({waitingList.length})
+                  </button>
+               </div>
 
-        {/* --- 3. MOTEUR DE TIRAGE (RÉVÉLATION GAGNANTS) --- */}
-        <section className="bg-black rounded-[3rem] p-8 md:p-10 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
-           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
-           
-           <div className="relative z-10 w-full">
-              <p className="font-black uppercase tracking-[0.3em] text-[10px] mb-4 flex items-center justify-center gap-2" style={{ color: tontine?.theme_color || '#39FF14' }}>
-                 <Shuffle size={14}/> Tirage du Mois {maxMoisVictoire > 0 ? maxMoisVictoire : 1}
-              </p>
-              
-              {maxMoisVictoire === 0 ? (
-                 <div className="py-8">
-                   <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black text-white uppercase mb-4`}>Aucun tirage pour le moment</h2>
-                   <p className="text-sm font-bold text-zinc-400">Le premier tirage n'a pas encore été effectué par l'administrateur.</p>
-                 </div>
-              ) : !revealed ? (
-                 isSpinning ? (
-                    <div className="flex flex-col items-center py-8">
-                       <div className="w-20 h-20 rounded-full border-4 border-t-transparent animate-spin mb-6" style={{ borderColor: `${tontine?.theme_color || '#39FF14'}40`, borderTopColor: tontine?.theme_color || '#39FF14' }}></div>
-                       <p className="text-2xl md:text-4xl font-black text-white uppercase tracking-widest animate-pulse drop-shadow-lg">{spinName || "Mélange..."}</p>
-                       <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-4">Découverte des gagnants...</p>
-                    </div>
-                 ) : (
-                    <div className="flex flex-col items-center py-8 gap-4">
-                       <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black text-white uppercase mb-4 leading-tight`}>Les gagnants ont été tirés !</h2>
-                       <button onClick={handleReveal} className="px-8 py-4 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all shadow-xl hover:scale-105 flex items-center gap-3 animate-bounce" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
-                          <Trophy size={20}/> Découvrir les gagnants
-                       </button>
-                    </div>
-                 )
-              ) : (
-                 <div className="animate-in slide-in-from-bottom-8 fade-in duration-500 w-full">
-                    <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black text-white uppercase mb-6`}>Félicitations !</h2>
-                    <div className="grid sm:grid-cols-2 gap-4 max-w-lg mx-auto">
-                       {recentWinners.map((winner: any) => (
-                          <div key={winner.id} className="bg-zinc-900 border-2 p-4 rounded-3xl flex items-center gap-4 text-left shadow-lg" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
-                             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center shrink-0"><Medal size={24} style={{ color: tontine?.theme_color || '#39FF14' }}/></div>
-                             <div className="flex-1 min-w-0">
-                                <p className="font-black text-white uppercase text-base leading-none truncate">{winner.prenom_nom}</p>
-                                <p className="font-black text-[10px] mt-1" style={{ color: tontine?.theme_color || '#39FF14' }}>{montantParGagnant.toLocaleString()} F CFA</p>
-                             </div>
-                          </div>
-                       ))}
-                    </div>
-                 </div>
-              )}
-           </div>
-        </section>
-
-        {/* --- 4. TRANSPARENCE (TIRAGES & ATTENTE) --- */}
-        <section>
-           <div className="flex gap-2 p-1.5 bg-zinc-100 rounded-2xl mb-4">
-              <button 
-                onClick={() => setActiveTab('historique')} 
-                className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'historique' ? 'bg-white text-black shadow-sm' : 'text-zinc-500'}`}
-              >
-                Historique Gagnants
-              </button>
-              <button 
-                onClick={() => setActiveTab('attente')} 
-                className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'attente' ? 'bg-white text-black shadow-sm' : 'text-zinc-500'}`}
-              >
-                En Attente ({waitingList.length})
-              </button>
-           </div>
-
-           {activeTab === 'historique' ? (
-              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4">
-                 <div className="bg-zinc-100 border border-zinc-200 p-4 rounded-[1.5rem] flex items-start gap-4">
-                    <div className="bg-black p-2.5 rounded-xl mt-1" style={{ color: tontine.theme_color }}><ShieldCheck size={18}/></div>
-                    <div>
-                       <p className="text-sm font-black text-black">Zéro Magouille garantie.</p>
-                       <p className="text-xs text-zinc-600 font-medium mt-1 leading-relaxed">Les tirages sont effectués automatiquement par le système et envoyés en vidéo dans le groupe.</p>
-                    </div>
-                 </div>
-                 
-                 {winnersHistory.map((h: any, i: number) => (
-                    <div key={i} className="bg-white border border-zinc-200 p-5 rounded-[1.5rem] shadow-sm flex items-center justify-between">
-                       <div>
-                          <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded mb-2 inline-block">Mois {h.mois} • {h.date}</span>
-                          <p className="font-black text-black uppercase line-clamp-1">{h.winners.join(" & ")}</p>
-                       </div>
-                       <div className="text-right">
-                          <p className="text-sm font-black text-green-600">{h.amount.toLocaleString()} F</p>
-                          <p className="text-[10px] font-bold text-zinc-500 uppercase mt-0.5">Distribués</p>
-                       </div>
-                    </div>
-                 ))}
-              </div>
-           ) : (
-              <div className="bg-white border border-zinc-200 p-6 rounded-[1.5rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
-                 <p className="text-xs text-zinc-500 font-bold mb-4">Ces membres (y compris vous) participeront aux prochains tirages au sort mensuels.</p>
-                 <div className="grid grid-cols-2 gap-3">
-                    {waitingList.map((m: any, i: number) => (
-                       <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${m.id === currentUser.id ? 'bg-black text-white border-black' : 'bg-zinc-50 text-zinc-700 border-zinc-100'}`}>
-                          <Lock size={14} style={{ color: m.id === currentUser.id ? tontine.theme_color : '#a1a1aa' }} />
-                          <span className="text-xs font-black uppercase truncate">{m.prenom_nom.split(' ')[0]} {m.id === currentUser.id && "(Vous)"}</span>
-                       </div>
-                    ))}
-                 </div>
-              </div>
-           )}
-        </section>
+               {activeTab === 'historique' ? (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                     <div className="bg-zinc-100 border border-zinc-200 p-6 rounded-[2rem] flex items-start gap-4">
+                        <div className="bg-black p-3 rounded-2xl mt-1 shadow-md" style={{ color: tontine.theme_color }}><ShieldCheck size={24}/></div>
+                        <div>
+                           <p className="text-base font-black text-black">Zéro Magouille garantie.</p>
+                           <p className="text-sm text-zinc-600 font-medium mt-1 leading-relaxed">Les tirages sont effectués automatiquement par le système et enregistrés en toute transparence.</p>
+                        </div>
+                     </div>
+                     
+                     {winnersHistory.map((h: any, i: number) => (
+                        <div key={i} className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex items-center justify-between hover:border-black transition-colors">
+                           <div>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 bg-zinc-100 px-3 py-1 rounded mb-3 inline-block">Mois {h.mois} • {h.date}</span>
+                              <p className="font-black text-black uppercase text-lg">{h.winners.join(" & ")}</p>
+                           </div>
+                           <div className="text-right">
+                              <p className="text-lg font-black text-green-600">{h.amount.toLocaleString()} F</p>
+                              <p className="text-[10px] font-bold text-zinc-500 uppercase mt-1 tracking-widest">Distribués</p>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               ) : (
+                  <div className="bg-white border border-zinc-200 p-8 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
+                     <p className="text-sm text-zinc-500 font-bold mb-6">Ces membres (y compris vous) participeront aux prochains tirages au sort mensuels.</p>
+                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {waitingList.map((m: any, i: number) => (
+                           <div key={i} className={`flex items-center gap-3 p-4 rounded-2xl border ${m.id === currentUser.id ? 'bg-black text-white border-black shadow-lg' : 'bg-zinc-50 text-zinc-700 border-zinc-100 hover:border-zinc-300'}`}>
+                              <Lock size={16} style={{ color: m.id === currentUser.id ? tontine.theme_color : '#a1a1aa' }} />
+                              <span className="text-sm font-black uppercase truncate">{m.prenom_nom.split(' ')[0]} {m.id === currentUser.id && "(Vous)"}</span>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+               )}
+            </section>
+          </div>
+        </div>
       </main>
 
       {/* --- BOUTON D'ACTION FIXE (MOBILE BOTTOM BAR) --- */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] md:hidden">
           <div className="max-w-2xl mx-auto">
              {isUserUpToDate ? (
                <button disabled className="w-full bg-zinc-100 text-zinc-400 py-4 rounded-2xl font-black uppercase text-sm flex justify-center items-center gap-2 cursor-not-allowed border border-zinc-200">

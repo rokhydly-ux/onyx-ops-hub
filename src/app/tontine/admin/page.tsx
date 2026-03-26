@@ -9,7 +9,7 @@ import {
   Medal, Search, Download, Copy, Check, Clock,
   RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle,
   Camera, FileSpreadsheet, UserPlus, ArrowUpDown, PiggyBank,
-  Lock, FileText, History, HelpCircle
+  Lock, FileText, History, HelpCircle, Gift
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
@@ -28,6 +28,9 @@ type Member = {
   date_paiement?: string;
   cotisation_individuelle?: number;
   photo_url?: string;
+  poste?: string;
+  date_naissance?: string;
+  date_naissance_modifiee?: boolean;
 };
 
 export default function TontineAdminDashboard() {
@@ -227,6 +230,15 @@ export default function TontineAdminDashboard() {
   const moisEcoules = Math.floor(totalGagnants / (tontine?.gagnants_par_mois || 2));
   const progressionPourcentage = Math.min((moisEcoules / dureeTotale) * 100, 100);
 
+  // --- ANNIVERSAIRES ---
+  const currentMonthIndex = new Date().getMonth() + 1;
+  const birthdayMembers = membres.filter(m => {
+    if (!m.date_naissance) return false;
+    const parts = m.date_naissance.split('-');
+    if (parts.length < 2) return false;
+    return parseInt(parts[1]) === currentMonthIndex;
+  });
+
   // --- HISTORIQUE DES GAGNANTS ---
   const winnersHistoryRaw = membres.filter(m => m.a_gagne).reduce((acc: any, m: Member) => {
     const mois = m.mois_victoire;
@@ -313,26 +325,29 @@ export default function TontineAdminDashboard() {
     setIsSavingMember(true);
     try {
       let memberId = editingMember.id;
-      if (memberId) {
-        await supabase.from('membres').update({ prenom_nom: editingMember.prenom_nom, telephone: editingMember.telephone, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', memberId);
-      } else {
-        const { data: newM } = await supabase.from('membres').insert({
-          tontine_id: tontine.id,
+      
+      const payload = {
           prenom_nom: editingMember.prenom_nom,
           telephone: editingMember.telephone,
           cotisation_individuelle: editingMember.cotisation_individuelle,
-          photo_url: editingMember.photo_url
+          photo_url: editingMember.photo_url,
+          poste: editingMember.poste,
+          date_naissance: editingMember.date_naissance,
+          date_naissance_modifiee: false // Admin force la remise à zéro du verrou
+      };
+
+      if (memberId) {
+        await supabase.from('membres').update({ ...payload, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', memberId);
+      } else {
+        const { data: newM } = await supabase.from('membres').insert({
+          tontine_id: tontine.id,
+          ...payload
         }).select().single();
         if (newM) memberId = newM.id;
       }
 
       // Gestion intelligente du paiement (Table cotisations)
       if (memberId) {
-         await supabase.from('membres').update({ 
-            cotisation_individuelle: editingMember.cotisation_individuelle,
-            photo_url: editingMember.photo_url
-         }).eq('id', memberId);
-
          if (editingMember.statutPaiement === 'À jour') {
              const { data: existing } = await supabase.from('cotisations').select('*').eq('membre_id', memberId).eq('mois_numero', currentMonth).eq('statut', 'Payé').maybeSingle();
              
@@ -594,6 +609,11 @@ export default function TontineAdminDashboard() {
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
+    
+    // Petit son de succès
+    const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
+    audio.volume = 0.4;
+    audio.play().catch(() => {});
   };
 
   const handleLogout = async () => {
@@ -819,6 +839,19 @@ export default function TontineAdminDashboard() {
            </button>
         </div>
 
+        {/* ALERTE ANNIVERSAIRE */}
+        {birthdayMembers.length > 0 && (
+           <div className="mb-12 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-[2rem] p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center gap-6 animate-in slide-in-from-bottom-4">
+              <div className="bg-white/20 p-4 rounded-full text-white animate-bounce shadow-sm">
+                 <Gift size={32} />
+              </div>
+              <div className="text-center md:text-left">
+                 <h3 className={`${spaceGrotesk.className} text-xl md:text-2xl font-black text-white uppercase tracking-tighter mb-1`}>🎉 Joyeux Anniversaire !</h3>
+                 <p className="text-yellow-900 font-bold text-sm md:text-base">C'est l'anniversaire de <span className="text-black font-black uppercase">{birthdayMembers.map(m => m.prenom_nom).join(', ')}</span> ce mois-ci ! Un tirage exceptionnel est peut-être de mise.</p>
+              </div>
+           </div>
+        )}
+
         {/* MOTEUR DE TIRAGE (LA FEATURE CENTRALE) */}
         <div id="draw-section" className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl mb-12 relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
@@ -1005,6 +1038,7 @@ export default function TontineAdminDashboard() {
                  <thead className="bg-zinc-50/80 border-b border-zinc-100">
                     <tr>
                        <th className="p-5 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Membre & Contact</th>
+                       <th className="p-5 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 hidden md:table-cell">Poste</th>
                        <th className="p-5 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Cotisation</th>
                        <th className="p-5 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Statut Tirage</th>
                        <th className="p-5 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Paiement</th>
@@ -1041,6 +1075,9 @@ export default function TontineAdminDashboard() {
                                    <p className="text-[10px] font-bold text-zinc-500 mt-0.5">{m.telephone || "Non renseigné"}</p>
                                 </div>
                              </div>
+                          </td>
+                          <td className="p-5 hidden md:table-cell">
+                             <span className="bg-zinc-100 text-zinc-600 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest">{m.poste || '-'}</span>
                           </td>
                           <td className="p-5">
                              <p className="font-black text-black">{(m.cotisation_individuelle || tontine?.montant_mensuel || 20000).toLocaleString()} F</p>
@@ -1135,6 +1172,28 @@ export default function TontineAdminDashboard() {
                        className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
                        placeholder="77 xxx xx xx"
                      />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Poste / Profession</label>
+                        <input 
+                          type="text" 
+                          value={editingMember.poste || ''} 
+                          onChange={(e) => setEditingMember({...editingMember, poste: e.target.value})} 
+                          className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
+                          placeholder="Ex: Commerçante"
+                        />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Date de Naissance</label>
+                        <input 
+                          type="date" 
+                          value={editingMember.date_naissance || ''} 
+                          onChange={(e) => setEditingMember({...editingMember, date_naissance: e.target.value})} 
+                          className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
+                        />
+                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
