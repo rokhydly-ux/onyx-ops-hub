@@ -98,8 +98,7 @@ export default function TontineMembreDashboard() {
   const winnersHistoryRaw = members.filter(m => m.a_gagne).reduce((acc: any, m: any) => {
     const mois = m.mois_victoire;
     if (!acc[mois]) acc[mois] = [];
-    acc[mois].push(m.prenom_nom);
-    return acc;
+    acc[mois].push({ nom: m.prenom_nom, photo: m.photo_url
   }, {});
   
   const winnersHistory = Object.keys(winnersHistoryRaw).map(mois => ({
@@ -468,7 +467,20 @@ export default function TontineMembreDashboard() {
                         <div key={i} className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex items-center justify-between hover:border-black transition-colors">
                            <div>
                               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 bg-zinc-100 px-3 py-1 rounded mb-3 inline-block">Mois {h.mois} • {h.date}</span>
-                              <p className="font-black text-black uppercase text-lg">{h.winners.join(" & ")}</p>
+                              <div className="flex flex-wrap items-center gap-2 mt-1">
+                                 {h.winners.map((w: any, wIdx: number) => (
+                                    <div key={wIdx} className="flex items-center gap-2">
+                                       <div className="flex items-center gap-2.5 bg-zinc-50 pl-1.5 pr-4 py-1.5 rounded-full border border-zinc-200 shadow-sm hover:border-black transition-colors">
+                                          <div className="w-8 h-8 rounded-full bg-black overflow-hidden flex items-center justify-center text-[10px] font-black text-white shrink-0">
+                                             {w.photo ? <img src={w.photo} alt={w.nom} className="w-full h-full object-cover" /> : w.nom.substring(0, 2).toUpperCase()}
+                                          </div>
+                                          <span className="font-black text-black uppercase text-sm flex items-center gap-1">
+                                             {w.nom} {w.is_admin && <ShieldCheck size={14} classNt 
+                                       </div>
+                                       {wIdx < h.winners.length - 1 && <span className="text-zinc-300 font-black text-lg">&</span>}
+                                    </div>
+                                 ))}
+                              </div>
                            </div>
                            <div className="text-right">
                               <p className="text-lg font-black text-green-600">{h.amount.toLocaleString()} F</p>
@@ -484,7 +496,9 @@ export default function TontineMembreDashboard() {
                         {waitingList.map((m: any, i: number) => (
                            <div key={i} className={`flex items-center gap-3 p-4 rounded-2xl border ${m.id === currentUser.id ? 'bg-black text-white border-black shadow-lg' : 'bg-zinc-50 text-zinc-700 border-zinc-100 hover:border-zinc-300'}`}>
                               <Lock size={16} style={{ color: m.id === currentUser.id ? tontine.theme_color : '#a1a1aa' }} />
-                              <span className="text-sm font-black uppercase truncate">{m.prenom_nom.split(' ')[0]} {m.id === currentUser.id && "(Vous)"}</span>
+                              <span className="text-sm font-black uppercase truncate flex items-center gap-1.5">
+                                 {m.prenom_nom.split(' ')[0]} {m.id === currentUser.id && "(Vous)"} 
+                              </span>
                            </div>
                         ))}
                      </div>

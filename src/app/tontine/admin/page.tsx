@@ -9,7 +9,7 @@ import {
   Medal, Search, Download, Copy, Check, Clock,
   RotateCcw, LogOut, Home, Settings, Loader2, MessageCircle, AlertTriangle,
   Camera, FileSpreadsheet, UserPlus, ArrowUpDown, PiggyBank,
-  Lock, FileText, History, HelpCircle, Gift
+  Lock, FileText, History, HelpCircle, Gift, ShieldCheck
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
@@ -31,6 +31,7 @@ type Member = {
   poste?: string;
   date_naissance?: string;
   date_naissance_modifiee?: boolean;
+  is_admin?: boolean;
 };
 
 export default function TontineAdminDashboard() {
@@ -252,7 +253,7 @@ export default function TontineAdminDashboard() {
     const mois = m.mois_victoire;
     if (!mois) return acc;
     if (!acc[mois]) acc[mois] = [];
-    acc[mois].push(m.prenom_nom);
+    acc[mois].push({ nom: m.prenom_nom, photo: m.photo_url, is_admin: m.is_admin });
     return acc;
   }, {});
   const pastMonthsList = Object.keys(winnersHistoryRaw).map(Number).sort((a, b) => b - a);
@@ -341,7 +342,8 @@ export default function TontineAdminDashboard() {
           photo_url: editingMember.photo_url || null,
           poste: editingMember.poste || null,
           date_naissance: editingMember.date_naissance || null,
-          date_naissance_modifiee: false // Admin force la remise à zéro du verrou
+          date_naissance_modifiee: false, // Admin force la remise à zéro du verrou
+          is_admin: editingMember.is_admin || false
       };
 
       if (memberId) {
@@ -1006,7 +1008,19 @@ export default function TontineAdminDashboard() {
                           </div>
                           <div>
                              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Gagnants</p>
-                             <p className="font-black uppercase text-sm leading-tight text-black">{winnersHistoryRaw[mois].join(" & ")}</p>
+                             <div className="flex flex-col gap-2 mt-2">
+                                {winnersHistoryRaw[mois].map((w: any, wIdx: number) => (
+                                   <div key={wIdx} className="flex items-center gap-2 bg-zinc-50 pl-1.5 pr-3 py-1.5 rounded-full border border-zinc-100 hover:border-zinc-300 transition-colors">
+                                      <div className="w-6 h-6 rounded-full bg-black overflow-hidden flex items-center justify-center text-[8px] font-black text-white shrink-0">
+                                         {w.photo ? <img src={w.photo} alt={w.nom} className="w-full h-full object-cover" /> : w.nom.substring(0, 2).toUpperCase()}
+                                      </div>
+                                      <span className="font-black uppercase text-xs leading-tight text-black truncate flex items-center gap-1" title={w.nom}>
+                                         {w.nom}
+                                         {w.is_admin && <ShieldCheck size={12} className="text-yellow-500" title="Gérant" />}
+                                      </span>
+                                   </div>
+                                ))}
+                             </div>
                           </div>
                        </div>
                     ))}
@@ -1135,7 +1149,10 @@ export default function TontineAdminDashboard() {
                                    )}
                                 </div>
                                 <div>
-                                   <p className="font-black text-sm uppercase text-black">{m.prenom_nom}</p>
+                                   <div className="flex items-center gap-2">
+                                      <p className="font-black text-sm uppercase text-black">{m.prenom_nom}</p>
+                                      {m.is_admin && <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[9px] font-black tracking-widest flex items-center gap-1 shadow-sm"><ShieldCheck size={10}/> ADMIN</span>}
+                                   </div>
                                    <p className="text-[10px] font-bold text-zinc-500 mt-0.5">{m.telephone || "Non renseigné"}</p>
                                 </div>
                              </div>
@@ -1318,8 +1335,8 @@ export default function TontineAdminDashboard() {
                   </div>
 
                   {/* Option Avancée Admin */}
-                  {editingMember.id && (
-                     <div className="pt-4 mt-2 border-t border-zinc-100 flex items-center justify-between">
+                  <div className="pt-4 mt-4 border-t border-zinc-100 flex flex-col gap-3">
+                     {editingMember.id && (
                         <label className="text-xs font-bold text-zinc-600 cursor-pointer flex items-center gap-2">
                            <input 
                              type="checkbox" 
@@ -1329,8 +1346,17 @@ export default function TontineAdminDashboard() {
                            />
                            A déjà gagné le tirage
                         </label>
-                     </div>
-                  )}
+                     )}
+                     <label className="text-xs font-bold text-zinc-600 cursor-pointer flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked={editingMember.is_admin || false} 
+                          onChange={(e) => setEditingMember({...editingMember, is_admin: e.target.checked})}
+                          className="w-4 h-4 accent-yellow-500"
+                        />
+                        👑 Ce membre est le Gérant (Admin)
+                     </label>
+                  </div>
 
                   <button type="submit" disabled={isSavingMember} className="w-full text-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50"
                     style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
