@@ -119,53 +119,28 @@ function TontineMembreDashboard() {
 
     try {
       // 1. On récupère l'ID de la tontine depuis l'URL
-      const searchParams = new URLSearchParams(window.location.search);
-      const tontineId = searchParams.get('tontine_id');
-
-      if (!tontineId) {
-        // Fallback to the one from component props if 'tontine_id' is not in URL
-        const componentTontineId = new URLSearchParams(window.location.search).get('id');
-        if (!componentTontineId) throw new Error("Lien de tontine invalide.");
-        // This is a bit redundant but ensures we don't break other parts
-        // and still try the user's suggestion.
-        const { data: members, error: fetchErr } = await supabase
-          .from('membres')
-          .select('*')
-          .eq('tontine_id', componentTontineId);
-
-        if (fetchErr) throw fetchErr;
-        
-        const cleanPhone = phone.replace(/\s+/g, '').trim();
-        const cleanPin = pin.trim();
-        const matchedMember = members?.find(m => {
-            const dbPhone = (m.telephone || '').replace(/\s+/g, '').trim();
-            return dbPhone === cleanPhone && String(m.code_secret) === cleanPin;
-        });
-        if (!matchedMember) {
-            throw new Error("Numéro ou code PIN incorrect.");
-        }
-        localStorage.setItem(`tontine_session_${componentTontineId}`, matchedMember.id);
-        await fetchDashboardData(matchedMember, tontine);
-
-        return;
-      }
+      const urlParams = new URLSearchParams(window.location.search);
+      const activeTontineId = urlParams.get('tontine_id') || urlParams.get('id');
       
+      if (!activeTontineId) throw new Error("Lien de tontine invalide.");
+
       // 2. Nettoyage STRICTURE des inputs (Enlève tous les espaces du numéro tapé)
       const cleanPhone = phone.replace(/\s+/g, '').trim();
       const cleanPin = pin.trim();
       
       if (!cleanPhone || !cleanPin) throw new Error("Veuillez remplir tous les champs.");
       
-      // 3. Requête Supabase
-      const { data: members, error: fetchErr } = await supabase
+      // 3. Requête Supabase : On demande tous les membres de cette tontine pour filtrer en local
+      // C'est plus sûr car on peut nettoyer les numéros de la BDD à la volée
+      const { data: membersList, error: fetchErr } = await supabase
         .from('membres')
         .select('*')
-        .eq('tontine_id', tontineId);
+        .eq('tontine_id', activeTontineId);
       
       if (fetchErr) throw fetchErr;
       
-      // 4. Recherche du membre correspondant
-      const matchedMember = members?.find(m => {
+      // 4. Recherche du membre correspondant (en ignorant les espaces dans la BDD aussi)
+      const matchedMember = membersList?.find(m => {
         const dbPhone = (m.telephone || '').replace(/\s+/g, '').trim();
         return dbPhone === cleanPhone && String(m.code_secret) === cleanPin;
       });
@@ -175,7 +150,7 @@ function TontineMembreDashboard() {
       }
       
       // 5. Succès !
-      localStorage.setItem(`tontine_session_${tontineId}`, matchedMember.id);
+      localStorage.setItem(`tontine_session_${activeTontineId}`, matchedMember.id);
       await fetchDashboardData(matchedMember, tontine);
       
     } catch (err: any) {
