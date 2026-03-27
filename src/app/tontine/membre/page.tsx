@@ -114,29 +114,45 @@ function TontineMembreDashboard() {
   // --- LOGIQUE DE CONNEXION ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoggingIn(true);
     setLoginError(null);
+    setIsLoggingIn(true);
 
-    if (!phone || !pin) {
-      setLoginError("Veuillez remplir tous les champs.");
+    try {
+      if (!tontineId) throw new Error("Lien de tontine invalide.");
+
+      // Nettoyage STRICTURE des inputs
+      const cleanPhone = phone.replace(/\s+/g, '').trim();
+      const cleanPin = pin.trim();
+
+      if (!cleanPhone || !cleanPin) throw new Error("Veuillez remplir tous les champs.");
+
+      // Requête Supabase : On demande tous les membres de cette tontine pour filtrer en local
+      const { data: members, error: fetchErr } = await supabase
+        .from('membres')
+        .select('*')
+        .eq('tontine_id', tontineId);
+
+      if (fetchErr) throw fetchErr;
+
+      // Recherche du membre correspondant (en ignorant les espaces)
+      const matchedMember = members?.find(m => {
+        const dbPhone = (m.telephone || '').replace(/\s+/g, '').trim();
+        return dbPhone === cleanPhone && String(m.code_secret) === cleanPin;
+      });
+
+      if (!matchedMember) {
+        throw new Error("Numéro ou code PIN incorrect.");
+      }
+
+      // Succès !
+      localStorage.setItem(`tontine_session_${tontineId}`, matchedMember.id);
+      await fetchDashboardData(matchedMember, tontine);
+      
+    } catch (err: any) {
+      console.error("Erreur Connexion:", err.message);
+      setLoginError(err.message);
+    } finally {
       setIsLoggingIn(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('membres')
-      .select('*')
-      .eq('tontine_id', tontineId)
-      .eq('telephone', phone.replace(/\s+/g, ''))
-      .eq('code_secret', pin) // Assuming 'code_secret' column exists
-      .single();
-
-    if (error || !data) {
-      setLoginError("Numéro ou code PIN incorrect.");
-      setIsLoggingIn(false);
-    } else {
-      localStorage.setItem(`tontine_session_${tontineId}`, data.id);
-      await fetchDashboardData(data, tontine);
     }
   };
 
