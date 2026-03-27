@@ -32,6 +32,7 @@ type Member = {
   date_naissance?: string;
   date_naissance_modifiee?: boolean;
   is_admin?: boolean;
+  code_secret?: string;
 };
 
 export default function TontineAdminDashboard() {
@@ -343,7 +344,8 @@ export default function TontineAdminDashboard() {
           poste: editingMember.poste || null,
           date_naissance: editingMember.date_naissance || null,
           date_naissance_modifiee: false, // Admin force la remise à zéro du verrou
-          is_admin: editingMember.is_admin || false
+          is_admin: editingMember.is_admin || false,
+          code_secret: editingMember.code_secret || '0000'
       };
 
       if (memberId) {
@@ -663,6 +665,67 @@ export default function TontineAdminDashboard() {
     
     // Ouvre WhatsApp pour choisir le groupe et coller le texte
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  // --- TELECHARGEMENT DU REÇU DE GAIN (PDF / IMPRESSION) ---
+  const handleDownloadReceipt = (m: Member) => {
+    const date = new Date().toLocaleDateString('fr-FR');
+    const realAmount = montantParGagnant.toLocaleString('fr-FR');
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return alert("Veuillez autoriser les pop-ups pour afficher le reçu.");
+    
+    const themeColor = tontine?.theme_color || '#39FF14';
+    
+    const html = `
+      <html>
+        <head>
+          <title>Reçu de Gain - ${m.prenom_nom}</title>
+          <style>
+            body { font-family: 'Inter', 'Helvetica Neue', sans-serif; padding: 40px; color: #000; background: #e4e4e7; display: flex; justify-content: center; }
+            .receipt-card { background: #fff; width: 100%; max-width: 400px; padding: 40px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border-top: 10px solid ${themeColor}; position: relative; overflow: hidden; }
+            .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; font-weight: 900; color: rgba(0,0,0,0.03); white-space: nowrap; pointer-events: none; z-index: 0; }
+            .header { text-align: center; margin-bottom: 40px; position: relative; z-index: 1; }
+            .logo { width: 80px; height: 80px; border-radius: 20px; margin-bottom: 15px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+            .title { font-size: 26px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -1px; }
+            .subtitle { font-size: 11px; color: #71717a; text-transform: uppercase; letter-spacing: 3px; margin-top: 5px; font-weight: bold; }
+            .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px dashed #f4f4f5; padding-bottom: 15px; position: relative; z-index: 1; }
+            .label { color: #a1a1aa; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+            .value { font-size: 15px; font-weight: 900; text-align: right; text-transform: uppercase; }
+            .amount-box { background: #000; padding: 30px 20px; border-radius: 20px; text-align: center; margin: 30px 0; position: relative; z-index: 1; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+            .amount-label { font-size: 11px; color: #fff; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.8; font-weight: bold; }
+            .amount { font-size: 40px; font-weight: 900; color: ${themeColor}; letter-spacing: -1px; line-height: 1; }
+            .footer { text-align: center; font-size: 10px; color: #a1a1aa; margin-top: 40px; line-height: 1.6; font-weight: bold; position: relative; z-index: 1; }
+            @media print {
+               body { background: #fff; padding: 0; align-items: flex-start; }
+               .receipt-card { box-shadow: none; border-radius: 0; max-width: 100%; border-top-width: 15px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-card">
+            <div class="watermark">PAYÉ</div>
+            <div class="header">
+              ${tontine?.logo_url ? `<img src="${tontine.logo_url}" class="logo" />` : ''}
+              <h1 class="title">${tontine?.nom || 'Tontine'}</h1>
+              <p class="subtitle">Reçu de Gain Officiel</p>
+            </div>
+            <div class="row"><span class="label">Bénéficiaire</span><span class="value">${m.prenom_nom}</span></div>
+            <div class="row"><span class="label">Téléphone</span><span class="value">${m.telephone}</span></div>
+            <div class="row"><span class="label">Mois validé</span><span class="value">Tirage N°${m.mois_victoire}</span></div>
+            <div class="row"><span class="label">Date d'émission</span><span class="value">${date}</span></div>
+            <div class="amount-box">
+              <div class="amount-label">Cagnotte Remportée</div>
+              <div class="amount">${realAmount} F</div>
+            </div>
+            <div class="footer">Ce reçu est généré de manière sécurisée par OnyxOps.<br/>© ${new Date().getFullYear()} - Transparence & Fiabilité.</div>
+          </div>
+          <script>setTimeout(() => { window.print(); }, 500);</script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   return (
@@ -1165,9 +1228,14 @@ export default function TontineAdminDashboard() {
                           </td>
                           <td className="p-5">
                              {m.a_gagne ? (
-                                <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">
-                                   <CheckCircle size={12}/> A déjà bouffé (M{m.mois_victoire})
-                                </span>
+                                <div className="flex flex-col gap-1">
+                                   <span className="inline-flex w-max items-center gap-1 bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                      <CheckCircle size={12}/> A déjà gagné (M{m.mois_victoire})
+                                   </span>
+                                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                                      Gain : {montantParGagnant.toLocaleString()} F
+                                   </span>
+                                </div>
                              ) : (
                                 <span className="inline-flex items-center gap-1 bg-zinc-100 text-zinc-500 border border-zinc-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest">
                                    <Clock size={12}/> En attente
@@ -1176,8 +1244,10 @@ export default function TontineAdminDashboard() {
                           </td>
                           <td className="p-5">
                              {m.statutPaiement === 'À jour' ? (
-                                <div className="flex flex-col items-start gap-1">
-                                   <span className="text-[10px] font-black uppercase text-black bg-zinc-100 px-2 py-1 rounded-md">À Jour</span>
+                                <div className="flex flex-col gap-1">
+                                   <span className="text-[10px] font-black uppercase text-white bg-green-500 px-2 py-1 rounded-md flex items-center gap-1 w-max">
+                                      <CheckCircle size={10}/> À jour
+                                   </span>
                                    {m.date_paiement && <span className="text-[9px] font-bold text-zinc-500 uppercase">{new Date(m.date_paiement).toLocaleDateString('fr-FR')}</span>}
                                 </div>
                              ) : (
@@ -1186,10 +1256,15 @@ export default function TontineAdminDashboard() {
                                 </span>
                              )}
                           </td>
-                          <td className="p-5 text-right space-x-2">
+                          <td className="p-5 text-right flex items-center justify-end gap-2">
                              {m.statutPaiement === 'En retard' && (
                                <button onClick={() => sendLateReminder(m)} className="p-2.5 text-zinc-400 hover:text-green-500 hover:bg-green-50 rounded-xl transition" title="Relancer sur WhatsApp">
                                   <MessageCircle size={16}/>
+                               </button>
+                             )}
+                             {m.a_gagne && (
+                               <button onClick={() => handleDownloadReceipt(m)} className="p-2.5 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition" title="Télécharger le reçu (PDF)">
+                                  <Download size={16}/>
                                </button>
                              )}
                              <button 
@@ -1252,6 +1327,19 @@ export default function TontineAdminDashboard() {
                        onChange={(e) => setEditingMember({...editingMember, telephone: e.target.value})} 
                        className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
                        placeholder="77 xxx xx xx"
+                     />
+                  </div>
+
+                  <div>
+                     <label className="text-[10px] font-black uppercase text-zinc-500 ml-2 mb-1 block tracking-widest">Code PIN (4 chiffres)</label>
+                     <input 
+                       type="text" 
+                       pattern="\d*"
+                       maxLength={4}
+                       value={editingMember.code_secret || ''} 
+                       onChange={(e) => setEditingMember({...editingMember, code_secret: e.target.value.replace(/[^0-9]/g, '')})} 
+                       className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition"
+                       placeholder="Par défaut: 0000"
                      />
                   </div>
 
@@ -1337,43 +1425,40 @@ export default function TontineAdminDashboard() {
                   {/* Option Avancée Admin */}
                   <div className="pt-4 mt-4 border-t border-zinc-100 flex flex-col gap-3">
                      {editingMember.id && (
-                        <label className="text-xs font-bold text-zinc-600 cursor-pointer flex items-center gap-2">
-                           <input 
-                             type="checkbox" 
+                        <label className={`text-xs font-bold ${membres.find(m => m.id === editingMember.id)?.a_gagne ? 'text-zinc-400 cursor-not-allowed' : 'text-zinc-600 cursor-pointer'} flex items-center gap-2`}>
+                           <input
+                             type="checkbox"
                              checked={editingMember.a_gagne || false} 
                              onChange={(e) => setEditingMember({...editingMember, a_gagne: e.target.checked, mois_victoire: e.target.checked ? (editingMember.mois_victoire || currentMonth) : null})}
-                             className="w-4 h-4 accent-black"
+                             className="w-4 h-4"
                            />
-                           A déjà gagné le tirage
+                           {membres.find(m => m.id === editingMember.id)?.a_gagne ? `A déjà gagné (Mois ${editingMember.mois_victoire}) - Verrouillé` : 'A déjà gagné le tirage'}
                         </label>
                      )}
                      <label className="text-xs font-bold text-zinc-600 cursor-pointer flex items-center gap-2">
-                        <input 
-                          type="checkbox" 
-                          checked={editingMember.is_admin || false} 
+                        <input
+                          type="checkbox"
+                          checked={editingMember.is_admin || false}
                           onChange={(e) => setEditingMember({...editingMember, is_admin: e.target.checked})}
-                          className="w-4 h-4 accent-yellow-500"
+                          className="w-4 h-4"
                         />
-                        👑 Ce membre est le Gérant (Admin)
+                        Est administrateur
                      </label>
                   </div>
-
                   <button type="submit" disabled={isSavingMember} className="w-full text-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50"
                     style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
-                     {isSavingMember ? <span className="animate-spin"><Loader2 size={16}/></span> : <CheckCircle size={16}/>} 
-                     {isSavingMember ? 'Enregistrement...' : 'Enregistrer le membre'}
+                     {isSavingMember ? <span className="animate-spin"><Loader2 size={16} /></span> : <CheckCircle size={16}/>}
+                     {editingMember.id ? 'Enregistrer les modifications' : 'Ajouter le membre'}
                   </button>
                </form>
             </div>
          </div>
       )}
-
       {/* MODALE D'AIDE / TUTORIEL */}
       {showHelpModal && (
          <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && closeHelpModal()} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white p-8 md:p-10 rounded-[3rem] w-full max-w-lg relative shadow-2xl animate-in zoom-in-95 border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
                <button onClick={closeHelpModal} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
-               
                <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#39FF14] mb-6 shadow-lg">
                   <HelpCircle size={32} style={{ color: tontine?.theme_color || '#39FF14' }} />
                </div>

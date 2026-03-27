@@ -1,28 +1,46 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
   ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal,
-  Camera, Save, Loader2
+  Camera, Save, Loader2, Phone, KeyRound
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 
 const spaceGrotesk = { className: "font-sans" };
 
-export default function TontineMembreDashboard() {
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'historique' | 'attente'>('historique');
-  const [isPaying, setIsPaying] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'wave' | 'om' | null>(null);
-  
+// This is a wrapper to use useSearchParams on a client component
+function TontineMembrePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6"><Loader2 className="w-10 h-10 animate-spin text-black" /></div>}>
+      <TontineMembreDashboard />
+    </Suspense>
+  );
+}
+
+function TontineMembreDashboard() {
+  const searchParams = useSearchParams();
+  const tontineId = searchParams.get('id');
+
+  // --- ETATS DE CONNEXION & SESSION ---
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [phone, setPhone] = useState("");
+  const [pin, setPin] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
   // --- ETATS DE DONNEES BDD ---
   const [tontine, setTontine] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [cotisations, setCotisations] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // --- ETATS UI ---
+  const [activeTab, setActiveTab] = useState<'historique' | 'attente'>('historique');
   const [showConfetti, setShowConfetti] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinName, setSpinName] = useState("");
@@ -34,63 +52,117 @@ export default function TontineMembreDashboard() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showPhotoInput, setShowPhotoInput] = useState(false);
   
-  // --- CHARGEMENT DES DONNÉES ---
-  const fetchData = async () => {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tontineId = urlParams.get('id') || urlParams.get('tontine_id');
-      const membreId = urlParams.get('membre_id');
-      
-      if (!tontineId || tontineId === 'null' || tontineId === 'undefined') {
-        window.location.href = '/';
+  // --- CHARGEMENT INITIAL & GESTION DE SESSION ---
+  useEffect(() => {
+    const checkSessionAndFetchData = async () => {
+      if (!tontineId) {
+        setIsCheckingSession(false);
         return;
-      }
-      
-      // Utilisation de maybeSingle() pour éviter l'erreur de crash PostgreSQL (PGRST116)
-      const { data: tData, error } = await supabase.from('tontines').select('*').eq('id', tontineId).maybeSingle();
-      
-      if (error || !tData) {
-        window.location.href = '/';
-        return;
-      }
-      
-      setTontine(tData);
-      const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tData.id);
-      setMembers(mData || []);
-      
-      if (membreId && mData) {
-          const user = mData.find(m => m.id === membreId);
-          if (user) {
-              setCurrentUser(user);
-              setEditPhotoUrl(user.photo_url || '');
-              setEditDateNaissance(user.date_naissance || '');
-          }
       }
 
-      const { data: cData } = await supabase.from('cotisations').select('*');
-      setCotisations(cData || []);
-    } catch (err) {
-      console.error("Erreur Fetch Membre:", err);
-      window.location.href = '/';
+      // 1. Fetch Tontine info first
+      const { data: tData, error: tError } = await supabase
+        .from('tontines')
+        .select('*')
+        .eq('id', tontineId)
+        .single();
+
+      if (tError || !tData) {
+        console.error("Tontine not found:", tError);
+        setTontine(null); // To show invalid link
+        setIsCheckingSession(false);
+        return;
+      }
+      setTontine(tData);
+
+      // 2. Check for a persisted session in localStorage
+      const savedMemberId = localStorage.getItem(`tontine_session_${tontineId}`);
+      if (savedMemberId) {
+        const { data: memberData, error: memberError } = await supabase
+          .from('membres')
+          .select('*')
+          .eq('id', savedMemberId)
+          .single();
+        
+        if (memberData && !memberError) {
+          await fetchDashboardData(memberData, tData);
+        } else {
+          // Clear invalid session
+          localStorage.removeItem(`tontine_session_${tontineId}`);
+          setCurrentUser(null);
+        }
+      }
+      setIsCheckingSession(false);
+    };
+
+    checkSessionAndFetchData();
+  }, [tontineId]);
+
+  // --- FONCTION POUR CHARGER LES DONNÉES DU DASHBOARD ---
+  const fetchDashboardData = async (member: any, tontineData: any) => {
+    setCurrentUser(member);
+    setEditPhotoUrl(member.photo_url || '');
+    setEditDateNaissance(member.date_naissance || '');
+
+    const { data: allMembersData } = await supabase.from('membres').select('*').eq('tontine_id', tontineData.id);
+    const { data: allCotisationsData } = await supabase.from('cotisations').select('*');
+    
+    setMembers(allMembersData || []);
+    setCotisations(allCotisationsData || []);
+  };
+
+  // --- LOGIQUE DE CONNEXION ---
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError(null);
+
+    if (!phone || !pin) {
+      setLoginError("Veuillez remplir tous les champs.");
+      setIsLoggingIn(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('membres')
+      .select('*')
+      .eq('tontine_id', tontineId)
+      .eq('telephone', phone.replace(/\s+/g, ''))
+      .eq('code_secret', pin) // Assuming 'code_secret' column exists
+      .single();
+
+    if (error || !data) {
+      setLoginError("Numéro ou code PIN incorrect.");
+      setIsLoggingIn(false);
+    } else {
+      localStorage.setItem(`tontine_session_${tontineId}`, data.id);
+      await fetchDashboardData(data, tontine);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // --- LOGIQUE DE DÉCONNEXION ---
+  const handleLogout = () => {
+    if (tontineId) {
+      localStorage.removeItem(`tontine_session_${tontineId}`);
+    }
+    setCurrentUser(null);
+    setPhone("");
+    setPin("");
+    setLoginError(null);
+  };
 
-  // --- CALCULS GLOBAUX ---
+  // --- CALCULS GLOBAUX (identiques à l'ancien code, mais exécutés seulement si currentUser) ---
   const totalMembres = members.length;
   const totalGagnantsMois = tontine?.gagnants_par_mois || 2;
   const moisEcoules = Math.floor(members.filter(m => m.a_gagne).length / totalGagnantsMois);
   const currentMonth = moisEcoules + 1;
   const dateTirage = `05 du mois`;
   
-  const caisseMensuelle = totalMembres * (tontine?.montant_mensuel || 20000);
+  const caisseMensuelle = members.reduce((sum, m) => sum + (m.cotisation_individuelle || tontine?.montant_mensuel || 20000), 0);
   const cotisationsCeMois = cotisations.filter(c => c.mois_numero === currentMonth && c.statut === 'Payé');
   const actuelCaisse = cotisationsCeMois.reduce((acc, c) => acc + c.montant, 0);
   
-  const progressPercentage = (actuelCaisse / caisseMensuelle) * 100;
+  const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
   
   const isUserUpToDate = cotisationsCeMois.some(c => c.membre_id === currentUser?.id);
 
@@ -116,6 +188,7 @@ export default function TontineMembreDashboard() {
   const recentWinners = members.filter(m => m.a_gagne && m.mois_victoire === maxMoisVictoire);
   const montantParGagnant = tontine?.gagnants_par_mois ? caisseMensuelle / tontine.gagnants_par_mois : caisseMensuelle / 2;
 
+  // --- AUTRES FONCTIONS (handleReveal, handleSaveProfile, etc. - identiques) ---
   const handleReveal = () => {
     setIsSpinning(true);
     const eligible = members.length > 0 ? members : [{ prenom_nom: "Mélange..." }];
@@ -136,7 +209,6 @@ export default function TontineMembreDashboard() {
     }, 2500);
   };
 
-  // --- GESTION PROFIL ---
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
     try {
@@ -150,70 +222,95 @@ export default function TontineMembreDashboard() {
         }
 
         if (Object.keys(payload).length > 0) {
-            const { error } = await supabase.from('membres').update(payload).eq('id', currentUser.id);
+            const { data, error } = await supabase.from('membres').update(payload).eq('id', currentUser.id).select();
             if (error) throw error;
+            if (!data || data.length === 0) throw new Error("Sécurité Supabase : Enregistrement bloqué.");
+            
             setCurrentUser({...currentUser, ...payload});
+            
+            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
+            audio.volume = 0.4;
+            audio.play().catch(() => {});
         }
-    } catch (e) {
-        alert("Erreur lors de la mise à jour.");
+    } catch (e: any) {
+        alert(e.message || "Erreur lors de la mise à jour.");
     } finally {
         setIsSavingProfile(false);
     }
   };
 
-  // --- GESTION DU PAIEMENT ---
-  const handlePayment = async () => {
-    if (!paymentMethod) return alert("Veuillez sélectionner un moyen de paiement.");
-    setIsPaying(true);
-    
-    // Simulation paiement puis insertion BDD
-    setTimeout(async () => {
-      await supabase.from('cotisations').insert({
-        membre_id: currentUser?.id,
-        mois_numero: currentMonth,
-        montant: tontine?.montant_mensuel || 20000,
-        statut: 'Payé',
-        date_paiement: new Date().toISOString()
-      });
-      
-      fetchData(); // Rafraîchir
-      setIsPaying(false);
-      setShowPaymentModal(false);
-      alert(`Paiement de ${(tontine?.montant_mensuel || 20000).toLocaleString()} F via ${paymentMethod.toUpperCase()} enregistré avec succès !`);
-    }, 1500);
-  };
+  // --- RENDERING ---
 
-  if (!tontine) return <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6"><div className="w-10 h-10 border-4 border-t-black rounded-full animate-spin"></div></div>;
+  if (isCheckingSession) {
+    return <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6"><Loader2 className="w-10 h-10 animate-spin text-black" /></div>;
+  }
 
-  // ECRAN DE CONNEXION SIMULÉE
-  if (!currentUser) {
+  if (!tontineId || !tontine) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6 font-sans">
-         <div className="bg-white p-8 rounded-[2.5rem] shadow-xl w-full max-w-md border-t-[8px]" style={{ borderColor: tontine.theme_color || '#39FF14' }}>
-            <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 text-center leading-none`} style={{ color: tontine.theme_color || '#39FF14' }}>{tontine.nom}</h2>
-            <p className="text-xs text-zinc-500 font-bold uppercase text-center mb-8 tracking-widest">Simuler une connexion membre</p>
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
-              {members.map((m: any) => (
-                <button 
-                  key={m.id} 
-                  onClick={() => { 
-                     setCurrentUser(m);
-                     setEditPhotoUrl(m.photo_url || '');
-                     setEditDateNaissance(m.date_naissance || '');
-                     if(m.a_gagne) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 8000); } 
-                  }} 
-                  className="w-full text-left p-4 bg-zinc-50 hover:bg-zinc-100 hover:border-black rounded-xl font-black uppercase text-sm border border-zinc-200 transition"
-                >
-                  {m.prenom_nom}
-                </button>
-              ))}
-              {members.length === 0 && <p className="text-center text-zinc-400 text-xs font-bold uppercase">Aucun membre dans cette tontine.</p>}
-            </div>
-         </div>
+      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-6"><X size={40}/></div>
+        <h1 className={`${spaceGrotesk.className} text-2xl font-black uppercase text-red-600`}>Lien Invalide</h1>
+        <p className="text-zinc-600 mt-2">L'identifiant de la tontine est manquant ou incorrect.</p>
       </div>
     );
   }
 
+  // ECRAN DE CONNEXION
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-6 font-sans text-white">
+        <InteractiveParticles themeColor={tontine?.theme_color || '#39FF14'} />
+        <div className="w-full max-w-sm text-center z-10">
+          <div className="mx-auto w-20 h-20 bg-black rounded-3xl flex items-center justify-center shadow-lg border-2 border-zinc-800 mb-8">
+            {tontine.logo_url ? 
+              <img src={tontine.logo_url} alt="Logo" className="w-full h-full object-cover rounded-[1.4rem]" /> : 
+              <Users size={32} style={{ color: tontine.theme_color }} />
+            }
+          </div>
+          <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-2`} style={{ color: tontine.theme_color }}>{tontine.nom}</h1>
+          <p className="text-zinc-400 font-bold mb-10">Accédez à votre espace membre.</p>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="relative">
+              <Phone size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <input 
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Votre numéro de téléphone"
+                className="w-full bg-zinc-800 border-2 border-zinc-700 rounded-2xl p-4 pl-12 font-bold text-white outline-none focus:border-white transition"
+              />
+            </div>
+            <div className="relative">
+              <KeyRound size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <input 
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                placeholder="Code PIN (défaut: 0000)"
+                className="w-full bg-zinc-800 border-2 border-zinc-700 rounded-2xl p-4 pl-12 font-bold text-white outline-none focus:border-white transition"
+              />
+            </div>
+            
+            {loginError && <p className="text-red-400 text-xs font-bold pt-2">{loginError}</p>}
+
+            <button 
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full py-5 rounded-2xl font-black uppercase text-sm shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
+              style={{ backgroundColor: tontine.theme_color, color: '#000' }}
+            >
+              {isLoggingIn ? <Loader2 size={20} className="animate-spin" /> : 'Se connecter'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // DASHBOARD MEMBRE (le reste du code est quasi identique)
   return (
     <div className="min-h-screen bg-zinc-50 text-black font-sans pb-28">
       <InteractiveParticles themeColor={tontine?.theme_color || '#009FDF'} />
@@ -247,8 +344,8 @@ export default function TontineMembreDashboard() {
 
       {/* --- HEADER --- */}
       <header className="bg-white border-b border-zinc-200 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-2xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.location.reload()}>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-md font-black overflow-hidden" style={{ color: tontine.theme_color }}>
                 {tontine.logo_url ? <img src={tontine.logo_url} alt="Logo Tontine" className="w-full h-full object-cover" /> : <Users size={20}/>}
              </div>
@@ -261,7 +358,7 @@ export default function TontineMembreDashboard() {
              <div className="w-10 h-10 bg-zinc-200 rounded-full flex items-center justify-center shadow-sm font-black text-sm uppercase overflow-hidden text-black border-2 border-white">
                 {currentUser.photo_url ? <img src={currentUser.photo_url} alt="Avatar" className="w-full h-full object-cover" /> : currentUser.prenom_nom.substring(0, 2)}
              </div>
-             <button onClick={() => setCurrentUser(null)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors bg-zinc-100 hover:bg-red-50 rounded-full" title="Se déconnecter">
+             <button onClick={handleLogout} className="p-2 text-zinc-400 hover:text-red-500 transition-colors bg-zinc-100 hover:bg-red-50 rounded-full" title="Se déconnecter">
                <LogOut size={16} />
              </button>
           </div>
@@ -328,9 +425,14 @@ export default function TontineMembreDashboard() {
                   </div>
                   <div className="flex flex-col gap-2 items-end">
                      {currentUser.a_gagne && (
-                        <span className="bg-yellow-400 text-black border border-yellow-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1 animate-bounce">
-                           🎉 A DÉJÀ GAGNÉ
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                           <span className="bg-yellow-400 text-black border border-yellow-500 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1 animate-bounce">
+                              🎉 A DÉJÀ GAGNÉ
+                           </span>
+                           <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                              Mois {currentUser.mois_victoire} • {montantParGagnant.toLocaleString()} F CFA
+                           </span>
+                        </div>
                      )}
                      {isUserUpToDate ? (
                         <span className="bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
@@ -347,7 +449,7 @@ export default function TontineMembreDashboard() {
                <div className="grid grid-cols-2 gap-4">
                   <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Cotisation</p>
-                     <p className="text-xl font-black tracking-tighter">{tontine.montant_mensuel.toLocaleString()} <span className="text-sm text-zinc-400">F</span></p>
+                     <p className="text-xl font-black tracking-tighter">{(currentUser.cotisation_individuelle || tontine.montant_mensuel).toLocaleString()} <span className="text-sm text-zinc-400">F</span></p>
                   </div>
                   <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Historique</p>
@@ -511,86 +613,8 @@ export default function TontineMembreDashboard() {
           </div>
         </div>
       </main>
-
-      {/* --- BOUTON D'ACTION FIXE (MOBILE BOTTOM BAR) --- */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] md:hidden">
-          <div className="max-w-2xl mx-auto">
-             {isUserUpToDate ? (
-               <button disabled className="w-full bg-zinc-100 text-zinc-400 py-4 rounded-2xl font-black uppercase text-sm flex justify-center items-center gap-2 cursor-not-allowed border border-zinc-200">
-                  <CheckCircle size={18} /> Cotisation Mois {currentMonth} payée
-               </button>
-             ) : (
-               <button 
-                 onClick={() => setShowPaymentModal(true)} 
-                 className="w-full bg-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2"
-                 style={{ color: tontine.theme_color }}
-               >
-                  Payer ma cotisation ({tontine.montant_mensuel.toLocaleString()} F)
-               </button>
-             )}
-          </div>
-      </div>
-
-      {/* --- MODALE DE PAIEMENT SIMULÉE --- */}
-      {showPaymentModal && (
-        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowPaymentModal(false)} className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
-           <div className="bg-white w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 relative">
-              <button onClick={() => setShowPaymentModal(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-500 hover:text-black hover:bg-zinc-200 transition-colors"><X size={20}/></button>
-              
-              <div className="text-center mb-8 mt-2">
-                 <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-1`}>Régler ma cotisation</h3>
-                 <p className="text-zinc-500 text-sm font-bold">Mois {currentMonth}</p>
-                 <p className="text-4xl font-black tracking-tighter mt-4 text-black">{tontine.montant_mensuel.toLocaleString()} F</p>
-              </div>
-
-              <div className="space-y-3 mb-8">
-                 <label 
-                   className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'wave' ? 'border-[#1eb2e8] bg-[#1eb2e8]/5' : 'border-zinc-200 bg-white hover:border-zinc-300'}`}
-                 >
-                    <div className="flex items-center gap-4">
-                       <input 
-                         type="radio" 
-                         name="payment" 
-                         value="wave" 
-                         checked={paymentMethod === 'wave'} 
-                         onChange={() => setPaymentMethod('wave')}
-                         className="w-5 h-5 accent-[#1eb2e8]" 
-                       />
-                       <span className="font-black text-lg uppercase tracking-tighter">Wave</span>
-                    </div>
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm9rYPURKIok7K0ZF22oqFgMbzIHgNCauVQA&s" alt="Wave" className="h-6 rounded object-contain" />
-                 </label>
-
-                 <label 
-                   className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === 'om' ? 'border-[#ff6600] bg-[#ff6600]/5' : 'border-zinc-200 bg-white hover:border-zinc-300'}`}
-                 >
-                    <div className="flex items-center gap-4">
-                       <input 
-                         type="radio" 
-                         name="payment" 
-                         value="om" 
-                         checked={paymentMethod === 'om'} 
-                         onChange={() => setPaymentMethod('om')}
-                         className="w-5 h-5 accent-[#ff6600]" 
-                       />
-                       <span className="font-black text-lg uppercase tracking-tighter">Orange Money</span>
-                    </div>
-                    <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="OM" className="h-6 object-contain" />
-                 </label>
-              </div>
-
-              <button 
-                onClick={handlePayment} 
-                disabled={isPaying}
-                className="w-full bg-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ color: tontine.theme_color }}
-              >
-                 {isPaying ? 'Traitement en cours...' : 'Confirmer le paiement'} <ArrowRight size={18}/>
-              </button>
-              <p className="text-center text-[10px] text-zinc-400 font-bold uppercase mt-4 tracking-widest flex items-center justify-center gap-1"><Lock size={10}/> Paiement 100% sécurisé</p>
-           </div>
-        </div>
-      )}
     </div>
   );
 }
+
+export default TontineMembrePage;
