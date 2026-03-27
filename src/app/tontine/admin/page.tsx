@@ -411,39 +411,43 @@ export default function TontineAdminDashboard() {
     if (e) e.preventDefault();
     setIsSaving(true);
     try {
-      if (!tontine || !tontine.id) throw new Error("ID de la tontine introuvable.");
+      // Vérification de sécurité absolue
+      if (!currentUser || !currentUser.id) throw new Error("Utilisateur non identifié. Veuillez recharger la page.");
       
-      // On force les noms exacts des colonnes de la BDD
-      const payload: any = {
-        nom: tontine.nom,
-        logo_url: tontine.logo_url,
-        theme_color: tontine.theme_color,
+      // On prépare les données à sauvegarder
+      const payload = {
+        nom: tontine.nom || 'Nouvelle Tontine',
+        logo_url: tontine.logo_url || '',
+        theme_color: tontine.theme_color || '#39FF14',
         logo_scale: tontine.logo_scale || 100,
         duree_mois: tontine.duree_mois,
         montant_mensuel: tontine.montant_mensuel,
-        gagnants_par_mois: tontine.gagnants_par_mois
+        gagnants_par_mois: tontine.gagnants_par_mois,
+        start_date: tontine.start_date || null
       };
 
-      if (tontine.start_date) payload.start_date = tontine.start_date;
-      
+      // On utilise 'owner_id' au lieu de 'id' car l'owner_id (currentUser) est indestructible dans le state
       const { data, error } = await supabase
         .from('tontines')
         .update(payload)
-        .eq('id', tontine.id)
-        .select(); // Le .select() force Supabase à renvoyer la ligne modifiée
+        .eq('owner_id', currentUser.id) // LA CORRECTION EST ICI
+        .select();
 
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Aucune ligne modifiée. Vérifiez l'ID.");
+      if (!data || data.length === 0) throw new Error("Aucune tontine trouvée pour cet utilisateur.");
 
-      alert('Sauvegardé avec succès !');
+      // On met à jour le state proprement avec la donnée fraîche de la BDD
+      setTontine(data[0]);
+      alert('Paramètres sauvegardés avec succès !');
       setShowSettingsModal(false);
       
       // Petit son de succès
       const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
       audio.volume = 0.4;
       audio.play().catch(() => {});
-    } catch (err: any) {
-      alert("Erreur lors de la sauvegarde : " + err.message);
+    } catch (error: any) {
+      console.error("Erreur de sauvegarde des paramètres:", error);
+      alert("Erreur lors de la sauvegarde : " + error.message);
     } finally {
       setIsSaving(false);
     }
@@ -1547,7 +1551,7 @@ export default function TontineAdminDashboard() {
       {/* MODALE PARAMÈTRES TONTINE */}
       {showSettingsModal && (
          <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowSettingsModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white p-8 md:p-10 rounded-[3rem] w-full max-w-md relative shadow-2xl animate-in zoom-in-95 border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+            <div className="bg-white p-8 md:p-10 rounded-[3rem] w-full max-w-md relative shadow-2xl animate-in zoom-in-95 border-t-[8px] max-h-[90vh] overflow-y-auto custom-scrollbar" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
                <button onClick={() => setShowSettingsModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
                
                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-8`}>
@@ -1642,7 +1646,7 @@ export default function TontineAdminDashboard() {
                      </div>
                   </div>
 
-                  <button type="button" disabled={isSaving} onClick={handleSaveSettings} className="w-full text-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
+                  <button type="submit" disabled={isSaving} className="w-full text-black py-5 rounded-2xl font-black uppercase text-xs mt-6 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
                      {isSaving ? <span className="animate-spin"><Loader2 size={16} /></span> : <CheckCircle size={16}/>}
                      {isSaving ? 'Enregistrement...' : 'Sauvegarder les modifications'}
                   </button>
