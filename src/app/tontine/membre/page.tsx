@@ -118,33 +118,63 @@ function TontineMembreDashboard() {
     setIsLoggingIn(true);
 
     try {
-      if (!tontineId) throw new Error("Lien de tontine invalide.");
+      // 1. On récupère l'ID de la tontine depuis l'URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const tontineId = searchParams.get('tontine_id');
 
-      // Nettoyage STRICTURE des inputs
+      if (!tontineId) {
+        // Fallback to the one from component props if 'tontine_id' is not in URL
+        const componentTontineId = new URLSearchParams(window.location.search).get('id');
+        if (!componentTontineId) throw new Error("Lien de tontine invalide.");
+        // This is a bit redundant but ensures we don't break other parts
+        // and still try the user's suggestion.
+        const { data: members, error: fetchErr } = await supabase
+          .from('membres')
+          .select('*')
+          .eq('tontine_id', componentTontineId);
+
+        if (fetchErr) throw fetchErr;
+        
+        const cleanPhone = phone.replace(/\s+/g, '').trim();
+        const cleanPin = pin.trim();
+        const matchedMember = members?.find(m => {
+            const dbPhone = (m.telephone || '').replace(/\s+/g, '').trim();
+            return dbPhone === cleanPhone && String(m.code_secret) === cleanPin;
+        });
+        if (!matchedMember) {
+            throw new Error("Numéro ou code PIN incorrect.");
+        }
+        localStorage.setItem(`tontine_session_${componentTontineId}`, matchedMember.id);
+        await fetchDashboardData(matchedMember, tontine);
+
+        return;
+      }
+      
+      // 2. Nettoyage STRICTURE des inputs (Enlève tous les espaces du numéro tapé)
       const cleanPhone = phone.replace(/\s+/g, '').trim();
       const cleanPin = pin.trim();
-
+      
       if (!cleanPhone || !cleanPin) throw new Error("Veuillez remplir tous les champs.");
-
-      // Requête Supabase : On demande tous les membres de cette tontine pour filtrer en local
+      
+      // 3. Requête Supabase
       const { data: members, error: fetchErr } = await supabase
         .from('membres')
         .select('*')
         .eq('tontine_id', tontineId);
-
+      
       if (fetchErr) throw fetchErr;
-
-      // Recherche du membre correspondant (en ignorant les espaces)
+      
+      // 4. Recherche du membre correspondant
       const matchedMember = members?.find(m => {
         const dbPhone = (m.telephone || '').replace(/\s+/g, '').trim();
         return dbPhone === cleanPhone && String(m.code_secret) === cleanPin;
       });
-
+      
       if (!matchedMember) {
         throw new Error("Numéro ou code PIN incorrect.");
       }
-
-      // Succès !
+      
+      // 5. Succès !
       localStorage.setItem(`tontine_session_${tontineId}`, matchedMember.id);
       await fetchDashboardData(matchedMember, tontine);
       
