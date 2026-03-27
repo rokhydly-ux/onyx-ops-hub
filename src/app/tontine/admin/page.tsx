@@ -117,7 +117,7 @@ export default function TontineAdminDashboard() {
 
         // 4. Fetch Membres & Cotisations
         const { data: members } = await supabase
-          .from('membres')
+          .from('tontine_members')
           .select('*')
           .eq('tontine_id', targetTontine.id);
 
@@ -213,7 +213,7 @@ export default function TontineAdminDashboard() {
 
   const refreshMembers = async () => {
     if (!tontine || !tontine.id) return;
-    const { data: mData } = await supabase.from('membres').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
+    const { data: mData } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
     const { data: cData } = await supabase.from('cotisations').select('*');
     
     const totalGagnants = tontine.gagnants_par_mois || 2;
@@ -304,7 +304,7 @@ export default function TontineAdminDashboard() {
 
       // Mise à jour SUPABASE
       const { error } = await supabase
-        .from('membres')
+        .from('tontine_members')
         .update({ a_gagne: true, mois_victoire: currentMonth })
         .in('id', winners.map(w => w.id));
 
@@ -330,64 +330,82 @@ export default function TontineAdminDashboard() {
   // --- LOGIQUE CRUD ---
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingMember?.prenom_nom || !editingMember?.telephone) return alert("Veuillez remplir le nom et le téléphone.");
-
+    if (!editingMember?.prenom_nom || !editingMember?.telephone) {
+      alert("Veuillez remplir le nom et le téléphone.");
+      return;
+    }
+  
     setIsSavingMember(true);
     try {
-      let memberId = editingMember.id;
-      
-      const payload = {
+      if (editingMember.id) { // UPDATE LOGIC
+        const payload = {
+            prenom_nom: editingMember.prenom_nom,
+            telephone: editingMember.telephone,
+            cotisation_individuelle: editingMember.cotisation_individuelle || null,
+            photo_url: editingMember.photo_url || null,
+            poste: editingMember.poste || null,
+            date_naissance: editingMember.date_naissance || null,
+            date_naissance_modifiee: false,
+            is_admin: editingMember.is_admin || false,
+            code_secret: editingMember.code_secret || '0000'
+        };
+  
+        await supabase.from('tontine_members').update({ ...payload, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', editingMember.id);
+  
+        // Cotisations management
+        if (editingMember.statutPaiement === 'À jour') {
+            const { data: existing } = await supabase.from('cotisations').select('*').eq('membre_id', editingMember.id).eq('mois_numero', currentMonth).eq('statut', 'Payé').maybeSingle();
+            let paymentDate = new Date().toISOString();
+            if (editingMember.date_paiement) paymentDate = new Date(editingMember.date_paiement).toISOString();
+            if (!existing) {
+                await supabase.from('cotisations').insert({ membre_id: editingMember.id, mois_numero: currentMonth, montant: tontine.montant_mensuel, statut: 'Payé', date_paiement: paymentDate });
+            } else {
+                await supabase.from('cotisations').update({ date_paiement: paymentDate }).eq('id', existing.id);
+            }
+        } else {
+            await supabase.from('cotisations').delete().eq('membre_id', editingMember.id).eq('mois_numero', currentMonth);
+        }
+        alert('Membre modifié avec succès !');
+  
+      } else { // ADD LOGIC from user prompt
+        if (!tontine?.id) throw new Error("ID de la tontine manquant.");
+  
+        const payload = {
+          tontine_id: tontine.id,
           prenom_nom: editingMember.prenom_nom,
           telephone: editingMember.telephone,
-          cotisation_individuelle: editingMember.cotisation_individuelle || null,
-          photo_url: editingMember.photo_url || null,
           poste: editingMember.poste || null,
+          cotisation_individuelle: editingMember.cotisation_individuelle || tontine.montant_mensuel,
+          photo_url: editingMember.photo_url || null,
           date_naissance: editingMember.date_naissance || null,
-          date_naissance_modifiee: false, // Admin force la remise à zéro du verrou
-          is_admin: editingMember.is_admin || false,
-          code_secret: editingMember.code_secret || '0000'
-      };
-
-      if (memberId) {
-        await supabase.from('membres').update({ ...payload, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', memberId);
-      } else {
-        const { data: newM } = await supabase.from('membres').insert({
-          tontine_id: tontine.id,
-          ...payload
-        }).select().single();
-        if (newM) memberId = newM.id;
+          code_secret: '0000',
+          a_gagne: false
+        };
+  
+        const { data, error } = await supabase
+          .from('tontine_members')
+          .insert([payload])
+          .select();
+  
+        if (error) throw error;
+  
+        alert('Membre ajouté avec succès !');
       }
-
-      // Gestion intelligente du paiement (Table cotisations)
-      if (memberId) {
-         if (editingMember.statutPaiement === 'À jour') {
-             const { data: existing } = await supabase.from('cotisations').select('*').eq('membre_id', memberId).eq('mois_numero', currentMonth).eq('statut', 'Payé').maybeSingle();
-             
-             let paymentDate = new Date().toISOString();
-             if (editingMember.date_paiement) paymentDate = new Date(editingMember.date_paiement).toISOString();
-
-             if (!existing) {
-                 await supabase.from('cotisations').insert({ membre_id: memberId, mois_numero: currentMonth, montant: tontine.montant_mensuel, statut: 'Payé', date_paiement: paymentDate });
-             } else {
-                 await supabase.from('cotisations').update({ date_paiement: paymentDate }).eq('id', existing.id);
-             }
-         } else {
-             await supabase.from('cotisations').delete().eq('membre_id', memberId).eq('mois_numero', currentMonth);
-         }
-      }
+  
+      await refreshMembers();
+      setShowMemberModal(false);
+      setEditingMember(null);
+  
+      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
+      audio.volume = 0.4;
+      audio.play().catch(() => {});
+  
     } catch (err: any) {
-      alert("Erreur d'enregistrement : " + err.message);
+      console.error("Erreur Enregistrement Membre:", err);
+      alert("Erreur lors de l'enregistrement : " + err.message);
+    } finally {
+      setIsSavingMember(false);
     }
-    
-    await refreshMembers();
-    setIsSavingMember(false);
-    setShowMemberModal(false);
-    setEditingMember(null);
-    
-    // Petit son de succès
-    const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
-    audio.volume = 0.4;
-    audio.play().catch(() => {});
   };
 
   // --- 3. SAUVEGARDE DES PARAMÈTRES ROBUSTE ---
@@ -456,13 +474,13 @@ export default function TontineAdminDashboard() {
           a_gagne: false
         }));
 
-        const { error } = await supabase.from('membres').insert(formattedMembers);
+        const { error } = await supabase.from('tontine_members').insert(formattedMembers);
         if (error) throw error;
 
         alert(`${formattedMembers.length} membres importés avec succès !`);
         
         // Recharger la liste des membres
-        const { data: newMembers } = await supabase.from('membres').select('*').eq('tontine_id', tontine.id);
+        const { data: newMembers } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontine.id);
         setMembres(newMembers || []);
 
       } catch (err: any) {
@@ -536,7 +554,7 @@ export default function TontineAdminDashboard() {
            statut_paiement: 'À jour'
         }));
 
-        const { error } = await supabase.from('membres').insert(membersToInsert);
+        const { error } = await supabase.from('tontine_members').insert(membersToInsert);
         if (error) throw error;
 
         alert(`${membersToInsert.length} membres scannés ajoutés avec succès !`);
@@ -554,7 +572,7 @@ export default function TontineAdminDashboard() {
   // --- LOGIQUE RÉINITIALISATION TONTINE ---
   const handleResetTontine = async () => {
     if (confirm("Voulez-vous vraiment réinitialiser TOUS les tirages de cette tontine ? Cela annulera les victoires de tout le monde (Remise à zéro).")) {
-      const { error } = await supabase.from('membres').update({ a_gagne: false, mois_victoire: null }).eq('tontine_id', tontine.id);
+      const { error } = await supabase.from('tontine_members').update({ a_gagne: false, mois_victoire: null }).eq('tontine_id', tontine.id);
       if (error) alert("Erreur : " + error.message);
       else {
         alert("Tontine réinitialisée avec succès !");
@@ -565,7 +583,7 @@ export default function TontineAdminDashboard() {
 
   const handleDeleteMember = async (id: string) => {
     if (confirm("Voulez-vous vraiment supprimer ce membre de la tontine ?")) {
-      await supabase.from('membres').delete().eq('id', id);
+      await supabase.from('tontine_members').delete().eq('id', id);
       refreshMembers();
     }
   };
