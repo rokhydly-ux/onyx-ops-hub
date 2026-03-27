@@ -24,7 +24,7 @@ function TontineMembrePage() {
 
 function TontineMembreDashboard() {
   const searchParams = useSearchParams();
-  const tontineId = searchParams.get('id');
+  const tontineId = searchParams.get('id') || searchParams.get('tontine_id');
 
   // --- ETATS DE CONNEXION & SESSION ---
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -79,7 +79,7 @@ function TontineMembreDashboard() {
       const savedMemberId = localStorage.getItem(`tontine_session_${tontineId}`);
       if (savedMemberId) {
         const { data: memberData, error: memberError } = await supabase
-          .from('membres')
+          .from('tontine_members') // CORRECTION ICI
           .select('*')
           .eq('id', savedMemberId)
           .single();
@@ -104,7 +104,8 @@ function TontineMembreDashboard() {
     setEditPhotoUrl(member.photo_url || '');
     setEditDateNaissance(member.date_naissance || '');
 
-    const { data: allMembersData } = await supabase.from('membres').select('*').eq('tontine_id', tontineData.id);
+    // CORRECTION ICI
+    const { data: allMembersData } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineData.id);
     const { data: allCotisationsData } = await supabase.from('cotisations').select('*');
     
     setMembers(allMembersData || []);
@@ -118,39 +119,46 @@ function TontineMembreDashboard() {
     setIsLoggingIn(true);
 
     try {
-      // 1. On récupère l'ID de la tontine depuis l'URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const activeTontineId = urlParams.get('tontine_id') || urlParams.get('id');
-      
-      if (!activeTontineId) throw new Error("Lien de tontine invalide.");
+      if (!tontineId) throw new Error("Lien de tontine invalide.");
 
-      // 2. Nettoyage STRICTURE des inputs (Enlève tous les espaces du numéro tapé)
-      const cleanPhone = phone.replace(/\s+/g, '').trim();
-      const cleanPin = pin.trim();
+      // 1. Nettoyage STRICTURE de l'input utilisateur
+      let cleanPhoneUser = phone.replace(/\s+/g, '').trim();
+      if (cleanPhoneUser.startsWith('+221')) cleanPhoneUser = cleanPhoneUser.slice(4);
+      if (cleanPhoneUser.startsWith('00221')) cleanPhoneUser = cleanPhoneUser.slice(5);
       
-      if (!cleanPhone || !cleanPin) throw new Error("Veuillez remplir tous les champs.");
+      const cleanPinUser = pin.trim();
       
-      // 3. Requête Supabase : On demande tous les membres de cette tontine pour filtrer en local
-      // C'est plus sûr car on peut nettoyer les numéros de la BDD à la volée
+      if (!cleanPhoneUser || !cleanPinUser) throw new Error("Veuillez remplir tous les champs.");
+      
+      // 2. Requête Supabase (CORRECTION ICI : tontine_members)
       const { data: membersList, error: fetchErr } = await supabase
-        .from('membres')
+        .from('tontine_members') 
         .select('*')
-        .eq('tontine_id', activeTontineId);
+        .eq('tontine_id', tontineId);
       
       if (fetchErr) throw fetchErr;
       
-      // 4. Recherche du membre correspondant (en ignorant les espaces dans la BDD aussi)
-      const matchedMember = membersList?.find(m => {
-        const dbPhone = (m.telephone || '').replace(/\s+/g, '').trim();
-        return dbPhone === cleanPhone && String(m.code_secret) === cleanPin;
+      if (!membersList || membersList.length === 0) {
+          throw new Error("Aucun membre trouvé dans cette tontine.");
+      }
+
+      // 3. Recherche du membre correspondant (Tolérance maximale sur le numéro)
+      const matchedMember = membersList.find(m => {
+        let dbPhone = String(m.telephone || '').replace(/\s+/g, '').trim();
+        if (dbPhone.startsWith('+221')) dbPhone = dbPhone.slice(4);
+        if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
+        
+        const dbPin = String(m.code_secret || '').trim();
+        
+        return dbPhone === cleanPhoneUser && dbPin === cleanPinUser;
       });
       
       if (!matchedMember) {
         throw new Error("Numéro ou code PIN incorrect.");
       }
       
-      // 5. Succès !
-      localStorage.setItem(`tontine_session_${activeTontineId}`, matchedMember.id);
+      // 4. Succès !
+      localStorage.setItem(`tontine_session_${tontineId}`, matchedMember.id);
       await fetchDashboardData(matchedMember, tontine);
       
     } catch (err: any) {
@@ -172,7 +180,7 @@ function TontineMembreDashboard() {
     setLoginError(null);
   };
 
-  // --- CALCULS GLOBAUX (identiques à l'ancien code, mais exécutés seulement si currentUser) ---
+  // --- CALCULS GLOBAUX ---
   const totalMembres = members.length;
   const totalGagnantsMois = tontine?.gagnants_par_mois || 2;
   const moisEcoules = Math.floor(members.filter(m => m.a_gagne).length / totalGagnantsMois);
@@ -209,7 +217,7 @@ function TontineMembreDashboard() {
   const recentWinners = members.filter(m => m.a_gagne && m.mois_victoire === maxMoisVictoire);
   const montantParGagnant = tontine?.gagnants_par_mois ? caisseMensuelle / tontine.gagnants_par_mois : caisseMensuelle / 2;
 
-  // --- AUTRES FONCTIONS (handleReveal, handleSaveProfile, etc. - identiques) ---
+  // --- AUTRES FONCTIONS ---
   const handleReveal = () => {
     setIsSpinning(true);
     const eligible = members.length > 0 ? members : [{ prenom_nom: "Mélange..." }];
@@ -243,7 +251,8 @@ function TontineMembreDashboard() {
         }
 
         if (Object.keys(payload).length > 0) {
-            const { data, error } = await supabase.from('membres').update(payload).eq('id', currentUser.id).select();
+            // CORRECTION ICI
+            const { data, error } = await supabase.from('tontine_members').update(payload).eq('id', currentUser.id).select();
             if (error) throw error;
             if (!data || data.length === 0) throw new Error("Sécurité Supabase : Enregistrement bloqué.");
             
@@ -331,7 +340,7 @@ function TontineMembreDashboard() {
     );
   }
 
-  // DASHBOARD MEMBRE (le reste du code est quasi identique)
+  // DASHBOARD MEMBRE
   return (
     <div className="min-h-screen bg-zinc-50 text-black font-sans pb-28">
       <InteractiveParticles themeColor={tontine?.theme_color || '#009FDF'} />
@@ -350,7 +359,7 @@ function TontineMembreDashboard() {
                 backgroundColor: i % 3 === 0 ? '#ffffff' : (tontine?.theme_color || '#39FF14'),
                 animation: `confetti-fall ${2 + Math.random() * 3}s linear forwards`,
                 animationDelay: `${Math.random() * 1.5}s`,
-                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none', // Alterne carrés et triangles
+                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none', 
               }}
             />
           ))}
