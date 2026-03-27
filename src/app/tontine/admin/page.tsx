@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import InteractiveParticles from '@/components/InteractiveParticles';
 
 const spaceGrotesk = { className: "font-sans" }; // Remplacement par ta police Space Grotesk si configurée globalement
@@ -69,6 +70,8 @@ export default function TontineAdminDashboard() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [spinningName, setSpinningName] = useState("");
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [paymentStatusChartData, setPaymentStatusChartData] = useState<any[]>([]);
 
   // --- 2. LOGIQUE D'INITIALISATION ---
   useEffect(() => {
@@ -121,13 +124,46 @@ export default function TontineAdminDashboard() {
           .select('*')
           .eq('tontine_id', targetTontine.id);
 
-        const { data: cData } = await supabase.from('cotisations').select('*');
+        const memberIds = (members || []).map((m: any) => m.id);
+        const { data: cData } = await supabase.from('cotisations').select('*').in('membre_id', memberIds);
+
         const totalGagnants = targetTontine.gagnants_par_mois || 2;
         const gagnantsCount = (members || []).filter((m: any) => m.a_gagne).length;
         const cMonth = Math.floor(gagnantsCount / totalGagnants) + 1;
         
         if (isMounted) {
           setCurrentMonth(cMonth);
+
+          // --- Préparation des données pour le graphique ---
+          const monthlyCaisse = (cData || []).reduce((acc: {[key: number]: number}, cotis) => {
+            const month = cotis.mois_numero;
+            const amount = cotis.montant;
+            if (!acc[month]) {
+                acc[month] = 0;
+            }
+            acc[month] += amount;
+            return acc;
+          }, {});
+          const formattedChartData = Object.keys(monthlyCaisse).map(month => ({
+              name: `Mois ${month}`,
+              caisse: monthlyCaisse[Number(month)],
+          })).sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]));
+          setChartData(formattedChartData);
+
+          // --- Préparation des données pour le graphique de statut de paiement ---
+          const totalMembersCount = (members || []).length;
+          const maxMonthForStatus = Math.max(1, cMonth);
+          const paymentStatusByMonth = Array.from({ length: maxMonthForStatus }, (_, i) => i + 1).map(month => {
+              const paidInMonth = (cData || []).filter(c => c.mois_numero === month && c.statut === 'Payé').length;
+              return {
+                  name: `Mois ${month}`,
+                  'À jour': paidInMonth,
+                  'En retard': totalMembersCount - paidInMonth,
+              };
+          });
+          setPaymentStatusChartData(paymentStatusByMonth);
+
+
           const fetchedMembers = (members || []).map((m: any) => {
               const cotis = (cData || []).find((c: any) => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
               return { ...m, statutPaiement: cotis ? 'À jour' : 'En retard', date_paiement: cotis ? cotis.date_paiement : undefined };
@@ -214,11 +250,43 @@ export default function TontineAdminDashboard() {
   const refreshMembers = async () => {
     if (!tontine || !tontine.id) return;
     const { data: mData } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontine.id).order('created_at', { ascending: true });
-    const { data: cData } = await supabase.from('cotisations').select('*');
+    
+    const memberIds = (mData || []).map(m => m.id);
+    const { data: cData } = await supabase.from('cotisations').select('*').in('membre_id', memberIds);
     
     const totalGagnants = tontine.gagnants_par_mois || 2;
     const cMonth = Math.floor((mData || []).filter(m => m.a_gagne).length / totalGagnants) + 1;
     setCurrentMonth(cMonth);
+
+    // --- Préparation des données pour le graphique ---
+    const monthlyCaisse = (cData || []).reduce((acc: {[key: number]: number}, cotis) => {
+      const month = cotis.mois_numero;
+      const amount = cotis.montant;
+      if (!acc[month]) {
+          acc[month] = 0;
+      }
+      acc[month] += amount;
+      return acc;
+    }, {});
+    const formattedChartData = Object.keys(monthlyCaisse).map(month => ({
+        name: `Mois ${month}`,
+        caisse: monthlyCaisse[Number(month)],
+    })).sort((a, b) => parseInt(a.name.split(' ')[1]) - parseInt(b.name.split(' ')[1]));
+    setChartData(formattedChartData);
+
+    // --- Préparation des données pour le graphique de statut de paiement ---
+    const totalMembersCount = (mData || []).length;
+    const maxMonthForStatus = Math.max(1, cMonth);
+    const paymentStatusByMonth = Array.from({ length: maxMonthForStatus }, (_, i) => i + 1).map(month => {
+        const paidInMonth = (cData || []).filter(c => c.mois_numero === month && c.statut === 'Payé').length;
+        return {
+            name: `Mois ${month}`,
+            'À jour': paidInMonth,
+            'En retard': totalMembersCount - paidInMonth,
+        };
+    });
+    setPaymentStatusChartData(paymentStatusByMonth);
+
 
     const fetchedMembers = (mData || []).map(m => {
         const cotis = (cData || []).find(c => c.membre_id === m.id && c.mois_numero === cMonth && c.statut === 'Payé');
@@ -227,6 +295,49 @@ export default function TontineAdminDashboard() {
     
     setMembres(fetchedMembers);
     if (fetchedMembers.some(m => m.statutPaiement === 'En retard')) setKpiFilter('retard');
+  };
+
+  // --- COMPOSANT GRAPHIQUE ---
+  const CaisseEvolutionChart = ({ data, themeColor }: { data: any[], themeColor: string }) => {
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e030" />
+          <XAxis dataKey="name" stroke="#666" fontSize={12} />
+          <YAxis stroke="#666" fontSize={12} tickFormatter={(value) => `${(Number(value) / 1000)}k`} />
+          <Tooltip
+            cursor={{ fill: `${themeColor}1A` }}
+            contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', border: `1px solid ${themeColor}50`, borderRadius: '1rem', backdropFilter: 'blur(5px)' }}
+            labelStyle={{ fontWeight: 'bold', color: '#000' }}
+            formatter={(value: any) => [`${Number(value).toLocaleString()} F`, "Caisse collectée"]}
+          />
+          <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+          <Line type="monotone" dataKey="caisse" name="Caisse collectée" stroke={themeColor || '#39FF14'} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 8 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  };
+
+  // --- COMPOSANT GRAPHIQUE STATUT PAIEMENTS ---
+  const PaymentStatusChart = ({ data }: { data: any[] }) => {
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e030" />
+          <XAxis dataKey="name" stroke="#666" fontSize={12} />
+          <YAxis stroke="#666" fontSize={12} allowDecimals={false} />
+          <Tooltip
+            cursor={{ fill: '#0000001A' }}
+            contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', border: `1px solid #00000050`, borderRadius: '1rem', backdropFilter: 'blur(5px)' }}
+            labelStyle={{ fontWeight: 'bold', color: '#000' }}
+            formatter={(value: any, name: any) => [`${value} membre(s)`, name]}
+          />
+          <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+          <Bar dataKey="En retard" stackId="a" fill="#ef4444" name="En retard" />
+          <Bar dataKey="À jour" stackId="a" fill="#22c55e" name="À jour" radius={[10, 10, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    );
   };
 
   // --- KPIs DYNAMIQUES ---
@@ -239,6 +350,15 @@ export default function TontineAdminDashboard() {
   const totalGagnants = membres.filter(m => m.a_gagne).length;
   const moisEcoules = Math.floor(totalGagnants / (tontine?.gagnants_par_mois || 2));
   const progressionPourcentage = Math.min((moisEcoules / dureeTotale) * 100, 100);
+
+  // --- CALCUL JOURS AVANT TIRAGE ---
+  const today = new Date();
+  let nextDrawDate = new Date(today.getFullYear(), today.getMonth(), 6);
+  if (today.getDate() > 6) {
+      nextDrawDate = new Date(today.getFullYear(), today.getMonth() + 1, 6);
+  }
+  const daysUntilDraw = Math.ceil((nextDrawDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+  const lateMembersCount = membres.filter(m => m.statutPaiement === 'En retard').length;
 
   // --- ANNIVERSAIRES ---
   const currentMonthIndex = new Date().getMonth() + 1;
@@ -917,6 +1037,30 @@ export default function TontineAdminDashboard() {
         ) : (
           <div className="max-w-7xl w-full mx-auto px-6 pt-10 pb-24">
         
+        {/* ALERTE TIRAGE IMMINENT */}
+        {daysUntilDraw <= 7 && lateMembersCount > 0 && (
+           <div className="mb-6 bg-red-50 border-2 border-red-500 rounded-[2rem] p-6 md:p-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in slide-in-from-top-4">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                 <div className="bg-red-500 p-4 rounded-full text-white animate-pulse shadow-md shrink-0">
+                    <AlertTriangle size={32} />
+                 </div>
+                 <div className="text-center md:text-left">
+                    <h3 className={`${spaceGrotesk.className} text-xl md:text-2xl font-black text-red-600 uppercase tracking-tighter mb-1`}>
+                       Tirage imminent ({daysUntilDraw === 0 ? "Aujourd'hui" : `dans ${daysUntilDraw} jour${daysUntilDraw > 1 ? 's' : ''}`})
+                    </h3>
+                    <p className="text-red-900 font-bold text-sm md:text-base mb-3">
+                       Attention, {lateMembersCount} membre{lateMembersCount > 1 ? 's sont' : ' est'} encore en retard de paiement. Relancez-les avant le tirage !
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                       <button onClick={handleBulkLateReminders} className="bg-red-600 text-white px-6 py-3 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-red-700 hover:scale-105 transition-all shadow-md">
+                          <MessageCircle size={16}/> Relancer les {lateMembersCount} retardataire{lateMembersCount > 1 ? 's' : ''}
+                       </button>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        )}
+
         {/* NOUVEAU KPI PRINCIPAL : MOTEUR FINANCIER */}
         <div className="w-full rounded-3xl p-6 md:p-8 mb-6 flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.08)] relative overflow-hidden transition-all group"
              style={{
@@ -1146,6 +1290,34 @@ export default function TontineAdminDashboard() {
               )}
            </div>
         )}
+
+        {/* GRAPHIQUES */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-12">
+            {/* GRAPHIQUE D'ÉVOLUTION DE LA CAISSE */}
+            {chartData.length > 0 && (
+              <div className="bg-white border border-zinc-200 rounded-[3rem] p-6 md:p-10 shadow-sm animate-in fade-in slide-in-from-bottom-4">
+                <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-3 text-black mb-6`}>
+                  <div className="p-2 bg-black text-[#39FF14] rounded-xl shadow-md"><Wallet size={20} /></div>
+                  Évolution de la Caisse
+                </h3>
+                <div className="w-full h-[300px]">
+                  <CaisseEvolutionChart data={chartData} themeColor={tontine?.theme_color} />
+                </div>
+              </div>
+            )}
+            {/* GRAPHIQUE STATUT PAIEMENTS */}
+            {paymentStatusChartData.length > 0 && (
+              <div className="bg-white border border-zinc-200 rounded-[3rem] p-6 md:p-10 shadow-sm animate-in fade-in slide-in-from-bottom-4">
+                <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-3 text-black mb-6`}>
+                  <div className="p-2 bg-black text-[#39FF14] rounded-xl shadow-md"><Users size={20} /></div>
+                  Statut des Cotisations
+                </h3>
+                <div className="w-full h-[300px]">
+                  <PaymentStatusChart data={paymentStatusChartData} />
+                </div>
+              </div>
+            )}
+        </div>
 
         {/* GESTION DES MEMBRES (CRUD) */}
         <div id="members-section" className="bg-white border border-zinc-200 rounded-[3rem] p-6 md:p-10 shadow-sm">
