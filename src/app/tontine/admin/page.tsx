@@ -379,7 +379,7 @@ export default function TontineAdminDashboard() {
         const newPayload = { 
           ...payload, 
           tontine_id: tontine.id,
-          code_secret: '0000', 
+          code_secret: editingMember.code_secret || '0000', 
           a_gagne: false 
         };
         
@@ -493,13 +493,48 @@ export default function TontineAdminDashboard() {
   };
 
   // --- IMPORT OCR (TESSERACT) ---
+  const preprocessImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(img.src);
+        
+        // Dessiner l'image originale
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Appliquer Nuances de gris + Fort Contraste (Seuil 75)
+        const contrast = 75; 
+        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const avg = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
+          const newValue = Math.min(255, Math.max(0, factor * (avg - 128) + 128));
+          data[i] = data[i + 1] = data[i + 2] = newValue;
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = reject;
+    });
+  };
+
   const handleOcrImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsScanning(true);
     try {
-      const result = await Tesseract.recognize(file, 'fra');
+      // Prétraitement de l'image (Netteté, Contraste, N/B)
+      const processedImg = await preprocessImage(file);
+      const result = await Tesseract.recognize(processedImg, 'fra');
       const text = result.data.text;
       const lines = text.split('\n');
       
