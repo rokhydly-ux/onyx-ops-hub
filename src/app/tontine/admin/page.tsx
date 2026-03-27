@@ -337,61 +337,59 @@ export default function TontineAdminDashboard() {
   
     setIsSavingMember(true);
     try {
+      if (!tontine?.id) throw new Error("ID de la tontine manquant.");
+
+      // Préparation des données communes (Ajout et Modification)
+      const payload: any = {
+        prenom_nom: editingMember.prenom_nom,
+        telephone: editingMember.telephone,
+        poste: editingMember.poste || null,
+        cotisation_individuelle: editingMember.cotisation_individuelle || tontine.montant_mensuel,
+        photo_url: editingMember.photo_url || null,
+        date_naissance: editingMember.date_naissance || null,
+        date_naissance_modifiee: false,
+        is_admin: editingMember.is_admin || false,
+      };
+
       if (editingMember.id) { // UPDATE LOGIC
-        const payload = {
-            prenom_nom: editingMember.prenom_nom,
-            telephone: editingMember.telephone,
-            cotisation_individuelle: editingMember.cotisation_individuelle || null,
-            photo_url: editingMember.photo_url || null,
-            poste: editingMember.poste || null,
-            date_naissance: editingMember.date_naissance || null,
-            date_naissance_modifiee: false,
-            is_admin: editingMember.is_admin || false,
-            code_secret: editingMember.code_secret || '0000'
-        };
+        payload.code_secret = editingMember.code_secret || '0000';
+        
+        const { error } = await supabase
+          .from('tontine_members')
+          .update({ ...payload, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire })
+          .eq('id', editingMember.id);
+          
+        if (error) throw error;
   
-        await supabase.from('tontine_members').update({ ...payload, a_gagne: editingMember.a_gagne, mois_victoire: editingMember.mois_victoire }).eq('id', editingMember.id);
-  
-        // Cotisations management
+        // Gestion des cotisations
         if (editingMember.statutPaiement === 'À jour') {
-            const { data: existing } = await supabase.from('cotisations').select('*').eq('membre_id', editingMember.id).eq('mois_numero', currentMonth).eq('statut', 'Payé').maybeSingle();
-            let paymentDate = new Date().toISOString();
-            if (editingMember.date_paiement) paymentDate = new Date(editingMember.date_paiement).toISOString();
-            if (!existing) {
-                await supabase.from('cotisations').insert({ membre_id: editingMember.id, mois_numero: currentMonth, montant: tontine.montant_mensuel, statut: 'Payé', date_paiement: paymentDate });
-            } else {
-                await supabase.from('cotisations').update({ date_paiement: paymentDate }).eq('id', existing.id);
-            }
+          const { data: existing } = await supabase.from('cotisations').select('*').eq('membre_id', editingMember.id).eq('mois_numero', currentMonth).eq('statut', 'Payé').maybeSingle();
+          let paymentDate = editingMember.date_paiement ? new Date(editingMember.date_paiement).toISOString() : new Date().toISOString();
+          if (!existing) {
+            await supabase.from('cotisations').insert({ membre_id: editingMember.id, mois_numero: currentMonth, montant: tontine.montant_mensuel, statut: 'Payé', date_paiement: paymentDate });
+          } else {
+            await supabase.from('cotisations').update({ date_paiement: paymentDate }).eq('id', existing.id);
+          }
         } else {
-            await supabase.from('cotisations').delete().eq('membre_id', editingMember.id).eq('mois_numero', currentMonth);
+          await supabase.from('cotisations').delete().eq('membre_id', editingMember.id).eq('mois_numero', currentMonth);
         }
         alert('Membre modifié avec succès !');
   
-      } else { // ADD LOGIC from user prompt
-        if (!tontine?.id) throw new Error("ID de la tontine manquant.");
-  
-        const payload = {
+      } else { // ADD LOGIC
+        const newPayload = { 
+          ...payload, 
           tontine_id: tontine.id,
-          prenom_nom: editingMember.prenom_nom,
-          telephone: editingMember.telephone,
-          poste: editingMember.poste || null,
-          cotisation_individuelle: editingMember.cotisation_individuelle || tontine.montant_mensuel,
-          photo_url: editingMember.photo_url || null,
-          date_naissance: editingMember.date_naissance || null,
-          code_secret: '0000',
-          a_gagne: false
+          code_secret: '0000', 
+          a_gagne: false 
         };
-  
-        const { data, error } = await supabase
-          .from('tontine_members')
-          .insert([payload])
-          .select();
-  
+        
+        const { error } = await supabase.from('tontine_members').insert([newPayload]);
         if (error) throw error;
-  
-        alert('Membre ajouté avec succès !');
+        
+        alert('Nouveau membre ajouté avec succès !');
       }
   
+      // Rafraîchissement direct de la liste et fermeture
       await refreshMembers();
       setShowMemberModal(false);
       setEditingMember(null);
@@ -1315,8 +1313,8 @@ export default function TontineAdminDashboard() {
 
       {/* MODALE AJOUT/MODIFICATION MEMBRE */}
       {showMemberModal && editingMember && (
-         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowMemberModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-            <div className="bg-white p-8 md:p-10 rounded-[3rem] w-full max-w-md relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-black my-auto">
+         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowMemberModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white p-8 md:p-10 rounded-[3rem] w-full max-w-md relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-black max-h-[90vh] overflow-y-auto custom-scrollbar">
                <button onClick={() => setShowMemberModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
                
                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-8`}>
