@@ -1315,8 +1315,8 @@ export default function TontineAdminDashboard() {
 
       {/* MODALE AJOUT/MODIFICATION MEMBRE */}
       {showMemberModal && editingMember && (
-         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowMemberModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white p-8 md:p-10 rounded-[3rem] w-full max-w-md relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-black">
+         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowMemberModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white p-8 md:p-10 rounded-[3rem] w-full max-w-md relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-black my-auto">
                <button onClick={() => setShowMemberModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
                
                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-8`}>
