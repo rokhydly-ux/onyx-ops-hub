@@ -27,7 +27,7 @@ type Tontine = {
   montant_mensuel: number;
 };
 
-export default function TontineMemberPage() {
+export default function TontineAdminPage() {
   const [inputPhone, setInputPhone] = useState('');
   const [inputPin, setInputPin] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -109,7 +109,7 @@ export default function TontineMemberPage() {
 
   const handleLogout = () => {
     const searchParams = new URLSearchParams(window.location.search);
-    const tontineId = searchParams.get('id');
+    const tontineId = searchParams.get('id') || searchParams.get('tontine_id');
     if (tontineId) {
         localStorage.removeItem(`tontine_member_session_${tontineId}`);
     }
@@ -123,7 +123,25 @@ export default function TontineMemberPage() {
     const loadInitialData = async () => {
       setIsLoading(true);
       const searchParams = new URLSearchParams(window.location.search);
-      const tontineId = searchParams.get('id');
+      let tontineId = searchParams.get('id') || searchParams.get('tontine_id');
+
+      // Auto-détection de la tontine si l'admin vient du Hub (sans ID dans l'URL)
+      if (!tontineId) {
+         const { data: { user } } = await supabase.auth.getUser();
+         if (user) {
+            const { data: userTontine } = await supabase
+              .from('tontines')
+              .select('id')
+              .eq('user_id', user.id)
+              .single();
+            
+            if (userTontine) {
+               tontineId = userTontine.id;
+               // On rajoute l'ID dans l'URL discrètement pour que tout le reste fonctionne
+               window.history.replaceState(null, '', `?id=${tontineId}`);
+            }
+         }
+      }
 
       if (!tontineId) {
         setErrorMsg("Lien de tontine invalide ou manquant.");
