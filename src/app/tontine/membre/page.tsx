@@ -121,14 +121,15 @@ function TontineMembreDashboard() {
     try {
       if (!tontineId) throw new Error("Lien de tontine invalide.");
 
-      // 1. Nettoyage STRICTURE de l'input utilisateur
-      let cleanPhoneUser = phone.replace(/\s+/g, '').trim();
-      if (cleanPhoneUser.startsWith('+221')) cleanPhoneUser = cleanPhoneUser.slice(4);
-      if (cleanPhoneUser.startsWith('00221')) cleanPhoneUser = cleanPhoneUser.slice(5);
+      // 1. Nettoyage STRICT de l'input utilisateur (on ne garde que les chiffres)
+      let cleanPhoneUser = phone.replace(/\D/g, '');
+      if (cleanPhoneUser.startsWith('221') && cleanPhoneUser.length > 9) {
+        cleanPhoneUser = cleanPhoneUser.slice(3);
+      }
       
-      const cleanPinUser = pin.trim();
+      const cleanPinUser = pin.trim() || '0000';
       
-      if (!cleanPhoneUser || !cleanPinUser) throw new Error("Veuillez remplir tous les champs.");
+      if (!cleanPhoneUser) throw new Error("Veuillez saisir votre numéro de téléphone.");
       
       // 2. Requête Supabase (CORRECTION ICI : tontine_members)
       const { data: membersList, error: fetchErr } = await supabase
@@ -144,11 +145,13 @@ function TontineMembreDashboard() {
 
       // 3. Recherche du membre correspondant (Tolérance maximale sur le numéro)
       const matchedMember = membersList.find(m => {
-        let dbPhone = String(m.telephone || '').replace(/\s+/g, '').trim();
-        if (dbPhone.startsWith('+221')) dbPhone = dbPhone.slice(4);
-        if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
+        let dbPhone = String(m.telephone || '').replace(/\D/g, '');
+        if (dbPhone.startsWith('221') && dbPhone.length > 9) {
+            dbPhone = dbPhone.slice(3);
+        }
         
-        const dbPin = String(m.code_secret || '').trim();
+        // Si le code_secret est null ou vide en BDD (ex: import Excel), on considère qu'il vaut "0000"
+        const dbPin = m.code_secret ? String(m.code_secret).trim() : '0000';
         
         return dbPhone === cleanPhoneUser && dbPin === cleanPinUser;
       });
