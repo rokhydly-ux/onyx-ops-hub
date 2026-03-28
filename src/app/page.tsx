@@ -1179,10 +1179,10 @@ export default function OnyxOpsElite() {
                   <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-6">
                       {[
-                        { id: 'solo', label: 'Pack Solo (13.000F)', max: 50 },
-                        { id: 'tekki', label: 'OnyxTekki (22.900F)', max: 40 },
-                        { id: 'tekkipro', label: 'OnyxTekki Pro (27.900F)', max: 30 },
-                        { id: 'gold', label: 'Onyx Gold (34.900F)', max: 20 },
+                        { id: 'solo', label: 'Onyx Jaay (13.900F)', max: 50 },
+                        { id: 'tekki', label: 'Pack Tekki (22.900F)', max: 40 },
+                        { id: 'tekkipro', label: 'Pack Tekki Pro (27.900F)', max: 30 },
+                        { id: 'gold', label: 'Pack Onyx Gold (59.900F)', max: 20 },
                       ].map(pack => (
                         <div key={pack.id}>
                           <div className="flex justify-between mb-2">

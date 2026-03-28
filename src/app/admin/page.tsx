@@ -57,17 +57,22 @@ const AVAILABLE_MODULES = [
 ];
 
 const ECOSYSTEM_SAAS = [
-  { id: "vente", name: "Onyx Jaay", desc: "Catalogue & Devis WhatsApp", price: 9900, color: "bg-[#39FF14]", url: "/vente" },
-  { id: "stock", name: "Onyx Stock", desc: "Gestion stock", price: 9900, color: "bg-blue-500", url: "https://onyxops.com" },
-  { id: "menu", name: "Onyx Menu", desc: "Menu QR & Commandes", price: 9900, color: "bg-amber-500", url: "https://onyxops.com" },
-  { id: "staff", name: "Onyx Staff", desc: "Pointage & Paie", price: 9900, color: "bg-cyan-500", url: "https://onyxops.com" },
-  { id: "booking", name: "Onyx Booking", desc: "Réservations", price: 9900, color: "bg-pink-500", url: "https://onyxops.com" },
-  { id: "tiak", name: "Onyx Tiak", desc: "Logistique", price: 9900, color: "bg-orange-500", url: "https://onyxops.com" },
-  { id: "formation", name: "Onyx Formation", desc: "Cours vidéo & Marketing", price: 29900, color: "bg-purple-500", url: "/formation" },
-  { id: "fit", name: "Onyx Fit", desc: "Rééquilibrage alimentaire", price: 6000, color: "bg-rose-500", url: "https://onyxops.com" },
-  { id: "tontine", name: "Onyx Tontine", desc: "Finance & Tontine", price: 6900, color: "bg-emerald-500", url: "https://onyxops.com" },
+  // LES SAAS INDIVIDUELS
+  { id: "vente", name: "Onyx Jaay", desc: "Boutique & Catalogue", price: "13 900 F", link: "/admin/saas/vente", color: "bg-green-500" },
+  { id: "stock", name: "Onyx Stock", desc: "Gestion d'inventaire", price: "13 900 F", link: "/admin/saas/stock", color: "bg-blue-500" },
+  { id: "tiak", name: "Onyx Tiak", desc: "Logistique & Livreurs", price: "13 900 F", link: "/admin/saas/tiak", color: "bg-orange-500" },
+  { id: "staff", name: "Onyx Staff", desc: "RH & Plannings", price: "13 900 F", link: "/admin/saas/staff", color: "bg-cyan-500" },
+  { id: "menu", name: "Onyx Menu", desc: "QR Code & Resto", price: "13 900 F", link: "/admin/saas/menu", color: "bg-yellow-500" },
+  { id: "booking", name: "Onyx Booking", desc: "Réservations & RDV", price: "13 900 F", link: "/admin/saas/booking", color: "bg-pink-500" },
+  { id: "formation", name: "Onyx Formation", desc: "Académie Marketing", price: "13 900 F", link: "/admin/saas/formation", color: "bg-purple-500" },
+  { id: "tontine", name: "Onyx Tontine", desc: "Finance & Épargne", price: "6 900 F", link: "/admin/saas/tontine", color: "bg-teal-500" },
+  
+  // LES PACKS (NOUVEAUX)
+  { id: "tekki", name: "Pack Tekki", desc: "Jaay + Stock + Tiak", price: "22 900 F", link: "/admin/saas/onyx-tekki", color: "bg-emerald-600" },
+  { id: "tekki-pro", name: "Pack Tekki Pro", desc: "Tekki + Staff + Formation", price: "27 900 F", link: "/admin/saas/onyx-tekki-pro", color: "bg-emerald-500" },
+  { id: "crm", name: "Pack Onyx CRM", desc: "CRM B2B + Booking", price: "39 900 F", link: "/admin/saas/onyx-crm", color: "bg-green-400" },
+  { id: "gold", name: "Pack Onyx Gold", desc: "L'Arsenal Complet VIP", price: "59 900 F", link: "/admin/saas/onyx-gold", color: "bg-lime-400" }
 ];
-const ONYX_ELITE = { id: "elite", name: "Onyx Elite", desc: "Pack Sans Limit CRM + Studio Créatif", price: 78900, color: "bg-zinc-800", url: "https://onyxops.com" };
 
 export default function AdminDashboard() {
    const router = useRouter();
@@ -1135,7 +1140,7 @@ export default function AdminDashboard() {
                 { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de Bord' },
                 { id: 'leads', icon: MessageSquare, label: 'Leads & Flux' },
                 { id: 'crm', icon: Users, label: 'CRM & Membres' },
-                { id: 'ecosystem', icon: Box, label: '9 SaaS Onyx' },
+                { id: 'ecosystem', icon: Box, label: 'Gestion des SaaS' },
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
                 { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
@@ -1207,7 +1212,7 @@ export default function AdminDashboard() {
                         { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de Bord' },
                         { id: 'leads', icon: MessageSquare, label: 'Leads & Flux' },
                         { id: 'crm', icon: Users, label: 'CRM & Membres' },
-                        { id: 'ecosystem', icon: Box, label: '9 SaaS Onyx' },
+                        { id: 'ecosystem', icon: Box, label: 'Gestion des SaaS' },
                         { id: 'finance', icon: Wallet, label: 'Finances' },
                         { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
                         { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
@@ -1896,7 +1901,7 @@ export default function AdminDashboard() {
                 <div className="text-center space-y-4 lg:space-y-6 max-w-4xl mx-auto px-4">
                    <div className="inline-block px-4 py-1.5 bg-black text-[#39FF14] rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.3em] mb-2 lg:mb-4 shadow-2xl shadow-[#39FF14]/20">Terminal Écosystème</div>
                    <h2 className={`font-sans text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-black leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
-                   <p className="text-xs lg:text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] lg:tracking-[0.4em] leading-relaxed">Déploiement & Gouvernance du Catalogue SaaS • 9 Solutions Prêtes</p>
+                   <p className="text-xs lg:text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] lg:tracking-[0.4em] leading-relaxed">Déploiement & Gouvernance du Catalogue SaaS</p>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
@@ -1907,30 +1912,17 @@ export default function AdminDashboard() {
                             <div className={`w-16 lg:w-20 h-16 lg:h-20 rounded-[1.75rem] lg:rounded-[2.25rem] mb-8 lg:mb-10 flex items-center justify-center text-white shadow-2xl ${saas.color} group-hover:rotate-12 transition-transform duration-500`}><Box size={32} className="lg:w-10 lg:h-10"/></div>
                             <h3 className={`font-sans text-2xl lg:text-3xl font-black uppercase text-black tracking-tighter`}>{saas.name}</h3>
                             <p className="text-sm lg:text-base font-bold text-zinc-400 mt-3 lg:mt-4 leading-relaxed group-hover:text-zinc-600 transition-colors">{saas.desc}</p>
-                            <p className="text-[10px] font-black text-[#39FF14] mt-2">{(saas as any).price?.toLocaleString()} F / mois</p>
+                            <p className="text-[10px] font-black text-[#39FF14] mt-2">{saas.price} / mois</p>
                          </div>
                          <div className="mt-10 lg:mt-14 flex flex-col gap-3 lg:gap-4 relative z-10">
                             {/* BOUTON ACCÉDER MODIFIÉ POUR L'ADMIN INTERNE */}
-                            <button onClick={() => router.push(`/admin/saas/${saas.id}`)} className="w-full bg-black text-[#39FF14] py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.03] transition-all shadow-2xl flex items-center justify-center gap-2 lg:gap-3 group/btn active:scale-95">
+                            <button onClick={() => router.push(saas.link)} className="w-full bg-black text-[#39FF14] py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.03] transition-all shadow-2xl flex items-center justify-center gap-2 lg:gap-3 group/btn active:scale-95">
                                Accéder Configuration Admin <ExternalLink size={16} className="group-hover/btn:translate-x-1 transition-transform"/>
                             </button>
                             <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('create'); }} className="w-full bg-zinc-100 text-black py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:bg-zinc-200 transition-all active:scale-95">Générer Accès Client</button>
                          </div>
                       </div>
                    ))}
-                   {/* Onyx Elite — Pack Sans Limit */}
-                   <div className="bg-gradient-to-br from-zinc-800 to-black border-2 border-[#39FF14] p-6 lg:p-12 rounded-3xl shadow-2xl hover:shadow-[0_0_40px_rgba(57,255,20,0.2)] transition-all group flex flex-col justify-between min-h-[380px] relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-40 h-40 bg-[#39FF14] opacity-[0.05] rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                      <div className="relative z-10">
-                         <div className="w-16 h-16 bg-[#39FF14] rounded-2xl flex items-center justify-center text-black shadow-2xl mb-6"><Box size={32}/></div>
-                         <h3 className="font-sans text-2xl font-black uppercase text-white tracking-tighter">Onyx Elite</h3>
-                         <p className="text-sm font-bold text-zinc-400 mt-3">{ONYX_ELITE.desc}</p>
-                         <p className="text-xl font-black text-[#39FF14] mt-2">78.900 F</p>
-                      </div>
-                      <button onClick={() => window.open(ONYX_ELITE.url, '_blank')} className="w-full bg-[#39FF14] text-black py-4 rounded-2xl text-[10px] font-black uppercase hover:scale-[1.03] transition-all mt-6">
-                         Offre Pack Sans Limit
-                      </button>
-                   </div>
                 </div>
              </div>
           )}
@@ -2361,10 +2353,10 @@ export default function AdminDashboard() {
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                    <button type="button" onClick={() => handleApplyPack('Solo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Onyx Solo' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Onyx Solo<br/><span className="text-[9px] font-normal">Jaay (13.000F)</span></button>
-                    <button type="button" onClick={() => handleApplyPack('Tekki')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'OnyxTekki' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>OnyxTekki<br/><span className="text-[9px] font-normal">Trio (22.900F)</span></button>
-                    <button type="button" onClick={() => handleApplyPack('Tekki Pro')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'OnyxTekki Pro' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>OnyxTekki Pro<br/><span className="text-[9px] font-normal">+ IA (27.900F)</span></button>
-                    <button type="button" onClick={() => handleApplyPack('Gold')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Onyx Gold' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black border-yellow-500 shadow-md' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Onyx Gold<br/><span className="text-[9px] font-normal">Total (34.900F)</span></button>
+                    <button type="button" onClick={() => handleApplyPack('Solo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Onyx Jaay' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Onyx Jaay<br/><span className="text-[9px] font-normal">Boutique (13.900F)</span></button>
+                    <button type="button" onClick={() => handleApplyPack('Tekki')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Tekki' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Tekki<br/><span className="text-[9px] font-normal">Trio (22.900F)</span></button>
+                    <button type="button" onClick={() => handleApplyPack('Tekki Pro')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Tekki Pro' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Tekki Pro<br/><span className="text-[9px] font-normal">+ IA (27.900F)</span></button>
+                    <button type="button" onClick={() => handleApplyPack('Gold')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Onyx Gold' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black border-yellow-500 shadow-md' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Onyx Gold<br/><span className="text-[9px] font-normal">VIP (59.900F)</span></button>
                 </div>
                 
                 {prorataMsg && <p className="text-xs text-black font-bold bg-[#39FF14]/20 p-3 rounded-xl animate-in fade-in">{prorataMsg}</p>}
@@ -2444,12 +2436,7 @@ export default function AdminDashboard() {
                     <select value={editingContact?.saas || ""} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-[11px] sm:text-xs uppercase outline-none cursor-pointer appearance-none transition-all focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10">
                       <option value="" disabled>Choisir un SaaS</option>
                       <option value="À définir">À définir</option>
-                        <option value="Onyx Solo">Onyx Solo</option>
-                        <option value="OnyxTekki">OnyxTekki</option>
-                        <option value="OnyxTekki Pro">OnyxTekki Pro</option>
-                        <option value="Onyx Gold">Onyx Gold</option>
-                      <option value="Onyx Jaay">Onyx Jaay</option>
-                      {ECOSYSTEM_SAAS.filter(s => s.name !== "Onyx Jaay").map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                      {ECOSYSTEM_SAAS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                     </select>
                  </div>
               </div>
@@ -2748,12 +2735,8 @@ export default function AdminDashboard() {
               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4">Sélectionner l'outil principal</label>
               <select id="saas-select" className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10 cursor-pointer appearance-none">
                 <option value="">-- Aucun / À définir --</option>
-                <option value="Onyx Solo">Onyx Solo (13.000 F)</option>
-                <option value="OnyxTekki">OnyxTekki (22.900 F)</option>
-                <option value="OnyxTekki Pro">OnyxTekki Pro (27.900 F)</option>
-                <option value="Onyx Gold">Onyx Gold (34.900 F)</option>
                 {ECOSYSTEM_SAAS.map(s => (
-                  <option key={s.id} value={s.name}>{s.name} ({(s as any).price?.toLocaleString('fr-FR')} F)</option>
+                  <option key={s.id} value={s.name}>{s.name} ({s.price})</option>
                 ))}
               </select>
             </div>
