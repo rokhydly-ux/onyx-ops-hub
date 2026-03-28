@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -10,6 +10,7 @@ export default function TontineAdminPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [tontine, setTontine] = useState<any>(null);
   const [membres, setMembres] = useState<any[]>([]);
+  const [cotisations, setCotisations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // --- ÉTATS MODALE ---
@@ -100,6 +101,13 @@ export default function TontineAdminPage() {
              .eq('tontine_id', targetTontine.id);
              
            if (isMounted) setMembres(members || []);
+
+           // 5. On charge les cotisations
+           const { data: cots, error: cotsErr } = await supabase
+             .from('cotisations')
+             .select('*');
+           if (cotsErr) console.warn("Erreur chargement cotisations:", cotsErr.message);
+           if (isMounted) setCotisations(cots || []);
         }
 
       } catch (error) {
@@ -207,7 +215,15 @@ export default function TontineAdminPage() {
     );
   }
 
+  // --- CALCULS DU MOIS EN COURS ET DE LA CAISSE ---
+  const totalGagnantsMois = tontine?.gagnants_par_mois || 1;
+  const moisEcoules = Math.floor(membres.filter(m => m.a_gagne).length / totalGagnantsMois);
+  const currentMonth = moisEcoules + 1;
+
   const caisseMensuelle = membres.length * (tontine?.montant_mensuel || 0);
+  const cotisationsCeMois = cotisations.filter(c => c.mois_numero === currentMonth && c.statut === 'Payé' && membres.some(m => m.id === c.membre_id));
+  const actuelCaisse = cotisationsCeMois.reduce((acc, c) => acc + (c.montant || tontine?.montant_mensuel || 0), 0);
+  const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans pb-24 text-black">
@@ -255,15 +271,16 @@ export default function TontineAdminPage() {
          <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
                <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg mb-6`}>Progression du mois</h3>
-               <div className="w-full h-6 bg-zinc-100 rounded-full overflow-hidden mb-4 shadow-inner">
-                  <div className="h-full bg-black w-3/4 rounded-full relative">
+               <div className="flex justify-between items-center text-sm font-bold text-zinc-500 mb-2">
+                  <span>Cotisations (Mois {currentMonth})</span>
+                  <span className="text-black">{actuelCaisse.toLocaleString()} / {caisseMensuelle.toLocaleString()} F</span>
+               </div>
+               <div className="w-full h-6 bg-zinc-100 rounded-full overflow-hidden mb-2 shadow-inner">
+                  <div className="h-full bg-black rounded-full relative transition-all duration-1000 ease-out" style={{ width: `${progressPercentage}%` }}>
                      <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
                   </div>
                </div>
-               <div className="flex justify-between items-center text-sm font-bold text-zinc-500">
-                  <span>Cotisations estimées en cours</span>
-                  <span className="text-black">100%</span>
-               </div>
+               <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
             </div>
 
             <div className="bg-[#39FF14] p-8 rounded-[2rem] shadow-lg flex flex-col items-center justify-center text-center">
@@ -291,12 +308,15 @@ export default function TontineAdminPage() {
                      <tr className="border-b border-zinc-200">
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Membre</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Téléphone</th>
-                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Statut</th>
+                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Tirage</th>
+                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Paiement M{currentMonth}</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest text-right">Actions</th>
                      </tr>
                   </thead>
                   <tbody>
-                     {membres.map((m) => (
+                     {membres.map((m) => {
+                        const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+                        return (
                         <tr key={m.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                            <td className="py-4 font-bold">{m.prenom_nom}</td>
                            <td className="py-4 font-mono text-sm">{m.telephone}</td>
@@ -307,6 +327,13 @@ export default function TontineAdminPage() {
                                  <span className="bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">En Attente</span>
                               )}
                            </td>
+                           <td className="py-4">
+                              {hasPaid ? (
+                                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><CheckCircle size={12}/> Payé</span>
+                              ) : (
+                                 <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
+                              )}
+                           </td>
                            <td className="py-4 text-right">
                               <div className="flex justify-end gap-2">
                                  <button onClick={() => openEditModal(m)} className="p-2 bg-zinc-100 text-black rounded-lg hover:bg-zinc-200 transition" title="Modifier"><Edit size={14}/></button>
@@ -314,10 +341,10 @@ export default function TontineAdminPage() {
                               </div>
                            </td>
                         </tr>
-                     ))}
+                     )})}
                      {membres.length === 0 && (
                         <tr>
-                           <td colSpan={4} className="py-8 text-center text-zinc-500 font-bold">Aucun membre pour le moment.</td>
+                           <td colSpan={5} className="py-8 text-center text-zinc-500 font-bold">Aucun membre pour le moment.</td>
                         </tr>
                      )}
                   </tbody>
