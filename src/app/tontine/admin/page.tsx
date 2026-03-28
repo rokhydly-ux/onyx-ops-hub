@@ -25,26 +25,26 @@ export default function TontineAdminPage() {
       try {
         console.log("🔍 1. DÉMARRAGE VÉRIFICATION ADMIN...");
         
-        // 1. Vérification de la session Supabase
-        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+        // 1. Vérification de la session Supabase (getUser est plus fiable)
+        const { data: { user }, error: sessionErr } = await supabase.auth.getUser();
         
         if (sessionErr) throw sessionErr;
 
-        if (!session?.user) {
+        if (!user) {
            console.log("❌ 2. AUCUNE SESSION TROUVÉE. Le navigateur a oublié la connexion. Redirection accès restreint.");
            if (isMounted) setIsLoading(false);
            return;
         }
 
-        console.log("✅ 2. SESSION TROUVÉE ! Utilisateur connecté :", session.user.email, "| ID:", session.user.id);
-        if (isMounted) setCurrentUser(session.user);
+        console.log("✅ 2. SESSION TROUVÉE ! Utilisateur connecté :", user.email, "| ID:", user.id);
+        if (isMounted) setCurrentUser(user);
 
         // 2. Recherche de la tontine
         console.log("🔍 3. Recherche de la tontine pour owner_id...");
         const { data: tontines, error: fetchErr } = await supabase
           .from('tontines')
           .select('*')
-          .eq('owner_id', session.user.id);
+          .eq('owner_id', user.id);
 
         if (fetchErr) {
           console.error("❌ ERREUR SQL (Recherche Tontine) :", fetchErr.message);
@@ -66,7 +66,7 @@ export default function TontineAdminPage() {
                 montant_mensuel: 20000, 
                 gagnants_par_mois: 2, 
                 duree_mois: 10, 
-                owner_id: session.user.id 
+                owner_id: user.id 
              }])
              .select('*');
              
@@ -172,8 +172,24 @@ export default function TontineAdminPage() {
         <ShieldCheck size={64} className="text-red-500 mb-6" />
         <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Accès Restreint</h1>
         <p className="text-zinc-400 mb-8">Veuillez vous connecter depuis le Hub Administrateur pour accéder à ce tableau de bord.</p>
-        <button onClick={() => window.location.href = '/admin'} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform">
+        <button onClick={() => window.location.href = '/hub'} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform">
           <Home size={20} /> Retourner au Hub
+        </button>
+      </div>
+    );
+  }
+
+  if (currentUser && !tontine) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-6 text-center text-white">
+        <ShieldCheck size={64} className="text-orange-500 mb-6" />
+        <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Problème de configuration (RLS)</h1>
+        <p className="text-zinc-400 mb-4 max-w-md">Vous êtes bien connecté(e), mais la base de données bloque la lecture ou la création de votre Tontine.</p>
+        <p className="text-sm text-zinc-500 mb-8 max-w-md border border-zinc-800 p-4 rounded-xl bg-zinc-800/50">
+           <b>Solution :</b> Allez dans Supabase &gt; Authentication &gt; Policies (RLS) et assurez-vous que les règles d'insertion et de lecture sont activées pour la table <b>tontines</b>.
+        </p>
+        <button onClick={() => window.location.reload()} className="bg-orange-500 text-black px-8 py-4 rounded-xl font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform">
+           Réessayer
         </button>
       </div>
     );
@@ -193,7 +209,7 @@ export default function TontineAdminPage() {
                <p className="text-[10px] text-[#39FF14] font-bold uppercase tracking-widest">Espace Administrateur</p>
             </div>
          </div>
-         <button onClick={() => window.location.href = '/admin'} className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-bold bg-zinc-800 px-4 py-2 rounded-full">
+         <button onClick={() => window.location.href = '/hub'} className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-bold bg-zinc-800 px-4 py-2 rounded-full">
            <Home size={16} /> Hub
          </button>
       </header>
@@ -203,7 +219,7 @@ export default function TontineAdminPage() {
             <div>
                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-2`}>{tontine?.nom || "Ma Tontine"}</h2>
                <p className="text-sm text-zinc-500 font-bold flex items-center gap-2">
-                 <Wallet size={16}/> Montant mensuel : {tontine?.montant_mensuel?.toLocaleString()} F CFA
+                 <Wallet size={16}/> Montant mensuel : {(tontine?.montant_mensuel || 0).toLocaleString()} F CFA
                </p>
             </div>
          </div>
