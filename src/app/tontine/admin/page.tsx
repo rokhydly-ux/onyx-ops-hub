@@ -88,7 +88,7 @@ export default function TontineMemberPage() {
       });
 
       if (!matchedMember) {
-        if (process.env.NODE_ENV === 'development' && debugDbPhone !== "Aucun") {
+        if (debugDbPhone !== "Aucun") {
             throw new Error(`RAYON X 🔍 -> Numéro BDD: "${debugDbPhone}", PIN BDD: "${debugDbPin}". Tu as tapé PIN: "${cleanPin}"`);
         } else {
             throw new Error("Numéro de téléphone ou code PIN incorrect.");
@@ -165,6 +165,32 @@ export default function TontineMemberPage() {
 
     loadInitialData();
   }, []);
+
+  const handleCleanDatabase = async () => {
+    if (!confirm("⚠️ Voulez-vous nettoyer et corriger tous les numéros et codes PIN de cette tontine (Recommandé suite à un import Excel) ?")) return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const tontineId = searchParams.get('id') || searchParams.get('tontine_id');
+    try {
+      const { data: members, error: fetchErr } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineId);
+      if (fetchErr) throw fetchErr;
+      let updatedCount = 0;
+      for (const m of members || []) {
+        let rawPhone = String(m.telephone || '').split('.')[0];
+        let dbPhone = rawPhone.replace(/[^0-9]/g, '');
+        if (dbPhone.startsWith('221')) dbPhone = dbPhone.slice(3);
+        if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
+        let rawPin = String(m.code_secret || '').trim();
+        let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
+        if (m.telephone !== dbPhone || m.code_secret !== dbPin) {
+          await supabase.from('tontine_members').update({ telephone: dbPhone, code_secret: dbPin }).eq('id', m.id);
+          updatedCount++;
+        }
+      }
+      alert(`✅ Nettoyage terminé ! ${updatedCount} membres corrigés avec succès. Ils peuvent maintenant se connecter.`);
+    } catch (err: any) {
+      alert("Erreur de nettoyage: " + err.message);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -277,7 +303,11 @@ export default function TontineMemberPage() {
               </div>
             </div>
 
-            <button onClick={handleLogout} className="w-full bg-red-500/20 text-red-400 hover:bg-red-500/30 py-3 rounded-2xl font-black uppercase text-xs mt-8 transition flex justify-center items-center gap-2">
+            <button onClick={handleCleanDatabase} className="w-full bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 py-3 rounded-2xl font-black uppercase text-xs mt-8 transition flex justify-center items-center gap-2">
+              <ShieldCheck size={14} /> Réparer les numéros Excel
+            </button>
+
+            <button onClick={handleLogout} className="w-full bg-red-500/20 text-red-400 hover:bg-red-500/30 py-3 rounded-2xl font-black uppercase text-xs mt-3 transition flex justify-center items-center gap-2">
               <LogOut size={14} /> Se déconnecter
             </button>
           </div>

@@ -168,8 +168,8 @@ function TontineMembreDashboard() {
       });
       
       if (!matchedMember) {
-        // LE FAMEUX RAYON X ! (Uniquement en environnement de développement)
-        if (process.env.NODE_ENV === 'development' && debugDbPhone !== "Aucun") {
+        // LE FAMEUX RAYON X ! (Forcé en production pour aider au debug Excel)
+        if (debugDbPhone !== "Aucun") {
             throw new Error(`RAYON X 🔍 -> Numéro BDD: "${debugDbPhone}", PIN BDD: "${debugDbPin}". Tu as tapé PIN: "${cleanPinUser}"`);
         } else {
             throw new Error("Numéro de téléphone ou code PIN incorrect.");

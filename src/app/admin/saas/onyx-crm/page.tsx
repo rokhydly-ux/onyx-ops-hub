@@ -1,18 +1,55 @@
-import SaasAdminTemplate, { Client } from '@/components/admin/SaasAdminTemplate';
-import React from 'react';
+"use client";
 
-const MOCK_CLIENTS: Client[] = [
-  { id: 'cl_crm_1', shopName: 'CRM Innovate', shopUrl: 'https://crm-innovate.onyx.app', ownerId: 'user_crm_1', creationDate: '2024-02-18T12:00:00Z', status: 'Actif' },
-  { id: 'cl_crm_2', shopName: 'Lead Gen Experts', shopUrl: 'https://leadgen.sn', ownerId: 'user_crm_2', creationDate: '2023-12-10T08:00:00Z', status: 'Actif' },
-  { id: 'cl_crm_3', shopName: 'Client First Co.', shopUrl: 'https://clientfirst.com', ownerId: 'user_crm_3', creationDate: '2024-03-12T15:00:00Z', status: 'Actif' },
-];
+import React, { useEffect, useState } from 'react';
+import SaasAdminTemplate, { Client } from '@/components/admin/SaasAdminTemplate';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function OnyxCrmPage() {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        // Récupération des vrais clients depuis la table Supabase
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('saas', 'Onyx CRM');
+
+        if (error) throw error;
+
+        if (data) {
+          // Formatage des données pour correspondre à notre SaasAdminTemplate
+          const formattedClients: Client[] = data.map((c: any) => ({
+            id: c.id,
+            shopName: c.full_name || 'Boutique Inconnue',
+            shopUrl: 'https://onyxops.com/login', // Lien par défaut 
+            ownerId: c.phone || 'Aucun contact',
+            creationDate: c.created_at,
+            status: c.status === 'Actif' ? 'Actif' : 'Suspendu',
+          }));
+          setClients(formattedClients);
+        }
+      } catch (err) {
+        console.error("Erreur lors de la récupération des clients:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClients();
+  }, []);
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center text-[#39FF14] text-xs font-black tracking-widest uppercase">Chargement des données...</div>;
+  }
+
   return (
     <SaasAdminTemplate
       title="Onyx CRM"
       price={39900}
-      activeClients={MOCK_CLIENTS}
+      activeClients={clients}
     />
   );
 }

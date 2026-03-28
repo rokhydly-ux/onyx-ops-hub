@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { X, Zap, ChevronDown } from 'lucide-react';
+import { X, Zap, ChevronDown, Loader2 } from 'lucide-react';
 import { Client } from './SaasAdminTemplate';
+import { supabase } from '@/lib/supabaseClient';
 
 interface ClientManagementModalProps {
   client: Client | null;
@@ -29,6 +30,7 @@ const calculateProrata = (oldPrice: number, newPrice: number, daysRemaining: num
 
 export default function ClientManagementModal({ client, currentPlanPrice, isOpen, onClose }: ClientManagementModalProps) {
   const [selectedNewPrice, setSelectedNewPrice] = useState<number>(currentPlanPrice);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [daysRemaining] = useState(15); // Donnée mockée, peut être rendue dynamique
 
   const prorata = useMemo(() => {
@@ -38,6 +40,26 @@ export default function ClientManagementModal({ client, currentPlanPrice, isOpen
   if (!isOpen || !client) return null;
 
   const newPlan = PLANS.find(p => p.price === selectedNewPrice);
+
+  const handleForceSync = async () => {
+    if (!client || !newPlan) return;
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ saas: newPlan.name })
+        .eq('id', client.id);
+
+      if (error) throw error;
+      alert(`Succès ! Le forfait du client a été mis à jour vers ${newPlan.name}.`);
+      onClose();
+      window.location.reload(); // Recharge la page pour mettre à jour le tableau
+    } catch (err: any) {
+      alert("Erreur lors de la synchronisation : " + err.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <div 
@@ -100,9 +122,9 @@ export default function ClientManagementModal({ client, currentPlanPrice, isOpen
         </div>
 
         <div className="p-6 border-t border-zinc-800">
-          <button className="w-full bg-[#00FF00] text-black py-3 rounded-lg font-black uppercase text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform shadow-[0_0_20px_rgba(0,255,0,0.2)]">
-            <Zap size={16} />
-            Forcer la synchronisation
+          <button onClick={handleForceSync} disabled={isSyncing} className="w-full bg-[#00FF00] text-black py-3 rounded-lg font-black uppercase text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform shadow-[0_0_20px_rgba(0,255,0,0.2)] disabled:opacity-50">
+            {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+            {isSyncing ? 'Synchronisation...' : 'Forcer la synchronisation'}
           </button>
         </div>
       </div>
