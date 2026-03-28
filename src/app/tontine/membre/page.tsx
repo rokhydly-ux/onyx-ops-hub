@@ -121,15 +121,16 @@ function TontineMembreDashboard() {
     try {
       if (!tontineId) throw new Error("Lien de tontine invalide.");
 
-      // 1. Extraction ultime du numéro (on ne garde que les 9 derniers chiffres)
-      let cleanPhoneUser = phone.replace(/\D/g, '');
+      // 1. Nettoyage NUCLÉAIRE utilisateur (On ne garde QUE les chiffres)
+      let cleanPhoneUser = phone.replace(/[^0-9]/g, '');
+      if (cleanPhoneUser.startsWith('221')) cleanPhoneUser = cleanPhoneUser.slice(3);
+      if (cleanPhoneUser.startsWith('00221')) cleanPhoneUser = cleanPhoneUser.slice(5);
       
-      if (!cleanPhoneUser) throw new Error("Veuillez saisir votre numéro de téléphone.");
+      const cleanPinUser = pin.trim();
       
-      let corePhoneUser = cleanPhoneUser.length >= 9 ? cleanPhoneUser.slice(-9) : cleanPhoneUser;
-      const cleanPinUser = pin.trim() || '0000';
+      if (!cleanPhoneUser || !cleanPinUser) throw new Error("Veuillez remplir tous les champs.");
       
-      // 2. Requête Supabase (CORRECTION ICI : tontine_members)
+      // 2. Requête Supabase
       const { data: membersList, error: fetchErr } = await supabase
         .from('tontine_members') 
         .select('*')
@@ -141,20 +142,36 @@ function TontineMembreDashboard() {
           throw new Error("Aucun membre trouvé dans cette tontine.");
       }
 
-      // 3. Recherche du membre correspondant (Tolérance maximale sur le numéro)
+      // 3. Recherche du membre
+      let debugDbPhone = "Aucun";
+      let debugDbPin = "Aucun";
+
       const matchedMember = membersList.find(m => {
-        let dbPhone = String(m.telephone || '').replace(/\D/g, '');
-        let coreDbPhone = dbPhone.length >= 9 ? dbPhone.slice(-9) : dbPhone;
+        // Nettoyage NUCLÉAIRE BDD (Gère même les bugs ".0" d'Excel)
+        let rawPhone = String(m.telephone || '').split('.')[0]; 
+        let dbPhone = rawPhone.replace(/[^0-9]/g, '');
         
-        // Si le code_secret est null, vide, ou contient la chaîne "null" (suite à un import Excel)
-        let rawPin = String(m.code_secret || '').trim();
-        let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
+        if (dbPhone.startsWith('221')) dbPhone = dbPhone.slice(3);
+        if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
         
-        return coreDbPhone === corePhoneUser && dbPin === cleanPinUser;
+        const dbPin = String(m.code_secret || '').trim();
+        
+        // MOUCHARD : Si le numéro correspond un peu, on sauvegarde ses vraies infos pour l'erreur
+        if (dbPhone === cleanPhoneUser || dbPhone.includes(cleanPhoneUser)) {
+           debugDbPhone = dbPhone;
+           debugDbPin = dbPin === 'null' || dbPin === '' ? 'VIDE' : dbPin;
+        }
+
+        return dbPhone === cleanPhoneUser && dbPin === cleanPinUser;
       });
       
       if (!matchedMember) {
-        throw new Error("Numéro ou code PIN incorrect.");
+        // LE FAMEUX RAYON X !
+        if (debugDbPhone !== "Aucun") {
+            throw new Error(`RAYON X 🔍 -> Numéro BDD: "${debugDbPhone}", PIN BDD: "${debugDbPin}". Tu as tapé PIN: "${cleanPinUser}"`);
+        } else {
+            throw new Error(`Le numéro ${cleanPhoneUser} est 100% introuvable dans la base.`);
+        }
       }
       
       // 4. Succès !
