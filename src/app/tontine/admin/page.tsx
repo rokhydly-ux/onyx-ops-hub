@@ -53,9 +53,9 @@ export default function TontineMemberPage() {
       if (cleanPhone.startsWith('221')) cleanPhone = cleanPhone.slice(3);
       if (cleanPhone.startsWith('00221')) cleanPhone = cleanPhone.slice(5);
       
-      const cleanPin = inputPin.trim() || '0000';
+      const cleanPin = inputPin.trim();
 
-      if (!cleanPhone) throw new Error("Veuillez saisir votre numéro de téléphone.");
+      if (!cleanPhone || !cleanPin) throw new Error("Veuillez remplir tous les champs (Numéro et Code PIN).");
 
       // 3. Requête Supabase : On demande tous les membres de cette tontine pour filtrer en local
       // C'est plus sûr car on peut nettoyer les numéros de la BDD à la volée
@@ -88,10 +88,10 @@ export default function TontineMemberPage() {
       });
 
       if (!matchedMember) {
-        if (debugDbPhone !== "Aucun") {
+        if (process.env.NODE_ENV === 'development' && debugDbPhone !== "Aucun") {
             throw new Error(`RAYON X 🔍 -> Numéro BDD: "${debugDbPhone}", PIN BDD: "${debugDbPin}". Tu as tapé PIN: "${cleanPin}"`);
         } else {
-            throw new Error(`Le numéro ${cleanPhone} est 100% introuvable dans la base.`);
+            throw new Error("Numéro de téléphone ou code PIN incorrect.");
         }
       }
 

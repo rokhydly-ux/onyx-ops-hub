@@ -49,6 +49,7 @@ function TontineMembreDashboard() {
   // --- ETATS PROFIL MEMBRE ---
   const [editPhotoUrl, setEditPhotoUrl] = useState("");
   const [editDateNaissance, setEditDateNaissance] = useState("");
+  const [editPin, setEditPin] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showPhotoInput, setShowPhotoInput] = useState(false);
   
@@ -126,9 +127,9 @@ function TontineMembreDashboard() {
       if (cleanPhoneUser.startsWith('221')) cleanPhoneUser = cleanPhoneUser.slice(3);
       if (cleanPhoneUser.startsWith('00221')) cleanPhoneUser = cleanPhoneUser.slice(5);
       
-      const cleanPinUser = pin.trim() || '0000';
+      const cleanPinUser = pin.trim();
       
-      if (!cleanPhoneUser) throw new Error("Veuillez saisir votre numéro de téléphone.");
+      if (!cleanPhoneUser || !cleanPinUser) throw new Error("Veuillez remplir tous les champs (Numéro et Code PIN).");
       
       // 2. Requête Supabase
       const { data: membersList, error: fetchErr } = await supabase
@@ -167,11 +168,11 @@ function TontineMembreDashboard() {
       });
       
       if (!matchedMember) {
-        // LE FAMEUX RAYON X !
-        if (debugDbPhone !== "Aucun") {
+        // LE FAMEUX RAYON X ! (Uniquement en environnement de développement)
+        if (process.env.NODE_ENV === 'development' && debugDbPhone !== "Aucun") {
             throw new Error(`RAYON X 🔍 -> Numéro BDD: "${debugDbPhone}", PIN BDD: "${debugDbPin}". Tu as tapé PIN: "${cleanPinUser}"`);
         } else {
-            throw new Error(`Le numéro ${cleanPhoneUser} est 100% introuvable dans la base.`);
+            throw new Error("Numéro de téléphone ou code PIN incorrect.");
         }
       }
       
@@ -267,6 +268,10 @@ function TontineMembreDashboard() {
             payload.date_naissance = editDateNaissance;
             payload.date_naissance_modifiee = true;
         }
+        if (editPin.trim().length > 0) {
+            if (editPin.trim().length < 4) throw new Error("Le code PIN doit contenir exactement 4 chiffres.");
+            payload.code_secret = editPin.trim();
+        }
 
         if (Object.keys(payload).length > 0) {
             // CORRECTION ICI
@@ -275,6 +280,7 @@ function TontineMembreDashboard() {
             if (!data || data.length === 0) throw new Error("Sécurité Supabase : Enregistrement bloqué.");
             
             setCurrentUser({...currentUser, ...payload});
+            setEditPin("");
             
             const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
             audio.volume = 0.4;
@@ -459,7 +465,26 @@ function TontineMembreDashboard() {
                     )}
                 </div>
 
-                <button onClick={handleSaveProfile} disabled={isSavingProfile || (editDateNaissance === (currentUser.date_naissance || '') && editPhotoUrl === (currentUser.photo_url || ''))} className="w-full mt-6 py-4 rounded-xl font-black uppercase text-xs shadow-md hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2" style={{ backgroundColor: tontine.theme_color, color: '#000' }}>
+            <div className="w-full mt-4">
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Code PIN Secret</label>
+                <div className="relative">
+                    <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input 
+                        type="password" 
+                        inputMode="numeric" 
+                        maxLength={4} 
+                        value={editPin} 
+                        onChange={e => setEditPin(e.target.value.replace(/[^0-9]/g, ''))} 
+                        placeholder={(!currentUser.code_secret || currentUser.code_secret === '0000') ? "⚠️ Non sécurisé (0000) - Changez-le !" : "•••• (Laissez vide pour garder)"} 
+                        className={`w-full p-3 pl-10 bg-zinc-50 border rounded-xl text-sm font-bold outline-none focus:border-black transition ${(!currentUser.code_secret || currentUser.code_secret === '0000') ? 'border-orange-300 placeholder:text-orange-500' : 'border-zinc-200'}`} 
+                    />
+                </div>
+                {(!currentUser.code_secret || currentUser.code_secret === '0000') && (
+                    <p className="text-[9px] text-orange-500 font-bold mt-1.5 flex items-center gap-1"><AlertCircle size={10}/> Votre code est 0000, veuillez le changer pour sécuriser votre compte.</p>
+                )}
+            </div>
+
+            <button onClick={handleSaveProfile} disabled={isSavingProfile || (editDateNaissance === (currentUser.date_naissance || '') && editPhotoUrl === (currentUser.photo_url || '') && editPin === '')} className="w-full mt-6 py-4 rounded-xl font-black uppercase text-xs shadow-md hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2" style={{ backgroundColor: tontine.theme_color, color: '#000' }}>
                     {isSavingProfile ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
                     Mettre à jour le profil
                 </button>
