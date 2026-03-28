@@ -38,29 +38,15 @@ export default function AdminDashboard() {
   const sectionMembresRef = useRef<HTMLElement>(null);
   const sectionTirageRef = useRef<HTMLElement>(null);
 
-  // 1. AUTHENTIFICATION ANTI-CRASH (La VRAIE version blindée)
+  // 1. AUTHENTIFICATION VERCEL (Mode Écoute Active)
   useEffect(() => {
     let isMounted = true;
 
-    const loadDashboard = async () => {
+    // Fonction qui charge les données SEULEMENT quand Supabase nous donne l'utilisateur
+    const chargerDonnees = async (user: any) => {
       try {
-        // ⏳ LA PAUSE MAGIQUE : On force l'attente pour Vercel
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        const { data, error } = await supabase.auth.getSession();
-
-        if (error && error.name !== 'AuthSessionMissingError' && !error.message.includes('missing')) {
-            throw error;
-        }
-
-        if (!data?.session?.user) {
-           if (isMounted) setIsLoading(false);
-           return;
-        }
-
-        const user = data.session.user;
-        if (isMounted) setCurrentUser(user);
-
+        setCurrentUser(user);
+        
         // Recherche de la tontine
         const { data: tontines } = await supabase
           .from('tontines')
@@ -76,9 +62,9 @@ export default function AdminDashboard() {
              .insert([{ 
                 nom: 'Les Queens', 
                 owner_id: user.id, 
-                theme_color: '#39FF14',
+                theme_color: '#39FF14', 
                 montant_mensuel: 20000,
-                gagnants_par_mois: 2,
+                gagnants_par_mois: 2, 
                 duree_mois: 10
              }])
              .select('*');
@@ -90,26 +76,40 @@ export default function AdminDashboard() {
            fetchMembersAndCotisations(currentTontine.id);
         }
       } catch (err) {
-         console.log("🛡️ Crash ignoré :", err);
+         console.error("Erreur de chargement silencieuse:", err);
       } finally {
         if (isMounted) setIsLoading(false);
       }
     };
 
-    loadDashboard();
-
-    // 🕸️ LE FILET DE SÉCURITÉ : Si la session arrive en retard, on la rattrape !
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (isMounted && session?.user && !currentUser) {
-         loadDashboard();
+    // 🕸️ LE FILET VERCEL : On écoute Supabase en direct. 
+    // S'il trouve l'utilisateur en retard, il charge les données tout seul !
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (isMounted) {
+        if (session?.user) {
+          chargerDonnees(session.user);
+        } else {
+          setIsLoading(false);
+        }
       }
     });
 
-    return () => { 
-      isMounted = false; 
+    // 🔍 Coup d'œil rapide au démarrage (au cas où c'est déjà prêt)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted) {
+        if (session?.user) {
+          chargerDonnees(session.user);
+        } else {
+          // On ne met pas setIsLoading(false) ici pour laisser onAuthStateChange chercher
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, [currentUser]);
+  }, []);
 
   const fetchMembersAndCotisations = async (tontineId: string) => {
     const { data: members } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineId);
