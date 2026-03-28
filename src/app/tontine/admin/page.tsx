@@ -336,7 +336,7 @@ export default function TontineAdminPage() {
             </button>
 
             <button onClick={handleLogout} className="w-full bg-red-500/20 text-red-400 hover:bg-red-500/30 py-3 rounded-2xl font-black uppercase text-xs mt-3 transition flex justify-center items-center gap-2">
-              <LogOut size={14} /> Se déconnecter
+              <LogOut size={14} /> Se deconnecter
             </button>
           </div>
         )}
