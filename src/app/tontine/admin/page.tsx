@@ -38,15 +38,22 @@ export default function AdminDashboard() {
   const sectionMembresRef = useRef<HTMLElement>(null);
   const sectionTirageRef = useRef<HTMLElement>(null);
 
-  // 1. AUTHENTIFICATION ANTI-CRASH (Celle qui marche !)
+  // 1. AUTHENTIFICATION ANTI-CRASH (La VRAIE version blindée)
   useEffect(() => {
     let isMounted = true;
 
     const loadDashboard = async () => {
       try {
+        // ⏳ LA PAUSE MAGIQUE : On force l'attente pour Vercel
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         const { data, error } = await supabase.auth.getSession();
 
-        if (error || !data?.session?.user) {
+        if (error && error.name !== 'AuthSessionMissingError' && !error.message.includes('missing')) {
+            throw error;
+        }
+
+        if (!data?.session?.user) {
            if (isMounted) setIsLoading(false);
            return;
         }
@@ -90,8 +97,19 @@ export default function AdminDashboard() {
     };
 
     loadDashboard();
-    return () => { isMounted = false; };
-  }, []);
+
+    // 🕸️ LE FILET DE SÉCURITÉ : Si la session arrive en retard, on la rattrape !
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted && session?.user && !currentUser) {
+         loadDashboard();
+      }
+    });
+
+    return () => { 
+      isMounted = false; 
+      subscription.unsubscribe();
+    };
+  }, [currentUser]);
 
   const fetchMembersAndCotisations = async (tontineId: string) => {
     const { data: members } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineId);
