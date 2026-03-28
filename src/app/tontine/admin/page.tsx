@@ -384,7 +384,7 @@ export default function TontineAdminPage() {
                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Statut Tirage</label>
                     <select value={memberForm.a_gagne ? 'oui' : 'non'} onChange={e => setMemberForm({...memberForm, a_gagne: e.target.value === 'oui'})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition appearance-none cursor-pointer text-black">
                       <option value="non">En Attente</option>
-                      <option value="oui">A Déjà Gagné</option>
+                      <option value="oui">A Déja Gagné</option>
                     </select>
                   </div>
               </div>
