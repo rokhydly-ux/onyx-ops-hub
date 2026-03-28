@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2 } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle } from 'lucide-react';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -11,78 +11,100 @@ export default function TontineAdminPage() {
   const [tontine, setTontine] = useState<any>(null);
   const [membres, setMembres] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // --- ÉTATS MODALE ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false });
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadAdminDashboard = async (user: any) => {
+    const checkAuthAndLoad = async () => {
       try {
-        setCurrentUser(user);
+        console.log("🔍 1. DÉMARRAGE VÉRIFICATION ADMIN...");
         
-        // 1. On cherche LA tontine de cet administrateur (owner_id)
+        // 1. Vérification de la session Supabase
+        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+        
+        if (sessionErr) throw sessionErr;
+
+        if (!session?.user) {
+           console.log("❌ 2. AUCUNE SESSION TROUVÉE. Le navigateur a oublié la connexion. Redirection accès restreint.");
+           if (isMounted) setIsLoading(false);
+           return;
+        }
+
+        console.log("✅ 2. SESSION TROUVÉE ! Utilisateur connecté :", session.user.email, "| ID:", session.user.id);
+        if (isMounted) setCurrentUser(session.user);
+
+        // 2. Recherche de la tontine
+        console.log("🔍 3. Recherche de la tontine pour owner_id...");
         const { data: tontines, error: fetchErr } = await supabase
           .from('tontines')
           .select('*')
-          .eq('owner_id', user.id);
+          .eq('owner_id', session.user.id);
 
-        if (fetchErr) throw fetchErr;
+        if (fetchErr) {
+          console.error("❌ ERREUR SQL (Recherche Tontine) :", fetchErr.message);
+          throw fetchErr;
+        }
+
+        console.log("✅ 4. Tontines trouvées :", tontines?.length);
 
         let targetTontine = tontines && tontines.length > 0 ? tontines[0] : null;
 
-        // 2. Sécurité : S'il n'en a pas, on lui en crée une silencieusement
+        // 3. Création automatique de sécurité
         if (!targetTontine) {
-          const { data: newTontineData, error: insertErr } = await supabase
-            .from('tontines')
-            .insert([{ 
-              nom: 'Ma Tontine', 
-              theme_color: '#39FF14', 
-              montant_mensuel: 20000, 
-              gagnants_par_mois: 2, 
-              duree_mois: 10, 
-              owner_id: user.id 
-            }])
-            .select('*');
-
-          if (!insertErr && newTontineData && newTontineData.length > 0) {
-            targetTontine = newTontineData[0];
-          }
+           console.log("⚠️ Aucune tontine existante. Création d'une nouvelle tontine de secours...");
+           const { data: newT, error: insErr } = await supabase
+             .from('tontines')
+             .insert([{ 
+                nom: 'Les Queens (Secours)', 
+                theme_color: '#39FF14', 
+                montant_mensuel: 20000, 
+                gagnants_par_mois: 2, 
+                duree_mois: 10, 
+                owner_id: session.user.id 
+             }])
+             .select('*');
+             
+           if (insErr) {
+             console.error("❌ ERREUR SQL (Création Tontine) :", insErr.message);
+             throw insErr;
+           }
+           targetTontine = newT?.[0];
         }
 
-        if (!targetTontine) throw new Error("Impossible de charger la tontine.");
-
-        // 3. On applique la tontine et on charge SES membres
-        if (isMounted) {
-          setTontine(targetTontine);
-          const { data: members } = await supabase
-            .from('tontine_members')
-            .select('*')
-            .eq('tontine_id', targetTontine.id);
-            
-          setMembres(members || []);
+        // 4. Application finale
+        if (isMounted && targetTontine) {
+           setTontine(targetTontine);
+           console.log("✅ 5. SUCCÈS TOTAL ! Tontine chargée :", targetTontine.nom);
+           
+           const { data: members } = await supabase
+             .from('tontine_members')
+             .select('*')
+             .eq('tontine_id', targetTontine.id);
+             
+           if (isMounted) setMembres(members || []);
         }
 
-      } catch (err: any) {
-        console.error("Erreur d'accès Admin :", err.message);
+      } catch (error) {
+        console.error("❌ CRASH GLOBALE ADMIN :", error);
       } finally {
         if (isMounted) setIsLoading(false);
       }
     };
 
-    // Écouteur de session Auth direct (Celui du Hub)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (isMounted) {
-        if (session?.user) {
-          loadAdminDashboard(session.user);
-        } else {
-          setIsLoading(false); // Redirigera vers l'écran "Accès Restreint" classique
-        }
-      }
-    });
+    // Lancement au chargement de la page
+    checkAuthAndLoad();
 
+    // Écouteur en cas de reconnexion
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (isMounted && session?.user && !currentUser) {
-        setIsLoading(true);
-        loadAdminDashboard(session.user);
+         console.log("🔄 Changement de session détecté ! Rechargement...");
+         checkAuthAndLoad();
       }
     });
 
@@ -91,6 +113,50 @@ export default function TontineAdminPage() {
       subscription.unsubscribe();
     };
   }, []);
+
+  // --- FONCTIONS CRUD MEMBRES ---
+  const openAddModal = () => {
+    setEditingMember(null);
+    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (m: any) => {
+    setEditingMember(m);
+    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne });
+    setIsModalOpen(true);
+  };
+
+  const handleSaveMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      if (!tontine) throw new Error("Tontine non chargée.");
+      const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne };
+
+      if (editingMember) {
+        const { error } = await supabase.from('tontine_members').update(payload).eq('id', editingMember.id);
+        if (error) throw error;
+        setMembres(membres.map(m => m.id === editingMember.id ? { ...m, ...payload } : m));
+      } else {
+        const { data, error } = await supabase.from('tontine_members').insert([payload]).select();
+        if (error) throw error;
+        if (data) setMembres([...membres, data[0]]);
+      }
+      setIsModalOpen(false);
+    } catch (err: any) {
+      alert("Erreur de sauvegarde: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteMember = async (id: string) => {
+    if (!confirm("Voulez-vous vraiment supprimer ce membre de la tontine ?")) return;
+    const { error } = await supabase.from('tontine_members').delete().eq('id', id);
+    if (error) alert("Erreur de suppression: " + error.message);
+    else setMembres(membres.filter(m => m.id !== id));
+  };
 
   if (isLoading) {
     return (
@@ -185,7 +251,12 @@ export default function TontineAdminPage() {
          </div>
 
          <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
-            <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl mb-6`}>Liste des Membres</h3>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+               <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl`}>Liste des Membres</h3>
+               <button onClick={openAddModal} className="bg-black text-[#39FF14] px-5 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md">
+                 <Plus size={16}/> Ajouter un membre
+               </button>
+            </div>
             <div className="overflow-x-auto">
                <table className="w-full text-left border-collapse">
                   <thead>
@@ -193,6 +264,7 @@ export default function TontineAdminPage() {
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Membre</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Téléphone</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Statut</th>
+                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest text-right">Actions</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -207,11 +279,17 @@ export default function TontineAdminPage() {
                                  <span className="bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">En Attente</span>
                               )}
                            </td>
+                           <td className="py-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                 <button onClick={() => openEditModal(m)} className="p-2 bg-zinc-100 text-black rounded-lg hover:bg-zinc-200 transition" title="Modifier"><Edit size={14}/></button>
+                                 <button onClick={() => handleDeleteMember(m.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition" title="Supprimer"><Trash2 size={14}/></button>
+                              </div>
+                           </td>
                         </tr>
                      ))}
                      {membres.length === 0 && (
                         <tr>
-                           <td colSpan={3} className="py-8 text-center text-zinc-500 font-bold">Aucun membre pour le moment.</td>
+                           <td colSpan={4} className="py-8 text-center text-zinc-500 font-bold">Aucun membre pour le moment.</td>
                         </tr>
                      )}
                   </tbody>
@@ -219,6 +297,49 @@ export default function TontineAdminPage() {
             </div>
          </div>
       </main>
+
+      {/* --- MODALE AJOUT / ÉDITION --- */}
+      {isModalOpen && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 relative shadow-2xl animate-in zoom-in-95">
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
+            
+            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 text-black`}>
+               {editingMember ? "Modifier le Membre" : "Nouveau Membre"}
+            </h2>
+            
+            <form onSubmit={handleSaveMember} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Prénom & Nom</label>
+                <input type="text" required value={memberForm.prenom_nom} onChange={e => setMemberForm({...memberForm, prenom_nom: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition text-black" placeholder="Ex: Moussa Ndiaye" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Numéro de Téléphone</label>
+                <input type="tel" required value={memberForm.telephone} onChange={e => setMemberForm({...memberForm, telephone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition text-black" placeholder="Ex: 77 123 45 67" />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Code PIN Secret</label>
+                    <input type="text" maxLength={4} value={memberForm.code_secret} onChange={e => setMemberForm({...memberForm, code_secret: e.target.value.replace(/\D/g, '')})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition text-black tracking-widest" placeholder="0000" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Statut Tirage</label>
+                    <select value={memberForm.a_gagne ? 'oui' : 'non'} onChange={e => setMemberForm({...memberForm, a_gagne: e.target.value === 'oui'})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition appearance-none cursor-pointer text-black">
+                      <option value="non">En Attente</option>
+                      <option value="oui">A Déjà Gagné</option>
+                    </select>
+                  </div>
+              </div>
+              
+              <button type="submit" disabled={isSaving} className="w-full mt-6 bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                {isSaving ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle size={18}/>}
+                {isSaving ? "Sauvegarde..." : "Enregistrer la fiche"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
