@@ -19,7 +19,7 @@ import InteractiveParticles from "@/components/InteractiveParticles";
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
-type PlanKey = "solo" | "tekki" | "tekkipro" | "gold";
+type PlanKey = "solo" | "tekki" | "tekkipro" | "crm" | "gold";
 
 // --- DATA ---
 const ECOSYSTEM_SAAS = [
@@ -46,6 +46,7 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
   solo: { title: "Onyx Jaay", desc: "La boutique WhatsApp ultime pour vendre vos produits comme un pro.", benefits: ["Catalogue Interactif", "Stop au chaos sur WhatsApp", "Génération de Devis PDF"], why: "Arrêter le bricolage.", cible: "Vendeurs WhatsApp", avantage: "Simple et efficace.", chiffreCle: "Zéro perte" },
   tekki: { title: "Pack Tekki", desc: "Gérez votre caisse, votre stock et vos livreurs en 1 clic. Mathématiquement incontestable.", benefits: ["Vente, Stock & Livreurs", "Zéro perte de CFA", "Feuille de route auto"], why: "Contrôle total du cash.", cible: "Commerçants & PME", avantage: "Écosystème parfait.", chiffreCle: "Bénéfice immédiat" },
   tekkipro: { title: "Pack Tekki Pro", desc: "Les outils Pack Tekki + Formation + Pointage RH.", benefits: ["Suite Tekki complète", "Gestion d'équipes & RH", "Domination du marché"], why: "Croissance agressive.", cible: "Ambitieux", avantage: "Tout inclus.", chiffreCle: "Ventes x2" },
+  crm: { title: "Pack Onyx CRM", desc: "CRM B2B + Booking pour les services et prestataires.", benefits: ["CRM & Pipeline de Ventes", "Réservation en ligne", "Facturation automatisée"], why: "Fidéliser et closer.", cible: "Services & B2B", avantage: "Fidélité Max.", chiffreCle: "Clients x3" },
   gold: { title: "Pack Onyx Gold", desc: "L'arsenal complet VIP. Logiciels + CRM B2B + Outils Premium.", benefits: ["Écosystème 100% Déverrouillé", "CRM B2B Intégré", "Support Ultra-Prioritaire"], why: "Pour tout écraser.", cible: "Entreprises", avantage: "La totale.", chiffreCle: "Sans limite" },
 };
 
@@ -64,6 +65,7 @@ const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: s
   { id: "solo", name: "Onyx Jaay", price: 13900, label: "Onyx Jaay", rating: "4.9/5", avis: 142 },
   { id: "tekki", name: "Pack Tekki", price: 22900, label: "Pack Tekki", rating: "5.0/5", avis: 312 },
   { id: "tekkipro", name: "Pack Tekki Pro", price: 27900, label: "Pack Tekki Pro", rating: "5.0/5", avis: 189 },
+  { id: "crm", name: "Pack Onyx CRM", price: 39900, label: "Pack Onyx CRM", rating: "4.9/5", avis: 215 },
   { id: "gold", name: "Pack Onyx Gold", price: 59900, label: "Pack Onyx Gold", rating: "5.0/5", avis: 120 },
 ];
 
@@ -189,7 +191,7 @@ export default function OnyxOpsElite() {
 
   // WORKFLOW PARTENAIRE
   const [partnerStep, setPartnerStep] = useState<'landing' | 'form' | 'success' | 'dashboard'>('landing');
-  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, tekkipro: 1, gold: 0 });
+  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, tekkipro: 1, crm: 0, gold: 0 });
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", address: "", country: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
@@ -581,8 +583,8 @@ export default function OnyxOpsElite() {
 };
 
   // Mises à jour des tarifs sur la simulation des commissions
-  const commissionM1 = Math.round((packCounts.solo || 0) * 13900 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30 + (packCounts.gold || 0) * 59900 * 0.30);
-  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13900 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10 + (packCounts.gold || 0) * 59900 * 0.10);
+  const commissionM1 = Math.round((packCounts.solo || 0) * 13900 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30 + (packCounts.crm || 0) * 39900 * 0.30 + (packCounts.gold || 0) * 59900 * 0.30);
+  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13900 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10 + (packCounts.crm || 0) * 39900 * 0.10 + (packCounts.gold || 0) * 59900 * 0.10);
 
   const navigateTo = (view: any, scrollId?: string) => {
     setIsMobileMenuOpen(false); 
@@ -885,7 +887,7 @@ export default function OnyxOpsElite() {
                   <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché.</p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 max-w-[1400px] mx-auto">
                   {PACKS.map((pack) => {
                     const planDetails = PLAN_DETAILS[pack.id];
                     const isRecommended = quizResult && quizResult.packId === pack.id;
@@ -893,7 +895,7 @@ export default function OnyxOpsElite() {
                     const isGold = pack.id === 'gold';
 
                     return (
-                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-b from-[#39FF14]/30 via-black to-black border-[4px] border-[#39FF14] md:scale-110 shadow-[0_0_60px_rgba(57,255,20,0.5)] z-30' : isGold ? 'bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.15)] z-10' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-8 rounded-[3rem] transition-all duration-300 flex flex-col relative group`}>
+                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-b from-[#39FF14]/30 via-black to-black border-[4px] border-[#39FF14] md:scale-105 shadow-[0_0_60px_rgba(57,255,20,0.5)] z-30' : isGold ? 'bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.15)] z-10' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-6 xl:p-8 rounded-[2.5rem] xl:rounded-[3rem] transition-all duration-300 flex flex-col relative group`}>
                         
                         {/* BULLE PROMOTIONNELLE TEKKI / GOLD */}
                         {(isTekki || isRecommended || isGold) && (
@@ -914,7 +916,7 @@ export default function OnyxOpsElite() {
                           {[...Array(5)].map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < 4 || pack.rating.startsWith('5') ? 'text-yellow-400 fill-yellow-400' : 'text-yellow-400/30 fill-yellow-400/30'}`} />))}
                           <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis})</span>
                         </div>
-                        <div className={`text-3xl font-black mb-6 italic text-white flex items-center`}>
+                        <div className={`text-2xl xl:text-3xl font-black mb-6 italic text-white flex items-center`}>
                            {pack.price.toLocaleString()} F
                            {pack.id === 'tekkipro' && <TrendingUp size={20} className="inline-block ml-3 text-[#00E5FF]" />}
                            {pack.id === 'gold' && <Target size={20} className="inline-block ml-3 text-yellow-400 group-hover:animate-[spin_4s_linear_infinite]" />}
@@ -1181,6 +1183,7 @@ export default function OnyxOpsElite() {
                         { id: 'solo', label: 'Onyx Jaay (13.900F)', max: 50 },
                         { id: 'tekki', label: 'Pack Tekki (22.900F)', max: 40 },
                         { id: 'tekkipro', label: 'Pack Tekki Pro (27.900F)', max: 30 },
+                        { id: 'crm', label: 'Pack Onyx CRM (39.900F)', max: 25 },
                         { id: 'gold', label: 'Pack Onyx Gold (59.900F)', max: 20 },
                       ].map(pack => (
                         <div key={pack.id}>
@@ -1320,24 +1323,23 @@ export default function OnyxOpsElite() {
                  <button onClick={() => setAuthMode('register')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition ${authMode === 'register' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Créer un compte</button>
               </div>
               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 text-center`}>
-                {authMode === 'login' ? 'Accéder à votre Instance' : 'Démarrer votre Essai'}
+                {authMode === 'login' ? 'Accéder à votre Hub' : 'Trouver la solution idéale'}
               </h2>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  {ECOSYSTEM_SAAS.map(s => (
-                    <button key={s.id} onClick={() => setAuthSelectedSaas(s.id)} className={`p-3 text-[10px] font-black uppercase rounded-xl border-2 transition ${authSelectedSaas === s.id ? 'border-black bg-black text-[#39FF14]' : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-[#39FF14]'}`}>
-                      {s.name}
-                    </button>
-                  ))}
-                </div>
                 {authMode === 'login' ? (
-                   <button onClick={() => { const url = authSelectedSaas === 'vente' ? '/vente' : authSelectedSaas === 'formation' ? '/formation' : `https://${authSelectedSaas}.onyxops.com/login`; window.open(url, url.startsWith('/') ? '_self' : '_blank'); }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
-                     <LogIn size={16}/> Ouvrir
-                   </button>
+                   <>
+                     <p className="text-zinc-500 text-sm font-bold mb-6 text-center">Connectez-vous au Hub Central pour gérer vos applications OnyxOps.</p>
+                     <button onClick={() => { window.location.href = 'https://onyx-ops-hub.vercel.app/login'; }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
+                       <LogIn size={16}/> Aller vers le Login
+                     </button>
+                   </>
                 ) : (
-                   <button onClick={() => { setShowAuthModal(false); setLeadData(prev => ({ ...prev, saas: authSelectedSaas })); setShowOnboarding(true); }} className="w-full bg-black text-white py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:bg-[#39FF14] hover:text-black transition flex justify-center items-center gap-2">
-                     <UserPlus size={16}/> Activer Essai Gratuit
-                   </button>
+                   <>
+                     <p className="text-zinc-500 text-sm font-bold mb-6 text-center">Répondez à quelques questions pour que nous puissions vous recommander l'offre adaptée à vos besoins.</p>
+                     <button onClick={() => { setShowAuthModal(false); document.getElementById('quiz-section')?.scrollIntoView({behavior:'smooth'}); }} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:bg-zinc-800 transition flex justify-center items-center gap-2">
+                       <Target size={16}/> Lancer le diagnostic
+                     </button>
+                   </>
                 )}
               </div>
             </div>
@@ -1372,12 +1374,12 @@ export default function OnyxOpsElite() {
                     <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2`}>{showSaasChoice.id}</h2>
                     <p className="text-sm font-bold text-zinc-500 mb-6 px-4">{showSaasChoice.solution}</p>
 
-                    <div className="flex flex-col sm:flex-row gap-3 mb-8 px-4 max-w-lg mx-auto">
+                    <div className="flex flex-col sm:flex-row gap-3 mb-8 px-4 max-w-lg mx-auto transition-all">
                        <input type="text" placeholder="Votre Prénom *" value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="flex-1 p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition" />
                        <input type="tel" placeholder="Votre WhatsApp *" value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="flex-1 p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition" />
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-6 animate-in slide-in-from-left-4">
+                    <div className={`grid ${showSaasChoice.id === 'Onyx Tontine' ? 'grid-cols-1 max-w-sm mx-auto' : 'md:grid-cols-2'} gap-6 animate-in slide-in-from-left-4`}>
                        {/* OPTION BASIQUE */}
                        <div className="w-full bg-zinc-50 text-black border-2 border-zinc-200 py-6 px-4 rounded-3xl flex flex-col items-center justify-between relative group">
                           <div className="flex flex-col items-center w-full">
@@ -1385,28 +1387,37 @@ export default function OnyxOpsElite() {
                              <span className="text-2xl font-black mb-4">{showSaasChoice.price.toLocaleString()} F</span>
                           </div>
                           <div className="w-full flex flex-col gap-2 mt-2 z-10">
-                             <button onClick={() => { 
-                                 if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp.");
-                                 saveLead({ 
-                                    source: 'Upsell Modal', 
-                                    intent: `Lead Partiel (${showSaasChoice.id})`, 
-                                    contact: leadData.phone, 
-                                    full_name: leadData.name 
-                                 });
-                                 setShowSaasChoice(null); 
-                                 setLeadData(prev => ({...prev, saas: showSaasChoice.id})); 
-                                 setShowOnboarding(true); 
-                             }} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-800 transition shadow-md flex items-center justify-center">
-                                Créer mon compte
-                             </button>
-                             <button onClick={() => { if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp."); handleWaClick("Essai Basique", `Bonjour, je m'appelle ${leadData.name} et je souhaite démarrer un essai pour ${showSaasChoice.id} à ${showSaasChoice.price.toLocaleString()}F.`); setShowSaasChoice(null); }} className="w-full bg-white text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-100 transition border border-zinc-200 shadow-sm flex items-center justify-center gap-2">
-                                <MessageSquare size={14}/> Essai via WhatsApp
-                             </button>
+                             {showSaasChoice.id === 'Onyx Tontine' ? (
+                               <button onClick={() => router.push('/solutions/onyx-tontine')} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition shadow-md flex items-center justify-center gap-2">
+                                  Ouvrir la page Tontine <ArrowRight size={14}/>
+                               </button>
+                             ) : (
+                               <>
+                                 <button onClick={() => { 
+                                     if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp.");
+                                     saveLead({ 
+                                        source: 'Upsell Modal', 
+                                        intent: `Lead Partiel (${showSaasChoice.id})`, 
+                                        contact: leadData.phone, 
+                                        full_name: leadData.name 
+                                     });
+                                     setShowSaasChoice(null); 
+                                     setLeadData(prev => ({...prev, saas: showSaasChoice.id})); 
+                                     setShowOnboarding(true); 
+                                 }} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-800 transition shadow-md flex items-center justify-center">
+                                    Créer mon compte
+                                 </button>
+                                 <button onClick={() => { if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp."); handleWaClick("Essai Basique", `Bonjour, je m'appelle ${leadData.name} et je souhaite démarrer un essai pour ${showSaasChoice.id} à ${showSaasChoice.price.toLocaleString()}F.`); setShowSaasChoice(null); }} className="w-full bg-white text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-100 transition border border-zinc-200 shadow-sm flex items-center justify-center gap-2">
+                                    <MessageSquare size={14}/> Essai via WhatsApp
+                                 </button>
+                               </>
+                             )}
                           </div>
                        </div>
                        
                        {/* OPTION UPSELL AVEC FOMO */}
-                       <div className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-3xl shadow-[0_15px_30px_rgba(57,255,20,0.2)] flex flex-col items-center justify-between border-2 border-[#39FF14] relative overflow-hidden">
+                       {showSaasChoice.id !== 'Onyx Tontine' && (
+                         <div className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-3xl shadow-[0_15px_30px_rgba(57,255,20,0.2)] flex flex-col items-center justify-between border-2 border-[#39FF14] relative overflow-hidden">
                           <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase animate-pulse w-max z-20 flex items-center gap-1 shadow-lg">
                              🔥 Offre Flash : {formatTime(fomoTime)}
                           </div>
@@ -1438,7 +1449,8 @@ export default function OnyxOpsElite() {
                                 <MessageSquare size={14}/> Essai via WhatsApp
                              </button>
                           </div>
-                       </div>
+                         </div>
+                       )}
                     </div>
                   </>
                 ) : (
