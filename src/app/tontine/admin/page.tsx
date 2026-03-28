@@ -29,7 +29,9 @@ export default function TontineAdminPage() {
         // 1. Vérification de la session Supabase (getUser est plus fiable)
         const { data: { user }, error: sessionErr } = await supabase.auth.getUser();
         
-        if (sessionErr) throw sessionErr;
+        if (sessionErr) {
+          console.warn("⚠️ Session Supabase introuvable ou expirée :", sessionErr.message);
+        }
 
         let finalUser: any = user;
 
