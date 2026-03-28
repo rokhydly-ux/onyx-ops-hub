@@ -1645,15 +1645,15 @@ export default function AdminDashboard() {
                     placeholder="Filtrer par nom, téléphone, statut..." 
                     value={crmSearch} 
                     onChange={(e) => setCrmSearch(e.target.value)} 
-                    className="w-full pl-16 lg:pl-20 pr-6 lg:pr-8 py-4 lg:py-5 bg-zinc-50 border-none rounded-[2rem] outline-none font-black text-xs lg:text-sm text-black focus:ring-[6px] focus:ring-[#39FF14]/10 transition-all uppercase placeholder:text-zinc-300" 
+                    className="w-full pl-14 pr-6 py-4 bg-zinc-50 border-none rounded-2xl outline-none font-black text-xs text-black focus:ring-4 focus:ring-[#39FF14]/10 transition-all uppercase placeholder:text-zinc-300" 
                   />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
+                <div className="flex flex-wrap items-center justify-start xl:justify-end gap-3 w-full xl:w-auto mt-4 xl:mt-0">
                    <select 
                      value={crmTypeFilter} 
                      onChange={(e) => setCrmTypeFilter(e.target.value)} 
-                     className="px-6 lg:px-8 py-4 lg:py-5 bg-zinc-50 rounded-[2rem] font-black text-[10px] lg:text-[11px] uppercase tracking-[0.15em] outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black transition-colors"
+                     className="px-4 py-3 bg-zinc-50 rounded-xl font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black transition-colors"
                    >
                       <option value="Tous">Base Complète</option>
                       <option value="Client">Clients Officiels</option>
@@ -1662,23 +1662,23 @@ export default function AdminDashboard() {
                    <select 
                      value={crmActivityFilter} 
                      onChange={(e) => setCrmActivityFilter(e.target.value)} 
-                     className="px-6 lg:px-8 py-4 lg:py-5 bg-zinc-50 rounded-[2rem] font-black text-[10px] lg:text-[11px] uppercase tracking-[0.15em] outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black transition-colors"
+                     className="px-4 py-3 bg-zinc-50 rounded-xl font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black transition-colors"
                    >
                       <option value="Tous">Tous Secteurs</option>
                       {Array.from(new Set(contacts.map(c => c.activity).filter((a): a is string => Boolean(a)))).map(act => <option key={act} value={act}>{act}</option>)}
                       <option value="Non défini">Non défini</option>
                    </select>
-                   <button onClick={handleFixMissingExpiryDates} className="flex items-center justify-center gap-3 bg-blue-500 text-white px-8 lg:px-12 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95">
-                      <Clock size={18} /> Régulariser Dates
+                   <button onClick={handleFixMissingExpiryDates} className="flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-md active:scale-95">
+                      <Clock size={14} /> Régulariser Dates
                    </button>
-                   <button onClick={runIaScan} className="flex items-center justify-center gap-3 bg-zinc-800 text-white px-8 lg:px-12 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">
-                      <Sparkles size={18} /> Scan IA
+                   <button onClick={runIaScan} className="flex items-center justify-center gap-2 bg-zinc-800 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-md active:scale-95">
+                      <Sparkles size={14} /> Scan IA
                    </button>
                    <button 
                      onClick={openNewClientModal} 
-                     className="flex items-center justify-center gap-3 bg-[#39FF14] text-black px-8 lg:px-12 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-2xl hover:-translate-y-1 active:scale-95"
+                     className="flex items-center justify-center gap-2 bg-[#39FF14] text-black px-5 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-lg active:scale-95"
                    >
-                      <Plus size={18} /> Ajouter Nouveau
+                      <Plus size={14} /> Ajouter Nouveau
                    </button>
                 </div>
               </div>
