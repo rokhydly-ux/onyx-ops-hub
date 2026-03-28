@@ -121,15 +121,13 @@ function TontineMembreDashboard() {
     try {
       if (!tontineId) throw new Error("Lien de tontine invalide.");
 
-      // 1. Nettoyage STRICT de l'input utilisateur (on ne garde que les chiffres)
+      // 1. Extraction ultime du numéro (on ne garde que les 9 derniers chiffres)
       let cleanPhoneUser = phone.replace(/\D/g, '');
-      if (cleanPhoneUser.startsWith('221') && cleanPhoneUser.length > 9) {
-        cleanPhoneUser = cleanPhoneUser.slice(3);
-      }
-      
-      const cleanPinUser = pin.trim() || '0000';
       
       if (!cleanPhoneUser) throw new Error("Veuillez saisir votre numéro de téléphone.");
+      
+      let corePhoneUser = cleanPhoneUser.length >= 9 ? cleanPhoneUser.slice(-9) : cleanPhoneUser;
+      const cleanPinUser = pin.trim() || '0000';
       
       // 2. Requête Supabase (CORRECTION ICI : tontine_members)
       const { data: membersList, error: fetchErr } = await supabase
@@ -146,14 +144,13 @@ function TontineMembreDashboard() {
       // 3. Recherche du membre correspondant (Tolérance maximale sur le numéro)
       const matchedMember = membersList.find(m => {
         let dbPhone = String(m.telephone || '').replace(/\D/g, '');
-        if (dbPhone.startsWith('221') && dbPhone.length > 9) {
-            dbPhone = dbPhone.slice(3);
-        }
+        let coreDbPhone = dbPhone.length >= 9 ? dbPhone.slice(-9) : dbPhone;
         
-        // Si le code_secret est null ou vide en BDD (ex: import Excel), on considère qu'il vaut "0000"
-        const dbPin = m.code_secret ? String(m.code_secret).trim() : '0000';
+        // Si le code_secret est null, vide, ou contient la chaîne "null" (suite à un import Excel)
+        let rawPin = String(m.code_secret || '').trim();
+        let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
         
-        return dbPhone === cleanPhoneUser && dbPin === cleanPinUser;
+        return coreDbPhone === corePhoneUser && dbPin === cleanPinUser;
       });
       
       if (!matchedMember) {
