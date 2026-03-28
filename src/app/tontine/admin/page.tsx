@@ -128,18 +128,28 @@ export default function TontineAdminPage() {
       // Auto-détection de la tontine si l'admin vient du Hub (sans ID dans l'URL)
       if (!tontineId) {
          const { data: { user } } = await supabase.auth.getUser();
-         if (user) {
-            const { data: userTontine } = await supabase
+
+         if (user) {            
+            // On cherche la tontine avec OWNER_ID et pas user_id
+            const { data: userTontines, error: searchErr } = await supabase
               .from('tontines')
               .select('id')
-              .eq('user_id', user.id)
-              .single();
+              .eq('owner_id', user.id) // <--- LA CORRECTION MAGIQUE EST ICI
+              .limit(1);
             
-            if (userTontine) {
-               tontineId = userTontine.id;
-               // On rajoute l'ID dans l'URL discrètement pour que tout le reste fonctionne
+            if (userTontines && userTontines.length > 0) {
+               tontineId = userTontines[0].id;
+               // On rajoute l'ID dans l'URL discrètement
                window.history.replaceState(null, '', `?id=${tontineId}`);
+            } else {
+               setErrorMsg(`⚠️ Diagnostic : Ce compte n'est lié à aucune tontine. Vérifiez que votre ID est bien dans la colonne 'owner_id'.`);
+               setIsLoading(false);
+               return;
             }
+         } else {
+            setErrorMsg("⚠️ Vous n'êtes pas connecté au Hub.");
+            setIsLoading(false);
+            return;
          }
       }
 
