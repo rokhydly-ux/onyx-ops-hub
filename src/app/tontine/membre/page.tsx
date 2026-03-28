@@ -126,9 +126,9 @@ function TontineMembreDashboard() {
       if (cleanPhoneUser.startsWith('221')) cleanPhoneUser = cleanPhoneUser.slice(3);
       if (cleanPhoneUser.startsWith('00221')) cleanPhoneUser = cleanPhoneUser.slice(5);
       
-      const cleanPinUser = pin.trim();
+      const cleanPinUser = pin.trim() || '0000';
       
-      if (!cleanPhoneUser || !cleanPinUser) throw new Error("Veuillez remplir tous les champs.");
+      if (!cleanPhoneUser) throw new Error("Veuillez saisir votre numéro de téléphone.");
       
       // 2. Requête Supabase
       const { data: membersList, error: fetchErr } = await supabase
@@ -154,12 +154,13 @@ function TontineMembreDashboard() {
         if (dbPhone.startsWith('221')) dbPhone = dbPhone.slice(3);
         if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
         
-        const dbPin = String(m.code_secret || '').trim();
+        let rawPin = String(m.code_secret || '').trim();
+        let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
         
         // MOUCHARD : Si le numéro correspond un peu, on sauvegarde ses vraies infos pour l'erreur
         if (dbPhone === cleanPhoneUser || dbPhone.includes(cleanPhoneUser)) {
            debugDbPhone = dbPhone;
-           debugDbPin = dbPin === 'null' || dbPin === '' ? 'VIDE' : dbPin;
+           debugDbPin = rawPin === '' || rawPin.toLowerCase() === 'null' ? 'VIDE (Auto-remplacé par 0000)' : dbPin;
         }
 
         return dbPhone === cleanPhoneUser && dbPin === cleanPinUser;

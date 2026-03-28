@@ -48,11 +48,14 @@ export default function TontineMemberPage() {
       
       if (!tontineId) throw new Error("Lien de tontine invalide.");
 
-      // 2. Nettoyage STRICTURE des inputs (Enlève tous les espaces du numéro tapé)
-      const cleanPhone = inputPhone.replace(/\s+/g, '').trim();
-      const cleanPin = inputPin.trim();
+      // 2. Nettoyage NUCLÉAIRE des inputs
+      let cleanPhone = inputPhone.replace(/[^0-9]/g, '');
+      if (cleanPhone.startsWith('221')) cleanPhone = cleanPhone.slice(3);
+      if (cleanPhone.startsWith('00221')) cleanPhone = cleanPhone.slice(5);
+      
+      const cleanPin = inputPin.trim() || '0000';
 
-      if (!cleanPhone || !cleanPin) throw new Error("Veuillez remplir tous les champs.");
+      if (!cleanPhone) throw new Error("Veuillez saisir votre numéro de téléphone.");
 
       // 3. Requête Supabase : On demande tous les membres de cette tontine pour filtrer en local
       // C'est plus sûr car on peut nettoyer les numéros de la BDD à la volée
@@ -63,14 +66,33 @@ export default function TontineMemberPage() {
 
       if (fetchErr) throw fetchErr;
 
-      // 4. Recherche du membre correspondant (en ignorant les espaces dans la BDD aussi)
+      let debugDbPhone = "Aucun";
+      let debugDbPin = "Aucun";
+
+      // 4. Recherche du membre correspondant
       const matchedMember = members?.find(m => {
-        const dbPhone = (m.telephone || '').replace(/\s+/g, '').trim();
-        return dbPhone === cleanPhone && String(m.code_secret) === cleanPin;
+        let rawPhone = String(m.telephone || '').split('.')[0]; 
+        let dbPhone = rawPhone.replace(/[^0-9]/g, '');
+        if (dbPhone.startsWith('221')) dbPhone = dbPhone.slice(3);
+        if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
+        
+        let rawPin = String(m.code_secret || '').trim();
+        let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
+        
+        if (dbPhone === cleanPhone || dbPhone.includes(cleanPhone)) {
+           debugDbPhone = dbPhone;
+           debugDbPin = rawPin === '' || rawPin.toLowerCase() === 'null' ? 'VIDE (Auto-remplacé par 0000)' : dbPin;
+        }
+
+        return dbPhone === cleanPhone && dbPin === cleanPin;
       });
 
       if (!matchedMember) {
-        throw new Error("Numéro ou code PIN incorrect.");
+        if (debugDbPhone !== "Aucun") {
+            throw new Error(`RAYON X 🔍 -> Numéro BDD: "${debugDbPhone}", PIN BDD: "${debugDbPin}". Tu as tapé PIN: "${cleanPin}"`);
+        } else {
+            throw new Error(`Le numéro ${cleanPhone} est 100% introuvable dans la base.`);
+        }
       }
 
       // 5. Succès !
