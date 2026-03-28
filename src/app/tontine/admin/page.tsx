@@ -1,346 +1,224 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { User, Lock, LogIn, Loader2, AlertTriangle, Wallet, CheckCircle, Clock, Gift, ShieldCheck, LogOut, Home } from 'lucide-react';
-import InteractiveParticles from '@/components/InteractiveParticles';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2 } from 'lucide-react';
 
 const spaceGrotesk = { className: "font-sans" };
 
-type Member = {
-  id: string;
-  prenom_nom: string;
-  telephone: string;
-  a_gagne: boolean;
-  mois_victoire: number | null;
-  photo_url?: string;
-  is_admin?: boolean;
-  code_secret?: string;
-  tontine_id: string;
-};
-
-type Tontine = {
-  id: string;
-  nom: string;
-  theme_color: string;
-  logo_url?: string;
-  montant_mensuel: number;
-};
-
 export default function TontineAdminPage() {
-  const [inputPhone, setInputPhone] = useState('');
-  const [inputPin, setInputPin] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [tontine, setTontine] = useState<any>(null);
+  const [membres, setMembres] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const [member, setMember] = useState<Member | null>(null);
-  const [tontine, setTontine] = useState<Tontine | null>(null);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setIsLoading(true);
-
-    try {
-      // 1. On récupère l'ID de la tontine depuis l'URL
-      const searchParams = new URLSearchParams(window.location.search);
-      const tontineId = searchParams.get('tontine_id') || searchParams.get('id');
-      
-      if (!tontineId) throw new Error("Lien de tontine invalide.");
-
-      // 2. Nettoyage NUCLÉAIRE des inputs
-      let cleanPhone = inputPhone.replace(/[^0-9]/g, '');
-      if (cleanPhone.startsWith('221')) cleanPhone = cleanPhone.slice(3);
-      if (cleanPhone.startsWith('00221')) cleanPhone = cleanPhone.slice(5);
-      
-      const cleanPin = inputPin.trim();
-
-      if (!cleanPhone || !cleanPin) throw new Error("Veuillez remplir tous les champs (Numéro et Code PIN).");
-
-      // 3. Requête Supabase : On demande tous les membres de cette tontine pour filtrer en local
-      // C'est plus sûr car on peut nettoyer les numéros de la BDD à la volée
-      const { data: members, error: fetchErr } = await supabase
-        .from('tontine_members')
-        .select('*')
-        .eq('tontine_id', tontineId);
-
-      if (fetchErr) throw fetchErr;
-
-      let debugDbPhone = "Aucun";
-      let debugDbPin = "Aucun";
-
-      // 4. Recherche du membre correspondant
-      const matchedMember = members?.find(m => {
-        let rawPhone = String(m.telephone || '').split('.')[0]; 
-        let dbPhone = rawPhone.replace(/[^0-9]/g, '');
-        if (dbPhone.startsWith('221')) dbPhone = dbPhone.slice(3);
-        if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
-        
-        let rawPin = String(m.code_secret || '').trim();
-        let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
-        
-        if (dbPhone === cleanPhone || dbPhone.includes(cleanPhone)) {
-           debugDbPhone = dbPhone;
-           debugDbPin = rawPin === '' || rawPin.toLowerCase() === 'null' ? 'VIDE (Auto-remplacé par 0000)' : dbPin;
-        }
-
-        return dbPhone === cleanPhone && dbPin === cleanPin;
-      });
-
-      if (!matchedMember) {
-        if (debugDbPhone !== "Aucun") {
-            throw new Error(`RAYON X 🔍 -> Numéro BDD: "${debugDbPhone}", PIN BDD: "${debugDbPin}". Tu as tapé PIN: "${cleanPin}"`);
-        } else {
-            throw new Error("Numéro de téléphone ou code PIN incorrect.");
-        }
-      }
-
-      // 5. Succès !
-      setMember(matchedMember);
-      localStorage.setItem(`tontine_member_session_${tontineId}`, matchedMember.id);
-      
-    } catch (err: any) {
-      console.error("Erreur Connexion:", err.message);
-      setErrorMsg(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogout = () => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const tontineId = searchParams.get('id') || searchParams.get('tontine_id');
-    if (tontineId) {
-        localStorage.removeItem(`tontine_member_session_${tontineId}`);
-    }
-    setMember(null);
-    setInputPhone('');
-    setInputPin('');
-    setErrorMsg('');
-  };
 
   useEffect(() => {
-    const loadInitialData = async () => {
-      setIsLoading(true);
-      const searchParams = new URLSearchParams(window.location.search);
-      let tontineId = searchParams.get('id') || searchParams.get('tontine_id');
+    let isMounted = true;
 
-      // Auto-détection de la tontine si l'admin vient du Hub (sans ID dans l'URL)
-      if (!tontineId) {
-         const { data: { user } } = await supabase.auth.getUser();
-
-         if (user) {            
-            // On cherche la tontine avec OWNER_ID et pas user_id
-            const { data: userTontines, error: searchErr } = await supabase
-              .from('tontines')
-              .select('id')
-              .eq('owner_id', user.id) // <--- LA CORRECTION MAGIQUE EST ICI
-              .limit(1);
-            
-            if (userTontines && userTontines.length > 0) {
-               tontineId = userTontines[0].id;
-               // On rajoute l'ID dans l'URL discrètement
-               window.history.replaceState(null, '', `?id=${tontineId}`);
-            } else {
-               setErrorMsg(`⚠️ Diagnostic : Ce compte n'est lié à aucune tontine. Vérifiez que votre ID est bien dans la colonne 'owner_id'.`);
-               setIsLoading(false);
-               return;
-            }
-         } else {
-            setErrorMsg("⚠️ Vous n'êtes pas connecté au Hub.");
-            setIsLoading(false);
-            return;
-         }
-      }
-
-      if (!tontineId) {
-        setErrorMsg("Lien de tontine invalide ou manquant.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Charger les infos de la tontine
-      const { data: tontineData, error: tontineError } = await supabase
-        .from('tontines')
-        .select('id, nom, theme_color, logo_url, montant_mensuel')
-        .eq('id', tontineId)
-        .single();
-
-      if (tontineError || !tontineData) {
-        setErrorMsg("Tontine introuvable.");
-        setIsLoading(false);
-        return;
-      }
-      setTontine(tontineData);
-
-      // Vérifier la session membre
-      const memberId = localStorage.getItem(`tontine_member_session_${tontineId}`);
-      if (memberId) {
-        const { data: memberData, error: memberError } = await supabase
-          .from('tontine_members')
-          .select('*')
-          .eq('id', memberId)
-          .single();
+    const loadAdminDashboard = async (user: any) => {
+      try {
+        setCurrentUser(user);
         
-        if (memberData && !memberError) {
-          setMember(memberData);
-        } else {
-          localStorage.removeItem(`tontine_member_session_${tontineId}`);
+        // 1. On cherche LA tontine de cet administrateur (owner_id)
+        const { data: tontines, error: fetchErr } = await supabase
+          .from('tontines')
+          .select('*')
+          .eq('owner_id', user.id);
+
+        if (fetchErr) throw fetchErr;
+
+        let targetTontine = tontines && tontines.length > 0 ? tontines[0] : null;
+
+        // 2. Sécurité : S'il n'en a pas, on lui en crée une silencieusement
+        if (!targetTontine) {
+          const { data: newTontineData, error: insertErr } = await supabase
+            .from('tontines')
+            .insert([{ 
+              nom: 'Ma Tontine', 
+              theme_color: '#39FF14', 
+              montant_mensuel: 20000, 
+              gagnants_par_mois: 2, 
+              duree_mois: 10, 
+              owner_id: user.id 
+            }])
+            .select('*');
+
+          if (!insertErr && newTontineData && newTontineData.length > 0) {
+            targetTontine = newTontineData[0];
+          }
         }
+
+        if (!targetTontine) throw new Error("Impossible de charger la tontine.");
+
+        // 3. On applique la tontine et on charge SES membres
+        if (isMounted) {
+          setTontine(targetTontine);
+          const { data: members } = await supabase
+            .from('tontine_members')
+            .select('*')
+            .eq('tontine_id', targetTontine.id);
+            
+          setMembres(members || []);
+        }
+
+      } catch (err: any) {
+        console.error("Erreur d'accès Admin :", err.message);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
-    loadInitialData();
-  }, []);
-
-  const handleCleanDatabase = async () => {
-    if (!confirm("⚠️ Voulez-vous nettoyer et corriger tous les numéros et codes PIN de cette tontine (Recommandé suite à un import Excel) ?")) return;
-    const searchParams = new URLSearchParams(window.location.search);
-    const tontineId = searchParams.get('id') || searchParams.get('tontine_id');
-    try {
-      const { data: members, error: fetchErr } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineId);
-      if (fetchErr) throw fetchErr;
-      let updatedCount = 0;
-      for (const m of members || []) {
-        let rawPhone = String(m.telephone || '').split('.')[0];
-        let dbPhone = rawPhone.replace(/[^0-9]/g, '');
-        if (dbPhone.startsWith('221')) dbPhone = dbPhone.slice(3);
-        if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
-        let rawPin = String(m.code_secret || '').trim();
-        let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
-        if (m.telephone !== dbPhone || m.code_secret !== dbPin) {
-          await supabase.from('tontine_members').update({ telephone: dbPhone, code_secret: dbPin }).eq('id', m.id);
-          updatedCount++;
+    // Écouteur de session Auth direct (Celui du Hub)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted) {
+        if (session?.user) {
+          loadAdminDashboard(session.user);
+        } else {
+          setIsLoading(false); // Redirigera vers l'écran "Accès Restreint" classique
         }
       }
-      alert(`✅ Nettoyage terminé ! ${updatedCount} membres corrigés avec succès. Ils peuvent maintenant se connecter.`);
-    } catch (err: any) {
-      alert("Erreur de nettoyage: " + err.message);
-    }
-  };
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted && session?.user && !currentUser) {
+        setIsLoading(true);
+        loadAdminDashboard(session.user);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-10">
-         <Loader2 className="w-12 h-12 animate-spin text-white mb-4" />
-         <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest animate-pulse">Chargement...</p>
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" />
       </div>
     );
   }
 
-  if (errorMsg && !member) {
-     // Special case for invalid link, show a more permanent error
-     if (errorMsg.includes("invalide") || errorMsg.includes("introuvable")) {
-        return (
-          <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-10 text-center">
-             <div className="w-20 h-20 bg-red-500/20 rounded-[2rem] flex items-center justify-center text-red-500 mb-6"><AlertTriangle size={32}/></div>
-             <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-4 text-white`}>Lien Incorrect</h2>
-             <p className="text-sm font-bold text-zinc-400 max-w-sm mb-8">{errorMsg}</p>
-             <button onClick={() => window.location.href = '/hub'} className="bg-white text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex items-center gap-2">
-               <Home size={16}/> Retourner au Hub
-             </button>
-          </div>
-        )
-     }
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex flex-col items-center justify-center p-6 text-center text-white">
+        <ShieldCheck size={64} className="text-red-500 mb-6" />
+        <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Accès Restreint</h1>
+        <p className="text-zinc-400 mb-8">Veuillez vous connecter depuis le Hub Administrateur pour accéder à ce tableau de bord.</p>
+        <button onClick={() => window.location.href = '/admin'} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform">
+          <Home size={20} /> Retourner au Hub
+        </button>
+      </div>
+    );
   }
 
+  const caisseMensuelle = membres.length * (tontine?.montant_mensuel || 0);
+
   return (
-    <div className="min-h-screen bg-zinc-900 text-white font-sans flex flex-col items-center justify-center p-4 selection:bg-[#39FF14]/30">
-      <InteractiveParticles themeColor={tontine?.theme_color || '#009FDF'} />
-      
-      <div className="w-full max-w-md z-10">
-        <div className="text-center mb-8">
-          {tontine?.logo_url && <img src={tontine.logo_url} alt="Logo" className="w-24 h-24 mx-auto rounded-3xl mb-4 shadow-2xl border-4 border-zinc-800" />}
-          <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`} style={{ color: tontine?.theme_color || '#FFFFFF' }}>
-            {tontine?.nom || "Espace Membre"}
-          </h1>
-          <p className="text-sm text-zinc-400 font-bold">Suivez la progression de votre tontine.</p>
-        </div>
+    <div className="min-h-screen bg-zinc-50 font-sans pb-24 text-black">
+      <header className="bg-black text-white py-6 px-8 flex justify-between items-center shadow-lg">
+         <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#39FF14] rounded-xl flex items-center justify-center">
+               <ShieldCheck size={24} className="text-black" />
+            </div>
+            <div>
+               <h1 className="text-xl font-black uppercase tracking-tighter leading-none">Onyx Tontine</h1>
+               <p className="text-[10px] text-[#39FF14] font-bold uppercase tracking-widest">Espace Administrateur</p>
+            </div>
+         </div>
+         <button onClick={() => window.location.href = '/admin'} className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-bold bg-zinc-800 px-4 py-2 rounded-full">
+           <Home size={16} /> Hub
+         </button>
+      </header>
 
-        {!member ? (
-          // --- FORMULAIRE DE CONNEXION ---
-          <div className="bg-zinc-800/50 backdrop-blur-xl border border-zinc-700 p-8 rounded-[3rem] animate-in fade-in zoom-in-95">
-            <h2 className="font-black text-lg uppercase text-center mb-6">Connexion Membre</h2>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black uppercase text-zinc-400 ml-2 mb-1 block tracking-widest">Numéro de téléphone</label>
-                <div className="relative">
-                  <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input 
-                    type="tel"
-                    value={inputPhone}
-                    onChange={(e) => setInputPhone(e.target.value)}
-                    className="w-full p-4 pl-10 bg-zinc-900 border border-zinc-700 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition"
-                    placeholder="Votre numéro"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase text-zinc-400 ml-2 mb-1 block tracking-widest">Code PIN</label>
-                <div className="relative">
-                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input 
-                    type="password"
-                    maxLength={4}
-                    value={inputPin}
-                    onChange={(e) => setInputPin(e.target.value)}
-                    className="w-full p-4 pl-10 bg-zinc-900 border border-zinc-700 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition tracking-[0.5em]"
-                    placeholder="••••"
-                  />
-                </div>
-              </div>
+      <main className="max-w-6xl mx-auto px-6 mt-10 space-y-8">
+         <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+            <div>
+               <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-2`}>{tontine?.nom || "Ma Tontine"}</h2>
+               <p className="text-sm text-zinc-500 font-bold flex items-center gap-2">
+                 <Wallet size={16}/> Montant mensuel : {tontine?.montant_mensuel?.toLocaleString()} F CFA
+               </p>
+            </div>
+         </div>
 
-              {errorMsg && (
-                <div className="flex items-center gap-2 text-red-400 text-xs font-bold p-2">
-                  <AlertTriangle size={14} />
-                  <p>{errorMsg}</p>
-                </div>
-              )}
+         <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-black text-white p-8 rounded-[2rem] shadow-xl relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14] opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity"></div>
+               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Users size={14}/> Membres Actifs</p>
+               <p className={`${spaceGrotesk.className} text-4xl font-black text-[#39FF14]`}>{membres.length}</p>
+            </div>
+            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Wallet size={14}/> Caisse Mensuelle</p>
+               <p className={`${spaceGrotesk.className} text-4xl font-black`}>{caisseMensuelle.toLocaleString()} F</p>
+            </div>
+            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy size={14}/> Gagnants par mois</p>
+               <p className={`${spaceGrotesk.className} text-4xl font-black`}>{tontine?.gagnants_par_mois || 1}</p>
+            </div>
+         </div>
 
-              <button type="submit" disabled={isLoading} className="w-full text-black py-4 rounded-2xl font-black uppercase text-sm mt-4 hover:scale-105 transition shadow-xl flex justify-center items-center gap-2 disabled:opacity-50" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
-                {isLoading ? <Loader2 size={20} className="animate-spin" /> : <LogIn size={20} />}
-                {isLoading ? 'Vérification...' : 'Se Connecter'}
-              </button>
-            </form>
-          </div>
-        ) : (
-          // --- TABLEAU DE BORD MEMBRE ---
-          <div className="bg-zinc-800/50 backdrop-blur-xl border border-zinc-700 p-8 rounded-[3rem] animate-in fade-in zoom-in-95 w-full">
-            <div className="text-center border-b border-zinc-700 pb-6 mb-6">
-              <p className="text-sm text-zinc-400">Bienvenue</p>
-              <h2 className="text-2xl font-black uppercase">{member.prenom_nom}</h2>
+         <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
+               <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg mb-6`}>Progression du mois</h3>
+               <div className="w-full h-6 bg-zinc-100 rounded-full overflow-hidden mb-4 shadow-inner">
+                  <div className="h-full bg-black w-3/4 rounded-full relative">
+                     <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
+                  </div>
+               </div>
+               <div className="flex justify-between items-center text-sm font-bold text-zinc-500">
+                  <span>Cotisations estimées en cours</span>
+                  <span className="text-black">100%</span>
+               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between items-center bg-zinc-900/70 p-4 rounded-xl">
-                <span className="text-xs font-bold uppercase text-zinc-400 flex items-center gap-2"><Wallet size={14} /> Cotisation</span>
-                <span className="text-sm font-black">{tontine?.montant_mensuel.toLocaleString()} F</span>
-              </div>
-              <div className="flex justify-between items-center bg-zinc-900/70 p-4 rounded-xl">
-                <span className="text-xs font-bold uppercase text-zinc-400 flex items-center gap-2"><Clock size={14} /> Statut Paiement</span>
-                <span className="text-sm font-black text-green-400">À jour</span>
-              </div>
-              <div className="flex justify-between items-center bg-zinc-900/70 p-4 rounded-xl">
-                <span className="text-xs font-bold uppercase text-zinc-400 flex items-center gap-2"><Gift size={14} /> Statut Tirage</span>
-                {member.a_gagne ? (
-                  <span className="text-sm font-black text-yellow-400">Déjà Gagné (Mois {member.mois_victoire})</span>
-                ) : (
-                  <span className="text-sm font-black text-zinc-300">En attente</span>
-                )}
-              </div>
+            <div className="bg-[#39FF14] p-8 rounded-[2rem] shadow-lg flex flex-col items-center justify-center text-center">
+               <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mb-4 shadow-xl">
+                  <Shuffle size={32} />
+               </div>
+               <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl mb-2 text-black`}>Tirage au sort</h3>
+               <p className="text-sm font-bold text-zinc-800 mb-6">Sélectionnez le gagnant de ce mois de manière transparente.</p>
+               <button className="bg-black text-[#39FF14] px-8 py-4 rounded-xl font-black uppercase text-sm w-full hover:scale-105 transition-transform shadow-xl">
+                  Lancer le tirage
+               </button>
             </div>
+         </div>
 
-            <button onClick={handleCleanDatabase} className="w-full bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 py-3 rounded-2xl font-black uppercase text-xs mt-8 transition flex justify-center items-center gap-2">
-              <ShieldCheck size={14} /> Réparer les numéros Excel
-            </button>
-
-            <button onClick={handleLogout} className="w-full bg-red-500/20 text-red-400 hover:bg-red-500/30 py-3 rounded-2xl font-black uppercase text-xs mt-3 transition flex justify-center items-center gap-2">
-              <LogOut size={14} /> Se deconnecter
-            </button>
-          </div>
-        )}
-      </div>
+         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+            <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl mb-6`}>Liste des Membres</h3>
+            <div className="overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                  <thead>
+                     <tr className="border-b border-zinc-200">
+                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Membre</th>
+                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Téléphone</th>
+                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Statut</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {membres.map((m) => (
+                        <tr key={m.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                           <td className="py-4 font-bold">{m.prenom_nom}</td>
+                           <td className="py-4 font-mono text-sm">{m.telephone}</td>
+                           <td className="py-4">
+                              {m.a_gagne ? (
+                                 <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">A Gagné</span>
+                              ) : (
+                                 <span className="bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">En Attente</span>
+                              )}
+                           </td>
+                        </tr>
+                     ))}
+                     {membres.length === 0 && (
+                        <tr>
+                           <td colSpan={3} className="py-8 text-center text-zinc-500 font-bold">Aucun membre pour le moment.</td>
+                        </tr>
+                     )}
+                  </tbody>
+               </table>
+            </div>
+         </div>
+      </main>
     </div>
   );
 }
