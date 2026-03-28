@@ -30,21 +30,33 @@ export default function TontineAdminPage() {
         
         if (sessionErr) throw sessionErr;
 
-        if (!user) {
+        let finalUser: any = user;
+
+        // 1.5. RÉCUPÉRATION DE SECOURS (Si connecté via le Hub personnalisé Onyx)
+        if (!finalUser) {
+          const customSession = localStorage.getItem('onyx_custom_session');
+          if (customSession) {
+              try { 
+                  finalUser = JSON.parse(customSession);
+              } catch (e) {}
+          }
+        }
+
+        if (!finalUser) {
            console.log("❌ 2. AUCUNE SESSION TROUVÉE. Le navigateur a oublié la connexion. Redirection accès restreint.");
            if (isMounted) setIsLoading(false);
            return;
         }
 
-        console.log("✅ 2. SESSION TROUVÉE ! Utilisateur connecté :", user.email, "| ID:", user.id);
-        if (isMounted) setCurrentUser(user);
+        console.log("✅ 2. SESSION TROUVÉE ! Utilisateur connecté :", finalUser.email || finalUser.full_name, "| ID:", finalUser.id);
+        if (isMounted) setCurrentUser(finalUser);
 
         // 2. Recherche de la tontine
         console.log("🔍 3. Recherche de la tontine pour owner_id...");
         const { data: tontines, error: fetchErr } = await supabase
           .from('tontines')
           .select('*')
-          .eq('owner_id', user.id);
+          .eq('owner_id', finalUser.id);
 
         if (fetchErr) {
           console.error("❌ ERREUR SQL (Recherche Tontine) :", fetchErr.message);
@@ -66,7 +78,7 @@ export default function TontineAdminPage() {
                 montant_mensuel: 20000, 
                 gagnants_par_mois: 2, 
                 duree_mois: 10, 
-                owner_id: user.id 
+                owner_id: finalUser.id 
              }])
              .select('*');
              
