@@ -182,7 +182,7 @@ export default function AdminDashboard() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today); d.setDate(d.getDate() - i);
       const count = leads.filter(l => l.created_at && new Date(l.created_at).toDateString() === d.toDateString()).length;
-      arr.push({ day: jours[d.getDay()], ca: count * 9900, active: histogramActiveIdx === arr.length });
+      arr.push({ day: jours[d.getDay()], ca: count * 13900, active: histogramActiveIdx === arr.length });
     }
     return arr;
   })();
@@ -237,13 +237,17 @@ export default function AdminDashboard() {
      // Nouveau calcul précis du revenu MRR
      const realRevenue = contactsData?.reduce((acc: number, c: any) => {
         if (c.type !== 'Client') return acc;
-        if (c.saas === 'Onyx Gold') return acc + 34900;
-        if (c.saas === 'OnyxTekki Pro') return acc + 27900;
-        if (c.saas === 'OnyxTekki' || c.saas === 'Pack Trio') return acc + 22900;
-        if (c.saas === 'Onyx Solo') return acc + 13000;
-        if (c.saas === 'Pack Duo') return acc + 17500;
+        
+        const foundSaas = ECOSYSTEM_SAAS.find(s => s.name === c.saas);
+        if (foundSaas) return acc + parseInt(foundSaas.price.replace(/\D/g, ''), 10);
+        
+        if (c.saas === 'Pack Onyx Gold' || c.saas === 'Onyx Gold') return acc + 59900;
+        if (c.saas === 'Pack Onyx CRM' || c.saas === 'Onyx CRM') return acc + 39900;
+        if (c.saas === 'Pack Tekki Pro' || c.saas === 'OnyxTekki Pro') return acc + 27900;
+        if (c.saas === 'Pack Tekki' || c.saas === 'OnyxTekki' || c.saas === 'Pack Trio') return acc + 22900;
+        if (c.saas === 'Onyx Jaay' || c.saas === 'Onyx Solo') return acc + 13900;
         if (c.saas === 'Onyx Tontine') return acc + 6900;
-        return acc + 9900; // Plan individuel par défaut
+        return acc + 13900; // Plan individuel par défaut
      }, 0) || 0;
 
      setStats({
@@ -590,7 +594,7 @@ export default function AdminDashboard() {
 };
 
   const handleApplyPack = (packName: 'Solo' | 'Tekki' | 'Tekki Pro' | 'Gold') => {
-      let packPrice = packName === 'Solo' ? 13000 : packName === 'Tekki' ? 22900 : packName === 'Tekki Pro' ? 27900 : 34900;
+      let packPrice = packName === 'Solo' ? 13900 : packName === 'Tekki' ? 22900 : packName === 'Tekki Pro' ? 27900 : 59900;
       let packSaas = packName === 'Solo' ? ['vente'] : packName === 'Tekki' ? ['vente', 'tiak', 'stock'] : ['vente', 'tiak', 'stock', 'formation'];
       
       const currentExp = editingContact.expiration_date;
@@ -606,7 +610,7 @@ export default function AdminDashboard() {
           const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
           if (remainingDays > 0) {
-              const remainingValue = (13000 / 30) * remainingDays;
+              const remainingValue = (13900 / 30) * remainingDays;
               const extraDays = Math.floor(remainingValue / (packPrice / 30));
               newExpDate = new Date();
               newExpDate.setDate(newExpDate.getDate() + 30 + extraDays);
@@ -618,7 +622,7 @@ export default function AdminDashboard() {
       const newDates: any = { ...(editingContact.saas_expiration_dates || {}) };
       packSaas.forEach(s => newDates[s] = formattedExpDate);
 
-      const saasLabel = packName === 'Solo' ? 'Onyx Solo' : packName === 'Tekki' ? 'OnyxTekki' : packName === 'Tekki Pro' ? 'OnyxTekki Pro' : 'Onyx Gold';
+      const saasLabel = packName === 'Solo' ? 'Onyx Jaay' : packName === 'Tekki' ? 'Pack Tekki' : packName === 'Tekki Pro' ? 'Pack Tekki Pro' : 'Pack Onyx Gold';
 
       setEditingContact(prev => ({ 
           ...prev, 

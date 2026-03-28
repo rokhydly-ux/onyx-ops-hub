@@ -43,29 +43,28 @@ const ONBOARDING_CATEGORIES = [
 ];
 
 const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
-  solo: { title: "Onyx Solo", desc: "Jaay, Stock OU Tiak. Un besoin précis, une solution pro.", benefits: ["1 Outil au choix (Catalogue, Stock...)", "Stop au chaos sur WhatsApp", "Caisse sécurisée"], why: "Arrêter le bricolage.", cible: "Vendeurs WhatsApp", avantage: "Simple et efficace.", chiffreCle: "Zéro perte" },
-  tekki: { title: "OnyxTekki (Trio)", desc: "Gérez votre caisse, votre stock et vos livreurs en 1 clic. Mathématiquement incontestable.", benefits: ["Vente, Stock & Livreurs", "Zéro perte de CFA", "Feuille de route auto"], why: "Contrôle total du cash.", cible: "Commerçants & PME", avantage: "Écosystème parfait.", chiffreCle: "Bénéfice immédiat" },
-  tekkipro: { title: "OnyxTekki Pro (+Formation)", desc: "Les outils OnyxTekki + Stratégies de vente. Gagnez du khaliss, ne le dépensez pas.", benefits: ["Suite OnyxTekki complète", "Stratégies Marketing (Ads, Canva)", "Domination du marché"], why: "Croissance agressive.", cible: "Ambitieux", avantage: "Tout inclus.", chiffreCle: "Ventes x2" },
-  gold: { title: "Onyx Gold (Total)", desc: "Trio + Formation + CRM Complet. La domination absolue.", benefits: ["Suite OnyxTekki Pro", "CRM & Fidélisation", "Support Ultra-Prioritaire"], why: "Pour tout écraser.", cible: "Entreprises", avantage: "La totale.", chiffreCle: "Sans limite" },
+  solo: { title: "Onyx Jaay", desc: "La boutique WhatsApp ultime pour vendre vos produits comme un pro.", benefits: ["Catalogue Interactif", "Stop au chaos sur WhatsApp", "Génération de Devis PDF"], why: "Arrêter le bricolage.", cible: "Vendeurs WhatsApp", avantage: "Simple et efficace.", chiffreCle: "Zéro perte" },
+  tekki: { title: "Pack Tekki", desc: "Gérez votre caisse, votre stock et vos livreurs en 1 clic. Mathématiquement incontestable.", benefits: ["Vente, Stock & Livreurs", "Zéro perte de CFA", "Feuille de route auto"], why: "Contrôle total du cash.", cible: "Commerçants & PME", avantage: "Écosystème parfait.", chiffreCle: "Bénéfice immédiat" },
+  tekkipro: { title: "Pack Tekki Pro", desc: "Les outils Pack Tekki + Formation + Pointage RH.", benefits: ["Suite Tekki complète", "Gestion d'équipes & RH", "Domination du marché"], why: "Croissance agressive.", cible: "Ambitieux", avantage: "Tout inclus.", chiffreCle: "Ventes x2" },
+  gold: { title: "Pack Onyx Gold", desc: "L'arsenal complet VIP. Logiciels + CRM B2B + Outils Premium.", benefits: ["Écosystème 100% Déverrouillé", "CRM B2B Intégré", "Support Ultra-Prioritaire"], why: "Pour tout écraser.", cible: "Entreprises", avantage: "La totale.", chiffreCle: "Sans limite" },
 };
 
 const SOLUTIONS = [
-  { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 13000, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 13000, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 13000, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 13000, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 13000, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 13000, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 29900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "tekkipro", upsellName: "OnyxTekki Pro" },
-  { id: "Onyx Fit", icon: Flame, category: "Services", price: 13000, pain: "Suivi diététique brouillon et perte de motivation des clientes.", solution: "Rééquilibrage alimentaire à l'africaine avec la coach Amina, suivi interactif et relances auto.", upsellPack: "tekki", upsellName: "OnyxTekki" },
-  { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "tekki", upsellName: "OnyxTekki" },
+  { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 13900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "tekki", upsellName: "Pack Tekki" },
+  { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 13900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "tekki", upsellName: "Pack Tekki" },
+  { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 13900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "tekki", upsellName: "Pack Tekki" },
+  { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 13900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "tekki", upsellName: "Pack Tekki" },
+  { id: "Onyx Booking", icon: Calendar, category: "Services", price: 13900, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "tekki", upsellName: "Pack Tekki" },
+  { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 13900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "tekki", upsellName: "Pack Tekki" },
+  { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 13900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "tekkipro", upsellName: "Pack Tekki Pro" },
+  { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "tekki", upsellName: "Pack Tekki" },
 ];
 
 const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: string; rating: string; avis: number; isUnique?: boolean }> = [
-  { id: "solo", name: "Onyx Solo", price: 13000, label: "Onyx Solo", rating: "4.9/5", avis: 142 },
-  { id: "tekki", name: "OnyxTekki", price: 22900, label: "OnyxTekki", rating: "5.0/5", avis: 312 },
-  { id: "tekkipro", name: "OnyxTekki Pro", price: 27900, label: "OnyxTekki Pro", rating: "5.0/5", avis: 189 },
-  { id: "gold", name: "Onyx Gold", price: 34900, label: "Onyx Gold", rating: "5.0/5", avis: 120 },
+  { id: "solo", name: "Onyx Jaay", price: 13900, label: "Onyx Jaay", rating: "4.9/5", avis: 142 },
+  { id: "tekki", name: "Pack Tekki", price: 22900, label: "Pack Tekki", rating: "5.0/5", avis: 312 },
+  { id: "tekkipro", name: "Pack Tekki Pro", price: 27900, label: "Pack Tekki Pro", rating: "5.0/5", avis: 189 },
+  { id: "gold", name: "Pack Onyx Gold", price: 59900, label: "Pack Onyx Gold", rating: "5.0/5", avis: 120 },
 ];
 
 const AMBASSADOR_TESTIMONIALS = [
@@ -462,12 +461,12 @@ export default function OnyxOpsElite() {
         let msg = "";
         let options: string[] = [];
         if(reply.includes("Boutique")) {
-           msg = "Excellent. Pour une boutique, voici mes recommandations :\n⭐ Le Meilleur : OnyxTekki (Vente + Stock + Tiak)\n💰 L'Essentiel moins cher : Onyx Jaay (Catalogue)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
-           options = ["1. OnyxTekki", "2. Onyx Jaay"];
+           msg = "Excellent. Pour une boutique, voici mes recommandations :\n⭐ Le Meilleur : Pack Tekki (Vente + Stock + Tiak)\n💰 L'Essentiel moins cher : Onyx Jaay (Catalogue)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
+           options = ["1. Pack Tekki", "2. Onyx Jaay"];
         }
         else if(reply.includes("Restaurant")) {
-           msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : OnyxTekki (Encaissement & Stock)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
-           options = ["1. OnyxTekki", "2. Onyx Menu"];
+           msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : Pack Tekki (Encaissement & Stock)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
+           options = ["1. Pack Tekki", "2. Onyx Menu"];
         }
         else if(reply.includes("Autre")) {
            msg = "Je vois ! Expliquez-moi brièvement ce que vous faites et ce que vous aimeriez améliorer, je vais analyser ça pour vous proposer l'outil parfait.";
@@ -476,8 +475,8 @@ export default function OnyxOpsElite() {
            return;
         }
         else {
-           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : OnyxTekki\n💰 L'Essentiel moins cher : Onyx Jaay\n\nQue choisissez-vous ?";
-           options = ["1. OnyxTekki", "2. Onyx Jaay"];
+           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : Pack Tekki\n💰 L'Essentiel moins cher : Onyx Jaay\n\nQue choisissez-vous ?";
+           options = ["1. Pack Tekki", "2. Onyx Jaay"];
         }
         
         setBotMessages(prev => [...prev, { sender: 'bot', text: msg, options }]);
@@ -489,15 +488,15 @@ export default function OnyxOpsElite() {
        setTimeout(() => {
           setBotMessages(prev => [...prev, { 
              sender: 'bot', 
-             text: `D'après ce que vous me dites, je vous recommande vivement l'offre **OnyxTekki**. Il s'adapte à 100% à votre activité.\n\nSouhaitez-vous en discuter avec moi sur WhatsApp pour une démo ?`,
+             text: `D'après ce que vous me dites, je vous recommande vivement l'offre **Pack Tekki**. Il s'adapte à 100% à votre activité.\n\nSouhaitez-vous en discuter avec moi sur WhatsApp pour une démo ?`,
              options: ["Parler à Fanta (WhatsApp)"] 
           }]);
-          setBotUserData({...currentData, product: 'OnyxTekki'});
+          setBotUserData({...currentData, product: 'Pack Tekki'});
           setBotStep(4);
        }, 1500);
     }
     else if (botStep === 3) {
-      const selected = reply.includes("1") || reply.includes("Tekki") ? "OnyxTekki" : (reply.includes("Menu") ? "Onyx Menu" : "Onyx Jaay");
+      const selected = reply.includes("1") || reply.includes("Tekki") ? "Pack Tekki" : (reply.includes("Menu") ? "Onyx Menu" : "Onyx Jaay");
       currentData.product = selected;
       setBotUserData(currentData);
       saveLead({ source: 'Bot Fanta', intent: `Choix Produit: ${selected} (${currentData.sector})`, contact: currentData.phone, full_name: currentData.name });
@@ -582,8 +581,8 @@ export default function OnyxOpsElite() {
 };
 
   // Mises à jour des tarifs sur la simulation des commissions
-  const commissionM1 = Math.round((packCounts.solo || 0) * 13000 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30 + (packCounts.gold || 0) * 34900 * 0.30);
-  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13000 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10 + (packCounts.gold || 0) * 34900 * 0.10);
+  const commissionM1 = Math.round((packCounts.solo || 0) * 13900 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30 + (packCounts.gold || 0) * 59900 * 0.30);
+  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13900 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10 + (packCounts.gold || 0) * 59900 * 0.10);
 
   const navigateTo = (view: any, scrollId?: string) => {
     setIsMobileMenuOpen(false); 
