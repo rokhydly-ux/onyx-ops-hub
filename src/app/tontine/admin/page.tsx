@@ -17,13 +17,14 @@ export default function TontineAdminPage() {
   // --- ÉTATS MODALE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
-  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false });
+  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // --- ÉTATS TIRAGE ---
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinName, setSpinName] = useState("");
+  const [spinAvatar, setSpinAvatar] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
   const [recentWinners, setRecentWinners] = useState<any[]>([]);
 
@@ -147,13 +148,13 @@ export default function TontineAdminPage() {
   // --- FONCTIONS CRUD MEMBRES ---
   const openAddModal = () => {
     setEditingMember(null);
-    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false });
+    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '' });
     setIsModalOpen(true);
   };
 
   const openEditModal = (m: any) => {
     setEditingMember(m);
-    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne });
+    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne, photo_url: m.photo_url || '' });
     setIsModalOpen(true);
   };
 
@@ -162,7 +163,7 @@ export default function TontineAdminPage() {
     setIsSaving(true);
     try {
       if (!tontine) throw new Error("Tontine non chargée.");
-      const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne };
+      const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne, photo_url: memberForm.photo_url };
 
       if (editingMember) {
         const { error } = await supabase.from('tontine_members').update(payload).eq('id', editingMember.id);
@@ -208,8 +209,9 @@ export default function TontineAdminPage() {
     setShowConfetti(false);
 
     const interval = setInterval(() => {
-      const randomName = eligibles[Math.floor(Math.random() * eligibles.length)].prenom_nom;
-      setSpinName(randomName);
+      const randomMember = eligibles[Math.floor(Math.random() * eligibles.length)];
+      setSpinName(randomMember.prenom_nom);
+      setSpinAvatar(randomMember.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(randomMember.prenom_nom)}&background=000&color=${tontine?.theme_color?.replace('#','') || '39FF14'}`);
     }, 100);
 
     setTimeout(async () => {
@@ -396,7 +398,12 @@ export default function TontineAdminPage() {
                
                {isSpinning ? (
                   <div className="flex flex-col items-center py-8">
-                     <div className="w-24 h-24 rounded-full border-4 border-t-transparent animate-spin mb-8" style={{ borderColor: `${tontine?.theme_color || '#39FF14'}40`, borderTopColor: tontine?.theme_color || '#39FF14' }}></div>
+                     <div className="relative mb-6">
+                        <div className="w-32 h-32 rounded-full border-4 border-t-transparent animate-spin absolute inset-0" style={{ borderColor: `${tontine?.theme_color || '#39FF14'}40`, borderTopColor: tontine?.theme_color || '#39FF14' }}></div>
+                        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-black z-10 relative">
+                          <img src={spinAvatar || `https://ui-avatars.com/api/?name=Onyx&background=000&color=${tontine?.theme_color?.replace('#','') || '39FF14'}`} alt="Avatar" className="w-full h-full object-cover" />
+                        </div>
+                     </div>
                      <p className="text-3xl md:text-5xl font-black text-white uppercase tracking-widest animate-pulse drop-shadow-lg">{spinName || "Mélange..."}</p>
                      <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-6">Découverte des gagnants...</p>
                   </div>
@@ -406,7 +413,9 @@ export default function TontineAdminPage() {
                      <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
                         {recentWinners.map((winner: any) => (
                            <div key={winner.id} className="bg-zinc-900 border-2 p-5 md:p-6 rounded-3xl flex items-center gap-5 text-left shadow-lg" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
-                              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center shrink-0"><Trophy size={28} style={{ color: tontine?.theme_color || '#39FF14' }}/></div>
+                              <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden border-2" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+                                <img src={winner.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(winner.prenom_nom)}&background=000&color=${tontine?.theme_color?.replace('#','') || '39FF14'}`} alt="Winner" className="w-full h-full object-cover" />
+                              </div>
                               <div className="flex-1 min-w-0">
                                  <p className="font-black text-white uppercase text-lg leading-tight truncate">{winner.prenom_nom}</p>
                                  <p className="font-black text-sm mt-1" style={{ color: tontine?.theme_color || '#39FF14' }}>{tontine?.montant_mensuel ? (caisseMensuelle / (tontine?.gagnants_par_mois || 1)).toLocaleString() : 0} F CFA</p>
@@ -451,7 +460,10 @@ export default function TontineAdminPage() {
                         const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
                         return (
                         <tr key={m.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                           <td className="py-4 font-bold">{m.prenom_nom}</td>
+                           <td className="py-4 font-bold flex items-center gap-3">
+                              <img src={m.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.prenom_nom)}&background=000&color=${tontine?.theme_color?.replace('#','') || '39FF14'}`} alt="Avatar" className="w-8 h-8 rounded-full border border-zinc-200" />
+                              {m.prenom_nom}
+                           </td>
                            <td className="py-4 font-mono text-sm">{m.telephone}</td>
                            <td className="py-4">
                               {m.a_gagne ? (
@@ -505,8 +517,12 @@ export default function TontineAdminPage() {
                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Numéro de Téléphone</label>
                 <input type="tel" required value={memberForm.telephone} onChange={e => setMemberForm({...memberForm, telephone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: 77 123 45 67" />
               </div>
+              <div className="col-span-full">
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">URL Photo de Profil (Optionnel)</label>
+                <input type="url" value={memberForm.photo_url} onChange={e => setMemberForm({...memberForm, photo_url: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://lien-vers-la-photo.com/image.jpg" />
+              </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 col-span-full">
                   <div>
                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Code PIN Secret</label>
                     <input type="text" maxLength={4} value={memberForm.code_secret} onChange={e => setMemberForm({...memberForm, code_secret: e.target.value.replace(/\D/g, '')})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black tracking-widest" placeholder="0000" />
