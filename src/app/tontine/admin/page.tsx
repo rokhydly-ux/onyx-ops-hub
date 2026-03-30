@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon } from 'lucide-react';
+import InteractiveParticles from '@/components/InteractiveParticles';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -18,6 +19,7 @@ export default function TontineAdminPage() {
   const [editingMember, setEditingMember] = useState<any>(null);
   const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false });
   const [isSaving, setIsSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -180,10 +182,18 @@ export default function TontineAdminPage() {
     else setMembres(membres.filter(m => m.id !== id));
   };
 
+  const handleCopyLink = () => {
+    if (!tontine) return;
+    const url = window.location.origin + '/tontine/membre?id=' + tontine.id;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" />
+        <Loader2 className="w-10 h-10 animate-spin" style={{ color: tontine?.theme_color || '#39FF14' }} />
       </div>
     );
   }
@@ -194,7 +204,7 @@ export default function TontineAdminPage() {
         <ShieldCheck size={64} className="text-red-500 mb-6" />
         <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Accès Restreint</h1>
         <p className="text-zinc-400 mb-8">Veuillez vous connecter depuis le Hub Administrateur pour accéder à ce tableau de bord.</p>
-        <button onClick={() => window.location.href = '/hub'} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform">
+        <button onClick={() => window.location.href = '/hub'} className="text-black px-8 py-4 rounded-xl font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
           <Home size={20} /> Retourner au Hub
         </button>
       </div>
@@ -228,23 +238,30 @@ export default function TontineAdminPage() {
   const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans pb-24 text-black">
-      <header className="bg-black text-white py-6 px-8 flex justify-between items-center shadow-lg">
+    <div className="min-h-screen bg-zinc-50 font-sans pb-24 text-black relative">
+      <InteractiveParticles themeColor={tontine?.theme_color || '#39FF14'} />
+      <header className="bg-black text-white py-6 px-8 flex justify-between items-center shadow-lg relative z-10">
          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#39FF14] rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
                <ShieldCheck size={24} className="text-black" />
             </div>
             <div>
                <h1 className="text-xl font-black uppercase tracking-tighter leading-none">Onyx Tontine</h1>
-               <p className="text-[10px] text-[#39FF14] font-bold uppercase tracking-widest">Espace Administrateur</p>
+               <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: tontine?.theme_color || '#39FF14' }}>Espace Administrateur</p>
             </div>
          </div>
-         <button onClick={() => window.location.href = '/hub'} className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-bold bg-zinc-800 px-4 py-2 rounded-full">
-           <Home size={16} /> Hub
-         </button>
+         <div className="flex items-center gap-4">
+             <button onClick={handleCopyLink} className="text-black px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all" style={{ backgroundColor: copied ? (tontine?.theme_color || '#39FF14') : '#fff' }}>
+                 {copied ? <CheckCircle size={16} /> : <LinkIcon size={16} />}
+                 {copied ? "Lien copié !" : "Lien Membres"}
+             </button>
+             <button onClick={() => window.location.href = '/hub'} className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-bold bg-zinc-800 px-4 py-2 rounded-full">
+               <Home size={16} /> Hub
+             </button>
+         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 mt-10 space-y-8">
+      <main className="max-w-6xl mx-auto px-6 mt-10 space-y-8 relative z-10">
          <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
             <div>
                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-2`}>{tontine?.nom || "Ma Tontine"}</h2>
@@ -256,9 +273,9 @@ export default function TontineAdminPage() {
 
          <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-black text-white p-8 rounded-[2rem] shadow-xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14] opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity"></div>
+               <div className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Users size={14}/> Membres Actifs</p>
-               <p className={`${spaceGrotesk.className} text-4xl font-black text-[#39FF14]`}>{membres.length}</p>
+               <p className={`${spaceGrotesk.className} text-4xl font-black`} style={{ color: tontine?.theme_color || '#39FF14' }}>{membres.length}</p>
             </div>
             <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Wallet size={14}/> Caisse Mensuelle</p>
@@ -285,13 +302,13 @@ export default function TontineAdminPage() {
                <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
             </div>
 
-            <div className="bg-[#39FF14] p-8 rounded-[2rem] shadow-lg flex flex-col items-center justify-center text-center">
-               <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mb-4 shadow-xl">
+            <div className="p-8 rounded-[2rem] shadow-lg flex flex-col items-center justify-center text-center" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
+               <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-4 shadow-xl" style={{ color: tontine?.theme_color || '#39FF14' }}>
                   <Shuffle size={32} />
                </div>
                <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl mb-2 text-black`}>Tirage au sort</h3>
                <p className="text-sm font-bold text-zinc-800 mb-6">Sélectionnez le gagnant de ce mois de manière transparente.</p>
-               <button className="bg-black text-[#39FF14] px-8 py-4 rounded-xl font-black uppercase text-sm w-full hover:scale-105 transition-transform shadow-xl">
+               <button className="bg-black px-8 py-4 rounded-xl font-black uppercase text-sm w-full hover:scale-105 transition-transform shadow-xl" style={{ color: tontine?.theme_color || '#39FF14' }}>
                   Lancer le tirage
                </button>
             </div>
@@ -300,7 +317,7 @@ export default function TontineAdminPage() {
          <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl`}>Liste des Membres</h3>
-               <button onClick={openAddModal} className="bg-black text-[#39FF14] px-5 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md">
+               <button onClick={openAddModal} className="bg-black px-5 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md" style={{ color: tontine?.theme_color || '#39FF14' }}>
                  <Plus size={16}/> Ajouter un membre
                </button>
             </div>
@@ -368,28 +385,28 @@ export default function TontineAdminPage() {
             <form onSubmit={handleSaveMember} className="space-y-4">
               <div>
                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Prénom & Nom</label>
-                <input type="text" required value={memberForm.prenom_nom} onChange={e => setMemberForm({...memberForm, prenom_nom: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition text-black" placeholder="Ex: Moussa Ndiaye" />
+                <input type="text" required value={memberForm.prenom_nom} onChange={e => setMemberForm({...memberForm, prenom_nom: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: Moussa Ndiaye" />
               </div>
               <div>
                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Numéro de Téléphone</label>
-                <input type="tel" required value={memberForm.telephone} onChange={e => setMemberForm({...memberForm, telephone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition text-black" placeholder="Ex: 77 123 45 67" />
+                <input type="tel" required value={memberForm.telephone} onChange={e => setMemberForm({...memberForm, telephone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: 77 123 45 67" />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Code PIN Secret</label>
-                    <input type="text" maxLength={4} value={memberForm.code_secret} onChange={e => setMemberForm({...memberForm, code_secret: e.target.value.replace(/\D/g, '')})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition text-black tracking-widest" placeholder="0000" />
+                    <input type="text" maxLength={4} value={memberForm.code_secret} onChange={e => setMemberForm({...memberForm, code_secret: e.target.value.replace(/\D/g, '')})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black tracking-widest" placeholder="0000" />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Statut Tirage</label>
-                    <select value={memberForm.a_gagne ? 'oui' : 'non'} onChange={e => setMemberForm({...memberForm, a_gagne: e.target.value === 'oui'})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] transition appearance-none cursor-pointer text-black">
+                    <select value={memberForm.a_gagne ? 'oui' : 'non'} onChange={e => setMemberForm({...memberForm, a_gagne: e.target.value === 'oui'})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition appearance-none cursor-pointer text-black">
                       <option value="non">En Attente</option>
                       <option value="oui">A Déja Gagné</option>
                     </select>
                   </div>
               </div>
               
-              <button type="submit" disabled={isSaving} className="w-full mt-6 bg-black text-[#39FF14] py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+              <button type="submit" disabled={isSaving} className="w-full mt-6 bg-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50" style={{ color: tontine?.theme_color || '#39FF14' }}>
                 {isSaving ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle size={18}/>}
                 {isSaving ? "Sauvegarde..." : "Enregistrer la fiche"}
               </button>
