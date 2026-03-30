@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw } from 'lucide-react';
 import InteractiveParticles from '@/components/InteractiveParticles';
+import * as XLSX from 'xlsx';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -17,9 +18,10 @@ export default function TontineAdminPage() {
   // --- ÉTATS MODALE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
-  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '' });
+  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- ÉTATS TIRAGE ---
   const [isSpinning, setIsSpinning] = useState(false);
@@ -148,13 +150,13 @@ export default function TontineAdminPage() {
   // --- FONCTIONS CRUD MEMBRES ---
   const openAddModal = () => {
     setEditingMember(null);
-    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '' });
+    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '' });
     setIsModalOpen(true);
   };
 
   const openEditModal = (m: any) => {
     setEditingMember(m);
-    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne, photo_url: m.photo_url || '' });
+    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne, photo_url: m.photo_url || '', poste: m.poste || '' });
     setIsModalOpen(true);
   };
 
@@ -163,7 +165,7 @@ export default function TontineAdminPage() {
     setIsSaving(true);
     try {
       if (!tontine) throw new Error("Tontine non chargée.");
-      const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne, photo_url: memberForm.photo_url };
+      const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne, photo_url: memberForm.photo_url, poste: memberForm.poste };
 
       if (editingMember) {
         const { error } = await supabase.from('tontine_members').update(payload).eq('id', editingMember.id);
@@ -195,6 +197,71 @@ export default function TontineAdminPage() {
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        setIsSaving(true);
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const data = XLSX.utils.sheet_to_json(wb.Sheets[wsname]);
+        const newMembers = data.map((row: any) => {
+          let phone = String(row.telephone || row.Telephone || row.TELEPHONE || '').replace(/\s+/g, '');
+          if (phone.startsWith('+221')) phone = phone.slice(4);
+          if (phone.startsWith('221')) phone = phone.slice(3);
+          return {
+            tontine_id: tontine.id,
+            prenom_nom: row.prenom_nom || row.Prenom || row.Nom || 'Inconnu',
+            telephone: phone,
+            poste: row.poste || row.Poste || '',
+            code_secret: '0000',
+            a_gagne: false
+          };
+        }).filter(m => m.telephone.length >= 7);
+        if (newMembers.length === 0) throw new Error("Aucun membre valide trouvé.");
+        const { data: insertedData, error } = await supabase.from('tontine_members').insert(newMembers).select();
+        if (error) throw error;
+        if (insertedData) setMembres([...membres, ...insertedData]);
+        alert(`${newMembers.length} membres importés avec succès !`);
+      } catch (err: any) {
+        alert("Erreur lors de l'import: " + err.message);
+      } finally {
+        setIsSaving(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const toggleAdmin = async (m: any) => {
+    try {
+      const newStatus = !m.is_admin;
+      const { error } = await supabase.from('tontine_members').update({ is_admin: newStatus }).eq('id', m.id);
+      if (error) throw error;
+      setMembres(membres.map(member => member.id === m.id ? { ...member, is_admin: newStatus } : member));
+    } catch (err: any) {
+      alert("Erreur de modification du rôle: " + err.message);
+    }
+  };
+
+  const handleResetTontine = async () => {
+    if (!confirm("⚠️ ATTENTION : Voulez-vous réinitialiser la tontine ? (Gagnants remis à zéro, membres conservés).")) return;
+    try {
+      setIsSaving(true);
+      const { error } = await supabase.from('tontine_members').update({ a_gagne: false, mois_victoire: null }).eq('tontine_id', tontine.id);
+      if (error) throw error;
+      setMembres(membres.map(m => ({ ...m, a_gagne: false, mois_victoire: null })));
+      alert("Tontine réinitialisée avec succès.");
+    } catch (err: any) {
+      alert("Erreur: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleTirage = async () => {
@@ -440,9 +507,18 @@ export default function TontineAdminPage() {
          <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl`}>Liste des Membres</h3>
-               <button onClick={openAddModal} className="bg-black px-5 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md" style={{ color: tontine?.theme_color || '#39FF14' }}>
-                 <Plus size={16}/> Ajouter un membre
-               </button>
+               <div className="flex flex-wrap gap-2">
+                 <button onClick={handleResetTontine} className="bg-red-50 text-red-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-red-100 transition-colors border border-red-200">
+                    <RotateCcw size={16}/> Réinitialiser
+                 </button>
+                 <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                 <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-zinc-200 transition-colors border border-zinc-200">
+                    <Upload size={16}/> Import Excel
+                 </button>
+                 <button onClick={openAddModal} className="bg-black px-5 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md" style={{ color: tontine?.theme_color || '#39FF14' }}>
+                   <Plus size={16}/> Ajouter un membre
+                 </button>
+               </div>
             </div>
             <div className="overflow-x-auto">
                <table className="w-full text-left border-collapse">
@@ -450,6 +526,7 @@ export default function TontineAdminPage() {
                      <tr className="border-b border-zinc-200">
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Membre</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Téléphone</th>
+                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Poste</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Tirage</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Paiement M{currentMonth}</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest text-right">Actions</th>
@@ -462,9 +539,17 @@ export default function TontineAdminPage() {
                         <tr key={m.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                            <td className="py-4 font-bold flex items-center gap-3">
                               <img src={m.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.prenom_nom)}&background=000&color=${tontine?.theme_color?.replace('#','') || '39FF14'}`} alt="Avatar" className="w-8 h-8 rounded-full border border-zinc-200" />
-                              {m.prenom_nom}
+                              <div className="flex items-center gap-2">
+                                {m.prenom_nom}
+                                <button onClick={() => toggleAdmin(m)} title={m.is_admin ? "Retirer les droits de Gérant" : "Nommer Gérant"} className={`p-1 rounded-full transition-colors ${m.is_admin ? 'bg-yellow-100 text-yellow-600' : 'bg-zinc-100 text-zinc-400 hover:text-black'}`}>
+                                   <ShieldCheck size={14}/>
+                                </button>
+                              </div>
                            </td>
                            <td className="py-4 font-mono text-sm">{m.telephone}</td>
+                           <td className="py-4 text-xs font-bold text-zinc-600">
+                              {m.poste ? <span className="flex items-center gap-1"><Briefcase size={12}/> {m.poste}</span> : '-'}
+                           </td>
                            <td className="py-4">
                               {m.a_gagne ? (
                                  <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">A Gagné</span>
@@ -473,11 +558,18 @@ export default function TontineAdminPage() {
                               )}
                            </td>
                            <td className="py-4">
-                              {hasPaid ? (
-                                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><CheckCircle size={12}/> Payé</span>
-                              ) : (
-                                 <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
-                              )}
+                              <div className="flex items-center gap-2">
+                                 {hasPaid ? (
+                                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><CheckCircle size={12}/> Payé</span>
+                                 ) : (
+                                    <>
+                                      <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
+                                      <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(`Bonjour ${m.prenom_nom}, c'est le moment de la cotisation pour la tontine "${tontine?.nom}". Merci de régulariser via ce lien sécurisé !`)}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Relancer sur WhatsApp">
+                                         <MessageCircle size={14}/>
+                                      </a>
+                                    </>
+                                 )}
+                              </div>
                            </td>
                            <td className="py-4 text-right">
                               <div className="flex justify-end gap-2">
@@ -489,7 +581,7 @@ export default function TontineAdminPage() {
                      )})}
                      {membres.length === 0 && (
                         <tr>
-                           <td colSpan={5} className="py-8 text-center text-zinc-500 font-bold">Aucun membre pour le moment.</td>
+                           <td colSpan={6} className="py-8 text-center text-zinc-500 font-bold">Aucun membre pour le moment.</td>
                         </tr>
                      )}
                   </tbody>
@@ -520,6 +612,13 @@ export default function TontineAdminPage() {
               <div className="col-span-full">
                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">URL Photo de Profil (Optionnel)</label>
                 <input type="url" value={memberForm.photo_url} onChange={e => setMemberForm({...memberForm, photo_url: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://lien-vers-la-photo.com/image.jpg" />
+              </div>
+              <div className="col-span-full">
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Poste / Rôle (Optionnel)</label>
+                <div className="relative">
+                   <Briefcase size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                   <input type="text" value={memberForm.poste} onChange={e => setMemberForm({...memberForm, poste: e.target.value})} className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: Trésorier, Comptable, Grande Sœur..." />
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4 col-span-full">
