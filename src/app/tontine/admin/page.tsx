@@ -21,6 +21,12 @@ export default function TontineAdminPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // --- ÉTATS TIRAGE ---
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [spinName, setSpinName] = useState("");
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [recentWinners, setRecentWinners] = useState<any[]>([]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -190,6 +196,58 @@ export default function TontineAdminPage() {
     setTimeout(() => setCopied(false), 3000);
   };
 
+  const handleTirage = async () => {
+    const eligibles = membres.filter(m => !m.a_gagne);
+    if (eligibles.length === 0) {
+      alert("Aucun membre éligible pour le tirage !");
+      return;
+    }
+
+    setIsSpinning(true);
+    setRecentWinners([]);
+    setShowConfetti(false);
+
+    const interval = setInterval(() => {
+      const randomName = eligibles[Math.floor(Math.random() * eligibles.length)].prenom_nom;
+      setSpinName(randomName);
+    }, 100);
+
+    setTimeout(async () => {
+      clearInterval(interval);
+      
+      const nbGagnants = tontine?.gagnants_par_mois || 1;
+      const currentMonthCalc = Math.floor(membres.filter(m => m.a_gagne).length / nbGagnants) + 1;
+      
+      const shuffled = [...eligibles].sort(() => 0.5 - Math.random());
+      const selectedWinners = shuffled.slice(0, nbGagnants);
+      
+      try {
+        const winnerIds = selectedWinners.map(w => w.id);
+        const { error } = await supabase
+          .from('tontine_members')
+          .update({ a_gagne: true, mois_victoire: currentMonthCalc })
+          .in('id', winnerIds);
+
+        if (error) throw error;
+
+        setMembres(membres.map(m => 
+          winnerIds.includes(m.id) ? { ...m, a_gagne: true, mois_victoire: currentMonthCalc } : m
+        ));
+        setRecentWinners(selectedWinners);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 8000);
+
+        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+        audio.volume = 0.5;
+        audio.play().catch(()=>{});
+      } catch (err: any) {
+        alert("Erreur lors du tirage : " + err.message);
+      } finally {
+        setIsSpinning(false);
+      }
+    }, 3000);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
@@ -240,6 +298,33 @@ export default function TontineAdminPage() {
   return (
     <div className="min-h-screen bg-zinc-50 font-sans pb-24 text-black relative">
       <InteractiveParticles themeColor={tontine?.theme_color || '#39FF14'} />
+      
+      {showConfetti && (
+        <div className="fixed inset-0 z-[200] pointer-events-none overflow-hidden">
+          {[...Array(100)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-[-10%] opacity-0"
+              style={{
+                left: `${Math.random() * 100}%`,
+                width: `${Math.random() * 10 + 6}px`,
+                height: `${Math.random() * 10 + 6}px`,
+                backgroundColor: i % 3 === 0 ? '#ffffff' : (tontine?.theme_color || '#39FF14'),
+                animation: `confetti-fall ${2 + Math.random() * 3}s linear forwards`,
+                animationDelay: `${Math.random() * 1.5}s`,
+                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none', 
+              }}
+            />
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes confetti-fall {
+              0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+              100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+            }
+          `}} />
+        </div>
+      )}
+
       <header className="bg-black text-white py-6 px-8 flex justify-between items-center shadow-lg relative z-10">
          <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
@@ -287,32 +372,61 @@ export default function TontineAdminPage() {
             </div>
          </div>
 
-         <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
-               <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg mb-6`}>Progression du mois</h3>
-               <div className="flex justify-between items-center text-sm font-bold text-zinc-500 mb-2">
-                  <span>Cotisations (Mois {currentMonth})</span>
-                  <span className="text-black">{actuelCaisse.toLocaleString()} / {caisseMensuelle.toLocaleString()} F</span>
-               </div>
-               <div className="w-full h-6 bg-zinc-100 rounded-full overflow-hidden mb-2 shadow-inner">
-                  <div className="h-full bg-black rounded-full relative transition-all duration-1000 ease-out" style={{ width: `${progressPercentage}%` }}>
-                     <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
-                  </div>
-               </div>
-               <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
+         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
+            <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg mb-6`}>Progression du mois</h3>
+            <div className="flex justify-between items-center text-sm font-bold text-zinc-500 mb-2">
+               <span>Cotisations (Mois {currentMonth})</span>
+               <span className="text-black">{actuelCaisse.toLocaleString()} / {caisseMensuelle.toLocaleString()} F</span>
             </div>
-
-            <div className="p-8 rounded-[2rem] shadow-lg flex flex-col items-center justify-center text-center" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
-               <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-4 shadow-xl" style={{ color: tontine?.theme_color || '#39FF14' }}>
-                  <Shuffle size={32} />
+            <div className="w-full h-6 bg-zinc-100 rounded-full overflow-hidden mb-2 shadow-inner">
+               <div className="h-full bg-black rounded-full relative transition-all duration-1000 ease-out" style={{ width: `${progressPercentage}%` }}>
+                  <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
                </div>
-               <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl mb-2 text-black`}>Tirage au sort</h3>
-               <p className="text-sm font-bold text-zinc-800 mb-6">Sélectionnez le gagnant de ce mois de manière transparente.</p>
-               <button className="bg-black px-8 py-4 rounded-xl font-black uppercase text-sm w-full hover:scale-105 transition-transform shadow-xl" style={{ color: tontine?.theme_color || '#39FF14' }}>
-                  Lancer le tirage
-               </button>
             </div>
+            <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
          </div>
+
+         <section className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
+            
+            <div className="relative z-10 w-full">
+               <p className="font-black uppercase tracking-[0.3em] text-xs mb-6 flex items-center justify-center gap-2" style={{ color: tontine?.theme_color || '#39FF14' }}>
+                  <Shuffle size={14}/> Tirage du Mois {currentMonth}
+               </p>
+               
+               {isSpinning ? (
+                  <div className="flex flex-col items-center py-8">
+                     <div className="w-24 h-24 rounded-full border-4 border-t-transparent animate-spin mb-8" style={{ borderColor: `${tontine?.theme_color || '#39FF14'}40`, borderTopColor: tontine?.theme_color || '#39FF14' }}></div>
+                     <p className="text-3xl md:text-5xl font-black text-white uppercase tracking-widest animate-pulse drop-shadow-lg">{spinName || "Mélange..."}</p>
+                     <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-6">Découverte des gagnants...</p>
+                  </div>
+               ) : recentWinners.length > 0 ? (
+                  <div className="animate-in slide-in-from-bottom-8 fade-in duration-500 w-full">
+                     <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black text-white uppercase mb-8`}>Félicitations !</h2>
+                     <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                        {recentWinners.map((winner: any) => (
+                           <div key={winner.id} className="bg-zinc-900 border-2 p-5 md:p-6 rounded-3xl flex items-center gap-5 text-left shadow-lg" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+                              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center shrink-0"><Trophy size={28} style={{ color: tontine?.theme_color || '#39FF14' }}/></div>
+                              <div className="flex-1 min-w-0">
+                                 <p className="font-black text-white uppercase text-lg leading-tight truncate">{winner.prenom_nom}</p>
+                                 <p className="font-black text-sm mt-1" style={{ color: tontine?.theme_color || '#39FF14' }}>{tontine?.montant_mensuel ? (caisseMensuelle / (tontine?.gagnants_par_mois || 1)).toLocaleString() : 0} F CFA</p>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                     <button onClick={() => setRecentWinners([])} className="mt-8 bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-bold uppercase hover:bg-zinc-700 transition">Terminer le tirage</button>
+                  </div>
+               ) : (
+                  <div className="flex flex-col items-center py-8 gap-6">
+                     <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black text-white uppercase mb-4 leading-tight`}>Lancer la sélection</h2>
+                     <button onClick={handleTirage} className="px-10 py-5 rounded-[2.5rem] font-black text-base uppercase tracking-widest transition-all shadow-xl hover:scale-105 flex items-center gap-3 animate-bounce mx-auto" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
+                        <Shuffle size={24}/> Démarrer le tirage
+                     </button>
+                     <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-6">Zéro triche, 100% transparent.</p>
+                  </div>
+               )}
+            </div>
+         </section>
 
          <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
