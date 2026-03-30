@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings } from 'lucide-react';
 import InteractiveParticles from '@/components/InteractiveParticles';
 import * as XLSX from 'xlsx';
 
@@ -18,10 +18,14 @@ export default function TontineAdminPage() {
   // --- ÉTATS MODALE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
-  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '' });
+  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false });
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({ nom: '', theme_color: '#39FF14', logo_url: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sectionMembresRef = useRef<HTMLDivElement>(null);
+  const sectionTirageRef = useRef<HTMLElement>(null);
 
   // --- ÉTATS TIRAGE ---
   const [isSpinning, setIsSpinning] = useState(false);
@@ -150,13 +154,13 @@ export default function TontineAdminPage() {
   // --- FONCTIONS CRUD MEMBRES ---
   const openAddModal = () => {
     setEditingMember(null);
-    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '' });
+    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false });
     setIsModalOpen(true);
   };
 
   const openEditModal = (m: any) => {
     setEditingMember(m);
-    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne, photo_url: m.photo_url || '', poste: m.poste || '' });
+    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne, photo_url: m.photo_url || '', poste: m.poste || '', is_admin: !!m.is_admin });
     setIsModalOpen(true);
   };
 
@@ -165,22 +169,55 @@ export default function TontineAdminPage() {
     setIsSaving(true);
     try {
       if (!tontine) throw new Error("Tontine non chargée.");
-      const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne, photo_url: memberForm.photo_url, poste: memberForm.poste };
+      const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne, photo_url: memberForm.photo_url, poste: memberForm.poste, is_admin: memberForm.is_admin };
+
+      if (memberForm.is_admin) {
+        await supabase.from('tontine_members').update({ is_admin: false }).eq('tontine_id', tontine.id);
+      }
+
+      let updatedMembers = membres;
+      if (memberForm.is_admin) {
+         updatedMembers = updatedMembers.map(m => ({ ...m, is_admin: false }));
+      }
 
       if (editingMember) {
         const { error } = await supabase.from('tontine_members').update(payload).eq('id', editingMember.id);
         if (error) throw error;
-        setMembres(membres.map(m => m.id === editingMember.id ? { ...m, ...payload } : m));
+        setMembres(updatedMembers.map(m => m.id === editingMember.id ? { ...m, ...payload } : m));
       } else {
         const { data, error } = await supabase.from('tontine_members').insert([payload]).select();
         if (error) throw error;
-        if (data) setMembres([...membres, data[0]]);
+        if (data) setMembres([...updatedMembers, data[0]]);
       }
       setIsModalOpen(false);
     } catch (err: any) {
       alert("Erreur de sauvegarde: " + err.message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const openSettingsModal = () => {
+    setSettingsForm({ 
+      nom: tontine?.nom || '', 
+      theme_color: tontine?.theme_color || '#39FF14', 
+      logo_url: tontine?.logo_url || '' 
+    });
+    setIsSettingsModalOpen(true);
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+       const { error } = await supabase.from('tontines').update(settingsForm).eq('id', tontine.id);
+       if (error) throw error;
+       setTontine({ ...tontine, ...settingsForm });
+       setIsSettingsModalOpen(false);
+    } catch(err: any) {
+       alert("Erreur lors de la sauvegarde : " + err.message);
+    } finally {
+       setIsSaving(false);
     }
   };
 
@@ -197,6 +234,10 @@ export default function TontineAdminPage() {
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
+  };
+
+  const scrollToSection = (ref: React.RefObject<any>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,9 +282,14 @@ export default function TontineAdminPage() {
   const toggleAdmin = async (m: any) => {
     try {
       const newStatus = !m.is_admin;
-      const { error } = await supabase.from('tontine_members').update({ is_admin: newStatus }).eq('id', m.id);
-      if (error) throw error;
-      setMembres(membres.map(member => member.id === m.id ? { ...member, is_admin: newStatus } : member));
+      if (newStatus) {
+         await supabase.from('tontine_members').update({ is_admin: false }).eq('tontine_id', tontine.id);
+         await supabase.from('tontine_members').update({ is_admin: true }).eq('id', m.id);
+         setMembres(membres.map(member => member.id === m.id ? { ...member, is_admin: true } : { ...member, is_admin: false }));
+      } else {
+         await supabase.from('tontine_members').update({ is_admin: false }).eq('id', m.id);
+         setMembres(membres.map(member => member.id === m.id ? { ...member, is_admin: false } : member));
+      }
     } catch (err: any) {
       alert("Erreur de modification du rôle: " + err.message);
     }
@@ -364,6 +410,10 @@ export default function TontineAdminPage() {
   const actuelCaisse = cotisationsCeMois.reduce((acc, c) => acc + (c.montant || tontine?.montant_mensuel || 0), 0);
   const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
 
+  const currentRealMonth = new Date().getMonth() + 1;
+  const birthdayMembers = membres.filter(m => m.date_naissance && parseInt(m.date_naissance.split('-')[1], 10) === currentRealMonth);
+  const hasBirthdays = birthdayMembers.length > 0;
+
   return (
     <div className="min-h-screen bg-zinc-50 font-sans pb-24 text-black relative">
       <InteractiveParticles themeColor={tontine?.theme_color || '#39FF14'} />
@@ -396,8 +446,8 @@ export default function TontineAdminPage() {
 
       <header className="bg-black text-white py-6 px-8 flex justify-between items-center shadow-lg relative z-10">
          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
-               <ShieldCheck size={24} className="text-black" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}>
+               {tontine?.logo_url ? <img src={tontine.logo_url} alt="Logo" className="w-full h-full object-cover" /> : <ShieldCheck size={24} className="text-black" />}
             </div>
             <div>
                <h1 className="text-xl font-black uppercase tracking-tighter leading-none">Onyx Tontine</h1>
@@ -418,24 +468,39 @@ export default function TontineAdminPage() {
       <main className="max-w-6xl mx-auto px-6 mt-10 space-y-8 relative z-10">
          <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
             <div>
-               <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-2`}>{tontine?.nom || "Ma Tontine"}</h2>
+               <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-2 flex items-center gap-3`}>
+                  {tontine?.nom || "Ma Tontine"}
+                  <button onClick={openSettingsModal} className="p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors text-zinc-500">
+                    <Settings size={18} />
+                  </button>
+               </h2>
                <p className="text-sm text-zinc-500 font-bold flex items-center gap-2">
                  <Wallet size={16}/> Montant mensuel : {(tontine?.montant_mensuel || 0).toLocaleString()} F CFA
                </p>
             </div>
          </div>
 
+         {hasBirthdays && (
+            <div className="bg-purple-100 border border-purple-200 text-purple-700 p-5 rounded-2xl flex items-center gap-4 shadow-sm animate-in slide-in-from-top-4">
+               <div className="bg-purple-200 p-3 rounded-xl"><Cake size={24} className="text-purple-600 animate-bounce" /></div>
+               <div>
+                  <p className="font-black uppercase text-sm tracking-tighter">C'est le mois des anniversaires ! 🎂</p>
+                  <p className="text-xs font-bold text-purple-600/80 mt-1">Joyeux anniversaire à : {birthdayMembers.map(m => m.prenom_nom).join(', ')}</p>
+               </div>
+            </div>
+         )}
+
          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-black text-white p-8 rounded-[2rem] shadow-xl relative overflow-hidden group">
+            <div onClick={() => scrollToSection(sectionMembresRef)} className="bg-black text-white p-8 rounded-[2rem] shadow-xl relative overflow-hidden group cursor-pointer hover:scale-105 transition-all">
                <div className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Users size={14}/> Membres Actifs</p>
                <p className={`${spaceGrotesk.className} text-4xl font-black`} style={{ color: tontine?.theme_color || '#39FF14' }}>{membres.length}</p>
             </div>
-            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+            <div onClick={() => scrollToSection(sectionMembresRef)} className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:scale-105 transition-all">
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Wallet size={14}/> Caisse Mensuelle</p>
                <p className={`${spaceGrotesk.className} text-4xl font-black`}>{caisseMensuelle.toLocaleString()} F</p>
             </div>
-            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+            <div onClick={() => scrollToSection(sectionTirageRef)} className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:scale-105 transition-all">
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy size={14}/> Gagnants par mois</p>
                <p className={`${spaceGrotesk.className} text-4xl font-black`}>{tontine?.gagnants_par_mois || 1}</p>
             </div>
@@ -455,7 +520,7 @@ export default function TontineAdminPage() {
             <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
          </div>
 
-         <section className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+         <section ref={sectionTirageRef} className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
             
             <div className="relative z-10 w-full">
@@ -504,7 +569,7 @@ export default function TontineAdminPage() {
             </div>
          </section>
 
-         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+         <div ref={sectionMembresRef} className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl`}>Liste des Membres</h3>
                <div className="flex flex-wrap gap-2">
@@ -541,6 +606,9 @@ export default function TontineAdminPage() {
                               <img src={m.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.prenom_nom)}&background=000&color=${tontine?.theme_color?.replace('#','') || '39FF14'}`} alt="Avatar" className="w-8 h-8 rounded-full border border-zinc-200" />
                               <div className="flex items-center gap-2">
                                 {m.prenom_nom}
+                                {m.date_naissance && parseInt(m.date_naissance.split('-')[1], 10) === currentRealMonth && (
+                                   <span title="Anniversaire ce mois-ci !"><Cake size={14} className="text-purple-500 animate-pulse" /></span>
+                                )}
                                 <button onClick={() => toggleAdmin(m)} title={m.is_admin ? "Retirer les droits de Gérant" : "Nommer Gérant"} className={`p-1 rounded-full transition-colors ${m.is_admin ? 'bg-yellow-100 text-yellow-600' : 'bg-zinc-100 text-zinc-400 hover:text-black'}`}>
                                    <ShieldCheck size={14}/>
                                 </button>
@@ -621,6 +689,17 @@ export default function TontineAdminPage() {
                 </div>
               </div>
               
+              <div className="col-span-full bg-zinc-50 p-4 rounded-2xl border border-zinc-200 flex items-center justify-between">
+                 <div>
+                    <p className="text-xs font-black uppercase text-black">Co-Gérant</p>
+                    <p className="text-[10px] font-bold text-zinc-500">Donner les droits d'administration (Un seul possible)</p>
+                 </div>
+                 <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={memberForm.is_admin} onChange={e => setMemberForm({...memberForm, is_admin: e.target.checked})} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                 </label>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 col-span-full">
                   <div>
                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Code PIN Secret</label>
@@ -638,6 +717,39 @@ export default function TontineAdminPage() {
               <button type="submit" disabled={isSaving} className="w-full mt-6 bg-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50" style={{ color: tontine?.theme_color || '#39FF14' }}>
                 {isSaving ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle size={18}/>}
                 {isSaving ? "Sauvegarde..." : "Enregistrer la fiche"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODALE PARAMÈTRES TONTINE --- */}
+      {isSettingsModalOpen && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsSettingsModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 relative shadow-2xl animate-in zoom-in-95">
+            <button onClick={() => setIsSettingsModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
+            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 text-black flex items-center gap-2`}>
+              <Settings size={24} /> Paramètres
+            </h2>
+            <form onSubmit={handleSaveSettings} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Nom de la Tontine</label>
+                <input type="text" required value={settingsForm.nom} onChange={e => setSettingsForm({...settingsForm, nom: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Couleur du Thème</label>
+                <div className="flex gap-3 items-center">
+                   <input type="color" required value={settingsForm.theme_color} onChange={e => setSettingsForm({...settingsForm, theme_color: e.target.value})} className="w-14 h-14 rounded-2xl cursor-pointer border-0 p-0" />
+                   <input type="text" required value={settingsForm.theme_color} onChange={e => setSettingsForm({...settingsForm, theme_color: e.target.value})} className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black uppercase" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">URL du Logo (Optionnel)</label>
+                <input type="url" value={settingsForm.logo_url} onChange={e => setSettingsForm({...settingsForm, logo_url: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://..." />
+              </div>
+              <button type="submit" disabled={isSaving} className="w-full mt-6 bg-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50" style={{ color: settingsForm.theme_color || '#39FF14' }}>
+                {isSaving ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle size={18}/>}
+                Enregistrer
               </button>
             </form>
           </div>
