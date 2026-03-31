@@ -648,6 +648,7 @@ export default function TontineAdminPage() {
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Téléphone</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Poste</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Tirage</th>
+                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Dernier Paiement</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Paiement M{currentMonth}</th>
                         <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest text-right">Actions</th>
                      </tr>
@@ -655,6 +656,9 @@ export default function TontineAdminPage() {
                   <tbody>
                      {filteredMembres.map((m) => {
                         const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+                        const memberCotisations = cotisations.filter(c => c.membre_id === m.id && c.statut === 'Payé');
+                        const lastPayment = memberCotisations.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+                        const lastPaymentDate = lastPayment?.created_at ? new Date(lastPayment.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '-';
                         return (
                         <tr key={m.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                            <td className="py-4 font-bold flex items-center gap-3">
@@ -680,6 +684,9 @@ export default function TontineAdminPage() {
                                  <span className="bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">En Attente</span>
                               )}
                            </td>
+                           <td className="py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                              {lastPaymentDate}
+                           </td>
                            <td className="py-4">
                               <div className="flex items-center gap-2">
                                  {hasPaid ? (
@@ -704,7 +711,7 @@ export default function TontineAdminPage() {
                      )})}
                      {filteredMembres.length === 0 && (
                         <tr>
-                           <td colSpan={6} className="py-8 text-center text-zinc-500 font-bold">
+                           <td colSpan={7} className="py-8 text-center text-zinc-500 font-bold">
                               {searchTerm ? `Aucun membre ne correspond à "${searchTerm}"` : "Aucun membre dans cette catégorie."}
                            </td>
                         </tr>
