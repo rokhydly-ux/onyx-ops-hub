@@ -457,6 +457,10 @@ export default function TontineAdminPage() {
     return false;
   });
 
+  const dueDate = 5; // Date limite de paiement
+  const amende = 500; // Montant de l'amende
+  const today = new Date();
+
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans pb-24 text-black relative">
@@ -659,6 +663,13 @@ export default function TontineAdminPage() {
                         const memberCotisations = cotisations.filter(c => c.membre_id === m.id && c.statut === 'Payé');
                         const lastPayment = memberCotisations.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
                         const lastPaymentDate = lastPayment?.created_at ? new Date(lastPayment.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '-';
+                        
+                        const isLate = !hasPaid && today.getDate() > dueDate;
+                        const totalAPayer = (tontine?.montant_mensuel || 0) + (isLate ? amende : 0);
+                        const waMessage = isLate 
+                            ? `Bonjour ${m.prenom_nom}, rappel pour la tontine "${tontine?.nom}". Votre cotisation de ${(tontine?.montant_mensuel || 0).toLocaleString()} F est en retard. Une amende de ${amende} F a été appliquée. Total à payer : ${totalAPayer.toLocaleString()} F. Merci de régulariser.`
+                            : `Bonjour ${m.prenom_nom}, c'est le moment de la cotisation pour la tontine "${tontine?.nom}". Merci de régulariser via ce lien sécurisé !`;
+
                         return (
                         <tr key={m.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                            <td className="py-4 font-bold flex items-center gap-3">
@@ -692,12 +703,17 @@ export default function TontineAdminPage() {
                                  {hasPaid ? (
                                     <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><CheckCircle size={12}/> Payé</span>
                                  ) : (
-                                    <>
-                                      <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
-                                      <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(`Bonjour ${m.prenom_nom}, c'est le moment de la cotisation pour la tontine "${tontine?.nom}". Merci de régulariser via ce lien sécurisé !`)}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Relancer sur WhatsApp">
-                                         <MessageCircle size={14}/>
-                                      </a>
-                                    </>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex flex-col items-start">
+                                            <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
+                                            {isLate && (
+                                                <span className="text-[10px] font-bold text-red-500 mt-1 ml-1">+ {amende} F (Retard)</span>
+                                            )}
+                                        </div>
+                                        <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(waMessage)}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Relancer sur WhatsApp">
+                                            <MessageCircle size={14}/>
+                                        </a>
+                                    </div>
                                  )}
                               </div>
                            </td>
