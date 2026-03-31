@@ -24,6 +24,8 @@ export default function TontineAdminPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeFilter, setActiveFilter] = useState('tous');
+  const [searchTerm, setSearchTerm] = useState('');
   const sectionMembresRef = useRef<HTMLDivElement>(null);
   const sectionTirageRef = useRef<HTMLElement>(null);
 
@@ -363,6 +365,29 @@ export default function TontineAdminPage() {
     }, 3000);
   };
 
+  const handleGroupReminder = () => {
+    if (!tontine || membres.length === 0) return;
+
+    const totalGagnantsMois = tontine?.gagnants_par_mois || 1;
+    const moisEcoules = Math.floor(membres.filter(m => m.a_gagne).length / totalGagnantsMois);
+    const currentMonth = moisEcoules + 1;
+
+    const lateMembers = membres.filter(m => 
+        !cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé')
+    );
+
+    if (lateMembers.length === 0) {
+        alert("Félicitations ! Tous les membres sont à jour pour ce mois.");
+        return;
+    }
+
+    const memberNames = lateMembers.map(m => `- ${m.prenom_nom}`).join('\n');
+    const message = `RAPPEL COTISATION - Sauf erreur de notre part, nous attendons toujours la cotisation de :\n\n${memberNames}\n\n🙏 Merci de régulariser au plus vite pour le bon déroulement du tirage de ce mois !`;
+    
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
@@ -413,6 +438,25 @@ export default function TontineAdminPage() {
   const currentRealMonth = new Date().getMonth() + 1;
   const birthdayMembers = membres.filter(m => m.date_naissance && parseInt(m.date_naissance.split('-')[1], 10) === currentRealMonth);
   const hasBirthdays = birthdayMembers.length > 0;
+
+  const gagnantsCount = membres.filter(m => m.a_gagne).length;
+  const enAttenteCount = membres.length - gagnantsCount;
+
+  const filteredMembres = membres.filter(m => {
+    const nameMatch = m.prenom_nom.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (activeFilter === 'tous') {
+      return nameMatch;
+    }
+    if (activeFilter === 'gagnants') {
+      return nameMatch && m.a_gagne;
+    }
+    if (activeFilter === 'attente') {
+      return nameMatch && !m.a_gagne;
+    }
+    return false;
+  });
+
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans pb-24 text-black relative">
@@ -480,46 +524,6 @@ export default function TontineAdminPage() {
             </div>
          </div>
 
-         {hasBirthdays && (
-            <div className="bg-purple-100 border border-purple-200 text-purple-700 p-5 rounded-2xl flex items-center gap-4 shadow-sm animate-in slide-in-from-top-4">
-               <div className="bg-purple-200 p-3 rounded-xl"><Cake size={24} className="text-purple-600 animate-bounce" /></div>
-               <div>
-                  <p className="font-black uppercase text-sm tracking-tighter">C'est le mois des anniversaires ! 🎂</p>
-                  <p className="text-xs font-bold text-purple-600/80 mt-1">Joyeux anniversaire à : {birthdayMembers.map(m => m.prenom_nom).join(', ')}</p>
-               </div>
-            </div>
-         )}
-
-         <div className="grid md:grid-cols-3 gap-6">
-            <div onClick={() => scrollToSection(sectionMembresRef)} className="bg-black text-white p-8 rounded-[2rem] shadow-xl relative overflow-hidden group cursor-pointer hover:scale-105 transition-all">
-               <div className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
-               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Users size={14}/> Membres Actifs</p>
-               <p className={`${spaceGrotesk.className} text-4xl font-black`} style={{ color: tontine?.theme_color || '#39FF14' }}>{membres.length}</p>
-            </div>
-            <div onClick={() => scrollToSection(sectionMembresRef)} className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:scale-105 transition-all">
-               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Wallet size={14}/> Caisse Mensuelle</p>
-               <p className={`${spaceGrotesk.className} text-4xl font-black`}>{caisseMensuelle.toLocaleString()} F</p>
-            </div>
-            <div onClick={() => scrollToSection(sectionTirageRef)} className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:scale-105 transition-all">
-               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 flex items-center gap-2"><Trophy size={14}/> Gagnants par mois</p>
-               <p className={`${spaceGrotesk.className} text-4xl font-black`}>{tontine?.gagnants_par_mois || 1}</p>
-            </div>
-         </div>
-
-         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
-            <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg mb-6`}>Progression du mois</h3>
-            <div className="flex justify-between items-center text-sm font-bold text-zinc-500 mb-2">
-               <span>Cotisations (Mois {currentMonth})</span>
-               <span className="text-black">{actuelCaisse.toLocaleString()} / {caisseMensuelle.toLocaleString()} F</span>
-            </div>
-            <div className="w-full h-6 bg-zinc-100 rounded-full overflow-hidden mb-2 shadow-inner">
-               <div className="h-full bg-black rounded-full relative transition-all duration-1000 ease-out" style={{ width: `${progressPercentage}%` }}>
-                  <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
-               </div>
-            </div>
-            <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
-         </div>
-
          <section ref={sectionTirageRef} className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
             
@@ -569,10 +573,61 @@ export default function TontineAdminPage() {
             </div>
          </section>
 
-         <div ref={sectionMembresRef} className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+         {hasBirthdays && (
+            <div className="bg-purple-100 border border-purple-200 text-purple-700 p-5 rounded-2xl flex items-center gap-4 shadow-sm animate-in slide-in-from-top-4">
+               <div className="bg-purple-200 p-3 rounded-xl"><Cake size={24} className="text-purple-600 animate-bounce" /></div>
+               <div>
+                  <p className="font-black uppercase text-sm tracking-tighter">C'est le mois des anniversaires ! 🎂</p>
+                  <p className="text-xs font-bold text-purple-600/80 mt-1">Joyeux anniversaire à : {birthdayMembers.map(m => m.prenom_nom).join(', ')}</p>
+               </div>
+            </div>
+         )}
+
+         <div className="grid md:grid-cols-3 gap-6" ref={sectionMembresRef}>
+            <div onClick={() => setActiveFilter('tous')} className={`p-8 rounded-[2rem] shadow-sm relative overflow-hidden group cursor-pointer hover:scale-105 transition-all ${activeFilter === 'tous' ? 'bg-black text-white' : 'bg-white text-black border border-zinc-200'}`}>
+               <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 flex items-center gap-2 ${activeFilter === 'tous' ? 'text-zinc-400' : 'text-zinc-500'}`}><Users size={14}/> Tous les membres</p>
+               <p className={`${spaceGrotesk.className} text-4xl font-black`} style={{ color: activeFilter === 'tous' ? (tontine?.theme_color || '#39FF14') : '#000' }}>{membres.length}</p>
+            </div>
+            <div onClick={() => setActiveFilter('gagnants')} className={`p-8 rounded-[2rem] shadow-sm relative overflow-hidden group cursor-pointer hover:scale-105 transition-all ${activeFilter === 'gagnants' ? 'bg-black text-white' : 'bg-white text-black border border-zinc-200'}`}>
+               <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 flex items-center gap-2 ${activeFilter === 'gagnants' ? 'text-zinc-400' : 'text-zinc-500'}`}><Trophy size={14}/> Gagnants</p>
+               <p className={`${spaceGrotesk.className} text-4xl font-black`} style={{ color: activeFilter === 'gagnants' ? (tontine?.theme_color || '#39FF14') : '#000' }}>{gagnantsCount}</p>
+            </div>
+            <div onClick={() => setActiveFilter('attente')} className={`p-8 rounded-[2rem] shadow-sm relative overflow-hidden group cursor-pointer hover:scale-105 transition-all ${activeFilter === 'attente' ? 'bg-black text-white' : 'bg-white text-black border border-zinc-200'}`}>
+               <p className={`text-[10px] font-bold uppercase tracking-widest mb-2 flex items-center gap-2 ${activeFilter === 'attente' ? 'text-zinc-400' : 'text-zinc-500'}`}><Shuffle size={14}/> En attente</p>
+               <p className={`${spaceGrotesk.className} text-4xl font-black`} style={{ color: activeFilter === 'attente' ? (tontine?.theme_color || '#39FF14') : '#000' }}>{enAttenteCount}</p>
+            </div>
+         </div>
+
+         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
+            <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg mb-6`}>Progression du mois</h3>
+            <div className="flex justify-between items-center text-sm font-bold text-zinc-500 mb-2">
+               <span>Cotisations (Mois {currentMonth})</span>
+               <span className="text-black">{actuelCaisse.toLocaleString()} / {caisseMensuelle.toLocaleString()} F</span>
+            </div>
+            <div className="w-full h-6 bg-zinc-100 rounded-full overflow-hidden mb-2 shadow-inner">
+               <div className="h-full bg-black rounded-full relative transition-all duration-1000 ease-out" style={{ width: `${progressPercentage}%` }}>
+                  <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
+               </div>
+            </div>
+            <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
+         </div>
+
+         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-               <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl`}>Liste des Membres</h3>
+               <div>
+                  <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl`}>Liste des Membres</h3>
+                  <input 
+                     type="text"
+                     placeholder="Rechercher un membre..."
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     className="mt-2 w-full sm:w-64 p-2 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition"
+                  />
+               </div>
                <div className="flex flex-wrap gap-2">
+                 <button onClick={handleGroupReminder} className="bg-green-50 text-green-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-green-100 transition-colors border border-green-200">
+                    <MessageCircle size={16}/> Rappel Groupe
+                 </button>
                  <button onClick={handleResetTontine} className="bg-red-50 text-red-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-red-100 transition-colors border border-red-200">
                     <RotateCcw size={16}/> Réinitialiser
                  </button>
@@ -598,7 +653,7 @@ export default function TontineAdminPage() {
                      </tr>
                   </thead>
                   <tbody>
-                     {membres.map((m) => {
+                     {filteredMembres.map((m) => {
                         const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
                         return (
                         <tr key={m.id} className="border-b border-zinc-100 hover:bg-zinc-50">
@@ -647,9 +702,11 @@ export default function TontineAdminPage() {
                            </td>
                         </tr>
                      )})}
-                     {membres.length === 0 && (
+                     {filteredMembres.length === 0 && (
                         <tr>
-                           <td colSpan={6} className="py-8 text-center text-zinc-500 font-bold">Aucun membre pour le moment.</td>
+                           <td colSpan={6} className="py-8 text-center text-zinc-500 font-bold">
+                              {searchTerm ? `Aucun membre ne correspond à "${searchTerm}"` : "Aucun membre dans cette catégorie."}
+                           </td>
                         </tr>
                      )}
                   </tbody>
