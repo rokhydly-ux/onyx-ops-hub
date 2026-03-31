@@ -2,9 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText } from 'lucide-react';
 import InteractiveParticles from '@/components/InteractiveParticles';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -20,7 +23,7 @@ export default function TontineAdminPage() {
   const [editingMember, setEditingMember] = useState<any>(null);
   const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false, has_paid: false });
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settingsForm, setSettingsForm] = useState({ nom: '', theme_color: '#39FF14', logo_url: '' });
+  const [settingsForm, setSettingsForm] = useState({ nom: '', theme_color: '#39FF14', logo_url: '', duree_mois: 10, montant_mensuel: 0, date_debut: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -226,8 +229,11 @@ export default function TontineAdminPage() {
   const openSettingsModal = () => {
     setSettingsForm({ 
       nom: tontine?.nom || '', 
-      theme_color: tontine?.theme_color || '#39FF14', 
-      logo_url: tontine?.logo_url || '' 
+      theme_color: tontine?.theme_color || '#39FF14',
+      logo_url: tontine?.logo_url || '',
+      duree_mois: tontine?.duree_mois || 10,
+      montant_mensuel: tontine?.montant_mensuel || 0,
+      date_debut: tontine?.date_debut ? new Date(tontine.date_debut).toISOString().split('T')[0] : ''
     });
     setIsSettingsModalOpen(true);
   };
@@ -432,6 +438,35 @@ export default function TontineAdminPage() {
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.text(`Liste des membres - ${tontine?.nom || 'Tontine'}`, 14, 16);
+
+    const tableColumn = ["Nom & Prénom", "Téléphone", "Poste", "Statut Tirage", "Paiement Mois Actuel"];
+    const tableRows: any[] = [];
+
+    filteredMembres.forEach(m => {
+      const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+      const isLate = !hasPaid && today.getDate() > dueDate;
+
+      const memberData = [
+        m.prenom_nom,
+        m.telephone,
+        m.poste || '-',
+        m.a_gagne ? 'A gagné' : 'En attente',
+        hasPaid ? 'Payé' : `À Payer ${isLate ? `(+${amende}F)` : ''}`
+      ];
+      tableRows.push(memberData);
+    });
+
+    (doc as any).autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 24,
+    });
+    doc.save(`membres_${tontine?.nom?.replace(/\s+/g, '_') || 'tontine'}.pdf`);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
@@ -499,6 +534,20 @@ export default function TontineAdminPage() {
   const dueDate = 5; // Date limite de paiement
   const amende = 500; // Montant de l'amende
   const today = new Date();
+
+  const chartData = Array.from({ length: tontine?.duree_mois || 0 }, (_, i) => {
+    const mois = i + 1;
+    const caisse = cotisations
+      .filter(c => c.mois_numero === mois && c.statut === 'Payé')
+      .reduce((acc, c) => acc + (c.montant || 0), 0);
+    return {
+      name: `Mois ${mois}`,
+      caisse: caisse,
+    };
+  });
+
+  const yAxisFormatter = (value: number) => `${(value / 1000)}k`;
+
 
 
   return (
@@ -605,13 +654,23 @@ export default function TontineAdminPage() {
                      <button onClick={() => setRecentWinners([])} className="mt-8 bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-bold uppercase hover:bg-zinc-700 transition">Terminer le tirage</button>
                   </div>
                ) : (
-                  <div className="flex flex-col items-center py-8 gap-6">
-                     <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black text-white uppercase mb-4 leading-tight`}>Lancer la sélection</h2>
-                     <button onClick={handleTirage} className="px-10 py-5 rounded-[2.5rem] font-black text-base uppercase tracking-widest transition-all shadow-xl hover:scale-105 flex items-center gap-3 animate-bounce mx-auto" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
-                        <Shuffle size={24}/> Démarrer le tirage
-                     </button>
-                     <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-6">Zéro triche, 100% transparent.</p>
-                  </div>
+                  progressPercentage < 100 ? (
+                     <div className="flex flex-col items-center py-8 gap-6">
+                        <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black text-white uppercase mb-4 leading-tight`}>Cotisations en cours</h2>
+                        <p className="text-base font-medium text-zinc-400">Le tirage sera disponible une fois toutes les cotisations du mois réglées.</p>
+                        <button disabled className="mt-4 px-10 py-5 rounded-[2.5rem] font-black text-base uppercase tracking-widest transition-all shadow-xl flex items-center gap-3 opacity-50 cursor-not-allowed" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
+                           <Shuffle size={24}/> Démarrer le tirage
+                        </button>
+                     </div>
+                  ) : (
+                     <div className="flex flex-col items-center py-8 gap-6">
+                        <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black text-white uppercase mb-4 leading-tight`}>Lancer la sélection</h2>
+                        <button onClick={handleTirage} className="px-10 py-5 rounded-[2.5rem] font-black text-base uppercase tracking-widest transition-all shadow-xl hover:scale-105 flex items-center gap-3 animate-bounce mx-auto" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
+                           <Shuffle size={24}/> Démarrer le tirage
+                        </button>
+                        <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-6">Zéro triche, 100% transparent.</p>
+                     </div>
+                  )
                )}
             </div>
          </section>
@@ -656,6 +715,34 @@ export default function TontineAdminPage() {
          </div>
 
          <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+            <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg mb-6`}>Évolution de la caisse</h3>
+            <div style={{ width: '100%', height: 300 }}>
+               <ResponsiveContainer>
+                  <BarChart
+                     data={chartData}
+                     margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+                  >
+                     <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+                     <XAxis dataKey="name" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
+                     <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} tickFormatter={yAxisFormatter} />
+                     <Tooltip
+                        contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '1rem', color: '#fff' }}
+                        labelStyle={{ fontWeight: 'bold', color: tontine?.theme_color || '#39FF14' }}
+                        formatter={(value) => {
+                          if (typeof value === 'number') {
+                            return [`${value.toLocaleString()} F`, 'Caisse du mois']
+                          }
+                          return [value, 'Caisse du mois']
+                        }}
+                     />
+                     <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+                     <Bar dataKey="caisse" fill={tontine?.theme_color || '#39FF14'} name="Caisse du mois" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+               </ResponsiveContainer>
+            </div>
+         </div>
+
+         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                <div>
                   <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl`}>Liste des Membres</h3>
@@ -673,6 +760,9 @@ export default function TontineAdminPage() {
                  </button>
                  <button onClick={handleResetTontine} className="bg-red-50 text-red-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-red-100 transition-colors border border-red-200">
                     <RotateCcw size={16}/> Réinitialiser
+                 </button>
+                 <button onClick={handleExportPDF} className="bg-zinc-100 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-zinc-200 transition-colors border border-zinc-200">
+                    <FileText size={16}/> Export PDF
                  </button>
                  <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                  <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-zinc-200 transition-colors border border-zinc-200">
@@ -828,7 +918,7 @@ export default function TontineAdminPage() {
                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Statut Tirage</label>
                     <select value={memberForm.a_gagne ? 'oui' : 'non'} onChange={e => setMemberForm({...memberForm, a_gagne: e.target.value === 'oui'})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition appearance-none cursor-pointer text-black">
                       <option value="non">En Attente</option>
-                      <option value="oui">A Déja Gagné</option>
+                      <option value="oui">A Déjà Gagné</option>
                     </select>
                   </div>
                   <div>
@@ -851,6 +941,15 @@ export default function TontineAdminPage() {
 
       {/* --- MODALE PARAMÈTRES TONTINE --- */}
       {isSettingsModalOpen && (
+        (() => {
+          const startDate = settingsForm.date_debut ? new Date(settingsForm.date_debut + 'T00:00:00') : null;
+          let endDate = 'N/A';
+          if (startDate) {
+            const end = new Date(startDate);
+            end.setMonth(end.getMonth() + (settingsForm.duree_mois || 0));
+            endDate = end.toLocaleDateString('fr-FR');
+          }
+          return (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsSettingsModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-[2rem] w-full max-w-md p-8 relative shadow-2xl animate-in zoom-in-95">
             <button onClick={() => setIsSettingsModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
@@ -873,6 +972,26 @@ export default function TontineAdminPage() {
                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">URL du Logo (Optionnel)</label>
                 <input type="url" value={settingsForm.logo_url} onChange={e => setSettingsForm({...settingsForm, logo_url: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://..." />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Cotisation par membre</label>
+                  <input type="number" required value={settingsForm.montant_mensuel} onChange={e => setSettingsForm({...settingsForm, montant_mensuel: parseInt(e.target.value)})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Durée (mois)</label>
+                  <input type="number" required value={settingsForm.duree_mois} onChange={e => setSettingsForm({...settingsForm, duree_mois: parseInt(e.target.value)})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Date de début</label>
+                  <input type="date" value={settingsForm.date_debut} onChange={e => setSettingsForm({...settingsForm, date_debut: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Date de fin (calculée)</label>
+                  <input type="text" disabled value={endDate} className="w-full p-4 bg-zinc-100 border border-zinc-200 rounded-2xl font-bold text-sm outline-none text-zinc-500" />
+                </div>
+              </div>
               <button type="submit" disabled={isSaving} className="w-full mt-6 bg-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50" style={{ color: settingsForm.theme_color || '#39FF14' }}>
                 {isSaving ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle size={18}/>}
                 Enregistrer
@@ -880,6 +999,8 @@ export default function TontineAdminPage() {
             </form>
           </div>
         </div>
+          )
+        })()
       )}
     </div>
   );

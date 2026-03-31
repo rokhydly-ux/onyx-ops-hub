@@ -206,6 +206,16 @@ function TontineMembreDashboard() {
   const currentMonth = moisEcoules + 1;
   const dateTirage = `05 du mois`;
   
+  let endDateText: string | null = null;
+  let remainingMonths: number | null = null;
+  if (tontine?.date_debut && tontine?.duree_mois) {
+    const startDate = new Date(tontine.date_debut);
+    const endDate = new Date(startDate);
+    endDate.setMonth(startDate.getMonth() + tontine.duree_mois);
+    endDateText = endDate.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' });
+    remainingMonths = tontine.duree_mois - moisEcoules;
+  }
+  
   const caisseMensuelle = members.reduce((sum, m) => sum + (m.cotisation_individuelle || tontine?.montant_mensuel || 20000), 0);
   const cotisationsCeMois = cotisations.filter(c => c.mois_numero === currentMonth && c.statut === 'Payé');
   const actuelCaisse = cotisationsCeMois.reduce((acc, c) => acc + c.montant, 0);
@@ -494,7 +504,10 @@ function TontineMembreDashboard() {
                <div className="flex justify-between items-start mb-6">
                   <div>
                      <h2 className="text-lg font-black uppercase tracking-tighter">Votre Statut</h2>
-                     <p className="text-xs text-zinc-500 font-medium mt-1">Durée : {tontine.duree_mois} Mois</p>
+                     <p className="text-xs text-zinc-500 font-medium mt-1">
+                        Durée : {tontine.duree_mois} Mois
+                        {endDateText && ` (Fin: ${endDateText})`}
+                     </p>
                   </div>
                   <div className="flex flex-col gap-2 items-end">
                      {currentUser.a_gagne && (
@@ -525,8 +538,8 @@ function TontineMembreDashboard() {
                      <p className="text-xl font-black tracking-tighter">{(currentUser.cotisation_individuelle || tontine.montant_mensuel).toLocaleString()} <span className="text-sm text-zinc-400">F</span></p>
                   </div>
                   <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Historique</p>
-                     <p className="text-xl font-black tracking-tighter">{cotisations.filter(c => c.membre_id === currentUser.id && c.statut === 'Payé').length} <span className="text-sm text-zinc-400">/ {tontine.duree_mois}</span></p>
+                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Mois Restants</p>
+                     <p className="text-xl font-black tracking-tighter">{remainingMonths ?? tontine.duree_mois} <span className="text-sm text-zinc-400">/ {tontine.duree_mois}</span></p>
                   </div>
                </div>
             </section>

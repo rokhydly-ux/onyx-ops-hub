@@ -1,15 +1,16 @@
 "use client";
 
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { 
   LayoutDashboard, Users, Handshake, Settings, LogOut, 
   Search, Plus, MoreHorizontal, Trash2, 
-  ArrowDownRight, CheckCircle, 
+  ArrowDownRight, CheckCircle, BarChart as BarChartIcon,
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
-  BarChart, TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
+  TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
   AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon
 } from "lucide-react";
 
@@ -986,6 +987,74 @@ export default function AdminDashboard() {
     setIsAutomating(false);
   };
 
+  // --- CALCULS POUR LA VUE STATISTIQUES ---
+  const conversionRate = (stats.activeClients + stats.pendingLeads) > 0 ? (stats.activeClients / (stats.activeClients + stats.pendingLeads)) * 100 : 0;
+
+  const saasCounts = contacts
+    .filter(c => c.type === 'Client' && c.saas)
+    .reduce((acc, c) => {
+      const saasName = c.saas || 'Non défini';
+      acc[saasName] = (acc[saasName] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+  const popularSaas = Object.keys(saasCounts).length > 0 ? Object.entries(saasCounts).sort((a, b) => b[1] - a[1])[0][0] : 'N/A';
+
+  const topAmbassador = partners.length > 0 ? [...partners].sort((a, b) => (b.sales || 0) - (a.sales || 0))[0] : null;
+
+  const avgRevenuePerClient = stats.activeClients > 0 ? stats.revenue / stats.activeClients : 0;
+
+  const newClientsByMonth = contacts
+    .filter(c => c.type === 'Client' && c.created_at)
+    .reduce((acc, c) => {
+      const date = new Date(c.created_at);
+      if (!isNaN(date.getTime())) {
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const monthLabel = date.toLocaleString('fr-FR', { month: 'short', year: '2-digit' });
+        if (!acc[monthKey]) {
+          acc[monthKey] = { label: monthLabel, clients: 0 };
+        }
+        acc[monthKey].clients++;
+      }
+      return acc;
+    }, {} as Record<string, { label: string, clients: number }>);
+
+  const newClientsByMonthChartData = Object.keys(newClientsByMonth)
+    .sort()
+    .map(key => ({
+      name: newClientsByMonth[key].label,
+      clients: newClientsByMonth[key].clients
+    }));
+
+  const saasDistributionChartData = Object.entries(saasCounts)
+    .map(([name, value]) => ({ name, value }));
+
+  const COLORS = ['#39FF14', '#000000', '#8884d8', '#ffbb28', '#ff8042', '#00C49F', '#FFBB28', '#FF8042'];
+
+  const revenueBySaasChartData = Object.entries(contacts
+    .filter(c => c.type === 'Client' && c.saas)
+    .reduce((acc, c) => {
+      const saasName = c.saas || 'Non défini';
+      const foundSaas = ECOSYSTEM_SAAS.find(s => s.name === saasName);
+      let price = 13900;
+      if (foundSaas) price = parseInt(foundSaas.price.replace(/\D/g, ''), 10);
+      else if (saasName.includes('Gold')) price = 59900;
+      else if (saasName.includes('CRM')) price = 39900;
+      else if (saasName.includes('Tekki Pro')) price = 27900;
+      else if (saasName.includes('Tekki')) price = 22900;
+      else if (saasName.includes('Tontine')) price = 6900;
+      acc[saasName] = (acc[saasName] || 0) + price;
+      return acc;
+    }, {} as Record<string, number>))
+    .map(([name, revenue]) => ({ name, revenue }))
+    .sort((a, b) => b.revenue - a.revenue);
+    
+  const leadSourceChartData = Object.entries(leads.reduce((acc, lead) => {
+    const source = lead.source || 'Inconnue';
+    acc[source] = (acc[source] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>)).map(([name, value]) => ({ name, value }));
+
   // --- WIDGET EXPIRATIONS / RENOUVELLEMENTS CLIENTS ---
   const expiringClients = (contacts || []).filter((client) => {
     if (client.type !== 'Client') return false;
@@ -1148,6 +1217,7 @@ export default function AdminDashboard() {
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
                 { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
+                { id: 'statistiques', icon: BarChartIcon, label: 'Statistiques' },
                 { id: 'help', icon: HelpCircle, label: 'Aide & Tutoriels' },
               ].map(item => (
                 <button 
@@ -1220,6 +1290,7 @@ export default function AdminDashboard() {
                         { id: 'finance', icon: Wallet, label: 'Finances' },
                         { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
                         { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
+                        { id: 'statistiques', icon: BarChartIcon, label: 'Statistiques' },
                         { id: 'help', icon: HelpCircle, label: 'Aide & Tutoriels' },
                       ].map(item => (
                         <button key={item.id} onClick={() => { setActiveView(item.id as ViewType); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === item.id ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
@@ -1382,7 +1453,7 @@ export default function AdminDashboard() {
                 <div className="lg:col-span-2 bg-white border border-zinc-200 p-5 lg:p-12 rounded-3xl shadow-sm relative overflow-hidden">
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-6 mb-12">
                     <div className="flex items-center gap-5">
-                       <div className="p-4 bg-zinc-100 rounded-[1.5rem] text-black"><BarChart size={24}/></div>
+                       <div className="p-4 bg-zinc-100 rounded-[1.5rem] text-black"><BarChartIcon size={24}/></div>
                        <div>
                           <h3 className="font-black uppercase text-base tracking-tighter text-black">Flux de Revenus Hebdomadaire</h3>
                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Mars 2026 • Terminal Dakar</p>
@@ -1507,6 +1578,112 @@ export default function AdminDashboard() {
                        <button onClick={() => setActiveView('journal-ia' as ViewType)} className="w-full text-center mt-4 text-[10px] text-zinc-400 uppercase font-black tracking-widest hover:text-white transition-colors">Voir tout le planning IA</button>
                     </div>
                  </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= VUE STATISTIQUES ================= */}
+          {activeView === 'statistiques' && (
+            <div className="space-y-12 animate-in fade-in">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Taux de Conversion</p>
+                  <p className={`font-sans text-5xl font-black text-black tracking-tighter`}>{conversionRate.toFixed(1)}%</p>
+                  <p className="text-xs font-bold text-zinc-500 mt-2">Leads → Clients</p>
+                </div>
+                <div className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Produit Populaire</p>
+                  <p className={`font-sans text-3xl font-black text-black tracking-tighter`}>{popularSaas}</p>
+                  <p className="text-xs font-bold text-zinc-500 mt-2">SaaS le plus vendu</p>
+                </div>
+                <div className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Top Ambassadeur</p>
+                  <p className={`font-sans text-3xl font-black text-black tracking-tighter truncate`}>{topAmbassador?.full_name || 'N/A'}</p>
+                  <p className="text-xs font-bold text-zinc-500 mt-2">{topAmbassador?.sales || 0} ventes</p>
+                </div>
+                <div className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Panier Moyen Client</p>
+                  <p className={`font-sans text-5xl font-black text-black tracking-tighter`}>{Math.round(avgRevenuePerClient).toLocaleString('fr-FR')}</p>
+                  <p className="text-xs font-bold text-zinc-500 mt-2">Revenu / Client</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                  <h3 className="font-black uppercase text-lg mb-6">Acquisition Nouveaux Clients</h3>
+                  <div style={{ width: '100%', height: 300 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={newClientsByMonthChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+                        <XAxis dataKey="name" stroke="#71717a" fontSize={12} />
+                        <YAxis stroke="#71717a" fontSize={12} />
+                        <Tooltip contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '1rem', color: '#fff' }} />
+                        <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+                        <Line type="monotone" dataKey="clients" name="Nouveaux Clients" stroke="#39FF14" strokeWidth={3} dot={{ r: 5 }} activeDot={{ r: 8 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                  <h3 className="font-black uppercase text-lg mb-6">Répartition des Ventes SaaS</h3>
+                  <div style={{ width: '100%', height: 300 }}>
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie
+                          data={saasDistributionChartData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={120}
+                          fill="#8884d8"
+                          dataKey="value"
+                          nameKey="name"
+                          label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
+                        >
+                          {saasDistributionChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '1rem', color: '#fff' }}/>
+                        <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                  <h3 className="font-black uppercase text-lg mb-6">Revenus par Offre SaaS (MRR)</h3>
+                  <div style={{ width: '100%', height: 350 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={revenueBySaasChartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+                        <XAxis type="number" stroke="#71717a" fontSize={12} tickFormatter={(value) => new Intl.NumberFormat('fr-FR').format(value as number)}/>
+                        <YAxis dataKey="name" type="category" width={120} tick={{fontSize: 11, fill: '#3f3f46'}}/>
+                        <Tooltip formatter={(value: any) => typeof value === 'number' ? `${value.toLocaleString('fr-FR')} F` : value} contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '1rem', color: '#fff' }} />
+                        <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }}/>
+                        <Bar dataKey="revenue" name="Revenu Mensuel" fill="#39FF14" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
+                  <h3 className="font-black uppercase text-lg mb-6">Origine des Leads</h3>
+                  <div style={{ width: '100%', height: 350 }}>
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie data={leadSourceChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} fill="#8884d8" label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}>
+                          {leadSourceChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '1rem', color: '#fff' }}/>
+                        <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
             </div>
           )}
