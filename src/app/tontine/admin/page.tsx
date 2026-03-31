@@ -18,7 +18,7 @@ export default function TontineAdminPage() {
   // --- ÉTATS MODALE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
-  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false });
+  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false, has_paid: false });
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ nom: '', theme_color: '#39FF14', logo_url: '' });
   const [isSaving, setIsSaving] = useState(false);
@@ -35,6 +35,11 @@ export default function TontineAdminPage() {
   const [spinAvatar, setSpinAvatar] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
   const [recentWinners, setRecentWinners] = useState<any[]>([]);
+
+  // --- CALCULS DU MOIS EN COURS ---
+  const totalGagnantsMois = tontine?.gagnants_par_mois || 1;
+  const moisEcoules = Math.floor(membres.filter(m => m.a_gagne).length / totalGagnantsMois);
+  const currentMonth = moisEcoules + 1;
 
   useEffect(() => {
     let isMounted = true;
@@ -156,13 +161,14 @@ export default function TontineAdminPage() {
   // --- FONCTIONS CRUD MEMBRES ---
   const openAddModal = () => {
     setEditingMember(null);
-    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false });
+    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false, has_paid: false });
     setIsModalOpen(true);
   };
 
   const openEditModal = (m: any) => {
+    const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
     setEditingMember(m);
-    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne, photo_url: m.photo_url || '', poste: m.poste || '', is_admin: !!m.is_admin });
+    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne, photo_url: m.photo_url || '', poste: m.poste || '', is_admin: !!m.is_admin, has_paid: hasPaid });
     setIsModalOpen(true);
   };
 
@@ -182,6 +188,7 @@ export default function TontineAdminPage() {
          updatedMembers = updatedMembers.map(m => ({ ...m, is_admin: false }));
       }
 
+      let memberId = editingMember?.id;
       if (editingMember) {
         const { error } = await supabase.from('tontine_members').update(payload).eq('id', editingMember.id);
         if (error) throw error;
@@ -189,8 +196,25 @@ export default function TontineAdminPage() {
       } else {
         const { data, error } = await supabase.from('tontine_members').insert([payload]).select();
         if (error) throw error;
-        if (data) setMembres([...updatedMembers, data[0]]);
+        if (data) {
+           setMembres([...updatedMembers, data[0]]);
+           memberId = data[0].id;
+        }
       }
+
+      // --- GESTION DU PAIEMENT ---
+      if (memberId) {
+         const currentlyPaid = cotisations.some(c => c.membre_id === memberId && c.mois_numero === currentMonth && c.statut === 'Payé');
+         if (memberForm.has_paid && !currentlyPaid) {
+            const payloadCotisation = { tontine_id: tontine.id, membre_id: memberId, mois_numero: currentMonth, montant: tontine.montant_mensuel || 0, statut: 'Payé' };
+            const { data: newCot, error: errCot } = await supabase.from('cotisations').insert([payloadCotisation]).select();
+            if (!errCot && newCot) setCotisations(prev => [...prev, newCot[0]]);
+         } else if (!memberForm.has_paid && currentlyPaid) {
+            const { error: errCot } = await supabase.from('cotisations').delete().match({ membre_id: memberId, mois_numero: currentMonth, statut: 'Payé' });
+            if (!errCot) setCotisations(prev => prev.filter(c => !(c.membre_id === memberId && c.mois_numero === currentMonth && c.statut === 'Payé')));
+         }
+      }
+
       setIsModalOpen(false);
     } catch (err: any) {
       alert("Erreur de sauvegarde: " + err.message);
@@ -240,6 +264,26 @@ export default function TontineAdminPage() {
 
   const scrollToSection = (ref: React.RefObject<any>) => {
     ref.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const togglePaymentStatus = async (m: any, hasPaid: boolean) => {
+    try {
+      setIsSaving(true);
+      if (hasPaid) {
+        const { error } = await supabase.from('cotisations').delete().match({ membre_id: m.id, mois_numero: currentMonth, statut: 'Payé' });
+        if (error) throw error;
+        setCotisations(prev => prev.filter(c => !(c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé')));
+      } else {
+        const payload = { tontine_id: tontine.id, membre_id: m.id, mois_numero: currentMonth, montant: tontine?.montant_mensuel || 0, statut: 'Payé' };
+        const { data, error } = await supabase.from('cotisations').insert([payload]).select();
+        if (error) throw error;
+        if (data) setCotisations(prev => [...prev, data[0]]);
+      }
+    } catch (err: any) {
+      alert("Erreur lors de la modification du paiement: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -424,11 +468,6 @@ export default function TontineAdminPage() {
       </div>
     );
   }
-
-  // --- CALCULS DU MOIS EN COURS ET DE LA CAISSE ---
-  const totalGagnantsMois = tontine?.gagnants_par_mois || 1;
-  const moisEcoules = Math.floor(membres.filter(m => m.a_gagne).length / totalGagnantsMois);
-  const currentMonth = moisEcoules + 1;
 
   const caisseMensuelle = membres.length * (tontine?.montant_mensuel || 0);
   const cotisationsCeMois = cotisations.filter(c => c.mois_numero === currentMonth && c.statut === 'Payé' && membres.some(m => m.id === c.membre_id));
@@ -644,96 +683,96 @@ export default function TontineAdminPage() {
                  </button>
                </div>
             </div>
-            <div className="overflow-x-auto">
-               <table className="w-full text-left border-collapse">
-                  <thead>
-                     <tr className="border-b border-zinc-200">
-                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Membre</th>
-                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Téléphone</th>
-                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Poste</th>
-                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Tirage</th>
-                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Dernier Paiement</th>
-                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest">Paiement M{currentMonth}</th>
-                        <th className="py-4 text-xs font-black uppercase text-zinc-500 tracking-widest text-right">Actions</th>
-                     </tr>
-                  </thead>
-                  <tbody>
-                     {filteredMembres.map((m) => {
-                        const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
-                        const memberCotisations = cotisations.filter(c => c.membre_id === m.id && c.statut === 'Payé');
-                        const lastPayment = memberCotisations.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
-                        const lastPaymentDate = lastPayment?.created_at ? new Date(lastPayment.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '-';
-                        
-                        const isLate = !hasPaid && today.getDate() > dueDate;
-                        const totalAPayer = (tontine?.montant_mensuel || 0) + (isLate ? amende : 0);
-                        const waMessage = isLate 
-                            ? `Bonjour ${m.prenom_nom}, rappel pour la tontine "${tontine?.nom}". Votre cotisation de ${(tontine?.montant_mensuel || 0).toLocaleString()} F est en retard. Une amende de ${amende} F a été appliquée. Total à payer : ${totalAPayer.toLocaleString()} F. Merci de régulariser.`
-                            : `Bonjour ${m.prenom_nom}, c'est le moment de la cotisation pour la tontine "${tontine?.nom}". Merci de régulariser via ce lien sécurisé !`;
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+               {filteredMembres.map((m) => {
+                  const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+                  const memberCotisations = cotisations.filter(c => c.membre_id === m.id && c.statut === 'Payé');
+                  const lastPayment = memberCotisations.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+                  const lastPaymentDate = lastPayment?.created_at ? new Date(lastPayment.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '-';
+                  
+                  const isLate = !hasPaid && today.getDate() > dueDate;
+                  const totalAPayer = (tontine?.montant_mensuel || 0) + (isLate ? amende : 0);
+                  const waMessage = isLate 
+                      ? `Bonjour ${m.prenom_nom}, rappel pour la tontine "${tontine?.nom}". Votre cotisation de ${(tontine?.montant_mensuel || 0).toLocaleString()} F est en retard. Une amende de ${amende} F a été appliquée. Total à payer : ${totalAPayer.toLocaleString()} F. Merci de régulariser.`
+                      : `Bonjour ${m.prenom_nom}, c'est le moment de la cotisation pour la tontine "${tontine?.nom}". Merci de régulariser via ce lien sécurisé !`;
 
-                        return (
-                        <tr key={m.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                           <td className="py-4 font-bold flex items-center gap-3">
-                              <img src={m.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.prenom_nom)}&background=000&color=${tontine?.theme_color?.replace('#','') || '39FF14'}`} alt="Avatar" className="w-8 h-8 rounded-full border border-zinc-200" />
-                              <div className="flex items-center gap-2">
-                                {m.prenom_nom}
-                                {m.date_naissance && parseInt(m.date_naissance.split('-')[1], 10) === currentRealMonth && (
-                                   <span title="Anniversaire ce mois-ci !"><Cake size={14} className="text-purple-500 animate-pulse" /></span>
-                                )}
-                                <button onClick={() => toggleAdmin(m)} title={m.is_admin ? "Retirer les droits de Gérant" : "Nommer Gérant"} className={`p-1 rounded-full transition-colors ${m.is_admin ? 'bg-yellow-100 text-yellow-600' : 'bg-zinc-100 text-zinc-400 hover:text-black'}`}>
-                                   <ShieldCheck size={14}/>
-                                </button>
+                  return (
+                     <div key={m.id} className="bg-white border border-zinc-200 rounded-3xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md hover:border-black transition-all group">
+                        {/* Header */}
+                        <div className="flex items-start justify-between">
+                           <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <img src={m.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.prenom_nom)}&background=000&color=${tontine?.theme_color?.replace('#','') || '39FF14'}`} alt="Avatar" className="w-12 h-12 rounded-full border-2 border-white shadow-md shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                 <p className="font-bold text-sm flex items-center gap-1.5 truncate">
+                                    <span className="truncate">{m.prenom_nom}</span>
+                                    {m.date_naissance && parseInt(m.date_naissance.split('-')[1], 10) === currentRealMonth && (
+                                       <span title="Anniversaire ce mois-ci !"><Cake size={14} className="text-purple-500 animate-pulse" /></span>
+                                    )}
+                                 </p>
+                                 <p className="text-xs font-mono text-zinc-500 truncate">{m.telephone}</p>
                               </div>
-                           </td>
-                           <td className="py-4 font-mono text-sm">{m.telephone}</td>
-                           <td className="py-4 text-xs font-bold text-zinc-600">
-                              {m.poste ? <span className="flex items-center gap-1"><Briefcase size={12}/> {m.poste}</span> : '-'}
-                           </td>
-                           <td className="py-4">
+                           </div>
+                           <button onClick={() => toggleAdmin(m)} title={m.is_admin ? "Retirer les droits de Gérant" : "Nommer Gérant"} className={`p-1.5 rounded-full transition-colors ${m.is_admin ? 'bg-yellow-100 text-yellow-600' : 'bg-zinc-100 text-zinc-400 group-hover:text-black'}`}>
+                              <ShieldCheck size={14}/>
+                           </button>
+                        </div>
+
+                        {/* Poste */}
+                        {m.poste && (
+                           <p className="text-xs font-bold text-zinc-600 bg-zinc-100 px-2 py-1 rounded-md flex items-center gap-1.5 w-fit"><Briefcase size={12}/> {m.poste}</p>
+                        )}
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                           <div className="bg-zinc-50 p-2 rounded-lg">
+                              <p className="font-bold text-zinc-400 uppercase tracking-wider text-[9px]">Tirage</p>
                               {m.a_gagne ? (
-                                 <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">A Gagné</span>
+                                 <span className="font-black text-yellow-700">A Gagné</span>
                               ) : (
-                                 <span className="bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">En Attente</span>
+                                 <span className="font-black text-zinc-600">En Attente</span>
                               )}
-                           </td>
-                           <td className="py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                              {lastPaymentDate}
-                           </td>
-                           <td className="py-4">
-                              <div className="flex items-center gap-2">
-                                 {hasPaid ? (
-                                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><CheckCircle size={12}/> Payé</span>
-                                 ) : (
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex flex-col items-start">
-                                            <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
-                                            {isLate && (
-                                                <span className="text-[10px] font-bold text-red-500 mt-1 ml-1">+ {amende} F (Retard)</span>
-                                            )}
-                                        </div>
-                                        <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(waMessage)}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Relancer sur WhatsApp">
-                                            <MessageCircle size={14}/>
-                                        </a>
+                           </div>
+                           <div className="bg-zinc-50 p-2 rounded-lg">
+                              <p className="font-bold text-zinc-400 uppercase tracking-wider text-[9px]">Dernier Paiement</p>
+                              <p className="font-black text-zinc-600">{lastPaymentDate}</p>
+                           </div>
+                        </div>
+
+                        {/* Payment Status */}
+                        <div className="bg-zinc-50 p-3 rounded-lg">
+                           <p className="font-bold text-zinc-400 uppercase tracking-wider text-[9px] mb-1">Paiement Mois {currentMonth}</p>
+                           <div className="flex items-center gap-2">
+                              {hasPaid ? (
+                                 <button onClick={() => togglePaymentStatus(m, hasPaid)} disabled={isSaving} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-green-200 transition disabled:opacity-50" title="Marquer comme Non Payé"><CheckCircle size={12}/> Payé</button>
+                              ) : (
+                                 <div className="flex items-center justify-between w-full">
+                                    <div className="flex flex-col items-start">
+                                       <button onClick={() => togglePaymentStatus(m, hasPaid)} disabled={isSaving} className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-red-100 transition disabled:opacity-50" title="Marquer comme Payé"><AlertCircle size={12}/> À Payer</button>
+                                       {isLate && (
+                                             <span className="text-[10px] font-bold text-red-500 mt-1 ml-1">+ {amende} F (Retard)</span>
+                                       )}
                                     </div>
-                                 )}
-                              </div>
-                           </td>
-                           <td className="py-4 text-right">
-                              <div className="flex justify-end gap-2">
-                                 <button onClick={() => openEditModal(m)} className="p-2 bg-zinc-100 text-black rounded-lg hover:bg-zinc-200 transition" title="Modifier"><Edit size={14}/></button>
-                                 <button onClick={() => handleDeleteMember(m.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition" title="Supprimer"><Trash2 size={14}/></button>
-                              </div>
-                           </td>
-                        </tr>
-                     )})}
-                     {filteredMembres.length === 0 && (
-                        <tr>
-                           <td colSpan={7} className="py-8 text-center text-zinc-500 font-bold">
-                              {searchTerm ? `Aucun membre ne correspond à "${searchTerm}"` : "Aucun membre dans cette catégorie."}
-                           </td>
-                        </tr>
-                     )}
-                  </tbody>
-               </table>
+                                    <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(waMessage)}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Relancer sur WhatsApp">
+                                       <MessageCircle size={14}/>
+                                    </a>
+                                 </div>
+                              )}
+                           </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-end gap-2 border-t border-zinc-100 pt-3 mt-auto">
+                           <button onClick={() => openEditModal(m)} className="p-2 bg-zinc-100 text-black rounded-lg hover:bg-zinc-200 transition" title="Modifier"><Edit size={14}/></button>
+                           <button onClick={() => handleDeleteMember(m.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition" title="Supprimer"><Trash2 size={14}/></button>
+                        </div>
+                     </div>
+                  )
+               })}
+               {filteredMembres.length === 0 && (
+                  <div className="col-span-full py-8 text-center text-zinc-500 font-bold">
+                     {searchTerm ? `Aucun membre ne correspond à "${searchTerm}"` : "Aucun membre dans cette catégorie."}
+                  </div>
+               )}
             </div>
          </div>
       </main>
@@ -780,7 +819,7 @@ export default function TontineAdminPage() {
                  </label>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 col-span-full">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 col-span-full">
                   <div>
                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Code PIN Secret</label>
                     <input type="text" maxLength={4} value={memberForm.code_secret} onChange={e => setMemberForm({...memberForm, code_secret: e.target.value.replace(/\D/g, '')})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black tracking-widest" placeholder="0000" />
@@ -790,6 +829,13 @@ export default function TontineAdminPage() {
                     <select value={memberForm.a_gagne ? 'oui' : 'non'} onChange={e => setMemberForm({...memberForm, a_gagne: e.target.value === 'oui'})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition appearance-none cursor-pointer text-black">
                       <option value="non">En Attente</option>
                       <option value="oui">A Déja Gagné</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Paiement M{currentMonth}</label>
+                    <select value={memberForm.has_paid ? 'oui' : 'non'} onChange={e => setMemberForm({...memberForm, has_paid: e.target.value === 'oui'})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition appearance-none cursor-pointer text-black">
+                      <option value="non">À Payer (En attente)</option>
+                      <option value="oui">A Payé</option>
                     </select>
                   </div>
               </div>
