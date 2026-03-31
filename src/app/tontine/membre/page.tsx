@@ -313,32 +313,53 @@ function TontineMembreDashboard() {
     }
   };
 
-  const handleTogglePaiement = async (membreId: string) => {
+  const handleTogglePaiement = async (membreId: string, moisEnCours: number) => {
     if (!tontine) return;
     setTogglingPaymentFor(membreId);
     try {
-        const existingCotisation = cotisations.find(c => c.membre_id === membreId && c.mois_numero === currentMonth && c.statut === 'Payé');
-
-        if (existingCotisation) {
-            // Annuler le paiement
-            const { error } = await supabase.from('cotisations').delete().eq('id', existingCotisation.id);
-            if (error) throw error;
-            setCotisations(prev => prev.filter(c => c.id !== existingCotisation.id));
-        } else {
-            // Enregistrer le paiement
-            const payload = { 
-                tontine_id: tontine.id, 
-                membre_id: membreId, 
-                mois_numero: currentMonth, 
-                montant: tontine.montant_mensuel || 0, 
-                statut: 'Payé' 
-            };
-            const { data, error } = await supabase.from('cotisations').insert([payload]).select();
-            if (error) throw error;
-            if (data) setCotisations(prev => [...prev, data[0]]);
+        // 1. On cherche si le paiement existe déjà
+        const { data: existingCotisation, error: searchErr } = await supabase
+          .from('cotisations')
+          .select('id')
+          .eq('membre_id', membreId)
+          .eq('mois_numero', moisEnCours)
+          .eq('statut', 'Payé')
+          .single();
+    
+        if (searchErr && searchErr.code !== 'PGRST116') { // PGRST116 = Normal si le paiement n'existe pas
+          throw searchErr;
         }
-    } catch (err: any) {
-        alert("Erreur lors de la mise à jour du paiement : " + err.message);
+    
+        if (existingCotisation) {
+          // 2. S'il existe, on L'ANNULE
+          const { error: deleteErr } = await supabase
+            .from('cotisations')
+            .delete()
+            .eq('id', existingCotisation.id);
+            
+          if (deleteErr) throw deleteErr;
+        } else {
+          // 3. S'il n'existe pas, on L'AJOUTE
+          const { error: insertErr } = await supabase
+            .from('cotisations')
+            .insert([{
+              tontine_id: tontine.id,
+              membre_id: membreId,
+              mois_numero: moisEnCours,
+              montant: tontine.montant_mensuel || 0,
+              statut: 'Payé'
+            }]);
+            
+          if (insertErr) throw insertErr;
+        }
+    
+        // 4. On recharge LA VÉRITÉ depuis Supabase pour rafraîchir l'UI
+        const { data: freshCots } = await supabase.from('cotisations').select('*').eq('tontine_id', tontine.id);
+        setCotisations(freshCots || []);
+
+    } catch (error: any) {
+        console.error("❌ Erreur de paiement :", error.message);
+        alert("Impossible d'enregistrer le paiement : " + error.message);
     } finally {
         setTogglingPaymentFor(null);
     }
@@ -726,12 +747,27 @@ function TontineMembreDashboard() {
                      ))}
                   </div>
                ) : activeTab === 'gerance' ? (
-                  <div className="bg-white border border-zinc-200 p-6 md:p-8 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
+                  (() => {
+                    const paidCount = members.filter(m => cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé')).length;
+                    const toPayCount = members.length - paidCount;
+                    return (
+                    <div className="bg-white border border-zinc-200 p-6 md:p-8 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
                       <div className="flex items-center gap-3 mb-6">
                           <div className="p-3 bg-black rounded-2xl mt-1 shadow-md" style={{ color: tontine.theme_color }}><Wallet size={24}/></div>
                           <div>
                               <p className="text-base font-black text-black">Pointage des Cotisations (Mois {currentMonth})</p>
                               <p className="text-sm text-zinc-600 font-medium mt-1 leading-relaxed">Cochez les membres qui ont payé leur cotisation pour ce mois.</p>
+                          </div>
+                      </div>
+                      <div className="flex gap-4 mb-6 bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
+                          <div className="flex-1 text-center">
+                              <p className="text-2xl font-black text-green-600">{paidCount}</p>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">À Jour</p>
+                          </div>
+                          <div className="w-px bg-zinc-200"></div>
+                          <div className="flex-1 text-center">
+                              <p className="text-2xl font-black text-red-600">{toPayCount}</p>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">À Payer</p>
                           </div>
                       </div>
                       <div className="space-y-3">
@@ -758,7 +794,7 @@ function TontineMembreDashboard() {
                                               </a>
                                           )}
                                           <button 
-                                              onClick={() => handleTogglePaiement(m.id)} 
+                                              onClick={() => handleTogglePaiement(m.id, currentMonth)} 
                                               disabled={isToggling}
                                               className={`w-28 h-11 flex items-center justify-center rounded-xl text-xs font-black uppercase transition-all ${
                                                   hasPaid ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'
@@ -771,7 +807,8 @@ function TontineMembreDashboard() {
                               );
                           })}
                       </div>
-                  </div>
+                    </div>
+                  )})()
                ) : (
                   <div className="bg-white border border-zinc-200 p-8 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
                      <p className="text-sm text-zinc-500 font-bold mb-6">Ces membres (y compris vous) participeront aux prochains tirages au sort mensuels.</p>
