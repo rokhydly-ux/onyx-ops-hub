@@ -6,8 +6,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
-  ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal,
-  Camera, Save, Loader2, Phone, KeyRound
+  ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal, MessageCircle,
+  Camera, Save, Loader2, Phone, KeyRound 
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 
@@ -40,7 +40,7 @@ function TontineMembreDashboard() {
   const [cotisations, setCotisations] = useState<any[]>([]);
   
   // --- ETATS UI ---
-  const [activeTab, setActiveTab] = useState<'historique' | 'attente'>('historique');
+  const [activeTab, setActiveTab] = useState<'historique' | 'attente' | 'gerance'>('historique');
   const [showConfetti, setShowConfetti] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinName, setSpinName] = useState("");
@@ -53,6 +53,9 @@ function TontineMembreDashboard() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showPhotoInput, setShowPhotoInput] = useState(false);
   
+  // --- NOUVEAU : ETAT POUR LA GERANCE ---
+  const [togglingPaymentFor, setTogglingPaymentFor] = useState<string | null>(null);
+
   // --- CHARGEMENT INITIAL & GESTION DE SESSION ---
   useEffect(() => {
     const checkSessionAndFetchData = async () => {
@@ -101,15 +104,22 @@ function TontineMembreDashboard() {
 
   // --- FONCTION POUR CHARGER LES DONNÉES DU DASHBOARD ---
   const fetchDashboardData = async (member: any, tontineData: any) => {
-    setCurrentUser(member);
     setEditPhotoUrl(member.photo_url || '');
     setEditDateNaissance(member.date_naissance || '');
 
-    // CORRECTION ICI
-    const { data: allMembersData } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineData.id);
+    // On recharge TOUTES les données pour être sûr d'avoir la version la plus fraîche,
+    // y compris le statut `is_admin` de l'utilisateur qui se connecte.
+    const { data: allMembersData, error: membersError } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineData.id);
     const { data: allCotisationsData } = await supabase.from('cotisations').select('*');
     
-    setMembers(allMembersData || []);
+    if (membersError) {
+      console.error("Erreur de chargement des membres:", membersError);
+      setMembers([]);
+    } else {
+      const freshCurrentUser = allMembersData?.find(m => m.id === member.id);
+      setCurrentUser(freshCurrentUser || member); // On met à jour le currentUser avec les données fraîches
+      setMembers(allMembersData || []);
+    }
     setCotisations(allCotisationsData || []);
   };
 
@@ -300,6 +310,37 @@ function TontineMembreDashboard() {
         alert(e.message || "Erreur lors de la mise à jour.");
     } finally {
         setIsSavingProfile(false);
+    }
+  };
+
+  const handleTogglePaiement = async (membreId: string) => {
+    if (!tontine) return;
+    setTogglingPaymentFor(membreId);
+    try {
+        const existingCotisation = cotisations.find(c => c.membre_id === membreId && c.mois_numero === currentMonth && c.statut === 'Payé');
+
+        if (existingCotisation) {
+            // Annuler le paiement
+            const { error } = await supabase.from('cotisations').delete().eq('id', existingCotisation.id);
+            if (error) throw error;
+            setCotisations(prev => prev.filter(c => c.id !== existingCotisation.id));
+        } else {
+            // Enregistrer le paiement
+            const payload = { 
+                tontine_id: tontine.id, 
+                membre_id: membreId, 
+                mois_numero: currentMonth, 
+                montant: tontine.montant_mensuel || 0, 
+                statut: 'Payé' 
+            };
+            const { data, error } = await supabase.from('cotisations').insert([payload]).select();
+            if (error) throw error;
+            if (data) setCotisations(prev => [...prev, data[0]]);
+        }
+    } catch (err: any) {
+        alert("Erreur lors de la mise à jour du paiement : " + err.message);
+    } finally {
+        setTogglingPaymentFor(null);
     }
   };
 
@@ -627,7 +668,7 @@ function TontineMembreDashboard() {
 
             {/* --- 4. TRANSPARENCE (TIRAGES & ATTENTE) --- */}
             <section>
-               <div className="flex gap-2 p-2 bg-zinc-100 rounded-[1.5rem] mb-6">
+               <div className="flex gap-2 p-2 bg-zinc-100 rounded-[1.5rem] mb-6 max-w-lg mx-auto">
                   <button 
                     onClick={() => setActiveTab('historique')} 
                     className={`flex-1 py-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'historique' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'}`}
@@ -640,6 +681,11 @@ function TontineMembreDashboard() {
                   >
                     En Attente ({waitingList.length})
                   </button>
+                  {currentUser.is_admin && (
+                    <button onClick={() => setActiveTab('gerance')} className={`flex-1 py-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'gerance' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'}`}>
+                      Gérance 👑
+                    </button>
+                  )}
                </div>
 
                {activeTab === 'historique' ? (
@@ -678,6 +724,53 @@ function TontineMembreDashboard() {
                            </div>
                         </div>
                      ))}
+                  </div>
+               ) : activeTab === 'gerance' ? (
+                  <div className="bg-white border border-zinc-200 p-6 md:p-8 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
+                      <div className="flex items-center gap-3 mb-6">
+                          <div className="p-3 bg-black rounded-2xl mt-1 shadow-md" style={{ color: tontine.theme_color }}><Wallet size={24}/></div>
+                          <div>
+                              <p className="text-base font-black text-black">Pointage des Cotisations (Mois {currentMonth})</p>
+                              <p className="text-sm text-zinc-600 font-medium mt-1 leading-relaxed">Cochez les membres qui ont payé leur cotisation pour ce mois.</p>
+                          </div>
+                      </div>
+                      <div className="space-y-3">
+                          {members.map((m: any) => {
+                              const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+                              const isToggling = togglingPaymentFor === m.id;
+                              const relanceMessage = `Bonjour ${m.prenom_nom}, petit rappel pour la cotisation de la tontine "${tontine?.nom}" de ce mois. Merci de régulariser au plus vite !`;
+
+                              return (
+                                  <div key={m.id} className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors ${hasPaid ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-100'}`}>
+                                      <div className="flex items-center gap-4">
+                                          <div className={`w-10 h-10 rounded-full overflow-hidden shrink-0 ${hasPaid ? 'grayscale-0' : 'grayscale'}`}>
+                                              <img src={m.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.prenom_nom)}&background=random`} alt={m.prenom_nom} className="w-full h-full object-cover" />
+                                          </div>
+                                          <div>
+                                              <p className="font-black text-sm uppercase text-black">{m.prenom_nom}</p>
+                                              <p className="text-xs font-mono text-zinc-500">{m.telephone}</p>
+                                          </div>
+                                      </div>
+                                      <div className="flex items-center gap-3 self-end sm:self-center">
+                                          {!hasPaid && (
+                                              <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(relanceMessage)}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition" title="Relancer sur WhatsApp">
+                                                  <MessageCircle size={16} />
+                                              </a>
+                                          )}
+                                          <button 
+                                              onClick={() => handleTogglePaiement(m.id)} 
+                                              disabled={isToggling}
+                                              className={`w-28 h-11 flex items-center justify-center rounded-xl text-xs font-black uppercase transition-all ${
+                                                  hasPaid ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'
+                                              } disabled:opacity-50`}
+                                          >
+                                              {isToggling ? <Loader2 size={16} className="animate-spin" /> : hasPaid ? <><CheckCircle size={14} className="mr-1.5"/> Payé</> : 'Pointer'}
+                                          </button>
+                                      </div>
+                                  </div>
+                              );
+                          })}
+                      </div>
                   </div>
                ) : (
                   <div className="bg-white border border-zinc-200 p-8 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
