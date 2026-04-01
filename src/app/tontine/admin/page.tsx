@@ -6,7 +6,7 @@ import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit,
 import InteractiveParticles from '@/components/InteractiveParticles';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const spaceGrotesk = { className: "font-sans" };
@@ -262,8 +262,9 @@ export default function TontineAdminPage() {
 
   const handleCopyLink = () => {
     if (!tontine) return;
-    const url = window.location.origin + '/tontine/membre?id=' + tontine.id;
-    navigator.clipboard.writeText(url);
+    const customSlug = tontine?.slug || tontine?.nom.toLowerCase().replace(/\s+/g, '-');
+    const link = `${window.location.origin}/tontine/${customSlug}`;
+    navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
@@ -272,53 +273,21 @@ export default function TontineAdminPage() {
     ref.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const togglePaymentStatus = async (membreId: string, moisEnCours: number) => {
-    if (!tontine) return;
-    setIsSaving(true);
+  const togglePaymentStatus = async (m: any, hasPaid: boolean) => {
     try {
-      // 1. On cherche si le paiement existe déjà
-      const { data: existingCotisation, error: searchErr } = await supabase
-        .from('cotisations')
-        .select('id')
-        .eq('membre_id', membreId)
-        .eq('mois_numero', moisEnCours)
-        .eq('statut', 'Payé')
-        .single();
-  
-      if (searchErr && searchErr.code !== 'PGRST116') { // PGRST116 = Normal si le paiement n'existe pas
-        throw searchErr;
-      }
-  
-      if (existingCotisation) {
-        // 2. S'il existe, on L'ANNULE
-        const { error: deleteErr } = await supabase
-          .from('cotisations')
-          .delete()
-          .eq('id', existingCotisation.id);
-          
-        if (deleteErr) throw deleteErr;
+      setIsSaving(true);
+      if (hasPaid) {
+        const { error } = await supabase.from('cotisations').delete().match({ membre_id: m.id, mois_numero: currentMonth, statut: 'Payé' });
+        if (error) throw error;
+        setCotisations(prev => prev.filter(c => !(c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé')));
       } else {
-        // 3. S'il n'existe pas, on L'AJOUTE
-        const { error: insertErr } = await supabase
-          .from('cotisations')
-          .insert([{
-            tontine_id: tontine.id,
-            membre_id: membreId,
-            mois_numero: moisEnCours,
-            montant: tontine.montant_mensuel || 0,
-            statut: 'Payé'
-          }]);
-          
-        if (insertErr) throw insertErr;
+        const payload = { tontine_id: tontine.id, membre_id: m.id, mois_numero: currentMonth, montant: tontine?.montant_mensuel || 0, statut: 'Payé' };
+        const { data, error } = await supabase.from('cotisations').insert([payload]).select();
+        if (error) throw error;
+        if (data) setCotisations(prev => [...prev, data[0]]);
       }
-  
-      // 4. On recharge LA VÉRITÉ depuis Supabase pour rafraîchir l'UI
-      const { data: freshCots } = await supabase.from('cotisations').select('*');
-      setCotisations(freshCots || []);
-
-    } catch (error: any) {
-      console.error("❌ Erreur de paiement :", error.message);
-      alert("Impossible d'enregistrer le paiement : " + error.message);
+    } catch (err: any) {
+      alert("Erreur lors de la modification du paiement: " + err.message);
     } finally {
       setIsSaving(false);
     }
@@ -470,33 +439,61 @@ export default function TontineAdminPage() {
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     const doc = new jsPDF();
-    doc.text(`Liste des membres - ${tontine?.nom || 'Tontine'}`, 14, 16);
 
-    const tableColumn = ["Nom & Prénom", "Téléphone", "Poste", "Statut Tirage", "Paiement Mois Actuel"];
-    const tableRows: any[] = [];
+    // Titre du document
+    doc.setFontSize(20);
+    doc.text(`Liste des Membres - ${tontine?.nom || 'Tontine'}`, 14, 22);
 
-    filteredMembres.forEach(m => {
+    doc.setFontSize(11);
+    doc.text(`Mois en cours : ${currentMonth} | Caisse : ${actuelCaisse} / ${caisseMensuelle} F CFA`, 14, 30);
+
+    // Préparation des données pour le tableau
+    const tableColumn = ["Nom & Prénom", "Téléphone", "Statut Tirage", "Paiement (Mois " + currentMonth + ")"];
+    const tableRows = membres.map(m => {
       const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
-      const isLate = !hasPaid && today.getDate() > dueDate;
-
-      const memberData = [
+      return [
         m.prenom_nom,
         m.telephone,
-        m.poste || '-',
-        m.a_gagne ? 'A gagné' : 'En attente',
-        hasPaid ? 'Payé' : `À Payer ${isLate ? `(+${amende}F)` : ''}`
+        m.a_gagne ? "A gagné" : "En attente",
+        hasPaid ? "Payé" : "À Payer"
       ];
-      tableRows.push(memberData);
     });
 
-    (doc as any).autoTable({
+    // Génération du tableau
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 24,
+      startY: 40,
+      theme: 'grid',
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [245, 245, 245] }
     });
-    doc.save(`membres_${tontine?.nom?.replace(/\s+/g, '_') || 'tontine'}.pdf`);
+
+    const fileName = `Tontine_${tontine?.nom?.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`;
+
+    // Tentative de partage direct (très efficace sur mobile pour WhatsApp)
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        const pdfBlob = doc.output('blob');
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `Bilan Tontine - Mois ${currentMonth}`,
+            text: `📊 *Bilan du mois ${currentMonth}* pour la tontine "${tontine?.nom}".\nVoici le fichier PDF avec l'état des cotisations :`
+          });
+          return; // Si le partage réussit, on arrête la fonction ici
+        }
+      } catch (err) {
+        console.log("Partage direct ignoré ou annulé", err);
+      }
+    }
+
+    // Téléchargement automatique classique (sur PC ou si le partage échoue)
+    doc.save(fileName);
   };
 
   if (isLoading) {
@@ -865,11 +862,11 @@ export default function TontineAdminPage() {
                            <p className="font-bold text-zinc-400 uppercase tracking-wider text-[9px] mb-1">Paiement Mois {currentMonth}</p>
                            <div className="flex items-center gap-2">
                               {hasPaid ? (
-                                 <button onClick={() => togglePaymentStatus(m.id, currentMonth)} disabled={isSaving} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-green-200 transition disabled:opacity-50" title="Marquer comme Non Payé"><CheckCircle size={12}/> Payé</button>
+                                 <button onClick={() => togglePaymentStatus(m, hasPaid)} disabled={isSaving} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-green-200 transition disabled:opacity-50" title="Marquer comme Non Payé"><CheckCircle size={12}/> Payé</button>
                               ) : (
                                  <div className="flex items-center justify-between w-full">
                                     <div className="flex flex-col items-start">
-                                       <button onClick={() => togglePaymentStatus(m.id, currentMonth)} disabled={isSaving} className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-red-100 transition disabled:opacity-50" title="Marquer comme Payé"><AlertCircle size={12}/> À Payer</button>
+                                       <button onClick={() => togglePaymentStatus(m, hasPaid)} disabled={isSaving} className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-red-100 transition disabled:opacity-50" title="Marquer comme Payé"><AlertCircle size={12}/> À Payer</button>
                                        {isLate && (
                                              <span className="text-[10px] font-bold text-red-500 mt-1 ml-1">+ {amende} F (Retard)</span>
                                        )}

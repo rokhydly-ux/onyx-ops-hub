@@ -315,47 +315,34 @@ function TontineMembreDashboard() {
 
   const handleTogglePaiement = async (membreId: string, moisEnCours: number) => {
     if (!tontine) return;
-    setTogglingPaymentFor(membreId);
     try {
-        // 1. On cherche si le paiement existe déjà
-        const { data: existingCotisation, error: searchErr } = await supabase
-          .from('cotisations')
-          .select('id')
-          .eq('membre_id', membreId)
-          .eq('mois_numero', moisEnCours)
-          .eq('statut', 'Payé')
-          .single();
-    
-        if (searchErr && searchErr.code !== 'PGRST116') { // PGRST116 = Normal si le paiement n'existe pas
-          throw searchErr;
+      const { data: existingCotisation, error: searchErr } = await supabase.from('cotisations').select('id').eq('membre_id', membreId).eq('mois_numero', moisEnCours).eq('statut', 'Payé').single();
+      if (searchErr && searchErr.code !== 'PGRST116') throw searchErr;
+
+      if (existingCotisation) {
+        if (!window.confirm("Êtes-vous sûr de vouloir annuler ce paiement ? Cette action est irréversible.")) {
+          return;
         }
-    
-        if (existingCotisation) {
-          // 2. S'il existe, on L'ANNULE
-          const { error: deleteErr } = await supabase
-            .from('cotisations')
-            .delete()
-            .eq('id', existingCotisation.id);
-            
-          if (deleteErr) throw deleteErr;
-        } else {
-          // 3. S'il n'existe pas, on L'AJOUTE
-          const { error: insertErr } = await supabase
-            .from('cotisations')
-            .insert([{
-              tontine_id: tontine.id,
-              membre_id: membreId,
-              mois_numero: moisEnCours,
-              montant: tontine.montant_mensuel || 0,
-              statut: 'Payé'
-            }]);
-            
-          if (insertErr) throw insertErr;
-        }
-    
-        // 4. On recharge LA VÉRITÉ depuis Supabase pour rafraîchir l'UI
-        const { data: freshCots } = await supabase.from('cotisations').select('*').eq('tontine_id', tontine.id);
-        setCotisations(freshCots || []);
+      }
+
+      setTogglingPaymentFor(membreId);
+
+      if (existingCotisation) {
+        const { error: deleteErr } = await supabase.from('cotisations').delete().eq('id', existingCotisation.id);
+        if (deleteErr) throw deleteErr;
+      } else {
+        const { error: insertErr } = await supabase.from('cotisations').insert([{
+          tontine_id: tontine.id,
+          membre_id: membreId,
+          mois_numero: moisEnCours,
+          montant: tontine.montant_mensuel || 0,
+          statut: 'Payé'
+        }]);
+        if (insertErr) throw insertErr;
+      }
+
+      const { data: freshCots } = await supabase.from('cotisations').select('*').eq('tontine_id', tontine.id);
+      setCotisations(freshCots || []);
 
     } catch (error: any) {
         console.error("❌ Erreur de paiement :", error.message);
