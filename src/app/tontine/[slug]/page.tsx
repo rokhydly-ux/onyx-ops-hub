@@ -7,10 +7,11 @@ import {
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
   ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal, MessageCircle,
-  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload, Download
+  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload, Download, Send, Archive, FileText
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -272,9 +273,26 @@ function SlugPageContent({ slug }: { slug: string }) {
      } catch(e:any) { alert("Erreur d'enregistrement : " + e.message); } finally { setTogglingPaymentFor(null); }
   };
 
-  const createReceiptPDF = (member: any, cotisation: any) => {
+  const createReceiptPDF = async (member: any, cotisation: any) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a5' });
     
+    // --- AJOUT DU FILIGRANE ---
+    if (tontine?.logo_url) {
+       try {
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.src = tontine.logo_url;
+          await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+          
+          const GState = (doc as any).GState;
+          if (GState) doc.setGState(new GState({ opacity: 0.1 }));
+          doc.addImage(img, 'PNG', 65, 34, 80, 80);
+          if (GState) doc.setGState(new GState({ opacity: 1.0 }));
+       } catch (e) {
+          console.warn("Impossible de charger le filigrane", e);
+       }
+    }
+
     doc.setFontSize(22);
     doc.setTextColor(0, 0, 0);
     doc.text("REÇU DE PAIEMENT", 20, 30);
@@ -320,11 +338,69 @@ function SlugPageContent({ slug }: { slug: string }) {
     return doc;
   };
 
-  const handleDownloadReceipt = (member: any) => {
+  const handleDownloadReceipt = async (member: any) => {
     const cot = cotisations.find(c => c.membre_id === member.id && c.mois_numero === currentMonth && c.statut === 'Payé');
     if (!cot) return;
-    const doc = createReceiptPDF(member, cot);
+    const doc = await createReceiptPDF(member, cot);
     doc.save(`Recu_${member.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`);
+  };
+
+  const handleDownloadHistory = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text(`Historique des Transactions`, 14, 22);
+    doc.setFontSize(14);
+    doc.text(`Membre : ${currentUser.prenom_nom}`, 14, 30);
+    doc.setFontSize(11);
+    doc.text(`Tontine : ${tontine.nom}`, 14, 38);
+
+    const tableColumn = ["Mois", "Montant", "Statut", "Date de paiement"];
+    const tableRows: any[] = [];
+
+    for (let i = 1; i <= currentMonth; i++) {
+      const cot = cotisations.find(c => c.membre_id === currentUser.id && c.mois_numero === i && c.statut === 'Payé');
+      tableRows.push([
+        `Mois ${i}`,
+        `${(currentUser.cotisation_individuelle || tontine.montant_mensuel || 0).toLocaleString()} F CFA`,
+        cot ? "Payé" : "À Payer",
+        cot && cot.created_at ? new Date(cot.created_at).toLocaleDateString('fr-FR') : "-"
+      ]);
+    }
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 45,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
+    });
+
+    doc.save(`Historique_${currentUser.prenom_nom.replace(/\s+/g, '_')}.pdf`);
+  };
+
+  const handleShareReceiptWhatsApp = async (member: any, cot: any) => {
+     if (!cot) return;
+     try {
+        const doc = await createReceiptPDF(member, cot);
+        const fileName = `Recu_${member.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`;
+        const pdfBlob = doc.output('blob');
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        
+        const message = `Bonjour ${member.prenom_nom}, voici votre reçu de paiement pour la tontine "${tontine?.nom}" (Mois ${currentMonth}).`;
+
+        if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: 'Reçu de paiement',
+                text: message
+            });
+        } else {
+            doc.save(fileName);
+            window.open(`https://wa.me/221${member.telephone}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+     } catch (e) {
+        console.log("Erreur lors du partage :", e);
+     }
   };
 
   const handleReveal = () => {
@@ -620,6 +696,9 @@ function SlugPageContent({ slug }: { slug: string }) {
                            <button onClick={() => handleDownloadReceipt(currentUser)} className="text-[10px] font-bold text-zinc-500 hover:text-black flex items-center gap-1 transition-colors">
                               <Download size={12}/> Télécharger mon reçu
                            </button>
+                           <button onClick={() => handleShareReceiptWhatsApp(currentUser, cotisationsCeMois.find(c => c.membre_id === currentUser.id))} className="text-[10px] font-bold text-green-600 hover:text-green-700 flex items-center gap-1 transition-colors mt-1">
+                              <Send size={12}/> Partager sur WhatsApp
+                           </button>
                         </div>
                      ) : (
                         <span className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
@@ -640,6 +719,34 @@ function SlugPageContent({ slug }: { slug: string }) {
                   </div>
                </div>
             </section>
+
+            <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6 animate-in slide-in-from-bottom-4">
+               <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-black uppercase tracking-tighter">Historique</h2>
+               </div>
+               <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 mb-4 custom-scrollbar">
+                  {Array.from({ length: currentMonth }, (_, i) => {
+                     const mois = currentMonth - i; // Ordre décroissant
+                     const cot = cotisations.find(c => c.membre_id === currentUser.id && c.mois_numero === mois && c.statut === 'Payé');
+                     return (
+                        <div key={mois} className="flex justify-between items-center p-3 bg-zinc-50 rounded-xl border border-zinc-100">
+                           <div>
+                              <p className="font-bold text-sm">Mois {mois}</p>
+                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{cot && cot.created_at ? new Date(cot.created_at).toLocaleDateString('fr-FR') : 'En attente'}</p>
+                           </div>
+                           {cot ? (
+                              <span className="text-xs font-black text-green-600 bg-green-100 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle size={12}/> Payé</span>
+                           ) : (
+                              <span className="text-xs font-black text-red-600 bg-red-50 px-2 py-1 rounded-md flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
+                           )}
+                        </div>
+                     )
+                  })}
+               </div>
+               <button onClick={handleDownloadHistory} className="w-full py-3 rounded-xl font-black uppercase text-xs border-2 border-black text-black hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2">
+                  <FileText size={16}/> Télécharger PDF détaillé
+               </button>
+            </div>
           </div>
         
           <div className="md:col-span-8 space-y-6">
@@ -824,9 +931,14 @@ function SlugPageContent({ slug }: { slug: string }) {
                                              </a>
                                           )}
                                           {hasPaid && (
-                                             <button onClick={() => handleDownloadReceipt(m)} className="p-2 bg-zinc-100 text-zinc-600 rounded-xl hover:bg-blue-100 hover:text-blue-600 transition" title="Générer le reçu PDF">
-                                                <Download size={16} />
-                                             </button>
+                                             <>
+                                               <button onClick={() => handleDownloadReceipt(m)} className="p-2 bg-zinc-100 text-zinc-600 rounded-xl hover:bg-blue-100 hover:text-blue-600 transition" title="Télécharger le reçu PDF">
+                                                  <Download size={16} />
+                                               </button>
+                                               <button onClick={() => handleShareReceiptWhatsApp(m, currentCotisation)} className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition" title="Partager sur WhatsApp">
+                                                  <Send size={16} />
+                                               </button>
+                                             </>
                                           )}
                                           {!hasPaid && (
                                               <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(relanceMessage)}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition" title="Relancer sur WhatsApp">

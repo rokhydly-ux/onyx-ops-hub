@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList, Eye, Download, Archive } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList, Eye, Download, Archive, Send, History } from 'lucide-react';
 import InteractiveParticles from '@/components/InteractiveParticles';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -642,9 +642,26 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
   };
 
   // --- GÉNÉRATION DE REÇUS (PDF & ZIP) ---
-  const createReceiptPDF = (member: any, cotisation: any) => {
+  const createReceiptPDF = async (member: any, cotisation: any) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a5' });
     
+    // --- AJOUT DU FILIGRANE ---
+    if (tontine?.logo_url) {
+       try {
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.src = tontine.logo_url;
+          await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+          
+          const GState = (doc as any).GState;
+          if (GState) doc.setGState(new GState({ opacity: 0.1 }));
+          doc.addImage(img, 'PNG', 65, 34, 80, 80); // Centré en fond
+          if (GState) doc.setGState(new GState({ opacity: 1.0 }));
+       } catch (e) {
+          console.warn("Impossible de charger le filigrane", e);
+       }
+    }
+
     doc.setFontSize(22);
     doc.setTextColor(0, 0, 0);
     doc.text("REÇU DE PAIEMENT", 20, 30);
@@ -683,18 +700,86 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
     doc.setDrawColor(200, 200, 200);
     doc.line(20, 125, 190, 125);
     
+    const nextMonthNumber = currentMonth < (tontine?.duree_mois || 10) ? currentMonth + 1 : null;
+    if (nextMonthNumber) {
+       doc.setFontSize(12);
+       doc.setFont("helvetica", "bold");
+       doc.setTextColor(220, 38, 38);
+       doc.text(`⚠️ PROCHAINE COTISATION : Avant le ${tontine?.date_limite_paiement || 5} du Mois ${nextMonthNumber}`, 20, 135);
+    }
+    
     doc.setFontSize(10);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(150, 150, 150);
-    doc.text("Généré de manière sécurisée par Onyx Tontine", 20, 140);
+    doc.text("Généré de manière sécurisée par Onyx Tontine", 20, nextMonthNumber ? 145 : 140);
     return doc;
   };
 
-  const handleDownloadReceipt = (member: any) => {
+  const handleDownloadReceipt = async (member: any) => {
     const cot = cotisations.find(c => c.membre_id === member.id && c.mois_numero === currentMonth && c.statut === 'Payé');
     if (!cot) return;
-    const doc = createReceiptPDF(member, cot);
+    const doc = await createReceiptPDF(member, cot);
     doc.save(`Recu_${member.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`);
+  };
+
+  const handleDownloadMemberHistory = (member: any) => {
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text(`Historique des Transactions`, 14, 22);
+    doc.setFontSize(14);
+    doc.text(`Membre : ${member.prenom_nom}`, 14, 30);
+    doc.setFontSize(11);
+    doc.text(`Tontine : ${tontine?.nom}`, 14, 38);
+
+    const tableColumn = ["Mois", "Montant", "Statut", "Date de paiement"];
+    const tableRows: any[] = [];
+
+    for (let i = 1; i <= currentMonth; i++) {
+      const cot = cotisations.find(c => c.membre_id === member.id && c.mois_numero === i && c.statut === 'Payé');
+      tableRows.push([
+        `Mois ${i}`,
+        `${tontine?.montant_mensuel || 0} F CFA`,
+        cot ? "Payé" : "À Payer",
+        cot && cot.created_at ? new Date(cot.created_at).toLocaleDateString('fr-FR') : "-"
+      ]);
+    }
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 45,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0] }
+    });
+
+    doc.save(`Historique_${member.prenom_nom.replace(/\s+/g, '_')}.pdf`);
+  };
+
+  const handleShareReceiptWhatsApp = async (member: any, cot: any) => {
+     if (!cot) return;
+     try {
+        const doc = await createReceiptPDF(member, cot);
+        const fileName = `Recu_${member.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`;
+        const pdfBlob = doc.output('blob');
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        
+        const message = `Bonjour ${member.prenom_nom}, voici votre reçu de paiement pour la tontine "${tontine?.nom}" (Mois ${currentMonth}).`;
+
+        // Sur Mobile : Partage natif direct vers WhatsApp avec la pièce jointe
+        if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: 'Reçu de paiement',
+                text: message
+            });
+        } else {
+            // Sur PC : Téléchargement du fichier + Ouverture de Web WhatsApp
+            doc.save(fileName);
+            window.open(`https://wa.me/221${member.telephone}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+     } catch (e) {
+        console.log("Erreur lors du partage :", e);
+     }
   };
 
   const handleDownloadAllReceiptsZIP = async () => {
@@ -706,13 +791,13 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
         const JSZip = JSZipModule.default || JSZipModule;
         const zip = new JSZip();
         
-        paidMembers.forEach(m => {
-            const cot = cotisations.find(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
-            if (cot) {
-                const doc = createReceiptPDF(m, cot);
-                zip.file(`Recu_${m.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`, doc.output('blob'));
-            }
-        });
+        for (const m of paidMembers) {
+             const cot = cotisations.find(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+             if (cot) {
+                 const doc = await createReceiptPDF(m, cot);
+                 zip.file(`Recu_${m.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`, doc.output('blob'));
+             }
+        }
         
         const content = await zip.generateAsync({ type: 'blob' });
         const url = window.URL.createObjectURL(content);
@@ -1201,6 +1286,9 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                                    <button onClick={() => handleDownloadReceipt(m)} className="p-1.5 bg-zinc-100 text-zinc-600 rounded-full hover:bg-blue-100 hover:text-blue-600 transition" title="Télécharger le reçu PDF">
                                      <Download size={12} />
                                    </button>
+                                   <button onClick={() => handleShareReceiptWhatsApp(m, currentCotisation)} className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Envoyer par WhatsApp">
+                                     <Send size={12} />
+                                   </button>
                                  </div>
                               ) : (
                                  <div className="flex items-center justify-between w-full">
@@ -1220,6 +1308,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
 
                         {/* Actions */}
                         <div className="flex justify-end gap-2 border-t border-zinc-100 pt-3 mt-auto">
+                           <button onClick={() => handleDownloadMemberHistory(m)} className="p-2 bg-zinc-100 text-zinc-600 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition" title="Télécharger l'historique"><History size={14}/></button>
                            <button onClick={() => openEditModal(m)} className="p-2 bg-zinc-100 text-black rounded-lg hover:bg-zinc-200 transition" title="Modifier"><Edit size={14}/></button>
                            <button onClick={() => handleDeleteMember(m.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition" title="Supprimer"><Trash2 size={14}/></button>
                         </div>
