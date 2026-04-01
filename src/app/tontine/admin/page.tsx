@@ -749,7 +749,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
       body: tableRows,
       startY: 45,
       theme: 'grid',
-      headStyles: { fillColor: [0, 0, 0] }
+      headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
     });
 
     doc.save(`Historique_${member.prenom_nom.replace(/\s+/g, '_')}.pdf`);
@@ -1283,7 +1283,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                                        <Eye size={12} />
                                      </a>
                                    )}
-                                   <button onClick={() => handleDownloadReceipt(m)} className="p-1.5 bg-zinc-100 text-zinc-600 rounded-full hover:bg-blue-100 hover:text-blue-600 transition" title="Télécharger le reçu PDF">
+                                               <button onClick={() => handleDownloadReceipt(m)} className="p-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition" title="Télécharger le reçu PDF">
                                      <Download size={12} />
                                    </button>
                                    <button onClick={() => handleShareReceiptWhatsApp(m, currentCotisation)} className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Envoyer par WhatsApp">

@@ -931,14 +931,14 @@ function SlugPageContent({ slug }: { slug: string }) {
                                              </a>
                                           )}
                                           {hasPaid && (
-                                             <>
-                                               <button onClick={() => handleDownloadReceipt(m)} className="p-2 bg-zinc-100 text-zinc-600 rounded-xl hover:bg-blue-100 hover:text-blue-600 transition" title="Télécharger le reçu PDF">
+                                             <div className="flex items-center gap-2">
+                                               <button onClick={() => handleDownloadReceipt(m)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition" title="Télécharger le reçu PDF">
                                                   <Download size={16} />
                                                </button>
                                                <button onClick={() => handleShareReceiptWhatsApp(m, currentCotisation)} className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition" title="Partager sur WhatsApp">
                                                   <Send size={16} />
                                                </button>
-                                             </>
+                                             </div>
                                           )}
                                           {!hasPaid && (
                                               <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(relanceMessage)}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition" title="Relancer sur WhatsApp">
