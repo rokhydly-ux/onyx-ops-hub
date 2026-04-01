@@ -270,12 +270,18 @@ export default function TontineAdminPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-       const { data, error } = await supabase.from('tontines').update(settingsForm).eq('id', tontine.id).select().single();
+       const payload: any = { ...settingsForm };
+       // Empêcher le crash Postgres si la date est vide
+       if (!payload.date_debut || payload.date_debut.trim() === '') payload.date_debut = null;
+       if (!payload.slug || payload.slug.trim() === '') payload.slug = null;
+
+       const { data, error } = await supabase.from('tontines').update(payload).eq('id', tontine.id).select();
        if (error) throw error;
-       if (data) {
-           setTontine(data);
+       
+       if (data && data.length > 0) {
+           setTontine(data[0]);
        } else {
-           setTontine({ ...tontine, ...settingsForm });
+           throw new Error("Modification bloquée (RLS). Activez la politique UPDATE sur la table 'tontines' dans Supabase.");
        }
        setIsSettingsModalOpen(false);
     } catch(err: any) {
@@ -399,10 +405,12 @@ export default function TontineAdminPage() {
     if (!editNameValue.trim() || !tontine) return;
     setIsSaving(true);
     try {
-      const { data, error } = await supabase.from('tontines').update({ nom: editNameValue }).eq('id', tontine.id).select().single();
+      const { data, error } = await supabase.from('tontines').update({ nom: editNameValue }).eq('id', tontine.id).select();
       if (error) throw error;
-      if (data) {
-          setTontine(data);
+      if (data && data.length > 0) {
+          setTontine(data[0]);
+      } else {
+          throw new Error("Modification bloquée (RLS). Activez la politique UPDATE sur la table 'tontines' dans Supabase.");
       }
       setIsEditingName(false);
     } catch (err: any) {
