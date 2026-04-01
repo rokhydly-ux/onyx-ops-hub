@@ -517,6 +517,44 @@ Généré par Onyx Tontine
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
+  const handleMarkAllPaid = async () => {
+    if (!tontine) return;
+    const unpaidMembers = membres.filter(m => 
+        !cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé')
+    );
+    
+    if (unpaidMembers.length === 0) return;
+    
+    if (!confirm(`Voulez-vous vraiment marquer les ${unpaidMembers.length} membres restants comme payés pour le mois ${currentMonth} ?`)) return;
+
+    setIsSaving(true);
+    try {
+        const payloads = unpaidMembers.map(m => ({
+            tontine_id: tontine.id,
+            membre_id: m.id,
+            mois_numero: currentMonth,
+            montant: tontine?.montant_mensuel || 0,
+            statut: 'Payé'
+        }));
+        
+        const { data, error } = await supabase.from('cotisations').insert(payloads).select();
+        if (error) throw error;
+        
+        if (data) {
+            setCotisations(prev => [...prev, ...data]);
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 8000);
+            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+            audio.volume = 0.5;
+            audio.play().catch(()=>{});
+        }
+    } catch (err: any) {
+        alert("Erreur lors de la validation: " + err.message);
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
   const handleExportPDF = async () => {
     const doc = new jsPDF();
 
@@ -889,9 +927,14 @@ Généré par Onyx Tontine
                </div>
                <div className="flex flex-wrap gap-2">
                  {hasRetardataires && (
-                   <button onClick={handleGroupReminder} className="bg-green-50 text-green-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-green-100 transition-colors border border-green-200">
-                      <MessageCircle size={16}/> Rappel Groupe
-                   </button>
+                   <>
+                     <button onClick={handleGroupReminder} className="bg-green-50 text-green-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-green-100 transition-colors border border-green-200">
+                        <MessageCircle size={16}/> Rappel Groupe
+                     </button>
+                     <button onClick={handleMarkAllPaid} disabled={isSaving} className="bg-green-100 text-green-700 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-green-200 transition-colors border border-green-300 disabled:opacity-50">
+                        <CheckCircle size={16}/> Tous Payés
+                     </button>
+                   </>
                  )}
                  <button onClick={handleCopySummary} className="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-blue-100 transition-colors border border-blue-200">
                     <ClipboardList size={16}/> Copier Récap'

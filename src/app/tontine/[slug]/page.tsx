@@ -5,30 +5,30 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
-function SlugPageContent({ params }: { params: { slug: string } }) {
+function SlugPageContent({ slug }: { slug: string }) {
   const router = useRouter();
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     const fetchTontineIdAndRedirect = async () => {
-      if (!params.slug) return;
+      if (!slug) return;
 
       const { data, error } = await supabase
         .from('tontines')
         .select('id')
-        .eq('slug', params.slug)
+        .eq('slug', slug)
         .single();
 
       if (data?.id) {
         router.replace(`/tontine/membre?id=${data.id}`);
       } else {
-        console.error("Tontine non trouvée pour le slug:", params.slug, error);
+        console.error("Tontine non trouvée pour le slug:", slug, error);
         setHasError(true);
       }
     };
 
     fetchTontineIdAndRedirect();
-  }, [params.slug, router]);
+  }, [slug, router]);
 
   if (hasError) {
     return (
@@ -48,10 +48,23 @@ function SlugPageContent({ params }: { params: { slug: string } }) {
   );
 }
 
-export default function Page({ params }: { params: { slug: string } }) {
+export default function Page({ params }: { params: Promise<{ slug: string }> | { slug: string } }) {
+    const [slug, setSlug] = useState<string | null>(null);
+    
+    useEffect(() => {
+        // Permet de gérer la compatibilité entre Next.js 14 (params normaux) et Next.js 15 (params asynchrones)
+        Promise.resolve(params).then((resolvedParams) => {
+            setSlug(resolvedParams.slug);
+        });
+    }, [params]);
+
+    if (!slug) {
+        return <div className="min-h-screen bg-zinc-900 flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" /></div>;
+    }
+
     return (
         <Suspense fallback={<div className="min-h-screen bg-zinc-900 flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-white" /></div>}>
-            <SlugPageContent params={params} />
+            <SlugPageContent slug={slug} />
         </Suspense>
     );
 }
