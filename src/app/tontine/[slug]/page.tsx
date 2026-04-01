@@ -7,7 +7,7 @@ import {
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
   ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal, MessageCircle,
-  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle 
+  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 
@@ -45,6 +45,11 @@ function SlugPageContent({ slug }: { slug: string }) {
   
   // --- ETAT POUR LA GERANCE ---
   const [togglingPaymentFor, setTogglingPaymentFor] = useState<string | null>(null);
+  
+  // --- ETATS UPLOAD & REÇUS ---
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [paymentModal, setPaymentModal] = useState<any>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   useEffect(() => {
     const checkSessionAndFetchData = async () => {
@@ -103,6 +108,16 @@ function SlugPageContent({ slug }: { slug: string }) {
       setMembers(allMembersData || []);
     }
     setCotisations(allCotisationsData || []);
+  };
+
+  const uploadFileToSupabase = async (file: File, folder: string) => {
+    if (file.size > 2 * 1024 * 1024) throw new Error("Le fichier dépasse 2 Mo.");
+    const ext = file.name.split('.').pop();
+    const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    const { error } = await supabase.storage.from('tontines').upload(fileName, file);
+    if (error) throw error;
+    const { data } = supabase.storage.from('tontines').getPublicUrl(fileName);
+    return data.publicUrl;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -217,31 +232,43 @@ function SlugPageContent({ slug }: { slug: string }) {
 
       if (existingCotisation) {
         if (!window.confirm("Êtes-vous sûr de vouloir annuler ce paiement ? Cette action est irréversible.")) return;
-      }
-
-      setTogglingPaymentFor(membreId);
-
-      if (existingCotisation) {
+        setTogglingPaymentFor(membreId);
         const { error: deleteErr } = await supabase.from('cotisations').delete().eq('id', existingCotisation.id);
         if (deleteErr) throw deleteErr;
+        const { data: freshCots } = await supabase.from('cotisations').select('*').eq('tontine_id', tontine.id);
+        setCotisations(freshCots || []);
+        setTogglingPaymentFor(null);
       } else {
-        const { error: insertErr } = await supabase.from('cotisations').insert([{
-          tontine_id: tontine.id,
-          membre_id: membreId,
-          mois_numero: moisEnCours,
-          montant: tontine.montant_mensuel || 0,
-          statut: 'Payé'
-        }]);
-        if (insertErr) throw insertErr;
+        setPaymentModal({ membreId, moisEnCours });
+        setReceiptFile(null);
       }
-
-      const { data: freshCots } = await supabase.from('cotisations').select('*').eq('tontine_id', tontine.id);
-      setCotisations(freshCots || []);
     } catch (error: any) {
         alert("Impossible d'enregistrer le paiement : " + error.message);
-    } finally {
-        setTogglingPaymentFor(null);
     }
+  };
+
+  const confirmPayment = async () => {
+     if (!paymentModal || !tontine) return;
+     setTogglingPaymentFor(paymentModal.membreId);
+     try {
+         let recu_url = null;
+         if (receiptFile) {
+             recu_url = await uploadFileToSupabase(receiptFile, 'recus');
+         }
+         const { error: insertErr } = await supabase.from('cotisations').insert([{
+             tontine_id: tontine.id,
+             membre_id: paymentModal.membreId,
+             mois_numero: paymentModal.moisEnCours,
+             montant: tontine.montant_mensuel || 0,
+             statut: 'Payé',
+             recu_url
+         }]);
+         if (insertErr) throw insertErr;
+         
+         const { data: freshCots } = await supabase.from('cotisations').select('*').eq('tontine_id', tontine.id);
+         setCotisations(freshCots || []);
+         setPaymentModal(null);
+     } catch(e:any) { alert("Erreur d'enregistrement : " + e.message); } finally { setTogglingPaymentFor(null); }
   };
 
   const handleReveal = () => {
@@ -444,8 +471,20 @@ function SlugPageContent({ slug }: { slug: string }) {
                 </div>
                 
                 {showPhotoInput && (
-                    <div className="w-full mb-4 animate-in fade-in slide-in-from-top-2">
-                        <input type="url" placeholder="URL de la nouvelle photo" value={editPhotoUrl} onChange={e => setEditPhotoUrl(e.target.value)} className="w-full text-xs font-bold p-3 rounded-xl border border-zinc-200 focus:border-black outline-none bg-zinc-50 transition-colors" />
+                    <div className="w-full mb-4 animate-in fade-in slide-in-from-top-2 flex gap-2">
+                        <input type="url" placeholder="URL photo..." value={editPhotoUrl} onChange={e => setEditPhotoUrl(e.target.value)} className="flex-1 text-xs font-bold p-3 rounded-xl border border-zinc-200 focus:border-black outline-none bg-zinc-50 transition-colors" />
+                        <label className="bg-zinc-100 p-3 rounded-xl cursor-pointer hover:bg-zinc-200 transition flex items-center justify-center">
+                           {uploadingImage ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                           <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                 setUploadingImage(true);
+                                 const url = await uploadFileToSupabase(file, 'avatars');
+                                 setEditPhotoUrl(url);
+                              } catch (err: any) { alert(err.message); } finally { setUploadingImage(false); }
+                           }} />
+                        </label>
                     </div>
                 )}
 
@@ -701,7 +740,8 @@ function SlugPageContent({ slug }: { slug: string }) {
                       </div>
                       <div className="space-y-3">
                           {members.map((m: any) => {
-                              const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+                              const currentCotisation = cotisations.find(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+                              const hasPaid = !!currentCotisation;
                               const isToggling = togglingPaymentFor === m.id;
                               const relanceMessage = `Bonjour ${m.prenom_nom}, petit rappel pour la cotisation de la tontine "${tontine?.nom}" de ce mois. Merci de régulariser au plus vite !`;
 
@@ -717,6 +757,11 @@ function SlugPageContent({ slug }: { slug: string }) {
                                           </div>
                                       </div>
                                       <div className="flex items-center gap-3 self-end sm:self-center">
+                                          {currentCotisation?.recu_url && (
+                                             <a href={currentCotisation.recu_url} target="_blank" rel="noopener noreferrer" className="p-2 bg-zinc-100 text-zinc-600 rounded-xl hover:bg-zinc-200 transition" title="Voir le reçu">
+                                                <Eye size={16} />
+                                             </a>
+                                          )}
                                           {!hasPaid && (
                                               <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(relanceMessage)}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition" title="Relancer sur WhatsApp">
                                                   <MessageCircle size={16} />
@@ -758,6 +803,27 @@ function SlugPageContent({ slug }: { slug: string }) {
           </div>
         </div>
       </main>
+
+      {/* --- MODALE VALIDATION PAIEMENT --- */}
+      {paymentModal && (
+        <div id="payment-modal-overlay" onClick={(e: any) => e.target.id === 'payment-modal-overlay' && setPaymentModal(null)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 relative shadow-2xl animate-in zoom-in-95">
+            <button onClick={() => setPaymentModal(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
+            <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-4 text-black`}>Valider le paiement</h2>
+            
+            <div className="mb-6">
+               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-2 block">Joindre un reçu (Optionnel - Max 2Mo)</label>
+               <input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs font-bold" />
+               {receiptFile && <p className="text-[10px] text-green-600 font-bold mt-2 ml-2 flex items-center gap-1"><CheckCircle size={12}/> Fichier sélectionné : {receiptFile.name}</p>}
+            </div>
+
+            <button onClick={confirmPayment} disabled={togglingPaymentFor !== null} className="w-full bg-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50" style={{ color: tontine?.theme_color || '#39FF14' }}>
+               {togglingPaymentFor !== null ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle size={18}/>}
+               {togglingPaymentFor !== null ? "Validation..." : "Confirmer le paiement"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

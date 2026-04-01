@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList, Eye } from 'lucide-react';
 import InteractiveParticles from '@/components/InteractiveParticles';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -33,6 +33,11 @@ export default function TontineAdminPage() {
   const sectionTirageRef = useRef<HTMLElement>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
+
+  // --- ÉTATS GESTION FICHIERS & PAIEMENT ---
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [paymentModal, setPaymentModal] = useState<any>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   // --- ÉTATS TIRAGE ---
   const [isSpinning, setIsSpinning] = useState(false);
@@ -163,6 +168,16 @@ export default function TontineAdminPage() {
     };
   }, []);
 
+  const uploadFileToSupabase = async (file: File, folder: string) => {
+    if (file.size > 2 * 1024 * 1024) throw new Error("Le fichier dépasse 2 Mo.");
+    const ext = file.name.split('.').pop();
+    const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    const { error } = await supabase.storage.from('tontines').upload(fileName, file);
+    if (error) throw error;
+    const { data } = supabase.storage.from('tontines').getPublicUrl(fileName);
+    return data.publicUrl;
+  };
+
   // --- FONCTIONS CRUD MEMBRES ---
   const openAddModal = () => {
     setEditingMember(null);
@@ -280,6 +295,14 @@ export default function TontineAdminPage() {
        
        if (data && data.length > 0) {
            setTontine(data[0]);
+           
+           // Copie automatique si le slug a changé
+           if (tontine.slug !== data[0].slug && data[0].slug) {
+               const newLink = `${window.location.origin}/tontine/${data[0].slug}`;
+               navigator.clipboard.writeText(newLink);
+               setCopied(true);
+               setTimeout(() => setCopied(false), 3000);
+           }
        } else {
            throw new Error("Modification bloquée (RLS). Activez la politique UPDATE sur la table 'tontines' dans Supabase.");
        }
@@ -313,33 +336,48 @@ export default function TontineAdminPage() {
 
   const togglePaymentStatus = async (m: any, hasPaid: boolean) => {
     try {
-      setIsSaving(true);
       if (hasPaid) {
+        if (!confirm("Voulez-vous annuler ce paiement ?")) return;
+        setIsSaving(true);
         const { error } = await supabase.from('cotisations').delete().match({ membre_id: m.id, mois_numero: currentMonth, statut: 'Payé' });
         if (error) throw error;
         setCotisations(prev => prev.filter(c => !(c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé')));
+        setIsSaving(false);
       } else {
-        const payload = { tontine_id: tontine.id, membre_id: m.id, mois_numero: currentMonth, montant: tontine?.montant_mensuel || 0, statut: 'Payé' };
-        const { data, error } = await supabase.from('cotisations').insert([payload]).select();
-        if (error) throw error;
-        if (data) setCotisations(prev => [...prev, data[0]]);
-        if (data) {
-           setCotisations(prev => [...prev, data[0]]);
-           const dueDate = tontine?.date_limite_paiement || 5;
-           if (new Date().getDate() > dueDate) {
-              setShowConfetti(true);
-              setTimeout(() => setShowConfetti(false), 8000);
-              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
-              audio.volume = 0.5;
-              audio.play().catch(()=>{});
-           }
-        }
+        setPaymentModal({ member: m });
+        setReceiptFile(null);
       }
     } catch (err: any) {
       alert("Erreur lors de la modification du paiement: " + err.message);
-    } finally {
       setIsSaving(false);
+    } finally {
     }
+  };
+
+  const confirmPayment = async () => {
+     if (!paymentModal) return;
+     try {
+         setIsSaving(true);
+         let recu_url = null;
+         if (receiptFile) {
+             recu_url = await uploadFileToSupabase(receiptFile, 'recus');
+         }
+         const payload = { tontine_id: tontine.id, membre_id: paymentModal.member.id, mois_numero: currentMonth, montant: tontine?.montant_mensuel || 0, statut: 'Payé', recu_url };
+         const { data, error } = await supabase.from('cotisations').insert([payload]).select();
+         if (error) throw error;
+         if (data) {
+             setCotisations(prev => [...prev, data[0]]);
+             const dueDate = tontine?.date_limite_paiement || 5;
+             if (new Date().getDate() > dueDate) {
+                setShowConfetti(true);
+                setTimeout(() => setShowConfetti(false), 8000);
+                const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+                audio.volume = 0.5;
+                audio.play().catch(()=>{});
+             }
+         }
+         setPaymentModal(null);
+     } catch(e:any) { alert(e.message); } finally { setIsSaving(false); }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1007,7 +1045,8 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                {filteredMembres.map((m) => {
-                  const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+                  const currentCotisation = cotisations.find(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+                  const hasPaid = !!currentCotisation;
                   const memberCotisations = cotisations.filter(c => c.membre_id === m.id && c.statut === 'Payé');
                   const lastPayment = memberCotisations.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
                   const lastPaymentDate = lastPayment?.created_at ? new Date(lastPayment.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '-';
@@ -1064,7 +1103,14 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                            <p className="font-bold text-zinc-400 uppercase tracking-wider text-[9px] mb-1">Paiement Mois {currentMonth}</p>
                            <div className="flex items-center gap-2">
                               {hasPaid ? (
-                                 <button onClick={() => togglePaymentStatus(m, hasPaid)} disabled={isSaving} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-green-200 transition disabled:opacity-50" title="Marquer comme Non Payé"><CheckCircle size={12}/> Payé</button>
+                                 <div className="flex items-center gap-2">
+                                   <button onClick={() => togglePaymentStatus(m, hasPaid)} disabled={isSaving} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-green-200 transition disabled:opacity-50" title="Marquer comme Non Payé"><CheckCircle size={12}/> Payé</button>
+                                   {currentCotisation?.recu_url && (
+                                     <a href={currentCotisation.recu_url} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-zinc-100 text-zinc-600 rounded-full hover:bg-zinc-200 transition" title="Voir le reçu">
+                                       <Eye size={12} />
+                                     </a>
+                                   )}
+                                 </div>
                               ) : (
                                  <div className="flex items-center justify-between w-full">
                                     <div className="flex flex-col items-start">
@@ -1118,8 +1164,23 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                 <input type="tel" required value={memberForm.telephone} onChange={e => setMemberForm({...memberForm, telephone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: 77 123 45 67" />
               </div>
               <div className="col-span-full">
-                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">URL Photo de Profil (Optionnel)</label>
-                <input type="url" value={memberForm.photo_url} onChange={e => setMemberForm({...memberForm, photo_url: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://lien-vers-la-photo.com/image.jpg" />
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Photo de Profil (URL ou Fichier Max 2Mo)</label>
+                <div className="flex gap-2 items-center">
+                  <input type="url" value={memberForm.photo_url} onChange={e => setMemberForm({...memberForm, photo_url: e.target.value})} className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://..." />
+                  <span className="text-xs font-bold text-zinc-400">OU</span>
+                  <label className="bg-zinc-100 p-4 rounded-2xl cursor-pointer hover:bg-zinc-200 transition flex items-center justify-center gap-2">
+                     {uploadingImage ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                     <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                           setUploadingImage(true);
+                           const url = await uploadFileToSupabase(file, 'avatars');
+                           setMemberForm({...memberForm, photo_url: url});
+                        } catch (err: any) { alert(err.message); } finally { setUploadingImage(false); }
+                     }} />
+                  </label>
+                </div>
               </div>
               <div className="col-span-full">
                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Poste / Rôle (Optionnel)</label>
@@ -1208,8 +1269,22 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">URL du Logo (Optionnel)</label>
-                <input type="url" value={settingsForm.logo_url} onChange={e => setSettingsForm({...settingsForm, logo_url: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://..." />
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Logo de la Tontine (URL ou Fichier Max 2Mo)</label>
+                <div className="flex gap-2 items-center">
+                  <input type="url" value={settingsForm.logo_url} onChange={e => setSettingsForm({...settingsForm, logo_url: e.target.value})} className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://..." />
+                  <label className="bg-zinc-100 p-4 rounded-2xl cursor-pointer hover:bg-zinc-200 transition flex items-center justify-center gap-2">
+                     {uploadingImage ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                     <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                           setUploadingImage(true);
+                           const url = await uploadFileToSupabase(file, 'logos');
+                           setSettingsForm({...settingsForm, logo_url: url});
+                        } catch (err: any) { alert(err.message); } finally { setUploadingImage(false); }
+                     }} />
+                  </label>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1244,6 +1319,28 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
         </div>
           )
         })()
+      )}
+
+      {/* --- MODALE VALIDATION PAIEMENT --- */}
+      {paymentModal && (
+        <div id="payment-modal-overlay" onClick={(e: any) => e.target.id === 'payment-modal-overlay' && setPaymentModal(null)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 relative shadow-2xl animate-in zoom-in-95">
+            <button onClick={() => setPaymentModal(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
+            <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-2 text-black`}>Valider le paiement</h2>
+            <p className="text-sm font-bold text-zinc-500 mb-6">Membre : <span className="text-black">{paymentModal.member.prenom_nom}</span></p>
+            
+            <div className="mb-6">
+               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-2 block">Joindre un reçu (Optionnel - Max 2Mo)</label>
+               <input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs font-bold" />
+               {receiptFile && <p className="text-[10px] text-green-600 font-bold mt-2 ml-2 flex items-center gap-1"><CheckCircle size={12}/> Fichier sélectionné : {receiptFile.name}</p>}
+            </div>
+
+            <button onClick={confirmPayment} disabled={isSaving} className="w-full bg-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50" style={{ color: tontine?.theme_color || '#39FF14' }}>
+               {isSaving ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle size={18}/>}
+               {isSaving ? "Validation..." : "Confirmer le paiement"}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
