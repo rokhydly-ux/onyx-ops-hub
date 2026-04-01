@@ -197,9 +197,20 @@ export default function TontineAdminPage() {
 
       let memberId = editingMember?.id;
       if (editingMember) {
+        const wasWinner = editingMember.a_gagne;
         const { error } = await supabase.from('tontine_members').update(payload).eq('id', editingMember.id);
         if (error) throw error;
         setMembres(updatedMembers.map(m => m.id === editingMember.id ? { ...m, ...payload } : m));
+
+        // Déclencher un message si le membre devient un gagnant manuellement
+        if (payload.a_gagne && !wasWinner) {
+            if (confirm(`Voulez-vous envoyer un message de félicitations à ${payload.prenom_nom} sur WhatsApp ?`)) {
+                const prizeAmount = (caisseMensuelle / (tontine?.gagnants_par_mois || 1)).toLocaleString();
+                const message = `Félicitations ${payload.prenom_nom} ! Vous avez été désigné(e) comme gagnant(e) pour la tontine "${tontine.nom}" (Mois ${currentMonth}). Vous remportez la somme de ${prizeAmount} F CFA ! 💰`;
+                const encodedMessage = encodeURIComponent(message);
+                window.open(`https://wa.me/221${payload.telephone}?text=${encodedMessage}`, '_blank');
+            }
+        }
       } else {
         const { data, error } = await supabase.from('tontine_members').insert([payload]).select();
         if (error) throw error;
@@ -492,6 +503,28 @@ Généré par Onyx Tontine
         setIsSpinning(false);
       }
     }, 3000);
+  };
+
+  const handleNotifyWinners = () => {
+    if (!tontine || recentWinners.length === 0) return;
+
+    const prizeAmount = (caisseMensuelle / (tontine?.gagnants_par_mois || 1)).toLocaleString();
+    const winnerNames = recentWinners.map(w => `- *${w.prenom_nom}*`).join('\n');
+
+    const message = `
+🎉 *FÉLICITATIONS AUX GAGNANTS !* 🎉
+
+Tontine: *${tontine.nom}*
+Mois: *${currentMonth}*
+-----------------------------------
+Les gagnants du tirage sont :
+${winnerNames}
+
+Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
+    `.trim().replace(/^\s+/gm, '');
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
   const handleGroupReminder = () => {
@@ -822,7 +855,10 @@ Généré par Onyx Tontine
                            </div>
                         ))}
                      </div>
-                     <button onClick={() => setRecentWinners([])} className="mt-8 bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-bold uppercase hover:bg-zinc-700 transition">Terminer le tirage</button>
+                     <div className="flex flex-wrap justify-center gap-4 mt-8">
+                        <button onClick={() => setRecentWinners([])} className="bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-bold uppercase hover:bg-zinc-700 transition">Terminer le tirage</button>
+                        <button onClick={handleNotifyWinners} className="bg-green-500 text-white px-6 py-3 rounded-full text-xs font-bold uppercase hover:bg-green-600 transition flex items-center gap-2 shadow-lg"><MessageCircle size={14}/> Notifier les gagnants</button>
+                     </div>
                   </div>
                ) : (
                   progressPercentage < 100 ? (
