@@ -270,9 +270,13 @@ export default function TontineAdminPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-       const { error } = await supabase.from('tontines').update(settingsForm).eq('id', tontine.id);
+       const { data, error } = await supabase.from('tontines').update(settingsForm).eq('id', tontine.id).select().single();
        if (error) throw error;
-       setTontine({ ...tontine, ...settingsForm });
+       if (data) {
+           setTontine(data);
+       } else {
+           setTontine({ ...tontine, ...settingsForm });
+       }
        setIsSettingsModalOpen(false);
     } catch(err: any) {
        alert("Erreur lors de la sauvegarde : " + err.message);
@@ -395,9 +399,11 @@ export default function TontineAdminPage() {
     if (!editNameValue.trim() || !tontine) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('tontines').update({ nom: editNameValue }).eq('id', tontine.id);
+      const { data, error } = await supabase.from('tontines').update({ nom: editNameValue }).eq('id', tontine.id).select().single();
       if (error) throw error;
-      setTontine({ ...tontine, nom: editNameValue });
+      if (data) {
+          setTontine(data);
+      }
       setIsEditingName(false);
     } catch (err: any) {
       alert("Erreur lors de la modification du nom: " + err.message);
