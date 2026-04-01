@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList } from 'lucide-react';
 import InteractiveParticles from '@/components/InteractiveParticles';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -392,6 +392,38 @@ export default function TontineAdminPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCopySummary = () => {
+    if (!tontine) return;
+
+    const paidMembers = membres.filter(m => 
+      cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé')
+    );
+    const unpaidMembers = membres.filter(m => 
+      !cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé')
+    );
+
+    const formatMember = (m: any) => m.poste ? `- ${m.prenom_nom} (${m.poste})` : `- ${m.prenom_nom}`;
+
+    const summary = `
+*RÉCAPITULATIF TONTINE - ${tontine.nom}*
+*Mois en cours :* ${currentMonth}
+-----------------------------------
+*CAISSE ACTUELLE :*
+${actuelCaisse.toLocaleString()} / ${caisseMensuelle.toLocaleString()} F CFA (${Math.round(progressPercentage)}%)
+
+*✅ ONT PAYÉ (${paidMembers.length}) :*
+${paidMembers.map(formatMember).join('\n') || 'Personne'}
+
+*❌ RESTENT À PAYER (${unpaidMembers.length}) :*
+${unpaidMembers.map(formatMember).join('\n') || 'Personne'}
+-----------------------------------
+Généré par Onyx Tontine
+    `.trim().replace(/^\s+/gm, ''); // Trim and remove leading spaces from each line
+
+    const encodedMessage = encodeURIComponent(summary);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
   const handleResetTontine = async () => {
@@ -861,6 +893,9 @@ export default function TontineAdminPage() {
                       <MessageCircle size={16}/> Rappel Groupe
                    </button>
                  )}
+                 <button onClick={handleCopySummary} className="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-blue-100 transition-colors border border-blue-200">
+                    <ClipboardList size={16}/> Copier Récap'
+                 </button>
                  <button onClick={handleResetTontine} className="bg-red-50 text-red-600 px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-red-100 transition-colors border border-red-200">
                     <RotateCcw size={16}/> Réinitialiser
                  </button>
