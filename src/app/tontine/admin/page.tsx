@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList, Eye } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList, Eye, Download, Archive } from 'lucide-react';
 import InteractiveParticles from '@/components/InteractiveParticles';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -169,7 +169,7 @@ export default function TontineAdminPage() {
   }, []);
 
   const uploadFileToSupabase = async (file: File, folder: string) => {
-    if (file.size > 2 * 1024 * 1024) throw new Error("Le fichier dépasse 2 Mo.");
+    if (file.size > 1 * 1024 * 1024) throw new Error("Le fichier dépasse 1 Mo.");
     const ext = file.name.split('.').pop();
     const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
     const { error } = await supabase.storage.from('tontines').upload(fileName, file);
@@ -641,6 +641,91 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
     }
   };
 
+  // --- GÉNÉRATION DE REÇUS (PDF & ZIP) ---
+  const createReceiptPDF = (member: any, cotisation: any) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a5' });
+    
+    doc.setFontSize(22);
+    doc.setTextColor(0, 0, 0);
+    doc.text("REÇU DE PAIEMENT", 20, 30);
+    
+    doc.setFontSize(14);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Tontine : ${tontine?.nom || 'Onyx Tontine'}`, 20, 45);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Date : ${cotisation?.created_at ? new Date(cotisation.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')}`, 150, 30);
+    doc.text(`N° Reçu : REC-${cotisation?.id?.substring(0,6) || Math.floor(Math.random()*10000)}`, 150, 40);
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 55, 190, 55);
+    
+    doc.setFontSize(14);
+    doc.text("Reçu de :", 20, 70);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(member.prenom_nom, 50, 70);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.text("Montant :", 20, 90);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${(cotisation?.montant || tontine?.montant_mensuel || 0).toLocaleString()} F CFA`, 50, 90);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.text("Pour le mois de :", 20, 110);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Mois ${cotisation?.mois_numero || currentMonth}`, 65, 110);
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 125, 190, 125);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(150, 150, 150);
+    doc.text("Généré de manière sécurisée par Onyx Tontine", 20, 140);
+    return doc;
+  };
+
+  const handleDownloadReceipt = (member: any) => {
+    const cot = cotisations.find(c => c.membre_id === member.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+    if (!cot) return;
+    const doc = createReceiptPDF(member, cot);
+    doc.save(`Recu_${member.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`);
+  };
+
+  const handleDownloadAllReceiptsZIP = async () => {
+    const paidMembers = membres.filter(m => cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé'));
+    if (paidMembers.length === 0) return alert("Aucun paiement enregistré pour ce mois.");
+    
+    try {
+        const JSZipModule = await import('jszip');
+        const JSZip = JSZipModule.default || JSZipModule;
+        const zip = new JSZip();
+        
+        paidMembers.forEach(m => {
+            const cot = cotisations.find(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+            if (cot) {
+                const doc = createReceiptPDF(m, cot);
+                zip.file(`Recu_${m.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`, doc.output('blob'));
+            }
+        });
+        
+        const content = await zip.generateAsync({ type: 'blob' });
+        const url = window.URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Recus_Tontine_${tontine?.nom?.replace(/\s+/g, '_')}_Mois_${currentMonth}.zip`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        alert("Erreur lors de la génération du ZIP. Avez-vous exécuté 'npm install jszip' ?");
+    }
+  };
+
   const handleExportPDF = async () => {
     const doc = new jsPDF();
 
@@ -1034,6 +1119,9 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                  <button onClick={handleExportPDF} className="bg-zinc-100 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-zinc-200 transition-colors border border-zinc-200">
                     <FileText size={16}/> Export PDF
                  </button>
+                 <button onClick={handleDownloadAllReceiptsZIP} className="bg-zinc-100 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-zinc-200 transition-colors border border-zinc-200">
+                    <Archive size={16}/> Reçus (ZIP)
+                 </button>
                  <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                  <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-zinc-200 transition-colors border border-zinc-200">
                     <Upload size={16}/> Import Excel
@@ -1110,6 +1198,9 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                                        <Eye size={12} />
                                      </a>
                                    )}
+                                   <button onClick={() => handleDownloadReceipt(m)} className="p-1.5 bg-zinc-100 text-zinc-600 rounded-full hover:bg-blue-100 hover:text-blue-600 transition" title="Télécharger le reçu PDF">
+                                     <Download size={12} />
+                                   </button>
                                  </div>
                               ) : (
                                  <div className="flex items-center justify-between w-full">
@@ -1164,7 +1255,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                 <input type="tel" required value={memberForm.telephone} onChange={e => setMemberForm({...memberForm, telephone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: 77 123 45 67" />
               </div>
               <div className="col-span-full">
-                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Photo de Profil (URL ou Fichier Max 2Mo)</label>
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Photo de Profil (URL ou Fichier Max 1Mo)</label>
                 <div className="flex gap-2 items-center">
                   <input type="url" value={memberForm.photo_url} onChange={e => setMemberForm({...memberForm, photo_url: e.target.value})} className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://..." />
                   <span className="text-xs font-bold text-zinc-400">OU</span>
@@ -1269,7 +1360,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Logo de la Tontine (URL ou Fichier Max 2Mo)</label>
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Logo de la Tontine (URL ou Fichier Max 1Mo)</label>
                 <div className="flex gap-2 items-center">
                   <input type="url" value={settingsForm.logo_url} onChange={e => setSettingsForm({...settingsForm, logo_url: e.target.value})} className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="https://..." />
                   <label className="bg-zinc-100 p-4 rounded-2xl cursor-pointer hover:bg-zinc-200 transition flex items-center justify-center gap-2">
@@ -1330,7 +1421,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
             <p className="text-sm font-bold text-zinc-500 mb-6">Membre : <span className="text-black">{paymentModal.member.prenom_nom}</span></p>
             
             <div className="mb-6">
-               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-2 block">Joindre un reçu (Optionnel - Max 2Mo)</label>
+               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-2 block">Joindre un reçu (Optionnel - Max 1Mo)</label>
                <input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs font-bold" />
                {receiptFile && <p className="text-[10px] text-green-600 font-bold mt-2 ml-2 flex items-center gap-1"><CheckCircle size={12}/> Fichier sélectionné : {receiptFile.name}</p>}
             </div>

@@ -7,9 +7,10 @@ import {
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
   ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal, MessageCircle,
-  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload
+  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload, Download
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
+import jsPDF from 'jspdf';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -111,7 +112,7 @@ function SlugPageContent({ slug }: { slug: string }) {
   };
 
   const uploadFileToSupabase = async (file: File, folder: string) => {
-    if (file.size > 2 * 1024 * 1024) throw new Error("Le fichier dépasse 2 Mo.");
+    if (file.size > 1 * 1024 * 1024) throw new Error("Le fichier dépasse 1 Mo.");
     const ext = file.name.split('.').pop();
     const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
     const { error } = await supabase.storage.from('tontines').upload(fileName, file);
@@ -269,6 +270,61 @@ function SlugPageContent({ slug }: { slug: string }) {
          setCotisations(freshCots || []);
          setPaymentModal(null);
      } catch(e:any) { alert("Erreur d'enregistrement : " + e.message); } finally { setTogglingPaymentFor(null); }
+  };
+
+  const createReceiptPDF = (member: any, cotisation: any) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a5' });
+    
+    doc.setFontSize(22);
+    doc.setTextColor(0, 0, 0);
+    doc.text("REÇU DE PAIEMENT", 20, 30);
+    
+    doc.setFontSize(14);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Tontine : ${tontine?.nom || 'Onyx Tontine'}`, 20, 45);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Date : ${cotisation?.created_at ? new Date(cotisation.created_at).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')}`, 150, 30);
+    doc.text(`N° Reçu : REC-${cotisation?.id?.substring(0,6) || Math.floor(Math.random()*10000)}`, 150, 40);
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 55, 190, 55);
+    
+    doc.setFontSize(14);
+    doc.text("Reçu de :", 20, 70);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(member.prenom_nom, 50, 70);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.text("Montant :", 20, 90);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${(cotisation?.montant || tontine?.montant_mensuel || 0).toLocaleString()} F CFA`, 50, 90);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.text("Pour le mois de :", 20, 110);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Mois ${cotisation?.mois_numero || currentMonth}`, 65, 110);
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 125, 190, 125);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(150, 150, 150);
+    doc.text("Généré de manière sécurisée par Onyx Tontine", 20, 140);
+    return doc;
+  };
+
+  const handleDownloadReceipt = (member: any) => {
+    const cot = cotisations.find(c => c.membre_id === member.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+    if (!cot) return;
+    const doc = createReceiptPDF(member, cot);
+    doc.save(`Recu_${member.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`);
   };
 
   const handleReveal = () => {
@@ -557,9 +613,14 @@ function SlugPageContent({ slug }: { slug: string }) {
                         </div>
                      )}
                      {isUserUpToDate ? (
-                        <span className="bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
-                           <CheckCircle size={12}/> À JOUR
-                        </span>
+                        <div className="flex flex-col items-end gap-2">
+                           <span className="bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
+                              <CheckCircle size={12}/> À JOUR
+                           </span>
+                           <button onClick={() => handleDownloadReceipt(currentUser)} className="text-[10px] font-bold text-zinc-500 hover:text-black flex items-center gap-1 transition-colors">
+                              <Download size={12}/> Télécharger mon reçu
+                           </button>
+                        </div>
                      ) : (
                         <span className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
                            <AlertCircle size={12}/> À PAYER
@@ -762,6 +823,11 @@ function SlugPageContent({ slug }: { slug: string }) {
                                                 <Eye size={16} />
                                              </a>
                                           )}
+                                          {hasPaid && (
+                                             <button onClick={() => handleDownloadReceipt(m)} className="p-2 bg-zinc-100 text-zinc-600 rounded-xl hover:bg-blue-100 hover:text-blue-600 transition" title="Générer le reçu PDF">
+                                                <Download size={16} />
+                                             </button>
+                                          )}
                                           {!hasPaid && (
                                               <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(relanceMessage)}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition" title="Relancer sur WhatsApp">
                                                   <MessageCircle size={16} />
@@ -812,7 +878,7 @@ function SlugPageContent({ slug }: { slug: string }) {
             <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-4 text-black`}>Valider le paiement</h2>
             
             <div className="mb-6">
-               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-2 block">Joindre un reçu (Optionnel - Max 2Mo)</label>
+               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-2 block">Joindre un reçu (Optionnel - Max 1Mo)</label>
                <input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl text-xs font-bold" />
                {receiptFile && <p className="text-[10px] text-green-600 font-bold mt-2 ml-2 flex items-center gap-1"><CheckCircle size={12}/> Fichier sélectionné : {receiptFile.name}</p>}
             </div>
