@@ -23,7 +23,7 @@ export default function TontineAdminPage() {
   const [editingMember, setEditingMember] = useState<any>(null);
   const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false, has_paid: false });
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [settingsForm, setSettingsForm] = useState({ nom: '', theme_color: '#39FF14', logo_url: '', duree_mois: 10, montant_mensuel: 0, date_debut: '' });
+  const [settingsForm, setSettingsForm] = useState({ nom: '', theme_color: '#39FF14', logo_url: '', duree_mois: 10, montant_mensuel: 0, date_debut: '', date_limite_paiement: 5 });
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -233,7 +233,8 @@ export default function TontineAdminPage() {
       logo_url: tontine?.logo_url || '',
       duree_mois: tontine?.duree_mois || 10,
       montant_mensuel: tontine?.montant_mensuel || 0,
-      date_debut: tontine?.date_debut ? new Date(tontine.date_debut).toISOString().split('T')[0] : ''
+      date_debut: tontine?.date_debut ? new Date(tontine.date_debut).toISOString().split('T')[0] : '',
+      date_limite_paiement: tontine?.date_limite_paiement || 5
     });
     setIsSettingsModalOpen(true);
   };
@@ -433,7 +434,7 @@ export default function TontineAdminPage() {
     }
 
     const memberNames = lateMembers.map(m => `- ${m.prenom_nom}`).join('\n');
-    const message = `RAPPEL COTISATION - Sauf erreur de notre part, nous attendons toujours la cotisation de :\n\n${memberNames}\n\n🙏 Merci de régulariser au plus vite pour le bon déroulement du tirage de ce mois !`;
+    const message = `⏳ *RAPPEL COTISATION*\n\nBonjour ! Les cotisations du mois sont en cours. Nous attendons la participation de :\n\n${memberNames}\n\n🙏 Merci de régulariser au plus vite pour qu'on puisse lancer le tirage !`;
     
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
@@ -560,8 +561,7 @@ export default function TontineAdminPage() {
     return false;
   });
 
-  const dueDate = 5; // Date limite de paiement
-  const amende = 500; // Montant de l'amende
+  const dueDate = tontine?.date_limite_paiement || 5; // Date limite de paiement dynamique
   const today = new Date();
 
   const chartData = Array.from({ length: tontine?.duree_mois || 0 }, (_, i) => {
@@ -810,9 +810,8 @@ export default function TontineAdminPage() {
                   const lastPaymentDate = lastPayment?.created_at ? new Date(lastPayment.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '-';
                   
                   const isLate = !hasPaid && today.getDate() > dueDate;
-                  const totalAPayer = (tontine?.montant_mensuel || 0) + (isLate ? amende : 0);
                   const waMessage = isLate 
-                      ? `Bonjour ${m.prenom_nom}, rappel pour la tontine "${tontine?.nom}". Votre cotisation de ${(tontine?.montant_mensuel || 0).toLocaleString()} F est en retard. Une amende de ${amende} F a été appliquée. Total à payer : ${totalAPayer.toLocaleString()} F. Merci de régulariser.`
+                      ? `Bonjour ${m.prenom_nom}, rappel pour la tontine "${tontine?.nom}". Votre cotisation de ${(tontine?.montant_mensuel || 0).toLocaleString()} F est en retard. Merci de régulariser dès que possible.`
                       : `Bonjour ${m.prenom_nom}, c'est le moment de la cotisation pour la tontine "${tontine?.nom}". Merci de régulariser via ce lien sécurisé !`;
 
                   return (
@@ -868,7 +867,7 @@ export default function TontineAdminPage() {
                                     <div className="flex flex-col items-start">
                                        <button onClick={() => togglePaymentStatus(m, hasPaid)} disabled={isSaving} className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-red-100 transition disabled:opacity-50" title="Marquer comme Payé"><AlertCircle size={12}/> À Payer</button>
                                        {isLate && (
-                                             <span className="text-[10px] font-bold text-red-500 mt-1 ml-1">+ {amende} F (Retard)</span>
+                                             <span className="text-[10px] font-bold text-red-500 mt-1 ml-1">(En retard)</span>
                                        )}
                                     </div>
                                     <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(waMessage)}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Relancer sur WhatsApp">
@@ -1011,14 +1010,18 @@ export default function TontineAdminPage() {
                   <input type="number" required value={settingsForm.duree_mois} onChange={e => setSettingsForm({...settingsForm, duree_mois: parseInt(e.target.value)})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Date de début</label>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Début</label>
                   <input type="date" value={settingsForm.date_debut} onChange={e => setSettingsForm({...settingsForm, date_debut: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Date de fin (calculée)</label>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Fin (calculée)</label>
                   <input type="text" disabled value={endDate} className="w-full p-4 bg-zinc-100 border border-zinc-200 rounded-2xl font-bold text-sm outline-none text-zinc-500" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Jour Limite</label>
+                  <input type="number" min="1" max="31" required value={settingsForm.date_limite_paiement} onChange={e => setSettingsForm({...settingsForm, date_limite_paiement: parseInt(e.target.value)})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: 5" />
                 </div>
               </div>
               <button type="submit" disabled={isSaving} className="w-full mt-6 bg-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2 disabled:opacity-50" style={{ color: settingsForm.theme_color || '#39FF14' }}>
