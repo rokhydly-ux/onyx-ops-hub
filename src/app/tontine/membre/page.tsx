@@ -57,11 +57,22 @@ function TontineMembreDashboard() {
   // --- NOUVEAU : ETAT POUR LA GERANCE ---
   const [togglingPaymentFor, setTogglingPaymentFor] = useState<string | null>(null);
   const [countdownText, setCountdownText] = useState("");
+  const [isUrgent, setIsUrgent] = useState(false);
   const [isSignalingPayment, setIsSignalingPayment] = useState(false);
 
   useEffect(() => {
-    if (!currentDrawConfig?.date_tirage_prevue) return;
-    const target = new Date(currentDrawConfig.date_tirage_prevue);
+    const target = currentDrawConfig?.date_tirage_prevue 
+        ? new Date(currentDrawConfig.date_tirage_prevue)
+        : new Date();
+    
+    if (!currentDrawConfig?.date_tirage_prevue) {
+        const limitDay = tontine?.date_limite_paiement || 5;
+        if (target.getDate() >= limitDay) {
+            target.setMonth(target.getMonth() + 1);
+        }
+        target.setDate(limitDay);
+    }
+
     target.setHours(23, 59, 59); // Fin de journée
     
     const updateCountdown = () => {
@@ -69,8 +80,10 @@ function TontineMembreDashboard() {
       const distance = target.getTime() - now;
       if (distance < 0) {
         setCountdownText("Tirage imminent !");
+        setIsUrgent(true);
         return;
       }
+      setIsUrgent(distance < 24 * 60 * 60 * 1000);
       const days = Math.floor(distance / (1000 * 60 * 60 * 24));
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
@@ -81,7 +94,7 @@ function TontineMembreDashboard() {
     // Mise à jour chaque minute
     const interval = setInterval(updateCountdown, 1000 * 60);
     return () => clearInterval(interval);
-  }, [currentDrawConfig]);
+  }, [currentDrawConfig, tontine]);
 
   // --- CHARGEMENT INITIAL & GESTION DE SESSION ---
   useEffect(() => {
@@ -452,14 +465,20 @@ function TontineMembreDashboard() {
         const { error: deleteErr } = await supabase.from('cotisations').delete().eq('id', existingCotisation.id);
         if (deleteErr) throw deleteErr;
       } else {
-        const { error: insertErr } = await supabase.from('cotisations').insert([{
-          tontine_id: tontine.id,
-          membre_id: membreId,
-          mois_numero: moisEnCours,
-          montant: tontine.montant_mensuel || 0,
-          statut: 'Payé'
-        }]);
-        if (insertErr) throw insertErr;
+          const { data: existingUnpaid } = await supabase.from('cotisations').select('id').eq('membre_id', membreId).eq('mois_numero', moisEnCours).single();
+          if (existingUnpaid) {
+            const { error: updateErr } = await supabase.from('cotisations').update({ statut: 'Payé' }).eq('id', existingUnpaid.id);
+            if (updateErr) throw updateErr;
+          } else {
+            const { error: insertErr } = await supabase.from('cotisations').insert([{
+              tontine_id: tontine.id,
+              membre_id: membreId,
+              mois_numero: moisEnCours,
+              montant: tontine.montant_mensuel || 0,
+              statut: 'Payé'
+            }]);
+            if (insertErr) throw insertErr;
+          }
       }
 
       const { data: freshCots } = await supabase.from('cotisations').select('*').eq('tontine_id', tontine.id);
@@ -549,28 +568,39 @@ function TontineMembreDashboard() {
     <div className="min-h-screen bg-zinc-50 text-black font-sans pb-28">
       <InteractiveParticles themeColor={tontine?.theme_color || '#009FDF'} />
       
-      {/* --- ANIMATION DE CONFETTIS (GAGNANT) --- */}
+      {/* --- ANIMATION DE BILLETS (GAGNANT) --- */}
       {showConfetti && (
         <div className="fixed inset-0 z-[200] pointer-events-none overflow-hidden">
-          {[...Array(80)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute top-[-10%] opacity-0"
-              style={{
-                left: `${Math.random() * 100}%`,
-                width: `${Math.random() * 10 + 6}px`,
-                height: `${Math.random() * 10 + 6}px`,
-                backgroundColor: i % 3 === 0 ? '#ffffff' : (tontine?.theme_color || '#39FF14'),
-                animation: `confetti-fall ${2 + Math.random() * 3}s linear forwards`,
-                animationDelay: `${Math.random() * 1.5}s`,
-                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none', 
-              }}
-            />
-          ))}
+          {[...Array(50)].map((_, i) => {
+            const isLeft = i % 2 === 0;
+            return (
+              <div
+                key={i}
+                className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animation: `bill-fall-${isLeft ? 'left' : 'right'} ${2 + Math.random() * 2}s ease-in forwards`,
+                  animationDelay: `${Math.random() * 1.5}s`,
+                }}
+              >
+                {i % 3 === 0 ? '💸' : '💵'}
+              </div>
+            );
+          })}
           <style dangerouslySetInnerHTML={{__html: `
-            @keyframes confetti-fall {
-              0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-              100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+            @keyframes bill-fall-left {
+              0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+              25% { transform: translateY(25vh) rotate(90deg) translateX(-20px); opacity: 1; }
+              50% { transform: translateY(50vh) rotate(180deg) translateX(20px); opacity: 1; }
+              75% { transform: translateY(75vh) rotate(270deg) translateX(-20px); opacity: 1; }
+              100% { transform: translateY(110vh) rotate(360deg) translateX(0); opacity: 0; }
+            }
+            @keyframes bill-fall-right {
+              0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+              25% { transform: translateY(25vh) rotate(-90deg) translateX(20px); opacity: 1; }
+              50% { transform: translateY(50vh) rotate(-180deg) translateX(-20px); opacity: 1; }
+              75% { transform: translateY(75vh) rotate(-270deg) translateX(20px); opacity: 1; }
+              100% { transform: translateY(110vh) rotate(-360deg) translateX(0); opacity: 0; }
             }
           `}} />
         </div>
@@ -697,9 +727,9 @@ function TontineMembreDashboard() {
                      ) : isUserPending ? (
                         <div className="flex flex-col items-end gap-1.5 text-right">
                            <span className="bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1 animate-pulse">
-                              <Clock size={12}/> EN ATTENTE
+                              ⏳ PAIEMENT SIGNALÉ
                            </span>
-                           <p className="text-[9px] font-bold text-blue-600 max-w-[140px] leading-tight">Paiement signalé, en attente de validation.</p>
+                           <p className="text-[9px] font-bold text-blue-600 max-w-[150px] leading-tight">Paiement signalé, en attente de validation par l'admin.</p>
                         </div>
                      ) : (
                         <div className="flex flex-col items-end gap-1.5 text-right">
@@ -708,7 +738,7 @@ function TontineMembreDashboard() {
                            </span>
                            <button onClick={handleSignalerPaiement} disabled={isSignalingPayment} className="bg-black text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:scale-105 transition-transform disabled:opacity-50 mt-1 shadow-md">
                               {isSignalingPayment ? <Loader2 size={12} className="animate-spin text-white"/> : <Wallet size={12} style={{ color: tontine?.theme_color || '#39FF14' }}/>}
-                              Signaler cotisation
+                              💳 Signaler ma cotisation au gérant
                            </button>
                         </div>
                      )}
@@ -776,8 +806,8 @@ function TontineMembreDashboard() {
                             <div className="flex flex-col sm:flex-row items-center gap-6">
                                 <div className="w-20 h-20 rounded-full border-2 p-1 shrink-0" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
                                     <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-2xl font-black overflow-hidden" style={{ color: tontine?.theme_color || '#39FF14' }}>
-                                        {designatedMember?.avatar_url ? (
-                                            <img src={designatedMember.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                        {designatedMember?.avatar_url || designatedMember?.photo_url ? (
+                                            <img src={designatedMember.avatar_url || designatedMember.photo_url} alt="Avatar" className="w-full h-full object-cover" />
                                         ) : (
                                             designatedMember?.prenom_nom?.substring(0, 2) || "??"
                                         )}
@@ -799,14 +829,12 @@ function TontineMembreDashboard() {
                     )}
                 </div>
 
-                {currentDrawConfig && (
                     <div className="bg-black/50 p-5 rounded-3xl border border-zinc-800 text-center shrink-0 min-w-[200px] relative z-10 shadow-inner">
                         <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Tirage prévu dans</p>
-                        <p className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black animate-pulse`} style={{ color: tontine?.theme_color || '#39FF14' }}>
+                        <p className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black animate-pulse`} style={{ color: isUrgent ? '#EF4444' : (tontine?.theme_color || '#39FF14') }}>
                             {countdownText || "Calcul..."}
                         </p>
                     </div>
-                )}
             </section>
 
             {/* --- 3. MOTEUR DE TIRAGE (RÉVÉLATION GAGNANTS) --- */}
@@ -954,8 +982,15 @@ function TontineMembreDashboard() {
                           </div>
                       </div>
                       <div className="space-y-3">
-                          {members.map((m: any) => {
+                          {(() => {
+                              const sortedMembers = [...members].sort((a, b) => {
+                                  const aSignaled = cotisations.some(c => c.membre_id === a.id && c.mois_numero === currentMonth && c.a_signale_paiement && c.statut !== 'Payé') ? 1 : 0;
+                                  const bSignaled = cotisations.some(c => c.membre_id === b.id && c.mois_numero === currentMonth && c.a_signale_paiement && c.statut !== 'Payé') ? 1 : 0;
+                                  return bSignaled - aSignaled;
+                              });
+                              return sortedMembers.map((m: any) => {
                               const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
+                              const hasSignaled = !hasPaid && cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.a_signale_paiement && c.statut !== 'Payé');
                               const isToggling = togglingPaymentFor === m.id;
                               const relanceMessage = `Bonjour ${m.prenom_nom}, petit rappel pour la cotisation de la tontine "${tontine?.nom}" de ce mois. Merci de régulariser au plus vite !`;
 
@@ -979,19 +1014,21 @@ function TontineMembreDashboard() {
                                           <button 
                                               onClick={() => handleTogglePaiement(m.id, currentMonth)} 
                                               disabled={isToggling}
-                                              className={`w-28 h-11 flex items-center justify-center rounded-xl text-xs font-black uppercase transition-all ${
-                                                  hasPaid ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'
+                                              className={`w-[120px] h-11 flex items-center justify-center rounded-xl text-[10px] sm:text-xs font-black uppercase transition-all ${
+                                                  hasPaid ? 'bg-green-500 text-white hover:bg-green-600' : hasSignaled ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-md' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'
                                               } disabled:opacity-50`}
                                           >
-                                              {isToggling ? <Loader2 size={16} className="animate-spin" /> : hasPaid ? <><CheckCircle size={14} className="mr-1.5"/> Payé</> : 'Pointer'}
+                                              {isToggling ? <Loader2 size={16} className="animate-spin" /> : hasPaid ? <><CheckCircle size={14} className="mr-1.5"/> Payé</> : hasSignaled ? <><Clock size={14} className="mr-1.5 animate-pulse"/> Valider</> : 'Pointer'}
                                           </button>
                                       </div>
                                   </div>
                               );
-                          })}
+                          });
+                          })()}
                       </div>
                     </div>
-                  )})()
+                  );
+                  })()
                ) : (
                   <div className="bg-white border border-zinc-200 p-8 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
                      <p className="text-sm text-zinc-500 font-bold mb-6">Ces membres (y compris vous) participeront aux prochains tirages au sort mensuels.</p>

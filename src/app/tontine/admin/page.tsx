@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList, Eye, Download, Archive, Send, History, Sparkles, Calendar, Wand2 } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList, Eye, Download, Archive, Send, History, Sparkles, Calendar, Wand2, Clock, Share2 } from 'lucide-react';
 import InteractiveParticles from '@/components/InteractiveParticles';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -452,11 +452,24 @@ export default function TontineAdminPage() {
          if (receiptFile) {
              recu_url = await uploadFileToSupabase(receiptFile, 'recus');
          }
-         const payload = { tontine_id: tontine.id, membre_id: paymentModal.member.id, mois_numero: currentMonth, montant: tontine?.montant_mensuel || 0, statut: 'Payé', recu_url };
-         const { data, error } = await supabase.from('cotisations').insert([payload]).select();
-         if (error) throw error;
-         if (data) {
-             setCotisations(prev => [...prev, data[0]]);
+         const payload = { tontine_id: tontine.id, membre_id: paymentModal.member.id, mois_numero: currentMonth, montant: tontine?.montant_mensuel || 0, statut: 'Payé' as any };
+         if (recu_url) (payload as any).recu_url = recu_url;
+
+         const { data: existing } = await supabase.from('cotisations').select('id').eq('tontine_id', tontine.id).eq('membre_id', paymentModal.member.id).eq('mois_numero', currentMonth).single();
+         
+         let res;
+         if (existing) {
+             res = await supabase.from('cotisations').update({ statut: 'Payé', recu_url: recu_url || null }).eq('id', existing.id).select();
+         } else {
+             res = await supabase.from('cotisations').insert([payload]).select();
+         }
+
+         if (res.error) throw res.error;
+         if (res.data && res.data.length > 0) {
+             setCotisations(prev => {
+                 const filtered = prev.filter(c => c.id !== res.data[0].id && !(c.membre_id === paymentModal.member.id && c.mois_numero === currentMonth));
+                 return [...filtered, res.data[0]];
+             });
              const dueDate = tontine?.date_limite_paiement || 5;
              if (new Date().getDate() > dueDate) {
                 setShowConfetti(true);
@@ -784,6 +797,26 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
+  const handleShareDrawGroup = () => {
+    if (!tontine || recentWinners.length === 0) return;
+
+    const prizeAmount = (caisseMensuelle / (tontine?.gagnants_par_mois || 1)).toLocaleString();
+    const winnerNames = recentWinners.map(w => `✅ *${w.prenom_nom}*`).join('\n');
+
+    const text = `💸 *RÉSULTATS DU TIRAGE - MOIS ${currentMonth}* 💸\n\nTontine : *${tontine.nom}*\n-----------------------------------\n🎯 *Les heureux gagnants sont :*\n${winnerNames}\n\n💰 Montant remporté : *${prizeAmount} F CFA* (chacun)\n-----------------------------------\nFélicitations aux gagnants ! 🎉\nTirage effectué en toute transparence via Onyx Tontine.`;
+
+    // Utilisation du partage natif (excellent sur mobile pour partager direct dans un groupe)
+    if (navigator.share) {
+      navigator.share({
+        title: `Résultats Tirage - ${tontine.nom}`,
+        text: text
+      }).catch(console.error);
+    } else {
+      const encodedMessage = encodeURIComponent(text);
+      window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    }
+  };
+
   const handleGroupReminder = () => {
     if (!tontine || membres.length === 0) return;
 
@@ -819,25 +852,24 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
 
     setIsSaving(true);
     try {
-        const payloads = unpaidMembers.map(m => ({
-            tontine_id: tontine.id,
-            membre_id: m.id,
-            mois_numero: currentMonth,
-            montant: tontine?.montant_mensuel || 0,
-            statut: 'Payé'
-        }));
+        for (const m of unpaidMembers) {
+            const existing = cotisations.find(c => c.membre_id === m.id && c.mois_numero === currentMonth);
+            if (existing) {
+                await supabase.from('cotisations').update({ statut: 'Payé' }).eq('id', existing.id);
+            } else {
+                await supabase.from('cotisations').insert([{ tontine_id: tontine.id, membre_id: m.id, mois_numero: currentMonth, montant: tontine?.montant_mensuel || 0, statut: 'Payé' }]);
+            }
+        }
         
-        const { data, error } = await supabase.from('cotisations').insert(payloads).select();
-        if (error) throw error;
+        const { data: freshCots } = await supabase.from('cotisations').select('*').eq('tontine_id', tontine.id);
+        if (freshCots) setCotisations(freshCots);
         
-        if (data) {
-            setCotisations(prev => [...prev, ...data]);
+        setShowConfetti(true);
             setShowConfetti(true);
             setTimeout(() => setShowConfetti(false), 8000);
             const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
             audio.volume = 0.5;
             audio.play().catch(()=>{});
-        }
     } catch (err: any) {
         alert("Erreur lors de la validation: " + err.message);
     } finally {
@@ -1134,6 +1166,10 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
       return nameMatch && !m.a_gagne;
     }
     return false;
+  }).sort((a, b) => {
+    const aSignaled = cotisations.some(c => c.membre_id === a.id && c.mois_numero === currentMonth && c.a_signale_paiement && c.statut !== 'Payé') ? 1 : 0;
+    const bSignaled = cotisations.some(c => c.membre_id === b.id && c.mois_numero === currentMonth && c.a_signale_paiement && c.statut !== 'Payé') ? 1 : 0;
+    return bSignaled - aSignaled; // Les signalés apparaissent en premier
   });
 
   const dueDate = tontine?.date_limite_paiement || 5; // Date limite de paiement dynamique
@@ -1166,27 +1202,39 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
     <div className="min-h-screen bg-zinc-50 font-sans pb-24 text-black relative">
       <InteractiveParticles themeColor={tontine?.theme_color || '#39FF14'} />
       
+      {/* --- ANIMATION DE BILLETS (GAGNANT) --- */}
       {showConfetti && (
         <div className="fixed inset-0 z-[200] pointer-events-none overflow-hidden">
-          {[...Array(100)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute top-[-10%] opacity-0"
-              style={{
-                left: `${Math.random() * 100}%`,
-                width: `${Math.random() * 10 + 6}px`,
-                height: `${Math.random() * 10 + 6}px`,
-                backgroundColor: i % 3 === 0 ? '#ffffff' : (tontine?.theme_color || '#39FF14'),
-                animation: `confetti-fall ${2 + Math.random() * 3}s linear forwards`,
-                animationDelay: `${Math.random() * 1.5}s`,
-                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none', 
-              }}
-            />
-          ))}
+          {[...Array(50)].map((_, i) => {
+            const isLeft = i % 2 === 0;
+            return (
+              <div
+                key={i}
+                className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animation: `bill-fall-${isLeft ? 'left' : 'right'} ${2 + Math.random() * 2}s ease-in forwards`,
+                  animationDelay: `${Math.random() * 1.5}s`,
+                }}
+              >
+                {i % 3 === 0 ? '💸' : '💵'}
+              </div>
+            );
+          })}
           <style dangerouslySetInnerHTML={{__html: `
-            @keyframes confetti-fall {
-              0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-              100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+            @keyframes bill-fall-left {
+              0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+              25% { transform: translateY(25vh) rotate(90deg) translateX(-20px); opacity: 1; }
+              50% { transform: translateY(50vh) rotate(180deg) translateX(20px); opacity: 1; }
+              75% { transform: translateY(75vh) rotate(270deg) translateX(-20px); opacity: 1; }
+              100% { transform: translateY(110vh) rotate(360deg) translateX(0); opacity: 0; }
+            }
+            @keyframes bill-fall-right {
+              0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+              25% { transform: translateY(25vh) rotate(-90deg) translateX(20px); opacity: 1; }
+              50% { transform: translateY(50vh) rotate(-180deg) translateX(-20px); opacity: 1; }
+              75% { transform: translateY(75vh) rotate(-270deg) translateX(20px); opacity: 1; }
+              100% { transform: translateY(110vh) rotate(-360deg) translateX(0); opacity: 0; }
             }
           `}} />
         </div>
@@ -1349,8 +1397,8 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                         ))}
                      </div>
                      <div className="flex flex-wrap justify-center gap-4 mt-8">
-                        <button onClick={() => setRecentWinners([])} className="bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-bold uppercase hover:bg-zinc-700 transition">Terminer le tirage</button>
-                        <button onClick={handleNotifyWinners} className="bg-green-500 text-white px-6 py-3 rounded-full text-xs font-bold uppercase hover:bg-green-600 transition flex items-center gap-2 shadow-lg"><MessageCircle size={14}/> Notifier les gagnants</button>
+                        <button onClick={() => setRecentWinners([])} className="bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-bold uppercase hover:bg-zinc-700 transition">Fermer</button>
+                        <button onClick={handleShareDrawGroup} className="bg-[#39FF14] text-black px-6 py-3 rounded-full text-xs font-black uppercase hover:scale-105 transition flex items-center gap-2 shadow-[0_0_15px_rgba(57,255,20,0.4)]"><Share2 size={16}/> Partager dans le groupe</button>
                      </div>
                   </div>
                ) : (
@@ -1510,6 +1558,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                {filteredMembres.map((m) => {
                   const currentCotisation = cotisations.find(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
                   const hasPaid = !!currentCotisation;
+                  const hasSignaled = !hasPaid && cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.a_signale_paiement && c.statut !== 'Payé');
                   const memberCotisations = cotisations.filter(c => c.membre_id === m.id && c.statut === 'Payé');
                   const lastPayment = memberCotisations.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
                   const lastPaymentDate = lastPayment?.created_at ? new Date(lastPayment.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '-';
@@ -1586,6 +1635,16 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                                    <button onClick={() => handleShareReceiptWhatsApp(m, currentCotisation)} className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Envoyer par WhatsApp">
                                      <Send size={12} />
                                    </button>
+                                 </div>
+                              ) : hasSignaled ? (
+                                 <div className="flex items-center justify-between w-full">
+                                    <div className="flex flex-col items-start">
+                                       <button onClick={() => togglePaymentStatus(m, hasPaid)} disabled={isSaving} className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 hover:bg-blue-100 transition disabled:opacity-50 shadow-sm" title="Valider le paiement signalé"><Clock size={12} className="animate-pulse"/> Signalé</button>
+                                       {isLate && <span className="text-[10px] font-bold text-red-500 mt-1 ml-1">(En retard)</span>}
+                                    </div>
+                                    <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(waMessage)}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition" title="Contacter sur WhatsApp">
+                                       <MessageCircle size={14}/>
+                                    </a>
                                  </div>
                               ) : (
                                  <div className="flex items-center justify-between w-full">

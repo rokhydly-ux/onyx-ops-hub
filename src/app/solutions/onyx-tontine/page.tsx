@@ -314,30 +314,41 @@ export default function OnyxTontineLanding() {
         .animate-float-neon {
           animation: float-neon 4s ease-in-out infinite;
         }
-        @keyframes confetti-fall {
-          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        @keyframes bill-fall-left {
+          0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+          25% { transform: translateY(25vh) rotate(90deg) translateX(-20px); opacity: 1; }
+          50% { transform: translateY(50vh) rotate(180deg) translateX(20px); opacity: 1; }
+          75% { transform: translateY(75vh) rotate(270deg) translateX(-20px); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(360deg) translateX(0); opacity: 0; }
+        }
+        @keyframes bill-fall-right {
+          0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+          25% { transform: translateY(25vh) rotate(-90deg) translateX(20px); opacity: 1; }
+          50% { transform: translateY(50vh) rotate(-180deg) translateX(-20px); opacity: 1; }
+          75% { transform: translateY(75vh) rotate(-270deg) translateX(20px); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(-360deg) translateX(0); opacity: 0; }
         }
       `}} />
 
-      {/* --- ANIMATION DE CONFETTIS (DÉMO) --- */}
+      {/* --- ANIMATION DE BILLETS (DÉMO) --- */}
       {showConfettiDemo && (
         <div className="fixed inset-0 z-[200] pointer-events-none overflow-hidden">
-          {[...Array(80)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute top-[-10%] opacity-0"
-              style={{
-                left: `${Math.random() * 100}%`,
-                width: `${Math.random() * 10 + 6}px`,
-                height: `${Math.random() * 10 + 6}px`,
-                backgroundColor: ['#39FF14', '#FF5722', '#00E5FF', '#FACC15', '#B026FF', '#ffffff'][i % 6],
-                animation: `confetti-fall ${2 + Math.random() * 3}s linear forwards`,
-                animationDelay: `${Math.random() * 1.5}s`,
-                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none',
-              }}
-            />
-          ))}
+          {[...Array(50)].map((_, i) => {
+            const isLeft = i % 2 === 0;
+            return (
+              <div
+                key={i}
+                className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animation: `bill-fall-${isLeft ? 'left' : 'right'} ${2 + Math.random() * 2}s ease-in forwards`,
+                  animationDelay: `${Math.random() * 1.5}s`,
+                }}
+              >
+                {i % 3 === 0 ? '💸' : '💵'}
+              </div>
+            );
+          })}
         </div>
       )}
 

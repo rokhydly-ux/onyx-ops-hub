@@ -56,11 +56,22 @@ function SlugPageContent({ slug }: { slug: string }) {
   // --- NOUVEAU : ETAT TOUR DE ROLE ---
   const [currentDrawConfig, setCurrentDrawConfig] = useState<any>(null);
   const [countdownText, setCountdownText] = useState("");
+  const [isUrgent, setIsUrgent] = useState(false);
   const [isSignalingPayment, setIsSignalingPayment] = useState(false);
 
   useEffect(() => {
-    if (!currentDrawConfig?.date_tirage_prevue) return;
-    const target = new Date(currentDrawConfig.date_tirage_prevue);
+    const target = currentDrawConfig?.date_tirage_prevue 
+        ? new Date(currentDrawConfig.date_tirage_prevue)
+        : new Date();
+    
+    if (!currentDrawConfig?.date_tirage_prevue) {
+        const limitDay = tontine?.date_limite_paiement || 5;
+        if (target.getDate() >= limitDay) {
+            target.setMonth(target.getMonth() + 1);
+        }
+        target.setDate(limitDay);
+    }
+
     target.setHours(23, 59, 59); // Fin de journée
     
     const updateCountdown = () => {
@@ -68,8 +79,10 @@ function SlugPageContent({ slug }: { slug: string }) {
       const distance = target.getTime() - now;
       if (distance < 0) {
         setCountdownText("Tirage imminent !");
+        setIsUrgent(true);
         return;
       }
+      setIsUrgent(distance < 24 * 60 * 60 * 1000);
       const days = Math.floor(distance / (1000 * 60 * 60 * 24));
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
@@ -80,7 +93,7 @@ function SlugPageContent({ slug }: { slug: string }) {
     // Mise à jour chaque minute pour éviter les re-rendus excessifs (les secondes ne sont pas affichées)
     const interval = setInterval(updateCountdown, 1000 * 60);
     return () => clearInterval(interval);
-  }, [currentDrawConfig]);
+  }, [currentDrawConfig, tontine]);
 
   useEffect(() => {
     const checkSessionAndFetchData = async () => {
@@ -399,14 +412,23 @@ function SlugPageContent({ slug }: { slug: string }) {
          if (receiptFile) {
              recu_url = await uploadFileToSupabase(receiptFile, 'recus');
          }
-         const { error: insertErr } = await supabase.from('cotisations').insert([{
-             tontine_id: tontine.id,
-             membre_id: paymentModal.membreId,
-             mois_numero: paymentModal.moisEnCours,
-             montant: tontine.montant_mensuel || 0,
-             statut: 'Payé',
-             recu_url
-         }]);
+         const { data: existing } = await supabase.from('cotisations').select('id').eq('tontine_id', tontine.id).eq('membre_id', paymentModal.membreId).eq('mois_numero', paymentModal.moisEnCours).single();
+         
+         let insertErr;
+         if (existing) {
+             const { error } = await supabase.from('cotisations').update({ statut: 'Payé', recu_url }).eq('id', existing.id);
+             insertErr = error;
+         } else {
+             const { error } = await supabase.from('cotisations').insert([{
+                 tontine_id: tontine.id,
+                 membre_id: paymentModal.membreId,
+                 mois_numero: paymentModal.moisEnCours,
+                 montant: tontine.montant_mensuel || 0,
+                 statut: 'Payé',
+                 recu_url
+             }]);
+             insertErr = error;
+         }
          if (insertErr) throw insertErr;
          
          const { data: freshCots } = await supabase.from('cotisations').select('*').eq('tontine_id', tontine.id);
@@ -668,27 +690,39 @@ function SlugPageContent({ slug }: { slug: string }) {
     <div className="min-h-screen bg-zinc-50 text-black font-sans pb-28">
       <InteractiveParticles themeColor={tontine?.theme_color || '#009FDF'} />
       
+      {/* --- ANIMATION DE BILLETS (GAGNANT) --- */}
       {showConfetti && (
         <div className="fixed inset-0 z-[200] pointer-events-none overflow-hidden">
-          {[...Array(80)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute top-[-10%] opacity-0"
-              style={{
-                left: `${Math.random() * 100}%`,
-                width: `${Math.random() * 10 + 6}px`,
-                height: `${Math.random() * 10 + 6}px`,
-                backgroundColor: i % 3 === 0 ? '#ffffff' : (tontine?.theme_color || '#39FF14'),
-                animation: `confetti-fall ${2 + Math.random() * 3}s linear forwards`,
-                animationDelay: `${Math.random() * 1.5}s`,
-                clipPath: i % 2 === 0 ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none', 
-              }}
-            />
-          ))}
+          {[...Array(50)].map((_, i) => {
+            const isLeft = i % 2 === 0;
+            return (
+              <div
+                key={i}
+                className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animation: `bill-fall-${isLeft ? 'left' : 'right'} ${2 + Math.random() * 2}s ease-in forwards`,
+                  animationDelay: `${Math.random() * 1.5}s`,
+                }}
+              >
+                {i % 3 === 0 ? '💸' : '💵'}
+              </div>
+            );
+          })}
           <style dangerouslySetInnerHTML={{__html: `
-            @keyframes confetti-fall {
-              0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-              100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+            @keyframes bill-fall-left {
+              0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+              25% { transform: translateY(25vh) rotate(90deg) translateX(-20px); opacity: 1; }
+              50% { transform: translateY(50vh) rotate(180deg) translateX(20px); opacity: 1; }
+              75% { transform: translateY(75vh) rotate(270deg) translateX(-20px); opacity: 1; }
+              100% { transform: translateY(110vh) rotate(360deg) translateX(0); opacity: 0; }
+            }
+            @keyframes bill-fall-right {
+              0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+              25% { transform: translateY(25vh) rotate(-90deg) translateX(20px); opacity: 1; }
+              50% { transform: translateY(50vh) rotate(-180deg) translateX(-20px); opacity: 1; }
+              75% { transform: translateY(75vh) rotate(-270deg) translateX(20px); opacity: 1; }
+              100% { transform: translateY(110vh) rotate(-360deg) translateX(0); opacity: 0; }
             }
           `}} />
         </div>
@@ -832,9 +866,9 @@ function SlugPageContent({ slug }: { slug: string }) {
                      ) : isUserPending ? (
                         <div className="flex flex-col items-end gap-1.5 text-right">
                            <span className="bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1 animate-pulse">
-                              <Clock size={12}/> EN ATTENTE
+                              ⏳ PAIEMENT SIGNALÉ
                            </span>
-                           <p className="text-[9px] font-bold text-blue-600 max-w-[140px] leading-tight">Paiement signalé, en attente de validation.</p>
+                           <p className="text-[9px] font-bold text-blue-600 max-w-[150px] leading-tight">Paiement signalé, en attente de validation par l'admin.</p>
                         </div>
                      ) : (
                         <div className="flex flex-col items-end gap-1.5 text-right">
@@ -843,7 +877,7 @@ function SlugPageContent({ slug }: { slug: string }) {
                            </span>
                            <button onClick={handleSignalerPaiement} disabled={isSignalingPayment} className="bg-black text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:scale-105 transition-transform disabled:opacity-50 mt-1 shadow-md">
                               {isSignalingPayment ? <Loader2 size={12} className="animate-spin text-white"/> : <Wallet size={12} style={{ color: tontine?.theme_color || '#39FF14' }}/>}
-                              Signaler cotisation
+                              💳 Signaler ma cotisation au gérant
                            </button>
                         </div>
                      )}
@@ -953,6 +987,52 @@ function SlugPageContent({ slug }: { slug: string }) {
                        </div>
                    </div>
                </div>
+            </section>
+
+            {/* 2.5. TRANSPARENCE TOUR DE RÔLE */}
+            <section className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-[3rem] shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
+                <div className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-bl-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
+                
+                <div className="flex-1 w-full relative z-10">
+                    <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-4 flex items-center gap-2 text-white`}>
+                        <Wand2 size={18} style={{ color: tontine?.theme_color || '#39FF14' }} />
+                        100% Transparence : Le Tour de Rôle
+                    </h3>
+                    {currentDrawConfig ? (() => {
+                        const designatedMember = members.find(m => m.id === currentDrawConfig.membre_id);
+                        return (
+                            <div className="flex flex-col sm:flex-row items-center gap-6">
+                                <div className="w-20 h-20 rounded-full border-2 p-1 shrink-0" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+                                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-2xl font-black overflow-hidden" style={{ color: tontine?.theme_color || '#39FF14' }}>
+                                        {designatedMember?.avatar_url || designatedMember?.photo_url ? (
+                                            <img src={designatedMember.avatar_url || designatedMember.photo_url} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            designatedMember?.prenom_nom?.substring(0, 2) || "??"
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-zinc-400 uppercase tracking-widest font-bold mb-1">Maître du jeu ce mois-ci</p>
+                                    <p className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black text-white uppercase tracking-tighter leading-tight`}>
+                                        {designatedMember?.prenom_nom || "Inconnu"}
+                                    </p>
+                                    <p className="text-xs text-zinc-500 italic mt-2 max-w-sm">A le pouvoir unique de lancer le tirage en un clic. (Une seule fois historiquement).</p>
+                                </div>
+                            </div>
+                        );
+                    })() : (
+                        <div className="bg-zinc-800/50 p-4 rounded-xl border border-zinc-700/50 text-zinc-400 italic text-sm font-medium">
+                            L'administrateur n'a pas encore désigné de membre pour le tirage de ce mois. L'automatisation prendra le relais dès le premier tirage effectué.
+                        </div>
+                    )}
+                </div>
+
+                    <div className="bg-black/50 p-5 rounded-3xl border border-zinc-800 text-center shrink-0 min-w-[200px] relative z-10 shadow-inner">
+                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Tirage prévu dans</p>
+                        <p className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black animate-pulse`} style={{ color: isUrgent ? '#EF4444' : (tontine?.theme_color || '#39FF14') }}>
+                            {countdownText || "Calcul..."}
+                        </p>
+                    </div>
             </section>
 
             {/* 2. MOTEUR DE TIRAGE AU SORT */}
@@ -1126,23 +1206,6 @@ function SlugPageContent({ slug }: { slug: string }) {
                   )}
                </div>
             </section>
-
-            {currentDrawConfig && (
-               <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-bl-full pointer-events-none" style={{ backgroundColor: tontine.theme_color }}></div>
-                  <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-4 flex items-center gap-2 text-black relative z-10`}>
-                     <Wand2 size={16} style={{ color: tontine.theme_color }} />
-                     100% TRANSPARENCE : Tour de Rôle du Tirage
-                  </h3>
-                  <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
-                     <p className="text-sm text-zinc-600 mb-2">Personne désignée pour le tirage de ce mois : <span className="font-black text-black bg-zinc-200 px-2 py-0.5 rounded">{members.find(m => m.id === currentDrawConfig.membre_id)?.prenom_nom || "Inconnu"}</span></p>
-                     <p className="text-sm text-zinc-600 mb-4">Date du tirage prévue : <span className="font-black text-black">{new Date(currentDrawConfig.date_tirage_prevue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
-                     <p className="text-xs text-zinc-500 italic bg-zinc-100 p-3 rounded-lg border border-zinc-200 leading-relaxed shadow-sm">
-                        Pendant ce mois, cette personne a le <strong className="text-black font-black">pouvoir unique de lancer le tirage</strong> en un simple clic. Elle ne peut cliquer qu'<strong className="text-black font-black">une seule fois historiquement</strong>.
-                     </p>
-                  </div>
-               </div>
-            )}
           </div>
         </div>
       </main>
