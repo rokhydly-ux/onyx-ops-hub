@@ -910,10 +910,10 @@ function SlugPageContent({ slug }: { slug: string }) {
                                           {hist.winners.map((w: any, i: number) => (
                                               <div key={i} className="flex items-center gap-3 bg-zinc-50 p-3 rounded-xl border border-zinc-100 hover:border-zinc-300 transition-colors">
                                                   <div className="w-10 h-10 rounded-full bg-zinc-200 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center font-black text-xs text-zinc-500">
-                                                      {w.photo ? <img src={w.photo} className="w-full h-full object-cover"/> : w.nom.substring(0,2)}
+                                                  {w.photo ? <img src={w.photo} className="w-full h-full object-cover"/> : w.nom?.substring(0,2)}
                                                   </div>
                                                   <div>
-                                                      <p className="font-bold text-sm leading-tight text-black">{w.nom}</p>
+                                                  <p className="font-bold text-sm leading-tight text-black">{w.nom || "Inconnu"}</p>
                                                       <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{montantParGagnant.toLocaleString()} F CFA</p>
                                                   </div>
                                               </div>
@@ -937,10 +937,10 @@ function SlugPageContent({ slug }: { slug: string }) {
                               waitingList.map(m => (
                                   <div key={m.id} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-zinc-100 shadow-sm hover:shadow-md transition-shadow">
                                       <div className="w-10 h-10 rounded-full bg-zinc-100 border-2 border-zinc-50 flex items-center justify-center text-zinc-400 font-black text-xs overflow-hidden">
-                                          {m.photo_url ? <img src={m.photo_url} className="w-full h-full object-cover"/> : m.prenom_nom.substring(0,2)}
+                                      {m.photo_url ? <img src={m.photo_url} className="w-full h-full object-cover"/> : m.prenom_nom?.substring(0,2)}
                                       </div>
                                       <div>
-                                          <p className="font-bold text-sm leading-tight text-black">{m.prenom_nom}</p>
+                                      <p className="font-bold text-sm leading-tight text-black">{m.prenom_nom || "Inconnu"}</p>
                                           <p className="text-[9px] text-zinc-400 font-black uppercase tracking-widest mt-0.5">En lice</p>
                                       </div>
                                   </div>
@@ -966,10 +966,10 @@ function SlugPageContent({ slug }: { slug: string }) {
                                   <div key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-zinc-50 rounded-xl border border-zinc-100 gap-3 hover:bg-white hover:border-zinc-200 transition-colors shadow-sm">
                                       <div className="flex items-center gap-3">
                                           <div className="w-10 h-10 rounded-full bg-zinc-200 border-2 border-white shadow-sm flex items-center justify-center text-[10px] font-black overflow-hidden text-zinc-500">
-                                              {m.photo_url ? <img src={m.photo_url} className="w-full h-full object-cover"/> : m.prenom_nom.substring(0,2)}
+                                          {m.photo_url ? <img src={m.photo_url} className="w-full h-full object-cover"/> : m.prenom_nom?.substring(0,2)}
                                           </div>
                                           <div>
-                                              <p className="font-bold text-sm text-black">{m.prenom_nom}</p>
+                                          <p className="font-bold text-sm text-black">{m.prenom_nom || "Inconnu"}</p>
                                               <p className="text-[10px] font-bold text-zinc-400">{m.telephone}</p>
                                           </div>
                                       </div>

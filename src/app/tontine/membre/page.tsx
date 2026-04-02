@@ -715,10 +715,10 @@ function TontineMembreDashboard() {
                                     <div key={wIdx} className="flex items-center gap-2">
                                        <div className="flex items-center gap-2.5 bg-zinc-50 pl-1.5 pr-4 py-1.5 rounded-full border border-zinc-200 shadow-sm hover:border-black transition-colors">
                                           <div className="w-8 h-8 rounded-full bg-black overflow-hidden flex items-center justify-center text-[10px] font-black text-white shrink-0">
-                                             {w.photo ? <img src={w.photo} alt={w.nom} className="w-full h-full object-cover" /> : w.nom.substring(0, 2).toUpperCase()}
+                                          {w.photo ? <img src={w.photo} alt={w.nom} className="w-full h-full object-cover" /> : w.nom?.substring(0, 2).toUpperCase()}
                                           </div>
                                           <span className="font-black text-black uppercase text-sm flex items-center gap-1">
-                                             {w.nom} {w.is_admin && <span title="Gérant"><ShieldCheck size={14} className="text-yellow-500" /></span>}
+                                          {w.nom || "Inconnu"} {w.is_admin && <span title="Gérant"><ShieldCheck size={14} className="text-yellow-500" /></span>}
                                           </span>
                                        </div>
                                        {wIdx < h.winners.length - 1 && <span className="text-zinc-300 font-black text-lg">&</span>}
@@ -804,7 +804,7 @@ function TontineMembreDashboard() {
                            <div key={i} className={`flex items-center gap-3 p-4 rounded-2xl border ${m.id === currentUser.id ? 'bg-black text-white border-black shadow-lg' : 'bg-zinc-50 text-zinc-700 border-zinc-100 hover:border-zinc-300'}`}>
                               <Lock size={16} style={{ color: m.id === currentUser.id ? tontine.theme_color : '#a1a1aa' }} />
                               <span className="text-sm font-black uppercase truncate flex items-center gap-1.5">
-                                 {m.prenom_nom.split(' ')[0]} {m.id === currentUser.id && "(Vous)"}
+                             {m.prenom_nom?.split(' ')[0] || "Inconnu"} {m.id === currentUser.id && "(Vous)"}
                                  {m.is_admin && <span title="Gérant"><ShieldCheck size={14} className="text-yellow-500" /></span>}
                               </span>
                            </div>

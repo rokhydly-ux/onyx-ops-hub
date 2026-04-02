@@ -161,6 +161,7 @@ export default function OnyxOpsElite() {
   const [countryCode, setCountryCode] = useState("+221"); // NOUVEAU: Dropdown pays
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [hasTriggeredExitIntent, setHasTriggeredExitIntent] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   // NOUVEAU: Fonction de validation stricte du téléphone
   const validatePhone = (code: string, number: string) => {
@@ -746,7 +747,7 @@ export default function OnyxOpsElite() {
                     <button onClick={() => document.getElementById('tarifs')?.scrollIntoView({behavior:'smooth'})} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.3)]">
                       Créer ma boutique (1er Mois Offert)
                     </button>
-                    <button onClick={() => window.open('/keur-yaay', '_blank')} className="inline-flex justify-center items-center gap-2 border-2 border-black text-black px-8 py-5 rounded-full font-black text-sm uppercase hover:bg-black hover:text-white transition">
+                    <button onClick={() => setShowVideoModal(true)} className="inline-flex justify-center items-center gap-2 border-2 border-black text-black px-8 py-5 rounded-full font-black text-sm uppercase hover:bg-black hover:text-white transition">
                       <PlayCircle className="w-5 h-5" /> Voir une Démo
                     </button>
                   </div>
@@ -1542,6 +1543,22 @@ export default function OnyxOpsElite() {
             </div>
           );
         })()}
+
+    {/* --- MODALE VIDÉO YOUTUBE --- */}
+    {showVideoModal && (
+      <div id="video-modal-overlay" onClick={(e: any) => e.target.id === 'video-modal-overlay' && setShowVideoModal(false)} className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in">
+        <div className="bg-black border border-zinc-800 rounded-3xl w-full max-w-4xl relative shadow-[0_0_50px_rgba(57,255,20,0.2)] animate-in zoom-in overflow-hidden aspect-video">
+          <button onClick={() => setShowVideoModal(false)} className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-20 backdrop-blur-md"><X size={20}/></button>
+          <iframe 
+            src="https://www.youtube.com/embed/acFsObjm2E0?autoplay=1&mute=0" 
+            title="Vidéo Démo Onyx"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowFullScreen
+            className="w-full h-full border-0"
+          ></iframe>
+        </div>
+      </div>
+    )}
 
         {/* --- MODALE : ONBOARDING CAPTURE LEAD (MAIMOUNA) --- */}
         {showOnboarding && (
