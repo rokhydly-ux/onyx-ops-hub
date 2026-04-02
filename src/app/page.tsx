@@ -744,7 +744,12 @@ export default function OnyxOpsElite() {
                   </div>
                   
                   <div className="flex flex-col sm:flex-row gap-4 mb-10">
-                    <button onClick={() => document.getElementById('tarifs')?.scrollIntoView({behavior:'smooth'})} className="inline-flex justify-center items-center gap-2 bg-[#00FF00] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#00FF00] transition duration-300 shadow-[0_15px_30px_rgba(0,255,0,0.3)]">
+                    <button onClick={() => {
+                      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+                      audio.volume = 0.5;
+                      audio.play().catch(()=>{});
+                      document.getElementById('tarifs')?.scrollIntoView({behavior:'smooth'});
+                    }} className="inline-flex justify-center items-center gap-2 bg-[#00FF00] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#00FF00] transition duration-300 shadow-[0_15px_30px_rgba(0,255,0,0.3)]">
                       LANCER MA MACHINE (1er Mois Offert)
                     </button>
                     <button onClick={() => setShowVideoModal(true)} className="inline-flex justify-center items-center gap-2 border-2 border-black text-black px-8 py-5 rounded-full font-black text-sm uppercase hover:bg-black hover:text-white transition">
