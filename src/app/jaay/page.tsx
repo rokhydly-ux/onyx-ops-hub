@@ -28,6 +28,8 @@ export default function OnyxJaayLanding() {
   const [countryCode, setCountryCode] = useState("+221");
   const waNumber = "221785338417";
 
+  const [refId, setRefId] = useState<string | null>(null);
+
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [hasTriggeredExitIntent, setHasTriggeredExitIntent] = useState(false);
 
@@ -63,6 +65,16 @@ export default function OnyxJaayLanding() {
   }, []);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setRefId(ref);
+      localStorage.setItem('onyx_ambassador_ref', ref);
+    } else {
+      const storedRef = localStorage.getItem('onyx_ambassador_ref');
+      if (storedRef) setRefId(storedRef);
+    }
+
     const timer = setTimeout(() => {
       setIsBotOpen(true);
     }, 5000);
@@ -100,6 +112,7 @@ export default function OnyxJaayLanding() {
         password: 'central2026'
       };
       if (data.email) payload.email = data.email;
+      if (refId) payload.ambassador_id = refId;
       
       const { error } = await supabase.from('leads').insert([payload]);
       if (error) console.error("ERREUR SUPABASE (Leads) :", error.message);
@@ -198,7 +211,7 @@ export default function OnyxJaayLanding() {
 
         try {
             await supabase.from('leads').insert([{
-                full_name: 'Visiteur Jaay', intent: 'Question Bot Jaay', source: 'Bot Fanta FAQ', message: reply, status: 'Nouveau'
+                full_name: 'Visiteur Jaay', intent: 'Question Bot Jaay', source: 'Bot Fanta FAQ', message: reply, status: 'Nouveau', ambassador_id: refId || undefined
             }]);
         } catch (err) {}
     }, 1000);

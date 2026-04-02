@@ -104,8 +104,7 @@ function SlugPageContent({ slug }: { slug: string }) {
     const { data: allMembersData, error: membersError } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineData.id);
     const { data: allCotisationsData } = await supabase.from('cotisations').select('*');
 
-    // On récupère la config du tirage ET le nom du membre désigné en une seule requête
-    const { data: drawData, error: drawErr } = await supabase.from('configuration_tirage').select('*, tontine_members(prenom_nom)').eq('tontine_id', tontineData.id).single();
+    const { data: drawData, error: drawErr } = await supabase.from('configuration_tirage').select('*').eq('tontine_id', tontineData.id).single();
     if (!drawErr) setCurrentDrawConfig(drawData);
     else setCurrentDrawConfig(null);
 
@@ -734,22 +733,26 @@ function SlugPageContent({ slug }: { slug: string }) {
                 </button>
             </div>
             
-            {currentDrawConfig && (
-               <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-bl-full pointer-events-none" style={{ backgroundColor: tontine.theme_color }}></div>
-                  <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-4 flex items-center gap-2 text-black relative z-10`}>
-                     <Wand2 size={16} style={{ color: tontine.theme_color }} />
-                     100% TRANSPARENCE : Tour de Rôle du Tirage
-                  </h3>
-                  <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
-                     <p className="text-sm text-zinc-600 mb-2">Personne désignée pour le tirage de ce mois : <span className="font-black text-black bg-zinc-200 px-2 py-0.5 rounded">{currentDrawConfig?.tontine_members?.prenom_nom || "Inconnu"}</span></p>
-                     <p className="text-sm text-zinc-600 mb-4">Date du tirage prévue : <span className="font-black text-black">{new Date(currentDrawConfig.date_tirage_prevue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
-                     <p className="text-xs text-zinc-500 italic bg-zinc-100 p-3 rounded-lg border border-zinc-200 leading-relaxed shadow-sm">
-                        Pendant ce mois, cette personne a le <strong className="text-black font-black">pouvoir unique de lancer le tirage</strong> en un simple clic. Elle ne peut cliquer qu'<strong className="text-black font-black">une seule fois historiquement</strong>.
-                     </p>
-                  </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-bl-full pointer-events-none" style={{ backgroundColor: tontine.theme_color }}></div>
+               <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-4 flex items-center gap-2 text-black relative z-10`}>
+                  <Wand2 size={16} style={{ color: tontine.theme_color }} />
+                  100% TRANSPARENCE : Tour de Rôle du Tirage
+               </h3>
+               {currentDrawConfig ? (
+               <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
+                  <p className="text-sm text-zinc-600 mb-2">Personne désignée pour le tirage de ce mois : <span className="font-black text-black bg-zinc-200 px-2 py-0.5 rounded">{members.find(m => m.id === currentDrawConfig.membre_id)?.prenom_nom || "Inconnu"}</span></p>
+                  <p className="text-sm text-zinc-600 mb-4">Date du tirage prévue : <span className="font-black text-black">{new Date(currentDrawConfig.date_tirage_prevue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
+                  <p className="text-xs text-zinc-500 italic bg-zinc-100 p-3 rounded-lg border border-zinc-200 leading-relaxed shadow-sm">
+                     Pendant ce mois, cette personne a le <strong className="text-black font-black">pouvoir unique de lancer le tirage</strong> en un simple clic. Elle ne peut cliquer qu'<strong className="text-black font-black">une seule fois historiquement</strong>.
+                  </p>
                </div>
-            )}
+               ) : (
+               <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
+                  <p className="text-sm text-zinc-500 italic font-medium">L'administrateur n'a pas encore désigné de membre pour le tirage de ce mois. L'automatisation prendra le relais dès le premier tirage effectué.</p>
+               </div>
+               )}
+            </div>
 
             <section className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
                <div className="flex justify-between items-start mb-6">
@@ -931,7 +934,7 @@ function SlugPageContent({ slug }: { slug: string }) {
                                <>
                                    <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black text-white uppercase mb-4 leading-tight`}>Tirage en attente</h2>
                                    <div className="mt-4 bg-zinc-800/50 border border-zinc-700 p-4 rounded-xl max-w-sm mx-auto">
-                                       <p className="text-sm font-bold text-zinc-300">Le tirage est en cours d'organisation par la <span className="text-white">{currentDrawConfig?.tontine_members?.prenom_nom || 'personne désignée'}</span>. Vous serez informés dès qu'il sera effectué !</p>
+                                       <p className="text-sm font-bold text-zinc-300">Le tirage est en cours d'organisation par <span className="text-white">{members.find(m => m.id === currentDrawConfig?.membre_id)?.prenom_nom || 'la personne désignée'}</span>. Vous serez informés dès qu'il sera effectué !</p>
                                    </div>
                                </>
                            )}

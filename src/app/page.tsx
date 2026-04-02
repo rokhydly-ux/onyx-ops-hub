@@ -196,6 +196,9 @@ export default function OnyxOpsElite() {
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", address: "", country: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
+  // --- AFFILIATION (AMBASSADEUR) ---
+  const [refId, setRefId] = useState<string | null>(null);
+
   const [articles, setArticles] = useState<any[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [blogEmail, setBlogEmail] = useState("");
@@ -241,6 +244,17 @@ export default function OnyxOpsElite() {
       }
     };
     fetchArticles();
+
+    // Récupération de l'ID Ambassadeur depuis l'URL ou la mémoire locale
+    const searchParams = new URLSearchParams(window.location.search);
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setRefId(ref);
+      localStorage.setItem('onyx_ambassador_ref', ref);
+    } else {
+      const storedRef = localStorage.getItem('onyx_ambassador_ref');
+      if (storedRef) setRefId(storedRef);
+    }
 
     setTimeout(() => {
       setIsBotOpen(true);
@@ -318,6 +332,7 @@ export default function OnyxOpsElite() {
       if (data.address) payload.address = data.address;
       if (data.country) payload.country = data.country;
       if (data.email) payload.email = data.email;
+      if (refId) payload.ambassador_id = refId;
       
       const { error } = await supabase.from('leads').insert([payload]);
       if (error) {

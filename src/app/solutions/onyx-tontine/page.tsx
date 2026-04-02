@@ -56,6 +56,8 @@ export default function OnyxTontineLanding() {
   const [leadData, setLeadData] = useState({ name: "", phone: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [refId, setRefId] = useState<string | null>(null);
+
   // Navigation & UI
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -106,6 +108,16 @@ export default function OnyxTontineLanding() {
   }, []);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const ref = searchParams.get('ref');
+    if (ref) {
+      setRefId(ref);
+      localStorage.setItem('onyx_ambassador_ref', ref);
+    } else {
+      const storedRef = localStorage.getItem('onyx_ambassador_ref');
+      if (storedRef) setRefId(storedRef);
+    }
+
     const timer = setTimeout(() => {
       setIsBotOpen(true);
     }, 5000);
@@ -194,7 +206,8 @@ export default function OnyxTontineLanding() {
                 intent: 'Question Bot Tontine',
                 source: 'Bot Fanta FAQ',
                 message: reply,
-                status: 'Nouveau'
+            status: 'Nouveau',
+            ambassador_id: refId || undefined
             }]);
         } catch (err) {
             console.error("Erreur enregistrement question:", err);
@@ -233,7 +246,8 @@ export default function OnyxTontineLanding() {
         intent: 'Création Onyx Tontine',
         source: 'Landing Page Tontine (Light)',
         status: 'Nouveau',
-        password: 'central2026'
+        password: 'central2026',
+        ambassador_id: refId || undefined
       }]);
       
       if (error) console.error(error);

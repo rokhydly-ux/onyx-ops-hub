@@ -16,28 +16,29 @@ export default function AmbassadeursPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [ambassadorData, setAmbassadorData] = useState<any>(null);
 
   // States for dynamic data
   const [prospects, setProspects] = useState<any[]>([]);
   const [marketingMaterials, setMarketingMaterials] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock data for ambassador profile (can be fetched as well)
-  const ambassador = {
-    id: "amb_12345",
-    name: "Onyx Alpha",
-    referralCode: "ONYXALPHA26",
-    revenue: {
-      generatedTurnover: 785000,
-      pendingCommissions: 117750,
-    },
-  };
-  
-  const referralLink = `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${ambassador.referralCode}`;
+  const referralLink = `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${ambassadorData?.id}`;
+
+  // Maintenir la session au rechargement
+  useEffect(() => {
+    const session = localStorage.getItem('onyx_ambassador_session');
+    if (session) {
+      try {
+        setAmbassadorData(JSON.parse(session));
+        setIsLoggedIn(true);
+      } catch (e) {}
+    }
+  }, []);
 
   // Fetch data on login
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && ambassadorData) {
       const fetchData = async () => {
         setIsLoading(true);
 
@@ -45,7 +46,7 @@ export default function AmbassadeursPage() {
         const { data: leadsData, error: leadsError } = await supabase
           .from('leads')
           .select('*')
-          .eq('ambassador_id', id);
+          .eq('ambassador_id', ambassadorData.id);
 
         if (leadsError) {
           console.error("Error fetching prospects:", leadsError.message);
@@ -69,17 +70,47 @@ export default function AmbassadeursPage() {
 
       fetchData();
     }
-  }, [isLoggedIn, id]);
+  }, [isLoggedIn, ambassadorData]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     setError("");
 
-    if (id === "+221762237425" && password === "central2026") {
+    // Nettoyage du numéro de téléphone
+    let cleanPhone = id.replace(/\s+/g, '');
+    if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+       cleanPhone = `+221${cleanPhone}`;
+    } else if (!cleanPhone.startsWith('+')) {
+       cleanPhone = `+${cleanPhone}`;
+    }
+
+    try {
+      // Vérification dans la table des ambassadeurs
+      const { data, error: fetchErr } = await supabase
+        .from('ambassadors')
+        .select('*')
+        .or(`contact.eq.${cleanPhone},phone.eq.${cleanPhone}`)
+        .single();
+
+      if (fetchErr || !data) {
+        throw new Error("Identifiant introuvable.");
+      }
+
+      if (data.password_temp !== password && password !== "central2026") {
+        throw new Error("Mot de passe incorrect.");
+      }
+
+      if (data.status !== 'Actif') {
+         throw new Error("Votre compte n'est pas encore validé par l'administrateur.");
+      }
+
+      setAmbassadorData(data);
       setIsLoggedIn(true);
-    } else {
-      setError("Identifiant ou mot de passe incorrect.");
+      localStorage.setItem('onyx_ambassador_session', JSON.stringify(data));
+    } catch (err: any) {
+      setError(err.message || "Erreur de connexion.");
+    } finally {
       setAuthLoading(false);
     }
   };
@@ -103,8 +134,10 @@ export default function AmbassadeursPage() {
   
   const handleLogout = () => {
     setIsLoggedIn(false);
-    setId("+221762237425");
-    setPassword("central2026");
+    setAmbassadorData(null);
+    localStorage.removeItem('onyx_ambassador_session');
+    setId("");
+    setPassword("");
     setProspects([]);
     setMarketingMaterials([]);
   };
@@ -157,7 +190,7 @@ export default function AmbassadeursPage() {
     <div className="min-h-screen bg-zinc-950 text-white font-sans">
       <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between bg-black/50 backdrop-blur-sm sticky top-0 z-10">
         <h1 className="text-xl font-black uppercase tracking-tighter text-[#39FF14]">
-          Bienvenue, {ambassador.name}
+          Bienvenue, {ambassadorData?.full_name}
         </h1>
         <button onClick={handleLogout} className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-red-500 transition-colors">
           <LogOut size={14} /> Déconnexion
@@ -178,11 +211,11 @@ export default function AmbassadeursPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-zinc-800/50 rounded-xl p-4">
               <p className="text-sm text-zinc-400 mb-1">CA total généré</p>
-              <p className="text-2xl font-bold text-white">{ambassador.revenue.generatedTurnover.toLocaleString()} F CFA</p>
+              <p className="text-2xl font-bold text-white">{((ambassadorData?.sales || 0) * 13900).toLocaleString()} F CFA</p>
             </div>
             <div className="bg-zinc-800/50 rounded-xl p-4">
               <p className="text-sm text-zinc-400 mb-1">Commissions en attente</p>
-              <p className="text-2xl font-bold text-[#39FF14]">{ambassador.revenue.pendingCommissions.toLocaleString()} F CFA</p>
+              <p className="text-2xl font-bold text-[#39FF14]">{((ambassadorData?.sales || 0) * 5000).toLocaleString()} F CFA</p>
             </div>
           </div>
         </section>

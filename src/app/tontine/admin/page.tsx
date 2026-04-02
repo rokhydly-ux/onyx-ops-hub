@@ -1602,10 +1602,10 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                         {/* Actions */}
                         <div className="flex justify-end gap-2 border-t border-zinc-100 pt-3 mt-auto">
                            {!m.a_gagne && currentDrawConfig?.membre_id !== m.id && (
-                              <button onClick={() => handleDesignateMember(m.id)} className="p-2 bg-zinc-100 text-black rounded-lg hover:bg-[#39FF14] hover:text-black transition" title="Désigner pour le tirage"><Wand2 size={14}/></button>
+                              <button onClick={() => handleDesignateMember(m.id)} className="px-3 py-2 bg-zinc-100 text-black rounded-lg hover:bg-black hover:text-[#39FF14] transition flex items-center gap-1 text-[10px] font-black uppercase" title="Désigner pour le tirage"><Wand2 size={14}/> Désigner</button>
                            )}
                            {currentDrawConfig?.membre_id === m.id && (
-                              <button onClick={handleCancelDesignation} className="p-2 bg-[#39FF14] text-black rounded-lg hover:bg-red-500 hover:text-white transition" title="Annuler la désignation"><X size={14}/></button>
+                              <button onClick={handleCancelDesignation} className="px-3 py-2 bg-black text-[#39FF14] rounded-lg hover:bg-red-500 hover:text-white transition flex items-center gap-1 text-[10px] font-black uppercase shadow-lg" title="Annuler la désignation"><X size={14}/> Annuler</button>
                            )}
                            <button onClick={() => handleDownloadMemberHistory(m)} className="p-2 bg-zinc-100 text-zinc-600 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition" title="Télécharger l'historique"><History size={14}/></button>
                            <button onClick={() => openEditModal(m)} className="p-2 bg-zinc-100 text-black rounded-lg hover:bg-zinc-200 transition" title="Modifier"><Edit size={14}/></button>
