@@ -779,6 +779,217 @@ function SlugPageContent({ slug }: { slug: string }) {
                </button>
             </div>
           </div>
+
+          {/* === COLONNE DROITE (Jauge, Tirage, Listes) === */}
+          <div className="md:col-span-8 space-y-6">
+            
+            {/* 1. JAUGE DE PROGRESSION */}
+            <section className="bg-white p-6 md:p-8 rounded-[2rem] border border-zinc-200 shadow-sm relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-zinc-50 to-zinc-200 rounded-bl-full opacity-50 pointer-events-none -z-0"></div>
+               <div className="relative z-10">
+                   <div className="flex justify-between items-start mb-4">
+                       <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter`}>Cagnotte • Mois {currentMonth}</h2>
+                       <span className="text-[10px] font-black uppercase tracking-widest bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full">
+                           {progressPercentage >= 100 ? "Objectif Atteint 🎉" : "En cours"}
+                       </span>
+                   </div>
+                   
+                   <div className="flex items-baseline gap-2 mb-3">
+                       <span className="text-4xl font-black tracking-tighter" style={{ color: tontine.theme_color }}>
+                           {actuelCaisse.toLocaleString()}
+                       </span>
+                       <span className="text-lg font-bold text-zinc-400">/ {caisseMensuelle.toLocaleString()} F CFA</span>
+                   </div>
+
+                   <div className="w-full bg-zinc-100 h-6 rounded-full overflow-hidden shadow-inner p-1">
+                       <div 
+                           className="h-full rounded-full transition-all duration-1000 ease-out relative flex items-center justify-end pr-2"
+                           style={{ 
+                               width: `${Math.max(5, Math.min(100, progressPercentage))}%`, 
+                               backgroundColor: tontine.theme_color,
+                               boxShadow: progressPercentage > 0 ? `0 0 15px ${tontine.theme_color}60` : 'none'
+                           }}
+                       >
+                           {progressPercentage >= 20 && (
+                               <span className="text-[10px] font-black text-black/60">{Math.round(progressPercentage)}%</span>
+                           )}
+                           <div className="absolute inset-0 bg-white/20 w-1/2 skew-x-[-20deg] animate-pulse"></div>
+                       </div>
+                   </div>
+               </div>
+            </section>
+
+            {/* 2. MOTEUR DE TIRAGE AU SORT */}
+            <section className="bg-white p-6 md:p-8 rounded-[2rem] border border-zinc-200 shadow-sm relative overflow-hidden group">
+               <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter mb-6 flex items-center gap-2`}>
+                   <Trophy size={24} style={{ color: tontine.theme_color }} /> 
+                   Tirage au Sort
+               </h2>
+               
+               <div className="bg-zinc-900 rounded-[1.5rem] p-8 text-center shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] relative overflow-hidden border-4 border-zinc-800 transition-all duration-500 hover:border-zinc-700">
+                   <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }}></div>
+                   
+                   {!revealed ? (
+                       <div className="relative z-10 py-4">
+                           <h3 className="text-zinc-500 font-black uppercase tracking-widest text-[10px] mb-6">Le prochain gagnant est...</h3>
+                           
+                           <div className="h-20 flex items-center justify-center overflow-hidden mb-8 bg-black/40 rounded-2xl border border-zinc-800 mx-auto max-w-sm backdrop-blur-sm">
+                               {isSpinning ? (
+                                   <span className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
+                                       {spinName}
+                                   </span>
+                               ) : (
+                                   <span className="text-4xl md:text-5xl font-black text-zinc-700 uppercase tracking-tighter">
+                                       ???
+                                   </span>
+                               )}
+                           </div>
+                           
+                           {(currentUser.is_admin || currentUser.poste === 'Président' || currentUser.poste === 'Trésorier') && (
+                               <button 
+                                   onClick={handleReveal}
+                                   disabled={isSpinning || waitingList.length === 0}
+                                   className="bg-white text-black px-8 py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 mx-auto"
+                               >
+                                   <Shuffle size={18} className={isSpinning ? "animate-spin" : ""} />
+                                   {isSpinning ? 'Mélange en cours...' : 'Lancer le tirage'}
+                               </button>
+                           )}
+                           
+                           {waitingList.length === 0 && !isSpinning && (
+                               <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2">
+                                   <AlertCircle size={14}/> Tous les membres ont déjà gagné !
+                               </div>
+                           )}
+                       </div>
+                   ) : (
+                       <div className="relative z-10 py-6 animate-in zoom-in duration-500">
+                           <div className="w-24 h-24 mx-auto mb-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(250,204,21,0.6)] border-4 border-white animate-bounce">
+                               <Medal size={48} className="text-white drop-shadow-lg" />
+                           </div>
+                           <h3 className="text-yellow-400 font-black uppercase tracking-widest text-[10px] mb-2 animate-pulse">Félicitations</h3>
+                           <p className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter drop-shadow-2xl mb-2">{spinName}</p>
+                           <p className="text-zinc-400 font-bold text-sm">Remporte la cagnotte de <span className="text-white text-lg">{caisseMensuelle.toLocaleString()} F CFA</span></p>
+                           <button onClick={() => setRevealed(false)} className="mt-8 text-[10px] text-zinc-500 hover:text-white font-black uppercase tracking-widest underline decoration-zinc-700 underline-offset-4 transition-colors">Réinitialiser l'écran</button>
+                       </div>
+                   )}
+               </div>
+            </section>
+
+            {/* 3. TABS : HISTORIQUE, ATTENTE, GERANCE */}
+            <section className="bg-white rounded-[2rem] border border-zinc-200 shadow-sm overflow-hidden flex flex-col h-[500px]">
+               <div className="flex border-b border-zinc-200 bg-zinc-50/50 p-2 gap-2 overflow-x-auto custom-scrollbar">
+                   <button onClick={() => setActiveTab('historique')} className={`flex-1 min-w-[120px] py-3 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'historique' ? 'bg-white shadow-sm border border-zinc-200 text-black' : 'text-zinc-400 hover:bg-zinc-100'}`}>
+                      <History size={14}/> Gagnants
+                   </button>
+                   <button onClick={() => setActiveTab('attente')} className={`flex-1 min-w-[120px] py-3 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'attente' ? 'bg-white shadow-sm border border-zinc-200 text-black' : 'text-zinc-400 hover:bg-zinc-100'}`}>
+                      <Users size={14}/> En attente
+                   </button>
+                   {(currentUser.is_admin || currentUser.poste === 'Trésorier' || currentUser.poste === 'Président') && (
+                       <button onClick={() => setActiveTab('gerance')} className={`flex-1 min-w-[120px] py-3 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'gerance' ? 'bg-black text-white shadow-sm' : 'text-zinc-400 hover:bg-zinc-100'}`} style={activeTab === 'gerance' ? { backgroundColor: tontine.theme_color, color: '#000' } : {}}>
+                          <ShieldCheck size={14}/> Gérance
+                       </button>
+                   )}
+               </div>
+               
+               <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                  {/* TAB: HISTORIQUE */}
+                  {activeTab === 'historique' && (
+                      <div className="space-y-6">
+                          {winnersHistory.length === 0 ? (
+                              <div className="h-full flex flex-col items-center justify-center text-zinc-400 py-12">
+                                 <History size={32} className="mb-4 opacity-20"/>
+                                 <p className="text-sm font-bold text-center">Aucun gagnant pour le moment.</p>
+                              </div>
+                          ) : (
+                              winnersHistory.map((hist, idx) => (
+                                  <div key={idx} className="relative pl-6 border-l-2 border-zinc-100 pb-2">
+                                      <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-4 border-zinc-200"></div>
+                                      <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3">{hist.date}</p>
+                                      <div className="grid sm:grid-cols-2 gap-3">
+                                          {hist.winners.map((w: any, i: number) => (
+                                              <div key={i} className="flex items-center gap-3 bg-zinc-50 p-3 rounded-xl border border-zinc-100 hover:border-zinc-300 transition-colors">
+                                                  <div className="w-10 h-10 rounded-full bg-zinc-200 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center font-black text-xs text-zinc-500">
+                                                      {w.photo ? <img src={w.photo} className="w-full h-full object-cover"/> : w.nom.substring(0,2)}
+                                                  </div>
+                                                  <div>
+                                                      <p className="font-bold text-sm leading-tight text-black">{w.nom}</p>
+                                                      <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{montantParGagnant.toLocaleString()} F CFA</p>
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+                                  </div>
+                              ))
+                          )}
+                      </div>
+                  )}
+
+                  {/* TAB: ATTENTE */}
+                  {activeTab === 'attente' && (
+                      <div className="grid sm:grid-cols-2 gap-3">
+                          {waitingList.length === 0 ? (
+                              <div className="sm:col-span-2 flex flex-col items-center justify-center text-zinc-400 py-12">
+                                 <Users size={32} className="mb-4 opacity-20"/>
+                                 <p className="text-sm font-bold text-center">Tous les membres ont déjà gagné !</p>
+                              </div>
+                          ) : (
+                              waitingList.map(m => (
+                                  <div key={m.id} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-zinc-100 shadow-sm hover:shadow-md transition-shadow">
+                                      <div className="w-10 h-10 rounded-full bg-zinc-100 border-2 border-zinc-50 flex items-center justify-center text-zinc-400 font-black text-xs overflow-hidden">
+                                          {m.photo_url ? <img src={m.photo_url} className="w-full h-full object-cover"/> : m.prenom_nom.substring(0,2)}
+                                      </div>
+                                      <div>
+                                          <p className="font-bold text-sm leading-tight text-black">{m.prenom_nom}</p>
+                                          <p className="text-[9px] text-zinc-400 font-black uppercase tracking-widest mt-0.5">En lice</p>
+                                      </div>
+                                  </div>
+                              ))
+                          )}
+                      </div>
+                  )}
+
+                  {/* TAB: GERANCE */}
+                  {activeTab === 'gerance' && (currentUser.is_admin || currentUser.poste === 'Trésorier' || currentUser.poste === 'Président') && (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                          <div className="bg-orange-50 text-orange-800 p-4 rounded-2xl text-xs font-bold flex gap-3 mb-6 border border-orange-200">
+                              <AlertCircle size={20} className="shrink-0 mt-0.5"/>
+                              <div>
+                                 <p className="uppercase font-black text-[10px] tracking-widest mb-1 opacity-80">Mode Gérance Sécurisé</p>
+                                 <p>Validez ou annulez les paiements du mois en cours <span className="font-black">(Mois {currentMonth})</span>. Cette action mettra à jour la jauge et l'historique de chaque membre instantanément.</p>
+                              </div>
+                          </div>
+                          
+                          {members.map(m => {
+                              const hasPaid = cotisationsCeMois.some(c => c.membre_id === m.id);
+                              return (
+                                  <div key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-zinc-50 rounded-xl border border-zinc-100 gap-3 hover:bg-white hover:border-zinc-200 transition-colors shadow-sm">
+                                      <div className="flex items-center gap-3">
+                                          <div className="w-10 h-10 rounded-full bg-zinc-200 border-2 border-white shadow-sm flex items-center justify-center text-[10px] font-black overflow-hidden text-zinc-500">
+                                              {m.photo_url ? <img src={m.photo_url} className="w-full h-full object-cover"/> : m.prenom_nom.substring(0,2)}
+                                          </div>
+                                          <div>
+                                              <p className="font-bold text-sm text-black">{m.prenom_nom}</p>
+                                              <p className="text-[10px] font-bold text-zinc-400">{m.telephone}</p>
+                                          </div>
+                                      </div>
+                                      <button 
+                                          onClick={() => handleTogglePaiement(m.id, currentMonth)}
+                                          disabled={togglingPaymentFor === m.id}
+                                          className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 w-full sm:w-auto min-w-[150px] ${hasPaid ? 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100' : 'bg-black text-white shadow-md hover:scale-105'}`}
+                                          style={!hasPaid ? { backgroundColor: tontine.theme_color, color: '#000' } : {}}
+                                      >
+                                          {togglingPaymentFor === m.id ? <Loader2 size={16} className="animate-spin"/> : (hasPaid ? <X size={16}/> : <CheckCircle size={16}/>)}
+                                          {togglingPaymentFor === m.id ? 'Traitement...' : (hasPaid ? 'Annuler' : 'Valider Paiement')}
+                                      </button>
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  )}
+               </div>
+            </section>
+          </div>
         </div>
       </main>
 
