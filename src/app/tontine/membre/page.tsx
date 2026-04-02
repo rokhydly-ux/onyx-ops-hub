@@ -7,7 +7,7 @@ import {
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
   ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal, MessageCircle, PartyPopper,
-  Camera, Save, Loader2, Phone, KeyRound, Wand2
+  Camera, Save, Loader2, Phone, KeyRound, Wand2, Clock
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 
@@ -56,6 +56,32 @@ function TontineMembreDashboard() {
   
   // --- NOUVEAU : ETAT POUR LA GERANCE ---
   const [togglingPaymentFor, setTogglingPaymentFor] = useState<string | null>(null);
+  const [countdownText, setCountdownText] = useState("");
+  const [isSignalingPayment, setIsSignalingPayment] = useState(false);
+
+  useEffect(() => {
+    if (!currentDrawConfig?.date_tirage_prevue) return;
+    const target = new Date(currentDrawConfig.date_tirage_prevue);
+    target.setHours(23, 59, 59); // Fin de journée
+    
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const distance = target.getTime() - now;
+      if (distance < 0) {
+        setCountdownText("Tirage imminent !");
+        return;
+      }
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      setCountdownText(`${days}j ${hours}h ${minutes}m`);
+    };
+    
+    updateCountdown();
+    // Mise à jour chaque minute
+    const interval = setInterval(updateCountdown, 1000 * 60);
+    return () => clearInterval(interval);
+  }, [currentDrawConfig]);
 
   // --- CHARGEMENT INITIAL & GESTION DE SESSION ---
   useEffect(() => {
@@ -238,6 +264,7 @@ function TontineMembreDashboard() {
   const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
   
   const isUserUpToDate = cotisationsCeMois.some(c => c.membre_id === currentUser?.id);
+  const isUserPending = cotisations.some(c => c.membre_id === currentUser?.id && c.mois_numero === currentMonth && c.a_signale_paiement === true && c.statut !== 'Payé');
 
   // HISTORIQUE GAGNANTS
   const winnersHistoryRaw = members.filter(m => m.a_gagne).reduce((acc: any, m: any) => {
@@ -262,6 +289,43 @@ function TontineMembreDashboard() {
   const montantParGagnant = tontine?.gagnants_par_mois ? caisseMensuelle / tontine.gagnants_par_mois : caisseMensuelle / 2;
 
   // --- AUTRES FONCTIONS ---
+  const handleSignalerPaiement = async () => {
+    setIsSignalingPayment(true);
+    try {
+        const { data: existing } = await supabase.from('cotisations').select('id').eq('tontine_id', tontine.id).eq('membre_id', currentUser.id).eq('mois_numero', currentMonth).single();
+        
+        let res;
+        if (existing) {
+            res = await supabase.from('cotisations').update({
+                a_signale_paiement: true,
+                date_signalement: new Date().toISOString()
+            }).eq('id', existing.id).select();
+        } else {
+            res = await supabase.from('cotisations').insert([{
+                tontine_id: tontine.id,
+                membre_id: currentUser.id,
+                mois_numero: currentMonth,
+                montant: currentUser.cotisation_individuelle || tontine?.montant_mensuel || 0,
+                statut: 'Non Payé',
+                a_signale_paiement: true,
+                date_signalement: new Date().toISOString()
+            }]).select();
+        }
+
+        if (res.error) throw res.error;
+        if (res.data && res.data.length > 0) {
+            setCotisations(prev => {
+                const filtered = prev.filter(c => c.id !== res.data[0].id);
+                return [...filtered, res.data[0]];
+            });
+        }
+    } catch (err: any) {
+        alert("Erreur lors du signalement : " + err.message);
+    } finally {
+        setIsSignalingPayment(false);
+    }
+  };
+
   const executeMemberDraw = async () => {
     if (!currentDrawConfig || currentDrawConfig.membre_id !== currentUser.id) {
         alert("Vous n'êtes pas autorisé à lancer ce tirage.");
@@ -605,29 +669,8 @@ function TontineMembreDashboard() {
                     Mettre à jour le profil
                 </button>
             </div>
-            
-            <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-bl-full pointer-events-none" style={{ backgroundColor: tontine.theme_color }}></div>
-               <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-4 flex items-center gap-2 text-black relative z-10`}>
-                  <Wand2 size={16} style={{ color: tontine.theme_color }} />
-                  100% TRANSPARENCE : Tour de Rôle du Tirage
-               </h3>
-               {currentDrawConfig ? (
-               <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
-                  <p className="text-sm text-zinc-600 mb-2">Personne désignée pour le tirage de ce mois : <span className="font-black text-black bg-zinc-200 px-2 py-0.5 rounded">{members.find(m => m.id === currentDrawConfig.membre_id)?.prenom_nom || "Inconnu"}</span></p>
-                  <p className="text-sm text-zinc-600 mb-4">Date du tirage prévue : <span className="font-black text-black">{new Date(currentDrawConfig.date_tirage_prevue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
-                  <p className="text-xs text-zinc-500 italic bg-zinc-100 p-3 rounded-lg border border-zinc-200 leading-relaxed shadow-sm">
-                     Pendant ce mois, cette personne a le <strong className="text-black font-black">pouvoir unique de lancer le tirage</strong> en un simple clic. Elle ne peut cliquer qu'<strong className="text-black font-black">une seule fois historiquement</strong>.
-                  </p>
-               </div>
-               ) : (
-               <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
-                  <p className="text-sm text-zinc-500 italic font-medium">L'administrateur n'a pas encore désigné de membre pour le tirage de ce mois. L'automatisation prendra le relais dès le premier tirage effectué.</p>
-               </div>
-               )}
-            </div>
 
-            <section className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+            <section className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6">
                <div className="flex justify-between items-start mb-6">
                   <div>
                      <h2 className="text-lg font-black uppercase tracking-tighter">Votre Statut</h2>
@@ -651,10 +694,23 @@ function TontineMembreDashboard() {
                         <span className="bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
                            <CheckCircle size={12}/> À JOUR
                         </span>
+                     ) : isUserPending ? (
+                        <div className="flex flex-col items-end gap-1.5 text-right">
+                           <span className="bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1 animate-pulse">
+                              <Clock size={12}/> EN ATTENTE
+                           </span>
+                           <p className="text-[9px] font-bold text-blue-600 max-w-[140px] leading-tight">Paiement signalé, en attente de validation.</p>
+                        </div>
                      ) : (
-                        <span className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
-                           <AlertCircle size={12}/> À PAYER
-                        </span>
+                        <div className="flex flex-col items-end gap-1.5 text-right">
+                           <span className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
+                              <AlertCircle size={12}/> À PAYER
+                           </span>
+                           <button onClick={handleSignalerPaiement} disabled={isSignalingPayment} className="bg-black text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:scale-105 transition-transform disabled:opacity-50 mt-1 shadow-md">
+                              {isSignalingPayment ? <Loader2 size={12} className="animate-spin text-white"/> : <Wallet size={12} style={{ color: tontine?.theme_color || '#39FF14' }}/>}
+                              Signaler cotisation
+                           </button>
+                        </div>
                      )}
                   </div>
                </div>
@@ -703,6 +759,54 @@ function TontineMembreDashboard() {
                     <Calendar size={14} /> {dateTirage}
                   </p>
                </div>
+            </section>
+
+            {/* --- 2.5 TRANSPARENCE TOUR DE ROLE --- */}
+            <section className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-[3rem] shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
+                <div className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-bl-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
+                
+                <div className="flex-1 w-full relative z-10">
+                    <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-4 flex items-center gap-2 text-white`}>
+                        <Wand2 size={18} style={{ color: tontine?.theme_color || '#39FF14' }} />
+                        100% Transparence : Le Tour de Rôle
+                    </h3>
+                    {currentDrawConfig ? (() => {
+                        const designatedMember = members.find(m => m.id === currentDrawConfig.membre_id);
+                        return (
+                            <div className="flex flex-col sm:flex-row items-center gap-6">
+                                <div className="w-20 h-20 rounded-full border-2 p-1 shrink-0" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
+                                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-2xl font-black overflow-hidden" style={{ color: tontine?.theme_color || '#39FF14' }}>
+                                        {designatedMember?.avatar_url ? (
+                                            <img src={designatedMember.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            designatedMember?.prenom_nom?.substring(0, 2) || "??"
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-zinc-400 uppercase tracking-widest font-bold mb-1">Maître du jeu ce mois-ci</p>
+                                    <p className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black text-white uppercase tracking-tighter leading-tight`}>
+                                        {designatedMember?.prenom_nom || "Inconnu"}
+                                    </p>
+                                    <p className="text-xs text-zinc-500 italic mt-2 max-w-sm">A le pouvoir unique de lancer le tirage en un clic. (Une seule fois historiquement).</p>
+                                </div>
+                            </div>
+                        );
+                    })() : (
+                        <div className="bg-zinc-800/50 p-4 rounded-xl border border-zinc-700/50 text-zinc-400 italic text-sm font-medium">
+                            L'administrateur n'a pas encore désigné de membre pour le tirage de ce mois. L'automatisation prendra le relais dès le premier tirage effectué.
+                        </div>
+                    )}
+                </div>
+
+                {currentDrawConfig && (
+                    <div className="bg-black/50 p-5 rounded-3xl border border-zinc-800 text-center shrink-0 min-w-[200px] relative z-10 shadow-inner">
+                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Tirage prévu dans</p>
+                        <p className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black animate-pulse`} style={{ color: tontine?.theme_color || '#39FF14' }}>
+                            {countdownText || "Calcul..."}
+                        </p>
+                    </div>
+                )}
             </section>
 
             {/* --- 3. MOTEUR DE TIRAGE (RÉVÉLATION GAGNANTS) --- */}

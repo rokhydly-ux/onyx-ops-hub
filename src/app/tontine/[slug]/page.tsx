@@ -7,7 +7,7 @@ import {
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
   ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal, MessageCircle,
-  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload, Download, Send, Archive, FileText, Wand2, PartyPopper
+  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload, Download, Send, Archive, FileText, Wand2, PartyPopper, Clock
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 import jsPDF from 'jspdf';
@@ -55,6 +55,32 @@ function SlugPageContent({ slug }: { slug: string }) {
 
   // --- NOUVEAU : ETAT TOUR DE ROLE ---
   const [currentDrawConfig, setCurrentDrawConfig] = useState<any>(null);
+  const [countdownText, setCountdownText] = useState("");
+  const [isSignalingPayment, setIsSignalingPayment] = useState(false);
+
+  useEffect(() => {
+    if (!currentDrawConfig?.date_tirage_prevue) return;
+    const target = new Date(currentDrawConfig.date_tirage_prevue);
+    target.setHours(23, 59, 59); // Fin de journée
+    
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const distance = target.getTime() - now;
+      if (distance < 0) {
+        setCountdownText("Tirage imminent !");
+        return;
+      }
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      setCountdownText(`${days}j ${hours}h ${minutes}m`);
+    };
+    
+    updateCountdown();
+    // Mise à jour chaque minute pour éviter les re-rendus excessifs (les secondes ne sont pas affichées)
+    const interval = setInterval(updateCountdown, 1000 * 60);
+    return () => clearInterval(interval);
+  }, [currentDrawConfig]);
 
   useEffect(() => {
     const checkSessionAndFetchData = async () => {
@@ -118,6 +144,43 @@ function SlugPageContent({ slug }: { slug: string }) {
       setMembers(allMembersData || []);
     }
     setCotisations(allCotisationsData || []);
+  };
+
+  const handleSignalerPaiement = async () => {
+    setIsSignalingPayment(true);
+    try {
+        const { data: existing } = await supabase.from('cotisations').select('id').eq('tontine_id', tontine.id).eq('membre_id', currentUser.id).eq('mois_numero', currentMonth).single();
+        
+        let res;
+        if (existing) {
+            res = await supabase.from('cotisations').update({
+                a_signale_paiement: true,
+                date_signalement: new Date().toISOString()
+            }).eq('id', existing.id).select();
+        } else {
+            res = await supabase.from('cotisations').insert([{
+                tontine_id: tontine.id,
+                membre_id: currentUser.id,
+                mois_numero: currentMonth,
+                montant: currentUser.cotisation_individuelle || tontine?.montant_mensuel || 0,
+                statut: 'Non Payé',
+                a_signale_paiement: true,
+                date_signalement: new Date().toISOString()
+            }]).select();
+        }
+
+        if (res.error) throw res.error;
+        if (res.data && res.data.length > 0) {
+            setCotisations(prev => {
+                const filtered = prev.filter(c => c.id !== res.data[0].id);
+                return [...filtered, res.data[0]];
+            });
+        }
+    } catch (err: any) {
+        alert("Erreur lors du signalement : " + err.message);
+    } finally {
+        setIsSignalingPayment(false);
+    }
   };
 
   const executeMemberDraw = async () => {
@@ -580,6 +643,7 @@ function SlugPageContent({ slug }: { slug: string }) {
   
   const progressPercentage = caisseMensuelle > 0 ? (actuelCaisse / caisseMensuelle) * 100 : 0;
   const isUserUpToDate = cotisationsCeMois.some(c => c.membre_id === currentUser?.id);
+  const isUserPending = cotisations.some(c => c.membre_id === currentUser?.id && c.mois_numero === currentMonth && c.a_signale_paiement === true && c.statut !== 'Payé');
 
   const winnersHistoryRaw = members.filter(m => m.a_gagne).reduce((acc: any, m: any) => {
     const mois = m.mois_victoire;
@@ -732,29 +796,8 @@ function SlugPageContent({ slug }: { slug: string }) {
                     Mettre à jour le profil
                 </button>
             </div>
-            
-            <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-bl-full pointer-events-none" style={{ backgroundColor: tontine.theme_color }}></div>
-               <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-4 flex items-center gap-2 text-black relative z-10`}>
-                  <Wand2 size={16} style={{ color: tontine.theme_color }} />
-                  100% TRANSPARENCE : Tour de Rôle du Tirage
-               </h3>
-               {currentDrawConfig ? (
-               <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
-                  <p className="text-sm text-zinc-600 mb-2">Personne désignée pour le tirage de ce mois : <span className="font-black text-black bg-zinc-200 px-2 py-0.5 rounded">{members.find(m => m.id === currentDrawConfig.membre_id)?.prenom_nom || "Inconnu"}</span></p>
-                  <p className="text-sm text-zinc-600 mb-4">Date du tirage prévue : <span className="font-black text-black">{new Date(currentDrawConfig.date_tirage_prevue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
-                  <p className="text-xs text-zinc-500 italic bg-zinc-100 p-3 rounded-lg border border-zinc-200 leading-relaxed shadow-sm">
-                     Pendant ce mois, cette personne a le <strong className="text-black font-black">pouvoir unique de lancer le tirage</strong> en un simple clic. Elle ne peut cliquer qu'<strong className="text-black font-black">une seule fois historiquement</strong>.
-                  </p>
-               </div>
-               ) : (
-               <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
-                  <p className="text-sm text-zinc-500 italic font-medium">L'administrateur n'a pas encore désigné de membre pour le tirage de ce mois. L'automatisation prendra le relais dès le premier tirage effectué.</p>
-               </div>
-               )}
-            </div>
 
-            <section className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+            <section className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6">
                <div className="flex justify-between items-start mb-6">
                   <div>
                      <h2 className="text-lg font-black uppercase tracking-tighter">Votre Statut</h2>
@@ -786,10 +829,23 @@ function SlugPageContent({ slug }: { slug: string }) {
                               <Send size={12}/> Partager sur WhatsApp
                            </button>
                         </div>
+                     ) : isUserPending ? (
+                        <div className="flex flex-col items-end gap-1.5 text-right">
+                           <span className="bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1 animate-pulse">
+                              <Clock size={12}/> EN ATTENTE
+                           </span>
+                           <p className="text-[9px] font-bold text-blue-600 max-w-[140px] leading-tight">Paiement signalé, en attente de validation.</p>
+                        </div>
                      ) : (
-                        <span className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
-                           <AlertCircle size={12}/> À PAYER
-                        </span>
+                        <div className="flex flex-col items-end gap-1.5 text-right">
+                           <span className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
+                              <AlertCircle size={12}/> À PAYER
+                           </span>
+                           <button onClick={handleSignalerPaiement} disabled={isSignalingPayment} className="bg-black text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:scale-105 transition-transform disabled:opacity-50 mt-1 shadow-md">
+                              {isSignalingPayment ? <Loader2 size={12} className="animate-spin text-white"/> : <Wallet size={12} style={{ color: tontine?.theme_color || '#39FF14' }}/>}
+                              Signaler cotisation
+                           </button>
+                        </div>
                      )}
                   </div>
                </div>
