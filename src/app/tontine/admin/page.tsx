@@ -197,7 +197,7 @@ export default function TontineAdminPage() {
     setGeneratedImageUrl(null);
     try {
       // Appel vers l'API Next.js (DALL-E 3)
-      const res = await fetch('/api/generate-image', {
+      const res = await fetch('/api/tontine/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: promptText })
@@ -208,7 +208,7 @@ export default function TontineAdminPage() {
       else throw new Error("Pas d'URL d'image reçue");
     } catch (error) {
       console.error(error);
-      alert("Génération échouée. Assurez-vous d'avoir configuré la route /api/generate-image avec votre clé OpenAI.");
+      alert("Génération échouée. Vérifiez que la route /api/tontine/admin est bien configurée avec votre clé OpenAI.");
     } finally {
       setIsGeneratingImage(false);
     }
