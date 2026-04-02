@@ -548,6 +548,36 @@ export default function TontineAdminPage() {
     }
   };
 
+  const handleDesignateMember = async (memberId: string) => {
+    if (!tontine) return;
+    setIsSaving(true);
+    try {
+      const member = membres.find(m => m.id === memberId);
+      if (!member || member.a_gagne) throw new Error("Ce membre n'est pas éligible.");
+
+      const nextDate = new Date();
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      nextDate.setDate(tontine.date_limite_paiement || 5);
+
+      const payload = { tontine_id: tontine.id, membre_id: memberId, date_tirage_prevue: nextDate.toISOString().split('T')[0] };
+
+      let res;
+      if (currentDrawConfig?.id) {
+        res = await supabase.from('configuration_tirage').update(payload).eq('id', currentDrawConfig.id).select();
+      } else {
+        res = await supabase.from('configuration_tirage').insert([payload]).select();
+      }
+      if (res.error) throw res.error;
+      
+      fetchDrawConfig();
+
+      if (confirm(`Membre désigné avec succès !\nVoulez-vous notifier ${member.prenom_nom} sur WhatsApp ?`)) {
+        const message = `Bonjour ${member.prenom_nom}, vous avez été désigné(e) pour lancer le prochain tirage de la tontine "${tontine.nom}". Préparez-vous ! 🎉`;
+        window.open(`https://wa.me/221${member.telephone}?text=${encodeURIComponent(message)}`, '_blank');
+      }
+    } catch (err: any) { alert("Erreur: " + err.message); } finally { setIsSaving(false); }
+  };
+
   const handleDesignateNextDrawPerson = async () => {
     if (!designatedMemberId) return alert("Veuillez sélectionner un membre.");
     if (!tontine) return;
@@ -1520,7 +1550,12 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                               ) : m.mois_exclus && m.mois_exclus.split(',').map((s: string) => parseInt(s.trim())).includes(currentMonth) ? (
                                  <span className="font-black text-red-600">Exclu (Mois {currentMonth})</span>
                               ) : (
-                                 <span className="font-black text-zinc-600">En Attente</span>
+                                 <div className="flex items-center gap-1.5">
+                                    <span className="font-black text-zinc-600">En Attente</span>
+                                    {currentDrawConfig?.membre_id === m.id && (
+                                       <span title="Désigné pour le tirage" className="bg-black text-[#39FF14] p-1 rounded-md"><Wand2 size={10} /></span>
+                                    )}
+                                 </div>
                               )}
                            </div>
                            <div className="bg-zinc-50 p-2 rounded-lg">
@@ -1566,6 +1601,12 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
 
                         {/* Actions */}
                         <div className="flex justify-end gap-2 border-t border-zinc-100 pt-3 mt-auto">
+                           {!m.a_gagne && currentDrawConfig?.membre_id !== m.id && (
+                              <button onClick={() => handleDesignateMember(m.id)} className="p-2 bg-zinc-100 text-black rounded-lg hover:bg-[#39FF14] hover:text-black transition" title="Désigner pour le tirage"><Wand2 size={14}/></button>
+                           )}
+                           {currentDrawConfig?.membre_id === m.id && (
+                              <button onClick={handleCancelDesignation} className="p-2 bg-[#39FF14] text-black rounded-lg hover:bg-red-500 hover:text-white transition" title="Annuler la désignation"><X size={14}/></button>
+                           )}
                            <button onClick={() => handleDownloadMemberHistory(m)} className="p-2 bg-zinc-100 text-zinc-600 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition" title="Télécharger l'historique"><History size={14}/></button>
                            <button onClick={() => openEditModal(m)} className="p-2 bg-zinc-100 text-black rounded-lg hover:bg-zinc-200 transition" title="Modifier"><Edit size={14}/></button>
                            <button onClick={() => handleDeleteMember(m.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition" title="Supprimer"><Trash2 size={14}/></button>
