@@ -7,7 +7,7 @@ import {
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
   ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal, MessageCircle,
-  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload, Download, Send, Archive, FileText
+  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload, Download, Send, Archive, FileText, Wand2, PartyPopper
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 import jsPDF from 'jspdf';
@@ -52,6 +52,9 @@ function SlugPageContent({ slug }: { slug: string }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [paymentModal, setPaymentModal] = useState<any>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+
+  // --- NOUVEAU : ETAT TOUR DE ROLE ---
+  const [currentDrawConfig, setCurrentDrawConfig] = useState<any>(null);
 
   useEffect(() => {
     const checkSessionAndFetchData = async () => {
@@ -100,6 +103,12 @@ function SlugPageContent({ slug }: { slug: string }) {
 
     const { data: allMembersData, error: membersError } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineData.id);
     const { data: allCotisationsData } = await supabase.from('cotisations').select('*');
+
+    // On récupère la config du tirage ET le nom du membre désigné en une seule requête
+    const { data: drawData, error: drawErr } = await supabase.from('configuration_tirage').select('*, tontine_members(prenom_nom)').eq('tontine_id', tontineData.id).single();
+    if (!drawErr) setCurrentDrawConfig(drawData);
+    else setCurrentDrawConfig(null);
+
     
     if (membersError) {
       console.error("Erreur de chargement des membres:", membersError);
@@ -110,6 +119,58 @@ function SlugPageContent({ slug }: { slug: string }) {
       setMembers(allMembersData || []);
     }
     setCotisations(allCotisationsData || []);
+  };
+
+  const executeMemberDraw = async () => {
+    if (!currentDrawConfig || currentDrawConfig.membre_id !== currentUser.id) {
+        alert("Vous n'êtes pas autorisé à lancer ce tirage.");
+        return;
+    }
+
+    const eligibles = members.filter(m => {
+      if (m.a_gagne) return false;
+      if (m.mois_exclus) {
+        const excludedMonths = m.mois_exclus.split(',').map((s: string) => parseInt(s.trim())).filter((n: number) => !isNaN(n));
+        if (excludedMonths.includes(currentMonth)) return false;
+      }
+      return true;
+    });
+
+    if (eligibles.length === 0) return alert("Aucun membre éligible.");
+
+    setIsSpinning(true);
+    const spinInterval = setInterval(() => {
+      const random = eligibles[Math.floor(Math.random() * eligibles.length)].prenom_nom;
+      setSpinName(random);
+    }, 100);
+
+    setTimeout(async () => {
+      clearInterval(spinInterval);
+      
+      const nbGagnants = tontine?.gagnants_par_mois || 1;
+      const shuffled = [...eligibles].sort(() => 0.5 - Math.random());
+      const selectedWinners = shuffled.slice(0, nbGagnants);
+      const winnerIds = selectedWinners.map(w => w.id);
+      
+      try {
+        const { error } = await supabase.from('tontine_members').update({ a_gagne: true, mois_victoire: currentMonth }).in('id', winnerIds);
+        if (error) throw error;
+        
+        setMembers(members.map(m => winnerIds.includes(m.id) ? { ...m, a_gagne: true, mois_victoire: currentMonth } : m));
+        setSpinName(selectedWinners.map(w => w.prenom_nom).join(" & "));
+        setRevealed(true);
+        setShowConfetti(true);
+        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+        audio.volume = 0.5;
+        audio.play().catch(()=>{});
+
+        await fetchDashboardData(currentUser, tontine); // Re-fetch all data
+      } catch (err: any) {
+        alert("Erreur lors du tirage : " + err.message);
+      } finally {
+        setIsSpinning(false);
+      }
+    }, 3000);
   };
 
   const uploadFileToSupabase = async (file: File, folder: string) => {
@@ -409,26 +470,6 @@ function SlugPageContent({ slug }: { slug: string }) {
      }
   };
 
-  const handleReveal = () => {
-    setIsSpinning(true);
-    const eligible = members.length > 0 ? members : [{ prenom_nom: "Mélange..." }];
-    const spinInterval = setInterval(() => {
-      const random = eligible[Math.floor(Math.random() * eligible.length)].prenom_nom;
-      setSpinName(random);
-    }, 100);
-    
-    setTimeout(() => {
-      clearInterval(spinInterval);
-      setIsSpinning(false);
-      setRevealed(true);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 8000);
-      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
-      audio.volume = 0.4;
-      audio.play().catch(()=>{});
-    }, 2500);
-  };
-
   if (isCheckingSession) {
     return <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-6"><Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" /></div>;
   }
@@ -674,6 +715,23 @@ function SlugPageContent({ slug }: { slug: string }) {
                 </button>
             </div>
             
+            {currentDrawConfig && (
+               <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-bl-full pointer-events-none" style={{ backgroundColor: tontine.theme_color }}></div>
+                  <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-4 flex items-center gap-2 text-black relative z-10`}>
+                     <Wand2 size={16} style={{ color: tontine.theme_color }} />
+                     100% TRANSPARENCE : Tour de Rôle du Tirage
+                  </h3>
+                  <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
+                     <p className="text-sm text-zinc-600 mb-2">Personne désignée pour le tirage de ce mois : <span className="font-black text-black bg-zinc-200 px-2 py-0.5 rounded">{currentDrawConfig?.tontine_members?.prenom_nom || "Inconnu"}</span></p>
+                     <p className="text-sm text-zinc-600 mb-4">Date du tirage prévue : <span className="font-black text-black">{new Date(currentDrawConfig.date_tirage_prevue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
+                     <p className="text-xs text-zinc-500 italic bg-zinc-100 p-3 rounded-lg border border-zinc-200 leading-relaxed shadow-sm">
+                        Pendant ce mois, cette personne a le <strong className="text-black font-black">pouvoir unique de lancer le tirage</strong> en un simple clic. Elle ne peut cliquer qu'<strong className="text-black font-black">une seule fois historiquement</strong>.
+                     </p>
+                  </div>
+               </div>
+            )}
+
             <section className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
                <div className="flex justify-between items-start mb-6">
                   <div>
@@ -830,38 +888,36 @@ function SlugPageContent({ slug }: { slug: string }) {
                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }}></div>
                    
                    {!revealed ? (
-                       <div className="relative z-10 py-4">
-                           <h3 className="text-zinc-500 font-black uppercase tracking-widest text-[10px] mb-6">Le prochain gagnant est...</h3>
-                           
-                           <div className="h-20 flex items-center justify-center overflow-hidden mb-8 bg-black/40 rounded-2xl border border-zinc-800 mx-auto max-w-sm backdrop-blur-sm">
-                               {isSpinning ? (
-                                   <span className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
-                                       {spinName}
-                                   </span>
-                               ) : (
-                                   <span className="text-4xl md:text-5xl font-black text-zinc-700 uppercase tracking-tighter">
-                                       ???
-                                   </span>
-                               )}
-                           </div>
-                           
-                           {(currentUser.is_admin || currentUser.poste === 'Président' || currentUser.poste === 'Trésorier') && (
-                               <button 
-                                   onClick={handleReveal}
-                                   disabled={isSpinning || waitingList.length === 0}
-                                   className="bg-white text-black px-8 py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 mx-auto"
-                               >
-                                   <Shuffle size={18} className={isSpinning ? "animate-spin" : ""} />
-                                   {isSpinning ? 'Mélange en cours...' : 'Lancer le tirage'}
-                               </button>
+                     progressPercentage < 100 ? (
+                        <div className="py-8">
+                          <h2 className={`${spaceGrotesk.className} text-3xl font-black text-white uppercase mb-4`}>Cotisations en cours</h2>
+                          <p className="text-base font-medium text-zinc-400">Le tirage sera disponible une fois toutes les cotisations du mois réglées.</p>
+                        </div>
+                     ) : isSpinning ? (
+                        <div className="flex flex-col items-center py-8">
+                           <div className="w-24 h-24 rounded-full border-4 border-t-transparent animate-spin mb-8" style={{ borderColor: `${tontine?.theme_color || '#39FF14'}40`, borderTopColor: tontine?.theme_color || '#39FF14' }}></div>
+                           <p className="text-3xl md:text-5xl font-black text-white uppercase tracking-widest animate-pulse drop-shadow-lg">{spinName || "Mélange..."}</p>
+                           <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-6">Tirage en cours...</p>
+                        </div>
+                     ) : (
+                        <div className="flex flex-col items-center py-8 gap-6">
+                           {currentDrawConfig?.membre_id === currentUser.id ? (
+                               <>
+                                   <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black text-white uppercase mb-4 leading-tight`}>C'est à vous de jouer !</h2>
+                                   <button onClick={executeMemberDraw} className="px-10 py-5 rounded-[2.5rem] font-black text-base uppercase tracking-widest transition-all shadow-xl hover:scale-105 flex items-center gap-3 animate-bounce" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
+                                      <Wand2 size={24}/> Lancer le tirage
+                                   </button>
+                               </>
+                           ) : (
+                               <>
+                                   <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black text-white uppercase mb-4 leading-tight`}>Tirage en attente</h2>
+                                   <div className="mt-4 bg-zinc-800/50 border border-zinc-700 p-4 rounded-xl max-w-sm mx-auto">
+                                       <p className="text-sm font-bold text-zinc-300">Le tirage est en cours d'organisation par la <span className="text-white">{currentDrawConfig?.tontine_members?.prenom_nom || 'personne désignée'}</span>. Vous serez informés dès qu'il sera effectué !</p>
+                                   </div>
+                               </>
                            )}
-                           
-                           {waitingList.length === 0 && !isSpinning && (
-                               <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2">
-                                   <AlertCircle size={14}/> Tous les membres ont déjà gagné !
-                               </div>
-                           )}
-                       </div>
+                        </div>
+                     )
                    ) : (
                        <div className="relative z-10 py-6 animate-in zoom-in duration-500">
                            <div className="w-24 h-24 mx-auto mb-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(250,204,21,0.6)] border-4 border-white animate-bounce">
@@ -869,7 +925,7 @@ function SlugPageContent({ slug }: { slug: string }) {
                            </div>
                            <h3 className="text-yellow-400 font-black uppercase tracking-widest text-[10px] mb-2 animate-pulse">Félicitations</h3>
                            <p className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter drop-shadow-2xl mb-2">{spinName}</p>
-                           <p className="text-zinc-400 font-bold text-sm">Remporte la cagnotte de <span className="text-white text-lg">{caisseMensuelle.toLocaleString()} F CFA</span></p>
+                           <p className="text-zinc-400 font-bold text-sm">Remporte la cagnotte de <span className="text-white text-lg">{montantParGagnant.toLocaleString()} F CFA</span></p>
                            <button onClick={() => setRevealed(false)} className="mt-8 text-[10px] text-zinc-500 hover:text-white font-black uppercase tracking-widest underline decoration-zinc-700 underline-offset-4 transition-colors">Réinitialiser l'écran</button>
                        </div>
                    )}
@@ -941,7 +997,10 @@ function SlugPageContent({ slug }: { slug: string }) {
                                       </div>
                                       <div>
                                       <p className="font-bold text-sm leading-tight text-black">{m.prenom_nom || "Inconnu"}</p>
-                                          <p className="text-[9px] text-zinc-400 font-black uppercase tracking-widest mt-0.5">En lice</p>
+                                          <div className="flex items-center gap-2 mt-1">
+                                             <p className="text-[9px] text-zinc-400 font-black uppercase tracking-widest">En lice</p>
+                                             {currentDrawConfig?.membre_id === m.id && <span title="Désigné pour le tirage ce mois" className="bg-black text-white px-2 py-0.5 rounded-md inline-flex items-center gap-1 text-[8px]" style={{ color: tontine.theme_color }}><PartyPopper size={10} /> Désigné</span>}
+                                          </div>
                                       </div>
                                   </div>
                               ))
@@ -989,6 +1048,23 @@ function SlugPageContent({ slug }: { slug: string }) {
                   )}
                </div>
             </section>
+
+            {currentDrawConfig && (
+               <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm mt-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-bl-full pointer-events-none" style={{ backgroundColor: tontine.theme_color }}></div>
+                  <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-4 flex items-center gap-2 text-black relative z-10`}>
+                     <Wand2 size={16} style={{ color: tontine.theme_color }} />
+                     100% TRANSPARENCE : Tour de Rôle du Tirage
+                  </h3>
+                  <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative z-10">
+                     <p className="text-sm text-zinc-600 mb-2">Personne désignée pour le tirage de ce mois : <span className="font-black text-black bg-zinc-200 px-2 py-0.5 rounded">{members.find(m => m.id === currentDrawConfig.membre_id)?.prenom_nom || "Inconnu"}</span></p>
+                     <p className="text-sm text-zinc-600 mb-4">Date du tirage prévue : <span className="font-black text-black">{new Date(currentDrawConfig.date_tirage_prevue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
+                     <p className="text-xs text-zinc-500 italic bg-zinc-100 p-3 rounded-lg border border-zinc-200 leading-relaxed shadow-sm">
+                        Pendant ce mois, cette personne a le <strong className="text-black font-black">pouvoir unique de lancer le tirage</strong> en un simple clic. Elle ne peut cliquer qu'<strong className="text-black font-black">une seule fois historiquement</strong>.
+                     </p>
+                  </div>
+               </div>
+            )}
           </div>
         </div>
       </main>

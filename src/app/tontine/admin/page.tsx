@@ -59,6 +59,10 @@ export default function TontineAdminPage() {
   const moisEcoules = Math.floor(membres.filter(m => m.a_gagne).length / totalGagnantsMois);
   const currentMonth = moisEcoules + 1;
 
+  // --- ÉTATS TOUR DE RÔLE ---
+  const [currentDrawConfig, setCurrentDrawConfig] = useState<any>(null);
+  const [designatedMemberId, setDesignatedMemberId] = useState<string>('');
+
   useEffect(() => {
     let isMounted = true;
 
@@ -175,6 +179,56 @@ export default function TontineAdminPage() {
       subscription.unsubscribe();
     };
   }, []);
+
+  const handleCancelDesignation = async () => {
+    if (!currentDrawConfig?.id) return;
+    if (!confirm("Voulez-vous vraiment annuler la désignation de ce membre ?")) return;
+    setIsSaving(true);
+    try {
+      await supabase.from('configuration_tirage').delete().eq('id', currentDrawConfig.id);
+      setCurrentDrawConfig(null);
+      setDesignatedMemberId('');
+    } catch (err: any) {
+      alert("Erreur: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateDrawDate = async (newDate: string) => {
+    if (!currentDrawConfig?.id) return;
+    try {
+      const { data, error } = await supabase.from('configuration_tirage').update({ date_tirage_prevue: newDate }).eq('id', currentDrawConfig.id).select().single();
+      if (error) throw error;
+      setCurrentDrawConfig(data);
+    } catch (err: any) {
+      alert("Erreur maj date: " + err.message);
+    }
+  };
+
+  const fetchDrawConfig = async () => {
+    if (!tontine?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('configuration_tirage')
+        .select('*')
+        .eq('tontine_id', tontine.id)
+        .single();
+      if (!error && data) {
+        setCurrentDrawConfig(data);
+      } else {
+        setCurrentDrawConfig(null);
+      }
+    } catch (err) {
+      console.error("Erreur fetchDrawConfig:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (tontine?.id) {
+      fetchDrawConfig();
+    }
+  }, [tontine?.id]);
 
   const uploadFileToSupabase = async (file: File, folder: string) => {
     if (file.size > 1 * 1024 * 1024) throw new Error("Le fichier dépasse 1 Mo.");
@@ -494,6 +548,45 @@ export default function TontineAdminPage() {
     }
   };
 
+  const handleDesignateNextDrawPerson = async () => {
+    if (!designatedMemberId) return alert("Veuillez sélectionner un membre.");
+    if (!tontine) return;
+    
+    setIsSaving(true);
+    try {
+      const member = membres.find(m => m.id === designatedMemberId);
+      if (!member || member.a_gagne) {
+        throw new Error("Ce membre n'est pas éligible.");
+      }
+
+      const nextDate = new Date();
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      nextDate.setDate(tontine.date_limite_paiement || 5);
+
+      const payload = {
+        tontine_id: tontine.id,
+        membre_id: designatedMemberId,
+        date_tirage_prevue: nextDate.toISOString().split('T')[0]
+      };
+
+      let res;
+      if (currentDrawConfig?.id) {
+        res = await supabase.from('configuration_tirage').update(payload).eq('id', currentDrawConfig.id).select();
+      } else {
+        res = await supabase.from('configuration_tirage').insert([payload]).select();
+      }
+
+      if (res.error) throw res.error;
+      
+      alert("Membre désigné avec succès pour le prochain tour !");
+      fetchDrawConfig();
+    } catch (err: any) {
+      alert("Erreur: " + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleCopySummary = () => {
     if (!tontine) return;
 
@@ -593,6 +686,31 @@ Généré par Onyx Tontine
         const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
         audio.volume = 0.5;
         audio.play().catch(()=>{});
+
+        // --- Automatisation : Désigner le membre suivant ---
+        const remainingEligibles = membres.filter(m => !winnerIds.includes(m.id) && !m.a_gagne);
+        if (remainingEligibles.length > 0) {
+            const nextMember = remainingEligibles[0];
+            const nextDate = new Date();
+            nextDate.setMonth(nextDate.getMonth() + 1);
+            nextDate.setDate(tontine.date_limite_paiement || 5);
+            
+            const payload = {
+                tontine_id: tontine.id,
+                membre_id: nextMember.id,
+                date_tirage_prevue: nextDate.toISOString().split('T')[0]
+            };
+            
+            if (currentDrawConfig?.id) {
+                await supabase.from('configuration_tirage').update(payload).eq('id', currentDrawConfig.id);
+            } else {
+                await supabase.from('configuration_tirage').insert([payload]);
+            }
+            alert(`Le tirage est terminé ! ${nextMember.prenom_nom} a été automatiquement désigné(e) pour le mois suivant.`);
+            fetchDrawConfig();
+        } else {
+            alert("Le tirage est terminé ! Il n'y a plus de membres éligibles pour le prochain mois.");
+        }
       } catch (err: any) {
         alert("Erreur lors du tirage : " + err.message);
       } finally {
@@ -1089,6 +1207,66 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                <p className="text-sm text-zinc-500 font-bold flex items-center gap-2">
                  <Wallet size={16}/> Montant mensuel : {(tontine?.montant_mensuel || 0).toLocaleString()} F CFA
                </p>
+            </div>
+         </div>
+
+         {/* CONFIGURATION DU TOUR DE RÔLE */}
+         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+            <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl mb-6 flex items-center gap-3`}>
+                <Wand2 size={20} style={{ color: tontine?.theme_color || '#39FF14' }} /> 
+                Configuration du Tour de Rôle
+            </h3>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                    <p className="text-sm font-bold text-zinc-500 uppercase mb-2">Membre actuellement désigné</p>
+                    {currentDrawConfig ? (
+                        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 relative">
+                            <button onClick={handleCancelDesignation} className="absolute top-4 right-4 text-red-500 hover:text-red-700 transition-colors" title="Annuler la désignation">
+                                <X size={20} />
+                            </button>
+                            <p className="font-black text-lg pr-8">{membres.find(m => m.id === currentDrawConfig.membre_id)?.prenom_nom || "Inconnu"}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs font-bold text-zinc-500">Date prévue :</span>
+                                <input 
+                                    type="date" 
+                                    value={currentDrawConfig.date_tirage_prevue} 
+                                    onChange={(e) => handleUpdateDrawDate(e.target.value)}
+                                    className="text-xs font-bold p-1.5 border border-zinc-200 rounded bg-white outline-none cursor-pointer hover:border-black transition-colors"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 text-zinc-500 italic text-sm">
+                            Aucune personne désignée pour le moment.
+                        </div>
+                    )}
+                </div>
+                
+                <div>
+                    <p className="text-sm font-bold text-zinc-500 uppercase mb-2">Sélectionner la personne du mois prochain</p>
+                    <div className="flex flex-col gap-3">
+                        <select 
+                            value={designatedMemberId} 
+                            onChange={(e) => setDesignatedMemberId(e.target.value)}
+                            className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none transition cursor-pointer appearance-none"
+                        >
+                            <option value="">-- Choisir un membre éligible --</option>
+                            {membres.filter(m => !m.a_gagne).map(m => (
+                                <option key={m.id} value={m.id}>{m.prenom_nom}</option>
+                            ))}
+                        </select>
+                        <button 
+                            onClick={handleDesignateNextDrawPerson}
+                            disabled={isSaving || !designatedMemberId}
+                            className="px-6 py-4 rounded-xl font-black uppercase text-xs transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                            style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}
+                        >
+                            {isSaving ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>}
+                            Désigner
+                        </button>
+                    </div>
+                </div>
             </div>
          </div>
 
