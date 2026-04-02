@@ -718,28 +718,69 @@ export default function OnyxOpsElite() {
         {/* --- VUE ACCUEIL --- */}
         {activeView === 'home' && (
           <div className="animate-in fade-in duration-500">
-            <header className="pt-20 pb-12 px-6 text-center max-w-5xl mx-auto">
-              <h1 className={`${spaceGrotesk.className} glitch-hover cursor-crosshair text-5xl md:text-7xl font-black leading-[1] tracking-tighter mb-6 animate-in slide-in-from-bottom-8 fade-in duration-1000 zoom-in-95`}>
-                <span className="glitch-text">
-                  DIGITALISEZ VOTRE <br/> <span className="text-[#39FF14] italic">PROPRE EMPIRE.</span>
-                </span>
-              </h1>
-              <p className="text-zinc-500 text-lg max-w-2xl mx-auto font-medium mb-10">
-                La suite complète d'outils pour les entreprises, PME et commerces du Sénégal. Gérez vos ventes, stocks, employés, devis et livraisons via Whatsapp. 0 Engagement 0 coûts cachés.
-              </p>
-              
-              <div className="flex flex-wrap gap-4 justify-center mb-10">
-                <button onClick={() => navigateTo('dashboard')} className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-8 py-4 rounded-full font-black text-sm uppercase tracking-wider hover:bg-[#39FF14] hover:text-black transition duration-300 shadow-xl">
-                  <Handshake className="w-5 h-5" /> Devenir Partenaire
-                </button>
-                <button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="inline-flex items-center gap-2 border-2 border-black text-black px-8 py-4 rounded-full font-black text-sm uppercase hover:bg-black hover:text-[#39FF14] transition">
-                  <Package className="w-5 h-5" /> Découvrir les Solutions
-                </button>
-              </div>
+            <header className="pt-24 pb-16 px-6 max-w-7xl mx-auto relative z-10">
+              <div className="grid lg:grid-cols-2 gap-12 items-center">
+                {/* Colonne Gauche : Le Pitch & La Preuve */}
+                <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
+                  <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span>
+                    Arrêtez de payer pour des sites vides.
+                  </div>
+                  
+                  <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>
+                    <span className="glitch-text">Vous ne voulez pas un logiciel.</span> <br/>
+                    Vous voulez des <span className="text-[#39FF14] drop-shadow-sm">clients qui achètent.</span>
+                  </h1>
+                  
+                  <p className={`${inter.className} text-zinc-600 text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
+                    Onyx Jaay n'est pas juste un catalogue WhatsApp. C'est une machine d'acquisition. Nous vous donnons l'outil pour encaisser, ET la formation exacte pour attirer les acheteurs via Meta Ads.
+                  </p>
 
-              <div className="pt-6 border-t border-zinc-200/60 max-w-md mx-auto">
-                <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Paiements Locaux Intégrés</p>
-                <PaymentMethods />
+                  <div className="bg-zinc-50 border-l-4 border-[#39FF14] p-5 rounded-r-2xl mb-10 shadow-sm">
+                    <p className="text-sm font-bold text-zinc-700 leading-relaxed">
+                      💡 Sur le marché sénégalais, un prospect WhatsApp coûte en moyenne <span className="text-black font-black">110 FCFA (0.18€)</span> via Meta Ads. Avec un budget pub de 5 000 F et les méthodes d'Onyx Formation, amenez <span className="text-[#39FF14] bg-black px-1.5 py-0.5 rounded">45+ acheteurs chauds</span> sur votre catalogue dès ce soir.
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 mb-10">
+                    <button onClick={() => document.getElementById('tarifs')?.scrollIntoView({behavior:'smooth'})} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.3)]">
+                      Créer ma boutique (1er Mois Offert)
+                    </button>
+                    <button onClick={() => window.open('/keur-yaay', '_blank')} className="inline-flex justify-center items-center gap-2 border-2 border-black text-black px-8 py-5 rounded-full font-black text-sm uppercase hover:bg-black hover:text-white transition">
+                      <PlayCircle className="w-5 h-5" /> Voir une Démo
+                    </button>
+                  </div>
+
+                  <div className="pt-6 border-t border-zinc-200/60 max-w-md">
+                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Paiements Locaux Intégrés</p>
+                    <div className="flex justify-start">
+                      <PaymentMethods />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Colonne Droite : La Vidéo (Mockup iPhone) */}
+                <div className="relative mx-auto w-full max-w-[320px] lg:max-w-[360px] animate-in slide-in-from-right-8 fade-in duration-1000 delay-200 mt-10 lg:mt-0">
+                  {/* Green Glow Behind Phone */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[80%] bg-[#39FF14] rounded-full blur-[80px] opacity-40 pointer-events-none"></div>
+                  
+                  {/* iPhone Frame */}
+                  <div className="relative bg-black rounded-[3rem] border-[8px] border-black shadow-2xl overflow-hidden aspect-[9/16] flex flex-col items-center justify-center">
+                    {/* Notch */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-3xl z-20"></div>
+                    
+                    {/* Video Content */}
+                    <div className="w-full h-full bg-zinc-900 relative">
+                      <iframe 
+                        src="https://www.youtube.com/embed/acFsObjm2E0?autoplay=1&mute=1&loop=1&playlist=acFsObjm2E0&controls=0&rel=0&modestbranding=1&playsinline=1" 
+                        title="Vidéo Promo Bàyyi thiow li, nuy jaay"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen
+                        className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
+                      ></iframe>
+                    </div>
+                  </div>
+                </div>
               </div>
             </header>
 
