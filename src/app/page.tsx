@@ -723,6 +723,7 @@ export default function OnyxOpsElite() {
               <div className="grid lg:grid-cols-2 gap-12 items-center">
                 {/* Colonne Gauche : Le Pitch & La Preuve */}
                 <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
+                  {/* --- NOUVEAU COPYWRITING HERO --- */}
                   <div className="inline-flex items-center gap-2 bg-black text-[#00FF00] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-[#00FF00] animate-pulse"></span>
                     🛑 BÀYYI THIOW LI, NUY JAAY.
@@ -734,12 +735,12 @@ export default function OnyxOpsElite() {
                   </h1>
                   
                   <p className={`${inter.className} text-zinc-600 text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
-                    Fini les "Prix en Inbox" qui ne mènent à rien ou vos amis qui mettent silence vos 50 statuts photos de produits. Donnez à vos clients un catalogue clair, laissez-les choisir, et réveillez-vous avec des notifications de paiement et des commandes prêtes à livrer.
+                    Fini les "Prix en Inbox" qui ne mènent à rien ou vos amis qui mettent sous silence vos 50 statuts photos de produits. Donnez à vos clients un catalogue clair, laissez-les choisir, et réveillez-vous avec des notifications de paiement et des commandes prêtes à livrer.
                   </p>
 
                   <div className="bg-zinc-50 border-l-4 border-[#00FF00] p-5 rounded-r-2xl mb-10 shadow-sm">
                     <p className="text-sm font-bold text-zinc-700 leading-relaxed">
-                      💡 Sur Meta, un contact coûte environ 110 FCFA. Avec 5 000 F de pub et notre méthode de ciblage incluse, amenez plus de <span className="text-[#00FF00] bg-black px-1.5 py-0.5 rounded">45 acheteurs chauds</span> sur votre boutique dès ce soir. Zéro blabla, que du cash.
+                      💡 Sur Meta, un contact coûte environ 110 FCFA. Avec 5 000 F de pub et notre méthode de ciblage incluse, amenez plus de <span className="text-[#00FF00] bg-black px-2 py-0.5 rounded text-white font-black">45 acheteurs chauds</span> sur votre boutique dès ce soir. Zéro blabla, que du cash.
                     </p>
                   </div>
                   
