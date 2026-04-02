@@ -318,6 +318,13 @@ function TontineMembreDashboard() {
             
             const { data } = await supabase.from('configuration_tirage').select('*').eq('tontine_id', tontine.id).single();
             setCurrentDrawConfig(data);
+
+            setTimeout(() => {
+                if (confirm(`Le tirage est terminé ! ${nextMember.prenom_nom} a été désigné(e) pour le mois suivant. Voulez-vous le notifier sur WhatsApp ?`)) {
+                    const message = `Bonjour ${nextMember.prenom_nom}, vous avez été automatiquement désigné(e) pour lancer le prochain tirage de la tontine "${tontine.nom}" le mois prochain. Félicitations ! 🎉`;
+                    window.open(`https://wa.me/221${nextMember.telephone}?text=${encodeURIComponent(message)}`, '_blank');
+                }
+            }, 500);
         }
       } catch (err: any) {
         alert("Erreur lors du tirage : " + err.message);

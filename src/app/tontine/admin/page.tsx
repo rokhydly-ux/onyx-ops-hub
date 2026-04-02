@@ -580,6 +580,11 @@ export default function TontineAdminPage() {
       
       alert("Membre désigné avec succès pour le prochain tour !");
       fetchDrawConfig();
+
+      if (confirm(`Voulez-vous notifier ${member.prenom_nom} sur WhatsApp de sa désignation ?`)) {
+        const message = `Bonjour ${member.prenom_nom}, vous avez été désigné(e) pour lancer le prochain tirage de la tontine "${tontine.nom}". Préparez-vous ! 🎉`;
+        window.open(`https://wa.me/221${member.telephone}?text=${encodeURIComponent(message)}`, '_blank');
+      }
     } catch (err: any) {
       alert("Erreur: " + err.message);
     } finally {
@@ -708,6 +713,10 @@ Généré par Onyx Tontine
             }
             alert(`Le tirage est terminé ! ${nextMember.prenom_nom} a été automatiquement désigné(e) pour le mois suivant.`);
             fetchDrawConfig();
+            if (confirm(`Voulez-vous notifier ${nextMember.prenom_nom} sur WhatsApp de sa désignation automatique ?`)) {
+                const message = `Bonjour ${nextMember.prenom_nom}, vous avez été automatiquement désigné(e) pour lancer le prochain tirage de la tontine "${tontine.nom}" le mois prochain. Félicitations ! 🎉`;
+                window.open(`https://wa.me/221${nextMember.telephone}?text=${encodeURIComponent(message)}`, '_blank');
+            }
         } else {
             alert("Le tirage est terminé ! Il n'y a plus de membres éligibles pour le prochain mois.");
         }

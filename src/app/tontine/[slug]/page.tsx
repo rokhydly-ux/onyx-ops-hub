@@ -164,6 +164,25 @@ function SlugPageContent({ slug }: { slug: string }) {
         audio.volume = 0.5;
         audio.play().catch(()=>{});
 
+        const remainingEligibles = members.filter(m => !winnerIds.includes(m.id) && !m.a_gagne);
+        if (remainingEligibles.length > 0) {
+            const nextMember = remainingEligibles[0];
+            const nextDate = new Date();
+            nextDate.setMonth(nextDate.getMonth() + 1);
+            nextDate.setDate(tontine.date_limite_paiement || 5);
+            
+            const payload = { tontine_id: tontine.id, membre_id: nextMember.id, date_tirage_prevue: nextDate.toISOString().split('T')[0] };
+            if (currentDrawConfig?.id) await supabase.from('configuration_tirage').update(payload).eq('id', currentDrawConfig.id);
+            else await supabase.from('configuration_tirage').insert([payload]);
+            
+            setTimeout(() => {
+                if (confirm(`Le tirage est terminé ! ${nextMember.prenom_nom} a été désigné(e) pour le mois suivant. Voulez-vous le notifier sur WhatsApp ?`)) {
+                    const message = `Bonjour ${nextMember.prenom_nom}, vous avez été automatiquement désigné(e) pour lancer le prochain tirage de la tontine "${tontine.nom}" le mois prochain. Félicitations ! 🎉`;
+                    window.open(`https://wa.me/221${nextMember.telephone}?text=${encodeURIComponent(message)}`, '_blank');
+                }
+            }, 500);
+        }
+
         await fetchDashboardData(currentUser, tontine); // Re-fetch all data
       } catch (err: any) {
         alert("Erreur lors du tirage : " + err.message);
