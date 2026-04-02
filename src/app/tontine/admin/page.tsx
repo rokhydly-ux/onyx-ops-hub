@@ -561,6 +561,8 @@ export default function TontineAdminPage() {
 
       const payload = { tontine_id: tontine.id, membre_id: memberId, date_tirage_prevue: nextDate.toISOString().split('T')[0] };
 
+      console.log("Payload envoyée (depuis carte):", { tontine_id: tontine.id, membre_id: memberId });
+
       let res;
       if (currentDrawConfig?.id) {
         res = await supabase.from('configuration_tirage').update(payload).eq('id', currentDrawConfig.id).select();
@@ -598,6 +600,8 @@ export default function TontineAdminPage() {
         membre_id: designatedMemberId,
         date_tirage_prevue: nextDate.toISOString().split('T')[0]
       };
+
+      console.log("Payload envoyée (depuis select):", { tontine_id: tontine.id, membre_id: designatedMemberId });
 
       let res;
       if (currentDrawConfig?.id) {
