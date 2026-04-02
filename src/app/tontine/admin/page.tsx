@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList, Eye, Download, Archive, Send, History } from 'lucide-react';
+import { Users, Wallet, Trophy, Shuffle, ShieldCheck, Home, Loader2, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Copy, Link as LinkIcon, Upload, Briefcase, MessageCircle, Cake, RotateCcw, Settings, FileText, Pencil, ClipboardList, Eye, Download, Archive, Send, History, Sparkles, Calendar, Wand2 } from 'lucide-react';
 import InteractiveParticles from '@/components/InteractiveParticles';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -45,6 +45,14 @@ export default function TontineAdminPage() {
   const [spinAvatar, setSpinAvatar] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
   const [recentWinners, setRecentWinners] = useState<any[]>([]);
+
+  // --- ÉTATS COMMUNICATION VISUELLE ---
+  const [showPromoModal, setShowPromoModal] = useState<'gagnantes' | 'prochain' | null>(null);
+  const [promoDateTirage, setPromoDateTirage] = useState("");
+  const [promoLieuTirage, setPromoLieuTirage] = useState("En ligne (WhatsApp)");
+  const [promoCopied, setPromoCopied] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
   // --- CALCULS DU MOIS EN COURS ---
   const totalGagnantsMois = tontine?.gagnants_par_mois || 1;
@@ -176,6 +184,34 @@ export default function TontineAdminPage() {
     if (error) throw error;
     const { data } = supabase.storage.from('tontines').getPublicUrl(fileName);
     return data.publicUrl;
+  };
+
+  const handleCopyPromo = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setPromoCopied(true);
+    setTimeout(() => setPromoCopied(false), 3000);
+  };
+
+  const handleGenerateImage = async (promptText: string) => {
+    setIsGeneratingImage(true);
+    setGeneratedImageUrl(null);
+    try {
+      // Appel vers l'API Next.js (DALL-E 3)
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptText })
+      });
+      if (!res.ok) throw new Error("L'API a retourné une erreur");
+      const data = await res.json();
+      if (data.imageUrl) setGeneratedImageUrl(data.imageUrl);
+      else throw new Error("Pas d'URL d'image reçue");
+    } catch (error) {
+      console.error(error);
+      alert("Génération échouée. Assurez-vous d'avoir configuré la route /api/generate-image avec votre clé OpenAI.");
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
 
   // --- FONCTIONS CRUD MEMBRES ---
@@ -956,6 +992,12 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
   const hasRetardataires = membres.some(m => !cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé'));
 
   const yAxisFormatter = (value: number) => `${(value / 1000)}k`;
+  
+  const lastWinners = membres.filter(m => m.a_gagne).sort((a, b) => (b.mois_victoire || 0) - (a.mois_victoire || 0)).slice(0, 2);
+  const winnerNames = lastWinners.map(w => w.prenom_nom).join(" et ") || "les heureuses gagnantes";
+  const promoGagnantesPrompt = `Affiche verticale format 9:16, style luxueux, moderne et néon cyberpunk. Fond noir profond avec des accents vert néon (code #39FF14). Texte principal en 3D brillant au centre : "FÉLICITATIONS". En dessous, texte plus petit mais très lisible : "${winnerNames}". Date : "${new Date().toLocaleDateString('fr-FR')}". Atmosphère festive avec des particules dorées et vertes flottantes, quelques billets de banque stylisés ou pièces d'or subtiles. Éclairage dramatique, qualité photoréaliste, 8k.`;
+  
+  const promoProchainPrompt = `Affiche verticale format 9:16, style mystérieux, élégant et high-tech. Fond noir onyx texturé avec des halos de lumière vert néon (#39FF14). Au centre, une urne ou une boîte de tirage lumineuse stylisée. Texte principal 3D massif et percutant : "PROCHAIN TIRAGE". En dessous, un texte clair : "Date : ${promoDateTirage || '[Date]'} | Lieu : ${promoLieuTirage || '[Lieu]'}". Ambiance de suspense, étincelles lumineuses, reflets premium, qualité photoréaliste, 8k.`;
 
 
 
@@ -1176,6 +1218,26 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                      <Bar dataKey="caisse" fill={tontine?.theme_color || '#39FF14'} name="Caisse du mois" radius={[8, 8, 0, 0]} />
                   </BarChart>
                </ResponsiveContainer>
+            </div>
+         </div>
+
+         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-black rounded-xl text-[#39FF14]"><Sparkles size={20}/></div>
+                <h3 className={`${spaceGrotesk.className} font-black uppercase text-xl`}>Communication Visuelle (IA)</h3>
+            </div>
+            <p className="text-sm font-bold text-zinc-500 mb-6">Générez des prompts optimisés pour Midjourney ou DALL-E afin de créer vos affiches de tontine.</p>
+            <div className="grid md:grid-cols-2 gap-6">
+                <button onClick={() => setShowPromoModal('gagnantes')} className="bg-zinc-900 border-2 border-zinc-800 p-8 rounded-3xl flex flex-col items-center justify-center text-center group hover:border-[#39FF14] transition-all hover:shadow-[0_0_30px_rgba(57,255,20,0.15)]">
+                   <Trophy size={40} className="text-[#39FF14] mb-4 group-hover:scale-110 transition-transform"/>
+                   <span className="font-black text-white uppercase tracking-widest">Affiche Gagnantes</span>
+                   <span className="text-[10px] font-bold text-zinc-400 mt-2 uppercase">Générer le prompt</span>
+                </button>
+                <button onClick={() => setShowPromoModal('prochain')} className="bg-zinc-900 border-2 border-zinc-800 p-8 rounded-3xl flex flex-col items-center justify-center text-center group hover:border-[#39FF14] transition-all hover:shadow-[0_0_30px_rgba(57,255,20,0.15)]">
+                   <Calendar size={40} className="text-[#39FF14] mb-4 group-hover:scale-110 transition-transform"/>
+                   <span className="font-black text-white uppercase tracking-widest">Prochain Tirage</span>
+                   <span className="text-[10px] font-bold text-zinc-400 mt-2 uppercase">Générer le prompt</span>
+                </button>
             </div>
          </div>
 
@@ -1536,6 +1598,62 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                {isSaving ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle size={18}/>}
                {isSaving ? "Validation..." : "Confirmer le paiement"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODALE PROMPT IA --- */}
+      {showPromoModal && (
+        <div id="promo-modal-overlay" onClick={(e: any) => { if (e.target.id === 'promo-modal-overlay') { setShowPromoModal(null); setGeneratedImageUrl(null); } }} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-[2rem] w-full max-w-lg p-8 relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <button onClick={() => { setShowPromoModal(null); setGeneratedImageUrl(null); }} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
+            <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-black flex items-center gap-2`}>
+              <Wand2 size={24} className="text-[#39FF14] bg-black p-1.5 rounded-xl" /> 
+              {showPromoModal === 'gagnantes' ? 'Affiche Gagnantes' : 'Prochain Tirage'}
+            </h2>
+            <p className="text-sm font-bold text-zinc-500 mb-6">Copiez ce prompt dans Midjourney, DALL-E ou Canva pour générer votre visuel.</p>
+
+            {showPromoModal === 'prochain' && (
+               <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Date & Heure</label>
+                    <input type="text" value={promoDateTirage} onChange={e => setPromoDateTirage(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: 5 Novembre à 20h" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Lieu</label>
+                    <input type="text" value={promoLieuTirage} onChange={e => setPromoLieuTirage(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: Groupe WhatsApp" />
+                  </div>
+               </div>
+            )}
+
+            <div className="relative mb-4">
+               <textarea 
+                  readOnly 
+                  value={showPromoModal === 'gagnantes' ? promoGagnantesPrompt : promoProchainPrompt} 
+                  className="w-full h-40 p-4 bg-zinc-900 text-[#39FF14] border border-zinc-800 rounded-2xl font-mono text-sm outline-none resize-none leading-relaxed custom-scrollbar"
+               />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+               <button onClick={() => handleCopyPromo(showPromoModal === 'gagnantes' ? promoGagnantesPrompt : promoProchainPrompt)} className={`flex-1 py-3 rounded-xl text-xs font-black uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${promoCopied ? 'bg-green-500 text-white scale-105 shadow-green-500/20' : 'bg-[#39FF14] text-black hover:scale-105 shadow-[#39FF14]/20'}`}>
+                  {promoCopied ? <CheckCircle size={16} className="animate-bounce" /> : <Copy size={16}/>}
+                  {promoCopied ? 'Prompt Copié !' : 'Copier le Prompt'}
+               </button>
+               <button onClick={() => handleGenerateImage(showPromoModal === 'gagnantes' ? promoGagnantesPrompt : promoProchainPrompt)} disabled={isGeneratingImage} className="flex-1 bg-black text-[#39FF14] py-3 rounded-xl text-xs font-black uppercase hover:scale-105 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:hover:scale-100">
+                  {isGeneratingImage ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16}/>}
+                  {isGeneratingImage ? 'Génération...' : 'Générer (DALL-E 3)'}
+               </button>
+            </div>
+
+            {generatedImageUrl && (
+               <div className="mt-6 border border-zinc-200 rounded-2xl p-2 bg-zinc-50 animate-in zoom-in-95 duration-500">
+                  <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-2">Résultat IA</p>
+                  <img src={generatedImageUrl} alt="Affiche Générée" className="w-full h-auto rounded-xl shadow-sm mb-2" />
+                  <a href={generatedImageUrl} download target="_blank" rel="noopener noreferrer" className="w-full bg-zinc-200 text-black py-3 rounded-xl text-xs font-black uppercase hover:bg-zinc-300 transition-all flex items-center justify-center gap-2">
+                     <Download size={14}/> Télécharger l'Affiche
+                  </a>
+               </div>
+            )}
           </div>
         </div>
       )}
