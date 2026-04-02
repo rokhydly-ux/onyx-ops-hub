@@ -345,6 +345,12 @@ function SlugPageContent({ slug }: { slug: string }) {
     doc.save(`Recu_${member.prenom_nom.replace(/\s+/g, '_')}_Mois_${currentMonth}.pdf`);
   };
 
+  const handleDownloadSpecificReceipt = async (member: any, cot: any) => {
+    if (!cot) return;
+    const doc = await createReceiptPDF(member, cot);
+    doc.save(`Recu_${member.prenom_nom.replace(/\s+/g, '_')}_Mois_${cot.mois_numero}.pdf`);
+  };
+
   const handleDownloadHistory = () => {
     const doc = new jsPDF();
     doc.setFontSize(20);
@@ -724,260 +730,54 @@ function SlugPageContent({ slug }: { slug: string }) {
                <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-black uppercase tracking-tighter">Historique</h2>
                </div>
-               <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 mb-4 custom-scrollbar">
+               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 mb-4 custom-scrollbar">
                   {Array.from({ length: currentMonth }, (_, i) => {
                      const mois = currentMonth - i; // Ordre décroissant
                      const cot = cotisations.find(c => c.membre_id === currentUser.id && c.mois_numero === mois && c.statut === 'Payé');
                      return (
-                        <div key={mois} className="flex justify-between items-center p-3 bg-zinc-50 rounded-xl border border-zinc-100">
-                           <div>
-                              <p className="font-bold text-sm">Mois {mois}</p>
-                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{cot && cot.created_at ? new Date(cot.created_at).toLocaleDateString('fr-FR') : 'En attente'}</p>
+                        <div key={mois} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 sm:p-4 bg-zinc-50 rounded-xl border border-zinc-100 gap-3">
+                           <div className="flex justify-between items-center w-full sm:w-auto">
+                              <div>
+                                 <p className="font-bold text-sm">Mois {mois}</p>
+                                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{cot && cot.created_at ? new Date(cot.created_at).toLocaleDateString('fr-FR') : 'En attente'}</p>
+                              </div>
+                              <div className="sm:hidden">
+                                 {cot ? (
+                                    <span className="text-xs font-black text-green-600 bg-green-100 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle size={12}/> Payé</span>
+                                 ) : (
+                                    <span className="text-xs font-black text-red-600 bg-red-50 px-2 py-1 rounded-md flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
+                                 )}
+                              </div>
                            </div>
-                           {cot ? (
-                              <span className="text-xs font-black text-green-600 bg-green-100 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle size={12}/> Payé</span>
-                           ) : (
-                              <span className="text-xs font-black text-red-600 bg-red-50 px-2 py-1 rounded-md flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
-                           )}
+                           <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t border-zinc-200 sm:border-0">
+                              <div className="hidden sm:block mr-2">
+                                 {cot ? (
+                                    <span className="text-xs font-black text-green-600 bg-green-100 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle size={12}/> Payé</span>
+                                 ) : (
+                                    <span className="text-xs font-black text-red-600 bg-red-50 px-2 py-1 rounded-md flex items-center gap-1"><AlertCircle size={12}/> À Payer</span>
+                                 )}
+                              </div>
+                              {cot && (
+                                 <div className="flex gap-2 w-full sm:w-auto">
+                                    {cot.recu_url && (
+                                       <a href={cot.recu_url} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-none p-2 bg-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-300 transition flex items-center justify-center gap-1 text-[10px] font-black uppercase">
+                                          <Eye size={14}/> Photo
+                                       </a>
+                                    )}
+                                    <button onClick={() => handleDownloadSpecificReceipt(currentUser, cot)} className="flex-1 sm:flex-none p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-1 text-[10px] font-black uppercase">
+                                       <Download size={14}/> PDF
+                                    </button>
+                                 </div>
+                              )}
+                           </div>
                         </div>
-                     )
+                     );
                   })}
                </div>
                <button onClick={handleDownloadHistory} className="w-full py-3 rounded-xl font-black uppercase text-xs border-2 border-black text-black hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2">
                   <FileText size={16}/> Télécharger PDF détaillé
                </button>
             </div>
-          </div>
-        
-          <div className="md:col-span-8 space-y-6">
-            <section className="bg-black p-6 md:p-8 rounded-[2rem] border-2 shadow-2xl relative overflow-hidden" style={{ borderColor: tontine.theme_color }}>
-               <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.05] blur-3xl rounded-full" style={{ backgroundColor: tontine.theme_color }}></div>
-               
-               <div className="flex justify-between items-end mb-6 relative z-10">
-                  <div>
-                     <p className="text-xs font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2 mb-2">
-                        <Wallet size={14} style={{ color: tontine.theme_color }} /> Niveau de cotisation (Mois {currentMonth})
-                     </p>
-                     <p className="text-4xl font-black text-white tracking-tighter">{actuelCaisse.toLocaleString()} <span className="text-xl text-zinc-500 font-medium">/ {caisseMensuelle.toLocaleString()} F</span></p>
-                  </div>
-               </div>
-
-               <div className="w-full bg-zinc-800 rounded-full h-4 mb-4 relative z-10 overflow-hidden shadow-inner">
-                  <div 
-                    className="h-full rounded-full transition-all duration-1000 ease-out" 
-                    style={{ width: `${progressPercentage}%`, backgroundColor: tontine.theme_color, boxShadow: `0 0 15px ${tontine.theme_color}` }}
-                  ></div>
-               </div>
-               
-               <div className="flex justify-between items-center relative z-10">
-                  <p className="text-sm text-zinc-400 font-bold">{cotisationsCeMois.length} membres sur {totalMembres} ont payé</p>
-                  <p className="text-xs font-black uppercase tracking-widest text-black px-3 py-1.5 rounded shadow-md flex items-center gap-2" style={{ backgroundColor: tontine.theme_color }}>
-                    <Calendar size={14} /> {dateTirage}
-                  </p>
-               </div>
-            </section>
-
-            <section className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.15] blur-[100px] rounded-full pointer-events-none" style={{ backgroundColor: tontine?.theme_color || '#39FF14' }}></div>
-               
-               <div className="relative z-10 w-full">
-                  <p className="font-black uppercase tracking-[0.3em] text-xs mb-6 flex items-center justify-center gap-2" style={{ color: tontine?.theme_color || '#39FF14' }}>
-                     <Shuffle size={14}/> Tirage du Mois {maxMoisVictoire > 0 ? maxMoisVictoire : 1}
-                  </p>
-                  
-                  {maxMoisVictoire === 0 ? (
-                     <div className="py-8">
-                       <h2 className={`${spaceGrotesk.className} text-3xl font-black text-white uppercase mb-4`}>Aucun tirage pour le moment</h2>
-                       <p className="text-base font-medium text-zinc-400">Le premier tirage n'a pas encore été effectué par l'administrateur.</p>
-                     </div>
-                  ) : !revealed ? (
-                     isSpinning ? (
-                        <div className="flex flex-col items-center py-8">
-                           <div className="w-24 h-24 rounded-full border-4 border-t-transparent animate-spin mb-8" style={{ borderColor: `${tontine?.theme_color || '#39FF14'}40`, borderTopColor: tontine?.theme_color || '#39FF14' }}></div>
-                           <p className="text-3xl md:text-5xl font-black text-white uppercase tracking-widest animate-pulse drop-shadow-lg">{spinName || "Mélange..."}</p>
-                           <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mt-6">Découverte des gagnants...</p>
-                        </div>
-                     ) : (
-                        <div className="flex flex-col items-center py-8 gap-6">
-                           <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black text-white uppercase mb-4 leading-tight`}>Les gagnants ont été tirés !</h2>
-                           <button onClick={handleReveal} className="px-10 py-5 rounded-[2.5rem] font-black text-base uppercase tracking-widest transition-all shadow-xl hover:scale-105 flex items-center gap-3 animate-bounce" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
-                              <Trophy size={24}/> Découvrir les gagnants
-                           </button>
-                        </div>
-                     )
-                  ) : (
-                     <div className="animate-in slide-in-from-bottom-8 fade-in duration-500 w-full">
-                        <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black text-white uppercase mb-8`}>Félicitations !</h2>
-                        <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
-                           {recentWinners.map((winner: any) => (
-                              <div key={winner.id} className="bg-zinc-900 border-2 p-5 md:p-6 rounded-3xl flex items-center gap-5 text-left shadow-lg" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
-                                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center shrink-0"><Medal size={28} style={{ color: tontine?.theme_color || '#39FF14' }}/></div>
-                                 <div className="flex-1 min-w-0">
-                                    <p className="font-black text-white uppercase text-lg leading-tight truncate">{winner.prenom_nom}</p>
-                                    <p className="font-black text-sm mt-1" style={{ color: tontine?.theme_color || '#39FF14' }}>{montantParGagnant.toLocaleString()} F CFA</p>
-                                 </div>
-                              </div>
-                           ))}
-                        </div>
-                     </div>
-                  )}
-               </div>
-            </section>
-
-            <section>
-               <div className="flex gap-2 p-2 bg-zinc-100 rounded-[1.5rem] mb-6 max-w-lg mx-auto">
-                  <button 
-                    onClick={() => setActiveTab('historique')} 
-                    className={`flex-1 py-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'historique' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'}`}
-                  >
-                    Historique Gagnants
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('attente')} 
-                    className={`flex-1 py-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'attente' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'}`}
-                  >
-                    En Attente ({waitingList.length})
-                  </button>
-                  {currentUser.is_admin && (
-                    <button onClick={() => setActiveTab('gerance')} className={`flex-1 py-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all ${activeTab === 'gerance' ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-black'}`}>
-                      Gérance 👑
-                    </button>
-                  )}
-               </div>
-
-               {activeTab === 'historique' ? (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                     <div className="bg-zinc-100 border border-zinc-200 p-6 rounded-[2rem] flex items-start gap-4">
-                        <div className="bg-black p-3 rounded-2xl mt-1 shadow-md" style={{ color: tontine.theme_color }}><ShieldCheck size={24}/></div>
-                        <div>
-                           <p className="text-base font-black text-black">Zéro Magouille garantie.</p>
-                           <p className="text-sm text-zinc-600 font-medium mt-1 leading-relaxed">Les tirages sont effectués automatiquement par le système et enregistrés en toute transparence.</p>
-                        </div>
-                     </div>
-                     
-                     {winnersHistory.map((h: any, i: number) => (
-                        <div key={i} className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm flex items-center justify-between hover:border-black transition-colors">
-                           <div>
-                              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 bg-zinc-100 px-3 py-1 rounded mb-3 inline-block">Mois {h.mois} • {h.date}</span>
-                              <div className="flex flex-wrap items-center gap-2 mt-1">
-                                 {h.winners.map((w: any, wIdx: number) => (
-                                    <div key={wIdx} className="flex items-center gap-2">
-                                       <div className="flex items-center gap-2.5 bg-zinc-50 pl-1.5 pr-4 py-1.5 rounded-full border border-zinc-200 shadow-sm hover:border-black transition-colors">
-                                          <div className="w-8 h-8 rounded-full bg-black overflow-hidden flex items-center justify-center text-[10px] font-black text-white shrink-0">
-                                             {w.photo ? <img src={w.photo} alt={w.nom} className="w-full h-full object-cover" /> : w.nom.substring(0, 2).toUpperCase()}
-                                          </div>
-                                          <span className="font-black text-black uppercase text-sm flex items-center gap-1">
-                                             {w.nom} {w.is_admin && <span title="Gérant"><ShieldCheck size={14} className="text-yellow-500" /></span>}
-                                          </span>
-                                       </div>
-                                       {wIdx < h.winners.length - 1 && <span className="text-zinc-300 font-black text-lg">&</span>}
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                           <div className="text-right">
-                              <p className="text-lg font-black text-green-600">{h.amount.toLocaleString()} F</p>
-                              <p className="text-[10px] font-bold text-zinc-500 uppercase mt-1 tracking-widest">Distribués</p>
-                           </div>
-                        </div>
-                     ))}
-                  </div>
-               ) : activeTab === 'gerance' ? (
-                  (() => {
-                    const paidCount = members.filter(m => cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé')).length;
-                    const toPayCount = members.length - paidCount;
-                    return (
-                    <div className="bg-white border border-zinc-200 p-6 md:p-8 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
-                      <div className="flex items-center gap-3 mb-6">
-                          <div className="p-3 bg-black rounded-2xl mt-1 shadow-md" style={{ color: tontine.theme_color }}><Wallet size={24}/></div>
-                          <div>
-                              <p className="text-base font-black text-black">Pointage des Cotisations (Mois {currentMonth})</p>
-                              <p className="text-sm text-zinc-600 font-medium mt-1 leading-relaxed">Cochez les membres qui ont payé leur cotisation pour ce mois.</p>
-                          </div>
-                      </div>
-                      <div className="flex gap-4 mb-6 bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
-                          <div className="flex-1 text-center">
-                              <p className="text-2xl font-black text-green-600">{paidCount}</p>
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">À Jour</p>
-                          </div>
-                          <div className="w-px bg-zinc-200"></div>
-                          <div className="flex-1 text-center">
-                              <p className="text-2xl font-black text-red-600">{toPayCount}</p>
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">À Payer</p>
-                          </div>
-                      </div>
-                      <div className="space-y-3">
-                          {members.map((m: any) => {
-                              const currentCotisation = cotisations.find(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
-                              const hasPaid = !!currentCotisation;
-                              const isToggling = togglingPaymentFor === m.id;
-                              const relanceMessage = `Bonjour ${m.prenom_nom}, petit rappel pour la cotisation de la tontine "${tontine?.nom}" de ce mois. Merci de régulariser au plus vite !`;
-
-                              return (
-                                  <div key={m.id} className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors ${hasPaid ? 'bg-green-50 border-green-200' : 'bg-zinc-50 border-zinc-100'}`}>
-                                      <div className="flex items-center gap-4">
-                                          <div className={`w-10 h-10 rounded-full overflow-hidden shrink-0 ${hasPaid ? 'grayscale-0' : 'grayscale'}`}>
-                                              <img src={m.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.prenom_nom)}&background=random`} alt={m.prenom_nom} className="w-full h-full object-cover" />
-                                          </div>
-                                          <div>
-                                              <p className="font-black text-sm uppercase text-black">{m.prenom_nom}</p>
-                                              <p className="text-xs font-mono text-zinc-500">{m.telephone}</p>
-                                          </div>
-                                      </div>
-                                      <div className="flex items-center gap-3 self-end sm:self-center">
-                                          {currentCotisation?.recu_url && (
-                                             <a href={currentCotisation.recu_url} target="_blank" rel="noopener noreferrer" className="p-2 bg-zinc-100 text-zinc-600 rounded-xl hover:bg-zinc-200 transition" title="Voir le reçu">
-                                                <Eye size={16} />
-                                             </a>
-                                          )}
-                                          {hasPaid && (
-                                             <div className="flex items-center gap-2">
-                                               <button onClick={() => handleDownloadReceipt(m)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition" title="Télécharger le reçu PDF">
-                                                  <Download size={16} />
-                                               </button>
-                                               <button onClick={() => handleShareReceiptWhatsApp(m, currentCotisation)} className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition" title="Partager sur WhatsApp">
-                                                  <Send size={16} />
-                                               </button>
-                                             </div>
-                                          )}
-                                          {!hasPaid && (
-                                              <a href={`https://wa.me/221${m.telephone}?text=${encodeURIComponent(relanceMessage)}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition" title="Relancer sur WhatsApp">
-                                                  <MessageCircle size={16} />
-                                              </a>
-                                          )}
-                                          <button 
-                                              onClick={() => handleTogglePaiement(m.id, currentMonth)} 
-                                              disabled={isToggling}
-                                              className={`w-28 h-11 flex items-center justify-center rounded-xl text-xs font-black uppercase transition-all ${
-                                                  hasPaid ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'
-                                              } disabled:opacity-50`}
-                                          >
-                                              {isToggling ? <Loader2 size={16} className="animate-spin" /> : hasPaid ? <><CheckCircle size={14} className="mr-1.5"/> Payé</> : 'Pointer'}
-                                          </button>
-                                      </div>
-                                  </div>
-                              );
-                          })}
-                      </div>
-                    </div>
-                  )})()
-               ) : (
-                  <div className="bg-white border border-zinc-200 p-8 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-bottom-4">
-                     <p className="text-sm text-zinc-500 font-bold mb-6">Ces membres (y compris vous) participeront aux prochains tirages au sort mensuels.</p>
-                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {waitingList.map((m: any, i: number) => (
-                           <div key={i} className={`flex items-center gap-3 p-4 rounded-2xl border ${m.id === currentUser.id ? 'bg-black text-white border-black shadow-lg' : 'bg-zinc-50 text-zinc-700 border-zinc-100 hover:border-zinc-300'}`}>
-                              <Lock size={16} style={{ color: m.id === currentUser.id ? tontine.theme_color : '#a1a1aa' }} />
-                              <span className="text-sm font-black uppercase truncate flex items-center gap-1.5">
-                                 {m.prenom_nom.split(' ')[0]} {m.id === currentUser.id && "(Vous)"}
-                                 {m.is_admin && <span title="Gérant"><ShieldCheck size={14} className="text-yellow-500" /></span>}
-                              </span>
-                           </div>
-                        ))}
-                     </div>
-                  </div>
-               )}
-            </section>
           </div>
         </div>
       </main>

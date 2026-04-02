@@ -21,7 +21,7 @@ export default function TontineAdminPage() {
   // --- ÉTATS MODALE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
-  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false, has_paid: false });
+  const [memberForm, setMemberForm] = useState({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false, has_paid: false, mois_exclus: '' });
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ nom: '', theme_color: '#39FF14', logo_url: '', duree_mois: 10, montant_mensuel: 0, date_debut: '', date_limite_paiement: 5, slug: '' });
   const [isSaving, setIsSaving] = useState(false);
@@ -181,14 +181,14 @@ export default function TontineAdminPage() {
   // --- FONCTIONS CRUD MEMBRES ---
   const openAddModal = () => {
     setEditingMember(null);
-    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false, has_paid: false });
+    setMemberForm({ prenom_nom: '', telephone: '', code_secret: '0000', a_gagne: false, photo_url: '', poste: '', is_admin: false, has_paid: false, mois_exclus: '' });
     setIsModalOpen(true);
   };
 
   const openEditModal = (m: any) => {
     const hasPaid = cotisations.some(c => c.membre_id === m.id && c.mois_numero === currentMonth && c.statut === 'Payé');
     setEditingMember(m);
-    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne, photo_url: m.photo_url || '', poste: m.poste || '', is_admin: !!m.is_admin, has_paid: hasPaid });
+    setMemberForm({ prenom_nom: m.prenom_nom || '', telephone: m.telephone || '', code_secret: m.code_secret || '0000', a_gagne: !!m.a_gagne, photo_url: m.photo_url || '', poste: m.poste || '', is_admin: !!m.is_admin, has_paid: hasPaid, mois_exclus: m.mois_exclus || '' });
     setIsModalOpen(true);
   };
 
@@ -206,7 +206,7 @@ export default function TontineAdminPage() {
          }
       }
 
-      const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne, photo_url: memberForm.photo_url, poste: memberForm.poste, is_admin: memberForm.is_admin };
+      const payload = { tontine_id: tontine.id, prenom_nom: memberForm.prenom_nom, telephone: memberForm.telephone, code_secret: memberForm.code_secret, a_gagne: memberForm.a_gagne, photo_url: memberForm.photo_url, poste: memberForm.poste, is_admin: memberForm.is_admin, mois_exclus: memberForm.mois_exclus };
 
       let updatedMembers = membres;
 
@@ -506,7 +506,14 @@ Généré par Onyx Tontine
   };
 
   const handleTirage = async () => {
-    const eligibles = membres.filter(m => !m.a_gagne);
+    const eligibles = membres.filter(m => {
+      if (m.a_gagne) return false;
+      if (m.mois_exclus) {
+        const excludedMonths = m.mois_exclus.split(',').map((s: string) => parseInt(s.trim())).filter((n: number) => !isNaN(n));
+        if (excludedMonths.includes(currentMonth)) return false;
+      }
+      return true;
+    });
     if (eligibles.length === 0) {
       alert("Aucun membre éligible pour le tirage !");
       return;
@@ -1261,6 +1268,8 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                               <p className="font-bold text-zinc-400 uppercase tracking-wider text-[9px]">Tirage</p>
                               {m.a_gagne ? (
                                  <span className="font-black text-yellow-700">A Gagné</span>
+                              ) : m.mois_exclus && m.mois_exclus.split(',').map((s: string) => parseInt(s.trim())).includes(currentMonth) ? (
+                                 <span className="font-black text-red-600">Exclu (Mois {currentMonth})</span>
                               ) : (
                                  <span className="font-black text-zinc-600">En Attente</span>
                               )}
@@ -1368,6 +1377,14 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                    <Briefcase size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
                    <input type="text" value={memberForm.poste} onChange={e => setMemberForm({...memberForm, poste: e.target.value})} className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: Trésorier, Comptable, Grande Sœur..." />
                 </div>
+              </div>
+              <div className="col-span-full">
+                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">Exclure des tirages (Mois spécifiques - Optionnel)</label>
+                 <div className="relative">
+                    <Shuffle size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input type="text" value={memberForm.mois_exclus} onChange={e => setMemberForm({...memberForm, mois_exclus: e.target.value})} className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition text-black" placeholder="Ex: 1, 3, 5 (Laissez vide sinon)" />
+                 </div>
+                 <p className="text-[9px] font-bold text-zinc-400 mt-1 ml-2">Séparez les mois par des virgules pour empêcher ce membre d'être tiré au sort ces mois-là.</p>
               </div>
               
               <div className="col-span-full bg-zinc-50 p-4 rounded-2xl border border-zinc-200 flex items-center justify-between">
