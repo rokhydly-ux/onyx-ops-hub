@@ -43,11 +43,11 @@ const ONBOARDING_CATEGORIES = [
 ];
 
 const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
-  solo: { title: "Onyx Jaay", desc: "La boutique WhatsApp ultime pour vendre vos produits comme un pro.", benefits: ["Catalogue Interactif", "Stop au chaos sur WhatsApp", "Génération de Devis PDF"], why: "Arrêter le bricolage.", cible: "Vendeurs WhatsApp", avantage: "Simple et efficace.", chiffreCle: "Zéro perte" },
-  tekki: { title: "Pack Tekki", desc: "Gérez votre caisse, votre stock et vos livreurs en 1 clic. Mathématiquement incontestable.", benefits: ["Vente, Stock & Livreurs", "Zéro perte de CFA", "Feuille de route auto"], why: "Contrôle total du cash.", cible: "Commerçants & PME", avantage: "Écosystème parfait.", chiffreCle: "Bénéfice immédiat" },
-  tekkipro: { title: "Pack Tekki Pro", desc: "Les outils Pack Tekki + Formation + Pointage RH.", benefits: ["Suite Tekki complète", "Gestion d'équipes & RH", "Domination du marché"], why: "Croissance agressive.", cible: "Ambitieux", avantage: "Tout inclus.", chiffreCle: "Ventes x2" },
-  crm: { title: "Pack Onyx CRM", desc: "CRM B2B + Booking pour les services et prestataires.", benefits: ["CRM & Pipeline de Ventes", "Réservation en ligne", "Facturation automatisée"], why: "Fidéliser et closer.", cible: "Services & B2B", avantage: "Fidélité Max.", chiffreCle: "Clients x3" },
-  gold: { title: "Pack Onyx Gold", desc: "L'arsenal complet VIP. Logiciels + CRM B2B + Outils Premium.", benefits: ["Écosystème 100% Déverrouillé", "CRM B2B Intégré", "Support Ultra-Prioritaire"], why: "Pour tout écraser.", cible: "Entreprises", avantage: "La totale.", chiffreCle: "Sans limite" },
+  solo: { title: "Onyx Jaay", desc: "La boutique WhatsApp ultime pour arrêter de perdre des ventes en DM.", benefits: ["Catalogue Digital Rapide", "Panier WhatsApp Auto", "Paiement Mobile Intégré"], why: "Arrêter le bricolage.", cible: "Boutiques Insta/WA", avantage: "Simple et efficace.", chiffreCle: "Zéro perte" },
+  tekki: { title: "Pack Tekki", desc: "Vendez, gérez votre stock et vos livreurs depuis une seule interface.", benefits: ["Onyx Jaay + Stock + Tiak", "Suivi livreurs en temps réel", "Contrôle des marges"], why: "Contrôle total du cash.", cible: "E-commerce & PME", avantage: "Écosystème parfait.", chiffreCle: "Bénéfice immédiat" },
+  tekkipro: { title: "Pack Tekki Pro", desc: "L'écosystème Tekki couplé à notre académie marketing pour doubler vos ventes.", benefits: ["Tout le Pack Tekki", "Onyx Formation (Ads)", "Pointage & Paie (Staff)"], why: "Croissance agressive.", cible: "Entrepreneurs", avantage: "Tout inclus.", chiffreCle: "Ventes x2" },
+  crm: { title: "Onyx CRM", desc: "Le Cerveau Financier B2B. Trackez chaque lead et sécurisez chaque marge.", benefits: ["Pipeline Kanban B2B", "Calcul Marges HT/TTC", "Devis & Catalogues auto"], why: "Fidéliser et closer.", cible: "Agences, B2B & Services", avantage: "Fidélité Max.", chiffreCle: "Clients x3" },
+  gold: { title: "Pack Onyx Gold", desc: "L'arsenal VIP complet. Toutes nos applications déverrouillées.", benefits: ["Écosystème 100% Illimité", "Accès Complet CRM & SaaS", "Support Dédié 24/7"], why: "Pour tout écraser.", cible: "Grandes structures", avantage: "La totale.", chiffreCle: "Sans limite" },
 };
 
 const SOLUTIONS = [
@@ -65,8 +65,7 @@ const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: s
   { id: "solo", name: "Onyx Jaay", price: 13900, label: "Onyx Jaay", rating: "4.9/5", avis: 142 },
   { id: "tekki", name: "Pack Tekki", price: 22900, label: "Pack Tekki", rating: "5.0/5", avis: 312 },
   { id: "tekkipro", name: "Pack Tekki Pro", price: 27900, label: "Pack Tekki Pro", rating: "5.0/5", avis: 189 },
-  { id: "crm", name: "Pack Onyx CRM", price: 29900, label: "Pack Onyx CRM", rating: "4.9/5", avis: 215 },
-  { id: "gold", name: "Pack Onyx Gold", price: 59900, label: "Pack Onyx Gold", rating: "5.0/5", avis: 120 },
+  { id: "crm", name: "Onyx CRM", price: 29900, label: "Onyx CRM", rating: "4.9/5", avis: 215 },
 ];
 
 const AMBASSADOR_TESTIMONIALS = [
@@ -940,27 +939,26 @@ export default function OnyxOpsElite() {
                    </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 max-w-[1400px] mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 max-w-[1200px] mx-auto">
                   {PACKS.map((pack) => {
                     const planDetails = PLAN_DETAILS[pack.id];
                     const isRecommended = quizResult && quizResult.packId === pack.id;
                     const isTekki = pack.id === 'tekki';
-                    const isGold = pack.id === 'gold';
 
                     return (
-                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-b from-[#39FF14]/30 via-black to-black border-[4px] border-[#39FF14] md:scale-105 shadow-[0_0_60px_rgba(57,255,20,0.5)] z-30' : isGold ? 'bg-gradient-to-br from-yellow-900/20 to-black border border-yellow-500/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.15)] z-10' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-6 xl:p-8 rounded-[2.5rem] xl:rounded-[3rem] transition-all duration-300 flex flex-col relative group`}>
+                      <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-b from-[#39FF14]/30 via-black to-black border-[4px] border-[#39FF14] md:scale-105 shadow-[0_0_60px_rgba(57,255,20,0.5)] z-30' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-6 xl:p-8 rounded-[2.5rem] xl:rounded-[3rem] transition-all duration-300 flex flex-col relative group`}>
                         
-                        {/* BULLE PROMOTIONNELLE TEKKI / GOLD */}
-                        {(isTekki || isRecommended || isGold) && (
-                           <div className={`absolute -top-5 left-1/2 -translate-x-1/2 ${isTekki ? 'bg-red-600 border-2 border-red-400 text-white' : isGold ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black border-2 border-yellow-300' : 'bg-[#39FF14] text-black'} px-5 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-2`}>
-                              {isTekki ? <><Flame size={14}/> PREMIER MOIS OFFERT ! (Économisez 16 100 F)</> : isGold ? <><Target size={14} className="group-hover:animate-[spin_4s_linear_infinite]"/> 👑 PREMIUM</> : <><Sparkles size={14}/> Choix Idéal</>}
+                        {/* BULLE PROMOTIONNELLE */}
+                        {(isTekki || isRecommended) && (
+                           <div className={`absolute -top-5 left-1/2 -translate-x-1/2 ${isTekki ? 'bg-red-600 border-2 border-red-400 text-white' : 'bg-[#39FF14] text-black'} px-5 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-2`}>
+                              {isTekki ? <><Flame size={14}/> PREMIER MOIS OFFERT ! (Économisez 16 100 F)</> : <><Sparkles size={14}/> Choix Idéal</>}
                            </div>
                         )}
 
                         <div className="flex items-center gap-2 mb-1 mt-2">
-                           <p className={`text-[10px] font-black tracking-[0.3em] ${isTekki || isRecommended ? 'text-[#39FF14]' : isGold ? 'text-yellow-400' : 'text-zinc-500'} uppercase`}>{pack.label}</p>
-                           {(pack.id === 'tekki' || pack.id === 'tekkipro' || pack.id === 'gold') && (
-                              <span className={`${isGold ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400' : 'bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF]'} border text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse`}>
+                           <p className={`text-[10px] font-black tracking-[0.3em] ${isTekki || isRecommended ? 'text-[#39FF14]' : 'text-zinc-500'} uppercase`}>{pack.label}</p>
+                           {(pack.id === 'tekki' || pack.id === 'tekkipro') && (
+                              <span className="bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF] border text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse">
                                  Nouveau
                               </span>
                            )}
@@ -969,11 +967,15 @@ export default function OnyxOpsElite() {
                           {[...Array(5)].map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < 4 || pack.rating.startsWith('5') ? 'text-yellow-400 fill-yellow-400' : 'text-yellow-400/30 fill-yellow-400/30'}`} />))}
                           <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis})</span>
                         </div>
-                        <div className={`text-2xl xl:text-3xl font-black mb-6 italic text-white flex items-center`}>
-                           {((typeof pack.price === 'number' ? pack.price : 0) + (addonCm ? 49900 : 0)).toLocaleString()} F
-                           {pack.id === 'tekkipro' && <TrendingUp size={20} className="inline-block ml-3 text-[#00E5FF]" />}
-                           {pack.id === 'gold' && <Target size={20} className="inline-block ml-3 text-yellow-400 group-hover:animate-[spin_4s_linear_infinite]" />}
-                           <span className="text-xs text-zinc-500 font-normal not-italic ml-2">{pack.isUnique ? ' (Unique)' : '/ mois'}</span>
+                        <div className="mb-6">
+                          <div className="text-2xl xl:text-3xl font-black italic text-white flex items-center">
+                             {((typeof pack.price === 'number' ? pack.price : 0) + (addonCm ? 49900 : 0)).toLocaleString()} F
+                             {pack.id === 'tekkipro' && <TrendingUp size={20} className="inline-block ml-3 text-[#00E5FF]" />}
+                             <span className="text-xs text-zinc-500 font-normal not-italic ml-2">{pack.isUnique ? ' (Unique)' : '/ mois'}</span>
+                          </div>
+                          {addonCm && (
+                             <p className="text-[#39FF14] text-[10px] font-black uppercase mt-2 tracking-widest">+ Création de pubs et contenus Meta</p>
+                          )}
                         </div>
                         
                         {/* TEXTE DYNAMIQUE DU QUIZ */}
