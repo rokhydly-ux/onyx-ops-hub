@@ -149,7 +149,7 @@ export default function OnyxOpsElite() {
   const [authSelectedSaas, setAuthSelectedSaas] = useState("vente");
 
   // QUIZ INTERACTIF
-  const [quizAnswers, setQuizAnswers] = useState({ size: '', sector: '', customSector: '', marketing: '' });
+  const [quizAnswers, setQuizAnswers] = useState({ priority: '', team: '' });
   const [quizStep, setQuizStep] = useState(0);
   const [quizResult, setQuizResult] = useState<{packId: string, message: string} | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -355,36 +355,37 @@ export default function OnyxOpsElite() {
     const newAns = { ...quizAnswers, [field]: value };
     setQuizAnswers(newAns);
 
-    if (field === 'size') {
-        setQuizStep(1);
-    } else if (field === 'sector') {
-        if (value === 'Autre') return; 
-        setQuizStep(2);
-    } else if (field === 'customSector') {
-        setQuizStep(2);
-    } else if (field === 'marketing') {
+    if (field === 'priority') {
+        if (value === 'Automatiser mes ventes WhatsApp et mon stock') {
+            setQuizStep(1);
+        } else if (value === 'Gérer mes devis B2B, mes marges et mes clients') {
+            setQuizResult({ packId: 'crm', message: "Pour le B2B et la gestion de vos devis, OnyxCRM est l'outil parfait pour structurer vos données et sécuriser vos marges." });
+            setQuizStep(2);
+            setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 500);
+        } else if (value === 'Déléguer ma publicité pour avoir plus de clients') {
+            setQuizResult({ packId: 'agence', message: "Nous avons exactement ce qu'il vous faut. Activez l'Add-on CM & Pub pour que notre équipe d'experts gère vos campagnes et vous amène des acheteurs chauds." });
+            setQuizStep(2);
+            setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 500);
+        }
+    } else if (field === 'team') {
         let packId = 'solo';
         let msg = '';
         
-        if (value === 'Oui') { 
-           packId = 'tekkipro'; 
-           msg = "En fonction de vos réponses, OnyxTekki Pro avec nos stratégies de vente est la clé pour doubler vos bénéfices CFA. Zéro perte, croissance maximale."; 
-        }
-        else if (newAns.sector === 'Restauration') { 
-           packId = 'tekki'; 
-           msg = "Pour un établissement de restauration, l'automatisation de vos encaissements et livraisons est vitale. OnyxTekki est parfait."; 
-        }
-        else if (newAns.size !== 'Vendeur WhatsApp') { 
-           packId = 'tekki'; 
-           msg = "En tant que structure, la centralisation des stocks et de la logistique est obligatoire. OnyxTekki va sécuriser votre caisse avec un bénéfice immédiat."; 
-        }
-        else { 
+        if (value === 'Non, je gère seul(e)') { 
            packId = 'solo'; 
-           msg = "Pour démarrer efficacement et arrêter le chaos sur WhatsApp, Onyx Solo est l'outil parfait pour sécuriser vos ventes."; 
+           msg = "Pour démarrer efficacement et arrêter le chaos sur WhatsApp, Onyx Jaay est l'outil parfait pour sécuriser vos ventes."; 
+        }
+        else if (value === "Oui, j'ai des livreurs") { 
+           packId = 'tekki'; 
+           msg = "Pour synchroniser vos commandes avec vos livreurs et éviter les pertes, le Pack Tekki est mathématiquement incontestable."; 
+        }
+        else if (value === "Oui, livreurs et vendeurs en boutique") { 
+           packId = 'tekkipro'; 
+           msg = "Avec une équipe complète, le Pack Tekki Pro vous donne les outils de pointage RH et l'arsenal complet pour tout dominer."; 
         }
 
         setQuizResult({ packId, message: msg });
-        setQuizStep(3);
+        setQuizStep(2);
         setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 500);
     }
   };
@@ -817,142 +818,46 @@ export default function OnyxOpsElite() {
               </div>
             </header>
 
-            {/* --- NOUVELLE SECTION ONYXCRM (PLEINE LARGEUR) --- */}
-            <section className="w-full bg-[#050505] py-24 relative overflow-hidden border-y border-zinc-900/50 mt-4 shadow-2xl">
-              {/* Background généré (Grille + Glow) */}
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay"></div>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[500px] bg-gradient-to-r from-[#00E5FF]/20 via-transparent to-[#39FF14]/20 blur-[150px] rounded-full pointer-events-none"></div>
-              
+            {/* --- SECTION ONYXCRM (PLEINE LARGEUR) --- */}
+            <section className="w-full bg-[#050505] py-24 relative mt-10">
               <div className="max-w-7xl mx-auto px-6 relative z-10">
-                <div className="text-center max-w-4xl mx-auto mb-16">
-                  <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm">
-                     <span className="w-2 h-2 rounded-full bg-[#00E5FF] animate-pulse"></span> CRM B2B & VENTES
-                  </div>
+                <div className="text-center max-w-3xl mx-auto mb-16">
                   <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 text-white leading-tight`}>
-                    OnyxCRM : Le <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00E5FF] to-[#39FF14]">Cerveau Financier</span> de votre Entreprise.
+                    OnyxCRM : Le Cerveau Financier de votre Entreprise.
                   </h2>
-                  <p className="text-zinc-400 text-lg md:text-xl font-bold leading-relaxed max-w-3xl mx-auto">
-                    Bien plus qu'un tracker de leads. Le seul CRM mobile qui gère vos devis, vos marges et votre catalogue automatique.
+                  <p className="text-zinc-400 text-lg md:text-xl font-medium leading-relaxed">
+                    Le seul CRM mobile qui gère vos devis, vos marges et votre catalogue produit automatisé.
                   </p>
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-                  {/* PUCE 1 */}
-                  <div className="bg-black border border-zinc-800 p-8 rounded-[2rem] hover:border-[#39FF14]/50 transition-all duration-300 shadow-xl hover:shadow-[0_10px_30px_rgba(57,255,20,0.15)] relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#39FF14]/10 blur-2xl rounded-full group-hover:scale-150 transition-transform"></div>
-                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:scale-110 transition-transform relative z-10">
-                       <span className="text-2xl">📊</span>
-                    </div>
-                    <h3 className="text-white font-black uppercase mb-3 tracking-tight relative z-10">Fidélisation IA Hypersegmentée</h3>
-                    <p className="text-zinc-500 text-sm font-medium leading-relaxed relative z-10">L'IA analyse les achats et relance les bons clients.</p>
+                  <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl text-left hover:border-zinc-600 transition-colors">
+                    <div className="text-3xl mb-4">💰</div>
+                    <h3 className="text-white font-black uppercase text-sm mb-2">Contrôle des Marges</h3>
+                    <p className="text-zinc-500 text-xs font-medium">Prix HT, Vente TTC, Marge nette.</p>
                   </div>
-
-                  {/* PUCE 2 */}
-                  <div className="bg-black border border-zinc-800 p-8 rounded-[2rem] hover:border-[#00E5FF]/50 transition-all duration-300 shadow-xl hover:shadow-[0_10px_30px_rgba(0,229,255,0.15)] relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#00E5FF]/10 blur-2xl rounded-full group-hover:scale-150 transition-transform"></div>
-                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:scale-110 transition-transform relative z-10">
-                       <span className="text-2xl">💰</span>
-                    </div>
-                    <h3 className="text-white font-black uppercase mb-3 tracking-tight relative z-10">Contrôle des Marges</h3>
-                    <p className="text-zinc-500 text-sm font-medium leading-relaxed relative z-10">Entrez le prix HT, fixez le prix TTC, visualisez votre Marge Nette et CA Potentiel en temps réel.</p>
+                  <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl text-left hover:border-zinc-600 transition-colors">
+                    <div className="text-3xl mb-4">📄</div>
+                    <h3 className="text-white font-black uppercase text-sm mb-2">Devis & Factures</h3>
+                    <p className="text-zinc-500 text-xs font-medium">Générés en 1 clic.</p>
                   </div>
-
-                  {/* PUCE 3 */}
-                  <div className="bg-black border border-zinc-800 p-8 rounded-[2rem] hover:border-[#39FF14]/50 transition-all duration-300 shadow-xl hover:shadow-[0_10px_30px_rgba(57,255,20,0.15)] relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#39FF14]/10 blur-2xl rounded-full group-hover:scale-150 transition-transform"></div>
-                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:scale-110 transition-transform relative z-10">
-                       <span className="text-2xl">📄</span>
-                    </div>
-                    <h3 className="text-white font-black uppercase mb-3 tracking-tight relative z-10">Documents B2B & Catalogues</h3>
-                    <p className="text-zinc-500 text-sm font-medium leading-relaxed relative z-10">Générez devis, factures PDF et catalogues personnalisés en 1 clic.</p>
+                  <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl text-left hover:border-zinc-600 transition-colors">
+                    <div className="text-3xl mb-4">🤖</div>
+                    <h3 className="text-white font-black uppercase text-sm mb-2">Fidélisation IA</h3>
+                    <p className="text-zinc-500 text-xs font-medium">Catalogues sur-mesure et ciblage.</p>
                   </div>
-
-                  {/* PUCE 4 */}
-                  <div className="bg-black border border-zinc-800 p-8 rounded-[2rem] hover:border-[#00E5FF]/50 transition-all duration-300 shadow-xl hover:shadow-[0_10px_30px_rgba(0,229,255,0.15)] relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#00E5FF]/10 blur-2xl rounded-full group-hover:scale-150 transition-transform"></div>
-                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:scale-110 transition-transform relative z-10">
-                       <span className="text-2xl">🔄</span>
-                    </div>
-                    <h3 className="text-white font-black uppercase mb-3 tracking-tight relative z-10">Import Odoo & Excel</h3>
-                    <p className="text-zinc-500 text-sm font-medium leading-relaxed relative z-10">Ne perdez pas votre historique, synchronisez tout facilement.</p>
+                  <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl text-left hover:border-zinc-600 transition-colors">
+                    <div className="text-3xl mb-4">🔄</div>
+                    <h3 className="text-white font-black uppercase text-sm mb-2">Import Universel</h3>
+                    <p className="text-zinc-500 text-xs font-medium">Odoo & Excel sans friction.</p>
                   </div>
                 </div>
 
                 <div className="text-center">
-                   <button onClick={() => router.push('/solutions/onyxcrm')} className="inline-flex justify-center items-center gap-3 bg-white text-black px-12 py-6 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)]">
-                     Découvrir la puissance OnyxCRM <ArrowRight size={20} />
+                   <button onClick={() => router.push('/solutions/onyxcrm')} className="inline-flex justify-center items-center gap-3 bg-white text-black px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-lg">
+                     Découvrir OnyxCRM <ArrowRight size={20} />
                    </button>
                 </div>
-              </div>
-            </section>
-
-            {/* --- SECTION FINI LE BRICOLAGE --- */}
-            <section className="py-16 px-6 max-w-6xl mx-auto mb-10">
-              <div className="text-center mb-12">
-                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>Fini le Bricolage. <span className="text-[#39FF14]">Passez au niveau supérieur.</span></h2>
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-8 items-center h-full">
-                {/* CARTE : AVANT ONYX (CHAOS) */}
-                <div className="bg-red-50/50 border border-red-100 rounded-[3rem] p-8 h-auto min-h-[500px] flex flex-col relative overflow-hidden transition-all duration-500">
-                  <div className="absolute top-0 right-0 bg-red-500 text-white px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avant Onyx</div>
-                  <h3 className="font-black text-red-800 text-xl mb-6 z-10 relative">Le Chaos sur WhatsApp</h3>
-                  
-                  {/* VIDEO YOUTUBE AVANT */}
-                  <div className="w-full aspect-video mb-6 relative overflow-hidden rounded-2xl border-2 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] z-10 bg-black">
-                     <iframe 
-                       src="https://www.youtube.com/embed/h-vsWYxskvU?autoplay=1&mute=1&loop=1&playlist=h-vsWYxskvU&controls=0&rel=0&modestbranding=1&playsinline=1" 
-                       title="Le Chaos Avant Onyx"
-                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                       allowFullScreen
-                       className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
-                     ></iframe>
-                  </div>
-                  
-                  <div className="flex-1 flex flex-col justify-end relative z-10">
-                    <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-red-100 shadow-sm max-w-[90%] text-sm text-zinc-600 animate-in slide-in-from-left-4" key={`avant-${scenarioIndex}`}>
-                      <p className="font-bold text-xs text-red-500 mb-2">{RANDOM_SCENARIOS[scenarioIndex].avant.phone}</p>
-                      {RANDOM_SCENARIOS[scenarioIndex].avant.text}
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 flex items-center justify-between border-t border-red-200 pt-4 text-xs font-bold text-red-600 uppercase relative z-10">
-                    <span className="flex items-center gap-1"><AlertCircle className="w-4 h-4" /> {RANDOM_SCENARIOS[scenarioIndex].avant.issue}</span>
-                  </div>
-                </div>
-
-                {/* CARTE : AVEC ONYX (SÉRÉNITÉ) */}
-                <div className="bg-black rounded-[3rem] p-8 h-auto min-h-[500px] flex flex-col relative shadow-[0_15px_40px_rgba(57,255,20,0.15)] border border-[#39FF14]/30">
-                  <div className="absolute top-0 right-0 bg-[#39FF14] text-black px-4 py-1 rounded-bl-2xl font-black text-[10px] uppercase z-10">Avec OnyxOps</div>
-                  <h3 className="font-black text-white text-xl mb-6 flex items-center gap-2 z-10 relative"><CheckCircle className="text-[#39FF14] w-6 h-6"/> Automatisation Parfaite</h3>
-                  
-                  {/* VIDEO YOUTUBE APRES */}
-                  <div className="w-full aspect-video mb-6 relative overflow-hidden rounded-2xl border-2 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.5)] z-10 bg-black">
-                     <iframe 
-                       src="https://www.youtube.com/embed/acFsObjm2E0?autoplay=1&mute=1&loop=1&playlist=acFsObjm2E0&controls=0&rel=0&modestbranding=1&playsinline=1" 
-                       title="La Solution Onyx"
-                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                       allowFullScreen
-                       className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
-                     ></iframe>
-                  </div>
-                  
-                  <div className="flex-1 flex flex-col justify-end relative z-10">
-                    <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl animate-in slide-in-from-right-4" key={`apres-${scenarioIndex}`}>
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-xs text-zinc-400 font-bold uppercase">{RANDOM_SCENARIOS[scenarioIndex].apres.title}</span>
-                        <span className="bg-[#39FF14]/20 text-[#39FF14] text-[10px] px-2 py-0.5 rounded-full font-black">{RANDOM_SCENARIOS[scenarioIndex].apres.tag}</span>
-                      </div>
-                      <p className="text-white text-sm">{RANDOM_SCENARIOS[scenarioIndex].apres.text}</p>
-                      <p className="text-zinc-500 font-medium text-xs mt-2 italic">{RANDOM_SCENARIOS[scenarioIndex].apres.sub}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 flex items-center justify-between border-t border-zinc-800 pt-4 text-xs font-bold text-[#39FF14] uppercase relative z-10">
-                    <span className="flex items-center gap-1"><Zap className="w-4 h-4 fill-[#39FF14]" /> Business sous contrôle</span>
-                  </div>
-                </div>
-
               </div>
             </section>
 
@@ -965,12 +870,12 @@ export default function OnyxOpsElite() {
                   <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border border-zinc-200 max-w-2xl mx-auto relative overflow-hidden transition-all duration-300">
                      {quizStep === 0 && (
                         <div className="animate-in slide-in-from-right-8">
-                           <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 1/3</span>
-                           <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Quelle est la taille de votre entreprise ?</h3>
+                           <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 1/2</span>
+                           <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Quelle est votre priorité absolue aujourd'hui ?</h3>
                            <div className="space-y-3">
-                              {["Vendeur WhatsApp", "Boutique Physique / PME", "Restauration / Fast Food"].map(size => (
-                                 <button key={size} onClick={() => handleQuizSubmit('size', size)} className="w-full bg-zinc-50 border-2 border-zinc-200 text-black p-4 rounded-2xl font-bold text-sm hover:border-black hover:bg-black hover:text-[#39FF14] transition text-left">
-                                    {size}
+                              {["Automatiser mes ventes WhatsApp et mon stock", "Gérer mes devis B2B, mes marges et mes clients", "Déléguer ma publicité pour avoir plus de clients"].map(priority => (
+                                 <button key={priority} onClick={() => handleQuizSubmit('priority', priority)} className="w-full bg-zinc-50 border-2 border-zinc-200 text-black p-4 rounded-2xl font-bold text-sm hover:border-black hover:bg-black hover:text-[#39FF14] transition text-left">
+                                    {priority}
                                  </button>
                               ))}
                            </div>
@@ -979,36 +884,19 @@ export default function OnyxOpsElite() {
 
                      {quizStep === 1 && (
                         <div className="animate-in slide-in-from-right-8">
-                           <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 2/3</span>
-                           <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Quel est votre secteur d'activité ?</h3>
+                           <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 2/2</span>
+                           <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Avez-vous des livreurs ou des employés à gérer ?</h3>
                            <div className="space-y-3">
-                              {["Prêt-à-porter / Beauté", "Prestation de services", "E-commerce", "Autre"].map(sector => (
-                                 <button key={sector} onClick={() => handleQuizSubmit('sector', sector)} className={`w-full border-2 text-left p-4 rounded-2xl font-bold text-sm transition ${quizAnswers.sector === sector ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
-                                    {sector}
+                              {["Non, je gère seul(e)", "Oui, j'ai des livreurs", "Oui, livreurs et vendeurs en boutique"].map(team => (
+                                 <button key={team} onClick={() => handleQuizSubmit('team', team)} className={`w-full border-2 text-left p-4 rounded-2xl font-bold text-sm transition ${quizAnswers.team === team ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                                    {team}
                                  </button>
                               ))}
                            </div>
-                           {quizAnswers.sector === 'Autre' && (
-                              <div className="mt-4 flex gap-2 animate-in fade-in">
-                                 <input type="text" placeholder="Précisez votre activité..." value={quizAnswers.customSector} onChange={e => setQuizAnswers({...quizAnswers, customSector: e.target.value})} className="flex-1 p-4 bg-zinc-50 border-2 border-black rounded-2xl font-bold outline-none text-sm" />
-                                 <button disabled={!quizAnswers.customSector} onClick={() => handleQuizSubmit('customSector', quizAnswers.customSector)} className="bg-[#39FF14] text-black px-6 rounded-2xl font-black uppercase text-xs hover:scale-105 transition disabled:opacity-50"><ArrowRight size={20}/></button>
-                              </div>
-                           )}
                         </div>
                      )}
 
                      {quizStep === 2 && (
-                        <div className="animate-in slide-in-from-right-8">
-                           <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-6 inline-block">Étape 3/3</span>
-                           <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6`}>Avez-vous besoin de formations en marketing digital, pub payante ou design ?</h3>
-                           <div className="grid grid-cols-2 gap-4">
-                              <button onClick={() => handleQuizSubmit('marketing', 'Oui')} className="bg-zinc-50 border-2 border-zinc-200 text-black p-6 rounded-2xl font-black uppercase text-lg hover:border-black hover:bg-black hover:text-[#39FF14] transition">Oui</button>
-                              <button onClick={() => handleQuizSubmit('marketing', 'Non')} className="bg-zinc-50 border-2 border-zinc-200 text-black p-6 rounded-2xl font-black uppercase text-lg hover:border-black hover:bg-black hover:text-[#39FF14] transition">Non</button>
-                           </div>
-                        </div>
-                     )}
-
-                     {quizStep === 3 && (
                         <div className="animate-in zoom-in py-6">
                            <div className="w-20 h-20 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-bounce">
                               <CheckCircle className="text-black w-10 h-10" />
@@ -1030,12 +918,20 @@ export default function OnyxOpsElite() {
                   <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché.</p>
                 </div>
 
+                {/* MESSAGE RECOMMANDATION AGENCE */}
+                {quizResult && quizResult.packId === 'agence' && (
+                   <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 p-4 rounded-2xl mb-8 text-sm text-[#39FF14] font-bold leading-relaxed shadow-inner max-w-2xl mx-auto text-center animate-in zoom-in">
+                      💡 {quizResult.message}
+                   </div>
+                )}
+
                 {/* ADD-ON SWITCH */}
                 <div className="flex justify-center mb-12">
-                   <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col md:flex-row items-center gap-6 shadow-xl">
+                   <div className={`bg-zinc-900 border p-4 rounded-2xl flex flex-col md:flex-row items-center gap-6 transition-all duration-500 ${quizResult && quizResult.packId === 'agence' ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-zinc-800 shadow-xl'}`}>
                       <div className="text-left">
                          <p className="font-black text-white text-sm uppercase">Activer le Service CM & Pub <span className="text-[#39FF14] bg-[#39FF14]/10 px-2 py-1 rounded ml-2">+49 900 F/mois</span></p>
                          <p className="text-xs text-zinc-400 font-medium mt-1">Nous gérons vos pubs et vos contenus.</p>
+                         {quizResult && quizResult.packId === 'agence' && <p className="text-[#39FF14] text-[10px] font-black uppercase mt-2 animate-pulse">👉 Hautement recommandé pour vous</p>}
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={addonCm} onChange={() => setAddonCm(!addonCm)} />
