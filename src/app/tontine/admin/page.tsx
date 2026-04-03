@@ -224,6 +224,41 @@ export default function TontineAdminPage() {
     }
   };
 
+  // --- CALCULS MEILLEURS PAYEURS ---
+  const paidCotisationsThisMonth = cotisations
+    .filter(c => c.mois_numero === currentMonth && c.statut === 'Payé')
+    .sort((a, b) => {
+       const dateA = new Date(a.date_signalement || a.created_at || 0).getTime();
+       const dateB = new Date(b.date_signalement || b.created_at || 0).getTime();
+       return dateA - dateB;
+    });
+
+  const topPayers = paidCotisationsThisMonth
+    .map(c => {
+       const member = membres.find(m => m.id === c.membre_id);
+       return member ? { ...member, paymentDate: c.date_signalement || c.created_at } : null;
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const handleFeliciterPodium = () => {
+    if (!tontine || topPayers.length === 0) return;
+
+    const medals = ['🥇', '🥈', '🥉'];
+    const podiumText = topPayers.map((payer: any, idx: number) => 
+       `${medals[idx]} *${payer.prenom_nom}* - payé le ${new Date(payer.paymentDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+    ).join('\n');
+
+    const message = `🏆 *TABLEAU D'HONNEUR - MOIS ${currentMonth}* 🏆\n\nTontine: *${tontine.nom}*\n-----------------------------------\nFélicitations à nos meilleurs payeurs de ce mois (les plus rapides) :\n\n${podiumText}\n\n🙏 Merci pour votre ponctualité qui fait avancer la tontine !\n-----------------------------------\n_Onyx Tontine_`;
+
+    if (navigator.share) {
+      navigator.share({ title: `Tableau d'Honneur - ${tontine.nom}`, text: message }).catch(console.error);
+    } else {
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    }
+  };
+
   useEffect(() => {
     if (tontine?.id) {
       fetchDrawConfig();
@@ -1448,18 +1483,57 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
             </div>
          </div>
 
-         <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
-            <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg mb-6`}>Progression du mois</h3>
-            <div className="flex justify-between items-center text-sm font-bold text-zinc-500 mb-2">
-               <span>Cotisations (Mois {currentMonth})</span>
-               <span className="text-black">{actuelCaisse.toLocaleString()} / {caisseMensuelle.toLocaleString()} F</span>
-            </div>
-            <div className="w-full h-6 bg-zinc-100 rounded-full overflow-hidden mb-2 shadow-inner">
-               <div className="h-full bg-black rounded-full relative transition-all duration-1000 ease-out" style={{ width: `${progressPercentage}%` }}>
-                  <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
+         <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
+               <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg mb-6`}>Progression du mois</h3>
+               <div className="flex justify-between items-center text-sm font-bold text-zinc-500 mb-2">
+                  <span>Cotisations (Mois {currentMonth})</span>
+                  <span className="text-black">{actuelCaisse.toLocaleString()} / {caisseMensuelle.toLocaleString()} F</span>
                </div>
+               <div className="w-full h-6 bg-zinc-100 rounded-full overflow-hidden mb-2 shadow-inner">
+                  <div className="h-full bg-black rounded-full relative transition-all duration-1000 ease-out" style={{ width: `${progressPercentage}%` }}>
+                     <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
+                  </div>
+               </div>
+               <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
             </div>
-            <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
+
+            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
+               <div className="flex items-center gap-3 mb-6">
+                   <div className="p-3 bg-yellow-100 text-yellow-600 rounded-xl"><Trophy size={20}/></div>
+                   <h3 className={`${spaceGrotesk.className} font-black uppercase text-lg`}>Meilleurs Payeurs (Mois {currentMonth})</h3>
+               </div>
+               {topPayers.length > 0 ? (
+                  <>
+                     <div className="space-y-3">
+                     {topPayers.map((payer: any, idx: number) => (
+                        <div key={payer.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-xl border border-zinc-100">
+                           <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shadow-sm ${idx === 0 ? 'bg-yellow-400 text-white border-2 border-yellow-200' : idx === 1 ? 'bg-zinc-300 text-zinc-700 border-2 border-zinc-200' : 'bg-orange-300 text-white border-2 border-orange-200'}`}>
+                                 #{idx + 1}
+                              </div>
+                              <div>
+                                 <p className="font-bold text-sm text-black">{payer.prenom_nom}</p>
+                                 <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{new Date(payer.paymentDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                              </div>
+                           </div>
+                           <div className="px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm" style={{ backgroundColor: tontine?.theme_color || '#39FF14', color: '#000' }}>
+                              Payé
+                           </div>
+                        </div>
+                     ))}
+                     </div>
+                     <button onClick={handleFeliciterPodium} className="w-full mt-4 bg-yellow-100 text-yellow-700 py-3 rounded-xl font-black uppercase text-xs hover:bg-yellow-400 hover:text-black transition shadow-sm flex items-center justify-center gap-2">
+                        <Share2 size={16}/> Féliciter dans le groupe
+                     </button>
+                  </>
+               ) : (
+                  <div className="flex flex-col items-center justify-center py-4 opacity-50">
+                      <Trophy size={32} className="text-zinc-300 mb-2"/>
+                      <p className="text-sm font-bold text-zinc-500 text-center">Aucun paiement enregistré pour ce mois.</p>
+                  </div>
+               )}
+            </div>
          </div>
 
          <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
