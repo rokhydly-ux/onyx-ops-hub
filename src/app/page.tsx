@@ -258,6 +258,18 @@ export default function OnyxOpsElite() {
       if (storedRef) setRefId(storedRef);
     }
 
+    // ONBOARDING INVITATION LINK PRE-FILL
+    const inviteName = searchParams.get('invite_name');
+    const invitePhone = searchParams.get('invite_phone');
+    const invitePack = searchParams.get('invite_pack');
+    if (inviteName || invitePhone) {
+      setLeadData(prev => ({ ...prev, name: inviteName || '', phone: invitePhone || '', saas: invitePack || '' }));
+      setTimeout(() => {
+        setShowOnboarding(true);
+        if (invitePack) setOnboardingStep(2); // Skip category selection if pack is known
+      }, 1000);
+    }
+
     setTimeout(() => {
       setIsBotOpen(true);
       setBotMessages([{ 

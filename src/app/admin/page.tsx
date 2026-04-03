@@ -494,7 +494,7 @@ export default function AdminDashboard() {
      await supabase.from('leads').delete().eq('phone', lead.phone);
 
      const portal = type === 'client' ? 'https://onyx-ops-hub.vercel.app/login' : 'https://onyx-ops-hub.vercel.app/ambassadeurs';
-     const welcomeMsg = `Félicitations ! Ton compte est prêt.\n🔗 Accès : ${portal}\n📱 ID : ${phone}\n🔑 Pass : ${tempPass}`;
+     const welcomeMsg = `Félicitations ! Ton compte est prêt.\n🔗 Accès : ${portal}\n📱 ID : ${phone}\n🔑 Code PIN : 0000`;
 
      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(welcomeMsg)}`, '_blank');
      fetchSupabaseData();
@@ -1263,14 +1263,19 @@ export default function AdminDashboard() {
    const actions = {
      client: { label: "Créer Compte Client", fn: () => setShowProductModal({ lead, type: 'client' }) },
      ambassador: { label: "Créer Compte Ambassadeur", fn: () => handleCreateAccount(lead, 'ambassadeur') },
-     reply: { label: "Répondre (Simple)", fn: () => replyToLead(lead) }
+     reply: { label: "Répondre (Simple)", fn: () => replyToLead(lead) },
+     invite: { label: "Lien d'invitation auto", fn: () => {
+        const url = `https://onyx-ops-hub.vercel.app/?invite_name=${encodeURIComponent(lead.full_name || '')}&invite_phone=${encodeURIComponent(lead.phone || '')}&invite_pack=${encodeURIComponent(lead.saas || '')}`;
+        navigator.clipboard.writeText(url);
+        alert("Lien d'invitation pré-rempli copié ! Envoyez-le au prospect.");
+     }}
    };
 
    const intent = (lead.intent || '').toLowerCase();
    if (intent.includes('ambassadeur') || intent.includes('partenaire')) {
      return [actions.ambassador, actions.reply, actions.client];
    }
-   return [actions.client, actions.reply, actions.ambassador];
+   return [actions.client, actions.reply, actions.invite, actions.ambassador];
   };
 
   const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
@@ -1421,7 +1426,7 @@ export default function AdminDashboard() {
       alert("Ambassadeur validé avec succès !");
 
       if (amb && confirm(`Voulez-vous envoyer une notification WhatsApp à ${amb.full_name} pour confirmer son activation ?`)) {
-          const msg = `Félicitations ${amb.full_name} ! 🎉\n\nVotre candidature Ambassadeur Onyx a été validée avec succès.\nVous pouvez maintenant vous connecter à votre Hub partenaire pour récupérer votre lien d'affiliation et commencer à générer des revenus.\n\n🔗 *Lien de connexion :* https://onyx-ops-hub.vercel.app/ambassadeurs/login\n📱 *Identifiant :* ${amb.contact}\n🔑 *Mot de passe :* central2026`;
+          const msg = `Félicitations ${amb.full_name} ! 🎉\n\nVotre candidature Ambassadeur Onyx a été validée avec succès.\nVous pouvez maintenant vous connecter à votre Hub partenaire pour récupérer votre lien d'affiliation et commencer à générer des revenus.\n\n🔗 *Lien de connexion :* https://onyx-ops-hub.vercel.app/ambassadeurs/login\n📱 *Identifiant :* ${amb.contact}\n🔑 *Code PIN :* 0000`;
           window.open(`https://wa.me/${(amb.contact || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
       }
     } catch (error: any) {
@@ -2922,6 +2927,11 @@ export default function AdminDashboard() {
                           <button onClick={() => generateAcompte(c)} className="p-3 lg:p-4 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Générer Facture Acompte"><FileText size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => generateDevis(c)} className="p-3 lg:p-4 text-zinc-400 hover:text-purple-500 hover:bg-purple-50 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Générer Devis Global"><ClipboardList size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-3 lg:p-4 text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl lg:rounded-2xl transition-all shadow-sm"><Edit3 size={18} className="lg:w-5 lg:h-5"/></button>
+                          <button onClick={() => {
+                             const url = `https://onyx-ops-hub.vercel.app/?invite_name=${encodeURIComponent(c.full_name || '')}&invite_phone=${encodeURIComponent(c.phone || '')}&invite_pack=${encodeURIComponent(c.saas || '')}`;
+                             navigator.clipboard.writeText(url);
+                             alert("Lien d'onboarding copié !");
+                          }} className="p-3 lg:p-4 text-zinc-400 hover:text-[#39FF14] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Copier lien d'invitation pré-rempli"><ExternalLink size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => handleDeleteItem('clients', c.id)} className="p-3 lg:p-4 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl lg:rounded-2xl transition-all"><Trash2 size={18} className="lg:w-5 lg:h-5"/></button>
                         </td>
                       </tr>
