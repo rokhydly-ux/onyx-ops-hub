@@ -10,8 +10,8 @@ import {
   ArrowDownRight, CheckCircle, BarChart as BarChartIcon,
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
-  TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink, DollarSign,
-  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon
+  TrendingUp, ChevronDown, ChevronLeft, ChevronRight, Send, Download, Layers, ExternalLink, DollarSign,
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon, Truck, Minus
 } from "lucide-react";
 
 import * as XLSX from 'xlsx';
@@ -47,7 +47,7 @@ type Contact = {
   activity?: string;
 };
 
-type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht" | "withdrawals";
+type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "logistics" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht" | "withdrawals";
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
 
 const AVAILABLE_MODULES = [
@@ -175,14 +175,33 @@ export default function AdminDashboard() {
   const [tempAdminProfile, setTempAdminProfile] = useState(adminProfile);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [histogramActiveIdx, setHistogramActiveIdx] = useState<number | null>(null);
+  
+  const [chartFilter, setChartFilter] = useState<'week'|'month'|'year'>('week');
   const histogramData = (() => {
-    const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
     const today = new Date();
     const arr: { day: string; ca: number; active: boolean }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today); d.setDate(d.getDate() - i);
-      const count = leads.filter(l => l.created_at && new Date(l.created_at).toDateString() === d.toDateString()).length;
-      arr.push({ day: jours[d.getDay()], ca: count * 13900, active: histogramActiveIdx === arr.length });
+    
+    if (chartFilter === 'week') {
+      const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const count = leads.filter(l => l.created_at && new Date(l.created_at).toDateString() === d.toDateString()).length;
+        arr.push({ day: jours[d.getDay()], ca: count * 13900, active: histogramActiveIdx === arr.length });
+      }
+    } else if (chartFilter === 'month') {
+      for (let i = 3; i >= 0; i--) {
+        const dStart = new Date(today); dStart.setDate(dStart.getDate() - (i * 7 + 7));
+        const dEnd = new Date(today); dEnd.setDate(dEnd.getDate() - (i * 7));
+        const count = leads.filter(l => l.created_at && new Date(l.created_at) >= dStart && new Date(l.created_at) < dEnd).length;
+        arr.push({ day: `S${4-i}`, ca: count * 13900, active: histogramActiveIdx === arr.length });
+      }
+    } else if (chartFilter === 'year') {
+      const mois = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const count = leads.filter(l => l.created_at && new Date(l.created_at).getMonth() === d.getMonth() && new Date(l.created_at).getFullYear() === d.getFullYear()).length;
+        arr.push({ day: mois[d.getMonth()], ca: count * 13900, active: histogramActiveIdx === arr.length });
+      }
     }
     return arr;
   })();
@@ -205,6 +224,65 @@ export default function AdminDashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [theme, setTheme] = useState('light');
+
+  const [showAddHardwareModal, setShowAddHardwareModal] = useState(false);
+  const [newHardwareForm, setNewHardwareForm] = useState({ name: '', min: 5, type: 'Matériel' });
+  const [hardwareStock, setHardwareStock] = useState<any[]>([
+    { id: 1, name: 'Terminal de Paiement (TPE Onyx)', qty: 45, min: 10, type: 'Matériel' },
+    { id: 2, name: 'Imprimantes Thermiques (Bluetooth)', qty: 12, min: 15, type: 'Accessoire' },
+    { id: 3, name: 'Cartes NFC / QR Onyx', qty: 150, min: 50, type: 'Consommable' },
+    { id: 4, name: "Kits d'installation Onyx Modernize", qty: 8, min: 5, type: 'Kit' },
+  ]);
+  const updateHardwareStock = async (id: any, delta: number) => {
+    const item = hardwareStock.find(i => i.id === id);
+    if (!item) return;
+    
+    const newQty = Math.max(0, item.qty + delta);
+    setHardwareStock(prev => prev.map(i => i.id === id ? { ...i, qty: newQty } : i));
+
+    try {
+       await supabase.from('hardware_stock').update({ qty: newQty }).eq('id', id);
+    } catch (e) {}
+
+    if (newQty <= item.min && item.qty > item.min) {
+       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('🚨 Alerte Stock Critique', { body: `Le stock de ${item.name} est descendu à ${newQty} (Min: ${item.min}).` });
+       }
+       try {
+          await fetch('/api/send-email', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+                subject: `🚨 ALERTE STOCK : ${item.name}`,
+                text: `Le stock de ${item.name} est critique (${newQty} restants).`,
+                html: `<h2>Alerte Stock Critique</h2><p>L'article <b>${item.name}</b> a atteint son seuil d'alerte.</p><p>Quantité restante : <b style="color:red">${newQty}</b> (Minimum requis : ${item.min})</p>`
+             })
+          });
+       } catch (e) {}
+    }
+  };
+
+  const handleAddHardware = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newHardwareForm.name) return;
+      try {
+          const payload = {
+              name: newHardwareForm.name,
+              qty: 0,
+              min: newHardwareForm.min,
+              type: newHardwareForm.type
+          };
+          const { data, error } = await supabase.from('hardware_stock').insert([payload]).select().single();
+          if (error) throw error;
+          
+          setHardwareStock(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+          setShowAddHardwareModal(false);
+          setNewHardwareForm({ name: '', min: 5, type: 'Matériel' });
+          alert("Nouveau matériel ajouté avec succès !");
+      } catch (err: any) {
+          alert("Erreur lors de l'ajout : " + err.message);
+      }
+  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('onyx_admin_theme') || 'light';
@@ -231,6 +309,7 @@ export default function AdminDashboard() {
      const { data: partnersData } = await supabase.from('ambassadors').select('*').order('created_at', { ascending: false });
      const { data: materialsData } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
      const { data: withdrawalsData } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
+     const { data: hardwareData } = await supabase.from('hardware_stock').select('*').order('name', { ascending: true });
      
      if (contactsData) setContacts(contactsData);
      if (leadsData) {
@@ -241,6 +320,7 @@ export default function AdminDashboard() {
      if (partnersData) setPartners(partnersData);
      if (materialsData) setMarketingMaterials(materialsData);
      if (withdrawalsData) setWithdrawals(withdrawalsData);
+     if (hardwareData && hardwareData.length > 0) setHardwareStock(hardwareData);
      
      // Nouveau calcul précis du revenu MRR
      const realRevenue = contactsData?.reduce((acc: number, c: any) => {
@@ -557,6 +637,24 @@ export default function AdminDashboard() {
   const executeWA = (phone: string | undefined, msg: string | undefined, idIA?: string) => {
     if(phone && msg) window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     if (idIA) setActionsIA(prev => prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
+  };
+
+  const executeAllWA = () => {
+    const pendingActions = actionsIA.filter(a => a.status === 'En attente' && a.phone);
+    if (pendingActions.length === 0) return alert("Aucune action en attente avec un numéro valide.");
+    if (!confirm(`Voulez-vous exécuter automatiquement ${pendingActions.length} actions ?\n\n(Remarque : Autorisez les pop-ups sur votre navigateur pour que toutes les fenêtres WhatsApp puissent s'ouvrir).`)) return;
+
+    setActionsIA(prev => {
+      const updated = prev.map(a => (a.status === 'En attente' && a.phone) ? { ...a, status: 'Réalisé' } : a);
+      localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+      return updated;
+    });
+
+    pendingActions.forEach((a, i) => {
+       setTimeout(() => {
+          window.open(`https://wa.me/${a.phone!.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(a.msg!)}`, '_blank');
+       }, i * 1500); // Délai de 1.5s entre chaque ouverture pour éviter le blocage strict du navigateur
+    });
   };
 
   const replyToLead = (lead: any) => {
@@ -1354,6 +1452,67 @@ export default function AdminDashboard() {
     XLSX.writeFile(workbook, `Transactions_Finances_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const handleExportIAPdf = () => {
+    const reportWindow = window.open("", "_blank");
+    if (reportWindow) {
+      const tableRows = actionsIA.map(a => `
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 12px 15px;">${a.date}</td>
+          <td style="padding: 12px 15px; font-weight:bold;">${a.module}</td>
+          <td style="padding: 12px 15px;"><strong>${a.title}</strong><br/><span style="color:#7f8c8d; font-size:12px;">${a.desc}</span></td>
+          <td style="padding: 12px 15px;">
+            <span style="background-color: ${a.status === 'Réalisé' ? '#ecf0f1' : '#e8f5e9'}; color: ${a.status === 'Réalisé' ? '#7f8c8d' : '#27ae60'}; padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold;">
+              ${a.status}
+            </span>
+          </td>
+        </tr>
+      `).join("");
+
+      reportWindow.document.write(`
+        <html>
+          <head>
+            <title>Journal IA - OnyxOps</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f9fafb; color: #1f2937; }
+              .container { max-width: 1024px; margin: 0 auto; padding: 40px; }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 40px; }
+              .header h1 { font-size: 36px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -1.5px; }
+              table { width: 100%; border-collapse: collapse; background-color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-radius: 12px; overflow: hidden; }
+              th, td { text-align: left; padding: 16px 20px; }
+              thead { background-color: #000; color: #39FF14; }
+              th { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <div>
+                  <h1>Journal des Actions IA</h1>
+                  <p>Export du ${todayStr}</p>
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Module</th>
+                    <th>Action & Description</th>
+                    <th>Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+            </div>
+            <script>window.print();</script>
+          </body>
+        </html>
+      `);
+      reportWindow.document.close();
+    }
+  };
+
   return (
     <div className={`flex h-screen bg-[#fafafa] dark:bg-zinc-950 font-sans text-black dark:text-white overflow-hidden relative selection:bg-[#39FF14]/30 transition-colors`}>
       
@@ -1378,6 +1537,7 @@ export default function AdminDashboard() {
                 { id: 'leads', icon: MessageSquare, label: 'Leads & Flux' },
                 { id: 'crm', icon: Users, label: 'CRM & Membres' },
                 { id: 'ecosystem', icon: Box, label: 'Gestion des SaaS' },
+                { id: 'logistics', icon: Truck, label: 'Logistique & Stock' },
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
                 { id: 'withdrawals', icon: DollarSign, label: 'Retraits Partenaires' },
@@ -1454,6 +1614,7 @@ export default function AdminDashboard() {
                         { id: 'leads', icon: MessageSquare, label: 'Leads & Flux' },
                         { id: 'crm', icon: Users, label: 'CRM & Membres' },
                         { id: 'ecosystem', icon: Box, label: 'Gestion des SaaS' },
+                        { id: 'logistics', icon: Truck, label: 'Logistique & Stock' },
                         { id: 'finance', icon: Wallet, label: 'Finances' },
                         { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
                         { id: 'withdrawals', icon: DollarSign, label: 'Retraits Partenaires' },
@@ -1637,8 +1798,9 @@ export default function AdminDashboard() {
                        </div>
                     </div>
                     <div className="flex gap-3 bg-zinc-50 p-2 rounded-[1.5rem] w-max">
-                       <button className="px-6 py-2.5 bg-white border border-zinc-100 rounded-xl text-[11px] font-black uppercase text-zinc-400 shadow-sm hover:text-black transition-colors">Semaine</button>
-                       <button className="px-6 py-2.5 bg-black rounded-xl text-[11px] font-black uppercase text-[#39FF14] shadow-xl">Mois</button>
+                       <button onClick={() => setChartFilter('week')} className={`px-6 py-2.5 rounded-xl text-[11px] font-black uppercase transition-colors ${chartFilter === 'week' ? 'bg-black text-[#39FF14] shadow-xl' : 'bg-white border border-zinc-100 text-zinc-400 hover:text-black'}`}>Semaine</button>
+                       <button onClick={() => setChartFilter('month')} className={`px-6 py-2.5 rounded-xl text-[11px] font-black uppercase transition-colors ${chartFilter === 'month' ? 'bg-black text-[#39FF14] shadow-xl' : 'bg-white border border-zinc-100 text-zinc-400 hover:text-black'}`}>Mois</button>
+                       <button onClick={() => setChartFilter('year')} className={`px-6 py-2.5 rounded-xl text-[11px] font-black uppercase transition-colors ${chartFilter === 'year' ? 'bg-black text-[#39FF14] shadow-xl' : 'bg-white border border-zinc-100 text-zinc-400 hover:text-black'}`}>Année</button>
                     </div>
                   </div>
                   
@@ -2223,6 +2385,29 @@ export default function AdminDashboard() {
                      </div>
                      <p className="text-right text-xs font-bold text-zinc-400 mt-2">{Math.round((stats.revenue / mrrGoal) * 100)}% atteint</p>
                   </div>
+
+                  {/* --- ANALYTICS CM & PUB --- */}
+                  <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] shadow-sm mt-8 relative overflow-hidden">
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-[#00E5FF] opacity-[0.05] rounded-full blur-2xl pointer-events-none"></div>
+                     <div className="flex items-center gap-4 mb-6 relative z-10">
+                        <div className="p-3 bg-[#00E5FF]/10 rounded-xl text-[#00E5FF]"><Megaphone size={24}/></div>
+                        <h3 className="font-black uppercase text-xl text-white">Performances CM & Pub</h3>
+                     </div>
+                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 relative z-10">
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Comptes Actifs</p>
+                           <p className="text-4xl font-black text-white">{cmCount}</p>
+                        </div>
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">MRR Généré (49.9k)</p>
+                           <p className="text-4xl font-black text-[#00E5FF]">{(cmCount * 49900).toLocaleString()} F</p>
+                        </div>
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Rétention Client</p>
+                           <p className="text-4xl font-black text-green-400">100%</p>
+                        </div>
+                     </div>
+                  </div>
                </div>
              );
           })()}
@@ -2494,6 +2679,43 @@ export default function AdminDashboard() {
                    ))}
                 </div>
              </div>
+          )}
+
+          {/* ================= VUE LOGISTIQUE & STOCK ================= */}
+          {activeView === 'logistics' && (
+            <div className="space-y-8 animate-in fade-in max-w-[1400px] mx-auto pt-6 lg:pt-10">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-6 rounded-[2.5rem] shadow-sm border border-zinc-200">
+                  <div className="flex items-center gap-5">
+                     <div className="p-4 bg-black text-[#39FF14] rounded-2xl"><Truck size={32}/></div>
+                     <div>
+                        <h2 className="text-3xl font-black uppercase">Logistique & Stock</h2>
+                        <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Matériel, TPE & Terminaux</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setShowAddHardwareModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-5 py-3 rounded-2xl font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0">
+                     <Plus size={16}/> Ajouter Article
+                  </button>
+               </div>
+               
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {hardwareStock.map(item => (
+                      <div key={item.id} className={`p-6 rounded-[2rem] border transition-all ${item.qty <= item.min ? 'bg-red-50 border-red-200' : 'bg-white border-zinc-200'}`}>
+                          <div className="flex justify-between items-start mb-4">
+                              <span className="text-[10px] font-black uppercase px-2 py-1 rounded-lg bg-zinc-100 text-zinc-500">{item.type}</span>
+                              {item.qty <= item.min && <AlertTriangle size={18} className="text-red-500 animate-pulse"/>}
+                          </div>
+                          <p className="font-bold text-sm mb-4 h-10">{item.name}</p>
+                          <div className="flex justify-between items-end">
+                              <p className={`text-4xl font-black ${item.qty <= item.min ? 'text-red-500' : 'text-black'}`}>{item.qty}</p>
+                              <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
+                                  <button onClick={() => updateHardwareStock(item.id, -1)} className="p-2 hover:bg-white rounded-lg transition-colors"><Minus size={14}/></button>
+                                  <button onClick={() => updateHardwareStock(item.id, 1)} className="p-2 hover:bg-white rounded-lg transition-colors"><Plus size={14}/></button>
+                              </div>
+                          </div>
+                      </div>
+                  ))}
+               </div>
+            </div>
           )}
 
           {/* ================= VUE AMBASSADEURS ================= */}
@@ -2772,6 +2994,19 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl p-5 lg:p-12 shadow-sm">
+                   <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4 border-b border-zinc-100 pb-6">
+                      <h3 className="font-black uppercase text-lg text-black">Historique & Tâches ({actionsIA.length})</h3>
+                      <div className="flex gap-3">
+                         <button onClick={handleExportIAPdf} className="bg-zinc-100 text-black px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-2">
+                            <Download size={16}/> Export PDF
+                         </button>
+                         {actionsIA.filter(a => a.status === 'En attente' && a.phone).length > 0 && (
+                            <button onClick={executeAllWA} className="bg-black text-[#39FF14] px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">
+                               <Send size={16}/> Exécuter Tout
+                            </button>
+                         )}
+                      </div>
+                   </div>
                    <div className="space-y-4">
                       {actionsIA.map(action => (
                          <div key={action.id} className="bg-zinc-50 p-5 lg:p-6 rounded-[2.5rem] border border-zinc-100 flex flex-col xl:flex-row justify-between xl:items-center gap-6 hover:border-black transition-all">
@@ -3543,6 +3778,41 @@ export default function AdminDashboard() {
            </div>
         </div>
       )}
+
+      {/* MODALE AJOUT HARDWARE */}
+      {showAddHardwareModal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowAddHardwareModal, false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500">
+           <div className="bg-white p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto animate-in zoom-in-95">
+              <button onClick={() => setShowAddHardwareModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+              <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-6 text-black`}>Ajouter un article</h2>
+              
+              <form onSubmit={handleAddHardware} className="space-y-4">
+                 <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-400 ml-2 tracking-widest">Nom de l'article</label>
+                    <input type="text" required value={newHardwareForm.name} onChange={e => setNewHardwareForm({...newHardwareForm, name: e.target.value})} className="w-full p-4 mt-1 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black text-black" placeholder="Ex: TPE Onyx v2" />
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-400 ml-2 tracking-widest">Type / Catégorie</label>
+                    <select value={newHardwareForm.type} onChange={e => setNewHardwareForm({...newHardwareForm, type: e.target.value})} className="w-full p-4 mt-1 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black text-black">
+                        <option value="Matériel">Matériel</option>
+                        <option value="Accessoire">Accessoire</option>
+                        <option value="Consommable">Consommable</option>
+                        <option value="Kit">Kit</option>
+                    </select>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-400 ml-2 tracking-widest">Seuil d'alerte (Min)</label>
+                    <input type="number" min="0" required value={newHardwareForm.min} onChange={e => setNewHardwareForm({...newHardwareForm, min: parseInt(e.target.value) || 0})} className="w-full p-4 mt-1 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black text-black" />
+                    <p className="text-[9px] text-zinc-400 font-bold mt-2 ml-2">Une alerte sera déclenchée si le stock passe sous ce seuil.</p>
+                 </div>
+
+                 <button type="submit" className="w-full mt-8 bg-black text-[#39FF14] py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl active:scale-95 flex justify-center items-center gap-2">
+                    <CheckCircle size={18}/> Enregistrer l'article
+                 </button>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3550,6 +3820,19 @@ export default function AdminDashboard() {
 function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any) {
     const [editingEvent, setEditingEvent] = useState<any>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+    const [calendarDate, setCalendarDate] = useState(new Date());
+
+    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (year: number, month: number) => {
+        let day = new Date(year, month, 1).getDay();
+        return day === 0 ? 6 : day - 1; // Lundi = 0
+    };
+
+    const daysInMonth = getDaysInMonth(calendarDate.getFullYear(), calendarDate.getMonth());
+    const firstDay = getFirstDayOfMonth(calendarDate.getFullYear(), calendarDate.getMonth());
+    const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 
     const plannedCount = plannedEvents.filter((e: any) => e.status === 'Planifié').length;
     const executedCount = plannedEvents.filter((e: any) => e.status === 'Exécuté').length;
@@ -3631,16 +3914,24 @@ function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any)
                     </div>
                 </div>
                 <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col xl:flex-row justify-between xl:items-center mb-6 gap-4">
                     <h3 className="font-black uppercase text-lg flex items-center gap-3"><Calendar size={18}/> Actions Planifiées</h3>
-                    {(executedCount > 0 || cancelledCount > 0) && (
-                        <button onClick={clearFinishedActions} className="text-[10px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition flex items-center gap-1">
-                            <Trash2 size={12}/> Nettoyer
-                        </button>
-                    )}
+                    <div className="flex gap-2 items-center">
+                        <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
+                            <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>Liste</button>
+                            <button onClick={() => setViewMode('calendar')} className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${viewMode === 'calendar' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>Calendrier</button>
+                        </div>
+                        {(executedCount > 0 || cancelledCount > 0) && (
+                            <button onClick={clearFinishedActions} className="text-[10px] font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-500 hover:text-white transition flex items-center gap-1">
+                                <Trash2 size={12}/> Nettoyer
+                            </button>
+                        )}
+                    </div>
                 </div>
+
+                {viewMode === 'list' ? (
                     <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-                    {sortedEvents.map((e: any) => (
+                        {sortedEvents.map((e: any) => (
                             <div key={e.id} className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
                                 <p className={`font-bold text-sm uppercase flex items-center gap-2 ${e.status === 'Annulé' ? 'line-through text-zinc-500' : ''}`}>
                                     {e.status === 'Annulé' && <XCircle size={16} className="text-red-500"/>}
@@ -3667,6 +3958,39 @@ function MarketingPlanner({ suggestions, plannedEvents, setPlannedEvents }: any)
                         ))}
                         {plannedEvents.length === 0 && <p className="text-sm text-zinc-400 italic text-center py-10">Aucune action planifiée.</p>}
                     </div>
+                ) : (
+                    <div className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                        <div className="flex justify-between items-center mb-4">
+                            <button onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))} className="p-2 hover:bg-zinc-100 dark:bg-zinc-800 rounded-full transition-colors"><ChevronLeft size={16}/></button>
+                            <h4 className="font-black uppercase text-sm">{monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}</h4>
+                            <button onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))} className="p-2 hover:bg-zinc-100 dark:bg-zinc-800 rounded-full transition-colors"><ChevronRight size={16}/></button>
+                        </div>
+                        <div className="grid grid-cols-7 gap-1 mb-2">
+                            {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => <div key={d} className="text-center text-[10px] font-black text-zinc-400 uppercase">{d}</div>)}
+                        </div>
+                        <div className="grid grid-cols-7 gap-1">
+                            {Array.from({ length: firstDay }).map((_, i) => <div key={`blank-${i}`} className="aspect-square p-1"></div>)}
+                            {Array.from({ length: daysInMonth }).map((_, i) => {
+                                const day = i + 1;
+                                const currentDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
+                                const isToday = new Date().toDateString() === currentDate.toDateString();
+                                const dayEvents = plannedEvents.filter((e: any) => e.planDate && new Date(e.planDate).toDateString() === currentDate.toDateString());
+                                
+                                return (
+                                    <div key={day} className={`aspect-square p-1.5 rounded-lg border flex flex-col items-center justify-start ${isToday ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-zinc-100 dark:border-zinc-800'} overflow-hidden relative`}>
+                                        <span className={`text-[10px] font-bold mb-1 ${isToday ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{day}</span>
+                                        <div className="w-full flex flex-col gap-0.5 items-center">
+                                            {dayEvents.slice(0, 3).map((e: any) => (
+                                                <div key={e.id} className={`w-full h-1.5 rounded-full ${e.status === 'Exécuté' ? 'bg-green-500' : e.status === 'Annulé' ? 'bg-red-500' : 'bg-black dark:bg-white'}`} title={e.title}></div>
+                                            ))}
+                                            {dayEvents.length > 3 && <div className="text-[8px] text-zinc-400 text-center font-bold">+{dayEvents.length - 3}</div>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
                 </div>
                 </div>
             </div>
