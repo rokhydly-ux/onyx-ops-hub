@@ -760,7 +760,7 @@ export default function OnyxOpsElite() {
                   </h1>
                   
                   <p className={`${inter.className} text-zinc-600 text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
-                    Fini les "Prix en Inbox" qui ne mènent à rien ou vos amis qui mettent en sourdine vos 50 statuts photos de produits. Donnez à vos clients un catalogue clair, laissez-les choisir, et réveillez-vous avec des notifications de paiement et des commandes prêtes à livrer.
+                    <span className="font-black text-black bg-[#39FF14]/20 px-1 rounded animate-pulse inline-block">Fini les 'Prix en Inbox'</span> qui ne mènent à rien ou vos amis qui mettent en sourdine vos <span className="font-black text-black bg-[#39FF14]/20 px-1 rounded animate-pulse inline-block">50 statuts photos</span> de produits. Donnez à vos clients un catalogue clair, laissez-les choisir, et réveillez-vous avec des notifications de paiement et des commandes prêtes à livrer.
                   </p>
 
                   <div className="bg-black border border-[#39FF14] p-5 rounded-2xl mb-10 shadow-[0_0_25px_rgba(57,255,20,0.3)] relative overflow-hidden group">
@@ -777,16 +777,16 @@ export default function OnyxOpsElite() {
                       audio.play().catch(()=>{});
                       document.getElementById('tarifs')?.scrollIntoView({behavior:'smooth'});
                     }} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14]">
-                      ENCAISSER DÈS CE SOIR (1er Mois Offert)
+                      LANCER MA MACHINE (1er Mois Offert)
                     </button>
                     <button onClick={() => setShowVideoModal(true)} className="inline-flex justify-center items-center gap-2 border-2 border-black text-black px-8 py-5 rounded-full font-black text-sm uppercase hover:bg-black hover:text-white transition">
                       <PlayCircle className="w-5 h-5" /> Voir comment ça marche
                     </button>
                   </div>
 
-                  <div className="pt-6 border-t border-zinc-200/60 max-w-md">
+                  <div className="pt-6 border-t border-zinc-200/60 max-w-md text-center">
                     <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Paiements Locaux Intégrés</p>
-                    <div className="flex justify-start">
+                    <div className="flex justify-center">
                       <PaymentMethods />
                     </div>
                   </div>
