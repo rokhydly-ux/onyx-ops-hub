@@ -714,8 +714,139 @@ export default function AdminDashboard() {
 
   const updateKanbanStatus = async (id: string, newStatus: string) => {
      const { error } = await supabase.from('clients').update({ status: newStatus }).eq('id', id);
-     if (error) alert(error.message);
-     else fetchSupabaseData();
+     if (error) {
+         alert(error.message);
+     } else {
+         const contact = contacts.find(c => c.id === id);
+         
+         if (newStatus === 'Signé' && contact) {
+             // --- DÉCRÉMENTATION AUTO STOCK MATÉRIEL ---
+             if (contact.saas === 'Onyx Modernize') {
+                 const kitItem = hardwareStock.find(h => h.type === 'Kit' || h.name.includes('Modernize'));
+                 if (kitItem && kitItem.qty > 0) {
+                     await updateHardwareStock(kitItem.id, -1);
+                     alert(`🎉 Félicitations ! Contrat Onyx Modernize signé pour ${contact.full_name}.\n📦 1 ${kitItem.name} a été automatiquement déduit de votre stock logistique.`);
+                 } else if (kitItem && kitItem.qty <= 0) {
+                     alert(`⚠️ Contrat signé pour ${contact.full_name}, mais attention : votre stock de Kits d'installation est à 0 !`);
+                 }
+             }
+
+             // --- ACTION IA AUTO : CM & PUB ---
+             if (contact.saas === 'Add-on CM Pub' || (contact.active_saas && contact.active_saas.includes('cmpub'))) {
+                 const newAction: IAAction = {
+                     id: `ia-cmpub-${contact.id}-${Date.now()}`,
+                     module: 'Marketing',
+                     title: `Onboarding CM & Pub : ${contact.full_name}`,
+                     desc: `Le client a signé. Créer le groupe WhatsApp, demander les accès Meta Business et programmer l'appel de stratégie.`,
+                     date: todayStr,
+                     status: 'En attente',
+                     phone: contact.phone,
+                     msg: `Bonjour ${contact.full_name} ! L'équipe Marketing Onyx prend le relais. Nous venons de créer votre espace. Quand seriez-vous disponible pour notre appel de lancement (stratégie éditoriale) ?`
+                 };
+                 setActionsIA(prev => {
+                     const updated = [newAction, ...prev];
+                     localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+                     return updated;
+                 });
+                 alert(`🎯 Action "Onboarding CM & Pub" automatiquement ajoutée au Journal IA pour ${contact.full_name}.`);
+             }
+         }
+         fetchSupabaseData();
+     }
+  };
+
+  const generateAcompte = (lead: any) => {
+    const montant = lead.saas === 'Onyx Modernize' ? '150 000' : lead.saas === 'Onyx Boost' ? '75 000' : '25 000';
+    const totalStr = montant + ' F CFA';
+    
+    const invoiceWindow = window.open("", "_blank");
+    if (invoiceWindow) {
+      invoiceWindow.document.write(`
+        <html>
+          <head>
+            <title>Facture Acompte - ${lead.full_name}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
+              .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+              .header h1 { font-size: 32px; font-weight: 900; margin: 0; text-transform: uppercase; }
+              .info-section { display: flex; justify-content: space-between; margin-bottom: 40px; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+              .info-box h3 { font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 5px; }
+              .info-box p { margin: 4px 0; font-size: 14px; font-weight: bold; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+              th { background-color: #000; color: #fff; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+              td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+              .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+              .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
+              .footer { clear: both; text-align: center; padding-top: 40px; font-size: 12px; color: #aaa; }
+            </style>
+          </head>
+          <body>
+            <div class="invoice-box">
+              <div class="header">
+                <div>
+                  <h1>FACTURE D'ACOMPTE</h1>
+                  <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #39FF14;">ONYX OPS</p>
+                </div>
+                <div style="text-align: right;">
+                  <p style="margin: 0; font-size: 14px;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+                  <p style="margin: 0; font-size: 14px;"><strong>Réf:</strong> AC-${Date.now().toString().slice(-6)}</p>
+                </div>
+              </div>
+              
+              <div class="info-section">
+                <div class="info-box">
+                  <h3>Facturé à</h3>
+                  <p>${lead.full_name}</p>
+                  <p>${lead.phone}</p>
+                </div>
+                <div class="info-box" style="text-align: right;">
+                  <h3>Informations de paiement</h3>
+                  <p>Lien sécurisé : pay.onyxops.com/acompte</p>
+                  <p>Wave / Orange Money</p>
+                </div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Désignation</th>
+                    <th style="text-align: center;">Qté</th>
+                    <th style="text-align: right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Acompte Démarrage - ${lead.saas || 'Offre Onyx'}</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">${totalStr}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="totals">
+                <div class="total-row">
+                  <span>NET À PAYER</span>
+                  <span>${totalStr}</span>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <p>Merci pour votre confiance !</p>
+                <p>Ceci est un document généré électroniquement par OnyxOps.</p>
+              </div>
+            </div>
+            <script>window.print();</script>
+          </body>
+        </html>
+      `);
+      invoiceWindow.document.close();
+    }
+
+    setTimeout(() => {
+      const msg = `Bonjour ${lead.full_name},\n\nVoici votre facture d'acompte (${montant} F CFA) pour le démarrage de l'offre ${lead.saas || 'Onyx'}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxops.com/acompte\n\nMerci de votre confiance !`;
+      window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+    }, 500);
   };
 
   const handleUpdateWithdrawalStatus = async (id: string, newStatus: string, proof?: string) => {
@@ -2304,6 +2435,7 @@ export default function AdminDashboard() {
                           {c.expiration_date ? new Date(c.expiration_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'}
                         </td>
                         <td className="p-5 lg:p-6 text-right space-x-2 lg:space-x-4">
+                          <button onClick={() => generateAcompte(c)} className="p-3 lg:p-4 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Générer Facture Acompte"><FileText size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-3 lg:p-4 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-xl lg:rounded-2xl transition-all shadow-sm"><Edit3 size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => handleDeleteItem('clients', c.id)} className="p-3 lg:p-4 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl lg:rounded-2xl transition-all"><Trash2 size={18} className="lg:w-5 lg:h-5"/></button>
                         </td>
@@ -2415,7 +2547,7 @@ export default function AdminDashboard() {
           {/* ================= VUE KANBAN HIGH-TICKET ================= */}
           {activeView === 'kanban-ht' && (() => {
              const KANBAN_COLS = ['Nouveau Lead', 'Audit en cours', 'Contrat Envoyé', 'Signé'];
-             const htContacts = contacts.filter(c => ['Onyx Boost', 'Onyx Modernize'].includes(c.saas || ''));
+             const htContacts = contacts.filter(c => ['Onyx Boost', 'Onyx Modernize', 'Add-on CM Pub'].includes(c.saas || '') || (c.active_saas && c.active_saas.includes('cmpub')));
              
              return (
                <div className="space-y-8 animate-in fade-in slide-in-from-right-6 max-w-[1600px] mx-auto h-full flex flex-col">
@@ -2452,6 +2584,11 @@ export default function AdminDashboard() {
                                        >
                                           {KANBAN_COLS.map(kCol => <option key={kCol} value={kCol}>{kCol}</option>)}
                                        </select>
+                                       <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                                          <button onClick={() => generateAcompte(c)} className="w-full text-[10px] font-black uppercase text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 py-2 rounded-xl transition-colors flex items-center justify-center gap-2">
+                                             <FileText size={12}/> Facture Acompte
+                                          </button>
+                                       </div>
                                     </div>
                                  ))}
                                  {colContacts.length === 0 && (
