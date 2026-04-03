@@ -11,7 +11,7 @@ import {
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   TrendingUp, ChevronDown, ChevronLeft, ChevronRight, Send, Download, Layers, ExternalLink, DollarSign,
-  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon, Truck, Minus, ClipboardList, Mail
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon, Truck, Minus, ClipboardList, Mail, Briefcase
 } from "lucide-react";
 
 import * as XLSX from 'xlsx';
@@ -52,7 +52,7 @@ type Contact = {
   prorata_history?: any[];
 };
 
-type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "logistics" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht" | "withdrawals";
+type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "logistics" | "finance" | "partners" | "team" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht" | "withdrawals";
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string; contactId?: string };
 
 const AVAILABLE_MODULES = [
@@ -80,12 +80,6 @@ const ECOSYSTEM_SAAS = [
   { id: "cmpub", name: "Add-on CM Pub", desc: "Création de contenu", price: "49 900 F", link: "/admin/saas/cm-pub", color: "bg-purple-500" },
   { id: "boost", name: "Onyx Boost", desc: "Stratégie Digitale", price: "Sur Devis", link: "/admin/saas/boost", color: "bg-blue-500" },
   { id: "modernize", name: "Onyx Modernize", desc: "Implémentation VIP", price: "Sur Devis", link: "/admin/saas/modernize", color: "bg-orange-500" }
-];
-
-const SALES_TEAM = [
-    { name: 'Cruella Ly', avatar: 'https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg' },
-    { name: 'Admin Onyx', avatar: 'https://ui-avatars.com/api/?name=AO&background=000&color=39FF14' },
-    { name: 'Commercial 1', avatar: 'https://ui-avatars.com/api/?name=C1&background=random' },
 ];
 
 const getSaasPrice = (saasName: string) => {
@@ -146,6 +140,7 @@ export default function AdminDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
+  const [commercials, setCommercials] = useState<any[]>([]);
   const [stats, setStats] = useState({ revenue: 0, activeClients: 0, pendingLeads: 0, newPartners: 0 });
 
   // --- 6. ÉTATS DES MODALES ---
@@ -243,6 +238,18 @@ export default function AdminDashboard() {
   const [leadSearch, setLeadSearch] = useState("");
   const [leadFilter, setLeadFilter] = useState("Tous");
   const [partnerSearch, setPartnerSearch] = useState("");
+  const [showAddCommercialModal, setShowAddCommercialModal] = useState(false);
+  const [newCommercialForm, setNewCommercialForm] = useState({ full_name: '', phone: '' });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+
+  const activeSalesTeam = [
+      { name: 'Admin Onyx', avatar: 'https://ui-avatars.com/api/?name=AO&background=000&color=39FF14' },
+      ...commercials.map(c => ({
+          name: c.full_name,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.full_name)}&background=random`
+      }))
+  ];
+
   const [globalSearch, setGlobalSearch] = useState("");
   
   // --- NOUVEAUX ÉTATS POUR LES RETRAITS ---
@@ -343,6 +350,7 @@ export default function AdminDashboard() {
      const { data: partnersData } = await supabase.from('ambassadors').select('*').order('created_at', { ascending: false });
      const { data: materialsData } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
      const { data: withdrawalsData } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
+     const { data: commercialsData } = await supabase.from('commercials').select('*').order('created_at', { ascending: false });
      const { data: hardwareData } = await supabase.from('hardware_stock').select('*').order('name', { ascending: true });
      
      if (contactsData) setContacts(contactsData);
@@ -359,6 +367,7 @@ export default function AdminDashboard() {
      if (partnersData) setPartners(partnersData);
      if (materialsData) setMarketingMaterials(materialsData);
      if (withdrawalsData) setWithdrawals(withdrawalsData);
+     if (commercialsData) setCommercials(commercialsData);
      if (hardwareData && hardwareData.length > 0) setHardwareStock(hardwareData);
      
      // Nouveau calcul précis du revenu MRR
@@ -406,11 +415,11 @@ export default function AdminDashboard() {
       try {
         const { data, error } = await supabase.auth.getUser();
         const hasSessionFlag = typeof window !== 'undefined' && sessionStorage.getItem('onyx_admin_session') === '1';
-        if (!error && data?.user && hasSessionFlag) {
+            if (!error && data?.user && hasSessionFlag && data.user.email === 'rokhydly@gmail.com') {
           setAdminUser(data.user);
           fetchSupabaseData();
         } else {
-          if (!error && data?.user && !hasSessionFlag) {
+              if (!error && data?.user && (!hasSessionFlag || data.user.email !== 'rokhydly@gmail.com')) {
             await supabase.auth.signOut();
           }
           setIsLoading(false);
@@ -643,6 +652,12 @@ export default function AdminDashboard() {
         alert("Identifiants administrateur incorrects.");
         setAdminUser(null);
       } else {
+            if (data.user.email !== 'rokhydly@gmail.com') {
+              alert("Accès refusé : vous n'avez pas les droits de Super-Administrateur.");
+              await supabase.auth.signOut();
+              setAdminUser(null);
+              return;
+            }
         setAdminUser(data.user);
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('onyx_admin_session', '1');
@@ -1415,6 +1430,34 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAddCommercial = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newCommercialForm.full_name || !newCommercialForm.phone) return;
+      setIsCreatingUser(true);
+      try {
+          const res = await fetch('/api/create-user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  phone: newCommercialForm.phone,
+                  role: 'commercial',
+                  fullName: newCommercialForm.full_name
+              })
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || "Erreur lors de la création.");
+          
+          alert(`Commercial ${newCommercialForm.full_name} créé ! Il peut se connecter avec le PIN 0000.`);
+          setShowAddCommercialModal(false);
+          setNewCommercialForm({ full_name: '', phone: '' });
+          fetchSupabaseData();
+      } catch (err: any) {
+          alert(err.message);
+      } finally {
+          setIsCreatingUser(false);
+      }
+  };
+
   const handleConvertPartnerToClient = async () => {
       if(!selectedPartner || !supabase) return;
       const { error } = await supabase.from('clients').insert({
@@ -2028,6 +2071,7 @@ export default function AdminDashboard() {
                 { id: 'logistics', icon: Truck, label: 'Logistique & Stock' },
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
+                { id: 'team', icon: Briefcase, label: 'Équipe Commerciale' },
                 { id: 'withdrawals', icon: DollarSign, label: 'Retraits Partenaires' },
                 { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
                 { id: 'statistiques', icon: BarChartIcon, label: 'Statistiques' },
@@ -2082,7 +2126,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* ================= MAIN AREA (Zone Principale) ================= */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#fafafa] relative">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[#fafafa] dark:bg-[#050505] relative">
         
         {/* MOBILE SIDEBAR OVERLAY */}
         {isMobileMenuOpen && (
@@ -2105,6 +2149,7 @@ export default function AdminDashboard() {
                         { id: 'logistics', icon: Truck, label: 'Logistique & Stock' },
                         { id: 'finance', icon: Wallet, label: 'Finances' },
                         { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
+                        { id: 'team', icon: Briefcase, label: 'Équipe Commerciale' },
                         { id: 'withdrawals', icon: DollarSign, label: 'Retraits Partenaires' },
                         { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
                         { id: 'statistiques', icon: BarChartIcon, label: 'Statistiques' },
@@ -2234,7 +2279,8 @@ export default function AdminDashboard() {
         </header>
 
         {/* CONTENU DYNAMIQUE SCROLLABLE */}
-        <div className="flex-1 overflow-y-auto p-6 lg:p-12 scroll-smooth custom-scrollbar">
+        <div className="flex-1 flex flex-col overflow-y-auto scroll-smooth custom-scrollbar">
+          <main className="flex-1 p-6 lg:p-12 flex flex-col">
           
           {/* ================= VUE DASHBOARD ================= */}
           {activeView === 'dashboard' && (
@@ -3149,11 +3195,11 @@ export default function AdminDashboard() {
                                             className="bg-transparent text-[10px] font-bold text-zinc-500 outline-none cursor-pointer"
                                           >
                                              <option value="">Non assigné</option>
-                                             {SALES_TEAM.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                                       {activeSalesTeam.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
                                           </select>
                                           {c.assigned_to && (
                                              <img 
-                                                src={SALES_TEAM.find(s => s.name === c.assigned_to)?.avatar || `https://ui-avatars.com/api/?name=${c.assigned_to}`} 
+                                          src={activeSalesTeam.find(s => s.name === c.assigned_to)?.avatar || `https://ui-avatars.com/api/?name=${c.assigned_to}`} 
                                                 alt={c.assigned_to} 
                                                 className="w-6 h-6 rounded-full border-2 border-white dark:border-black"
                                                 title={`Assigné à ${c.assigned_to}`}
@@ -3637,6 +3683,47 @@ export default function AdminDashboard() {
              </div>
           )}
 
+      {/* ================= VUE ÉQUIPE COMMERCIALE ================= */}
+      {activeView === 'team' && (
+         <div className="space-y-12 animate-in fade-in max-w-[1200px] mx-auto">
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 bg-white dark:bg-zinc-900 p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
+               <div className="flex items-center gap-6 lg:gap-5 relative z-10">
+                  <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Briefcase size={32} className="lg:w-[38px] lg:h-[38px]"/></div>
+                  <div>
+                     <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Équipe Commerciale</h2>
+                     <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Agents Onyx Hub</p>
+                  </div>
+               </div>
+               <button onClick={() => setShowAddCommercialModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-6 py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0 relative z-10">
+                  <UserPlus size={16}/> Nouveau Commercial
+               </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {commercials.map(comm => (
+                  <div key={comm.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-[2rem] shadow-sm flex flex-col items-center text-center relative overflow-hidden group">
+                     <div className="absolute top-4 right-4">
+                        <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
+                     </div>
+                     <div className="w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-3xl font-black text-black dark:text-white mb-4 overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 shadow-inner group-hover:scale-110 transition-transform">
+                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(comm.full_name)}&background=random`} alt={comm.full_name} className="w-full h-full object-cover" />
+                     </div>
+                     <h3 className="font-black uppercase text-lg text-black dark:text-white mb-1">{comm.full_name}</h3>
+                     <p className="text-xs font-bold text-zinc-500 mb-6">{comm.phone}</p>
+                     <div className="flex gap-3 w-full">
+                        <button onClick={() => handleDeleteItem('commercials', comm.id)} className="w-full py-3 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                           <Trash2 size={14}/> Supprimer
+                        </button>
+                     </div>
+                  </div>
+               ))}
+               {commercials.length === 0 && (
+                  <div className="col-span-full p-20 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[3rem]">Aucun commercial trouvé</div>
+               )}
+            </div>
+         </div>
+      )}
+
           {/* ================= VUE MARKETING ================= */}
           {activeView === 'marketing' && (
              <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1200px] mx-auto">
@@ -3827,8 +3914,13 @@ export default function AdminDashboard() {
             </div>
           )}
 
+            </main>
+            
+            <footer className="mt-auto py-6 border-t border-zinc-200 dark:border-zinc-800 text-center text-[10px] font-black uppercase tracking-widest text-zinc-500 shrink-0">
+               © 2026 ONYX OPS - QG CENTRAL SÉNÉGAL • DÉVELOPPÉ POUR LA CROISSANCE.
+            </footer>
+          </div>
         </div>
-      </main>
 
       {/* ================= MODALES TERMINAL ================= */}
 
@@ -4388,7 +4480,7 @@ export default function AdminDashboard() {
 
             <div className="space-y-4">
               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4">Sélectionner l'outil principal</label>
-              <select id="saas-select" className="w-full p-5 bg-zinc-50 border-none rounded-[1.75rem] font-black text-xs uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10 cursor-pointer appearance-none">
+              <select id="saas-select" className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border-none rounded-[1.75rem] font-black text-xs uppercase outline-none focus:ring-4 focus:ring-[#39FF14]/10 cursor-pointer appearance-none">
                 <option value="">-- Aucun / À définir --</option>
                 {ECOSYSTEM_SAAS.map(s => (
                   <option key={s.id} value={s.name}>{s.name} ({s.price})</option>
@@ -4483,6 +4575,32 @@ export default function AdminDashboard() {
            </div>
          </div>
       )}
+
+  {/* --- MODALE AJOUT COMMERCIAL MANUEL --- */}
+  {showAddCommercialModal && (
+     <div id="modal-overlay" onClick={handleOutsideClick(setShowAddCommercialModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto">
+         <button onClick={() => setShowAddCommercialModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
+         <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-8 text-black dark:text-white`}>Nouveau Commercial</h2>
+         
+         <form onSubmit={handleAddCommercial} className="space-y-4">
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Nom Complet</label>
+              <input type="text" required value={newCommercialForm.full_name} onChange={e => setNewCommercialForm({...newCommercialForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="Ex: Moussa Diop" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Téléphone</label>
+              <input type="tel" required value={newCommercialForm.phone} onChange={e => setNewCommercialForm({...newCommercialForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="77 000 00 00" />
+           </div>
+
+           <button type="submit" disabled={isCreatingUser} className="w-full bg-[#39FF14] text-black py-4 rounded-[1.5rem] font-black uppercase text-xs mt-6 shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 flex justify-center items-center gap-2">
+             {isCreatingUser ? 'Création en cours...' : <><UserPlus size={18}/> Créer l'accès</>}
+           </button>
+           <p className="text-[10px] text-zinc-500 font-bold text-center mt-4">Le code PIN "0000" sera attribué par défaut.</p>
+         </form>
+       </div>
+     </div>
+  )}
 {/* MODALE ÉDITION ARTICLE IA */}
 {editingArticle && (
         <div id="modal-overlay" onClick={handleOutsideClick(setEditingArticle, null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
@@ -4579,10 +4697,6 @@ export default function AdminDashboard() {
            </div>
         </div>
       )}
-      
-      <footer className="mt-10 py-6 border-t border-zinc-200 dark:border-zinc-800 text-center text-[10px] font-black uppercase tracking-widest text-zinc-500">
-         © 2026 ONYX OPS - QG CENTRAL SÉNÉGAL • DÉVELOPPÉ POUR LA CROISSANCE.
-      </footer>
       
     </div>
   );

@@ -5,7 +5,7 @@ import {
   Copy, CheckCircle, Users, DollarSign, TrendingUp, 
   LogOut, Link as LinkIcon, Info, ShieldCheck, 
   ChevronDown, Package, Zap, ArrowRight, X,
-  MessageCircle, Trash2, Trophy
+  MessageCircle, Trash2, Trophy, Settings
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -50,6 +50,11 @@ export default function AmbassadorHub() {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [topAmbassadors, setTopAmbassadors] = useState<any[]>([]);
   const [ambassadorData, setAmbassadorData] = useState<any>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [oldPin, setOldPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
 
   const ambassadorLink = ambassadorData?.id 
     ? `https://onyxops.com/ref/${ambassadorData.id}` 
@@ -68,6 +73,8 @@ export default function AmbassadorHub() {
         try {
           const parsedData = JSON.parse(sessionStr);
           setAmbassadorData(parsedData);
+          setEditName(parsedData.full_name || '');
+          setEditAvatar(parsedData.avatar_url || '');
           const { data, error } = await supabase
             .from('withdrawals')
             .select('*')
@@ -175,6 +182,31 @@ export default function AmbassadorHub() {
     }
   };
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let finalNewPin = ambassadorData.password_temp;
+      if (newPin || oldPin) {
+         if (!oldPin) return alert("Veuillez saisir l'ancien PIN.");
+         if (newPin.length !== 4) return alert("Le nouveau PIN doit faire 4 chiffres.");
+         const submittedOld = oldPin === "0000" ? "central2026" : oldPin + "00";
+         if (ambassadorData.password_temp !== submittedOld && ambassadorData.password_temp !== "central2026") return alert("Ancien PIN incorrect.");
+         finalNewPin = newPin + "00";
+      }
+      const { error } = await supabase.from('ambassadors').update({ full_name: editName, avatar_url: editAvatar, password_temp: finalNewPin }).eq('id', ambassadorData.id);
+      if(error) throw error;
+      
+      alert("Profil mis à jour avec succès !");
+      const updatedData = {...ambassadorData, full_name: editName, avatar_url: editAvatar, password_temp: finalNewPin};
+      setAmbassadorData(updatedData);
+      localStorage.setItem('onyx_ambassador_session', JSON.stringify(updatedData));
+      setShowSettings(false);
+      setOldPin(''); setNewPin('');
+    } catch(err:any) {
+      alert("Erreur: " + err.message);
+    }
+  };
+
   const isTopSeller = topAmbassadors.length > 0 && ambassadorData && topAmbassadors[0].id === ambassadorData.id;
 
   return (
@@ -184,16 +216,25 @@ export default function AmbassadorHub() {
       <header className="bg-black/80 backdrop-blur-md border-b border-zinc-900 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#39FF14] rounded flex items-center justify-center">
-              <Users size={18} className="text-black" />
-            </div>
-            <span className={`${spaceGrotesk.className} font-black text-xl tracking-tighter uppercase`}>
-              Onyx <span className="text-[#39FF14]">Ambassadeur</span>
-            </span>
+        {ambassadorData?.avatar_url ? (
+           <img src={ambassadorData.avatar_url} alt="Avatar" className="w-8 h-8 rounded border border-[#39FF14] object-cover" />
+        ) : (
+           <div className="w-8 h-8 bg-[#39FF14] rounded flex items-center justify-center">
+             <Users size={18} className="text-black" />
+           </div>
+        )}
+        <span className={`${spaceGrotesk.className} font-black text-xl tracking-tighter uppercase hidden sm:inline`}>
+           Onyx <span className="text-[#39FF14]">Ambassadeur</span>
+        </span>
           </div>
-          <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs font-bold uppercase transition-colors">
-            <LogOut size={16} /> Quitter
-          </button>
+          <div className="flex items-center gap-4">
+             <button onClick={() => setShowSettings(true)} className="text-zinc-500 hover:text-[#39FF14] flex items-center gap-2 text-xs font-bold uppercase transition-colors">
+               <Settings size={16} /> <span className="hidden sm:inline">Paramètres</span>
+             </button>
+             <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs font-bold uppercase transition-colors">
+               <LogOut size={16} /> <span className="hidden sm:inline">Quitter</span>
+             </button>
+          </div>
         </div>
       </header>
 
@@ -493,6 +534,35 @@ export default function AmbassadorHub() {
                  <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-sm mt-4 hover:scale-[1.02] shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-transform active:scale-95 flex justify-center items-center gap-2">
                    <DollarSign size={18}/> Confirmer le retrait
                  </button>
+              </form>
+           </div>
+        </div>
+      )}
+
+      {showSettings && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+           <div className="bg-zinc-900 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl relative border border-zinc-800">
+              <button onClick={() => setShowSettings(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white"><X size={20}/></button>
+              <h2 className="text-xl font-black mb-6 text-white uppercase tracking-tighter"><Settings className="inline mr-2 text-[#39FF14]"/> Mon Profil</h2>
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Nom Complet</label>
+                  <input type="text" required value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Photo de profil (URL)</label>
+                  <input type="url" value={editAvatar} onChange={e => setEditAvatar(e.target.value)} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14]" placeholder="https://..." />
+                </div>
+                <hr className="border-zinc-800 my-4"/>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Ancien Code PIN (Si modification)</label>
+                  <input type="password" inputMode="numeric" maxLength={4} value={oldPin} onChange={e => setOldPin(e.target.value.replace(/[^0-9]/g, ''))} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] tracking-widest text-center text-xl" placeholder="••••" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Nouveau Code PIN (4 chiffres)</label>
+                  <input type="password" inputMode="numeric" maxLength={4} value={newPin} onChange={e => setNewPin(e.target.value.replace(/[^0-9]/g, ''))} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] tracking-widest text-center text-xl" placeholder="••••" />
+                </div>
+                <button type="submit" className="w-full bg-[#39FF14] text-black font-black py-4 rounded-xl uppercase text-xs mt-4">Sauvegarder</button>
               </form>
            </div>
         </div>

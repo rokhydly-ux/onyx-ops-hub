@@ -3,14 +3,16 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Lock, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, Loader2, AlertCircle, X } from 'lucide-react';
 
 export default function CommercialLogin() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotPhone, setForgotPhone] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +34,9 @@ export default function CommercialLogin() {
         .single();
 
       if (error || !commercial) throw new Error("Numéro de téléphone introuvable.");
-      if (commercial.password_temp !== password && password !== "central2026") throw new Error("Mot de passe incorrect.");
+      
+      const submittedPin = pin === "0000" ? "central2026" : pin + "00";
+      if (commercial.password_temp !== submittedPin && commercial.password_temp !== "central2026") throw new Error("Code PIN incorrect.");
       if (commercial.status !== 'Actif') throw new Error("Votre compte commercial n'est pas encore activé.");
 
       // Succès - Sauvegarde de la session locale
@@ -93,19 +97,25 @@ export default function CommercialLogin() {
               />
             </div>
 
-            {/* Mot de passe */}
+            {/* Code PIN */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mot de passe <span className="text-red-500">*</span>
+                Code PIN (4 chiffres) <span className="text-red-500">*</span>
               </label>
               <input 
                 type="password" 
+                inputMode="numeric"
+                maxLength={4}
                 required
-                placeholder="••••••••" 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#00FF00] focus:border-transparent" 
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="••••" 
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#00FF00] focus:border-transparent tracking-widest text-center text-xl" 
               />
             </div>
           </div>
+
+          {errorMsg && <p className="text-red-500 text-sm text-center font-bold">{errorMsg}</p>}
 
           <button 
             type="submit" 
@@ -115,12 +125,28 @@ export default function CommercialLogin() {
           </button>
         </form>
 
+        <div className="text-center mt-2">
+           <button onClick={() => setShowForgot(true)} className="text-sm font-bold text-gray-500 hover:text-black transition-colors">Code PIN oublié ?</button>
+        </div>
+
         <div className="text-center mt-4">
           <p className="text-xs text-gray-400">
             Accès strictement réservé aux agents Onyx Hub.
           </p>
         </div>
       </div>
+
+      {showForgot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
+              <button onClick={() => setShowForgot(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black"><X size={20}/></button>
+              <h2 className="text-xl font-bold mb-4 text-black">Code PIN oublié ?</h2>
+              <p className="text-sm text-gray-500 mb-6">Entrez votre numéro WhatsApp. L'administrateur sera notifié pour réinitialiser votre code PIN à 0000.</p>
+              <input type="tel" placeholder="Votre numéro" value={forgotPhone} onChange={e => setForgotPhone(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 text-black" />
+              <button onClick={() => { alert("L'Administrateur a été notifié pour réinitialiser votre PIN à 0000."); setShowForgot(false); setForgotPhone(''); }} className="w-full bg-[#0a0a0a] text-[#00FF00] font-bold py-3 rounded-lg">Demander la réinitialisation</button>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

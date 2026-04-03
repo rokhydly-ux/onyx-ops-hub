@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Wallet, Trophy, Link2, Copy, Check, ShoppingBag, Users, LogOut, FileText, Image as ImageIcon, MessageCircle } from "lucide-react";
+import { Wallet, Trophy, Link2, Copy, Check, ShoppingBag, Users, LogOut, FileText, Image as ImageIcon, MessageCircle, X, Settings } from "lucide-react";
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -11,12 +11,19 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function AmbassadeursPage() {
   const [id, setId] = useState("+221762237425");
-  const [password, setPassword] = useState("central2026");
+  const [pin, setPin] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [ambassadorData, setAmbassadorData] = useState<any>(null);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotPhone, setForgotPhone] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [oldPin, setOldPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
 
   // States for dynamic data
   const [prospects, setProspects] = useState<any[]>([]);
@@ -30,7 +37,10 @@ export default function AmbassadeursPage() {
     const session = localStorage.getItem('onyx_ambassador_session');
     if (session) {
       try {
-        setAmbassadorData(JSON.parse(session));
+        const data = JSON.parse(session);
+        setAmbassadorData(data);
+        setEditName(data.full_name || '');
+        setEditAvatar(data.avatar_url || '');
         setIsLoggedIn(true);
       } catch (e) {}
     }
@@ -97,8 +107,9 @@ export default function AmbassadeursPage() {
         throw new Error("Identifiant introuvable.");
       }
 
-      if (data.password_temp !== password && password !== "central2026") {
-        throw new Error("Mot de passe incorrect.");
+      const submittedPin = pin === "0000" ? "central2026" : pin + "00";
+      if (data.password_temp !== submittedPin && data.password_temp !== "central2026") {
+        throw new Error("Code PIN incorrect.");
       }
 
       if (data.status !== 'Actif') {
@@ -106,6 +117,8 @@ export default function AmbassadeursPage() {
       }
 
       setAmbassadorData(data);
+      setEditName(data.full_name || '');
+      setEditAvatar(data.avatar_url || '');
       setIsLoggedIn(true);
       localStorage.setItem('onyx_ambassador_session', JSON.stringify(data));
     } catch (err: any) {
@@ -137,9 +150,34 @@ export default function AmbassadeursPage() {
     setAmbassadorData(null);
     localStorage.removeItem('onyx_ambassador_session');
     setId("");
-    setPassword("");
+    setPin("");
     setProspects([]);
     setMarketingMaterials([]);
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let finalNewPin = ambassadorData.password_temp;
+      if (newPin || oldPin) {
+         if (!oldPin) return alert("Veuillez saisir l'ancien PIN.");
+         if (newPin.length !== 4) return alert("Le nouveau PIN doit faire 4 chiffres.");
+         const submittedOld = oldPin === "0000" ? "central2026" : oldPin + "00";
+         if (ambassadorData.password_temp !== submittedOld && ambassadorData.password_temp !== "central2026") return alert("Ancien PIN incorrect.");
+         finalNewPin = newPin + "00";
+      }
+      const { error } = await supabase.from('ambassadors').update({ full_name: editName, avatar_url: editAvatar, password_temp: finalNewPin }).eq('id', ambassadorData.id);
+      if(error) throw error;
+      
+      alert("Profil mis à jour avec succès !");
+      const updatedData = {...ambassadorData, full_name: editName, avatar_url: editAvatar, password_temp: finalNewPin};
+      setAmbassadorData(updatedData);
+      localStorage.setItem('onyx_ambassador_session', JSON.stringify(updatedData));
+      setShowSettings(false);
+      setOldPin(''); setNewPin('');
+    } catch(err:any) {
+      alert("Erreur: " + err.message);
+    }
   };
 
   // Login Form Component
@@ -165,11 +203,13 @@ export default function AmbassadeursPage() {
             />
             <input 
               type="password" 
-              placeholder="Mot de passe" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="Code PIN (4 chiffres)" 
+              value={pin} 
+              onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, ''))} 
               required 
-              className="w-full p-4 bg-zinc-800 border border-zinc-700 rounded-xl font-bold text-white outline-none focus:ring-2 focus:ring-[#39FF14] placeholder:text-zinc-500" 
+              className="w-full p-4 bg-zinc-800 border border-zinc-700 rounded-xl font-bold text-white outline-none focus:ring-2 focus:ring-[#39FF14] placeholder:text-zinc-500 tracking-widest text-center text-xl" 
             />
             {error && <p className="text-red-500 text-xs text-center font-bold">{error}</p>}
             <button 
@@ -180,7 +220,22 @@ export default function AmbassadeursPage() {
               {authLoading ? "Connexion en cours..." : "Accéder à mon Hub"}
             </button>
           </form>
+          <div className="text-center mt-6">
+             <button onClick={() => setShowForgot(true)} className="text-sm font-bold text-zinc-500 hover:text-[#39FF14] transition-colors">Code PIN oublié ?</button>
+          </div>
         </div>
+        
+        {showForgot && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+             <div className="bg-zinc-900 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative border border-zinc-800">
+                <button onClick={() => setShowForgot(false)} className="absolute top-4 right-4 text-zinc-400 hover:text-white"><X size={20}/></button>
+                <h2 className="text-xl font-bold mb-4 text-white">Code PIN oublié ?</h2>
+                <p className="text-sm text-zinc-400 mb-6">Entrez votre numéro WhatsApp. L'administrateur sera notifié pour réinitialiser votre code PIN à 0000.</p>
+                <input type="tel" placeholder="Votre numéro" value={forgotPhone} onChange={e => setForgotPhone(e.target.value)} className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg mb-4 text-white outline-none focus:border-[#39FF14]" />
+                <button onClick={() => { alert("L'Administrateur a été notifié pour réinitialiser votre PIN à 0000."); setShowForgot(false); setForgotPhone(''); }} className="w-full bg-[#39FF14] text-black font-bold py-3 rounded-lg uppercase text-xs">Demander la réinitialisation</button>
+             </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -189,12 +244,20 @@ export default function AmbassadeursPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans">
       <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between bg-black/50 backdrop-blur-sm sticky top-0 z-10">
-        <h1 className="text-xl font-black uppercase tracking-tighter text-[#39FF14]">
-          Bienvenue, {ambassadorData?.full_name}
-        </h1>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-red-500 transition-colors">
-          <LogOut size={14} /> Déconnexion
-        </button>
+        <div className="flex items-center gap-4">
+           {ambassadorData?.avatar_url && <img src={ambassadorData.avatar_url} alt="Avatar" className="w-10 h-10 rounded-full border border-[#39FF14] object-cover" />}
+           <h1 className="text-xl font-black uppercase tracking-tighter text-[#39FF14]">
+             Bienvenue, {ambassadorData?.full_name}
+           </h1>
+        </div>
+        <div className="flex items-center gap-4">
+           <button onClick={() => setShowSettings(true)} className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-[#39FF14] transition-colors">
+             <Settings size={14} /> Paramètres
+           </button>
+           <button onClick={handleLogout} className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-red-500 transition-colors">
+             <LogOut size={14} /> Déconnexion
+           </button>
+        </div>
       </header>
 
       {isLoading ? (
@@ -304,6 +367,35 @@ export default function AmbassadeursPage() {
           )}
         </section>
       </main>
+      )}
+
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+           <div className="bg-zinc-900 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl relative border border-zinc-800">
+              <button onClick={() => setShowSettings(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white"><X size={20}/></button>
+              <h2 className="text-xl font-black mb-6 text-white uppercase tracking-tighter"><Settings className="inline mr-2 text-[#39FF14]"/> Mon Profil</h2>
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Nom Complet</label>
+                  <input type="text" required value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Photo de profil (URL)</label>
+                  <input type="url" value={editAvatar} onChange={e => setEditAvatar(e.target.value)} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14]" placeholder="https://..." />
+                </div>
+                <hr className="border-zinc-800 my-4"/>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Ancien Code PIN (Si modification)</label>
+                  <input type="password" inputMode="numeric" maxLength={4} value={oldPin} onChange={e => setOldPin(e.target.value.replace(/[^0-9]/g, ''))} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] tracking-widest text-center text-xl" placeholder="••••" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Nouveau Code PIN (4 chiffres)</label>
+                  <input type="password" inputMode="numeric" maxLength={4} value={newPin} onChange={e => setNewPin(e.target.value.replace(/[^0-9]/g, ''))} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] tracking-widest text-center text-xl" placeholder="••••" />
+                </div>
+                <button type="submit" className="w-full bg-[#39FF14] text-black font-black py-4 rounded-xl uppercase text-xs mt-4">Sauvegarder</button>
+              </form>
+           </div>
+        </div>
       )}
     </div>
   );

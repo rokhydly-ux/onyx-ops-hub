@@ -1,18 +1,60 @@
 "use client";
 
-import React, { useState } from 'react';
-import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut, Settings, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function CommercialHub() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('nouveau');
   const [addCm, setAddCm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [oldPin, setOldPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [editName, setEditName] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
   const [formData, setFormData] = useState({
     shopName: '',
     phone: '',
     product: ''
   });
+
+  useEffect(() => {
+    const session = localStorage.getItem('onyx_commercial_session');
+    if(session) {
+      const data = JSON.parse(session);
+      setCurrentUser(data);
+      setEditName(data.full_name || '');
+      setEditAvatar(data.avatar_url || '');
+    }
+  }, []);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      let finalNewPin = currentUser.password_temp;
+      if (newPin || oldPin) {
+         if (!oldPin) return alert("Veuillez saisir l'ancien PIN.");
+         if (newPin.length !== 4) return alert("Le nouveau PIN doit faire 4 chiffres.");
+         const submittedOld = oldPin === "0000" ? "central2026" : oldPin + "00";
+         if (currentUser.password_temp !== submittedOld && currentUser.password_temp !== "central2026") return alert("Ancien PIN incorrect.");
+         finalNewPin = newPin + "00";
+      }
+      const { error } = await supabase.from('commercials').update({ full_name: editName, avatar_url: editAvatar, password_temp: finalNewPin }).eq('id', currentUser.id);
+      if(error) throw error;
+      
+      alert("Profil mis à jour avec succès !");
+      const updatedData = {...currentUser, full_name: editName, avatar_url: editAvatar, password_temp: finalNewPin};
+      setCurrentUser(updatedData);
+      localStorage.setItem('onyx_commercial_session', JSON.stringify(updatedData));
+      setShowSettings(false);
+      setOldPin(''); setNewPin('');
+    } catch(err:any) {
+      alert("Erreur: " + err.message);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,13 +78,21 @@ export default function CommercialHub() {
       {/* En-tête */}
       <header className="bg-black border-b border-zinc-800 p-6 shadow-md sticky top-0 z-40">
         <div className="flex justify-between items-center">
-          <div>
+      <div className="flex items-center gap-4">
+         {currentUser?.avatar_url && <img src={currentUser.avatar_url} alt="Avatar" className="w-12 h-12 rounded-full border-2 border-zinc-800 object-cover hidden sm:block" />}
+         <div>
             <h1 className="text-2xl font-black uppercase tracking-tighter">Portail <span className="text-[#39FF14]">Commercial</span></h1>
-            <p className="text-zinc-400 text-xs font-bold mt-1">Agent : Moussa D. • Objectif : 12/20</p>
+            <p className="text-zinc-400 text-xs font-bold mt-1">Agent : {currentUser?.full_name || 'Inconnu'} • Objectif : 12/20</p>
+         </div>
+      </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowSettings(true)} className="text-zinc-500 hover:text-white transition p-2 bg-zinc-900 rounded-full">
+              <Settings size={16} />
+            </button>
+            <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white transition p-2 bg-zinc-900 rounded-full">
+              <LogOut size={16} />
+            </button>
           </div>
-          <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white transition p-2 bg-zinc-900 rounded-full">
-            <LogOut size={16} />
-          </button>
         </div>
       </header>
 
@@ -239,6 +289,35 @@ export default function CommercialHub() {
           <span className="text-[10px] font-black uppercase tracking-widest">Mon Activité</span>
         </button>
       </nav>
+
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+           <div className="bg-zinc-900 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl relative border border-zinc-800">
+              <button onClick={() => setShowSettings(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white"><X size={20}/></button>
+          <h2 className="text-xl font-black mb-6 text-white uppercase tracking-tighter"><Settings className="inline mr-2 text-[#39FF14]"/> Mon Profil</h2>
+          <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Nom Complet</label>
+              <input type="text" required value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14]" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Photo de profil (URL)</label>
+              <input type="url" value={editAvatar} onChange={e => setEditAvatar(e.target.value)} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14]" placeholder="https://..." />
+            </div>
+            <hr className="border-zinc-800 my-4"/>
+                <div>
+              <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Ancien Code PIN (Si modification)</label>
+              <input type="password" inputMode="numeric" maxLength={4} value={oldPin} onChange={e => setOldPin(e.target.value.replace(/[^0-9]/g, ''))} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] tracking-widest text-center text-xl" placeholder="••••" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-zinc-500 mb-2">Nouveau Code PIN (4 chiffres)</label>
+              <input type="password" inputMode="numeric" maxLength={4} value={newPin} onChange={e => setNewPin(e.target.value.replace(/[^0-9]/g, ''))} className="w-full bg-black border border-zinc-800 text-white rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] tracking-widest text-center text-xl" placeholder="••••" />
+                </div>
+                <button type="submit" className="w-full bg-[#39FF14] text-black font-black py-4 rounded-xl uppercase text-xs mt-4">Sauvegarder</button>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
