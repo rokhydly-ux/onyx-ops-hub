@@ -65,7 +65,7 @@ const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: s
   { id: "solo", name: "Onyx Jaay", price: 13900, label: "Onyx Jaay", rating: "4.9/5", avis: 142 },
   { id: "tekki", name: "Pack Tekki", price: 22900, label: "Pack Tekki", rating: "5.0/5", avis: 312 },
   { id: "tekkipro", name: "Pack Tekki Pro", price: 27900, label: "Pack Tekki Pro", rating: "5.0/5", avis: 189 },
-  { id: "crm", name: "Pack Onyx CRM", price: 39900, label: "Pack Onyx CRM", rating: "4.9/5", avis: 215 },
+  { id: "crm", name: "Pack Onyx CRM", price: 29900, label: "Pack Onyx CRM", rating: "4.9/5", avis: 215 },
   { id: "gold", name: "Pack Onyx Gold", price: 59900, label: "Pack Onyx Gold", rating: "5.0/5", avis: 120 },
 ];
 
@@ -189,12 +189,14 @@ export default function OnyxOpsElite() {
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const [notificationIndex, setNotificationIndex] = useState(0);
   const [showNotification, setShowNotification] = useState(true);
+  const [isNotificationDismissed, setIsNotificationDismissed] = useState(false);
 
   // WORKFLOW PARTENAIRE
   const [partnerStep, setPartnerStep] = useState<'landing' | 'form' | 'success' | 'dashboard'>('landing');
   const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, tekkipro: 1, crm: 0, gold: 0 });
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", address: "", country: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [addonCm, setAddonCm] = useState(false);
 
   // --- AFFILIATION (AMBASSADEUR) ---
   const [refId, setRefId] = useState<string | null>(null);
@@ -649,10 +651,17 @@ export default function OnyxOpsElite() {
       `}} />
 
       {/* MODULE DE NOTIFICATIONS FLOTTANT */}
-      <div className={`fixed bottom-28 md:bottom-8 left-6 z-[100] transition-all duration-500 transform ${showNotification ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
-         <div className="bg-white p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-center gap-4 max-w-[320px] cursor-pointer hover:scale-105 transition" onClick={() => navigateTo('home', 'tarifs')}>
-            <div className="bg-black text-[#39FF14] p-3 rounded-xl flex-shrink-0">
-               {React.createElement(RECENT_NOTIFICATIONS[notificationIndex].icon, { size: 24 })}
+      <div className={`fixed bottom-28 md:bottom-8 left-6 z-[100] transition-all duration-500 transform ${showNotification && !isNotificationDismissed ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
+         <div className="bg-white p-3 pr-8 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-start gap-3 max-w-[280px] cursor-pointer hover:scale-105 transition relative" onClick={() => navigateTo('home', 'tarifs')}>
+            <button 
+               onClick={(e) => { e.stopPropagation(); setIsNotificationDismissed(true); }} 
+               className="absolute top-2 right-2 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-full p-1 transition-colors"
+               aria-label="Fermer"
+            >
+               <X size={14} />
+            </button>
+            <div className="bg-black text-[#39FF14] p-2.5 rounded-lg flex-shrink-0 mt-0.5">
+               {React.createElement(RECENT_NOTIFICATIONS[notificationIndex].icon, { size: 18 })}
             </div>
             <div className="flex-1">
                <div className="flex items-center gap-1.5 mb-1">
@@ -662,7 +671,7 @@ export default function OnyxOpsElite() {
                  </span>
                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Achat Récent</p>
                </div>
-               <p className="text-sm text-zinc-800 leading-tight pr-2">
+               <p className="text-xs text-zinc-800 leading-tight">
                   <span className="font-black">{RECENT_NOTIFICATIONS[notificationIndex].name}</span> {RECENT_NOTIFICATIONS[notificationIndex].action} <span className="font-black text-black bg-[#39FF14]/20 px-1 rounded inline-block mt-0.5">{RECENT_NOTIFICATIONS[notificationIndex].product}</span>
                </p>
                <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase tracking-wider">{RECENT_NOTIFICATIONS[notificationIndex].time}</p>
@@ -739,23 +748,24 @@ export default function OnyxOpsElite() {
                 {/* Colonne Gauche : Le Pitch & La Preuve */}
                 <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
                   {/* --- NOUVEAU COPYWRITING HERO --- */}
-                  <div className="inline-flex items-center gap-2 bg-black text-[#00FF00] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-[#00FF00] animate-pulse"></span>
+                  <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse"></span>
                     🛑 BÀYYI THIOW LI, NUY JAAY.
                   </div>
                   
                   <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>
                     Arrêtez de discuter sur WhatsApp. <br/>
-                    Commencez à <span className="text-[#00FF00] drop-shadow-sm">encaisser.</span>
+                    Commencez à <span className="text-[#39FF14] drop-shadow-sm">encaisser.</span>
                   </h1>
                   
                   <p className={`${inter.className} text-zinc-600 text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
-                    Fini les "Prix en Inbox" qui ne mènent à rien ou vos amis qui mettent sous silence vos 50 statuts photos de produits. Donnez à vos clients un catalogue clair, laissez-les choisir, et réveillez-vous avec des notifications de paiement et des commandes prêtes à livrer.
+                    Fini les "Prix en Inbox" qui ne mènent à rien ou vos amis qui mettent en sourdine vos 50 statuts photos de produits. Donnez à vos clients un catalogue clair, laissez-les choisir, et réveillez-vous avec des notifications de paiement et des commandes prêtes à livrer.
                   </p>
 
-                  <div className="bg-zinc-50 border-l-4 border-[#00FF00] p-5 rounded-r-2xl mb-10 shadow-sm">
-                    <p className="text-sm font-bold text-zinc-700 leading-relaxed">
-                      💡 Sur Meta, un contact coûte environ 110 FCFA. Avec 5 000 F de pub et notre méthode de ciblage incluse, amenez plus de <span className="text-[#00FF00] bg-black px-2 py-0.5 rounded text-white font-black">45 acheteurs chauds</span> sur votre boutique dès ce soir. Zéro blabla, que du cash.
+                  <div className="bg-black border border-[#39FF14] p-5 rounded-2xl mb-10 shadow-[0_0_25px_rgba(57,255,20,0.3)] relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-2 h-full bg-[#39FF14]"></div>
+                    <p className="text-sm font-bold text-zinc-300 leading-relaxed pl-2">
+                      💡 Sur Meta, un contact coûte environ 110 FCFA. Avec 5 000 F de pub et notre méthode de ciblage incluse, amenez plus de <span className="text-black bg-[#39FF14] px-2 py-0.5 rounded font-black">45 acheteurs chauds</span> sur votre boutique dès ce soir. Zéro blabla, que du cash.
                     </p>
                   </div>
                   
@@ -765,8 +775,8 @@ export default function OnyxOpsElite() {
                       audio.volume = 0.5;
                       audio.play().catch(()=>{});
                       document.getElementById('tarifs')?.scrollIntoView({behavior:'smooth'});
-                    }} className="inline-flex justify-center items-center gap-2 bg-[#00FF00] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#00FF00] transition duration-300 shadow-[0_15px_30px_rgba(0,255,0,0.3)]">
-                      LANCER MA MACHINE (1er Mois Offert)
+                    }} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14]">
+                      ENCAISSER DÈS CE SOIR (1er Mois Offert)
                     </button>
                     <button onClick={() => setShowVideoModal(true)} className="inline-flex justify-center items-center gap-2 border-2 border-black text-black px-8 py-5 rounded-full font-black text-sm uppercase hover:bg-black hover:text-white transition">
                       <PlayCircle className="w-5 h-5" /> Voir comment ça marche
@@ -784,7 +794,7 @@ export default function OnyxOpsElite() {
                 {/* Colonne Droite : La Vidéo (Mockup iPhone) */}
                 <div className="relative mx-auto w-full max-w-[320px] lg:max-w-[360px] animate-in slide-in-from-right-8 fade-in duration-1000 delay-200 mt-10 lg:mt-0">
                   {/* Green Glow Behind Phone */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[80%] bg-[#00FF00] rounded-full blur-[80px] opacity-40 pointer-events-none"></div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[80%] bg-[#39FF14] rounded-full blur-[80px] opacity-40 pointer-events-none"></div>
                   
                   {/* iPhone Frame */}
                   <div className="relative bg-black rounded-[3rem] border-[8px] border-black shadow-2xl overflow-hidden aspect-[9/16] flex flex-col items-center justify-center">
@@ -942,12 +952,50 @@ export default function OnyxOpsElite() {
                </div>
             </section>
 
+            {/* --- BANNIÈRE ONYXCRM --- */}
+            <section className="w-full bg-black py-16 relative overflow-hidden mt-10 border-y border-[#39FF14]/20">
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] bg-[#39FF14] opacity-[0.05] blur-[120px] rounded-full pointer-events-none"></div>
+               <div className="max-w-6xl mx-auto px-6 text-center relative z-10">
+                  <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-8 text-white`}>
+                     OnyxCRM : Le <span className="text-[#39FF14]">Cerveau Financier</span> de votre entreprise.
+                  </h2>
+                  <div className="flex flex-wrap justify-center gap-4 md:gap-8">
+                     <span className="bg-zinc-900 border border-zinc-800 text-white font-bold text-sm md:text-base px-6 py-3 rounded-2xl flex items-center gap-3 shadow-lg">
+                        <span className="text-xl">📊</span> Gestion Marge (Prix HT/TTC)
+                     </span>
+                     <span className="bg-zinc-900 border border-zinc-800 text-white font-bold text-sm md:text-base px-6 py-3 rounded-2xl flex items-center gap-3 shadow-lg">
+                        <span className="text-xl">📄</span> Devis & Factures en 1 clic
+                     </span>
+                     <span className="bg-zinc-900 border border-zinc-800 text-white font-bold text-sm md:text-base px-6 py-3 rounded-2xl flex items-center gap-3 shadow-lg">
+                        <span className="text-xl">🤖</span> Fidélisation IA Hypersegmentée
+                     </span>
+                     <span className="bg-zinc-900 border border-zinc-800 text-white font-bold text-sm md:text-base px-6 py-3 rounded-2xl flex items-center gap-3 shadow-lg">
+                        <span className="text-xl">🔄</span> Import Odoo & Excel
+                     </span>
+                  </div>
+               </div>
+            </section>
+
             {/* --- SECTION TARIFS --- */}
-            <section id="tarifs" className="py-20 bg-black text-white rounded-[4rem] mx-4 px-6 relative overflow-hidden">
+            <section id="tarifs" className="py-20 bg-black text-white rounded-[4rem] mx-4 px-6 relative overflow-hidden mt-10">
               <div className="max-w-7xl mx-auto relative z-10">
                 <div className="text-center mb-10">
                   <h2 className={`${spaceGrotesk.className} text-4xl font-black mb-4 uppercase`}>OFFRES <span className="text-[#39FF14]">NO-LIMIT.</span></h2>
                   <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs italic">Pas d'abonnement caché.</p>
+                </div>
+
+                {/* ADD-ON SWITCH */}
+                <div className="flex justify-center mb-12">
+                   <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col md:flex-row items-center gap-6 shadow-xl">
+                      <div className="text-left">
+                         <p className="font-black text-white text-sm uppercase">Activer le Service CM & Pub <span className="text-[#39FF14] bg-[#39FF14]/10 px-2 py-1 rounded ml-2">+49 900 F/mois</span></p>
+                         <p className="text-xs text-zinc-400 font-medium mt-1">Nous gérons vos pubs et vos contenus.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={addonCm} onChange={() => setAddonCm(!addonCm)} />
+                        <div className="w-14 h-8 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-[#39FF14]"></div>
+                      </label>
+                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 max-w-[1400px] mx-auto">
@@ -980,7 +1028,7 @@ export default function OnyxOpsElite() {
                           <span className="text-[9px] text-zinc-400 font-bold ml-1">{pack.rating} ({pack.avis})</span>
                         </div>
                         <div className={`text-2xl xl:text-3xl font-black mb-6 italic text-white flex items-center`}>
-                           {pack.price.toLocaleString()} F
+                           {((typeof pack.price === 'number' ? pack.price : 0) + (addonCm ? 49900 : 0)).toLocaleString()} F
                            {pack.id === 'tekkipro' && <TrendingUp size={20} className="inline-block ml-3 text-[#00E5FF]" />}
                            {pack.id === 'gold' && <Target size={20} className="inline-block ml-3 text-yellow-400 group-hover:animate-[spin_4s_linear_infinite]" />}
                            <span className="text-xs text-zinc-500 font-normal not-italic ml-2">{pack.isUnique ? ' (Unique)' : '/ mois'}</span>
