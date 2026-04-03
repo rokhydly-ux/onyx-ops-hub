@@ -2668,12 +2668,38 @@ export default function AdminDashboard() {
              
              return (
                <div className="space-y-8 animate-in fade-in slide-in-from-right-6 max-w-[1600px] mx-auto h-full flex flex-col">
-                  <div className="flex items-center gap-6 bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0">
-                     <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#00E5FF] shadow-lg shrink-0"><Layers size={32}/></div>
-                     <div>
-                        <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter`}>Pipeline High-Ticket</h2>
-                        <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Onyx Boost & Onyx Modernize</p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0">
+                     <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#00E5FF] shadow-lg shrink-0"><Layers size={32}/></div>
+                        <div>
+                           <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter`}>Pipeline High-Ticket</h2>
+                           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Onyx Boost & Onyx Modernize</p>
+                        </div>
                      </div>
+                     <button 
+                        onClick={() => {
+                            const trialEndDate = new Date();
+                            trialEndDate.setDate(trialEndDate.getDate() + 7);
+                            setEditingContact({
+                              full_name: "",
+                              phone: "",
+                              password_temp: "central2026",
+                              active_saas: [],
+                              saas_expiration_dates: {},
+                              expiration_date: trialEndDate.toISOString().split('T')[0],
+                              type: "Prospect",
+                              saas: "Onyx Modernize",
+                              activity: "",
+                              status: "Nouveau Lead",
+                              source: "Admin Kanban"
+                            });
+                            setShowContactModal(true);
+                            setProrataMsg("");
+                        }}
+                        className="bg-[#00E5FF] text-black px-6 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black hover:text-[#00E5FF] transition-all shadow-lg active:scale-95 flex items-center gap-2 shrink-0"
+                     >
+                        <Plus size={16}/> Créer un dossier
+                     </button>
                   </div>
   
                   <div className="flex gap-6 overflow-x-auto pb-6 flex-1 items-start custom-scrollbar">
