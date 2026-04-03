@@ -264,6 +264,17 @@ export default function OnyxOpsElite() {
     const invitePack = searchParams.get('invite_pack');
     if (inviteName || invitePhone) {
       setLeadData(prev => ({ ...prev, name: inviteName || '', phone: invitePhone || '', saas: invitePack || '' }));
+      
+      // TRACKING AUTOMATIQUE DU CLIC
+      supabase.from('leads').insert([{ 
+          source: 'Lien Invitation', 
+          intent: `Ouverture de lien d'invitation`, 
+          phone: invitePhone || '', 
+          full_name: inviteName || 'Prospect Invité',
+          message: `Le prospect a cliqué sur son lien d'invitation personnalisé (Pack: ${invitePack || 'Aucun'})`,
+          status: 'Nouveau'
+      }]).then();
+
       setTimeout(() => {
         setShowOnboarding(true);
         if (invitePack) setOnboardingStep(2); // Skip category selection if pack is known

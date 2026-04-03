@@ -192,6 +192,8 @@ export default function AdminDashboard() {
   const [actionSearchFilter, setActionSearchFilter] = useState("");
   const [marketingArticles, setMarketingArticles] = useState<any[]>([]);
   const [showDiffusionModal, setShowDiffusionModal] = useState<any>(null);
+  const [diffusionMessage, setDiffusionMessage] = useState("");
+  const [includeInviteLink, setIncludeInviteLink] = useState(false);
   const [selectedContactsForDiffusion, setSelectedContactsForDiffusion] = useState<string[]>([]);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
@@ -1653,14 +1655,27 @@ export default function AdminDashboard() {
 
   const scheduleMarketingDiffusion = () => {
       if(selectedContactsForDiffusion.length === 0) return alert("Sélectionnez au moins un contact pour la diffusion.");
-      const newAction: IAAction = { id: Date.now().toString(), module: 'Marketing', title: `Diffusion : ${showDiffusionModal?.title}`, desc: `Envoi programmé à ${selectedContactsForDiffusion.length} contacts via le canal WhatsApp.`, date: todayStr, status: 'En attente' };
+      
+      const newActions: IAAction[] = selectedContactsForDiffusion.map(contactId => {
+          const contact = contacts.find(c => c.id === contactId);
+          if (!contact) return null;
+          
+          let finalMsg = diffusionMessage || showDiffusionModal?.desc || '';
+          if (includeInviteLink) {
+              const url = `https://onyx-ops-hub.vercel.app/?invite_name=${encodeURIComponent(contact.full_name || '')}&invite_phone=${encodeURIComponent(contact.phone || '')}&invite_pack=${encodeURIComponent(contact.saas || '')}`;
+              finalMsg += `\n\n👉 Cliquez ici pour accéder à votre espace pré-configuré : ${url}`;
+          }
+          
+          return { id: `diff-${Date.now()}-${contact.id}`, module: 'Marketing', title: `Diffusion : ${showDiffusionModal?.title}`, desc: `Campagne destinée à ${contact.full_name}`, date: todayStr, status: 'En attente', phone: contact.phone, msg: finalMsg, contactId: contact.id };
+      }).filter(Boolean) as IAAction[];
+      
       setActionsIA(prev => {
-        const updated = [newAction, ...prev];
+        const updated = [...newActions, ...prev];
         localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
         return updated;
       });
       setShowDiffusionModal(null);
-      alert(`Diffusion planifiée avec succès pour ${selectedContactsForDiffusion.length} membres.`);
+      alert(`Campagne planifiée avec succès pour ${selectedContactsForDiffusion.length} membres. Les actions sont prêtes à être lancées dans le Journal IA !`);
   };
 
   // NOUVELLE FONCTION: Ouvre la modale pour un nouveau client avec date +7j par défaut
@@ -3762,7 +3777,7 @@ export default function AdminDashboard() {
                             <p className="text-zinc-500 font-medium text-sm lg:text-base leading-relaxed max-w-2xl opacity-80">{article.desc}</p>
                          </div>
                          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:gap-4 w-full lg:w-max">
-                            <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="flex-1 lg:flex-none bg-[#39FF14] text-black px-6 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-xl flex items-center justify-center gap-2 lg:gap-3 active:scale-95">
+                           <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); setDiffusionMessage(article.desc || ''); setIncludeInviteLink(false); }} className="flex-1 lg:flex-none bg-[#39FF14] text-black px-6 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-xl flex items-center justify-center gap-2 lg:gap-3 active:scale-95">
                                <Send size={16} className="lg:w-[18px] lg:h-[18px]"/> Diffuser Segment
                             </button>
                             
@@ -4138,6 +4153,19 @@ export default function AdminDashboard() {
               <div className="mb-8 sm:mb-10 mt-2 sm:mt-0">
                  <h2 className={`font-sans text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter`}>Planifier la Diffusion</h2>
                  <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1 sm:mt-2 italic line-clamp-2">&quot;{showDiffusionModal?.title}&quot;</p>
+              </div>
+
+              <div className="mb-6 mt-6">
+                 <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-2 block">Message de la campagne WhatsApp</label>
+                 <textarea
+                    value={diffusionMessage}
+                    onChange={(e) => setDiffusionMessage(e.target.value)}
+                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-sm font-medium outline-none focus:border-[#39FF14] min-h-[100px] resize-none text-black dark:text-white"
+                 />
+                 <label className="flex items-center gap-3 mt-3 cursor-pointer">
+                    <input type="checkbox" checked={includeInviteLink} onChange={(e) => setIncludeInviteLink(e.target.checked)} className="w-5 h-5 accent-black dark:accent-[#39FF14]" />
+                    <span className="text-xs font-bold text-black dark:text-white">Inclure le lien d'invitation personnalisé à la fin</span>
+                 </label>
               </div>
 
               <div className="flex-1 overflow-y-auto mb-8 sm:mb-10 pr-2 sm:pr-4 space-y-3 sm:space-y-4 custom-scrollbar">
