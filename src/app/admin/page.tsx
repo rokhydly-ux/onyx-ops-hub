@@ -2002,7 +2002,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className={`flex h-screen bg-[#fafafa] dark:bg-zinc-950 font-sans text-black dark:text-white overflow-hidden relative selection:bg-[#39FF14]/30 transition-colors`}>
+    <div className={`flex h-screen bg-[#fafafa] dark:bg-[#050505] font-sans text-black dark:text-white overflow-hidden relative selection:bg-[#39FF14]/30 transition-colors`}>
       
       {/* ================= SIDEBAR GAUCHE ================= */}
       <aside className="w-72 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col z-30 shadow-sm hidden md:flex transition-all">
@@ -2088,7 +2088,7 @@ export default function AdminDashboard() {
         {isMobileMenuOpen && (
           <div className="fixed inset-0 z-50 flex md:hidden">
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
-            <div className="relative bg-white w-72 h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
+            <div className="relative bg-white dark:bg-zinc-950 dark:text-white w-72 h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
                 <div className="p-6 flex justify-between items-center border-b border-zinc-100">
                   <h1 className="font-sans text-2xl font-black tracking-tighter uppercase">ONYX<span className="text-[#39FF14]">OPS</span></h1>
                   <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-zinc-100 rounded-full hover:bg-zinc-200"><X size={20}/></button>
@@ -2312,6 +2312,44 @@ export default function AdminDashboard() {
                                   </div>
                               ))}
                           </div>
+                      </div>
+                  );
+              })()}
+
+              {/* ALERTE DEMANDES DE RETRAIT EN ATTENTE */}
+              {(() => {
+                  const pendingWithdrawals = withdrawals.filter(w => w.status === 'En attente');
+                  if (pendingWithdrawals.length === 0) return null;
+                  return (
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-6 sm:p-8 rounded-3xl shadow-sm animate-in fade-in">
+                          <div className="flex items-center justify-between mb-6">
+                              <div className="flex items-center gap-3">
+                                  <div className="bg-green-500/20 text-green-600 dark:text-green-400 p-2 rounded-xl"><DollarSign size={20} /></div>
+                                  <h2 className="text-lg sm:text-xl font-black uppercase text-green-700 dark:text-green-400 tracking-tighter">Retraits Partenaires en attente</h2>
+                                  <span className="bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{pendingWithdrawals.length}</span>
+                              </div>
+                              <button onClick={() => setActiveView('withdrawals')} className="text-[10px] font-black uppercase text-green-700 dark:text-green-400 bg-green-500/10 px-4 py-2 rounded-xl hover:bg-green-500/20 transition-all hidden sm:block">Gérer les retraits</button>
+                          </div>
+                          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {pendingWithdrawals.slice(0, 3).map((w) => (
+                                  <div key={w.id} onClick={() => setActiveView('withdrawals')} className="bg-white dark:bg-zinc-900 border border-green-100 dark:border-green-800/50 rounded-2xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-green-300 dark:hover:border-green-700 group">
+                                      <div>
+                                          <div className="flex justify-between items-start mb-2">
+                                              <h3 className="font-bold text-black dark:text-white text-sm uppercase truncate pr-2 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">{w.ambassador_name}</h3>
+                                              <span className="text-[10px] font-black px-2 py-1 rounded-md uppercase bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 whitespace-nowrap">
+                                                  {w.amount?.toLocaleString('fr-FR')} F
+                                              </span>
+                                          </div>
+                                          <p className="text-xs text-zinc-500 font-medium flex items-center gap-1">
+                                              Via {w.method} • {w.phone}
+                                          </p>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                          {pendingWithdrawals.length > 3 && (
+                             <button onClick={() => setActiveView('withdrawals')} className="w-full mt-4 py-3 bg-green-500/10 text-green-700 dark:text-green-400 rounded-xl text-xs font-black uppercase hover:bg-green-500/20 transition-colors">Voir les {pendingWithdrawals.length - 3} autres demandes</button>
+                          )}
                       </div>
                   );
               })()}
@@ -4263,12 +4301,13 @@ export default function AdminDashboard() {
           });
         };
         const zoneContacts = selectedHub ? getContactsForZone(selectedHub) : [];
+        const zoneRevenue = zoneContacts.reduce((sum, c) => sum + getSaasPrice(c.saas || ''), 0);
         const currentZone = HUBS_ZONES.find(z => z.id === selectedHub);
         const internationalCount = contacts.filter(c => isInternational(c)).length;
         const senegalPath = "M12,18 L45,12 L55,28 L52,50 L48,72 L40,90 L25,92 L10,78 L5,55 L8,35 Z";
         return (
           <div id="modal-overlay" onClick={(e: any) => (e.target as HTMLElement).id === "modal-overlay" && (setShowHubsMap(false), setSelectedHub(null))} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-            <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border-t-4 border-[#39FF14] my-auto flex flex-col">
+            <div className="bg-white dark:bg-zinc-950 dark:text-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border-t-4 border-[#39FF14] my-auto flex flex-col">
               <div className="p-6 border-b border-zinc-100 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-[#39FF14]/10 rounded-2xl"><MapPin className="text-[#39FF14]" size={24}/></div>
@@ -4294,10 +4333,16 @@ export default function AdminDashboard() {
                     />
                   ))}
                 </div>
-                <div className="w-full sm:w-80 border-t sm:border-t-0 sm:border-l border-zinc-200 p-5 flex flex-col bg-zinc-50">
+                <div className="w-full sm:w-80 border-t sm:border-t-0 sm:border-l border-zinc-200 dark:border-zinc-800 p-5 flex flex-col bg-zinc-50 dark:bg-zinc-900">
                   <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3">
                     {currentZone ? `Contacts • ${currentZone.label}` : "Cliquez sur un point (Dakar, Thiès…)"}
                   </h3>
+                  {currentZone && (
+                     <div className="mb-4 bg-[#39FF14]/10 border border-[#39FF14]/20 p-3 rounded-xl flex justify-between items-center">
+                        <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-widest">CA Régional</span>
+                        <span className="text-sm font-black text-[#39FF14]">{zoneRevenue.toLocaleString('fr-FR')} F</span>
+                     </div>
+                  )}
                   {internationalCount > 0 && !selectedHub && (
                     <button onClick={() => setSelectedHub('international')} className="mb-3 px-4 py-2 rounded-xl bg-amber-500/20 text-amber-700 border border-amber-400/40 text-[10px] font-black uppercase hover:bg-amber-500/30 transition-all flex items-center gap-2 w-max">
                       <Layers size={14}/> Hub International ({internationalCount})
@@ -4308,10 +4353,10 @@ export default function AdminDashboard() {
                       <p className="text-xs font-bold text-zinc-400 uppercase">Aucun contact pour cette zone</p>
                     )}
                     {currentZone && zoneContacts.map(c => (
-                      <div key={c.id} className="p-3 bg-white rounded-xl border border-zinc-100 group">
+                      <div key={c.id} className="p-3 bg-white dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800 group">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="font-black text-sm uppercase text-black truncate">{c.full_name}</p>
+                            <p className="font-black text-sm uppercase text-black dark:text-white truncate">{c.full_name}</p>
                             <p className="text-[10px] text-[#39FF14] font-bold mt-0.5">{c.phone}</p>
                             {c.address && <p className="text-[9px] text-zinc-400 truncate mt-0.5">{c.address}</p>}
                             {c.country && <p className="text-[9px] text-zinc-500 mt-0.5">{c.country}</p>}
@@ -4335,10 +4380,10 @@ export default function AdminDashboard() {
       {/* --- MODALE SÉLECTION PRODUIT (CRÉATION CLIENT) --- */}
       {showProductModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowProductModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
-          <div className="bg-white p-8 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[12px] border-[#39FF14] animate-in zoom-in-95 my-auto">
+          <div className="bg-white dark:bg-zinc-950 dark:text-white p-8 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[12px] border-[#39FF14] animate-in zoom-in-95 my-auto">
             <button onClick={() => setShowProductModal(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
             
-            <h3 className="text-2xl font-black uppercase text-black tracking-tighter mb-2">Assigner un SaaS</h3>
+            <h3 className="text-2xl font-black uppercase text-black dark:text-white tracking-tighter mb-2">Assigner un SaaS</h3>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-8">Pour : {showProductModal.lead?.full_name}</p>
 
             <div className="space-y-4">
@@ -4368,9 +4413,9 @@ export default function AdminDashboard() {
       {/* --- MODALE AJOUT AMBASSADEUR MANUEL (COMPLÈTE) --- */}
       {showAddPartnerModal && (
          <div id="modal-overlay" onClick={handleOutsideClick(setShowAddPartnerModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-           <div className="bg-white p-6 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[8px] border-black my-auto">
+           <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[8px] border-black dark:border-zinc-800 my-auto">
              <button onClick={() => setShowAddPartnerModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
-             <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter mb-8 text-black`}>Candidature Ambassadeur</h2>
+             <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter mb-8 text-black dark:text-white`}>Candidature Ambassadeur</h2>
              
              <form onSubmit={handleAddPartner} className="space-y-4">
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -4441,10 +4486,10 @@ export default function AdminDashboard() {
 {/* MODALE ÉDITION ARTICLE IA */}
 {editingArticle && (
         <div id="modal-overlay" onClick={handleOutsideClick(setEditingArticle, null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
-          <div className="bg-white p-8 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[12px] border-[#39FF14] animate-in zoom-in-95 my-auto">
+          <div className="bg-white dark:bg-zinc-950 dark:text-white p-8 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[12px] border-[#39FF14] animate-in zoom-in-95 my-auto">
             <button onClick={() => setEditingArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
             
-            <h3 className="text-2xl font-black uppercase text-black tracking-tighter mb-6">Éditer l'Article</h3>
+            <h3 className="text-2xl font-black uppercase text-black dark:text-white tracking-tighter mb-6">Éditer l'Article</h3>
             
             <div className="space-y-4">
               <input 
@@ -4477,9 +4522,9 @@ export default function AdminDashboard() {
       {/* MODALE VALIDATION RETRAIT (PREUVE) */}
       {validateWithdrawalModal && (
         <div id="modal-overlay" onClick={handleOutsideClick(setValidateWithdrawalModal, null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500">
-           <div className="bg-white p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto animate-in zoom-in-95">
+           <div className="bg-white dark:bg-zinc-950 dark:text-white p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto animate-in zoom-in-95">
               <button onClick={() => setValidateWithdrawalModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
-              <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black`}>Valider le Retrait</h2>
+              <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white`}>Valider le Retrait</h2>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-6">Ambassadeur : {validateWithdrawalModal.ambassador_name}</p>
               
               <div className="space-y-4">
@@ -4503,9 +4548,9 @@ export default function AdminDashboard() {
       {/* MODALE AJOUT HARDWARE */}
       {showAddHardwareModal && (
         <div id="modal-overlay" onClick={handleOutsideClick(setShowAddHardwareModal, false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500">
-           <div className="bg-white p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto animate-in zoom-in-95">
+           <div className="bg-white dark:bg-zinc-950 dark:text-white p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto animate-in zoom-in-95">
               <button onClick={() => setShowAddHardwareModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
-              <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-6 text-black`}>Ajouter un article</h2>
+              <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-6 text-black dark:text-white`}>Ajouter un article</h2>
               
               <form onSubmit={handleAddHardware} className="space-y-4">
                  <div>
@@ -4534,6 +4579,11 @@ export default function AdminDashboard() {
            </div>
         </div>
       )}
+      
+      <footer className="mt-10 py-6 border-t border-zinc-200 dark:border-zinc-800 text-center text-[10px] font-black uppercase tracking-widest text-zinc-500">
+         © 2026 ONYX OPS - QG CENTRAL SÉNÉGAL • DÉVELOPPÉ POUR LA CROISSANCE.
+      </footer>
+      
     </div>
   );
 }
