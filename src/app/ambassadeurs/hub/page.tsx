@@ -5,7 +5,7 @@ import {
   Copy, CheckCircle, Users, DollarSign, TrendingUp, 
   LogOut, Link as LinkIcon, Info, ShieldCheck, 
   ChevronDown, Package, Zap, ArrowRight, X,
-  MessageCircle, Trash2
+  MessageCircle, Trash2, Trophy
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -48,8 +48,12 @@ export default function AmbassadorHub() {
   // Définition de base pour prospects (à alimenter depuis Supabase dans votre intégration finale)
   const [prospects, setProspects] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [topAmbassadors, setTopAmbassadors] = useState<any[]>([]);
+  const [ambassadorData, setAmbassadorData] = useState<any>(null);
 
-  const ambassadorLink = "https://onyxops.com/ref/AMB-DAK-042";
+  const ambassadorLink = ambassadorData?.id 
+    ? `https://onyxops.com/ref/${ambassadorData.id}` 
+    : "Chargement du lien...";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(ambassadorLink);
@@ -62,13 +66,22 @@ export default function AmbassadorHub() {
       const sessionStr = localStorage.getItem('onyx_ambassador_session');
       if (sessionStr) {
         try {
-          const ambassadorData = JSON.parse(sessionStr);
+          const parsedData = JSON.parse(sessionStr);
+          setAmbassadorData(parsedData);
           const { data, error } = await supabase
             .from('withdrawals')
             .select('*')
-            .eq('ambassador_id', ambassadorData.id)
+            .eq('ambassador_id', parsedData.id)
             .order('created_at', { ascending: false });
           if (data) setWithdrawals(data);
+
+          const { data: topData } = await supabase
+            .from('ambassadors')
+            .select('id, full_name, sales')
+            .eq('status', 'Actif')
+            .order('sales', { ascending: false })
+            .limit(5);
+          if (topData) setTopAmbassadors(topData);
         } catch (e) {}
       }
     };
@@ -116,11 +129,11 @@ export default function AmbassadorHub() {
     
     try {
       const sessionStr = typeof window !== 'undefined' ? localStorage.getItem('onyx_ambassador_session') : null;
-      const ambassadorData = sessionStr ? JSON.parse(sessionStr) : null;
+      const currentAmbassadorData = sessionStr ? JSON.parse(sessionStr) : ambassadorData;
 
       const { data, error } = await supabase.from('withdrawals').insert([{
-        ambassador_id: ambassadorData?.id || 'AMB-INCONNU',
-        ambassador_name: ambassadorData?.full_name || 'Ambassadeur Anonyme',
+        ambassador_id: currentAmbassadorData?.id || 'AMB-INCONNU',
+        ambassador_name: currentAmbassadorData?.full_name || 'Ambassadeur Anonyme',
         phone: withdrawForm.phone,
         method: withdrawForm.method,
         amount: parseInt(withdrawForm.amount),
@@ -162,6 +175,8 @@ export default function AmbassadorHub() {
     }
   };
 
+  const isTopSeller = topAmbassadors.length > 0 && ambassadorData && topAmbassadors[0].id === ambassadorData.id;
+
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans pb-20 selection:bg-[#39FF14] selection:text-black">
       
@@ -189,7 +204,10 @@ export default function AmbassadorHub() {
           <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/10 rounded-full blur-[80px] pointer-events-none"></div>
             
-            <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 relative z-10`}>Bonjour, Ibrahima !</h1>
+            <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 relative z-10 flex flex-wrap items-center gap-3`}>
+               Bonjour, {ambassadorData?.full_name?.split(' ')[0] || 'Partenaire'} !
+               {isTopSeller && <span className="bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-pulse flex items-center gap-1"><Trophy size={14}/> Top Vendeur</span>}
+            </h1>
             <p className="text-zinc-400 font-medium mb-8 relative z-10">Voici votre lien unique. Partagez-le à votre réseau pour générer votre rente passive sur <span className="text-white font-bold">tous nos produits</span>.</p>
             
             <div className="bg-black border border-zinc-700 p-2 pl-6 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4 relative z-10">
@@ -303,6 +321,29 @@ export default function AmbassadorHub() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* LEADERBOARD (CLASSEMENT) */}
+        <div className="mb-10">
+          <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3`}>
+          <Trophy className="text-yellow-500" size={24} /> Classement des Ambassadeurs
+          </h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-2xl">
+             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {topAmbassadors.map((amb, index) => (
+                   <div key={amb.id} className={`flex flex-col items-center justify-center p-6 rounded-2xl border ${index === 0 ? 'bg-yellow-500/10 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.2)] scale-105 z-10' : index === 1 ? 'bg-zinc-300/10 border-zinc-300/30' : index === 2 ? 'bg-orange-500/10 border-orange-500/30' : 'bg-black border-zinc-800'}`}>
+                      <div className="relative mb-3">
+                         <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center font-black text-lg border-2 border-zinc-800">{amb.full_name?.charAt(0)}</div>
+                         {index < 3 && <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg ${index === 0 ? 'bg-yellow-500 text-black' : index === 1 ? 'bg-zinc-300 text-black' : 'bg-orange-500 text-black'}`}>{index + 1}</div>}
+                         {index === 0 && <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow-md whitespace-nowrap z-20">Top Vendeur</div>}
+                      </div>
+                      <p className="font-black text-sm uppercase text-white truncate w-full text-center">{amb.full_name}</p>
+                      <p className="text-[10px] font-bold text-zinc-500 mt-1 uppercase tracking-widest">{amb.sales || 0} Ventes</p>
+                   </div>
+                ))}
+                {topAmbassadors.length === 0 && <p className="text-sm text-zinc-500 font-bold col-span-5 text-center">Aucun ambassadeur classé pour le moment.</p>}
+             </div>
+          </div>
         </div>
 
         {/* TABLEAU DES FILLEULS */}

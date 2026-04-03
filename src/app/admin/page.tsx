@@ -11,7 +11,7 @@ import {
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   TrendingUp, ChevronDown, ChevronLeft, ChevronRight, Send, Download, Layers, ExternalLink, DollarSign,
-  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon, Truck, Minus, ClipboardList
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon, Truck, Minus, ClipboardList, Mail
 } from "lucide-react";
 
 import * as XLSX from 'xlsx';
@@ -47,6 +47,9 @@ type Contact = {
   assigned_to?: string;
   activity?: string;
   budget?: string;
+  pending_prorata?: number;
+  previous_saas?: string | null;
+  prorata_history?: any[];
 };
 
 type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "logistics" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht" | "withdrawals";
@@ -58,7 +61,8 @@ const AVAILABLE_MODULES = [
   { id: 'tiak', name: 'Onyx Tiak' },
   { id: 'menu', name: 'Onyx Menu' },
   { id: 'formation', name: 'Onyx Formation' },
-  { id: 'tontine', name: 'Onyx Tontine' }
+  { id: 'tontine', name: 'Onyx Tontine' },
+  { id: 'cmpub', name: 'Add-on CM & Pub (+49.9k)' }
 ];
 
 const ECOSYSTEM_SAAS = [
@@ -78,6 +82,21 @@ const SALES_TEAM = [
     { name: 'Admin Onyx', avatar: 'https://ui-avatars.com/api/?name=AO&background=000&color=39FF14' },
     { name: 'Commercial 1', avatar: 'https://ui-avatars.com/api/?name=C1&background=random' },
 ];
+
+const getSaasPrice = (saasName: string) => {
+   if (!saasName) return 0;
+   if (saasName.includes('Gold')) return 59900;
+   if (saasName.includes('CRM')) return 39900;
+   if (saasName.includes('Tekki Pro')) return 27900;
+   if (saasName.includes('Tekki')) return 22900;
+   if (saasName.includes('Tontine')) return 6900;
+   if (saasName.includes('Jaay') || saasName.includes('Solo')) return 13900;
+   if (saasName.includes('Menu') || saasName.includes('Booking') || saasName.includes('Staff') || saasName.includes('Stock') || saasName.includes('Tiak')) return 13900;
+   if (saasName.includes('Add-on CM Pub')) return 49900;
+   if (saasName.includes('Boost')) return 150000;
+   if (saasName.includes('Modernize')) return 300000;
+   return 0;
+};
 
 export default function AdminDashboard() {
    const router = useRouter();
@@ -130,6 +149,7 @@ export default function AdminDashboard() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
   const [prorataMsg, setProrataMsg] = useState("");
+  const [isUpgrading, setIsUpgrading] = useState(false);
   const [adminProfile, setAdminProfile] = useState({ 
     name: "Cruella Ly", 
     email: "rokhydly@gmail.com", 
@@ -974,6 +994,135 @@ export default function AdminDashboard() {
     }, 500);
   };
 
+  const generateProrataInvoice = (lead: any) => {
+    const montant = lead.pending_prorata || 0;
+    const totalStr = montant.toLocaleString('fr-FR') + ' F CFA';
+    
+    const invoiceWindow = window.open("", "_blank");
+    if (invoiceWindow) {
+      invoiceWindow.document.write(`
+        <html>
+          <head>
+            <title>Facture Prorata - ${lead.full_name}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
+              .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+              .header h1 { font-size: 32px; font-weight: 900; margin: 0; text-transform: uppercase; }
+              .info-section { display: flex; justify-content: space-between; margin-bottom: 40px; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+              .info-box h3 { font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 5px; }
+              .info-box p { margin: 4px 0; font-size: 14px; font-weight: bold; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+              th { background-color: #000; color: #fff; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+              td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+              .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+              .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
+              .footer { clear: both; text-align: center; padding-top: 40px; font-size: 12px; color: #aaa; }
+            </style>
+          </head>
+          <body>
+            <div class="invoice-box">
+              <div class="header">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                      <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="OnyxOps Logo" style="height: 40px; width: auto;" />
+                      <div>
+                        <h1>FACTURE RÉGULARISATION</h1>
+                        <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #39FF14;">ONYX OPS</p>
+                      </div>
+                    </div>
+                <div style="text-align: right;">
+                  <p style="margin: 0; font-size: 14px;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+                  <p style="margin: 0; font-size: 14px;"><strong>Réf:</strong> PR-${Date.now().toString().slice(-6)}</p>
+                </div>
+              </div>
+              
+              <div class="info-section">
+                <div class="info-box">
+                  <h3>Facturé à</h3>
+                  <p>${lead.full_name}</p>
+                  <p>${lead.phone}</p>
+                </div>
+                <div class="info-box" style="text-align: right;">
+                  <h3>Informations de paiement</h3>
+                  <p>Lien sécurisé : pay.onyxops.com/prorata</p>
+                  <p>Wave / Orange Money</p>
+                </div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Désignation</th>
+                    <th style="text-align: center;">Qté</th>
+                    <th style="text-align: right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Upgrade vers ${lead.saas} - Prorata mois en cours</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">${totalStr}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="totals">
+                <div class="total-row">
+                  <span>NET À PAYER</span>
+                  <span>${totalStr}</span>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <p>Merci pour votre confiance !</p>
+                <p>Ceci est un document généré électroniquement par OnyxOps.</p>
+              </div>
+            </div>
+            <script>window.print();</script>
+          </body>
+        </html>
+      `);
+      invoiceWindow.document.close();
+    }
+
+    setTimeout(() => {
+      const msg = `Bonjour ${lead.full_name},\n\nSuite à l'évolution de votre abonnement vers l'offre ${lead.saas}, voici votre facture de régularisation au prorata d'un montant de ${totalStr}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxops.com/prorata\n\nMerci de votre confiance !`;
+      window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+    }, 500);
+  };
+
+  const markProrataPaid = async (client: any) => {
+    if (!confirm(`Confirmez-vous le paiement du prorata de ${client.pending_prorata?.toLocaleString('fr-FR')} F pour ${client.full_name} ?`)) return;
+    
+    const newHistoryEntry = {
+        date: new Date().toISOString(),
+        amount: client.pending_prorata,
+        saas: client.saas
+    };
+    const updatedHistory = [...(client.prorata_history || []), newHistoryEntry];
+
+    const { error } = await supabase.from('clients').update({ 
+        pending_prorata: 0,
+        prorata_history: updatedHistory,
+        previous_saas: null
+    }).eq('id', client.id);
+
+    if (error) {
+       alert("Erreur lors de la validation : " + error.message);
+    } else {
+       alert("Paiement validé avec succès !");
+       fetchSupabaseData();
+    }
+  };
+
+  const cancelProrata = async (client: any) => {
+    if (!confirm(`Voulez-vous annuler l'upgrade vers ${client.saas} pour ${client.full_name} et le ramener à son ancienne offre (${client.previous_saas || 'Aucune'}) ?`)) return;
+    const revertSaas = client.previous_saas || '';
+    const { error } = await supabase.from('clients').update({ pending_prorata: 0, saas: revertSaas, previous_saas: null }).eq('id', client.id);
+    if (error) alert("Erreur lors de l'annulation : " + error.message);
+    else { alert("Prorata annulé et offre restaurée avec succès !"); fetchSupabaseData(); }
+  };
+
   const updateLeadAssignee = async (id: string, assignee: string) => {
     const { error } = await supabase.from('clients').update({ assigned_to: assignee }).eq('id', id);
     if (error) {
@@ -1067,43 +1216,49 @@ export default function AdminDashboard() {
    alert("Action planifiée avec succès dans le Journal IA !");
 };
 
-  const handleApplyPack = (packName: 'Solo' | 'Tekki' | 'Tekki Pro' | 'Gold') => {
-      let packPrice = packName === 'Solo' ? 13900 : packName === 'Tekki' ? 22900 : packName === 'Tekki Pro' ? 27900 : 59900;
-      let packSaas = packName === 'Solo' ? ['vente'] : packName === 'Tekki' ? ['vente', 'tiak', 'stock'] : ['vente', 'tiak', 'stock', 'formation'];
+  const handleUpgradePack = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const newSaas = e.target.value;
+      const currentSaas = editingContact?.saas || '';
+      const currentPrice = getSaasPrice(currentSaas);
+      const newPrice = getSaasPrice(newSaas);
       
-      const currentExp = editingContact.expiration_date;
-      let newExpDate = new Date();
-      newExpDate.setDate(newExpDate.getDate() + 30); // par defaut +30j
-      let msg = "";
+      let packSaas: string[] = [];
+      if (newSaas.includes('Solo') || newSaas.includes('Jaay')) packSaas = ['vente'];
+      else if (newSaas.includes('Tekki Pro')) packSaas = ['vente', 'tiak', 'stock', 'formation'];
+      else if (newSaas.includes('Tekki')) packSaas = ['vente', 'tiak', 'stock'];
+      else if (newSaas.includes('Gold')) packSaas = ['vente', 'tiak', 'stock', 'formation', 'menu', 'tontine'];
+      else if (newSaas.includes('CRM')) packSaas = ['crm'];
+      else if (newSaas.includes('Menu')) packSaas = ['menu'];
+      else if (newSaas.includes('Booking')) packSaas = ['booking'];
+      else if (newSaas.includes('Staff')) packSaas = ['staff'];
+      else if (newSaas.includes('Stock')) packSaas = ['stock'];
+      else if (newSaas.includes('Tiak')) packSaas = ['tiak'];
+      else if (newSaas.includes('Tontine')) packSaas = ['tontine'];
+      else if (newSaas.includes('CM Pub')) packSaas = ['cmpub'];
 
-      // Calcul Prorata si upgrade
-      if (currentExp && (editingContact.saas === 'Onyx Solo' || editingContact.saas === 'Pack Solo' || editingContact.saas === 'Onyx Jaay') && packName !== 'Solo') {
-          const expDate = new Date(currentExp);
+      let msg = "";
+      let prorataAmount = 0;
+      if (newPrice > currentPrice && currentPrice > 0 && editingContact?.expiration_date) {
+          const expDate = new Date(editingContact.expiration_date);
           const today = new Date();
           const diffTime = expDate.getTime() - today.getTime();
           const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
+          
           if (remainingDays > 0) {
-              const remainingValue = (13900 / 30) * remainingDays;
-              const extraDays = Math.floor(remainingValue / (packPrice / 30));
-              newExpDate = new Date();
-              newExpDate.setDate(newExpDate.getDate() + 30 + extraDays);
-              msg = `✅ Prorata appliqué : Il restait ${remainingDays}j de Solo (${Math.round(remainingValue)}F). Valeur convertie en +${extraDays} jours offerts sur l'offre ${packName}.`;
+              const priceDiff = newPrice - currentPrice;
+              prorataAmount = Math.round((priceDiff / 30) * Math.min(remainingDays, 30));
+              msg = `Upgrade vers ${newSaas}. Différence à facturer au prorata pour le mois en cours : ${prorataAmount.toLocaleString('fr-FR')} F.`;
           }
+      } else if (newPrice > currentPrice) {
+          msg = `Nouvelle offre sélectionnée : ${newSaas}.`;
       }
-
-      const formattedExpDate = newExpDate.toISOString().split('T')[0];
-      const newDates: any = { ...(editingContact.saas_expiration_dates || {}) };
-      packSaas.forEach(s => newDates[s] = formattedExpDate);
-
-      const saasLabel = packName === 'Solo' ? 'Onyx Jaay' : packName === 'Tekki' ? 'Pack Tekki' : packName === 'Tekki Pro' ? 'Pack Tekki Pro' : 'Pack Onyx Gold';
-
+      
       setEditingContact(prev => ({ 
           ...prev, 
-          saas: saasLabel, 
-          active_saas: Array.from(new Set([...(prev.active_saas || []), ...packSaas])), 
-          expiration_date: formattedExpDate, 
-          saas_expiration_dates: newDates 
+          saas: newSaas,
+          previous_saas: currentSaas,
+          pending_prorata: prorataAmount,
+          active_saas: packSaas.length > 0 ? Array.from(new Set([...(prev.active_saas || []), ...packSaas])) : prev.active_saas
       }));
       setProrataMsg(msg);
   };
@@ -1139,7 +1294,10 @@ export default function AdminDashboard() {
     avatar_url: editingContact.avatar_url || '',
     expiration_date: editingContact.expiration_date || null,
     source: editingContact.source || 'Admin',
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    pending_prorata: editingContact.pending_prorata || 0,
+    previous_saas: editingContact.previous_saas || null,
+    prorata_history: editingContact.prorata_history || []
   };
 
   // Si c'est une modification, on garde l'ID pour mettre à jour
@@ -2059,6 +2217,49 @@ export default function AdminDashboard() {
 </div>
               </div>
 
+              {/* ALERTE PRORATAS EN ATTENTE */}
+              {(() => {
+                  const pendingProratas = contacts.filter(c => c.pending_prorata && c.pending_prorata > 0);
+                  if (pendingProratas.length === 0) return null;
+                  return (
+                      <div className="bg-orange-50 border border-orange-200 p-6 sm:p-8 rounded-3xl shadow-sm animate-in fade-in">
+                          <div className="flex items-center gap-3 mb-6">
+                              <div className="bg-orange-500/20 text-orange-500 p-2 rounded-xl"><AlertTriangle size={20} /></div>
+                              <h2 className="text-lg sm:text-xl font-black uppercase text-orange-600 tracking-tighter">Proratas en attente de paiement</h2>
+                              <span className="bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{pendingProratas.length}</span>
+                          </div>
+                          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {pendingProratas.map((client) => (
+                                  <div key={client.id} className="bg-white border border-orange-100 rounded-2xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                                      <div>
+                                          <div className="flex justify-between items-start mb-2">
+                                              <h3 className="font-bold text-black text-sm uppercase">{client.full_name}</h3>
+                                              <span className="text-[10px] font-black px-2 py-1 rounded-md uppercase bg-orange-100 text-orange-600 whitespace-nowrap">
+                                                  {client.pending_prorata?.toLocaleString('fr-FR')} F
+                                              </span>
+                                          </div>
+                                          <p className="text-xs text-zinc-500 font-medium mb-4 flex items-center gap-1">
+                                              <Zap size={12} className="text-yellow-500"/> Upgrade vers {client.saas}
+                                          </p>
+                                      </div>
+                                      <div className="flex gap-2">
+                                      <button onClick={() => generateProrataInvoice(client)} className="flex-1 bg-zinc-100 text-black py-2.5 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-200 transition-all flex justify-center items-center gap-1.5" title="Facture">
+                                          <FileText size={14}/>
+                                          </button>
+                                      <button onClick={() => cancelProrata(client)} className="flex-1 bg-red-50 text-red-500 py-2.5 rounded-xl font-black text-[10px] uppercase hover:bg-red-100 transition-all flex justify-center items-center gap-1.5" title="Annuler l'upgrade">
+                                          <X size={14}/>
+                                      </button>
+                                      <button onClick={() => markProrataPaid(client)} className="flex-[2] bg-black text-[#39FF14] py-2.5 rounded-xl font-black text-[10px] uppercase hover:scale-105 transition-all flex justify-center items-center gap-1.5 shadow-lg">
+                                              <CheckCircle size={14}/> Payé
+                                          </button>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  );
+              })()}
+
               {/* GRAPHIQUES ET MAP */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* HISTOGRAMME NÉON */}
@@ -2597,7 +2798,7 @@ export default function AdminDashboard() {
           {/* ================= VUE BUSINESS INTELLIGENCE ================= */}
           {activeView === 'bi' && (() => {
              const saasCount = contacts.filter(c => c.type === 'Client' && c.saas && !['Add-on CM Pub', 'Onyx Boost', 'Onyx Modernize'].includes(c.saas)).length;
-             const cmCount = contacts.filter(c => c.type === 'Client' && c.saas === 'Add-on CM Pub').length;
+             const cmCount = contacts.filter(c => c.type === 'Client' && (c.saas === 'Add-on CM Pub' || (c.active_saas && c.active_saas.includes('cmpub')))).length;
              const saasData = [{ name: 'Vendus', value: saasCount, fill: '#39FF14' }, { name: 'Restant', value: Math.max(15 - saasCount, 0), fill: '#27272a' }];
              const cmData = [{ name: 'Vendus', value: cmCount, fill: '#00E5FF' }, { name: 'Restant', value: Math.max(3 - cmCount, 0), fill: '#27272a' }];
              const mrrGoal = 500000;
@@ -2681,6 +2882,60 @@ export default function AdminDashboard() {
                         <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Rétention Client</p>
                            <p className="text-4xl font-black text-green-400">100%</p>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* --- ANALYTICS AMBASSADEURS --- */}
+                  <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] shadow-sm mt-8 relative overflow-hidden">
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500 opacity-[0.05] rounded-full blur-2xl pointer-events-none"></div>
+                     <div className="flex items-center gap-4 mb-6 relative z-10">
+                        <div className="p-3 bg-yellow-500/10 rounded-xl text-yellow-500"><Handshake size={24}/></div>
+                        <h3 className="font-black uppercase text-xl text-white">Performances Programme Ambassadeur</h3>
+                     </div>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Partenaires Actifs</p>
+                           <p className="text-4xl font-black text-white">{partners.filter(p => p.status !== 'En attente').length}</p>
+                        </div>
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Ventes Générées</p>
+                           <p className="text-4xl font-black text-yellow-500">{partners.reduce((sum, p) => sum + (p.sales || 0), 0)}</p>
+                        </div>
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">CA Estimé (Généré)</p>
+                           <p className="text-4xl font-black text-[#39FF14]">{(partners.reduce((sum, p) => sum + (p.sales || 0), 0) * 13900).toLocaleString()} F</p>
+                        </div>
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions Payées</p>
+                           <p className="text-4xl font-black text-white">{withdrawals.filter(w => w.status === 'Payé').reduce((sum, w) => sum + (Number(w.amount) || 0), 0).toLocaleString()} F</p>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* --- ANALYTICS CAMPAGNES E-MAILING --- */}
+                  <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] shadow-sm mt-8 relative overflow-hidden mb-8">
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500 opacity-[0.05] rounded-full blur-2xl pointer-events-none"></div>
+                     <div className="flex items-center gap-4 mb-6 relative z-10">
+                        <div className="p-3 bg-purple-500/10 rounded-xl text-purple-500"><Mail size={24}/></div>
+                        <h3 className="font-black uppercase text-xl text-white">Performances E-Mailing</h3>
+                     </div>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Emails Envoyés (Mois)</p>
+                           <p className="text-4xl font-black text-white">12 450</p>
+                        </div>
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Taux d'Ouverture</p>
+                           <p className="text-4xl font-black text-purple-400">42.8%</p>
+                        </div>
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Taux de Clic (CTR)</p>
+                           <p className="text-4xl font-black text-[#39FF14]">18.5%</p>
+                        </div>
+                        <div className="bg-black border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Désabonnements</p>
+                           <p className="text-4xl font-black text-red-400">0.2%</p>
                         </div>
                      </div>
                   </div>
@@ -3516,69 +3771,70 @@ export default function AdminDashboard() {
                  <input type="tel" required value={editingContact?.phone || ""} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="+221 7x xxx xx xx" />
               </div>
 
-              {/* GESTION DES PACKS & PRORATA */}
-              <div className="space-y-4 pt-4 border-t border-zinc-100">
-                <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">
-                    Abonnements & Packs
+              {/* GESTION ABONNEMENT EN COURS & UPGRADE */}
+              <div className="space-y-4 pt-6 border-t border-zinc-100">
+                <div className="flex justify-between items-center mb-2">
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4 sm:ml-6">
+                       Abonnement en cours
                     </label>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                    <button type="button" onClick={() => handleApplyPack('Solo')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Onyx Jaay' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Onyx Jaay<br/><span className="text-[9px] font-normal">Boutique (13.900F)</span></button>
-                    <button type="button" onClick={() => handleApplyPack('Tekki')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Tekki' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Tekki<br/><span className="text-[9px] font-normal">Trio (22.900F)</span></button>
-                    <button type="button" onClick={() => handleApplyPack('Tekki Pro')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Tekki Pro' ? 'bg-black text-[#39FF14] border-black' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Tekki Pro<br/><span className="text-[9px] font-normal">+ IA (27.900F)</span></button>
-                    <button type="button" onClick={() => handleApplyPack('Gold')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${editingContact.saas === 'Pack Onyx Gold' ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black border-yellow-500 shadow-md' : 'bg-zinc-50 hover:bg-zinc-100'}`}>Pack Onyx Gold<br/><span className="text-[9px] font-normal">VIP (59.900F)</span></button>
-                </div>
-                
-                {prorataMsg && <p className="text-xs text-black font-bold bg-[#39FF14]/20 p-3 rounded-xl animate-in fade-in">{prorataMsg}</p>}
+                <div className="bg-zinc-50 p-5 sm:p-6 rounded-[1.75rem] sm:rounded-[2.25rem] border border-zinc-100 flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                       <div>
+                           <p className="font-black text-sm uppercase">{editingContact?.saas || 'Aucun produit actif'}</p>
+                           <p className="text-xs text-[#39FF14] font-black mt-1">
+                               {editingContact?.saas ? (getSaasPrice(editingContact.saas).toLocaleString('fr-FR') + ' F/mois') : '-'}
+                           </p>
+                       </div>
+                       <button type="button" onClick={() => setIsUpgrading(!isUpgrading)} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-md">
+                           ⬆️ Changer d'offre
+                       </button>
+                    </div>
 
-                <div className="space-y-3 mt-4">
-                  {AVAILABLE_MODULES.map((app) => {
-                    const isActive = (editingContact.active_saas || []).includes(app.id);
-                    const appExpDate = editingContact.saas_expiration_dates?.[app.id] || editingContact.expiration_date;
+                    {isUpgrading && (
+                       <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                           <select 
+                              onChange={handleUpgradePack} 
+                              value={editingContact?.saas || ""}
+                              className="w-full p-4 bg-white border border-zinc-200 rounded-2xl font-black text-[11px] sm:text-xs uppercase outline-none cursor-pointer appearance-none focus:border-black transition-all"
+                           >
+                              <option value="" disabled>Sélectionner le produit...</option>
+                              <optgroup label="📦 PACKS SAAS">
+                                 <option value="Pack Tekki">Pack Tekki (22.900 F)</option>
+                                 <option value="Pack Tekki Pro">Pack Tekki Pro (27.900 F)</option>
+                                 <option value="Onyx CRM">Onyx CRM (39.900 F)</option>
+                                 <option value="Pack Onyx Gold">Pack Onyx Gold (59.900 F)</option>
+                              </optgroup>
+                              <optgroup label="🧩 MODULES INDIVIDUELS">
+                                 <option value="Onyx Jaay">Onyx Jaay (13.900 F)</option>
+                                 <option value="Onyx Menu">Onyx Menu (13.900 F)</option>
+                                 <option value="Onyx Booking">Onyx Booking (13.900 F)</option>
+                                 <option value="Onyx Staff">Onyx Staff (13.900 F)</option>
+                                 <option value="Onyx Stock">Onyx Stock (13.900 F)</option>
+                                 <option value="Onyx Tiak">Onyx Tiak (13.900 F)</option>
+                                 <option value="Onyx Tontine">Onyx Tontine (6.900 F)</option>
+                              </optgroup>
+                              <optgroup label="🚀 HIGH-TICKET">
+                                 <option value="Onyx Boost">Onyx Boost (150.000 F)</option>
+                                 <option value="Onyx Modernize">Onyx Modernize (300.000 F)</option>
+                                 <option value="Add-on CM Pub">Add-on CM Pub (49.900 F)</option>
+                              </optgroup>
+                           </select>
+                       </div>
+                    )}
+                    
+                    {prorataMsg && <p className="text-xs text-black font-bold bg-[#39FF14]/20 p-3 rounded-xl animate-in fade-in">{prorataMsg}</p>}
 
-                    return (
-                        <div key={app.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border transition ${isActive ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-zinc-200 bg-zinc-50'}`}>
-                            <label className="flex items-center gap-3 cursor-pointer flex-1">
-                                <input
-                                    type="checkbox"
-                                    checked={isActive}
-                                    onChange={(e) => {
-                                        const currentSaas = editingContact.active_saas || [];
-                                        const newDates = { ...(editingContact.saas_expiration_dates || {}) };
-                                        if (e.target.checked) {
-                                            newDates[app.id] = editingContact.expiration_date || new Date().toISOString().split('T')[0];
-                                            setEditingContact({ ...editingContact, active_saas: [...currentSaas, app.id], saas_expiration_dates: newDates });
-                                        } else {
-                                            delete newDates[app.id];
-                                            setEditingContact({ ...editingContact, active_saas: currentSaas.filter((s: string) => s !== app.id), saas_expiration_dates: newDates });
-                                        }
-                                    }}
-                                    className="w-4 h-4 accent-black"
-                                />
-                                <span className="text-xs font-bold uppercase text-zinc-700">{app.name}</span>
-                            </label>
-                            {isActive && (
-                                <input 
-                                    type="date"
-                                    value={appExpDate ? String(appExpDate).split('T')[0] : ''}
-                                    onChange={(e) => {
-                                        setEditingContact({
-                                            ...editingContact,
-                                            saas_expiration_dates: {
-                                                ...(editingContact.saas_expiration_dates || {}),
-                                                [app.id]: e.target.value
-                                            }
-                                        });
-                                    }}
-                                    className="p-2 bg-white border border-zinc-200 rounded-lg text-xs font-bold outline-none focus:border-black shrink-0 cursor-pointer"
-                                    title="Date d'expiration individuelle pour ce module"
-                                />
-                            )}
-                        </div>
-                    );
-                  })}
+                    <div className="mt-2">
+                       <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">Date de fin d'abonnement</label>
+                       <input 
+                          type="date" 
+                          value={editingContact?.expiration_date ? new Date(editingContact.expiration_date).toISOString().split('T')[0] : ''} 
+                          onChange={e => setEditingContact({...editingContact, expiration_date: e.target.value})} 
+                          className="w-full p-4 bg-white border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition-all" 
+                       />
+                    </div>
                 </div>
               </div>
 
@@ -3595,20 +3851,12 @@ export default function AdminDashboard() {
                  <input type="url" value={editingContact?.avatar_url || ""} onChange={e => setEditingContact({...editingContact, avatar_url: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="https://..." />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div>
                  <div className="space-y-2">
                     <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Catégorie</label>
                     <select value={editingContact?.type || 'Prospect'} onChange={e => setEditingContact({...editingContact, type: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-[11px] sm:text-xs uppercase outline-none cursor-pointer appearance-none transition-all focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10">
                       <option value="Prospect">Prospect Lead</option>
                       <option value="Client">Client Actif</option>
-                    </select>
-                 </div>
-                 <div className="space-y-2">
-                    <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Logiciel Déployé</label>
-                    <select value={editingContact?.saas || ""} onChange={e => setEditingContact({...editingContact, saas: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-[11px] sm:text-xs uppercase outline-none cursor-pointer appearance-none transition-all focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10">
-                      <option value="" disabled>Choisir un SaaS</option>
-                      <option value="À définir">À définir</option>
-                      {ECOSYSTEM_SAAS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                     </select>
                  </div>
               </div>
@@ -3628,6 +3876,23 @@ export default function AdminDashboard() {
                    placeholder="Mot de passe communiqué au client"
                  />
               </div>
+
+          {editingContact?.prorata_history && editingContact.prorata_history.length > 0 && (
+              <div className="space-y-4 pt-6 border-t border-zinc-100">
+                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Historique Proratas / Upgrades</label>
+                 <div className="space-y-2">
+                    {editingContact.prorata_history.map((hist: any, i: number) => (
+                       <div key={i} className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                          <div>
+                             <p className="font-bold text-sm uppercase text-black">{hist.saas}</p>
+                             <p className="text-[10px] font-bold text-zinc-400">{new Date(hist.date).toLocaleDateString('fr-FR')}</p>
+                          </div>
+                          <span className="bg-black text-[#39FF14] px-3 py-1.5 rounded-lg text-xs font-black">+{hist.amount.toLocaleString('fr-FR')} F</span>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+          )}
 
               <button type="submit" className="w-full bg-black text-[#39FF14] py-5 sm:py-7 rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-xs sm:text-sm mt-6 sm:mt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)] sm:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 sm:gap-4 active:scale-95">
                 <CheckCircle size={20} className="text-[#39FF14] sm:w-6 sm:h-6"/> Synchroniser la base CRM
