@@ -265,6 +265,13 @@ export default function AdminDashboard() {
     setMounted(true);
     setTodayStr(new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }));
 
+    // Demander la permission pour les notifications push au chargement
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }
+
     const initAdmin = async () => {
       try {
         const { data, error } = await supabase.auth.getUser();
@@ -694,6 +701,7 @@ export default function AdminDashboard() {
 
   const approveAmbassador = async (id: string) => {
     try {
+      const amb = partners.find(p => p.id === id);
       const { error } = await supabase
         .from('ambassadors')
         .update({ status: 'Actif' })
@@ -703,7 +711,26 @@ export default function AdminDashboard() {
       
       // Mise à jour de l'interface en temps réel
       setPartners(prev => prev.map(amb => amb.id === id ? { ...amb, status: 'Actif' } : amb));
+
+      // Notifications Push Navigateur
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+          if (Notification.permission === 'granted') {
+              new Notification('Ambassadeur Validé', { body: `${amb?.full_name} a été validé et est maintenant actif !` });
+          } else if (Notification.permission !== 'denied') {
+              Notification.requestPermission().then(permission => {
+                  if (permission === 'granted') {
+                      new Notification('Ambassadeur Validé', { body: `${amb?.full_name} a été validé et est maintenant actif !` });
+                  }
+              });
+          }
+      }
+
       alert("Ambassadeur validé avec succès !");
+
+      if (amb && confirm(`Voulez-vous envoyer une notification WhatsApp à ${amb.full_name} pour confirmer son activation ?`)) {
+          const msg = `Félicitations ${amb.full_name} ! 🎉\n\nVotre candidature Ambassadeur Onyx a été validée avec succès.\nVous pouvez maintenant vous connecter à votre Hub partenaire pour récupérer votre lien d'affiliation et commencer à générer des revenus.\n\n🔗 *Lien de connexion :* https://onyx-ops-hub.vercel.app/ambassadeurs/login\n📱 *Identifiant :* ${amb.contact}\n🔑 *Mot de passe :* central2026`;
+          window.open(`https://wa.me/${(amb.contact || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
     } catch (error: any) {
       console.error("Erreur validation:", error);
       alert("Erreur lors de la validation.");

@@ -208,7 +208,7 @@ export default function AmbassadeursPage() {
            <h2 className="flex items-center gap-3 text-lg font-black uppercase text-[#39FF14] mb-4">
             <Wallet size={22} /> Mes Revenus
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-zinc-800/50 rounded-xl p-4">
               <p className="text-sm text-zinc-400 mb-1">CA total généré</p>
               <p className="text-2xl font-bold text-white">{((ambassadorData?.sales || 0) * 13900).toLocaleString()} F CFA</p>
@@ -216,6 +216,10 @@ export default function AmbassadeursPage() {
             <div className="bg-zinc-800/50 rounded-xl p-4">
               <p className="text-sm text-zinc-400 mb-1">Commissions en attente</p>
               <p className="text-2xl font-bold text-[#39FF14]">{((ambassadorData?.sales || 0) * 5000).toLocaleString()} F CFA</p>
+            </div>
+            <div className="bg-zinc-800/50 rounded-xl p-4">
+              <p className="text-sm text-zinc-400 mb-1">Nombre de filleuls</p>
+              <p className="text-2xl font-bold text-[#00E5FF]">{prospects.length} Filleul(s)</p>
             </div>
           </div>
         </section>
@@ -242,11 +246,16 @@ export default function AmbassadeursPage() {
 
         {/* Section "Mes Prospects" (Dynamique) */}
         <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-          <h2 className="flex items-center gap-3 text-lg font-black uppercase text-[#39FF14] mb-4">
-            <Users size={22} /> Mes Prospects
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="flex items-center gap-3 text-lg font-black uppercase text-[#39FF14]">
+              <Users size={22} /> Mes Filleuls
+            </h2>
+            <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-xs font-black border border-[#39FF14]/30">
+               {prospects.length} Total
+            </span>
+          </div>
           {prospects.length === 0 ? (
-            <p className="text-zinc-500 text-sm">Aucun prospect assigné pour le moment. Partagez votre lien !</p>
+            <p className="text-zinc-500 text-sm">Aucun filleul assigné pour le moment. Partagez votre lien !</p>
           ) : (
             <div className="space-y-3">
               {prospects.map((prospect) => (

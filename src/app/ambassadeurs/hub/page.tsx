@@ -1,23 +1,16 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Copy, CheckCircle, Users, DollarSign, TrendingUp, 
   LogOut, Link as LinkIcon, Info, ShieldCheck, 
-  ChevronDown, Package, Zap, ArrowRight
+  ChevronDown, Package, Zap, ArrowRight, X,
+  MessageCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
 const spaceGrotesk = { className: "font-sans" };
-
-// --- MOCK DATA : Filleuls ---
-const MOCK_REFERRALS = [
-  { id: 1, date: "03 Avr 2026", shop: "Boutique F***", product: "Onyx CRM", price: 29900, hasCM: true, isMonth1: true, status: "Payé" },
-  { id: 2, date: "28 Mar 2026", shop: "Resto D***", product: "Pack Tekki", price: 22900, hasCM: false, isMonth1: false, status: "Actif" },
-  { id: 3, date: "01 Avr 2026", shop: "Salon M***", product: "Onyx Booking", price: 13900, hasCM: true, isMonth1: true, status: "En attente" },
-  { id: 4, date: "15 Fév 2026", shop: "Agence T***", product: "Pack Onyx Gold", price: 59900, hasCM: false, isMonth1: false, status: "Actif" },
-  { id: 5, date: "10 Jan 2026", shop: "Tontine Q***", product: "Onyx Tontine", price: 6900, hasCM: false, isMonth1: false, status: "Actif" },
-];
 
 // --- CATALOGUE DE TOUS LES PRODUITS ---
 const PRODUCTS_CATALOG = [
@@ -47,6 +40,14 @@ export default function AmbassadorHub() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
+  
+  // État de la modale de retrait
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawForm, setWithdrawForm] = useState({ phone: '', method: 'Wave', amount: '' });
+  
+  // Définition de base pour prospects (à alimenter depuis Supabase dans votre intégration finale)
+  const [prospects, setProspects] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
 
   const ambassadorLink = "https://onyxops.com/ref/AMB-DAK-042";
 
@@ -55,6 +56,24 @@ export default function AmbassadorHub() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  useEffect(() => {
+    const fetchWithdrawals = async () => {
+      const sessionStr = localStorage.getItem('onyx_ambassador_session');
+      if (sessionStr) {
+        try {
+          const ambassadorData = JSON.parse(sessionStr);
+          const { data, error } = await supabase
+            .from('withdrawals')
+            .select('*')
+            .eq('ambassador_id', ambassadorData.id)
+            .order('created_at', { ascending: false });
+          if (data) setWithdrawals(data);
+        } catch (e) {}
+      }
+    };
+    fetchWithdrawals();
+  }, []);
 
   // Logique de calcul des commissions (Tableau des filleuls)
   const calculateCommission = (price: number, hasCM: boolean, isMonth1: boolean) => {
@@ -77,6 +96,57 @@ export default function AmbassadorHub() {
       return { m1: Math.round(price * 0.15), rec: Math.round(price * 0.05) };
     } else {
       return { m1: Math.round(price * 0.15), rec: 0 }; // One-shot
+    }
+  };
+
+  // Calcul des gains générés par les filleuls réels
+  const totalEarnings = prospects.reduce((sum, p) => {
+    if (p.status === 'Converti' || p.status === 'Actif' || p.status === 'Payé') {
+       const productName = p.intent || 'Onyx Jaay';
+       const price = productName.includes('Tekki Pro') ? 27900 : productName.includes('Tekki') ? 22900 : productName.includes('CRM') ? 29900 : productName.includes('Gold') ? 59900 : 13900;
+       return sum + calculateCommission(price, false, true);
+    }
+    return sum;
+  }, 0);
+  
+  const handleWithdrawSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!withdrawForm.phone || !withdrawForm.amount) return alert("Veuillez remplir tous les champs.");
+    if (parseInt(withdrawForm.amount) > totalEarnings) return alert("Le montant demandé est supérieur à vos gains disponibles.");
+    
+    try {
+      const sessionStr = typeof window !== 'undefined' ? localStorage.getItem('onyx_ambassador_session') : null;
+      const ambassadorData = sessionStr ? JSON.parse(sessionStr) : null;
+
+      const { data, error } = await supabase.from('withdrawals').insert([{
+        ambassador_id: ambassadorData?.id || 'AMB-INCONNU',
+        ambassador_name: ambassadorData?.full_name || 'Ambassadeur Anonyme',
+        phone: withdrawForm.phone,
+        method: withdrawForm.method,
+        amount: parseInt(withdrawForm.amount),
+        status: 'En attente'
+      }]).select();
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+         setWithdrawals([data[0], ...withdrawals]);
+      } else {
+         setWithdrawals([{
+            id: Date.now(),
+            method: withdrawForm.method,
+            phone: withdrawForm.phone,
+            amount: parseInt(withdrawForm.amount),
+            status: 'En attente',
+            created_at: new Date().toISOString()
+         }, ...withdrawals]);
+      }
+
+      alert(`✅ Demande envoyée ! Votre retrait de ${parseInt(withdrawForm.amount).toLocaleString()} F CFA via ${withdrawForm.method} sur le numéro ${withdrawForm.phone} est en cours de traitement (24h à 48h).`);
+      setShowWithdrawModal(false);
+      setWithdrawForm({ phone: '', method: 'Wave', amount: '' });
+    } catch (err: any) {
+      alert("Erreur lors de la demande de retrait : " + err.message);
     }
   };
 
@@ -127,9 +197,9 @@ export default function AmbassadorHub() {
               <DollarSign size={20} />
               <h3 className="font-black uppercase text-xs tracking-widest">Gains Disponibles</h3>
             </div>
-            <p className={`${spaceGrotesk.className} text-5xl font-black tracking-tighter`}>84.500 F</p>
-            <button className="mt-6 bg-black text-[#39FF14] w-full py-3 rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition-colors">
-              Retirer via Wave
+          <p className={`${spaceGrotesk.className} text-5xl font-black tracking-tighter`}>{totalEarnings.toLocaleString()} F</p>
+            <button onClick={() => setShowWithdrawModal(true)} className="mt-6 bg-black text-[#39FF14] w-full py-3 rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition-all shadow-lg active:scale-95">
+              Demander un retrait
             </button>
           </div>
         </div>
@@ -226,7 +296,7 @@ export default function AmbassadorHub() {
         {/* TABLEAU DES FILLEULS */}
         <div>
           <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3`}>
-            <LinkIcon className="text-[#39FF14]" size={24} /> Vos Filleuls Actifs
+          <LinkIcon className="text-[#39FF14]" size={24} /> Suivi de vos Filleuls
           </h2>
           
           <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
@@ -243,42 +313,45 @@ export default function AmbassadorHub() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800">
-                  {MOCK_REFERRALS.map((ref, index) => {
-                    const commission = calculateCommission(ref.price, ref.hasCM, ref.isMonth1);
+                  {prospects.map((prospect, index) => {
+                    const productName = prospect.intent || 'Onyx Jaay';
+                    const price = productName.includes('Tekki Pro') ? 27900 : productName.includes('Tekki') ? 22900 : productName.includes('CRM') ? 29900 : productName.includes('Gold') ? 59900 : 13900;
+                    const hasCM = productName.includes('CM');
+                    const commission = calculateCommission(price, hasCM, true);
                     
                     return (
-                      <tr key={index} className="hover:bg-zinc-800/30 transition-colors">
-                        <td className="p-6 text-sm font-bold text-zinc-400">{ref.date}</td>
-                        <td className="p-6 text-sm font-black text-white">{ref.shop}</td>
+                      <tr key={prospect.id || index} className="hover:bg-zinc-800/30 transition-colors">
+                        <td className="p-6 text-sm font-bold text-zinc-400">{prospect.created_at ? new Date(prospect.created_at).toLocaleDateString('fr-FR') : "Aujourd'hui"}</td>
+                        <td className="p-6 text-sm font-black text-white">{prospect.full_name || 'Client Anonyme'}</td>
                         <td className="p-6">
                           <span className="bg-zinc-800 text-white px-3 py-1 rounded-md text-xs font-bold border border-zinc-700">
-                            {ref.product}
+                            {productName}
                           </span>
                         </td>
                         <td className="p-6 text-center">
-                          {ref.hasCM ? (
-                            <span className="bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block">
-                              + CM Actif
-                            </span>
-                          ) : (
-                            <span className="text-zinc-600 text-sm font-bold">-</span>
-                          )}
+                          <span className="text-zinc-600 text-sm font-bold">{hasCM ? 'Oui' : '-'}</span>
                         </td>
                         <td className="p-6">
                           <div className="flex flex-col">
-                            <span className={`text-xs font-black uppercase flex items-center gap-1 ${ref.status === 'Payé' ? 'text-[#39FF14]' : ref.status === 'Actif' ? 'text-blue-400' : 'text-yellow-500'}`}>
-                              {ref.status === 'Payé' && <CheckCircle size={12} />}
-                              {ref.status}
+                          <span className={`text-xs font-black uppercase flex items-center gap-1 ${prospect.status === 'Converti' || prospect.status === 'Actif' || prospect.status === 'Payé' ? 'text-[#39FF14]' : 'text-yellow-500'}`}>
+                            {(prospect.status === 'Converti' || prospect.status === 'Actif' || prospect.status === 'Payé') && <CheckCircle size={12} />}
+                            {prospect.status || 'Nouveau'}
                             </span>
                             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">
-                              {ref.isMonth1 ? 'Mois 1 (30%)' : 'Récurrent (10%)'}
+                            Mois 1 (30%)
                             </span>
                           </div>
                         </td>
                         <td className="p-6 text-right">
-                          <span className={`${spaceGrotesk.className} text-lg font-black text-[#39FF14]`}>
-                            {commission.toLocaleString()} F
-                          </span>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className={`${spaceGrotesk.className} text-lg font-black text-[#39FF14]`}>
+                              {commission.toLocaleString()} F
+                            </span>
+                            <button onClick={() => window.open(`https://wa.me/${(prospect.phone || prospect.contact || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent("Bonjour " + (prospect.full_name || "cher client") + ", c'est votre conseiller Onyx. Comment puis-je vous aider à finaliser votre démarche ?")}`, '_blank')} className="text-[9px] font-black uppercase tracking-widest text-black bg-white px-3 py-1.5 rounded-lg hover:bg-[#39FF14] transition-all flex items-center gap-1.5 active:scale-95">
+                               <MessageCircle size={12} />
+                               Relancer
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -288,7 +361,7 @@ export default function AmbassadorHub() {
             </div>
             
             {/* Empty State Fallback */}
-            {MOCK_REFERRALS.length === 0 && (
+            {prospects.length === 0 && (
               <div className="p-12 text-center flex flex-col items-center">
                 <Users size={48} className="text-zinc-700 mb-4" />
                 <p className="text-zinc-400 font-bold text-lg mb-2">Aucun filleul pour le moment.</p>
@@ -301,7 +374,71 @@ export default function AmbassadorHub() {
           </div>
         </div>
 
+        {/* --- HISTORIQUE DES RETRAITS --- */}
+        <div className="mt-12">
+          <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3`}>
+          <DollarSign className="text-[#39FF14]" size={24} /> Historique des Retraits
+          </h2>
+          
+          <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-2xl">
+            {withdrawals.length === 0 ? (
+              <div className="text-center py-8">
+                <DollarSign size={40} className="text-zinc-700 mx-auto mb-4" />
+                <p className="text-zinc-400 font-bold">Aucune demande de retrait pour le moment.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {withdrawals.map((w, index) => (
+                  <div key={w.id || index} className="flex justify-between items-center bg-black p-5 rounded-2xl border border-zinc-800">
+                     <div>
+                       <p className="font-black text-white uppercase text-sm">{w.method} - {w.phone}</p>
+                       <p className="text-xs text-zinc-500 mt-1 font-bold">{w.created_at ? new Date(w.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : "Récemment"}</p>
+                     </div>
+                     <div className="text-right">
+                       <p className="font-black text-[#39FF14] text-lg">{w.amount?.toLocaleString()} F</p>
+                       <span className={`inline-block mt-2 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${w.status === 'Payé' ? 'bg-[#39FF14]/20 text-[#39FF14]' : w.status === 'Rejeté' ? 'bg-red-500/20 text-red-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
+                         {w.status || 'En attente'}
+                       </span>
+                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </main>
+
+      {/* MODALE DE DEMANDE DE RETRAIT */}
+      {showWithdrawModal && (
+        <div id="withdraw-modal-overlay" onClick={(e: any) => e.target.id === 'withdraw-modal-overlay' && setShowWithdrawModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] w-full max-w-md relative shadow-2xl animate-in zoom-in-95">
+              <button onClick={() => setShowWithdrawModal(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white transition-colors"><X size={20}/></button>
+              <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-white`}>Demande de Retrait</h2>
+              <p className="text-zinc-400 text-sm font-bold mb-6">Solde disponible : <span className="text-[#39FF14]">{totalEarnings.toLocaleString()} F</span></p>
+              
+              <form onSubmit={handleWithdrawSubmit} className="space-y-4">
+                 <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block ml-2">Moyen de paiement</label>
+                    <select value={withdrawForm.method} onChange={e => setWithdrawForm({...withdrawForm, method: e.target.value})} className="w-full p-4 bg-black border border-zinc-800 rounded-2xl text-white font-bold outline-none focus:border-[#39FF14] cursor-pointer appearance-none transition-colors">
+                       <option value="Wave">Wave</option>
+                       <option value="Orange Money">Orange Money</option>
+                    </select>
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block ml-2">Numéro de réception</label>
+                    <input type="tel" required value={withdrawForm.phone} onChange={e => setWithdrawForm({...withdrawForm, phone: e.target.value})} placeholder="7X XXX XX XX" className="w-full p-4 bg-black border border-zinc-800 rounded-2xl text-white font-bold outline-none focus:border-[#39FF14] transition-colors" />
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block ml-2">Montant (F CFA)</label>
+                    <input type="number" required max={totalEarnings} value={withdrawForm.amount} onChange={e => setWithdrawForm({...withdrawForm, amount: e.target.value})} placeholder={`Ex: ${totalEarnings}`} className="w-full p-4 bg-black border border-zinc-800 rounded-2xl text-white font-bold outline-none focus:border-[#39FF14] transition-colors" />
+                 </div>
+                 <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-sm mt-4 hover:scale-[1.02] shadow-[0_0_20px_rgba(57,255,20,0.2)] transition-transform active:scale-95 flex justify-center items-center gap-2">
+                   <DollarSign size={18}/> Confirmer le retrait
+                 </button>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
