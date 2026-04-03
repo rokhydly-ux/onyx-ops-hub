@@ -14,6 +14,8 @@ import {
   AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon
 } from "lucide-react";
 
+import * as XLSX from 'xlsx';
+
 // --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -190,6 +192,12 @@ export default function AdminDashboard() {
   const [leadFilter, setLeadFilter] = useState("Tous");
   const [partnerSearch, setPartnerSearch] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
+  
+  // --- NOUVEAUX ÉTATS POUR LES RETRAITS ---
+  const [withdrawalFilter, setWithdrawalFilter] = useState("Tous");
+  const [validateWithdrawalModal, setValidateWithdrawalModal] = useState<any>(null);
+  const [withdrawalProof, setWithdrawalProof] = useState("");
+
   const [leadActionsOpen, setLeadActionsOpen] = useState<string | null>(null);
   const [partnerKpiFilter, setPartnerKpiFilter] = useState<'all' | 'nouveaux' | 'top' | 'moins' | 'gains'>('all');
   const [marketingMaterials, setMarketingMaterials] = useState<any[]>([]);
@@ -417,6 +425,38 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleRelanceProspectsFroids = () => {
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    
+    const coldProspects = contacts.filter(c => 
+        c.type === 'Prospect' && 
+        new Date(c.created_at || new Date()) < fourteenDaysAgo
+    );
+
+    if (coldProspects.length === 0) return alert("Aucun prospect froid détecté (inactif depuis plus de 14 jours).");
+
+    const newActions: IAAction[] = coldProspects.map(p => ({
+        id: `ia-cold-${p.id}-${Date.now()}`,
+        module: 'CRM',
+        title: `Relance Prospect Froid : ${p.full_name}`,
+        desc: `Prospect inactif depuis plus de 14 jours.`,
+        date: todayStr,
+        status: 'En attente',
+        phone: p.phone,
+        msg: `Bonjour ${p.full_name}, nous n'avons plus de vos nouvelles ! Avez-vous pu avancer sur votre projet de digitalisation ? Notre équipe OnyxOps est disponible pour vous accompagner si vous avez des questions.`
+    }));
+
+    setActionsIA(prev => {
+        const updated = [...newActions, ...prev];
+        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+        return updated;
+    });
+
+    alert(`${coldProspects.length} prospect(s) froid(s) détecté(s). Les actions de relance ont été ajoutées au Journal IA !`);
+    setActiveView('journal-ia');
+  };
+
   useEffect(() => {
     const close = (e: MouseEvent) => { if (leadActionsOpen && !(e.target as HTMLElement).closest('.lead-actions-wrap')) setLeadActionsOpen(null); };
     document.addEventListener('click', close);
@@ -580,15 +620,53 @@ export default function AdminDashboard() {
      else fetchSupabaseData();
   };
 
-  const handleUpdateWithdrawalStatus = async (id: string, newStatus: string) => {
-      if (!confirm(`Confirmez-vous le passage de cette demande en statut "${newStatus}" ?`)) return;
+  const handleUpdateWithdrawalStatus = async (id: string, newStatus: string, proof?: string) => {
+      if (newStatus === 'Rejeté') {
+         if (!confirm(`Confirmez-vous le rejet de cette demande ?`)) return;
+      }
       try {
-        const { error } = await supabase.from('withdrawals').update({ status: newStatus }).eq('id', id);
+        const updatePayload: any = { status: newStatus };
+        if (proof) updatePayload.proof = proof;
+        
+        const { error } = await supabase.from('withdrawals').update(updatePayload).eq('id', id);
         if (error) throw error;
-        setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: newStatus } : w));
+        setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: newStatus, proof: proof || w.proof } : w));
+        
+        // --- NOTIFICATION WHATSAPP ---
+        const withdrawal = withdrawals.find(w => w.id === id);
+        if (withdrawal && withdrawal.phone) {
+           const msg = newStatus === 'Payé'
+              ? `Bonjour ${withdrawal.ambassador_name || ''} 🎉\n\nVotre demande de retrait de ${withdrawal.amount?.toLocaleString()} F via ${withdrawal.method} a été VALIDÉE et le transfert a été effectué.\n${proof ? `Preuve / Réf : ${proof}\n\n` : '\n'}Merci pour votre excellent travail !\nL'équipe OnyxOps.`
+              : `Bonjour ${withdrawal.ambassador_name || ''},\n\nVotre demande de retrait de ${withdrawal.amount?.toLocaleString()} F via ${withdrawal.method} a été REJETÉE.\n\nVeuillez nous contacter ou vérifier vos informations de paiement.\nL'équipe OnyxOps.`;
+
+           if (confirm(`Statut mis à jour.\nVoulez-vous envoyer une notification WhatsApp à l'ambassadeur ?`)) {
+              const cleanPhone = withdrawal.phone.replace(/\s+/g, '').replace(/[^0-9]/g, '');
+              const phoneWithPrefix = cleanPhone.startsWith('221') ? cleanPhone : `221${cleanPhone}`;
+              window.open(`https://wa.me/${phoneWithPrefix}?text=${encodeURIComponent(msg)}`, '_blank');
+           }
+        }
       } catch (err: any) {
         alert("Erreur: " + err.message);
       }
+  };
+
+  const handleExportWithdrawals = () => {
+      const paidWithdrawals = withdrawals.filter(w => w.status === 'Payé');
+      if (paidWithdrawals.length === 0) return alert("Aucun retrait payé à exporter.");
+
+      const dataToExport = paidWithdrawals.map(w => ({
+        "Date": new Date(w.created_at).toLocaleString('fr-FR'),
+        "Ambassadeur": w.ambassador_name || "Inconnu",
+        "Méthode": w.method,
+        "Numéro": w.phone,
+        "Montant (F CFA)": w.amount,
+        "Preuve/Réf": w.proof || "N/A"
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Retraits Payés");
+      XLSX.writeFile(workbook, `Retraits_Payes_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const getLeadPriorityActions = (lead: any) => {
@@ -1257,6 +1335,25 @@ export default function AdminDashboard() {
     }
   };
   
+  const handleExportFinanceExcel = () => {
+    if (filteredTransactions.length === 0) return alert("Aucune transaction à exporter.");
+
+    const dataToExport = filteredTransactions.map((t: any) => ({
+      "Date": t.date,
+      "Référence": t.ref,
+      "Client": t.client,
+      "Activité": contacts.find(c => c.full_name === t.client)?.activity || t.activity || "N/A",
+      "Type": t.type,
+      "Montant (F CFA)": t.amount,
+      "Statut": t.status
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Finances");
+    XLSX.writeFile(workbook, `Transactions_Finances_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   return (
     <div className={`flex h-screen bg-[#fafafa] dark:bg-zinc-950 font-sans text-black dark:text-white overflow-hidden relative selection:bg-[#39FF14]/30 transition-colors`}>
       
@@ -1928,6 +2025,9 @@ export default function AdminDashboard() {
                    <button onClick={handleFixMissingExpiryDates} className="flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-md active:scale-95">
                       <Clock size={14} /> Régulariser Dates
                    </button>
+                   <button onClick={handleRelanceProspectsFroids} className="flex items-center justify-center gap-2 bg-zinc-100 text-zinc-600 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm border border-zinc-200 active:scale-95">
+                      <MessageCircle size={14} /> Relance Froids
+                   </button>
                    <button onClick={runIaScan} className="flex items-center justify-center gap-2 bg-zinc-800 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-md active:scale-95">
                       <Sparkles size={14} /> Scan IA
                    </button>
@@ -2198,6 +2298,9 @@ export default function AdminDashboard() {
                       <button onClick={exportFinanceReport} className="w-full md:w-auto bg-black text-[#39FF14] px-8 lg:px-10 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-2xl active:scale-95">
                          <Download size={18}/> Exporter Rapport
                       </button>
+                      <button onClick={handleExportFinanceExcel} className="hidden md:flex w-full md:w-auto bg-white text-black border border-zinc-200 px-8 lg:px-10 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest items-center justify-center gap-3 hover:scale-105 transition-all shadow-sm active:scale-95">
+                         <FileText size={18}/> Export Excel
+                      </button>
                    </div>
                 </div>
                 
@@ -2292,6 +2395,21 @@ export default function AdminDashboard() {
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Validation des commissions</p>
                       </div>
                    </div>
+                  <div className="flex items-center gap-4 relative z-10">
+                     <button onClick={handleExportWithdrawals} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-2">
+                        <Download size={16}/> Export Payés
+                     </button>
+                     <select value={withdrawalFilter} onChange={e => setWithdrawalFilter(e.target.value)} className="px-4 py-3 rounded-xl border border-zinc-200 text-xs font-bold focus:outline-none focus:border-[#39FF14] bg-zinc-50 dark:bg-zinc-900 cursor-pointer outline-none transition-colors">
+                        <option value="Tous">Tous les retraits</option>
+                        <option value="En attente">En attente</option>
+                        <option value="Payé">Payés</option>
+                        <option value="Rejeté">Rejetés</option>
+                     </select>
+                     <div className="flex flex-col items-end bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                         <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Total en attente</p>
+                         <p className="text-2xl font-black text-orange-500">{withdrawals.filter(w => w.status === 'En attente').reduce((sum, w) => sum + (Number(w.amount) || 0), 0).toLocaleString()} F</p>
+                     </div>
+                  </div>
                 </div>
 
                 <div className="bg-white border border-zinc-200 rounded-[3.5rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto">
@@ -2305,7 +2423,7 @@ export default function AdminDashboard() {
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
-                         {withdrawals.map(w => (
+                        {withdrawals.filter(w => withdrawalFilter === 'Tous' || w.status === withdrawalFilter).map(w => (
                             <tr key={w.id} className="hover:bg-zinc-50 transition-all">
                                <td className="p-5 lg:p-6">
                                   <p className="font-black text-sm lg:text-base uppercase text-black tracking-tighter leading-tight">{w.ambassador_name || "Inconnu"}</p>
@@ -2323,13 +2441,16 @@ export default function AdminDashboard() {
                                <td className="p-5 lg:p-6 text-right">
                                   {w.status === 'En attente' ? (
                                     <div className="flex justify-end gap-2">
-                                        <button onClick={() => handleUpdateWithdrawalStatus(w.id, 'Payé')} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-1"><CheckCircle size={14}/> Valider</button>
+                                       <button onClick={() => { setValidateWithdrawalModal(w); setWithdrawalProof(''); }} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-1"><CheckCircle size={14}/> Valider</button>
                                         <button onClick={() => handleUpdateWithdrawalStatus(w.id, 'Rejeté')} className="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-red-100 transition-all flex items-center gap-1"><X size={14}/> Rejeter</button>
                                     </div>
                                   ) : (
-                                    <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${w.status === 'Payé' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-red-500/20 text-red-500'}`}>
-                                       {w.status}
-                                    </span>
+                                   <div className="flex flex-col items-end gap-1">
+                                      <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${w.status === 'Payé' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-red-500/20 text-red-500'}`}>
+                                         {w.status}
+                                      </span>
+                                      {w.proof && <span className="text-[9px] text-zinc-400 font-bold truncate max-w-[150px]" title={w.proof}>Réf: {w.proof}</span>}
+                                   </div>
                                   )}
                                </td>
                             </tr>
@@ -3394,6 +3515,32 @@ export default function AdminDashboard() {
               <CheckCircle size={18}/> Sauvegarder
             </button>
           </div>
+        </div>
+      )}
+
+      {/* MODALE VALIDATION RETRAIT (PREUVE) */}
+      {validateWithdrawalModal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setValidateWithdrawalModal, null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500">
+           <div className="bg-white p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto animate-in zoom-in-95">
+              <button onClick={() => setValidateWithdrawalModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+              <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black`}>Valider le Retrait</h2>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-6">Ambassadeur : {validateWithdrawalModal.ambassador_name}</p>
+              
+              <div className="space-y-4">
+                 <div>
+                    <label className="text-[10px] font-black uppercase text-zinc-400 ml-2 tracking-widest">Preuve de paiement (Optionnel)</label>
+                    <input type="text" placeholder="ID de transaction, Référence Wave/OM, ou lien..." value={withdrawalProof} onChange={e => setWithdrawalProof(e.target.value)} className="w-full p-4 mt-1 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black text-black" />
+                    <p className="text-[9px] text-zinc-400 font-bold mt-2 ml-2">La référence sera sauvegardée et transmise à l'ambassadeur via WhatsApp.</p>
+                 </div>
+              </div>
+
+              <button onClick={() => {
+                 handleUpdateWithdrawalStatus(validateWithdrawalModal.id, 'Payé', withdrawalProof);
+                 setValidateWithdrawalModal(null);
+              }} className="w-full mt-8 bg-black text-[#39FF14] py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl active:scale-95 flex justify-center items-center gap-2">
+                 <CheckCircle size={18}/> Confirmer le paiement
+              </button>
+           </div>
         </div>
       )}
     </div>
