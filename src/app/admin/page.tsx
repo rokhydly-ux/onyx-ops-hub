@@ -167,6 +167,8 @@ export default function AdminDashboard() {
   // NOUVEAU : États pour l'ajout manuel d'un ambassadeur
   const [showAddPartnerModal, setShowAddPartnerModal] = useState(false);
   const [newPartnerForm, setNewPartnerForm] = useState<any>({ full_name: '', phone: '', contact: '', city: 'Dakar', country: 'Sénégal', address: '', profession: '', experience: '', revenue_goal: '', strategy: '', status: '', activity: '' });
+  const [showEditPartnerModal, setShowEditPartnerModal] = useState(false);
+  const [editPartnerForm, setEditPartnerForm] = useState<any>({});
   const [tempAdminProfile, setTempAdminProfile] = useState(adminProfile);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [histogramActiveIdx, setHistogramActiveIdx] = useState<number | null>(null);
@@ -744,6 +746,30 @@ export default function AdminDashboard() {
         alert("Erreur lors de la suppression: " + error.message);
     } else {
         fetchSupabaseData();
+    }
+  };
+
+  const handleUpdatePartner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if(!supabase) return;
+    const { error } = await supabase.from('ambassadors').update({
+        full_name: editPartnerForm.full_name,
+        contact: editPartnerForm.contact,
+        city: editPartnerForm.city,
+        country: editPartnerForm.country,
+        address: editPartnerForm.address,
+        status: editPartnerForm.status,
+        current_status: editPartnerForm.current_status,
+        sales_experience: editPartnerForm.sales_experience,
+        revenue_objective: editPartnerForm.revenue_objective,
+        account_status: editPartnerForm.status
+    }).eq('id', editPartnerForm.id);
+    
+    if (error) alert("Erreur : " + error.message);
+    else {
+        setShowEditPartnerModal(false);
+        fetchSupabaseData();
+        alert("Ambassadeur mis à jour !");
     }
   };
 
@@ -2842,7 +2868,23 @@ export default function AdminDashboard() {
                </div>
 
                <div className="space-y-3 sm:space-y-4">
-                  <button onClick={() => alert("Edition partenaire bientôt disponible")} className="w-full bg-black text-white py-5 sm:py-6 rounded-[1.75rem] sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-[11px] tracking-widest shadow-xl hover:bg-[#39FF14] hover:text-black transition-all active:scale-95 flex items-center justify-center gap-3 sm:gap-4">
+                  <button onClick={() => {
+                      setEditPartnerForm({
+                          id: selectedPartner.id,
+                          full_name: selectedPartner.full_name || '',
+                          contact: selectedPartner.contact || selectedPartner.phone || '',
+                          city: selectedPartner.city || '',
+                          country: selectedPartner.country || '',
+                          address: selectedPartner.address || '',
+                          current_status: selectedPartner.current_status || selectedPartner.profession || selectedPartner.activity || '',
+                          sales_experience: selectedPartner.sales_experience || selectedPartner.experience || '',
+                          revenue_objective: selectedPartner.revenue_objective || selectedPartner.revenue_goal || '',
+                          strategy: selectedPartner.strategy || '',
+                          status: selectedPartner.status || 'En attente'
+                      });
+                      setShowPartnerModal(false);
+                      setShowEditPartnerModal(true);
+                  }} className="w-full bg-black text-white py-5 sm:py-6 rounded-[1.75rem] sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-[11px] tracking-widest shadow-xl hover:bg-[#39FF14] hover:text-black transition-all active:scale-95 flex items-center justify-center gap-3 sm:gap-4">
                      <Edit3 size={16} className="sm:w-[18px] sm:h-[18px]"/> Modifier les informations
                   </button>
                   <button onClick={handleConvertPartnerToClient} className="w-full bg-zinc-100 text-black py-5 sm:py-6 rounded-[1.75rem] sm:rounded-[2rem] font-black uppercase text-[10px] sm:text-[11px] tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-3 sm:gap-4 active:scale-95">
@@ -2854,6 +2896,75 @@ export default function AdminDashboard() {
                </div>
             </div>
          </div>
+      )}
+
+      {/* MODALE ÉDITION PARTENAIRE */}
+      {showEditPartnerModal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowEditPartnerModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+            <div className="bg-white p-6 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[8px] border-black my-auto">
+                <button onClick={() => setShowEditPartnerModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
+                <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter mb-8 text-black`}>Éditer Ambassadeur</h2>
+                <form onSubmit={handleUpdatePartner} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Nom Complet</label>
+                            <input type="text" required value={editPartnerForm.full_name} onChange={e => setEditPartnerForm({...editPartnerForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Téléphone</label>
+                            <input type="tel" required value={editPartnerForm.contact} onChange={e => setEditPartnerForm({...editPartnerForm, contact: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Ville</label>
+                            <input type="text" value={editPartnerForm.city} onChange={e => setEditPartnerForm({...editPartnerForm, city: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Pays</label>
+                            <input type="text" value={editPartnerForm.country} onChange={e => setEditPartnerForm({...editPartnerForm, country: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black" />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Adresse / Quartier</label>
+                        <input type="text" value={editPartnerForm.address} onChange={e => setEditPartnerForm({...editPartnerForm, address: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black" />
+                    </div>
+                    
+                    <div className="p-4 bg-zinc-50 rounded-[1.5rem] space-y-4 border border-zinc-100 mt-4">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Profil du Candidat</p>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Statut Actuel</label>
+                            <input type="text" value={editPartnerForm.current_status} onChange={e => setEditPartnerForm({...editPartnerForm, current_status: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Expérience Vente B2B</label>
+                            <input type="text" value={editPartnerForm.sales_experience} onChange={e => setEditPartnerForm({...editPartnerForm, sales_experience: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Objectif Revenu</label>
+                            <input type="text" value={editPartnerForm.revenue_objective} onChange={e => setEditPartnerForm({...editPartnerForm, revenue_objective: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Stratégie (Lecture seule)</label>
+                            <textarea readOnly value={editPartnerForm.strategy} className="w-full p-4 bg-zinc-100 border border-zinc-200 rounded-xl font-bold text-sm outline-none resize-none h-24 text-zinc-600 cursor-not-allowed"></textarea>
+                        </div>
+                    </div>
+
+                    <div className="space-y-1 mt-4">
+                        <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Statut du Compte</label>
+                        <select value={editPartnerForm.status} onChange={e => setEditPartnerForm({...editPartnerForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-100 rounded-[1.25rem] font-bold text-sm outline-none focus:border-black">
+                            <option value="En attente">En attente</option>
+                            <option value="Actif">Actif</option>
+                            <option value="Suspendu/Rejeté">Suspendu/Rejeté</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" className="w-full bg-[#39FF14] text-black py-5 rounded-[2rem] font-black uppercase text-xs mt-6 shadow-2xl hover:bg-black hover:text-[#39FF14] transition-all flex justify-center items-center gap-2">
+                        <CheckCircle size={18}/> Enregistrer les modifications
+                    </button>
+                </form>
+            </div>
+        </div>
       )}
 
       {/* --- MODALE PROFIL TERMINAL --- */}

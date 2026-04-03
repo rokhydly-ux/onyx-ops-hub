@@ -468,7 +468,7 @@ export default function OnyxOpsElite() {
         setBotMessages(prev => [...prev, { 
           sender: 'bot', 
           text: `Merci ! Quel est votre secteur d'activité actuel ?`, 
-          options: ["Boutique / Vente en ligne", "Restaurant / Fast Food", "Prestataire de services", "Autre (Précisez)"] 
+          options: ["Boutique / Vente en ligne", "Restaurant / Fast Food", "Devenir Partenaire/Ambassadeur", "Autre (Précisez)"] 
         }]);
         setBotStep(2);
       }, 1000);
@@ -489,6 +489,12 @@ export default function OnyxOpsElite() {
            msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : Pack Tekki (Encaissement & Stock)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
            options = ["1. Pack Tekki", "2. Onyx Menu"];
         }
+        else if(reply.includes("Ambassadeur") || reply.includes("Partenaire")) {
+           msg = "Super choix ! Le programme Ambassadeur vous permet de générer des revenus récurrents.\n\nQuel est votre objectif de revenu mensuel et dans quelle ville/pays vous trouvez-vous ? (Ex: 150k - Dakar, Sénégal)";
+           setBotMessages(prev => [...prev, { sender: 'bot', text: msg }]);
+           setBotStep(2.8);
+           return;
+        }
         else if(reply.includes("Autre")) {
            msg = "Je vois ! Expliquez-moi brièvement ce que vous faites et ce que vous aimeriez améliorer, je vais analyser ça pour vous proposer l'outil parfait.";
            setBotMessages(prev => [...prev, { sender: 'bot', text: msg }]);
@@ -503,6 +509,24 @@ export default function OnyxOpsElite() {
         setBotMessages(prev => [...prev, { sender: 'bot', text: msg, options }]);
         setBotStep(3);
       }, 1000);
+    }
+    else if (botStep === 2.8) {
+       saveLead({ 
+          source: 'Bot Fanta', 
+          intent: `Candidature Ambassadeur (Via Bot)`, 
+          contact: currentData.phone, 
+          full_name: currentData.name,
+          message: `Objectif et Ville/Pays: ${reply}`
+       });
+       setTimeout(() => {
+          setBotMessages(prev => [...prev, { 
+             sender: 'bot', 
+             text: `Merci ! J'ai bien noté votre candidature.\n\nSouhaitez-vous en discuter avec moi sur WhatsApp pour finaliser votre inscription ?`,
+             options: ["Parler à Fanta (WhatsApp)"] 
+          }]);
+          setBotUserData({...currentData, product: 'Ambassadeur'});
+          setBotStep(4);
+       }, 1500);
     }
     else if (botStep === 2.5) {
        saveLead({ source: 'Bot Fanta', intent: `Besoins spécifiques: ${reply}`, contact: currentData.phone, full_name: currentData.name });
@@ -597,7 +621,7 @@ export default function OnyxOpsElite() {
        setTimeout(() => setPartnerStep('dashboard'), 4000);
       } catch (e: any) {
         console.error("ERREUR GLOBALE :", e);
-        alert("Erreur lors de l'enregistrement : " + (e.message || "Erreur inconnue"));
+        alert("Erreur lors de l'enregistrement. Veuillez vérifier votre connexion ou contacter le support. Détails : " + (e.message || "Erreur inconnue"));
      }
 };
 
@@ -1069,8 +1093,8 @@ export default function OnyxOpsElite() {
                         </div>
                         <h3 className={`${spaceGrotesk.className} text-3xl font-black text-white mb-4 uppercase`}>Onyx Modernize</h3>
                         <p className="text-zinc-400 font-medium mb-8 text-sm md:text-base leading-relaxed">Implémentation Système CRM Ventes & Stock sur-mesure. Éliminez le chaos et structurez vos données pour de bon.</p>
-                        <button onClick={() => handleWaClick("Lead High-Ticket", "Je souhaite un audit pour Onyx Modernize.")} className="w-full bg-transparent border-2 border-[#00E5FF] text-[#00E5FF] hover:bg-[#00E5FF] hover:text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-[0_0_20px_rgba(0,229,255,0.1)] flex justify-center items-center gap-2">
-                           Prendre un RDV Audit <ChevronRight size={16}/>
+                        <button onClick={() => router.push('/solutions/onyxmodernize')} className="w-full bg-transparent border-2 border-[#00E5FF] text-[#00E5FF] hover:bg-[#00E5FF] hover:text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-[0_0_20px_rgba(0,229,255,0.1)] flex justify-center items-center gap-2">
+                           Découvrir Onyx Modernize <ChevronRight size={16}/>
                         </button>
                      </div>
 
@@ -1081,8 +1105,8 @@ export default function OnyxOpsElite() {
                         </div>
                         <h3 className={`${spaceGrotesk.className} text-3xl font-black text-white mb-4 uppercase`}>Onyx Boost</h3>
                         <p className="text-zinc-400 font-medium mb-8 text-sm md:text-base leading-relaxed">Stratégie Digitale & Coaching Exécution. Acquérez des clients qui paient. On vous montre exactement la méthode.</p>
-                        <button onClick={() => handleWaClick("Lead High-Ticket", "Je souhaite un RDV pour Onyx Boost.")} className="w-full bg-[#00E5FF] text-black hover:bg-white hover:border-white border-2 border-[#00E5FF] py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-[0_0_30px_rgba(0,229,255,0.3)] flex justify-center items-center gap-2">
-                           Prendre un RDV Croissance <ChevronRight size={16}/>
+                        <button onClick={() => router.push('/solutions/onyxboost')} className="w-full bg-[#00E5FF] text-black hover:bg-white hover:border-white border-2 border-[#00E5FF] py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-[0_0_30px_rgba(0,229,255,0.3)] flex justify-center items-center gap-2">
+                           Découvrir Onyx Boost <ChevronRight size={16}/>
                         </button>
                      </div>
                   </div>

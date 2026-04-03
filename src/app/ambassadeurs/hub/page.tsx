@@ -1,5 +1,307 @@
-import { redirect } from 'next/navigation';
+"use client";
 
-export default function AmbassadeursHubRedirect() {
-  redirect('/ambassadeurs/login');
+import React, { useState } from 'react';
+import { 
+  Copy, CheckCircle, Users, DollarSign, TrendingUp, 
+  LogOut, Link as LinkIcon, Info, ShieldCheck, 
+  ChevronDown, Package, Zap, ArrowRight
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+const spaceGrotesk = { className: "font-sans" };
+
+// --- MOCK DATA : Filleuls ---
+const MOCK_REFERRALS = [
+  { id: 1, date: "03 Avr 2026", shop: "Boutique F***", product: "Onyx CRM", price: 29900, hasCM: true, isMonth1: true, status: "Payé" },
+  { id: 2, date: "28 Mar 2026", shop: "Resto D***", product: "Pack Tekki", price: 22900, hasCM: false, isMonth1: false, status: "Actif" },
+  { id: 3, date: "01 Avr 2026", shop: "Salon M***", product: "Onyx Booking", price: 13900, hasCM: true, isMonth1: true, status: "En attente" },
+  { id: 4, date: "15 Fév 2026", shop: "Agence T***", product: "Pack Onyx Gold", price: 59900, hasCM: false, isMonth1: false, status: "Actif" },
+  { id: 5, date: "10 Jan 2026", shop: "Tontine Q***", product: "Onyx Tontine", price: 6900, hasCM: false, isMonth1: false, status: "Actif" },
+];
+
+// --- CATALOGUE DE TOUS LES PRODUITS ---
+const PRODUCTS_CATALOG = [
+  { category: "📦 Packs SaaS (30% / 10%)", items: [
+    { name: "Pack Tekki", price: 22900, type: "saas" },
+    { name: "Pack Tekki Pro", price: 27900, type: "saas" },
+    { name: "Onyx CRM", price: 29900, type: "saas" },
+    { name: "Pack Onyx Gold", price: 59900, type: "saas" },
+  ]},
+  { category: "🧩 Modules Individuels (30% / 10%)", items: [
+    { name: "Onyx Jaay (Vente)", price: 13900, type: "saas" },
+    { name: "Onyx Menu (Resto)", price: 13900, type: "saas" },
+    { name: "Onyx Booking (Rdv)", price: 13900, type: "saas" },
+    { name: "Onyx Staff (RH)", price: 13900, type: "saas" },
+    { name: "Onyx Stock (Inventaire)", price: 13900, type: "saas" },
+    { name: "Onyx Tiak (Livreurs)", price: 13900, type: "saas" },
+    { name: "Onyx Tontine", price: 6900, type: "saas" },
+  ]},
+  { category: "🚀 Options & High-Ticket (15% / 5%)", items: [
+    { name: "Option CM & Pub", price: 49900, type: "service" },
+    { name: "Onyx Boost (Agence)", price: 150000, type: "service" },
+    { name: "Onyx Modernize (One-Shot)", price: 300000, type: "oneshot" },
+  ]}
+];
+
+export default function AmbassadorHub() {
+  const router = useRouter();
+  const [copied, setCopied] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
+
+  const ambassadorLink = "https://onyxops.com/ref/AMB-DAK-042";
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(ambassadorLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Logique de calcul des commissions (Tableau des filleuls)
+  const calculateCommission = (price: number, hasCM: boolean, isMonth1: boolean) => {
+    const saasRate = isMonth1 ? 0.30 : 0.10;
+    const cmRate = isMonth1 ? 0.15 : 0.05;
+    const cmPrice = 49900;
+    
+    let commission = price * saasRate;
+    if (hasCM) {
+      commission += cmPrice * cmRate;
+    }
+    return Math.round(commission);
+  };
+
+  // Helper pour afficher la commission dans le catalogue
+  const getCatalogCommission = (price: number, type: string) => {
+    if (type === 'saas') {
+      return { m1: Math.round(price * 0.30), rec: Math.round(price * 0.10) };
+    } else if (type === 'service') {
+      return { m1: Math.round(price * 0.15), rec: Math.round(price * 0.05) };
+    } else {
+      return { m1: Math.round(price * 0.15), rec: 0 }; // One-shot
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#050505] text-white font-sans pb-20 selection:bg-[#39FF14] selection:text-black">
+      
+      {/* HEADER NAVBAR */}
+      <header className="bg-black/80 backdrop-blur-md border-b border-zinc-900 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#39FF14] rounded flex items-center justify-center">
+              <Users size={18} className="text-black" />
+            </div>
+            <span className={`${spaceGrotesk.className} font-black text-xl tracking-tighter uppercase`}>
+              Onyx <span className="text-[#39FF14]">Ambassadeur</span>
+            </span>
+          </div>
+          <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs font-bold uppercase transition-colors">
+            <LogOut size={16} /> Quitter
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 pt-10">
+        
+        {/* MESSAGE BIENVENUE & LIEN D'AFFILIATION */}
+        <div className="grid lg:grid-cols-3 gap-6 mb-10">
+          <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/10 rounded-full blur-[80px] pointer-events-none"></div>
+            
+            <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 relative z-10`}>Bonjour, Ibrahima !</h1>
+            <p className="text-zinc-400 font-medium mb-8 relative z-10">Voici votre lien unique. Partagez-le à votre réseau pour générer votre rente passive sur <span className="text-white font-bold">tous nos produits</span>.</p>
+            
+            <div className="bg-black border border-zinc-700 p-2 pl-6 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4 relative z-10">
+              <span className="text-sm font-bold text-white truncate w-full sm:w-auto flex-1">{ambassadorLink}</span>
+              <button 
+                onClick={handleCopy}
+                className="w-full sm:w-auto bg-[#39FF14] text-black px-6 py-3 rounded-lg text-xs font-black uppercase hover:bg-white transition-all flex justify-center items-center gap-2 flex-shrink-0"
+              >
+                {copied ? <><CheckCircle size={16} /> Copié !</> : <><Copy size={16} /> Copier le lien</>}
+              </button>
+            </div>
+          </div>
+
+          {/* KPI RAPIDE */}
+          <div className="bg-[#39FF14] text-black p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(57,255,20,0.15)] flex flex-col justify-center hover:scale-105 transition-transform cursor-pointer">
+            <div className="flex items-center gap-2 mb-4 opacity-80">
+              <DollarSign size={20} />
+              <h3 className="font-black uppercase text-xs tracking-widest">Gains Disponibles</h3>
+            </div>
+            <p className={`${spaceGrotesk.className} text-5xl font-black tracking-tighter`}>84.500 F</p>
+            <button className="mt-6 bg-black text-[#39FF14] w-full py-3 rounded-xl font-black text-xs uppercase hover:bg-zinc-800 transition-colors">
+              Retirer via Wave
+            </button>
+          </div>
+        </div>
+
+        {/* BLOC EXPLICATIF DES TAUX */}
+        <div className="bg-black border border-zinc-800 rounded-[2rem] p-8 mb-10 shadow-lg">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex items-center gap-3">
+              <Info className="text-[#00E5FF]" size={24} />
+              <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase`}>Règles de Rémunération</h2>
+            </div>
+            <button 
+              onClick={() => setShowCatalog(!showCatalog)} 
+              className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors flex items-center gap-2"
+            >
+              <Package size={14}/> {showCatalog ? "Masquer le catalogue" : "Voir tout le catalogue"}
+            </button>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Règle SaaS */}
+            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center relative overflow-hidden group hover:border-[#39FF14]/50 transition-colors">
+              <div className="absolute top-0 right-0 w-1 h-full bg-[#39FF14]"></div>
+              <h3 className="font-black uppercase text-white mb-2 flex items-center gap-2">
+                <ShieldCheck size={18} className="text-[#39FF14]" /> SaaS (Logiciels)
+              </h3>
+              <p className="text-xs text-zinc-400 mb-4 font-medium">S'applique sur tous les modules (Jaay, Menu, Tontine...) et Packs.</p>
+              <div className="flex items-end gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Le 1er Mois (M1)</p>
+                  <p className="text-2xl font-black text-[#39FF14]">30%</p>
+                </div>
+                <div className="h-8 w-px bg-zinc-800"></div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Récurrent à vie</p>
+                  <p className="text-2xl font-black text-white">10%</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Règle Service CM */}
+            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center relative overflow-hidden group hover:border-[#00E5FF]/50 transition-colors">
+              <div className="absolute top-0 right-0 w-1 h-full bg-[#00E5FF]"></div>
+              <h3 className="font-black uppercase text-white mb-2 flex items-center gap-2">
+                <TrendingUp size={18} className="text-[#00E5FF]" /> Option CM / High-Ticket
+              </h3>
+              <p className="text-xs text-zinc-400 mb-4 font-medium">S'applique sur l'Option CM, Onyx Boost et Modernize.</p>
+              <div className="flex items-end gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Le 1er Mois (M1)</p>
+                  <p className="text-2xl font-black text-[#00E5FF]">15%</p>
+                </div>
+                <div className="h-8 w-px bg-zinc-800"></div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Récurrent à vie</p>
+                  <p className="text-2xl font-black text-white">5% <span className="text-[9px] text-zinc-600">(0% sur One-Shot)</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CATALOGUE DÉPLIABLE DES COMMISSIONS */}
+          {showCatalog && (
+            <div className="mt-8 pt-8 border-t border-zinc-800 animate-in slide-in-from-top-4 fade-in">
+              <h3 className="font-black uppercase text-sm tracking-widest text-zinc-400 mb-6">Catalogue des Gains par Produit</h3>
+              <div className="grid md:grid-cols-3 gap-8">
+                {PRODUCTS_CATALOG.map((section, idx) => (
+                  <div key={idx}>
+                    <h4 className="font-bold text-[#39FF14] text-xs mb-4 uppercase tracking-widest">{section.category}</h4>
+                    <ul className="space-y-3">
+                      {section.items.map((item, i) => {
+                        const comms = getCatalogCommission(item.price, item.type);
+                        return (
+                          <li key={i} className="bg-zinc-900 border border-zinc-800 p-3 rounded-xl flex flex-col gap-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-black text-xs text-white">{item.name}</span>
+                              <span className="text-[10px] font-bold text-zinc-500">{item.price.toLocaleString()} F</span>
+                            </div>
+                            <div className="flex justify-between items-center mt-1">
+                              <span className="text-[10px] font-bold text-[#39FF14] bg-[#39FF14]/10 px-2 py-0.5 rounded">M1: +{comms.m1.toLocaleString()} F</span>
+                              {comms.rec > 0 && <span className="text-[10px] font-bold text-zinc-400">Réc: +{comms.rec.toLocaleString()} F</span>}
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* TABLEAU DES FILLEULS */}
+        <div>
+          <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3`}>
+            <LinkIcon className="text-[#39FF14]" size={24} /> Vos Filleuls Actifs
+          </h2>
+          
+          <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-black/50 border-b border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                    <th className="p-6 whitespace-nowrap">Date d'inscription</th>
+                    <th className="p-6 whitespace-nowrap">Boutique</th>
+                    <th className="p-6 whitespace-nowrap">Produit Principal</th>
+                    <th className="p-6 whitespace-nowrap text-center">Add-on CM (+49.9k)</th>
+                    <th className="p-6 whitespace-nowrap">Statut / Période</th>
+                    <th className="p-6 whitespace-nowrap text-right">Commission (Est.)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {MOCK_REFERRALS.map((ref, index) => {
+                    const commission = calculateCommission(ref.price, ref.hasCM, ref.isMonth1);
+                    
+                    return (
+                      <tr key={index} className="hover:bg-zinc-800/30 transition-colors">
+                        <td className="p-6 text-sm font-bold text-zinc-400">{ref.date}</td>
+                        <td className="p-6 text-sm font-black text-white">{ref.shop}</td>
+                        <td className="p-6">
+                          <span className="bg-zinc-800 text-white px-3 py-1 rounded-md text-xs font-bold border border-zinc-700">
+                            {ref.product}
+                          </span>
+                        </td>
+                        <td className="p-6 text-center">
+                          {ref.hasCM ? (
+                            <span className="bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block">
+                              + CM Actif
+                            </span>
+                          ) : (
+                            <span className="text-zinc-600 text-sm font-bold">-</span>
+                          )}
+                        </td>
+                        <td className="p-6">
+                          <div className="flex flex-col">
+                            <span className={`text-xs font-black uppercase flex items-center gap-1 ${ref.status === 'Payé' ? 'text-[#39FF14]' : ref.status === 'Actif' ? 'text-blue-400' : 'text-yellow-500'}`}>
+                              {ref.status === 'Payé' && <CheckCircle size={12} />}
+                              {ref.status}
+                            </span>
+                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">
+                              {ref.isMonth1 ? 'Mois 1 (30%)' : 'Récurrent (10%)'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-6 text-right">
+                          <span className={`${spaceGrotesk.className} text-lg font-black text-[#39FF14]`}>
+                            {commission.toLocaleString()} F
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Empty State Fallback */}
+            {MOCK_REFERRALS.length === 0 && (
+              <div className="p-12 text-center flex flex-col items-center">
+                <Users size={48} className="text-zinc-700 mb-4" />
+                <p className="text-zinc-400 font-bold text-lg mb-2">Aucun filleul pour le moment.</p>
+                <p className="text-zinc-600 text-sm mb-6">Partagez votre lien pour commencer à gagner des commissions.</p>
+                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="bg-white text-black px-6 py-2 rounded-lg font-black text-xs uppercase hover:bg-[#39FF14] transition-colors">
+                  Copier mon lien
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </main>
+    </div>
+  );
 }
