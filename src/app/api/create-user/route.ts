@@ -14,6 +14,14 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request: Request) {
   try {
+    // Vérification de sécurité des variables d'environnement
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: "La clé secrète Supabase Service Role est manquante sur le serveur." },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const { phone, role, fullName } = body;
 
