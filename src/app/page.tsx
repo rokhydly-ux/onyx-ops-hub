@@ -190,6 +190,7 @@ export default function OnyxOpsElite() {
   const [notificationIndex, setNotificationIndex] = useState(0);
   const [showNotification, setShowNotification] = useState(true);
   const [isNotificationDismissed, setIsNotificationDismissed] = useState(false);
+  const [isBotDismissed, setIsBotDismissed] = useState(false);
 
   // WORKFLOW PARTENAIRE
   const [partnerStep, setPartnerStep] = useState<'landing' | 'form' | 'success' | 'dashboard'>('landing');
@@ -651,8 +652,8 @@ export default function OnyxOpsElite() {
       `}} />
 
       {/* MODULE DE NOTIFICATIONS FLOTTANT */}
-      <div className={`fixed bottom-28 md:bottom-8 left-6 z-[100] transition-all duration-500 transform ${showNotification && !isNotificationDismissed ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
-         <div className="bg-white p-3 pr-8 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-start gap-3 max-w-[280px] cursor-pointer hover:scale-105 transition relative" onClick={() => navigateTo('home', 'tarifs')}>
+      <div className={`fixed bottom-24 md:bottom-8 left-4 md:left-6 z-[100] transition-all duration-500 transform ${showNotification && !isNotificationDismissed ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
+         <div className="bg-white p-3 pr-8 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-start gap-3 w-[calc(100vw-2rem)] md:w-auto max-w-[280px] cursor-pointer hover:scale-105 transition relative" onClick={() => navigateTo('home', 'tarifs')}>
             <button 
                onClick={(e) => { e.stopPropagation(); setIsNotificationDismissed(true); }} 
                className="absolute top-2 right-2 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-full p-1 transition-colors"
@@ -816,6 +817,75 @@ export default function OnyxOpsElite() {
               </div>
             </header>
 
+            {/* --- NOUVELLE SECTION ONYXCRM (PLEINE LARGEUR) --- */}
+            <section className="w-full bg-[#050505] py-24 relative overflow-hidden border-y border-zinc-900/50 mt-4 shadow-2xl">
+              {/* Background généré (Grille + Glow) */}
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[500px] bg-gradient-to-r from-[#00E5FF]/20 via-transparent to-[#39FF14]/20 blur-[150px] rounded-full pointer-events-none"></div>
+              
+              <div className="max-w-7xl mx-auto px-6 relative z-10">
+                <div className="text-center max-w-4xl mx-auto mb-16">
+                  <div className="inline-flex items-center gap-2 bg-zinc-900 border border-zinc-800 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm">
+                     <span className="w-2 h-2 rounded-full bg-[#00E5FF] animate-pulse"></span> CRM B2B & VENTES
+                  </div>
+                  <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 text-white leading-tight`}>
+                    OnyxCRM : Le <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00E5FF] to-[#39FF14]">Cerveau Financier</span> de votre Entreprise.
+                  </h2>
+                  <p className="text-zinc-400 text-lg md:text-xl font-bold leading-relaxed max-w-3xl mx-auto">
+                    Bien plus qu'un tracker de leads. Le seul CRM mobile qui gère vos devis, vos marges et votre catalogue automatique.
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                  {/* PUCE 1 */}
+                  <div className="bg-black border border-zinc-800 p-8 rounded-[2rem] hover:border-[#39FF14]/50 transition-all duration-300 shadow-xl hover:shadow-[0_10px_30px_rgba(57,255,20,0.15)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#39FF14]/10 blur-2xl rounded-full group-hover:scale-150 transition-transform"></div>
+                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:scale-110 transition-transform relative z-10">
+                       <span className="text-2xl">📊</span>
+                    </div>
+                    <h3 className="text-white font-black uppercase mb-3 tracking-tight relative z-10">Fidélisation IA Hypersegmentée</h3>
+                    <p className="text-zinc-500 text-sm font-medium leading-relaxed relative z-10">L'IA analyse les achats et relance les bons clients.</p>
+                  </div>
+
+                  {/* PUCE 2 */}
+                  <div className="bg-black border border-zinc-800 p-8 rounded-[2rem] hover:border-[#00E5FF]/50 transition-all duration-300 shadow-xl hover:shadow-[0_10px_30px_rgba(0,229,255,0.15)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#00E5FF]/10 blur-2xl rounded-full group-hover:scale-150 transition-transform"></div>
+                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:scale-110 transition-transform relative z-10">
+                       <span className="text-2xl">💰</span>
+                    </div>
+                    <h3 className="text-white font-black uppercase mb-3 tracking-tight relative z-10">Contrôle des Marges</h3>
+                    <p className="text-zinc-500 text-sm font-medium leading-relaxed relative z-10">Entrez le prix HT, fixez le prix TTC, visualisez votre Marge Nette et CA Potentiel en temps réel.</p>
+                  </div>
+
+                  {/* PUCE 3 */}
+                  <div className="bg-black border border-zinc-800 p-8 rounded-[2rem] hover:border-[#39FF14]/50 transition-all duration-300 shadow-xl hover:shadow-[0_10px_30px_rgba(57,255,20,0.15)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#39FF14]/10 blur-2xl rounded-full group-hover:scale-150 transition-transform"></div>
+                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:scale-110 transition-transform relative z-10">
+                       <span className="text-2xl">📄</span>
+                    </div>
+                    <h3 className="text-white font-black uppercase mb-3 tracking-tight relative z-10">Documents B2B & Catalogues</h3>
+                    <p className="text-zinc-500 text-sm font-medium leading-relaxed relative z-10">Générez devis, factures PDF et catalogues personnalisés en 1 clic.</p>
+                  </div>
+
+                  {/* PUCE 4 */}
+                  <div className="bg-black border border-zinc-800 p-8 rounded-[2rem] hover:border-[#00E5FF]/50 transition-all duration-300 shadow-xl hover:shadow-[0_10px_30px_rgba(0,229,255,0.15)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#00E5FF]/10 blur-2xl rounded-full group-hover:scale-150 transition-transform"></div>
+                    <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:scale-110 transition-transform relative z-10">
+                       <span className="text-2xl">🔄</span>
+                    </div>
+                    <h3 className="text-white font-black uppercase mb-3 tracking-tight relative z-10">Import Odoo & Excel</h3>
+                    <p className="text-zinc-500 text-sm font-medium leading-relaxed relative z-10">Ne perdez pas votre historique, synchronisez tout facilement.</p>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                   <button onClick={() => router.push('/solutions/onyxcrm')} className="inline-flex justify-center items-center gap-3 bg-white text-black px-12 py-6 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)]">
+                     Découvrir la puissance OnyxCRM <ArrowRight size={20} />
+                   </button>
+                </div>
+              </div>
+            </section>
+
             {/* --- SECTION FINI LE BRICOLAGE --- */}
             <section className="py-16 px-6 max-w-6xl mx-auto mb-10">
               <div className="text-center mb-12">
@@ -948,30 +1018,6 @@ export default function OnyxOpsElite() {
                            <p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-4 py-2 rounded-xl inline-block animate-pulse">Redirection vers l'offre...</p>
                         </div>
                      )}
-                  </div>
-               </div>
-            </section>
-
-            {/* --- BANNIÈRE ONYXCRM --- */}
-            <section className="w-full bg-black py-16 relative overflow-hidden mt-10 border-y border-[#39FF14]/20">
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] bg-[#39FF14] opacity-[0.05] blur-[120px] rounded-full pointer-events-none"></div>
-               <div className="max-w-6xl mx-auto px-6 text-center relative z-10">
-                  <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-8 text-white`}>
-                     OnyxCRM : Le <span className="text-[#39FF14]">Cerveau Financier</span> de votre entreprise.
-                  </h2>
-                  <div className="flex flex-wrap justify-center gap-4 md:gap-8">
-                     <span className="bg-zinc-900 border border-zinc-800 text-white font-bold text-sm md:text-base px-6 py-3 rounded-2xl flex items-center gap-3 shadow-lg">
-                        <span className="text-xl">📊</span> Gestion Marge (Prix HT/TTC)
-                     </span>
-                     <span className="bg-zinc-900 border border-zinc-800 text-white font-bold text-sm md:text-base px-6 py-3 rounded-2xl flex items-center gap-3 shadow-lg">
-                        <span className="text-xl">📄</span> Devis & Factures en 1 clic
-                     </span>
-                     <span className="bg-zinc-900 border border-zinc-800 text-white font-bold text-sm md:text-base px-6 py-3 rounded-2xl flex items-center gap-3 shadow-lg">
-                        <span className="text-xl">🤖</span> Fidélisation IA Hypersegmentée
-                     </span>
-                     <span className="bg-zinc-900 border border-zinc-800 text-white font-bold text-sm md:text-base px-6 py-3 rounded-2xl flex items-center gap-3 shadow-lg">
-                        <span className="text-xl">🔄</span> Import Odoo & Excel
-                     </span>
                   </div>
                </div>
             </section>
@@ -1597,6 +1643,10 @@ export default function OnyxOpsElite() {
                              router.push('/solutions/onyx-tiak');
                           } else if (showSaasChoice.id === 'Onyx Menu') {
                              router.push('/solutions/onyx-menu');
+                         } else if (showSaasChoice.id === 'Onyx Formation') {
+                            router.push('/solutions/onyx-formation');
+                         } else if (showSaasChoice.id === 'Pack Onyx CRM' || showSaasChoice.id === 'Onyx CRM') {
+                            router.push('/solutions/onyxcrm');
                           } else {
                              alert("La page détaillée pour ce module sera bientôt disponible !");
                           }
@@ -1850,10 +1900,19 @@ export default function OnyxOpsElite() {
             </div>
           )}
           
-          {!isBotOpen && (
-             <button onClick={() => setIsBotOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative group animate-bounce">
-               <img src="https://i.ibb.co/bRdvjrhV/ONYX-LOGOS-2.png" alt="Conseillère Fanta" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
-             </button>
+          {!isBotOpen && !isBotDismissed && (
+             <div className="relative group animate-bounce">
+               <button 
+                 onClick={(e) => { e.stopPropagation(); setIsBotDismissed(true); }} 
+                 className="absolute -top-1 -right-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-black p-1 rounded-full z-10 transition-colors shadow-sm"
+                 aria-label="Fermer l'assistant"
+               >
+                 <X size={14} />
+               </button>
+               <button onClick={() => setIsBotOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black block">
+                 <img src="https://i.ibb.co/bRdvjrhV/ONYX-LOGOS-2.png" alt="Conseillère Fanta" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+               </button>
+             </div>
           )}
         </div>
 

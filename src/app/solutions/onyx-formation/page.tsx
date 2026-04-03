@@ -20,6 +20,7 @@ export default function OnyxFormationLanding() {
 
   // Configuration Bot Fanta
   const [isBotOpen, setIsBotOpen] = useState(false);
+  const [isBotDismissed, setIsBotDismissed] = useState(false);
   const [userReply, setUserReply] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [botMessages, setBotMessages] = useState<any[]>([
@@ -306,10 +307,19 @@ export default function OnyxFormationLanding() {
           </div>
         )}
         
-        {!isBotOpen && (
-           <button onClick={() => setIsBotOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#D946EF] hover:scale-110 transition-transform bg-black relative group animate-bounce flex items-center justify-center text-2xl">
-             👩🏾‍💻
-           </button>
+        {!isBotOpen && !isBotDismissed && (
+           <div className="relative group animate-bounce flex items-center justify-center">
+             <button 
+               onClick={(e) => { e.stopPropagation(); setIsBotDismissed(true); }} 
+               className="absolute -top-1 -right-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-black p-1 rounded-full z-10 transition-colors shadow-sm"
+               aria-label="Fermer l'assistant"
+             >
+               <X size={14} />
+             </button>
+             <button onClick={() => setIsBotOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#D946EF] hover:scale-110 transition-transform bg-black relative flex items-center justify-center text-2xl">
+               👩🏾‍💻
+             </button>
+           </div>
         )}
       </div>
 
