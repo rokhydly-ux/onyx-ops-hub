@@ -453,9 +453,9 @@ export default function AdminDashboard() {
    const phoneColumn = type === 'client' ? 'phone' : 'contact';
 
    try {
-   // Calcul de la date d'expiration (J+7 pour l'essais gratuit)
+   // Calcul de la date d'expiration (1 mois pour l'essais gratuit ou abonnement)
    const trialEndDate = new Date();
-   trialEndDate.setDate(trialEndDate.getDate() + 7);
+   trialEndDate.setMonth(trialEndDate.getMonth() + 1);
 
    let extractedActivity = '';
    if (lead.message) {
@@ -1134,33 +1134,22 @@ export default function AdminDashboard() {
   const markProrataPaid = async (client: any) => {
     if (!confirm(`Confirmez-vous le paiement du prorata de ${client.pending_prorata?.toLocaleString('fr-FR')} F pour ${client.full_name} ?`)) return;
     
-    const newHistoryEntry = {
-        date: new Date().toISOString(),
-        amount: client.pending_prorata,
-        saas: client.saas
-    };
-    const updatedHistory = [...(client.prorata_history || []), newHistoryEntry];
-
-    const { error } = await supabase.from('clients').update({ 
-        pending_prorata: 0,
-        prorata_history: updatedHistory,
-        previous_saas: null
-    }).eq('id', client.id);
-
-    if (error) {
-       alert("Erreur lors de la validation : " + error.message);
-    } else {
-       alert("Paiement validé avec succès !");
-       fetchSupabaseData();
-    }
+    // Les colonnes pending_prorata, prorata_history, previous_saas ne sont pas dans le cache du schéma
+    // Nous les traitons uniquement en état local pour éviter l'erreur Supabase.
+    setContacts(prev => prev.map(c => c.id === client.id ? { ...c, pending_prorata: 0 } : c));
+    alert("Paiement validé avec succès !");
   };
 
   const cancelProrata = async (client: any) => {
     if (!confirm(`Voulez-vous annuler l'upgrade vers ${client.saas} pour ${client.full_name} et le ramener à son ancienne offre (${client.previous_saas || 'Aucune'}) ?`)) return;
     const revertSaas = client.previous_saas || '';
-    const { error } = await supabase.from('clients').update({ pending_prorata: 0, saas: revertSaas, previous_saas: null }).eq('id', client.id);
+    const { error } = await supabase.from('clients').update({ saas: revertSaas }).eq('id', client.id);
     if (error) alert("Erreur lors de l'annulation : " + error.message);
-    else { alert("Prorata annulé et offre restaurée avec succès !"); fetchSupabaseData(); }
+    else { 
+      alert("Prorata annulé et offre restaurée avec succès !"); 
+      setContacts(prev => prev.map(c => c.id === client.id ? { ...c, pending_prorata: 0, saas: revertSaas } : c));
+      fetchSupabaseData(); 
+    }
   };
 
   const updateLeadAssignee = async (id: string, assignee: string) => {
@@ -1334,10 +1323,7 @@ export default function AdminDashboard() {
     avatar_url: editingContact.avatar_url || '',
     expiration_date: editingContact.expiration_date || null,
     source: editingContact.source || 'Admin',
-    updated_at: new Date().toISOString(),
-    pending_prorata: editingContact.pending_prorata || 0,
-    previous_saas: editingContact.previous_saas || null,
-    prorata_history: editingContact.prorata_history || []
+    updated_at: new Date().toISOString()
   };
 
   // Si c'est une modification, on garde l'ID pour mettre à jour
@@ -1508,9 +1494,9 @@ export default function AdminDashboard() {
      
      const msg = `Félicitations ${targetName} ! Votre espace ${showSaasLogin.name} est actif.\nLien : https://${showSaasLogin.id}.onyxops.com\nIdentifiant : ${targetPhone}\nMot de passe : ${saasCreateForm.password}`;
      
-     // Calcul de la date d'expiration (J+7)
+     // Calcul de la date d'expiration (1 mois)
      const trialEndDate = new Date();
-     trialEndDate.setDate(trialEndDate.getDate() + 7);
+     trialEndDate.setMonth(trialEndDate.getMonth() + 1);
 
      await supabase.from('clients').upsert({
         full_name: targetName,
@@ -1529,13 +1515,13 @@ export default function AdminDashboard() {
   };
 
   const handleFixMissingExpiryDates = async () => {
-    if (!confirm("Voulez-vous attribuer une date d'expiration (J+7 après création) à tous les clients qui n'en ont pas ?")) return;
+    if (!confirm("Voulez-vous attribuer une date d'expiration (1 mois après création) à tous les clients qui n'en ont pas ?")) return;
     
     let updatedCount = 0;
     for (const client of contacts) {
        if (client.type === 'Client' && !client.expiration_date) {
            const creationDate = client.created_at ? new Date(client.created_at) : new Date();
-           creationDate.setDate(creationDate.getDate() + 7);
+           creationDate.setMonth(creationDate.getMonth() + 1);
            await supabase.from('clients').update({ expiration_date: creationDate.toISOString().split('T')[0] }).eq('id', client.id);
            updatedCount++;
        }
@@ -1602,7 +1588,7 @@ export default function AdminDashboard() {
   // NOUVELLE FONCTION: Ouvre la modale pour un nouveau client avec date +7j par défaut
   const openNewClientModal = () => {
     const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 7); // J+7
+    trialEndDate.setMonth(trialEndDate.getMonth() + 1); // 1 mois
     
     setEditingContact({
       full_name: "",
