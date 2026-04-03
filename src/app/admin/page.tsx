@@ -11,7 +11,7 @@ import {
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   TrendingUp, ChevronDown, ChevronLeft, ChevronRight, Send, Download, Layers, ExternalLink, DollarSign,
-  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon, Truck, Minus
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon, Truck, Minus, ClipboardList
 } from "lucide-react";
 
 import * as XLSX from 'xlsx';
@@ -784,10 +784,13 @@ export default function AdminDashboard() {
           <body>
             <div class="invoice-box">
               <div class="header">
-                <div>
-                  <h1>FACTURE D'ACOMPTE</h1>
-                  <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #39FF14;">ONYX OPS</p>
-                </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                      <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="OnyxOps Logo" style="height: 40px; width: auto;" />
+                      <div>
+                        <h1>FACTURE D'ACOMPTE</h1>
+                        <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #39FF14;">ONYX OPS</p>
+                      </div>
+                    </div>
                 <div style="text-align: right;">
                   <p style="margin: 0; font-size: 14px;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
                   <p style="margin: 0; font-size: 14px;"><strong>Réf:</strong> AC-${Date.now().toString().slice(-6)}</p>
@@ -845,6 +848,119 @@ export default function AdminDashboard() {
 
     setTimeout(() => {
       const msg = `Bonjour ${lead.full_name},\n\nVoici votre facture d'acompte (${montant} F CFA) pour le démarrage de l'offre ${lead.saas || 'Onyx'}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxops.com/acompte\n\nMerci de votre confiance !`;
+      window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+    }, 500);
+  };
+
+  const generateDevis = (lead: any) => {
+    const saasPriceMap: any = {
+       'Onyx Jaay': 13900,
+       'Pack Tekki': 22900,
+       'Pack Tekki Pro': 27900,
+       'Onyx CRM': 39900,
+       'Pack Onyx CRM': 39900,
+       'Pack Onyx Gold': 59900,
+       'Add-on CM Pub': 49900,
+       'Onyx Boost': 150000,
+       'Onyx Modernize': 300000
+    };
+    
+    const monthly = saasPriceMap[lead.saas] || 13900;
+    const isOneShot = lead.saas === 'Onyx Modernize' || lead.saas === 'Onyx Boost';
+    
+    const total = isOneShot ? monthly : (monthly * 12);
+    const designation = isOneShot ? `Prestation Globale - ${lead.saas}` : `Abonnement Annuel (12 mois) - ${lead.saas || 'Offre Onyx'}`;
+    const totalStr = total.toLocaleString('fr-FR') + ' F CFA';
+
+    const invoiceWindow = window.open("", "_blank");
+    if (invoiceWindow) {
+      invoiceWindow.document.write(`
+        <html>
+          <head>
+            <title>Devis Global - ${lead.full_name}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
+              .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+              .header h1 { font-size: 32px; font-weight: 900; margin: 0; text-transform: uppercase; }
+              .info-section { display: flex; justify-content: space-between; margin-bottom: 40px; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+              .info-box h3 { font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 5px; }
+              .info-box p { margin: 4px 0; font-size: 14px; font-weight: bold; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+              th { background-color: #000; color: #fff; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+              td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+              .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+              .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
+              .footer { clear: both; text-align: center; padding-top: 40px; font-size: 12px; color: #aaa; }
+            </style>
+          </head>
+          <body>
+            <div class="invoice-box">
+              <div class="header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                  <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="OnyxOps Logo" style="height: 40px; width: auto;" />
+                  <div>
+                    <h1>DEVIS GLOBAL</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #39FF14;">ONYX OPS</p>
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <p style="margin: 0; font-size: 14px;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+                  <p style="margin: 0; font-size: 14px;"><strong>Réf:</strong> DEV-${Date.now().toString().slice(-6)}</p>
+                </div>
+              </div>
+              
+              <div class="info-section">
+                <div class="info-box">
+                  <h3>Adressé à</h3>
+                  <p>${lead.full_name}</p>
+                  <p>${lead.phone}</p>
+                </div>
+                <div class="info-box" style="text-align: right;">
+                  <h3>Informations de paiement</h3>
+                  <p>Validité du devis : 30 jours</p>
+                  <p>Wave / OM / Virement Bancaire</p>
+                </div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Désignation</th>
+                    <th style="text-align: center;">Qté</th>
+                    <th style="text-align: right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>${designation}</td>
+                    <td style="text-align: center;">1</td>
+                    <td style="text-align: right;">${totalStr}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="totals">
+                <div class="total-row">
+                  <span>NET À PAYER</span>
+                  <span>${totalStr}</span>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <p>Merci pour votre confiance !</p>
+                <p>Ceci est un document généré électroniquement par OnyxOps.</p>
+              </div>
+            </div>
+            <script>window.print();</script>
+          </body>
+        </html>
+      `);
+      invoiceWindow.document.close();
+    }
+
+    setTimeout(() => {
+      const msg = `Bonjour ${lead.full_name},\n\nVoici votre devis global pour l'offre ${lead.saas || 'Onyx'} (Montant total : ${totalStr}).\n\nN'hésitez pas si vous avez des questions pour valider votre déploiement !\n\nL'équipe OnyxOps.`;
       window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     }, 500);
   };
@@ -2436,6 +2552,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="p-5 lg:p-6 text-right space-x-2 lg:space-x-4">
                           <button onClick={() => generateAcompte(c)} className="p-3 lg:p-4 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Générer Facture Acompte"><FileText size={18} className="lg:w-5 lg:h-5"/></button>
+                          <button onClick={() => generateDevis(c)} className="p-3 lg:p-4 text-zinc-400 hover:text-purple-500 hover:bg-purple-50 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Générer Devis Global"><ClipboardList size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-3 lg:p-4 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-xl lg:rounded-2xl transition-all shadow-sm"><Edit3 size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => handleDeleteItem('clients', c.id)} className="p-3 lg:p-4 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl lg:rounded-2xl transition-all"><Trash2 size={18} className="lg:w-5 lg:h-5"/></button>
                         </td>
@@ -2584,9 +2701,12 @@ export default function AdminDashboard() {
                                        >
                                           {KANBAN_COLS.map(kCol => <option key={kCol} value={kCol}>{kCol}</option>)}
                                        </select>
-                                       <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                                          <button onClick={() => generateAcompte(c)} className="w-full text-[10px] font-black uppercase text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 py-2 rounded-xl transition-colors flex items-center justify-center gap-2">
-                                             <FileText size={12}/> Facture Acompte
+                                       <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex gap-2">
+                                          <button onClick={() => generateAcompte(c)} className="flex-1 text-[10px] font-black uppercase text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5" title="Générer Acompte">
+                                             <FileText size={12}/> Acompte
+                                          </button>
+                                          <button onClick={() => generateDevis(c)} className="flex-1 text-[10px] font-black uppercase text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5" title="Générer Devis">
+                                             <ClipboardList size={12}/> Devis
                                           </button>
                                        </div>
                                     </div>
