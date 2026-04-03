@@ -53,7 +53,7 @@ type Contact = {
 };
 
 type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "logistics" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht" | "withdrawals";
-type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
+type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string; contactId?: string };
 
 const AVAILABLE_MODULES = [
   { id: 'vente', name: 'Onyx Jaay' },
@@ -347,9 +347,9 @@ export default function AdminDashboard() {
      
      if (contactsData) setContacts(contactsData);
      if (leadsData) {
-       const normalizePhone = (p: string) => (p || '').replace(/\s+/g, '').replace(/^\+221/, '');
+       const normalizePhone = (p: string) => (p || '').replace(/\s+/g, '').replace(/^\+?221/, '');
        const activeLeads = leadsData.filter(lead => {
-           const isPendingOrNew = lead.status === 'En attente' || lead.status === 'Nouveau' || lead.status === 'Nouveau Lead' || !lead.status;
+           const isPendingOrNew = ['En attente', 'Nouveau', 'Nouveau Lead'].includes(lead.status) || !lead.status;
            const notInContacts = !contactsData?.some(c => normalizePhone(c.phone) === normalizePhone(lead.phone));
            const notInPartners = !partnersData?.some(p => normalizePhone(p.contact || p.phone) === normalizePhone(lead.phone));
            return isPendingOrNew && notInContacts && notInPartners;
@@ -501,10 +501,11 @@ export default function AdminDashboard() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const suggestions: any[] = [];
-    const plannedContactIds = new Set(plannedEvents.map(e => e.contactId));
+    const plannedContactIds = new Set(actionsIA.map(a => a.contactId));
 
     contacts.forEach(contact => {
         if (plannedContactIds.has(contact.id)) return;
+        if (contact.type !== 'Client') return;
 
         const totalSpent = (contact as any).totalSpent || 0;
         const ordersCount = (contact as any).ordersCount || 0;
@@ -556,6 +557,30 @@ export default function AdminDashboard() {
                 description: 'Client dans la restauration sans le module Onyx Menu.',
                 msg: `Bonjour ${contact.full_name}, pour votre restaurant, découvrez Onyx Menu : un menu QR interactif pour vos clients !`
             });
+        } else if (contact.saas === 'Pack Tekki' && !contact.active_saas?.includes('formation')) {
+            suggestions.push({
+                id: `ia-upsell-tekkipro-${contact.id}`,
+                contactId: contact.id,
+                clientName: contact.full_name,
+                clientPhone: contact.phone,
+                type: 'upsell',
+                title: `Upsell Tekki Pro : ${contact.full_name}`,
+                description: 'Le client utilise Pack Tekki. Proposez Tekki Pro pour inclure la formation marketing.',
+                msg: `Bonjour ${contact.full_name}, pour passer à la vitesse supérieure, le Pack Tekki Pro inclut notre académie marketing complète !`
+            });
+        } else if (contact.activity?.toLowerCase().includes('coiffure') || contact.activity?.toLowerCase().includes('beauté') || contact.activity?.toLowerCase().includes('salon')) {
+           if (contact.saas !== 'Onyx Booking' && !contact.active_saas?.includes('booking')) {
+              suggestions.push({
+                  id: `ia-upsell-booking-${contact.id}`,
+                  contactId: contact.id,
+                  clientName: contact.full_name,
+                  clientPhone: contact.phone,
+                  type: 'upsell',
+                  title: `Proposer Onyx Booking : ${contact.full_name}`,
+                  description: 'Client dans les services sans le module Booking.',
+                  msg: `Bonjour ${contact.full_name}, gagnez du temps en permettant à vos clients de prendre RDV en ligne avec paiement d'acompte grâce à Onyx Booking !`
+              });
+           }
         }
     });
 
@@ -701,7 +726,7 @@ export default function AdminDashboard() {
     if(phone && msg) window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     if (idIA) {
       setActionsIA(prev => {
-        const updated = prev.filter(a => a.id !== idIA);
+        const updated = prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a);
         localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
         return updated;
       });
@@ -1340,6 +1365,11 @@ export default function AdminDashboard() {
     console.error('Erreur Supabase:', error);
     alert("Erreur Supabase: " + error.message);
     return; 
+  }
+
+  // SUPPRIMER LE LEAD ASSOCIÉ POUR NETTOYER L'INBOX
+  if (phoneClean) {
+    await supabase.from('leads').delete().eq('phone', phoneClean);
   }
 
   setShowContactModal(false);
@@ -2385,11 +2415,11 @@ export default function AdminDashboard() {
                  <div className="bg-zinc-900 p-5 lg:p-12 rounded-3xl shadow-2xl border border-zinc-800 relative overflow-hidden flex flex-col h-full">
                     <div className="absolute top-0 right-0 p-12 opacity-[0.03] text-[#39FF14] pointer-events-none"><Sparkles size={120}/></div>
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-6 mb-10 relative z-10">
-                       <h3 className="font-black uppercase text-base text-white tracking-tighter flex items-center gap-4"><Sparkles className="text-[#39FF14] shadow-[0_0_10px_#39FF14]"/> Planificateur IA</h3>
+                       <h3 className="font-black uppercase text-base text-white tracking-tighter flex items-center gap-4"><Calendar className="text-[#39FF14] shadow-[0_0_10px_#39FF14]"/> Actions Planifiées</h3>
                        <span className="text-[10px] font-black text-zinc-400 uppercase bg-zinc-800/80 px-4 py-2 rounded-xl border border-zinc-700 w-max">{actionsIA.filter(a => a.status === 'En attente' || a.status === 'En cours').length} tâches actives</span>
                     </div>
                     <div className="space-y-4 relative z-10 flex-1">
-                       {actionsIA.slice(0, 8).map(action => (
+                       {actionsIA.filter(a => a.status !== 'Réalisé').slice(0, 8).map(action => (
                           <div key={action.id} className="bg-zinc-800/40 backdrop-blur-md p-5 lg:p-6 rounded-[2.5rem] border border-zinc-800 flex flex-col xl:flex-row justify-between xl:items-center gap-6 group hover:bg-zinc-800 hover:border-zinc-700 transition-all">
                              <div>
                                 <p className="text-[9px] font-black text-[#39FF14] uppercase mb-1.5 tracking-[0.2em] flex items-center gap-2">
@@ -3637,7 +3667,7 @@ export default function AdminDashboard() {
                                 </div>
                                 <button onClick={() => {
                                     const newAction: IAAction = {
-                                        id: s.id, module: 'Marketing', title: s.title, desc: s.description, date: todayStr, status: 'En attente', phone: s.clientPhone, msg: s.msg
+                                        id: s.id, module: 'Marketing', title: s.title, desc: s.description, date: todayStr, status: 'En attente', phone: s.clientPhone, msg: s.msg, contactId: s.contactId
                                     };
                                     setActionsIA(prev => {
                                         const updated = [newAction, ...prev];
