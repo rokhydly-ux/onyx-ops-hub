@@ -818,18 +818,18 @@ export default function OnyxOpsElite() {
             </header>
 
             {/* --- SECTION ONYXCRM (PLEINE LARGEUR) --- */}
-            <section className="w-full bg-[#050505] py-24 relative mt-10">
+            <section className="w-full bg-[#050505] py-16 md:py-24 relative mt-10 overflow-hidden">
               <div className="max-w-7xl mx-auto px-6 relative z-10">
                 <div className="text-center max-w-3xl mx-auto mb-16">
-                  <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 text-white leading-tight`}>
+                  <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 text-white leading-tight`}>
                     OnyxCRM : Le Cerveau Financier de votre Entreprise.
                   </h2>
-                  <p className="text-zinc-400 text-lg md:text-xl font-medium leading-relaxed">
+                  <p className="text-zinc-400 text-base md:text-xl font-medium leading-relaxed">
                     Le seul CRM mobile qui gère vos devis, vos marges et votre catalogue produit automatisé.
                   </p>
                 </div>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
                   <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl text-left hover:border-zinc-600 transition-colors">
                     <div className="text-3xl mb-4">💰</div>
                     <h3 className="text-white font-black uppercase text-sm mb-2">Contrôle des Marges</h3>
@@ -926,7 +926,7 @@ export default function OnyxOpsElite() {
 
                 {/* ADD-ON SWITCH */}
                 <div className="flex justify-center mb-12">
-                   <div className={`bg-zinc-900 border p-4 rounded-2xl flex flex-col md:flex-row items-center gap-6 transition-all duration-500 ${quizResult && quizResult.packId === 'agence' ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-zinc-800 shadow-xl'}`}>
+                   <div className={`bg-zinc-900 border p-4 rounded-2xl flex flex-col md:flex-row items-center gap-6 transition-all duration-500 ${(quizResult && quizResult.packId === 'agence') || addonCm ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-[1.02] md:scale-105' : 'border-zinc-800 shadow-xl'}`}>
                       <div className="text-left">
                          <p className="font-black text-white text-sm uppercase">Activer le Service CM & Pub <span className="text-[#39FF14] bg-[#39FF14]/10 px-2 py-1 rounded ml-2">+49 900 F/mois</span></p>
                          <p className="text-xs text-zinc-400 font-medium mt-1">Nous gérons vos pubs et vos contenus.</p>

@@ -45,7 +45,7 @@ type Contact = {
   activity?: string;
 };
 
-type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help";
+type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht";
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
 
 const AVAILABLE_MODULES = [
@@ -58,21 +58,15 @@ const AVAILABLE_MODULES = [
 ];
 
 const ECOSYSTEM_SAAS = [
-  // LES SAAS INDIVIDUELS
-  { id: "vente", name: "Onyx Jaay", desc: "Boutique & Catalogue", price: "13 900 F", link: "/admin/saas/vente", color: "bg-green-500" },
-  { id: "stock", name: "Onyx Stock", desc: "Gestion d'inventaire", price: "13 900 F", link: "/admin/saas/stock", color: "bg-blue-500" },
-  { id: "tiak", name: "Onyx Tiak", desc: "Logistique & Livreurs", price: "13 900 F", link: "/admin/saas/tiak", color: "bg-orange-500" },
+  { id: "jaay", name: "Onyx Jaay", desc: "Boutique & Catalogue", price: "13 900 F", link: "/admin/saas/vente", color: "bg-green-500" },
   { id: "staff", name: "Onyx Staff", desc: "RH & Plannings", price: "13 900 F", link: "/admin/saas/staff", color: "bg-cyan-500" },
-  { id: "menu", name: "Onyx Menu", desc: "QR Code & Resto", price: "13 900 F", link: "/admin/saas/menu", color: "bg-yellow-500" },
-  { id: "booking", name: "Onyx Booking", desc: "Réservations & RDV", price: "13 900 F", link: "/admin/saas/booking", color: "bg-pink-500" },
-  { id: "formation", name: "Onyx Formation", desc: "Académie Marketing", price: "13 900 F", link: "/admin/saas/formation", color: "bg-purple-500" },
-  { id: "tontine", name: "Onyx Tontine", desc: "Finance & Épargne", price: "6 900 F", link: "/admin/saas/tontine", color: "bg-teal-500" },
-  
-  // LES PACKS (NOUVEAUX)
   { id: "tekki", name: "Pack Tekki", desc: "Jaay + Stock + Tiak", price: "22 900 F", link: "/admin/saas/onyx-tekki", color: "bg-emerald-600" },
-  { id: "tekki-pro", name: "Pack Tekki Pro", desc: "Tekki + Staff + Formation", price: "27 900 F", link: "/admin/saas/onyx-tekki-pro", color: "bg-emerald-500" },
-  { id: "crm", name: "Pack Onyx CRM", desc: "CRM B2B + Booking", price: "39 900 F", link: "/admin/saas/onyx-crm", color: "bg-green-400" },
-  { id: "gold", name: "Pack Onyx Gold", desc: "L'Arsenal Complet VIP", price: "59 900 F", link: "/admin/saas/onyx-gold", color: "bg-lime-400" }
+  { id: "tekkipro", name: "Pack Tekki Pro", desc: "Tekki + Staff + Formation", price: "27 900 F", link: "/admin/saas/onyx-tekki-pro", color: "bg-emerald-500" },
+  { id: "crm", name: "Onyx CRM", desc: "CRM B2B + Booking", price: "39 900 F", link: "/admin/saas/onyx-crm", color: "bg-green-400" },
+  { id: "gold", name: "Pack Onyx Gold", desc: "L'Arsenal Complet VIP", price: "59 900 F", link: "/admin/saas/onyx-gold", color: "bg-lime-400" },
+  { id: "cmpub", name: "Add-on CM Pub", desc: "Création de contenu", price: "49 900 F", link: "/admin/saas/cm-pub", color: "bg-purple-500" },
+  { id: "boost", name: "Onyx Boost", desc: "Stratégie Digitale", price: "Sur Devis", link: "/admin/saas/boost", color: "bg-blue-500" },
+  { id: "modernize", name: "Onyx Modernize", desc: "Implémentation VIP", price: "Sur Devis", link: "/admin/saas/modernize", color: "bg-orange-500" }
 ];
 
 export default function AdminDashboard() {
@@ -566,6 +560,12 @@ export default function AdminDashboard() {
     const { error } = await supabase.from('leads').delete().eq('id', id);
     if (error) alert("Erreur : " + error.message);
     else { fetchSupabaseData(); setLeadActionsOpen(null); }
+  };
+
+  const updateKanbanStatus = async (id: string, newStatus: string) => {
+     const { error } = await supabase.from('clients').update({ status: newStatus }).eq('id', id);
+     if (error) alert(error.message);
+     else fetchSupabaseData();
   };
 
   const getLeadPriorityActions = (lead: any) => {
@@ -1238,6 +1238,8 @@ export default function AdminDashboard() {
           <div>
             <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] mb-4 pl-4">Stratégie & Ventes</p>
             <nav className="space-y-1">
+               <button onClick={() => setActiveView('bi')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'bi' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}><Activity size={20} /> Business Intelligence</button>
+               <button onClick={() => setActiveView('kanban-ht')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'kanban-ht' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}><Layers size={20} /> Kanban High-Ticket</button>
             <button onClick={() => setActiveView('marketing')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}>
               <Megaphone size={20} /> Marketing & Blog
 </button>
@@ -1302,6 +1304,8 @@ export default function AdminDashboard() {
                   <div>
                     <p className="text-[10px] font-black uppercase text-zinc-300 tracking-[0.2em] mb-4 pl-4">Stratégie & Ventes</p>
                     <nav className="space-y-1">
+                      <button onClick={() => { setActiveView('bi'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'bi' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}><Activity size={20} /> Business Intelligence</button>
+                      <button onClick={() => { setActiveView('kanban-ht'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'kanban-ht' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}><Layers size={20} /> Kanban High-Ticket</button>
                       <button onClick={() => { setActiveView('marketing'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'marketing' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}><Megaphone size={20} /> Marketing & Blog</button>
                       <button onClick={() => { setShowRapportIA(true); setIsMobileMenuOpen(false); }} className="w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold text-zinc-500 hover:bg-zinc-100 hover:text-black transition-all"><Sparkles size={20} className="text-[#39FF14]" /> Scan Intelligence</button>
                       <button onClick={() => { setActiveView('journal-ia' as ViewType); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-[1.25rem] text-sm font-bold transition-all ${activeView === 'journal-ia' ? 'bg-black text-[#39FF14] shadow-2xl translate-x-1' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black'}`}><FileText size={20} /> Journal & Actions IA</button>
@@ -1975,6 +1979,131 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* ================= VUE BUSINESS INTELLIGENCE ================= */}
+          {activeView === 'bi' && (() => {
+             const saasCount = contacts.filter(c => c.type === 'Client' && c.saas && !['Add-on CM Pub', 'Onyx Boost', 'Onyx Modernize'].includes(c.saas)).length;
+             const cmCount = contacts.filter(c => c.type === 'Client' && c.saas === 'Add-on CM Pub').length;
+             const saasData = [{ name: 'Vendus', value: saasCount, fill: '#39FF14' }, { name: 'Restant', value: Math.max(15 - saasCount, 0), fill: '#27272a' }];
+             const cmData = [{ name: 'Vendus', value: cmCount, fill: '#00E5FF' }, { name: 'Restant', value: Math.max(3 - cmCount, 0), fill: '#27272a' }];
+             const mrrGoal = 500000;
+             
+             return (
+               <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1200px] mx-auto">
+                  <div className="flex items-center gap-6 bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                     <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#39FF14] shadow-lg shrink-0"><Activity size={32}/></div>
+                     <div>
+                        <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter`}>Business Intelligence</h2>
+                        <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Objectifs & Prévisions (Année 1)</p>
+                     </div>
+                  </div>
+  
+                  <div className="grid md:grid-cols-2 gap-8">
+                     <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col items-center">
+                        <h3 className="font-black uppercase text-lg mb-6">Objectif Ventes SaaS</h3>
+                        <div className="h-48 w-full relative">
+                           <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                 <Pie data={saasData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} dataKey="value" startAngle={90} endAngle={-270} stroke="none" />
+                                 <Tooltip contentStyle={{ backgroundColor: '#000', borderRadius: '10px', border: 'none', color: '#fff' }} />
+                              </PieChart>
+                           </ResponsiveContainer>
+                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <span className="text-3xl font-black">{saasCount}/15</span>
+                           </div>
+                        </div>
+                     </div>
+  
+                     <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col items-center">
+                        <h3 className="font-black uppercase text-lg mb-6">Objectif Options CM & Pub</h3>
+                        <div className="h-48 w-full relative">
+                           <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                 <Pie data={cmData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} dataKey="value" startAngle={90} endAngle={-270} stroke="none" />
+                                 <Tooltip contentStyle={{ backgroundColor: '#000', borderRadius: '10px', border: 'none', color: '#fff' }} />
+                              </PieChart>
+                           </ResponsiveContainer>
+                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <span className="text-3xl font-black">{cmCount}/3</span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+  
+                  <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                     <h3 className="font-black uppercase text-lg mb-6">MRR Tracker (Revenu Mensuel Récurrent)</h3>
+                     <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+                        <div className="bg-zinc-50 dark:bg-zinc-800 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex-1 text-center w-full">
+                           <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-2">MRR Actuel</p>
+                           <p className="text-4xl font-black text-[#39FF14]">{stats.revenue.toLocaleString()} F</p>
+                        </div>
+                        <div className="bg-zinc-50 dark:bg-zinc-800 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex-1 text-center w-full">
+                           <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-2">Objectif Mensuel</p>
+                           <p className="text-4xl font-black text-black dark:text-white">{mrrGoal.toLocaleString()} F</p>
+                        </div>
+                     </div>
+                     <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-6 rounded-full overflow-hidden relative shadow-inner">
+                        <div className="h-full bg-black dark:bg-[#39FF14] transition-all duration-1000" style={{ width: `${Math.min((stats.revenue / mrrGoal) * 100, 100)}%` }}></div>
+                     </div>
+                     <p className="text-right text-xs font-bold text-zinc-400 mt-2">{Math.round((stats.revenue / mrrGoal) * 100)}% atteint</p>
+                  </div>
+               </div>
+             );
+          })()}
+
+          {/* ================= VUE KANBAN HIGH-TICKET ================= */}
+          {activeView === 'kanban-ht' && (() => {
+             const KANBAN_COLS = ['Nouveau Lead', 'Audit en cours', 'Contrat Envoyé', 'Signé'];
+             const htContacts = contacts.filter(c => ['Onyx Boost', 'Onyx Modernize'].includes(c.saas || ''));
+             
+             return (
+               <div className="space-y-8 animate-in fade-in slide-in-from-right-6 max-w-[1600px] mx-auto h-full flex flex-col">
+                  <div className="flex items-center gap-6 bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0">
+                     <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#00E5FF] shadow-lg shrink-0"><Layers size={32}/></div>
+                     <div>
+                        <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter`}>Pipeline High-Ticket</h2>
+                        <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Onyx Boost & Onyx Modernize</p>
+                     </div>
+                  </div>
+  
+                  <div className="flex gap-6 overflow-x-auto pb-6 flex-1 items-start custom-scrollbar">
+                     {KANBAN_COLS.map(col => {
+                        const colContacts = htContacts.filter(c => (c.status === col) || (col === 'Nouveau Lead' && !KANBAN_COLS.includes(c.status || '')));
+                        return (
+                           <div key={col} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 w-80 shrink-0 flex flex-col max-h-[70vh]">
+                              <div className="flex justify-between items-center mb-4 px-2">
+                                 <h3 className="font-black uppercase text-sm">{col}</h3>
+                                 <span className="bg-black dark:bg-zinc-800 text-[#39FF14] text-[10px] font-black px-2 py-1 rounded-lg">{colContacts.length}</span>
+                              </div>
+                              <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
+                                 {colContacts.map(c => (
+                                    <div key={c.id} className="bg-white dark:bg-black p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 hover:border-black transition-colors group">
+                                       <div className="flex justify-between items-start mb-2">
+                                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${c.saas === 'Onyx Modernize' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>{c.saas}</span>
+                                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="text-zinc-300 hover:text-black dark:hover:text-white"><Edit3 size={14}/></button>
+                                       </div>
+                                       <p className="font-black text-sm uppercase truncate mb-1">{c.full_name}</p>
+                                       <p className="text-[10px] font-bold text-zinc-500 mb-3">{c.phone}</p>
+                                       <select 
+                                         value={c.status || 'Nouveau Lead'}
+                                         onChange={(e) => updateKanbanStatus(c.id, e.target.value)}
+                                         className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[10px] font-bold p-2 rounded-xl outline-none focus:border-black dark:focus:border-white cursor-pointer"
+                                       >
+                                          {KANBAN_COLS.map(kCol => <option key={kCol} value={kCol}>{kCol}</option>)}
+                                       </select>
+                                    </div>
+                                 ))}
+                                 {colContacts.length === 0 && (
+                                    <div className="p-4 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Vide</div>
+                                 )}
+                              </div>
+                           </div>
+                        );
+                     })}
+                  </div>
+               </div>
+             );
+          })()}
 
           {/* ================= VUE FINANCES (FULL) ================= */}
           {activeView === 'finance' && (
