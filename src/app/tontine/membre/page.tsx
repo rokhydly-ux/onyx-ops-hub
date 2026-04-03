@@ -7,7 +7,7 @@ import {
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
   ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal, MessageCircle, PartyPopper,
-  Camera, Save, Loader2, Phone, KeyRound, Wand2, Clock
+  Camera, Save, Loader2, Phone, KeyRound, Wand2, Clock, Send
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 
@@ -59,6 +59,7 @@ function TontineMembreDashboard() {
   const [countdownText, setCountdownText] = useState("");
   const [isUrgent, setIsUrgent] = useState(false);
   const [isSignalingPayment, setIsSignalingPayment] = useState(false);
+  const [suggestedMemberId, setSuggestedMemberId] = useState("");
 
   useEffect(() => {
     const target = currentDrawConfig?.date_tirage_prevue 
@@ -337,6 +338,20 @@ function TontineMembreDashboard() {
     } finally {
         setIsSignalingPayment(false);
     }
+  };
+
+  const handleSuggestNextMaster = () => {
+    if (!suggestedMemberId) return;
+    const suggested = members.find(m => m.id === suggestedMemberId);
+    const admin = members.find(m => m.is_admin);
+    
+    if (!admin || !admin.telephone) {
+        alert("Aucun administrateur avec un numéro de téléphone valide n'a été trouvé.");
+        return;
+    }
+
+    const message = `Bonjour ${admin.prenom_nom},\n\nEn tant que gagnant(e) précédent(e) de la tontine "${tontine?.nom}", je suggère de désigner *${suggested?.prenom_nom}* comme Maître du Jeu pour lancer le prochain tirage. 🎲`;
+    window.open(`https://wa.me/221${admin.telephone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const executeMemberDraw = async () => {
@@ -836,6 +851,38 @@ function TontineMembreDashboard() {
                         </p>
                     </div>
             </section>
+
+            {/* NOUVEAU: SUGGESTION POUR LES GAGNANTS */}
+            {currentUser.a_gagne && (
+                <section className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-bottom-4">
+                    <div>
+                        <h3 className={`${spaceGrotesk.className} font-black uppercase text-sm mb-1 flex items-center gap-2 text-black`}>
+                            <PartyPopper size={18} className="text-yellow-500"/>
+                            Privilège de Gagnant
+                        </h3>
+                        <p className="text-xs text-zinc-500 font-medium">Suggérez à l'administrateur qui devrait lancer le prochain tirage.</p>
+                    </div>
+                    <div className="flex w-full sm:w-auto gap-2">
+                        <select 
+                            value={suggestedMemberId}
+                            onChange={(e) => setSuggestedMemberId(e.target.value)}
+                            className="p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold outline-none focus:border-black flex-1 sm:w-48 cursor-pointer"
+                        >
+                            <option value="">-- Choisir un membre --</option>
+                            {members.filter(m => !m.a_gagne).map(m => (
+                                <option key={m.id} value={m.id}>{m.prenom_nom}</option>
+                            ))}
+                        </select>
+                        <button 
+                            onClick={handleSuggestNextMaster}
+                            disabled={!suggestedMemberId}
+                            className="bg-black text-[#39FF14] px-4 py-3 rounded-xl text-xs font-black uppercase hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+                        >
+                            <Send size={14}/> Suggérer
+                        </button>
+                    </div>
+                </section>
+            )}
 
             {/* --- 3. MOTEUR DE TIRAGE (RÉVÉLATION GAGNANTS) --- */}
             <section className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>

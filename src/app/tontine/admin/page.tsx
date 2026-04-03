@@ -1139,6 +1139,34 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
     doc.save(fileName);
   };
 
+  const handleExportExcel = () => {
+    if (!tontine || cotisations.length === 0) {
+      alert("Aucune transaction à exporter pour le moment.");
+      return;
+    }
+
+    // Préparation des données formatées pour Excel
+    const dataToExport = cotisations
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      .map(cot => {
+        const member = membres.find(m => m.id === cot.membre_id);
+        return {
+          "N° Reçu": `REC-${cot.id.substring(0, 6)}`,
+          "Date de Paiement": cot.created_at ? new Date(cot.created_at).toLocaleString('fr-FR') : '-',
+          "Membre (Prénom & Nom)": member?.prenom_nom || "Inconnu",
+          "Téléphone": member?.telephone || "-",
+          "Mois Concerné": `Mois ${cot.mois_numero}`,
+          "Montant (F CFA)": cot.montant || tontine.montant_mensuel || 0,
+          "Statut": cot.statut
+        };
+      });
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Comptabilité Tontine");
+    XLSX.writeFile(workbook, `Comptabilite_${tontine?.nom?.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
@@ -1495,7 +1523,10 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                      <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
                   </div>
                </div>
-               <div className="text-right text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</div>
+               <div className="flex justify-between items-center mt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{membres.length - cotisationsCeMois.length} membre(s) restant(s)</span>
+                  <span className="text-xs font-black text-zinc-400">{Math.round(progressPercentage)}%</span>
+               </div>
             </div>
 
             <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 flex flex-col justify-center">
@@ -1615,6 +1646,9 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                  </button>
                  <button onClick={handleExportPDF} className="bg-zinc-100 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-zinc-200 transition-colors border border-zinc-200">
                     <FileText size={16}/> Export PDF
+                 </button>
+                 <button onClick={handleExportExcel} className="bg-zinc-100 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-zinc-200 transition-colors border border-zinc-200">
+                    <Download size={16}/> Export Excel
                  </button>
                  <button onClick={handleDownloadAllReceiptsZIP} className="bg-zinc-100 text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-zinc-200 transition-colors border border-zinc-200">
                     <Archive size={16}/> Reçus (ZIP)
