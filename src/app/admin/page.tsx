@@ -71,6 +71,11 @@ const ECOSYSTEM_SAAS = [
   { id: "tekki", name: "Pack Tekki", desc: "Jaay + Stock + Tiak", price: "22 900 F", link: "/admin/saas/onyx-tekki", color: "bg-emerald-600" },
   { id: "tekkipro", name: "Pack Tekki Pro", desc: "Tekki + Staff + Formation", price: "27 900 F", link: "/admin/saas/onyx-tekki-pro", color: "bg-emerald-500" },
   { id: "crm", name: "Onyx CRM", desc: "CRM B2B + Booking", price: "39 900 F", link: "/admin/saas/onyx-crm", color: "bg-green-400" },
+  { id: "tiak", name: "Onyx Tiak", desc: "Logistique & Livreurs", price: "13 900 F", link: "/admin/saas/tiak", color: "bg-teal-500" },
+  { id: "booking", name: "Onyx Booking", desc: "Rendez-vous", price: "13 900 F", link: "/admin/saas/booking", color: "bg-indigo-500" },
+  { id: "tontine", name: "Onyx Tontine", desc: "Finance", price: "6 900 F", link: "/admin/saas/tontine", color: "bg-pink-500" },
+  { id: "formation", name: "Onyx Formation", desc: "Académie", price: "13 900 F", link: "/admin/saas/formation", color: "bg-yellow-500" },
+  { id: "menu", name: "Onyx Menu", desc: "Resto", price: "13 900 F", link: "/admin/saas/menu", color: "bg-rose-500" },
   { id: "gold", name: "Pack Onyx Gold", desc: "L'Arsenal Complet VIP", price: "59 900 F", link: "/admin/saas/onyx-gold", color: "bg-lime-400" },
   { id: "cmpub", name: "Add-on CM Pub", desc: "Création de contenu", price: "49 900 F", link: "/admin/saas/cm-pub", color: "bg-purple-500" },
   { id: "boost", name: "Onyx Boost", desc: "Stratégie Digitale", price: "Sur Devis", link: "/admin/saas/boost", color: "bg-blue-500" },
@@ -185,6 +190,7 @@ export default function AdminDashboard() {
   const [crmTypeFilter, setCrmTypeFilter] = useState("Tous");
   const [crmActivityFilter, setCrmActivityFilter] = useState("Tous");
   const [crmSearch, setCrmSearch] = useState("");
+  const [ecosystemSearch, setEcosystemSearch] = useState("");
   const [crmCardFilter, setCrmCardFilter] = useState<string | null>(null);
   const [financeSearch, setFinanceSearch] = useState("");
   const [financeTypeFilter, setFinanceTypeFilter] = useState("Tous");
@@ -3272,34 +3278,53 @@ export default function AdminDashboard() {
              </div>
           )}
 
-          {/* ================= VUE ECOSYSTEME (9 SAAS) ================= */}
+          {/* ================= VUE ECOSYSTEME (CATALOGUE SAAS) ================= */}
           {activeView === 'ecosystem' && (
-             <div className="space-y-16 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto pt-6 lg:pt-10">
+             <div className="space-y-10 lg:space-y-16 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto pt-6 lg:pt-10">
                 <div className="text-center space-y-4 lg:space-y-6 max-w-4xl mx-auto px-4">
                    <div className="inline-block px-4 py-1.5 bg-black text-[#39FF14] rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.3em] mb-2 lg:mb-4 shadow-2xl shadow-[#39FF14]/20">Terminal Écosystème</div>
-                   <h2 className={`font-sans text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-black leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
+                   <h2 className={`font-sans text-4xl sm:text-5xl lg:text-7xl font-black uppercase tracking-tighter text-black leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
                    <p className="text-xs lg:text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] lg:tracking-[0.4em] leading-relaxed">Déploiement & Gouvernance du Catalogue SaaS</p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
-                   {ECOSYSTEM_SAAS.map(saas => (
-                      <div key={saas.id} className="bg-white border border-zinc-200 p-6 lg:p-12 rounded-3xl lg:rounded-3xl shadow-sm hover:border-black hover:shadow-2xl transition-all group flex flex-col justify-between min-h-[380px] lg:min-h-[420px] relative overflow-hidden">
-                         <div className={`absolute top-0 right-0 w-40 lg:w-48 h-40 lg:h-48 ${saas.color} opacity-[0.03] translate-x-16 lg:translate-x-20 -translate-y-16 lg:-translate-y-20 rounded-full group-hover:scale-150 transition-transform duration-1000`}></div>
+                <div className="flex justify-center mb-4 lg:mb-8 px-4">
+                  <div className="relative w-full max-w-md">
+                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                     <input 
+                       type="text" 
+                       placeholder="Rechercher un module SaaS..." 
+                       value={ecosystemSearch}
+                       onChange={e => setEcosystemSearch(e.target.value)}
+                       className="w-full pl-12 pr-4 py-3 bg-white border border-zinc-200 rounded-2xl text-sm font-bold outline-none focus:border-black focus:ring-4 focus:ring-zinc-100 transition-all shadow-sm"
+                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-5">
+                   {ECOSYSTEM_SAAS.filter(saas => saas.name.toLowerCase().includes(ecosystemSearch.toLowerCase()) || saas.desc.toLowerCase().includes(ecosystemSearch.toLowerCase())).map(saas => (
+                      <div key={saas.id} className="bg-white border border-zinc-200 p-5 lg:p-6 rounded-2xl shadow-sm hover:border-black hover:shadow-2xl transition-all group flex flex-col justify-between min-h-[250px] lg:min-h-[280px] relative overflow-hidden">
+                         <div className={`absolute top-0 right-0 w-20 lg:w-24 h-20 lg:h-24 ${saas.color} opacity-[0.05] translate-x-8 lg:translate-x-10 -translate-y-8 lg:-translate-y-10 rounded-full group-hover:scale-150 transition-transform duration-1000`}></div>
                          <div className="relative z-10">
-                            <div className={`w-16 lg:w-20 h-16 lg:h-20 rounded-[1.75rem] lg:rounded-[2.25rem] mb-8 lg:mb-10 flex items-center justify-center text-white shadow-2xl ${saas.color} group-hover:rotate-12 transition-transform duration-500`}><Box size={32} className="lg:w-10 lg:h-10"/></div>
-                            <h3 className={`font-sans text-2xl lg:text-3xl font-black uppercase text-black tracking-tighter`}>{saas.name}</h3>
-                            <p className="text-sm lg:text-base font-bold text-zinc-400 mt-3 lg:mt-4 leading-relaxed group-hover:text-zinc-600 transition-colors">{saas.desc}</p>
-                            <p className="text-[10px] font-black text-[#39FF14] mt-2">{saas.price} / mois</p>
+                            <div className={`w-10 h-10 rounded-xl mb-4 lg:mb-5 flex items-center justify-center text-white shadow-lg ${saas.color} group-hover:rotate-12 transition-transform duration-500`}><Box size={20} className="lg:w-5 lg:h-5"/></div>
+                            <h3 className={`font-sans text-lg lg:text-xl font-black uppercase text-black tracking-tighter leading-tight`}>{saas.name}</h3>
+                            <p className="text-[10px] lg:text-xs font-bold text-zinc-400 mt-1.5 lg:mt-2 leading-relaxed group-hover:text-zinc-600 transition-colors line-clamp-2">{saas.desc}</p>
+                            <p className="text-[10px] font-black text-[#39FF14] mt-2">{saas.price} {saas.price !== 'Sur Devis' ? '/ mois' : ''}</p>
                          </div>
-                         <div className="mt-10 lg:mt-14 flex flex-col gap-3 lg:gap-4 relative z-10">
-                            {/* BOUTON ACCÉDER MODIFIÉ POUR L'ADMIN INTERNE */}
-                            <button onClick={() => router.push(saas.link)} className="w-full bg-black text-[#39FF14] py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.03] transition-all shadow-2xl flex items-center justify-center gap-2 lg:gap-3 group/btn active:scale-95">
-                               Accéder Configuration Admin <ExternalLink size={16} className="group-hover/btn:translate-x-1 transition-transform"/>
+                         <div className="mt-6 flex flex-col gap-2 relative z-10">
+                            <button onClick={() => router.push(saas.link)} className="w-full bg-black text-[#39FF14] py-2 lg:py-3 rounded-xl text-[9px] lg:text-[10px] font-black uppercase tracking-[0.1em] hover:scale-[1.03] transition-all shadow-md flex items-center justify-center gap-1.5 group/btn active:scale-95">
+                               Config. Admin <ExternalLink size={12} className="group-hover/btn:translate-x-1 transition-transform"/>
                             </button>
-                            <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('create'); }} className="w-full bg-zinc-100 text-black py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] hover:bg-zinc-200 transition-all active:scale-95">Générer Accès Client</button>
+                            <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('create'); }} className="w-full bg-zinc-100 text-black py-2 lg:py-3 rounded-xl text-[9px] lg:text-[10px] font-black uppercase tracking-[0.1em] hover:bg-zinc-200 transition-all active:scale-95">
+                               Créer Accès
+                            </button>
                          </div>
                       </div>
                    ))}
+                   {ECOSYSTEM_SAAS.filter(saas => saas.name.toLowerCase().includes(ecosystemSearch.toLowerCase()) || saas.desc.toLowerCase().includes(ecosystemSearch.toLowerCase())).length === 0 && (
+                      <div className="col-span-full py-12 text-center text-zinc-400 font-bold text-sm border-2 border-dashed border-zinc-200 rounded-3xl">
+                         Aucun module SaaS ne correspond à votre recherche.
+                      </div>
+                   )}
                 </div>
              </div>
           )}
