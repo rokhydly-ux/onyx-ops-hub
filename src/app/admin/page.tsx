@@ -44,7 +44,9 @@ type Contact = {
   saas?: string;
   avatar_url?: string;
   password_temp?: string | null;
+  assigned_to?: string;
   activity?: string;
+  budget?: string;
 };
 
 type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "logistics" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht" | "withdrawals";
@@ -69,6 +71,12 @@ const ECOSYSTEM_SAAS = [
   { id: "cmpub", name: "Add-on CM Pub", desc: "Création de contenu", price: "49 900 F", link: "/admin/saas/cm-pub", color: "bg-purple-500" },
   { id: "boost", name: "Onyx Boost", desc: "Stratégie Digitale", price: "Sur Devis", link: "/admin/saas/boost", color: "bg-blue-500" },
   { id: "modernize", name: "Onyx Modernize", desc: "Implémentation VIP", price: "Sur Devis", link: "/admin/saas/modernize", color: "bg-orange-500" }
+];
+
+const SALES_TEAM = [
+    { name: 'Cruella Ly', avatar: 'https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg' },
+    { name: 'Admin Onyx', avatar: 'https://ui-avatars.com/api/?name=AO&background=000&color=39FF14' },
+    { name: 'Commercial 1', avatar: 'https://ui-avatars.com/api/?name=C1&background=random' },
 ];
 
 export default function AdminDashboard() {
@@ -215,6 +223,7 @@ export default function AdminDashboard() {
   // --- NOUVEAUX ÉTATS POUR LES RETRAITS ---
   const [withdrawalFilter, setWithdrawalFilter] = useState("Tous");
   const [validateWithdrawalModal, setValidateWithdrawalModal] = useState<any>(null);
+  const [kanbanFilter, setKanbanFilter] = useState('Tous');
   const [withdrawalProof, setWithdrawalProof] = useState("");
 
   const [leadActionsOpen, setLeadActionsOpen] = useState<string | null>(null);
@@ -963,6 +972,24 @@ export default function AdminDashboard() {
       const msg = `Bonjour ${lead.full_name},\n\nVoici votre devis global pour l'offre ${lead.saas || 'Onyx'} (Montant total : ${totalStr}).\n\nN'hésitez pas si vous avez des questions pour valider votre déploiement !\n\nL'équipe OnyxOps.`;
       window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     }, 500);
+  };
+
+  const updateLeadAssignee = async (id: string, assignee: string) => {
+    const { error } = await supabase.from('clients').update({ assigned_to: assignee }).eq('id', id);
+    if (error) {
+        alert("Erreur lors de l'assignation : " + error.message);
+    } else {
+        fetchSupabaseData(); // Refresh data to show the change
+    }
+  };
+
+  const updateLeadBudget = async (id: string, budget: string) => {
+    const { error } = await supabase.from('clients').update({ budget }).eq('id', id);
+    if (error) {
+        alert("Erreur lors de la mise à jour du budget : " + error.message);
+    } else {
+        fetchSupabaseData(); // Rafraîchit silencieusement pour ne pas perturber l'utilisateur
+    }
   };
 
   const handleUpdateWithdrawalStatus = async (id: string, newStatus: string, proof?: string) => {
@@ -2664,7 +2691,10 @@ export default function AdminDashboard() {
           {/* ================= VUE KANBAN HIGH-TICKET ================= */}
           {activeView === 'kanban-ht' && (() => {
              const KANBAN_COLS = ['Nouveau Lead', 'Audit en cours', 'Contrat Envoyé', 'Signé'];
-             const htContacts = contacts.filter(c => ['Onyx Boost', 'Onyx Modernize', 'Add-on CM Pub'].includes(c.saas || '') || (c.active_saas && c.active_saas.includes('cmpub')));
+             const htContacts = contacts.filter(c => 
+                (['Onyx Boost', 'Onyx Modernize', 'Add-on CM Pub'].includes(c.saas || '') || (c.active_saas && c.active_saas.includes('cmpub'))) &&
+                (kanbanFilter === 'Tous' || c.saas === kanbanFilter)
+             );
              
              return (
                <div className="space-y-8 animate-in fade-in slide-in-from-right-6 max-w-[1600px] mx-auto h-full flex flex-col">
@@ -2672,10 +2702,17 @@ export default function AdminDashboard() {
                      <div className="flex items-center gap-6">
                         <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#00E5FF] shadow-lg shrink-0"><Layers size={32}/></div>
                         <div>
-                           <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter`}>Pipeline High-Ticket</h2>
+                           <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Pipeline High-Ticket</h2>
                            <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Onyx Boost & Onyx Modernize</p>
                         </div>
                      </div>
+                     <div className="flex items-center gap-2">
+                        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+                           <button onClick={() => setKanbanFilter('Tous')} className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${kanbanFilter === 'Tous' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>Tous</button>
+                           <button onClick={() => setKanbanFilter('Onyx Modernize')} className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${kanbanFilter === 'Onyx Modernize' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>Modernize</button>
+                           <button onClick={() => setKanbanFilter('Onyx Boost')} className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${kanbanFilter === 'Onyx Boost' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>Boost</button>
+                           <button onClick={() => setKanbanFilter('Add-on CM Pub')} className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${kanbanFilter === 'Add-on CM Pub' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`}>CM & Pub</button>
+                        </div>
                      <button 
                         onClick={() => {
                             const trialEndDate = new Date();
@@ -2701,25 +2738,54 @@ export default function AdminDashboard() {
                         <Plus size={16}/> Créer un dossier
                      </button>
                   </div>
+                  </div>
   
                   <div className="flex gap-6 overflow-x-auto pb-6 flex-1 items-start custom-scrollbar">
                      {KANBAN_COLS.map(col => {
                         const colContacts = htContacts.filter(c => (c.status === col) || (col === 'Nouveau Lead' && !KANBAN_COLS.includes(c.status || '')));
                         return (
-                           <div key={col} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 w-80 shrink-0 flex flex-col max-h-[70vh]">
+                           <div key={col} 
+                                className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 w-80 shrink-0 flex flex-col max-h-[70vh]"
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    const id = e.dataTransfer.getData('contactId');
+                                    if (id) updateKanbanStatus(id, col);
+                                }}
+                           >
                               <div className="flex justify-between items-center mb-4 px-2">
                                  <h3 className="font-black uppercase text-sm">{col}</h3>
                                  <span className="bg-black dark:bg-zinc-800 text-[#39FF14] text-[10px] font-black px-2 py-1 rounded-lg">{colContacts.length}</span>
                               </div>
                               <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
-                                 {colContacts.map(c => (
-                                    <div key={c.id} className="bg-white dark:bg-black p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 hover:border-black transition-colors group">
-                                       <div className="flex justify-between items-start mb-2">
-                                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${c.saas === 'Onyx Modernize' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>{c.saas}</span>
-                                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="text-zinc-300 hover:text-black dark:hover:text-white"><Edit3 size={14}/></button>
+                                 {colContacts.map(c => {
+                                    const isNew = c.created_at && (new Date().getTime() - new Date(c.created_at).getTime() < 24 * 60 * 60 * 1000);
+                                    return (
+                                    <div key={c.id} 
+                                         draggable
+                                         onDragStart={(e) => e.dataTransfer.setData('contactId', c.id)}
+                                         className="bg-white dark:bg-black p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 hover:border-black transition-colors group cursor-grab active:cursor-grabbing">
+                                       <div className="flex justify-between items-start mb-2 gap-2">
+                                          <div className="flex flex-wrap items-center gap-1.5">
+                                             <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${c.saas === 'Onyx Modernize' ? 'bg-orange-100 text-orange-600' : c.saas === 'Onyx Boost' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>{c.saas}</span>
+                                             {isNew && <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-red-500 text-white animate-pulse shadow-sm">Nouveau</span>}
+                                          </div>
+                                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="text-zinc-300 hover:text-black dark:hover:text-white shrink-0 p-1"><Edit3 size={14}/></button>
                                        </div>
                                        <p className="font-black text-sm uppercase truncate mb-1">{c.full_name}</p>
-                                       <p className="text-[10px] font-bold text-zinc-500 mb-3">{c.phone}</p>
+                                       <p className="text-[10px] font-bold text-zinc-500 mb-2">{c.phone}</p>
+                                       
+                                       <div className="flex items-center gap-2 mb-3 bg-zinc-50 dark:bg-zinc-900/50 p-2 rounded-lg border border-zinc-100 dark:border-zinc-800 focus-within:border-black dark:focus-within:border-white transition-colors">
+                                          <DollarSign size={12} className="text-zinc-400 shrink-0" />
+                                          <input 
+                                            type="text"
+                                            placeholder="Budget estimé..."
+                                            defaultValue={c.budget || ''}
+                                            onBlur={(e) => { if(e.target.value !== c.budget) updateLeadBudget(c.id, e.target.value); }}
+                                            className="bg-transparent outline-none text-[10px] font-bold text-black dark:text-white placeholder:text-zinc-400 w-full"
+                                          />
+                                       </div>
+
                                        <select 
                                          value={c.status || 'Nouveau Lead'}
                                          onChange={(e) => updateKanbanStatus(c.id, e.target.value)}
@@ -2727,6 +2793,24 @@ export default function AdminDashboard() {
                                        >
                                           {KANBAN_COLS.map(kCol => <option key={kCol} value={kCol}>{kCol}</option>)}
                                        </select>
+                                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                                          <select 
+                                            value={c.assigned_to || ''}
+                                            onChange={(e) => updateLeadAssignee(c.id, e.target.value)}
+                                            className="bg-transparent text-[10px] font-bold text-zinc-500 outline-none cursor-pointer"
+                                          >
+                                             <option value="">Non assigné</option>
+                                             {SALES_TEAM.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                                          </select>
+                                          {c.assigned_to && (
+                                             <img 
+                                                src={SALES_TEAM.find(s => s.name === c.assigned_to)?.avatar || `https://ui-avatars.com/api/?name=${c.assigned_to}`} 
+                                                alt={c.assigned_to} 
+                                                className="w-6 h-6 rounded-full border-2 border-white dark:border-black"
+                                                title={`Assigné à ${c.assigned_to}`}
+                                             />
+                                          )}
+                                       </div>
                                        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex gap-2">
                                           <button onClick={() => generateAcompte(c)} className="flex-1 text-[10px] font-black uppercase text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5" title="Générer Acompte">
                                              <FileText size={12}/> Acompte
@@ -2736,7 +2820,8 @@ export default function AdminDashboard() {
                                           </button>
                                        </div>
                                     </div>
-                                 ))}
+                                 );
+                                 })}
                                  {colContacts.length === 0 && (
                                     <div className="p-4 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Vide</div>
                                  )}
