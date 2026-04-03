@@ -5,7 +5,7 @@ import {
   Copy, CheckCircle, Users, DollarSign, TrendingUp, 
   LogOut, Link as LinkIcon, Info, ShieldCheck, 
   ChevronDown, Package, Zap, ArrowRight, X,
-  MessageCircle
+  MessageCircle, Trash2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -147,6 +147,18 @@ export default function AmbassadorHub() {
       setWithdrawForm({ phone: '', method: 'Wave', amount: '' });
     } catch (err: any) {
       alert("Erreur lors de la demande de retrait : " + err.message);
+    }
+  };
+
+  const handleDeleteWithdrawal = async (id: string | number) => {
+    if (!confirm("Voulez-vous vraiment annuler cette demande de retrait ?")) return;
+    try {
+      const { error } = await supabase.from('withdrawals').delete().eq('id', id);
+      if (error) throw error;
+      setWithdrawals(prev => prev.filter(w => w.id !== id));
+      alert("Demande annulée avec succès.");
+    } catch (e: any) {
+      alert("Erreur lors de l'annulation: " + e.message);
     }
   };
 
@@ -396,9 +408,14 @@ export default function AmbassadorHub() {
                      </div>
                      <div className="text-right">
                        <p className="font-black text-[#39FF14] text-lg">{w.amount?.toLocaleString()} F</p>
-                       <span className={`inline-block mt-2 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${w.status === 'Payé' ? 'bg-[#39FF14]/20 text-[#39FF14]' : w.status === 'Rejeté' ? 'bg-red-500/20 text-red-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
-                         {w.status || 'En attente'}
-                       </span>
+                       <div className="flex items-center gap-2 justify-end mt-2">
+                         <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${w.status === 'Payé' ? 'bg-[#39FF14]/20 text-[#39FF14]' : w.status === 'Rejeté' ? 'bg-red-500/20 text-red-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
+                           {w.status || 'En attente'}
+                         </span>
+                         {(w.status === 'En attente' || !w.status) && (
+                           <button onClick={() => handleDeleteWithdrawal(w.id)} className="text-zinc-500 hover:text-red-500 transition-colors p-1" title="Annuler la demande"><Trash2 size={14}/></button>
+                         )}
+                       </div>
                      </div>
                   </div>
                 ))}

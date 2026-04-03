@@ -10,7 +10,7 @@ import {
   ArrowDownRight, CheckCircle, BarChart as BarChartIcon,
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
-  TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink,
+  TrendingUp, ChevronDown, Send, Download, Layers, ExternalLink, DollarSign,
   AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon
 } from "lucide-react";
 
@@ -45,7 +45,7 @@ type Contact = {
   activity?: string;
 };
 
-type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht";
+type ViewType = "dashboard" | "leads" | "crm" | "ecosystem" | "finance" | "partners" | "marketing" | "hubs" | "journal-ia" | "planning-marketing" | "help" | "bi" | "kanban-ht" | "withdrawals";
 type IAAction = { id: string; module: string; title: string; desc: string; date: string; status: string; phone?: string; msg?: string };
 
 const AVAILABLE_MODULES = [
@@ -110,6 +110,7 @@ export default function AdminDashboard() {
    // --- 5. SUPPRESSION DES DONNÉES FICTIVES (On part de zéro) ---
    const [contacts, setContacts] = useState<Contact[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
   const [stats, setStats] = useState({ revenue: 0, activeClients: 0, pendingLeads: 0, newPartners: 0 });
 
@@ -221,6 +222,7 @@ export default function AdminDashboard() {
      // CORRECTION ICI : On lit la table "ambassadors" et plus "partners"
      const { data: partnersData } = await supabase.from('ambassadors').select('*').order('created_at', { ascending: false });
      const { data: materialsData } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
+     const { data: withdrawalsData } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
      
      if (contactsData) setContacts(contactsData);
      if (leadsData) {
@@ -230,6 +232,7 @@ export default function AdminDashboard() {
      }
      if (partnersData) setPartners(partnersData);
      if (materialsData) setMarketingMaterials(materialsData);
+     if (withdrawalsData) setWithdrawals(withdrawalsData);
      
      // Nouveau calcul précis du revenu MRR
      const realRevenue = contactsData?.reduce((acc: number, c: any) => {
@@ -575,6 +578,17 @@ export default function AdminDashboard() {
      const { error } = await supabase.from('clients').update({ status: newStatus }).eq('id', id);
      if (error) alert(error.message);
      else fetchSupabaseData();
+  };
+
+  const handleUpdateWithdrawalStatus = async (id: string, newStatus: string) => {
+      if (!confirm(`Confirmez-vous le passage de cette demande en statut "${newStatus}" ?`)) return;
+      try {
+        const { error } = await supabase.from('withdrawals').update({ status: newStatus }).eq('id', id);
+        if (error) throw error;
+        setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: newStatus } : w));
+      } catch (err: any) {
+        alert("Erreur: " + err.message);
+      }
   };
 
   const getLeadPriorityActions = (lead: any) => {
@@ -1269,6 +1283,7 @@ export default function AdminDashboard() {
                 { id: 'ecosystem', icon: Box, label: 'Gestion des SaaS' },
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
+                { id: 'withdrawals', icon: DollarSign, label: 'Retraits Partenaires' },
                 { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
                 { id: 'statistiques', icon: BarChartIcon, label: 'Statistiques' },
                 { id: 'help', icon: HelpCircle, label: 'Aide & Tutoriels' },
@@ -1344,6 +1359,7 @@ export default function AdminDashboard() {
                         { id: 'ecosystem', icon: Box, label: 'Gestion des SaaS' },
                         { id: 'finance', icon: Wallet, label: 'Finances' },
                         { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
+                        { id: 'withdrawals', icon: DollarSign, label: 'Retraits Partenaires' },
                         { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
                         { id: 'statistiques', icon: BarChartIcon, label: 'Statistiques' },
                         { id: 'help', icon: HelpCircle, label: 'Aide & Tutoriels' },
@@ -1419,16 +1435,16 @@ export default function AdminDashboard() {
                </button>
                <div className="relative cursor-pointer group">
                   <div onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="relative">
-                    <Bell size={22} className={`${leads.length + partners.filter(p => p.status === 'En attente').length > 0 ? 'text-[#39FF14] animate-bounce' : 'text-zinc-400'}`}/>
-                    {leads.length + partners.filter(p => p.status === 'En attente').length > 0 && (
+                    <Bell size={22} className={`${leads.length + partners.filter(p => p.status === 'En attente').length + withdrawals.filter(w => w.status === 'En attente').length > 0 ? 'text-[#39FF14] animate-bounce' : 'text-zinc-400'}`}/>
+                    {leads.length + partners.filter(p => p.status === 'En attente').length + withdrawals.filter(w => w.status === 'En attente').length > 0 && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-white">
-                        {leads.length + partners.filter(p => p.status === 'En attente').length}
+                        {leads.length + partners.filter(p => p.status === 'En attente').length + withdrawals.filter(w => w.status === 'En attente').length}
                       </span>
                     )}
                   </div>
                   {isNotificationsOpen && (
                     <div className="absolute top-full right-0 mt-4 w-80 bg-white border border-zinc-200 rounded-3xl shadow-2xl p-5 z-50 cursor-default animate-in slide-in-from-top-2">
-                        <h4 className="font-black uppercase text-xs mb-4 flex items-center justify-between text-black"><span>Notifications</span> <span className="bg-black text-[#39FF14] px-2 py-0.5 rounded-full">{leads.length + partners.filter(p => p.status === 'En attente').length}</span></h4>
+                        <h4 className="font-black uppercase text-xs mb-4 flex items-center justify-between text-black"><span>Notifications</span> <span className="bg-black text-[#39FF14] px-2 py-0.5 rounded-full">{leads.length + partners.filter(p => p.status === 'En attente').length + withdrawals.filter(w => w.status === 'En attente').length}</span></h4>
                         <div className="space-y-3 max-h-72 overflow-y-auto custom-scrollbar pr-2">
                             {leads.length > 0 && leads.slice(0, 5).map(l => (
                                 <div key={`lead-${l.id}`} onClick={() => { setActiveView('leads'); setIsNotificationsOpen(false); }} className="p-4 bg-zinc-50 rounded-2xl hover:bg-zinc-100 transition cursor-pointer border border-zinc-100">
@@ -1444,7 +1460,14 @@ export default function AdminDashboard() {
                                     <p className="text-[10px] font-medium text-zinc-500 truncate mt-1">{p.contact}</p>
                                 </div>
                             ))}
-                            {(leads.length + partners.filter(p => p.status === 'En attente').length) === 0 && <p className="text-xs text-zinc-400 text-center py-6 font-bold">Aucune nouvelle notification.</p>}
+                            {withdrawals.filter(w => w.status === 'En attente').length > 0 && withdrawals.filter(w => w.status === 'En attente').slice(0, 5).map(w => (
+                                <div key={`with-${w.id}`} onClick={() => { setActiveView('withdrawals'); setIsNotificationsOpen(false); }} className="p-4 bg-green-50 rounded-2xl hover:bg-green-100 transition cursor-pointer border border-green-100">
+                                    <p className="text-[10px] font-black text-green-600 uppercase mb-1 flex items-center gap-1.5"><DollarSign size={12}/> Demande de retrait</p>
+                                    <p className="text-sm font-bold text-black truncate">{w.ambassador_name}</p>
+                                    <p className="text-[10px] font-medium text-zinc-500 truncate mt-1">{w.amount?.toLocaleString()} F - {w.method}</p>
+                                </div>
+                            ))}
+                            {(leads.length + partners.filter(p => p.status === 'En attente').length + withdrawals.filter(w => w.status === 'En attente').length) === 0 && <p className="text-xs text-zinc-400 text-center py-6 font-bold">Aucune nouvelle notification.</p>}
                         </div>
                     </div>
                   )}
@@ -2251,6 +2274,68 @@ export default function AdminDashboard() {
                          ))}
                          {filteredTransactions.length === 0 && (
                             <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50">Aucune transaction trouvée</td></tr>
+                         )}
+                      </tbody>
+                   </table>
+                </div>
+             </div>
+          )}
+
+          {/* ================= VUE DEMANDES DE RETRAIT ================= */}
+          {activeView === 'withdrawals' && (
+             <div className="space-y-8 animate-in fade-in slide-in-from-right-6 max-w-[1400px] mx-auto">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden">
+                   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
+                      <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><DollarSign size={32}/></div>
+                      <div>
+                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Retraits Ambassadeurs</h2>
+                         <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Validation des commissions</p>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="bg-white border border-zinc-200 rounded-[3.5rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto">
+                   <table className="w-full text-left min-w-[800px]">
+                      <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                         <tr>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Date & Partenaire</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Méthode & Numéro</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Montant Demandé</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Action / Statut</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-50">
+                         {withdrawals.map(w => (
+                            <tr key={w.id} className="hover:bg-zinc-50 transition-all">
+                               <td className="p-5 lg:p-6">
+                                  <p className="font-black text-sm lg:text-base uppercase text-black tracking-tighter leading-tight">{w.ambassador_name || "Inconnu"}</p>
+                                  <p className="text-[10px] text-zinc-500 font-bold mt-1">{new Date(w.created_at).toLocaleString('fr-FR')}</p>
+                               </td>
+                               <td className="p-5 lg:p-6">
+                                  <div className="flex flex-col gap-1">
+                                     <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase w-max tracking-widest ${w.method === 'Wave' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{w.method}</span>
+                                     <p className="text-xs font-black text-black ml-1">{w.phone}</p>
+                                  </div>
+                               </td>
+                               <td className="p-5 lg:p-6 text-center">
+                                  <p className={`font-sans text-2xl lg:text-3xl font-black text-[#39FF14] tracking-tighter`}>{w.amount?.toLocaleString()} F</p>
+                               </td>
+                               <td className="p-5 lg:p-6 text-right">
+                                  {w.status === 'En attente' ? (
+                                    <div className="flex justify-end gap-2">
+                                        <button onClick={() => handleUpdateWithdrawalStatus(w.id, 'Payé')} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-1"><CheckCircle size={14}/> Valider</button>
+                                        <button onClick={() => handleUpdateWithdrawalStatus(w.id, 'Rejeté')} className="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-red-100 transition-all flex items-center gap-1"><X size={14}/> Rejeter</button>
+                                    </div>
+                                  ) : (
+                                    <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${w.status === 'Payé' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-red-500/20 text-red-500'}`}>
+                                       {w.status}
+                                    </span>
+                                  )}
+                               </td>
+                            </tr>
+                         ))}
+                         {withdrawals.length === 0 && (
+                            <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50">Aucune demande de retrait</td></tr>
                          )}
                       </tbody>
                    </table>
