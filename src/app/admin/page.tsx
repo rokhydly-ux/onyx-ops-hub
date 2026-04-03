@@ -190,7 +190,6 @@ export default function AdminDashboard() {
   const [crmTypeFilter, setCrmTypeFilter] = useState("Tous");
   const [crmActivityFilter, setCrmActivityFilter] = useState("Tous");
   const [crmSearch, setCrmSearch] = useState("");
-  const [ecosystemSearch, setEcosystemSearch] = useState("");
   const [crmCardFilter, setCrmCardFilter] = useState<string | null>(null);
   const [financeSearch, setFinanceSearch] = useState("");
   const [financeTypeFilter, setFinanceTypeFilter] = useState("Tous");
@@ -349,7 +348,12 @@ export default function AdminDashboard() {
      if (contactsData) setContacts(contactsData);
      if (leadsData) {
        const normalizePhone = (p: string) => (p || '').replace(/\s+/g, '').replace(/^\+221/, '');
-       const activeLeads = leadsData.filter(lead => !contactsData?.some(c => normalizePhone(c.phone) === normalizePhone(lead.phone)));
+       const activeLeads = leadsData.filter(lead => {
+           const isPendingOrNew = lead.status === 'En attente' || lead.status === 'Nouveau' || lead.status === 'Nouveau Lead' || !lead.status;
+           const notInContacts = !contactsData?.some(c => normalizePhone(c.phone) === normalizePhone(lead.phone));
+           const notInPartners = !partnersData?.some(p => normalizePhone(p.contact || p.phone) === normalizePhone(lead.phone));
+           return isPendingOrNew && notInContacts && notInPartners;
+       });
        setLeads(activeLeads);
      }
      if (partnersData) setPartners(partnersData);
@@ -529,12 +533,36 @@ export default function AdminDashboard() {
                 msg: `😢 Bonjour ${contact.full_name}, vous nous manquez ! Profitez d'un bon d'achat de 5000F sur votre prochaine commande. Offre limitée !`
             });
         }
+        
+        if (contact.saas === 'Onyx Jaay' || contact.saas === 'Onyx Solo') {
+            suggestions.push({
+                id: `ia-upsell-tekki-${contact.id}`,
+                contactId: contact.id,
+                clientName: contact.full_name,
+                clientPhone: contact.phone,
+                type: 'upsell',
+                title: `Upsell Pack Tekki : ${contact.full_name}`,
+                description: 'Le client utilise Onyx Jaay. Proposez le Pack Tekki pour la gestion de stock et livreurs.',
+                msg: `Bonjour ${contact.full_name}, votre boutique tourne bien avec Onyx Jaay ! Saviez-vous qu'avec le Pack Tekki, vous pouvez aussi gérer votre stock et vos livreurs automatiquement ?`
+            });
+        } else if (contact.activity?.toLowerCase().includes('resto') && contact.saas !== 'Onyx Menu' && !contact.active_saas?.includes('menu')) {
+            suggestions.push({
+                id: `ia-upsell-menu-${contact.id}`,
+                contactId: contact.id,
+                clientName: contact.full_name,
+                clientPhone: contact.phone,
+                type: 'upsell',
+                title: `Proposer Onyx Menu : ${contact.full_name}`,
+                description: 'Client dans la restauration sans le module Onyx Menu.',
+                msg: `Bonjour ${contact.full_name}, pour votre restaurant, découvrez Onyx Menu : un menu QR interactif pour vos clients !`
+            });
+        }
     });
 
     setIaSuggestions(suggestions);
     if (suggestions.length > 0) {
       setActiveView('planning-marketing');
-      alert(`${suggestions.length} nouvelle(s) action(s) marketing suggérée(s) par l'IA et ajoutée(s) au Planning.`);
+      alert(`${suggestions.length} opportunité(s) générée(s) par l'IA. Veuillez les consulter dans le Planificateur.`);
     } else {
       alert("Scan IA terminé. Aucune nouvelle opportunité marketing détectée pour le moment.");
     }
@@ -671,7 +699,13 @@ export default function AdminDashboard() {
 
   const executeWA = (phone: string | undefined, msg: string | undefined, idIA?: string) => {
     if(phone && msg) window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-    if (idIA) setActionsIA(prev => prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
+    if (idIA) {
+      setActionsIA(prev => {
+        const updated = prev.filter(a => a.id !== idIA);
+        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+        return updated;
+      });
+    }
   };
 
   const executeAllWA = () => {
@@ -2613,10 +2647,10 @@ export default function AdminDashboard() {
               {/* CARTES STATS CRM */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-5">
                  {[
-                    { id: 'all', label: 'Membres CRM', val: contacts.length, icon: Users, color: 'bg-white border-zinc-200' },
-                    { id: 'new_clients', label: 'Clients Actifs', val: contacts.filter(c=>c.type==='Client').length, icon: CheckCircle, color: 'bg-black text-[#39FF14] shadow-2xl border-black' },
-                    { id: 'new_prospects', label: 'Prospects Froids', val: contacts.filter(c=>c.type==='Prospect').length, icon: Clock, color: 'bg-white border-zinc-200' },
-                    { id: 'trials', label: 'Essais Onyx', val: contacts.filter(c => c.saas && c.type === 'Prospect').length || 0, icon: Zap, color: 'bg-[#39FF14] text-black shadow-lg border-[#32E612]' },
+                    { id: 'all', label: 'Membres CRM', val: contacts.length, icon: Users, color: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-black dark:text-white' },
+                    { id: 'new_clients', label: 'Clients Actifs', val: contacts.filter(c=>c.type==='Client').length, icon: CheckCircle, color: 'bg-black text-[#39FF14] shadow-2xl border-black dark:border-zinc-800' },
+                    { id: 'new_prospects', label: 'Prospects Froids', val: contacts.filter(c=>c.type==='Prospect').length, icon: Clock, color: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-black dark:text-white' },
+                    { id: 'trials', label: 'Essais Onyx', val: contacts.filter(c => c.saas && c.type === 'Prospect').length || 0, icon: Zap, color: 'bg-[#39FF14] text-black shadow-lg border-[#32E612] dark:border-zinc-800' },
                  ].map(card => (
                     <div 
                       key={card.id} 
@@ -2633,7 +2667,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* BARRE DE RECHERCHE CRM */}
-              <div className="flex flex-col xl:flex-row justify-between gap-6 xl:gap-5 items-center bg-white p-6 lg:p-5 rounded-[3rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group">
+              <div className="flex flex-col xl:flex-row justify-between gap-6 xl:gap-5 items-center bg-white dark:bg-zinc-900 p-6 lg:p-5 rounded-[3rem] lg:rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-2 h-full bg-[#39FF14] opacity-0 group-hover:opacity-100 transition-all"></div>
                 <div className="flex-1 w-full relative">
                   <Search className="absolute left-6 lg:left-8 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5 lg:w-6 lg:h-6 transition-all group-focus-within:text-[#39FF14]" />
@@ -2650,7 +2684,7 @@ export default function AdminDashboard() {
                    <select 
                      value={crmTypeFilter} 
                      onChange={(e) => setCrmTypeFilter(e.target.value)} 
-                     className="px-4 py-3 bg-zinc-50 rounded-xl font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black transition-colors"
+                     className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
                    >
                       <option value="Tous">Base Complète</option>
                       <option value="Client">Clients Officiels</option>
@@ -2659,7 +2693,7 @@ export default function AdminDashboard() {
                    <select 
                      value={crmActivityFilter} 
                      onChange={(e) => setCrmActivityFilter(e.target.value)} 
-                     className="px-4 py-3 bg-zinc-50 rounded-xl font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black transition-colors"
+                     className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
                    >
                       <option value="Tous">Tous Secteurs</option>
                       {Array.from(new Set(contacts.map(c => c.activity).filter((a): a is string => Boolean(a)))).map(act => <option key={act} value={act}>{act}</option>)}
@@ -2668,7 +2702,7 @@ export default function AdminDashboard() {
                    <button onClick={handleFixMissingExpiryDates} className="flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-md active:scale-95">
                       <Clock size={14} /> Régulariser Dates
                    </button>
-                   <button onClick={handleRelanceProspectsFroids} className="flex items-center justify-center gap-2 bg-zinc-100 text-zinc-600 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm border border-zinc-200 active:scale-95">
+                   <button onClick={handleRelanceProspectsFroids} className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shadow-sm border border-zinc-200 dark:border-zinc-800 active:scale-95">
                       <MessageCircle size={14} /> Relance Froids
                    </button>
                    <button onClick={runIaScan} className="flex items-center justify-center gap-2 bg-zinc-800 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-md active:scale-95">
@@ -2745,9 +2779,9 @@ export default function AdminDashboard() {
               )}
 
               {/* TABLEAU CRM */}
-              <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm relative overflow-x-auto">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm relative overflow-x-auto">
                 <table className="w-full text-left min-w-[800px]">
-                  <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                  <thead className="bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
                     <tr>
                       <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Identité & WhatsApp</th>
                       <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Segment Terminal</th>
@@ -2756,14 +2790,14 @@ export default function AdminDashboard() {
                       <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-50">
+                  <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
                     {filteredContacts.map((c) => (
-                      <tr key={c.id} className="hover:bg-zinc-50/50 transition-all group">
+                      <tr key={c.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-all group">
                         <td className="p-5 lg:p-6">
                           <div className="flex items-center gap-4 lg:gap-6">
                              {c.avatar_url ? <img src={c.avatar_url} alt="" className="w-14 lg:w-16 h-14 lg:h-16 rounded-[1.5rem] lg:rounded-[1.75rem] object-cover shadow-sm shrink-0" /> : <div className="w-14 lg:w-16 h-14 lg:h-16 bg-zinc-100 rounded-[1.5rem] lg:rounded-[1.75rem] flex items-center justify-center font-black text-lg text-black group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm shrink-0">{c.full_name?.charAt(0)}</div>}
                              <div>
-                                <p className="font-black text-sm lg:text-base uppercase text-black tracking-tight leading-tight">{c.full_name}</p>
+                                <p className="font-black text-sm lg:text-base uppercase text-black dark:text-white tracking-tight leading-tight">{c.full_name}</p>
                                 <p className="text-xs lg:text-sm text-[#39FF14] font-black mt-1">{c.phone}</p>
                              </div>
                           </div>
@@ -2778,7 +2812,7 @@ export default function AdminDashboard() {
                         <td className="p-5 lg:p-6">
                            <div className="flex items-center gap-3 lg:gap-4">
                               <div className={`w-2.5 lg:w-3 h-2.5 lg:h-3 rounded-full shrink-0 ${c.saas ? 'bg-[#39FF14] shadow-[0_0_10px_#39FF14]' : 'bg-zinc-200'}`}></div>
-                              <p className="font-black text-xs lg:text-sm text-black uppercase tracking-tighter">{c.saas || 'À définir'}</p>
+                              <p className="font-black text-xs lg:text-sm text-black dark:text-white uppercase tracking-tighter">{c.saas || 'À définir'}</p>
                            </div>
                         </td>
                         <td className="p-5 lg:p-6 font-bold text-xs">
@@ -2787,7 +2821,7 @@ export default function AdminDashboard() {
                         <td className="p-5 lg:p-6 text-right space-x-2 lg:space-x-4">
                           <button onClick={() => generateAcompte(c)} className="p-3 lg:p-4 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Générer Facture Acompte"><FileText size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => generateDevis(c)} className="p-3 lg:p-4 text-zinc-400 hover:text-purple-500 hover:bg-purple-50 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Générer Devis Global"><ClipboardList size={18} className="lg:w-5 lg:h-5"/></button>
-                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-3 lg:p-4 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-xl lg:rounded-2xl transition-all shadow-sm"><Edit3 size={18} className="lg:w-5 lg:h-5"/></button>
+                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-3 lg:p-4 text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl lg:rounded-2xl transition-all shadow-sm"><Edit3 size={18} className="lg:w-5 lg:h-5"/></button>
                           <button onClick={() => handleDeleteItem('clients', c.id)} className="p-3 lg:p-4 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl lg:rounded-2xl transition-all"><Trash2 size={18} className="lg:w-5 lg:h-5"/></button>
                         </td>
                       </tr>
@@ -3283,45 +3317,32 @@ export default function AdminDashboard() {
              <div className="space-y-10 lg:space-y-16 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto pt-6 lg:pt-10">
                 <div className="text-center space-y-4 lg:space-y-6 max-w-4xl mx-auto px-4">
                    <div className="inline-block px-4 py-1.5 bg-black text-[#39FF14] rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.3em] mb-2 lg:mb-4 shadow-2xl shadow-[#39FF14]/20">Terminal Écosystème</div>
-                   <h2 className={`font-sans text-4xl sm:text-5xl lg:text-7xl font-black uppercase tracking-tighter text-black leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
+                   <h2 className={`font-sans text-4xl sm:text-5xl lg:text-7xl font-black uppercase tracking-tighter text-black dark:text-white leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
                    <p className="text-xs lg:text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] lg:tracking-[0.4em] leading-relaxed">Déploiement & Gouvernance du Catalogue SaaS</p>
                 </div>
                 
-                <div className="flex justify-center mb-4 lg:mb-8 px-4">
-                  <div className="relative w-full max-w-md">
-                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                     <input 
-                       type="text" 
-                       placeholder="Rechercher un module SaaS..." 
-                       value={ecosystemSearch}
-                       onChange={e => setEcosystemSearch(e.target.value)}
-                       className="w-full pl-12 pr-4 py-3 bg-white border border-zinc-200 rounded-2xl text-sm font-bold outline-none focus:border-black focus:ring-4 focus:ring-zinc-100 transition-all shadow-sm"
-                     />
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-5">
-                   {ECOSYSTEM_SAAS.filter(saas => saas.name.toLowerCase().includes(ecosystemSearch.toLowerCase()) || saas.desc.toLowerCase().includes(ecosystemSearch.toLowerCase())).map(saas => (
-                      <div key={saas.id} className="bg-white border border-zinc-200 p-5 lg:p-6 rounded-2xl shadow-sm hover:border-black hover:shadow-2xl transition-all group flex flex-col justify-between min-h-[250px] lg:min-h-[280px] relative overflow-hidden">
+                   {ECOSYSTEM_SAAS.filter(saas => saas.name.toLowerCase().includes(globalSearch.toLowerCase()) || saas.desc.toLowerCase().includes(globalSearch.toLowerCase())).map(saas => (
+                      <div key={saas.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 lg:p-6 rounded-2xl shadow-sm hover:border-black dark:hover:border-zinc-600 hover:shadow-2xl transition-all group flex flex-col justify-between min-h-[250px] lg:min-h-[280px] relative overflow-hidden">
                          <div className={`absolute top-0 right-0 w-20 lg:w-24 h-20 lg:h-24 ${saas.color} opacity-[0.05] translate-x-8 lg:translate-x-10 -translate-y-8 lg:-translate-y-10 rounded-full group-hover:scale-150 transition-transform duration-1000`}></div>
                          <div className="relative z-10">
                             <div className={`w-10 h-10 rounded-xl mb-4 lg:mb-5 flex items-center justify-center text-white shadow-lg ${saas.color} group-hover:rotate-12 transition-transform duration-500`}><Box size={20} className="lg:w-5 lg:h-5"/></div>
-                            <h3 className={`font-sans text-lg lg:text-xl font-black uppercase text-black tracking-tighter leading-tight`}>{saas.name}</h3>
-                            <p className="text-[10px] lg:text-xs font-bold text-zinc-400 mt-1.5 lg:mt-2 leading-relaxed group-hover:text-zinc-600 transition-colors line-clamp-2">{saas.desc}</p>
+                            <h3 className={`font-sans text-lg lg:text-xl font-black uppercase text-black dark:text-white tracking-tighter leading-tight`}>{saas.name}</h3>
+                            <p className="text-[10px] lg:text-xs font-bold text-zinc-400 mt-1.5 lg:mt-2 leading-relaxed group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors line-clamp-2">{saas.desc}</p>
                             <p className="text-[10px] font-black text-[#39FF14] mt-2">{saas.price} {saas.price !== 'Sur Devis' ? '/ mois' : ''}</p>
                          </div>
                          <div className="mt-6 flex flex-col gap-2 relative z-10">
                             <button onClick={() => router.push(saas.link)} className="w-full bg-black text-[#39FF14] py-2 lg:py-3 rounded-xl text-[9px] lg:text-[10px] font-black uppercase tracking-[0.1em] hover:scale-[1.03] transition-all shadow-md flex items-center justify-center gap-1.5 group/btn active:scale-95">
                                Config. Admin <ExternalLink size={12} className="group-hover/btn:translate-x-1 transition-transform"/>
                             </button>
-                            <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('create'); }} className="w-full bg-zinc-100 text-black py-2 lg:py-3 rounded-xl text-[9px] lg:text-[10px] font-black uppercase tracking-[0.1em] hover:bg-zinc-200 transition-all active:scale-95">
+                            <button onClick={() => { setShowSaasLogin(saas); setSaasModalMode('create'); }} className="w-full bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white py-2 lg:py-3 rounded-xl text-[9px] lg:text-[10px] font-black uppercase tracking-[0.1em] hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all active:scale-95">
                                Créer Accès
                             </button>
                          </div>
                       </div>
                    ))}
-                   {ECOSYSTEM_SAAS.filter(saas => saas.name.toLowerCase().includes(ecosystemSearch.toLowerCase()) || saas.desc.toLowerCase().includes(ecosystemSearch.toLowerCase())).length === 0 && (
-                      <div className="col-span-full py-12 text-center text-zinc-400 font-bold text-sm border-2 border-dashed border-zinc-200 rounded-3xl">
+                   {ECOSYSTEM_SAAS.filter(saas => saas.name.toLowerCase().includes(globalSearch.toLowerCase()) || saas.desc.toLowerCase().includes(globalSearch.toLowerCase())).length === 0 && (
+                      <div className="col-span-full py-12 text-center text-zinc-400 font-bold text-sm border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
                          Aucun module SaaS ne correspond à votre recherche.
                       </div>
                    )}
@@ -3618,11 +3639,37 @@ export default function AdminDashboard() {
 
           {/* ================= VUE PLANNING MARKETING ================= */}
           {activeView === 'planning-marketing' && (
-            <MarketingPlanner 
-                suggestions={iaSuggestions}
-                plannedEvents={plannedEvents}
-                setPlannedEvents={setPlannedEvents}
-            />
+             <div className="space-y-12 animate-in fade-in max-w-[1200px] mx-auto">
+                <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    <h2 className="text-2xl font-black uppercase mb-6 flex items-center gap-3 text-black dark:text-white"><Sparkles className="text-[#39FF14]"/> Suggestions IA ({iaSuggestions.length})</h2>
+                    <div className="space-y-4">
+                        {iaSuggestions.map(s => (
+                            <div key={s.id} className="bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                                <div>
+                                    <p className="font-bold text-sm uppercase text-black dark:text-white">{s.title}</p>
+                                    <p className="text-xs text-zinc-500 mt-1">{s.description}</p>
+                                </div>
+                                <button onClick={() => {
+                                    const newAction: IAAction = {
+                                        id: s.id, module: 'Marketing', title: s.title, desc: s.description, date: todayStr, status: 'En attente', phone: s.clientPhone, msg: s.msg
+                                    };
+                                    setActionsIA(prev => {
+                                        const updated = [newAction, ...prev];
+                                        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
+                                        return updated;
+                                    });
+                                    setIaSuggestions(prev => prev.filter(item => item.id !== s.id));
+                                }} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition shadow-md whitespace-nowrap">
+                                    Planifier
+                                </button>
+                            </div>
+                        ))}
+                        {iaSuggestions.length === 0 && (
+                            <p className="text-sm text-zinc-500 italic py-8 text-center">Aucune suggestion pour le moment. Lancez un scan depuis le CRM.</p>
+                        )}
+                    </div>
+                </div>
+             </div>
           )}
 
           {/* ================= VUE JOURNAL IA ================= */}
