@@ -1540,7 +1540,7 @@ export default function AdminDashboard() {
       const amb = partners.find(p => p.id === id);
       const { error } = await supabase
         .from('ambassadors')
-        .update({ status: 'Actif' })
+        .update({ status: 'Actif', password_temp: 'central2026' })
         .eq('id', id);
         
       if (error) throw error;
@@ -1578,17 +1578,21 @@ export default function AdminDashboard() {
       if (!newCommercialForm.full_name || !newCommercialForm.phone) return;
       setIsCreatingUser(true);
       try {
-          const res = await fetch('/api/create-user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  phone: newCommercialForm.phone,
-                  role: 'commercial',
-                  fullName: newCommercialForm.full_name
-              })
-          });
-          const data = await res.json();
-          if (!data.success) throw new Error(data.error || "Erreur lors de la création.");
+          let cleanPhone = newCommercialForm.phone.replace(/\s+/g, '');
+          if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+              cleanPhone = `+221${cleanPhone}`;
+          } else if (!cleanPhone.startsWith('+')) {
+              cleanPhone = `+${cleanPhone}`;
+          }
+
+          const { error } = await supabase.from('commercials').insert([{
+              full_name: newCommercialForm.full_name,
+              phone: cleanPhone,
+              status: 'Actif',
+              password_temp: 'central2026'
+          }]);
+
+          if (error) throw error;
           
           alert(`Commercial ${newCommercialForm.full_name} créé ! Il peut se connecter avec le PIN 0000.`);
           setShowAddCommercialModal(false);
@@ -1682,7 +1686,8 @@ export default function AdminDashboard() {
        strategy: newPartnerForm.strategy,
        status: 'Actif', 
        sales: 0,
-       revenue: '0 F'
+       revenue: '0 F',
+       password_temp: 'central2026'
    };
 
    // ATTENTION: On pointe bien vers la table "ambassadors" et plus "partners"

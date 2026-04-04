@@ -616,7 +616,8 @@ export default function OnyxOpsElite() {
           address: partnerForm.address,
           country: partnerForm.country,
           activity: partnerForm.status,
-          status: 'En attente'
+          status: 'En attente',
+          password_temp: 'central2026'
        };
 
        console.log("PAYLOAD ENVOYÉ:", ambassadorPayload); // Log de débogage
