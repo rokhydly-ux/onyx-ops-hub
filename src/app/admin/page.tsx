@@ -2806,7 +2806,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       {commercials.slice(0, 4).map(comm => {
-                          const repSales = contacts.filter(c => (c.commercial_id && String(c.commercial_id) === String(comm.id) || c.assigned_to === comm.full_name) && c.type === 'Client').length;
+                          const repSales = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client').length;
                           return (
                               <div key={comm.id} onClick={() => setActiveView('team')} className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col items-center text-center cursor-pointer hover:border-[#39FF14]/50 transition-colors">
                                   <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-700 mb-3 overflow-hidden border border-zinc-300 dark:border-zinc-600">
@@ -4064,7 +4064,7 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
                         {commercials.map(comm => {
-                            const repSales = contacts.filter(c => (c.commercial_id && String(c.commercial_id) === String(comm.id) || c.assigned_to === comm.full_name) && c.type === 'Client').length;
+                            const repSales = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client').length;
                             return (
                                 <tr key={comm.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                                     <td className="p-5 lg:p-6 flex items-center gap-4">

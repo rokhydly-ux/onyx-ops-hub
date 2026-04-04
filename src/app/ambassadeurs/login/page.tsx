@@ -42,21 +42,26 @@ export default function AmbassadeursPage() {
     const p6 = rawPhone.startsWith('221') ? rawPhone.substring(3) : rawPhone;
 
     const uniquePhones = Array.from(new Set([p1, p2, p3, p4, p5, p6]));
-    const orConditions = uniquePhones.map(p => `contact.eq."${p}",phone.eq."${p}"`).join(',');
 
     try {
-      // Vérification dans la table des ambassadeurs
-      const { data: membersList, error: fetchErr } = await supabase
+      const { data: membersByPhone } = await supabase
         .from('ambassadors')
         .select('*')
-        .or(orConditions);
+        .in('phone', uniquePhones);
+        
+      const { data: membersByContact } = await supabase
+        .from('ambassadors')
+        .select('*')
+        .in('contact', uniquePhones);
 
-      if (fetchErr || !membersList || membersList.length === 0) {
+      const membersList = [...(membersByPhone || []), ...(membersByContact || [])];
+
+      if (membersList.length === 0) {
         throw new Error("Identifiant introuvable.");
       }
       
-      // S'assurer de prendre la correspondance exacte (évite les conflits si Supabase renvoie un mauvais match)
-      const data = membersList.find(m => uniquePhones.includes(m.phone) || uniquePhones.includes(m.contact)) || membersList[0];
+      const data = membersList.find(m => uniquePhones.includes(m.phone) || uniquePhones.includes(m.contact));
+      if (!data) throw new Error("Identifiant introuvable.");
 
       const submittedPin = pin === "0000" ? "central2026" : pin + "00";
       if (data.password_temp !== submittedPin && data.password_temp !== "central2026") {
