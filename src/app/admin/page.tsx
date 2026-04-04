@@ -186,6 +186,9 @@ export default function AdminDashboard() {
   const [saasCreateForm, setSaasCreateForm] = useState<{ name: string; phone: string; password: string; prospectId?: string }>({ name: "", phone: "", password: "" });
   const [crmTypeFilter, setCrmTypeFilter] = useState("Tous");
   const [crmActivityFilter, setCrmActivityFilter] = useState("Tous");
+  const [crmViewMode, setCrmViewMode] = useState<'list' | 'grid'>('list');
+  const [advFilterSaas, setAdvFilterSaas] = useState("Tous");
+  const [advFilterExp, setAdvFilterExp] = useState<'all'|'30j'|'expired'>('all');
   const [crmSearch, setCrmSearch] = useState("");
   const [crmCardFilter, setCrmCardFilter] = useState<string | null>(null);
   const [financeSearch, setFinanceSearch] = useState("");
@@ -1115,6 +1118,78 @@ export default function AdminDashboard() {
     }, 500);
   };
 
+  const generateFactureFinale = (lead: any) => {
+    const saasPriceMap: any = {
+       'Onyx Jaay': 13900, 'Pack Tekki': 22900, 'Pack Tekki Pro': 27900, 'Onyx CRM': 39900,
+       'Pack Onyx Gold': 59900, 'Add-on CM Pub': 49900, 'Onyx Boost': 150000, 'Onyx Modernize': 300000,
+       'Onyx Tiak': 13900, 'Onyx Stock': 13900, 'Onyx Menu': 13900, 'Onyx Booking': 13900, 'Onyx Staff': 13900, 'Onyx Tontine': 6900
+    };
+    const activeSaasList = lead.active_saas && lead.active_saas.length > 0 ? lead.active_saas : (lead.saas ? [lead.saas] : []);
+    let total = 0;
+    const itemsHtml = activeSaasList.map((s: string) => {
+       const price = saasPriceMap[s] || 13900;
+       total += price;
+       return `<tr><td style="padding: 12px; border-bottom: 1px solid #eee; font-size: 14px;">Abonnement - ${s}</td><td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px;">1</td><td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; font-size: 14px;">${price.toLocaleString('fr-FR')} F CFA</td></tr>`;
+    }).join('');
+    
+    const totalStr = total.toLocaleString('fr-FR') + ' F CFA';
+
+    const invoiceWindow = window.open("", "_blank");
+    if (invoiceWindow) {
+      invoiceWindow.document.write(`
+        <html>
+          <head>
+            <title>Facture Finale - ${lead.full_name}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
+              .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+              .header h1 { font-size: 32px; font-weight: 900; margin: 0; text-transform: uppercase; }
+              .info-section { display: flex; justify-content: space-between; margin-bottom: 40px; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+              .info-box h3 { font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 5px; }
+              .info-box p { margin: 4px 0; font-size: 14px; font-weight: bold; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+              th { background-color: #000; color: #fff; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+              .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+              .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
+            </style>
+          </head>
+          <body>
+            <div class="invoice-box">
+              <div class="header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                  <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="OnyxOps Logo" style="height: 40px; width: auto;" />
+                  <div>
+                    <h1>FACTURE</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #39FF14;">ONYX OPS</p>
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <p style="margin: 0; font-size: 14px;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+                  <p style="margin: 0; font-size: 14px;"><strong>Réf:</strong> FAC-${Date.now().toString().slice(-6)}</p>
+                </div>
+              </div>
+              <div class="info-section">
+                <div class="info-box">
+                  <h3>Facturé à</h3><p>${lead.full_name}</p><p>${lead.phone}</p>
+                </div>
+              </div>
+              <table><thead><tr><th>Désignation</th><th style="text-align: center;">Qté</th><th style="text-align: right;">Total</th></tr></thead>
+              <tbody>${itemsHtml || `<tr><td colspan="3" style="text-align:center; padding: 12px;">Aucun abonnement actif</td></tr>`}</tbody>
+              </table>
+              <div class="totals"><div class="total-row"><span>NET À PAYER</span><span>${totalStr}</span></div></div>
+              <div style="clear: both; text-align: center; padding-top: 40px; font-size: 12px; color: #aaa;">
+                <p>Merci pour votre confiance !</p><p>Document généré électroniquement par OnyxOps.</p>
+              </div>
+            </div>
+            <script>window.print();</script>
+          </body>
+        </html>
+      `);
+      invoiceWindow.document.close();
+    }
+  };
+
   const generateProrataInvoice = (lead: any) => {
     const montant = lead.pending_prorata || 0;
     const totalStr = montant.toLocaleString('fr-FR') + ' F CFA';
@@ -1924,6 +1999,23 @@ export default function AdminDashboard() {
   const filteredContacts = (contacts || []).filter(c => {
     if (crmTypeFilter !== 'Tous' && c.type !== crmTypeFilter) return false;
     if (crmActivityFilter !== 'Tous' && (c.activity || 'Non défini') !== crmActivityFilter) return false;
+    if (advFilterSaas !== 'Tous' && !((c.active_saas || []).includes(advFilterSaas) || c.saas === advFilterSaas)) return false;
+
+    if (advFilterExp !== 'all') {
+       let hasMatch = false;
+       const today = new Date().getTime();
+       const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+       const datesToCheck = [];
+       if (c.expiration_date) datesToCheck.push(new Date(c.expiration_date).getTime());
+       if (c.saas_expiration_dates) {
+           Object.values(c.saas_expiration_dates).forEach(d => datesToCheck.push(new Date(d).getTime()));
+       }
+       if (datesToCheck.length === 0) return false;
+       if (advFilterExp === 'expired') hasMatch = datesToCheck.some(d => d < today);
+       else if (advFilterExp === '30j') hasMatch = datesToCheck.some(d => d >= today && d <= today + thirtyDays);
+       if (!hasMatch) return false;
+    }
+
     const search = (globalSearch || crmSearch).toLowerCase();
     if (search && !(c.full_name || '').toLowerCase().includes(search) && !(c.phone || '').includes(search) && !(c.saas || '').toLowerCase().includes(search)) return false;
     if (crmCardFilter === 'new_clients' && c.type !== 'Client') return false;
@@ -1945,6 +2037,26 @@ export default function AdminDashboard() {
       const search = actionSearchFilter.toLowerCase();
       return (a.title || '').toLowerCase().includes(search) || (a.desc || '').toLowerCase().includes(search);
   });
+
+  // Composant dynamique pour afficher les multi-abonnements dans le CRM
+  const renderSaas = (c: Contact) => {
+      const activeSaasList = c.active_saas && c.active_saas.length > 0 ? c.active_saas : (c.saas ? [c.saas] : []);
+      if (activeSaasList.length === 0) return <span className="text-zinc-400 text-[10px] italic">Aucun abonnement</span>;
+      return (
+          <div className="flex flex-col gap-1.5 w-full">
+              {activeSaasList.map(s => {
+                  const expDateRaw = c.saas_expiration_dates?.[s] || c.expiration_date;
+                  const expStr = expDateRaw ? new Date(expDateRaw).toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit', year: '2-digit'}) : 'N/A';
+                  return (
+                      <div key={s} className="flex items-center justify-between gap-2 bg-zinc-100 dark:bg-zinc-800 px-2 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                          <span className="font-bold text-[10px] uppercase text-black dark:text-white truncate" title={s}>{s}</span>
+                          <span className="text-[9px] font-black text-zinc-500 whitespace-nowrap">Exp: {expStr}</span>
+                      </div>
+                  );
+              })}
+          </div>
+      );
+  };
 
   const exportFinanceReport = () => {
     const reportWindow = window.open("", "_blank");
@@ -2239,7 +2351,7 @@ export default function AdminDashboard() {
         )}
 
         {/* HEADER GÉANT */}
-        <header className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800 h-28 flex items-center justify-between px-8 lg:px-12 shrink-0 z-20 transition-colors">
+        <header className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800 h-28 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 transition-colors">
           <div className="flex flex-col">
             <div className="flex items-center gap-4 md:hidden mb-1">
                <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-zinc-100 rounded-full text-black"><Menu size={24}/></button>
@@ -2341,7 +2453,7 @@ export default function AdminDashboard() {
 
         {/* CONTENU DYNAMIQUE SCROLLABLE */}
         <div className="flex-1 flex flex-col overflow-y-auto scroll-smooth custom-scrollbar">
-          <main className="flex-1 p-6 lg:p-12 flex flex-col">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col">
           
           {/* ================= VUE DASHBOARD ================= */}
           {activeView === 'dashboard' && (
@@ -2842,7 +2954,8 @@ export default function AdminDashboard() {
               </div>
 
               {/* BARRE DE RECHERCHE CRM */}
-              <div className="flex flex-col xl:flex-row justify-between gap-6 xl:gap-5 items-center bg-white dark:bg-zinc-900 p-6 lg:p-5 rounded-[3rem] lg:rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
+              <div className="flex flex-col bg-white dark:bg-zinc-900 p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
+                <div className="flex flex-col xl:flex-row justify-between gap-4 items-center w-full">
                 <div className="absolute top-0 left-0 w-2 h-full bg-[#39FF14] opacity-0 group-hover:opacity-100 transition-all"></div>
                 <div className="flex-1 w-full relative">
                   <Search className="absolute left-6 lg:left-8 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5 lg:w-6 lg:h-6 transition-all group-focus-within:text-[#39FF14]" />
@@ -2893,6 +3006,27 @@ export default function AdminDashboard() {
                       <Plus size={14} /> Ajouter Nouveau
                    </button>
                 </div>
+              </div>
+              
+              {/* LIGNE DE FILTRES AVANCÉS & VUE (GRILLE/LISTE) */}
+              <div className="flex flex-col md:flex-row gap-4 justify-between items-center mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                 <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <span className="text-[10px] font-black uppercase text-zinc-400">Filtres Avancés :</span>
+                    <select value={advFilterSaas} onChange={e => setAdvFilterSaas(e.target.value)} className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg text-[10px] font-bold uppercase outline-none cursor-pointer">
+                       <option value="Tous">Tous les SaaS</option>
+                       {ECOSYSTEM_SAAS.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    </select>
+                    <select value={advFilterExp} onChange={e => setAdvFilterExp(e.target.value as any)} className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg text-[10px] font-bold uppercase outline-none cursor-pointer">
+                       <option value="all">Toutes expirations</option>
+                       <option value="30j">Expire dans &lt; 30j</option>
+                       <option value="expired">Déjà Expiré</option>
+                    </select>
+                 </div>
+                 <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl shrink-0">
+                    <button onClick={() => setCrmViewMode('list')} className={`p-2 rounded-lg transition-colors ${crmViewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400'}`}><Menu size={16}/></button>
+                    <button onClick={() => setCrmViewMode('grid')} className={`p-2 rounded-lg transition-colors ${crmViewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-400'}`}><LayoutDashboard size={16}/></button>
+                 </div>
+              </div>
               </div>
 
               {/* WIDGET EXPIRATIONS / RENOUVELLEMENTS */}
@@ -2957,64 +3091,90 @@ export default function AdminDashboard() {
               )}
 
               {/* TABLEAU CRM */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm relative overflow-x-auto">
+              {crmViewMode === 'grid' ? (
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 mt-6">
+                     {filteredContacts.map(c => (
+                        <div key={c.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:border-[#39FF14] transition-all flex flex-col group">
+                           <div className="flex justify-between items-start mb-4">
+                              <div className="flex items-center gap-3">
+                                 {c.avatar_url ? <img src={c.avatar_url} className="w-12 h-12 rounded-2xl object-cover shadow-sm" /> : <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">{c.full_name?.charAt(0)}</div>}
+                                 <div>
+                                    <p className="font-black text-sm uppercase leading-tight truncate max-w-[150px]">{c.full_name}</p>
+                                    <p className="text-xs text-[#39FF14] font-black mt-0.5">{c.phone}</p>
+                                 </div>
+                              </div>
+                              <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="text-zinc-400 hover:text-black dark:hover:text-white"><Edit3 size={18}/></button>
+                           </div>
+                           <div className="mb-4">
+                              <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-lg tracking-widest ${c.type === 'Client' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'bg-zinc-100 text-zinc-500'}`}>{c.type}</span>
+                              {c.activity && <span className="ml-2 text-[9px] font-black bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-2 py-1 rounded-lg uppercase">{c.activity}</span>}
+                           </div>
+                           <div className="flex-1">
+                              {renderSaas(c)}
+                           </div>
+                           <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end gap-2">
+                              <button onClick={() => {
+                                  const url = `https://onyx-ops-hub.vercel.app/?invite_name=${encodeURIComponent(c.full_name || '')}&invite_phone=${encodeURIComponent(c.phone || '')}&invite_pack=${encodeURIComponent(c.saas || '')}`;
+                                  navigator.clipboard.writeText(url);
+                                  alert("Lien d'invitation copié !");
+                              }} className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl hover:bg-[#39FF14] hover:text-black transition" title="Lien Onboarding"><ExternalLink size={14}/></button>
+                              <button onClick={() => handleDeleteItem('clients', c.id)} className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition"><Trash2 size={14}/></button>
+                           </div>
+                        </div>
+                     ))}
+                     {filteredContacts.length === 0 && <div className="col-span-full p-20 text-center text-zinc-300 font-black uppercase text-xs tracking-widest opacity-50">Aucun résultat trouvé</div>}
+                 </div>
+              ) : (
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm relative overflow-x-auto mt-6">
                 <table className="w-full text-left min-w-[800px]">
                   <thead className="bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
                     <tr>
-                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Identité & WhatsApp</th>
-                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Segment Terminal</th>
-                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Services Actifs</th>
-                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Fin d'Abo</th>
-                      <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
+                      <th className="p-3 lg:p-4 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Identité & WhatsApp</th>
+                      <th className="p-3 lg:p-4 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Segment Terminal</th>
+                      <th className="p-3 lg:p-4 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Abonnements & Expirations</th>
+                      <th className="p-3 lg:p-4 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
                     {filteredContacts.map((c) => (
                       <tr key={c.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-all group">
-                        <td className="p-5 lg:p-6">
+                        <td className="p-3 lg:p-4">
                           <div className="flex items-center gap-4 lg:gap-6">
-                             {c.avatar_url ? <img src={c.avatar_url} alt="" className="w-14 lg:w-16 h-14 lg:h-16 rounded-[1.5rem] lg:rounded-[1.75rem] object-cover shadow-sm shrink-0" /> : <div className="w-14 lg:w-16 h-14 lg:h-16 bg-zinc-100 rounded-[1.5rem] lg:rounded-[1.75rem] flex items-center justify-center font-black text-lg text-black group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm shrink-0">{c.full_name?.charAt(0)}</div>}
+                             {c.avatar_url ? <img src={c.avatar_url} alt="" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl object-cover shadow-sm shrink-0" /> : <div className="w-10 h-10 lg:w-12 lg:h-12 bg-zinc-100 dark:bg-zinc-800 rounded-xl lg:rounded-2xl flex items-center justify-center font-black text-sm lg:text-base text-black dark:text-white group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm shrink-0">{c.full_name?.charAt(0)}</div>}
                              <div>
                                 <p className="font-black text-sm lg:text-base uppercase text-black dark:text-white tracking-tight leading-tight">{c.full_name}</p>
                                 <p className="text-xs lg:text-sm text-[#39FF14] font-black mt-1">{c.phone}</p>
                              </div>
                           </div>
                         </td>
-                        <td className="p-5 lg:p-6">
+                        <td className="p-3 lg:p-4">
                           <div className="flex flex-col gap-2">
                              <span className={`px-4 py-2 text-[9px] lg:text-[10px] font-black uppercase rounded-2xl w-max tracking-widest ${c.type === 'Client' ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20' : 'bg-zinc-100 text-zinc-500'}`}>{c.type}</span>
                              {c.activity && <span className="text-[9px] lg:text-[10px] font-black bg-zinc-200 text-black px-2 py-0.5 rounded-lg uppercase w-max ml-2">{c.activity}</span>}
                              <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 mt-1.5 uppercase ml-2">{c.status || 'Non catégorisé'}</p>
                           </div>
                         </td>
-                        <td className="p-5 lg:p-6">
-                           <div className="flex items-center gap-3 lg:gap-4">
-                              <div className={`w-2.5 lg:w-3 h-2.5 lg:h-3 rounded-full shrink-0 ${c.saas ? 'bg-[#39FF14] shadow-[0_0_10px_#39FF14]' : 'bg-zinc-200'}`}></div>
-                              <p className="font-black text-xs lg:text-sm text-black dark:text-white uppercase tracking-tighter">{c.saas || 'À définir'}</p>
-                           </div>
+                        <td className="p-3 lg:p-4">
+                           {renderSaas(c)}
                         </td>
-                        <td className="p-5 lg:p-6 font-bold text-xs">
-                          {c.expiration_date ? new Date(c.expiration_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'}
-                        </td>
-                        <td className="p-5 lg:p-6 text-right space-x-2 lg:space-x-4">
-                          <button onClick={() => generateAcompte(c)} className="p-3 lg:p-4 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Générer Facture Acompte"><FileText size={18} className="lg:w-5 lg:h-5"/></button>
-                          <button onClick={() => generateDevis(c)} className="p-3 lg:p-4 text-zinc-400 hover:text-purple-500 hover:bg-purple-50 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Générer Devis Global"><ClipboardList size={18} className="lg:w-5 lg:h-5"/></button>
-                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-3 lg:p-4 text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl lg:rounded-2xl transition-all shadow-sm"><Edit3 size={18} className="lg:w-5 lg:h-5"/></button>
+                        <td className="p-3 lg:p-4 text-right space-x-2 lg:space-x-3">
+                          <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="p-2 lg:p-3 text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all shadow-sm"><Edit3 size={18} className="lg:w-4 lg:h-4"/></button>
                           <button onClick={() => {
                              const url = `https://onyx-ops-hub.vercel.app/?invite_name=${encodeURIComponent(c.full_name || '')}&invite_phone=${encodeURIComponent(c.phone || '')}&invite_pack=${encodeURIComponent(c.saas || '')}`;
                              navigator.clipboard.writeText(url);
                              alert("Lien d'onboarding copié !");
-                          }} className="p-3 lg:p-4 text-zinc-400 hover:text-[#39FF14] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl lg:rounded-2xl transition-all shadow-sm" title="Copier lien d'invitation pré-rempli"><ExternalLink size={18} className="lg:w-5 lg:h-5"/></button>
-                          <button onClick={() => handleDeleteItem('clients', c.id)} className="p-3 lg:p-4 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl lg:rounded-2xl transition-all"><Trash2 size={18} className="lg:w-5 lg:h-5"/></button>
+                          }} className="p-2 lg:p-3 text-zinc-400 hover:text-[#39FF14] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all shadow-sm" title="Copier lien d'invitation"><ExternalLink size={18} className="lg:w-4 lg:h-4"/></button>
+                          <button onClick={() => handleDeleteItem('clients', c.id)} className="p-2 lg:p-3 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18} className="lg:w-4 lg:h-4"/></button>
                         </td>
                       </tr>
                     ))}
                     {filteredContacts.length === 0 && (
-                      <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50">Base CRM filtrée : Aucun résultat trouvé</td></tr>
+                      <tr><td colSpan={4} className="p-10 lg:p-16 text-center text-zinc-300 font-black uppercase text-xs tracking-[0.3em] opacity-50">Base CRM filtrée : Aucun résultat trouvé</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
+              )}
             </div>
           )}
 
@@ -4193,6 +4353,12 @@ export default function AdminDashboard() {
                  </div>
               </div>
           )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
+                 <button type="button" onClick={() => generateAcompte(editingContact)} className="bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-200 dark:hover:bg-zinc-700 transition flex items-center justify-center gap-2 shadow-sm"><FileText size={14}/> Facture Acompte</button>
+                 <button type="button" onClick={() => generateDevis(editingContact)} className="bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-200 dark:hover:bg-zinc-700 transition flex items-center justify-center gap-2 shadow-sm"><ClipboardList size={14}/> Devis Global</button>
+                 <button type="button" onClick={() => generateFactureFinale(editingContact)} className="bg-[#39FF14]/10 text-black dark:text-[#39FF14] py-3 rounded-xl font-black text-[10px] uppercase hover:bg-[#39FF14] hover:text-black transition flex items-center justify-center gap-2 shadow-sm border border-[#39FF14]/30"><Download size={14}/> Exporter Facture</button>
+              </div>
 
               <button type="submit" className="w-full bg-black text-[#39FF14] py-5 sm:py-7 rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-xs sm:text-sm mt-6 sm:mt-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)] sm:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 sm:gap-4 active:scale-95">
                 <CheckCircle size={20} className="text-[#39FF14] sm:w-6 sm:h-6"/> Synchroniser la base CRM
