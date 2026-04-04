@@ -5,7 +5,9 @@ import {
   Copy, CheckCircle, Users, DollarSign, TrendingUp, 
   LogOut, Link as LinkIcon, Info, ShieldCheck, 
   ChevronDown, Package, Zap, ArrowRight, X,
-  MessageCircle, Trash2, Trophy, Settings
+  MessageCircle, Trash2, Trophy, Settings,
+  Sun, Moon, Medal, Target, Download, FileText, Image as ImageIcon,
+  Clock, ShoppingBag
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -41,6 +43,7 @@ export default function AmbassadorHub() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
+  const [isDark, setIsDark] = useState(true);
   
   // État de la modale de retrait
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -56,10 +59,16 @@ export default function AmbassadorHub() {
   const [newPin, setNewPin] = useState('');
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
+  const [marketingMaterials, setMarketingMaterials] = useState<any[]>([]);
 
   const ambassadorLink = ambassadorData?.id 
     ? `https://onyxops.com/ref/${ambassadorData.id}` 
     : "Chargement du lien...";
+
+  // Styles dynamiques Dark/Light
+  const themeBg = isDark ? 'bg-zinc-950 text-white' : 'bg-zinc-50 text-black';
+  const cardBg = isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200';
+  const textMuted = isDark ? 'text-zinc-400' : 'text-zinc-500';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(ambassadorLink);
@@ -67,15 +76,27 @@ export default function AmbassadorHub() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('onyx_ambassador_session');
+    router.push('/ambassadeurs/login');
+  };
+
   useEffect(() => {
-    const fetchWithdrawals = async () => {
+    const fetchDashboardData = async () => {
       const sessionStr = localStorage.getItem('onyx_ambassador_session');
       if (sessionStr) {
         try {
           const parsedData = JSON.parse(sessionStr);
-          setAmbassadorData(parsedData);
-          setEditName(parsedData.full_name || '');
-          setEditAvatar(parsedData.avatar_url || '');
+          
+          // 1. On récupère les VRAIES données Supabase du Ambassadeur
+          const { data: freshUser } = await supabase.from('ambassadors').select('*').eq('id', parsedData.id).single();
+          const finalUser = freshUser || parsedData;
+          
+          setAmbassadorData(finalUser);
+          setEditName(finalUser.full_name || '');
+          setEditAvatar(finalUser.avatar_url || '');
+          if (freshUser) localStorage.setItem('onyx_ambassador_session', JSON.stringify(freshUser));
+
           const { data, error } = await supabase
             .from('withdrawals')
             .select('*')
@@ -90,10 +111,19 @@ export default function AmbassadorHub() {
             .order('sales', { ascending: false })
             .limit(5);
           if (topData) setTopAmbassadors(topData);
+
+          // Récupération des prospects affiliés
+          const { data: leadsData } = await supabase.from('leads').select('*').eq('ambassador_id', finalUser.id);
+          if (leadsData) setProspects(leadsData);
+
+          // Récupération du matériel marketing
+          const { data: materialsData } = await supabase.from('marketing_materials').select('*');
+          if (materialsData) setMarketingMaterials(materialsData);
+          
         } catch (e) {}
       }
     };
-    fetchWithdrawals();
+    fetchDashboardData();
   }, []);
 
   // Logique de calcul des commissions (Tableau des filleuls)
@@ -210,29 +240,47 @@ export default function AmbassadorHub() {
 
   const isTopSeller = topAmbassadors.length > 0 && ambassadorData && topAmbassadors[0].id === ambassadorData.id;
 
+  // GAMIFICATION (Niveau & Badges)
+  const sales = ambassadorData?.sales || 0;
+  let badgeName = "Bronze";
+  let nextBadge = "Silver";
+  let goal = 5;
+  let badgeColor = "text-orange-400 bg-orange-400/10 border-orange-400/30";
+  if (sales >= 15) { badgeName = "Gold"; nextBadge = "Platinum"; goal = 50; badgeColor = "text-yellow-400 bg-yellow-400/10 border-yellow-400/30"; }
+  else if (sales >= 5) { badgeName = "Silver"; nextBadge = "Gold"; goal = 15; badgeColor = "text-zinc-400 bg-zinc-400/10 border-zinc-400/30"; }
+  const progress = Math.min(100, (sales / goal) * 100);
+
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans pb-20 selection:bg-[#39FF14] selection:text-black">
+    <div className={`min-h-screen ${themeBg} font-sans pb-20 selection:bg-[#39FF14] selection:text-black transition-colors duration-300`}>
       
       {/* HEADER NAVBAR */}
-      <header className="bg-black/80 backdrop-blur-md border-b border-zinc-900 sticky top-0 z-50">
+      <header className={`${isDark ? 'bg-black/50 border-zinc-800' : 'bg-white/80 border-zinc-200'} backdrop-blur-md border-b sticky top-0 z-50 transition-colors`}>
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
         {ambassadorData?.avatar_url ? (
-           <img src={ambassadorData.avatar_url} alt="Avatar" className="w-8 h-8 rounded border border-[#39FF14] object-cover" />
+           <img src={ambassadorData.avatar_url} alt="Avatar" className="w-10 h-10 rounded-xl border border-[#39FF14] object-cover shadow-sm" />
         ) : (
-           <div className="w-8 h-8 bg-[#39FF14] rounded flex items-center justify-center">
-             <Users size={18} className="text-black" />
+           <div className="w-10 h-10 bg-[#39FF14] rounded-xl flex items-center justify-center shadow-lg">
+             <Trophy size={20} className="text-black" />
            </div>
         )}
-        <span className={`${spaceGrotesk.className} font-black text-xl tracking-tighter uppercase hidden sm:inline`}>
-           Onyx <span className="text-[#39FF14]">Ambassadeur</span>
-        </span>
+          <div className="flex flex-col">
+             <h1 className="text-xl font-black uppercase tracking-tighter text-[#39FF14] leading-tight hidden sm:block">
+               Onyx Ambassadeurs
+             </h1>
+             <p className={`text-[10px] font-bold uppercase tracking-widest ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+               Bienvenue, {ambassadorData?.full_name?.split(' ')[0] || "Partenaire"}
+             </p>
+          </div>
           </div>
           <div className="flex items-center gap-4">
-             <button onClick={() => setShowSettings(true)} className="text-zinc-500 hover:text-[#39FF14] flex items-center gap-2 text-xs font-bold uppercase transition-colors">
-               <Settings size={16} /> <span className="hidden sm:inline">Paramètres</span>
+             <button onClick={() => setIsDark(!isDark)} className={`p-2 rounded-full border ${isDark ? 'border-zinc-700 hover:bg-zinc-800 text-yellow-400' : 'border-zinc-200 hover:bg-zinc-100 text-zinc-600'} transition-all`}>
+               {isDark ? <Sun size={16} /> : <Moon size={16} />}
              </button>
-             <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs font-bold uppercase transition-colors">
+             <button onClick={() => setShowSettings(true)} className={`flex items-center gap-2 text-xs font-bold ${textMuted} hover:text-[#39FF14] transition-colors`}>
+               <Settings size={16} /> <span className="hidden md:inline">Paramètres</span>
+             </button>
+             <button onClick={handleLogout} className={`flex items-center gap-2 text-xs font-bold ${textMuted} hover:text-red-500 transition-colors`}>
                <LogOut size={16} /> <span className="hidden sm:inline">Quitter</span>
              </button>
           </div>
@@ -243,14 +291,14 @@ export default function AmbassadorHub() {
         
         {/* MESSAGE BIENVENUE & LIEN D'AFFILIATION */}
         <div className="grid lg:grid-cols-3 gap-6 mb-10">
-          <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] relative overflow-hidden shadow-2xl">
+          <div className={`lg:col-span-2 ${cardBg} border p-8 rounded-[2rem] relative overflow-hidden shadow-sm transition-colors`}>
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/10 rounded-full blur-[80px] pointer-events-none"></div>
             
             <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-2 relative z-10 flex flex-wrap items-center gap-3`}>
-               Bonjour, {ambassadorData?.full_name?.split(' ')[0] || 'Partenaire'} !
+               Votre Espace Personnel
                {isTopSeller && <span className="bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-full shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-pulse flex items-center gap-1"><Trophy size={14}/> Top Vendeur</span>}
             </h1>
-            <p className="text-zinc-400 font-medium mb-8 relative z-10">Voici votre lien unique. Partagez-le à votre réseau pour générer votre rente passive sur <span className="text-white font-bold">tous nos produits</span>.</p>
+            <p className={`${textMuted} font-medium mb-8 relative z-10`}>Voici votre lien unique. Partagez-le à votre réseau pour générer votre rente passive sur <span className={isDark ? 'text-white font-bold' : 'text-black font-bold'}>tous nos produits</span>.</p>
             
             <div className="bg-black border border-zinc-700 p-2 pl-6 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4 relative z-10">
               <span className="text-sm font-bold text-white truncate w-full sm:w-auto flex-1">{ambassadorLink}</span>
@@ -276,16 +324,56 @@ export default function AmbassadorHub() {
           </div>
         </div>
 
+        {/* GAMIFICATION : BADGES & MISSIONS */}
+        <div className="grid md:grid-cols-2 gap-6 mb-10">
+           {/* BADGES */}
+           <div className={`${cardBg} rounded-[2rem] p-6 shadow-sm relative overflow-hidden group hover:border-[#39FF14]/50 transition-colors`}>
+              <h2 className={`flex items-center gap-3 text-lg font-black uppercase mb-4 ${isDark ? 'text-white' : 'text-black'}`}>
+                 <Medal size={22} className="text-[#39FF14]" /> Mon Niveau & Badges
+              </h2>
+              <div className="flex items-center gap-5 mb-6 relative z-10">
+                 <div className={`w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-lg ${badgeColor}`}>
+                    <Medal size={36} />
+                 </div>
+                 <div>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${textMuted}`}>Statut Ambassadeur</p>
+                    <p className={`text-3xl font-black uppercase ${isDark ? 'text-white' : 'text-black'}`}>{badgeName}</p>
+                 </div>
+              </div>
+              <div className={`w-full ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'} rounded-full h-3 mb-2 overflow-hidden shadow-inner relative z-10`}>
+                 <div className="bg-[#39FF14] h-full transition-all duration-1000 ease-out" style={{ width: `${progress}%` }}></div>
+              </div>
+              <p className={`text-xs font-bold ${textMuted} relative z-10`}>Plus que <span className="text-[#39FF14]">{goal - sales} ventes</span> pour débloquer le rang {nextBadge}.</p>
+           </div>
+
+           {/* MISSIONS FLASH */}
+           <div className={`${cardBg} rounded-[2rem] p-6 shadow-sm relative overflow-hidden group hover:border-[#39FF14]/50 transition-colors`}>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 rounded-full blur-3xl pointer-events-none"></div>
+              <h2 className="flex items-center gap-3 text-lg font-black uppercase mb-4 text-[#39FF14]">
+                 <Target size={22} /> Missions Flash
+              </h2>
+              <div className={`p-5 rounded-[1.5rem] border ${isDark ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'} relative z-10`}>
+                 <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Défi de la semaine</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-red-500 flex items-center gap-1 bg-red-500/10 px-2 py-0.5 rounded animate-pulse"><Clock size={12}/> 48h restantes</span>
+                 </div>
+                 <p className={`text-base font-bold ${isDark ? 'text-white' : 'text-black'} mb-1`}>Vendez 1 Pack Tekki Resto</p>
+                 <p className="text-[#39FF14] font-black text-xl mb-5">+ 5.000 F CFA de Bonus</p>
+                 <button onClick={() => alert("Mission acceptée ! Bonne prospection 🚀")} className="w-full py-3 bg-[#39FF14] text-black font-black text-xs uppercase rounded-xl hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.2)]">Accepter la mission</button>
+              </div>
+           </div>
+        </div>
+
         {/* BLOC EXPLICATIF DES TAUX */}
-        <div className="bg-black border border-zinc-800 rounded-[2rem] p-8 mb-10 shadow-lg">
+        <div className={`${cardBg} rounded-[2rem] p-8 mb-10 shadow-sm transition-colors`}>
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-center gap-3">
               <Info className="text-[#00E5FF]" size={24} />
-              <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase`}>Règles de Rémunération</h2>
+              <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase ${isDark ? 'text-white' : 'text-black'}`}>Règles de Rémunération</h2>
             </div>
             <button 
               onClick={() => setShowCatalog(!showCatalog)} 
-              className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors flex items-center gap-2"
+              className={`${isDark ? 'bg-zinc-900 text-white hover:bg-zinc-800' : 'bg-zinc-100 text-black hover:bg-zinc-200'} px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-2`}
             >
               <Package size={14}/> {showCatalog ? "Masquer le catalogue" : "Voir tout le catalogue"}
             </button>
@@ -293,41 +381,41 @@ export default function AmbassadorHub() {
           
           <div className="grid md:grid-cols-2 gap-6">
             {/* Règle SaaS */}
-            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center relative overflow-hidden group hover:border-[#39FF14]/50 transition-colors">
+            <div className={`${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'} border p-6 rounded-2xl flex flex-col justify-center relative overflow-hidden group hover:border-[#39FF14]/50 transition-colors`}>
               <div className="absolute top-0 right-0 w-1 h-full bg-[#39FF14]"></div>
-              <h3 className="font-black uppercase text-white mb-2 flex items-center gap-2">
+              <h3 className={`font-black uppercase ${isDark ? 'text-white' : 'text-black'} mb-2 flex items-center gap-2`}>
                 <ShieldCheck size={18} className="text-[#39FF14]" /> SaaS (Logiciels)
               </h3>
-              <p className="text-xs text-zinc-400 mb-4 font-medium">S'applique sur tous les modules (Jaay, Menu, Tontine...) et Packs.</p>
+              <p className={`text-xs ${textMuted} mb-4 font-medium`}>S'applique sur tous les modules (Jaay, Menu, Tontine...) et Packs.</p>
               <div className="flex items-end gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Le 1er Mois (M1)</p>
                   <p className="text-2xl font-black text-[#39FF14]">30%</p>
                 </div>
-                <div className="h-8 w-px bg-zinc-800"></div>
+                <div className={`h-8 w-px ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}></div>
                 <div>
                   <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Récurrent à vie</p>
-                  <p className="text-2xl font-black text-white">10%</p>
+                  <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-black'}`}>10%</p>
                 </div>
               </div>
             </div>
 
             {/* Règle Service CM */}
-            <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl flex flex-col justify-center relative overflow-hidden group hover:border-[#00E5FF]/50 transition-colors">
+            <div className={`${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'} border p-6 rounded-2xl flex flex-col justify-center relative overflow-hidden group hover:border-[#00E5FF]/50 transition-colors`}>
               <div className="absolute top-0 right-0 w-1 h-full bg-[#00E5FF]"></div>
-              <h3 className="font-black uppercase text-white mb-2 flex items-center gap-2">
+              <h3 className={`font-black uppercase ${isDark ? 'text-white' : 'text-black'} mb-2 flex items-center gap-2`}>
                 <TrendingUp size={18} className="text-[#00E5FF]" /> Option CM / High-Ticket
               </h3>
-              <p className="text-xs text-zinc-400 mb-4 font-medium">S'applique sur l'Option CM, Onyx Boost et Modernize.</p>
+              <p className={`text-xs ${textMuted} mb-4 font-medium`}>S'applique sur l'Option CM, Onyx Boost et Modernize.</p>
               <div className="flex items-end gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Le 1er Mois (M1)</p>
                   <p className="text-2xl font-black text-[#00E5FF]">15%</p>
                 </div>
-                <div className="h-8 w-px bg-zinc-800"></div>
+                <div className={`h-8 w-px ${isDark ? 'bg-zinc-800' : 'bg-zinc-200'}`}></div>
                 <div>
                   <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Récurrent à vie</p>
-                  <p className="text-2xl font-black text-white">5% <span className="text-[9px] text-zinc-600">(0% sur One-Shot)</span></p>
+                  <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-black'}`}>5% <span className="text-[9px] text-zinc-500">(0% sur One-Shot)</span></p>
                 </div>
               </div>
             </div>
@@ -335,7 +423,7 @@ export default function AmbassadorHub() {
 
           {/* CATALOGUE DÉPLIABLE DES COMMISSIONS */}
           {showCatalog && (
-            <div className="mt-8 pt-8 border-t border-zinc-800 animate-in slide-in-from-top-4 fade-in">
+            <div className={`mt-8 pt-8 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-200'} animate-in slide-in-from-top-4 fade-in`}>
               <h3 className="font-black uppercase text-sm tracking-widest text-zinc-400 mb-6">Catalogue des Gains par Produit</h3>
               <div className="grid md:grid-cols-3 gap-8">
                 {PRODUCTS_CATALOG.map((section, idx) => (
@@ -345,9 +433,9 @@ export default function AmbassadorHub() {
                       {section.items.map((item, i) => {
                         const comms = getCatalogCommission(item.price, item.type);
                         return (
-                          <li key={i} className="bg-zinc-900 border border-zinc-800 p-3 rounded-xl flex flex-col gap-1">
+                          <li key={i} className={`${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'} border p-3 rounded-xl flex flex-col gap-1`}>
                             <div className="flex justify-between items-center">
-                              <span className="font-black text-xs text-white">{item.name}</span>
+                              <span className={`font-black text-xs ${isDark ? 'text-white' : 'text-black'}`}>{item.name}</span>
                               <span className="text-[10px] font-bold text-zinc-500">{item.price.toLocaleString()} F</span>
                             </div>
                             <div className="flex justify-between items-center mt-1">
@@ -367,19 +455,19 @@ export default function AmbassadorHub() {
 
         {/* LEADERBOARD (CLASSEMENT) */}
         <div className="mb-10">
-          <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3`}>
+          <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3 ${isDark ? 'text-white' : 'text-black'}`}>
           <Trophy className="text-yellow-500" size={24} /> Classement des Ambassadeurs
           </h2>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-2xl">
+          <div className={`${cardBg} rounded-[2rem] p-6 shadow-sm transition-colors`}>
              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 {topAmbassadors.map((amb, index) => (
-                   <div key={amb.id} className={`flex flex-col items-center justify-center p-6 rounded-2xl border ${index === 0 ? 'bg-yellow-500/10 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.2)] scale-105 z-10' : index === 1 ? 'bg-zinc-300/10 border-zinc-300/30' : index === 2 ? 'bg-orange-500/10 border-orange-500/30' : 'bg-black border-zinc-800'}`}>
+                   <div key={amb.id} className={`flex flex-col items-center justify-center p-6 rounded-2xl border transition-transform hover:scale-105 ${index === 0 ? 'bg-yellow-500/10 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.2)] z-10' : index === 1 ? 'bg-zinc-300/10 border-zinc-300/30' : index === 2 ? 'bg-orange-500/10 border-orange-500/30' : isDark ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'} ${amb.id === ambassadorData?.id ? 'ring-2 ring-[#39FF14]' : ''}`}>
                       <div className="relative mb-3">
-                         <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center font-black text-lg border-2 border-zinc-800">{amb.full_name?.charAt(0)}</div>
+                         <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg border-2 ${isDark ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`}>{amb.full_name?.charAt(0)}</div>
                          {index < 3 && <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg ${index === 0 ? 'bg-yellow-500 text-black' : index === 1 ? 'bg-zinc-300 text-black' : 'bg-orange-500 text-black'}`}>{index + 1}</div>}
                          {index === 0 && <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-black text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow-md whitespace-nowrap z-20">Top Vendeur</div>}
                       </div>
-                      <p className="font-black text-sm uppercase text-white truncate w-full text-center">{amb.full_name}</p>
+                      <p className={`font-black text-sm uppercase truncate w-full text-center ${amb.id === ambassadorData?.id ? 'text-[#39FF14]' : (isDark ? 'text-white' : 'text-black')}`}>{amb.id === ambassadorData?.id ? 'Vous' : amb.full_name}</p>
                       <p className="text-[10px] font-bold text-zinc-500 mt-1 uppercase tracking-widest">{amb.sales || 0} Ventes</p>
                    </div>
                 ))}
@@ -388,17 +476,56 @@ export default function AmbassadorHub() {
           </div>
         </div>
 
+        {/* Section "Matériel Marketing" (Dynamique) */}
+        <section className={`${cardBg} rounded-[2rem] p-6 shadow-sm mb-10 transition-colors`}>
+          <h2 className="flex items-center gap-3 text-lg font-black uppercase text-[#39FF14] mb-6">
+            <ShoppingBag size={22} /> Boîte à Outils Marketing
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+             <div>
+                <h3 className={`font-bold text-sm uppercase mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-black'}`}><ImageIcon size={16}/> Visuels & PDF</h3>
+                <div className="flex flex-wrap gap-3">
+                  {marketingMaterials.length === 0 ? (
+                     <p className="text-zinc-500 text-sm">Aucun matériel disponible pour le moment.</p>
+                  ) : marketingMaterials.map((material) => (
+                     <a 
+                       key={material.id}
+                       href={material.url} 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       className={`inline-flex items-center gap-2 ${isDark ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-zinc-100 text-black border-zinc-200'} border hover:bg-[#39FF14] hover:text-black hover:border-[#39FF14] px-5 py-3 rounded-xl font-black uppercase text-[10px] transition-colors shadow-sm`}
+                     >
+                      {material.type.toLowerCase() === 'canva' ? <ImageIcon size={14}/> : <FileText size={14}/>}
+                      {material.title || (material.type.toLowerCase() === 'canva' ? 'Ouvrir Canva' : 'Télécharger le PDF')}
+                    </a>
+                  ))}
+                </div>
+             </div>
+             
+             <div>
+                <h3 className={`font-bold text-sm uppercase mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-black'}`}><MessageCircle size={16}/> Scripts WhatsApp Rapides</h3>
+                <div className="space-y-3">
+                   <div className={`p-4 rounded-xl border ${isDark ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'} relative group`}>
+                      <p className={`text-xs italic mb-3 leading-relaxed ${textMuted}`}>"Salut ! Je travaille avec OnyxOps, on a une solution pour créer ton catalogue WhatsApp avec paiement intégré et suivi de tes livreurs. Tu veux voir une démo rapide ?"</p>
+                      <button onClick={() => { navigator.clipboard.writeText("Salut ! Je travaille avec OnyxOps, on a une solution pour créer ton catalogue WhatsApp avec paiement intégré et suivi de tes livreurs. Tu veux voir une démo rapide ?"); alert("Script copié !"); }} className="text-[10px] font-black uppercase text-[#39FF14] flex items-center gap-1 hover:underline"><Copy size={12}/> Copier le script</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </section>
+
         {/* TABLEAU DES FILLEULS */}
         <div>
-          <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3`}>
+          <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3 ${isDark ? 'text-white' : 'text-black'}`}>
           <LinkIcon className="text-[#39FF14]" size={24} /> Suivi de vos Filleuls
           </h2>
           
-          <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl">
+          <div className={`${cardBg} rounded-[2rem] overflow-hidden shadow-sm transition-colors`}>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-black/50 border-b border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                  <tr className={`${isDark ? 'bg-black/50 border-zinc-800' : 'bg-zinc-100 border-zinc-200'} border-b text-[10px] font-black uppercase tracking-widest ${textMuted}`}>
                     <th className="p-6 whitespace-nowrap">Date d'inscription</th>
                     <th className="p-6 whitespace-nowrap">Boutique</th>
                     <th className="p-6 whitespace-nowrap">Produit Principal</th>
@@ -407,7 +534,7 @@ export default function AmbassadorHub() {
                     <th className="p-6 whitespace-nowrap text-right">Commission (Est.)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className={`divide-y ${isDark ? 'divide-zinc-800' : 'divide-zinc-200'}`}>
                   {prospects.map((prospect, index) => {
                     const productName = prospect.intent || 'Onyx Jaay';
                     const price = productName.includes('Tekki Pro') ? 27900 : productName.includes('Tekki') ? 22900 : productName.includes('CRM') ? 29900 : productName.includes('Gold') ? 59900 : 13900;
@@ -415,11 +542,11 @@ export default function AmbassadorHub() {
                     const commission = calculateCommission(price, hasCM, true);
                     
                     return (
-                      <tr key={prospect.id || index} className="hover:bg-zinc-800/30 transition-colors">
+                      <tr key={prospect.id || index} className={`${isDark ? 'hover:bg-zinc-800/30' : 'hover:bg-zinc-50'} transition-colors`}>
                         <td className="p-6 text-sm font-bold text-zinc-400">{prospect.created_at ? new Date(prospect.created_at).toLocaleDateString('fr-FR') : "Aujourd'hui"}</td>
-                        <td className="p-6 text-sm font-black text-white">{prospect.full_name || 'Client Anonyme'}</td>
+                        <td className={`p-6 text-sm font-black ${isDark ? 'text-white' : 'text-black'}`}>{prospect.full_name || 'Client Anonyme'}</td>
                         <td className="p-6">
-                          <span className="bg-zinc-800 text-white px-3 py-1 rounded-md text-xs font-bold border border-zinc-700">
+                          <span className={`${isDark ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-white text-black border-zinc-300'} px-3 py-1 rounded-md text-xs font-bold border`}>
                             {productName}
                           </span>
                         </td>
@@ -471,11 +598,11 @@ export default function AmbassadorHub() {
 
         {/* --- HISTORIQUE DES RETRAITS --- */}
         <div className="mt-12">
-          <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3`}>
+          <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 flex items-center gap-3 ${isDark ? 'text-white' : 'text-black'}`}>
           <DollarSign className="text-[#39FF14]" size={24} /> Historique des Retraits
           </h2>
           
-          <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-2xl">
+          <div className={`${cardBg} rounded-[2rem] p-6 shadow-sm transition-colors`}>
             {withdrawals.length === 0 ? (
               <div className="text-center py-8">
                 <DollarSign size={40} className="text-zinc-700 mx-auto mb-4" />
@@ -484,9 +611,9 @@ export default function AmbassadorHub() {
             ) : (
               <div className="space-y-4">
                 {withdrawals.map((w, index) => (
-                  <div key={w.id || index} className="flex justify-between items-center bg-black p-5 rounded-2xl border border-zinc-800">
+                  <div key={w.id || index} className={`flex justify-between items-center p-5 rounded-2xl border ${isDark ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
                      <div>
-                       <p className="font-black text-white uppercase text-sm">{w.method} - {w.phone}</p>
+                       <p className={`font-black uppercase text-sm ${isDark ? 'text-white' : 'text-black'}`}>{w.method} - {w.phone}</p>
                        <p className="text-xs text-zinc-500 mt-1 font-bold">{w.created_at ? new Date(w.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : "Récemment"}</p>
                      </div>
                      <div className="text-right">
