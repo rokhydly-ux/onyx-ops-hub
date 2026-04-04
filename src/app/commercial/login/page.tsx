@@ -30,7 +30,7 @@ export default function CommercialLogin() {
       const p6 = rawPhone.startsWith('221') ? rawPhone.substring(3) : rawPhone;
 
       const uniquePhones = Array.from(new Set([p1, p2, p3, p4, p5, p6]));
-      const orConditions = uniquePhones.map(p => `phone.eq.${p}`).join(',');
+      const orConditions = uniquePhones.map(p => `phone.eq."${p}"`).join(',');
 
       // Vérification dans la table des commerciaux
       const { data: commercials, error } = await supabase
@@ -39,8 +39,10 @@ export default function CommercialLogin() {
         .or(orConditions);
 
       if (error || !commercials || commercials.length === 0) throw new Error("Numéro de téléphone introuvable.");
-      const commercial = commercials[0];
       
+      // S'assurer de prendre la correspondance exacte (évite les conflits avec le premier résultat Supabase)
+      const commercial = commercials.find(c => uniquePhones.includes(c.phone)) || commercials[0];
+
       const submittedPin = pin === "0000" ? "central2026" : pin + "00";
       if (commercial.password_temp !== submittedPin && commercial.password_temp !== "central2026") throw new Error("Code PIN incorrect.");
       if (commercial.status !== 'Actif') throw new Error("Votre compte commercial n'est pas encore activé.");
