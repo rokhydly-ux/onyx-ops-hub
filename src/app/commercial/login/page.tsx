@@ -24,6 +24,8 @@ export default function CommercialLogin() {
       let cleanPhone = phone.replace(/\s+/g, '');
       if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
          cleanPhone = `+221${cleanPhone}`;
+      } else if (!cleanPhone.startsWith('+')) {
+         cleanPhone = `+${cleanPhone}`;
       }
 
       // Vérification dans la table des commerciaux
