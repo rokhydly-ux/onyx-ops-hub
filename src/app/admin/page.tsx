@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -141,7 +143,7 @@ export default function AdminDashboard() {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
   const [commercials, setCommercials] = useState<any[]>([]);
-  const [stats, setStats] = useState({ revenue: 0, activeClients: 0, pendingLeads: 0, newPartners: 0 });
+  const [stats, setStats] = useState({ revenue: 0, activeClients: 0, pendingLeads: 0, newPartners: 0, currentMonthRevenue: 0, prevMonthRevenue: 0, isRevenueDown: false });
 
   // --- 6. ÉTATS DES MODALES ---
   const [showProductModal, setShowProductModal] = useState<{lead: any, type: string} | null>(null);
@@ -192,8 +194,6 @@ export default function AdminDashboard() {
   const [actionSearchFilter, setActionSearchFilter] = useState("");
   const [marketingArticles, setMarketingArticles] = useState<any[]>([]);
   const [showDiffusionModal, setShowDiffusionModal] = useState<any>(null);
-  const [diffusionMessage, setDiffusionMessage] = useState("");
-  const [includeInviteLink, setIncludeInviteLink] = useState(false);
   const [selectedContactsForDiffusion, setSelectedContactsForDiffusion] = useState<string[]>([]);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
@@ -387,12 +387,25 @@ export default function AdminDashboard() {
         if (c.saas === 'Onyx Tontine') return acc + 6900;
         return acc + 13900; // Plan individuel par défaut
      }, 0) || 0;
+     
+     const now = new Date();
+     const currentMonth = now.getMonth();
+     const currentYear = now.getFullYear();
+     const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+     const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+     const currentMonthRevenue = contactsData?.filter(c => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === currentMonth && new Date(c.created_at).getFullYear() === currentYear).reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0) || 0;
+     const prevMonthRevenue = contactsData?.filter(c => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === prevMonth && new Date(c.created_at).getFullYear() === prevYear).reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0) || 0;
+     const isRevenueDown = prevMonthRevenue > 0 && currentMonthRevenue < prevMonthRevenue;
 
      setStats({
        revenue: realRevenue,
        activeClients: contactsData?.filter(c => c.type === 'Client').length || 0,
        pendingLeads: leadsData?.length || 0,
-       newPartners: partnersData?.length || 0
+       newPartners: partnersData?.length || 0,
+       currentMonthRevenue,
+       prevMonthRevenue,
+       isRevenueDown
      });
    } catch (error) {
      console.error("Erreur de chargement:", error);
@@ -433,6 +446,32 @@ export default function AdminDashboard() {
 
     initAdmin();
   }, []);
+
+  // --- ÉCOUTE TEMPS RÉEL & NOTIFICATIONS PUSH NAVIGATEUR ---
+  useEffect(() => {
+    if (!adminUser) return;
+    
+    const channel = supabase
+      .channel('realtime-leads-admin')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads' }, (payload) => {
+        const newLead = payload.new;
+        setLeads(prev => {
+          if (prev.some(l => l.id === newLead.id)) return prev;
+          return [newLead, ...prev];
+        });
+        
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          const notif = new Notification('🚨 Nouveau Lead OnyxOps !', {
+            body: `${newLead.full_name} vient de soumettre une demande.\nContact: ${newLead.phone}`,
+            icon: 'https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png'
+          });
+          notif.onclick = () => { window.focus(); setActiveView('leads'); };
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [adminUser]);
 
   // --- PERSISTANCE LOCALE DES ARTICLES MARKETING ---
   useEffect(() => {
@@ -1194,6 +1233,32 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleExportCrmPdf = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Liste des Membres CRM - OnyxOps", 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+
+    const tableColumn = ["Nom & Prénom", "Téléphone", "Statut / Type", "SaaS Actif"];
+    const tableRows = filteredContacts.map(c => [
+      c.full_name || 'N/A',
+      c.phone || 'N/A',
+      c.type || 'N/A',
+      c.saas || 'Aucun'
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+    });
+
+    doc.save(`Onyx_CRM_Membres_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const updateLeadAssignee = async (id: string, assignee: string) => {
     const { error } = await supabase.from('clients').update({ assigned_to: assignee }).eq('id', id);
     if (error) {
@@ -1292,51 +1357,40 @@ export default function AdminDashboard() {
    alert("Action planifiée avec succès dans le Journal IA !");
 };
 
-  const handleUpgradePack = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleAddSaasToContact = (e: React.ChangeEvent<HTMLSelectElement>) => {
       const newSaas = e.target.value;
-      const currentSaas = editingContact?.saas || '';
-      const currentPrice = getSaasPrice(currentSaas);
-      const newPrice = getSaasPrice(newSaas);
-      
-      let packSaas: string[] = [];
-      if (newSaas.includes('Solo') || newSaas.includes('Jaay')) packSaas = ['vente'];
-      else if (newSaas.includes('Tekki Pro')) packSaas = ['vente', 'tiak', 'stock', 'formation'];
-      else if (newSaas.includes('Tekki')) packSaas = ['vente', 'tiak', 'stock'];
-      else if (newSaas.includes('Gold')) packSaas = ['vente', 'tiak', 'stock', 'formation', 'menu', 'tontine'];
-      else if (newSaas.includes('CRM')) packSaas = ['crm'];
-      else if (newSaas.includes('Menu')) packSaas = ['menu'];
-      else if (newSaas.includes('Booking')) packSaas = ['booking'];
-      else if (newSaas.includes('Staff')) packSaas = ['staff'];
-      else if (newSaas.includes('Stock')) packSaas = ['stock'];
-      else if (newSaas.includes('Tiak')) packSaas = ['tiak'];
-      else if (newSaas.includes('Tontine')) packSaas = ['tontine'];
-      else if (newSaas.includes('CM Pub')) packSaas = ['cmpub'];
-
+      if (!newSaas) return;
+      const currentActive = editingContact?.active_saas || [];
+      if (currentActive.includes(newSaas)) return;
+      const newExpDate = new Date();
+      newExpDate.setMonth(newExpDate.getMonth() + 1);
+      const expDateStr = newExpDate.toISOString().split('T')[0];
       let msg = "";
-      let prorataAmount = 0;
-      if (newPrice > currentPrice && currentPrice > 0 && editingContact?.expiration_date) {
-          const expDate = new Date(editingContact.expiration_date);
-          const today = new Date();
-          const diffTime = expDate.getTime() - today.getTime();
-          const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
-          if (remainingDays > 0) {
-              const priceDiff = newPrice - currentPrice;
-              prorataAmount = Math.round((priceDiff / 30) * Math.min(remainingDays, 30));
-              msg = `Upgrade vers ${newSaas}. Différence à facturer au prorata pour le mois en cours : ${prorataAmount.toLocaleString('fr-FR')} F.`;
-          }
-      } else if (newPrice > currentPrice) {
-          msg = `Nouvelle offre sélectionnée : ${newSaas}.`;
+      if (newSaas.includes('Pack') && currentActive.some(s => s.includes('Onyx Jaay') || s.includes('Solo'))) {
+          msg = `Upgrade détecté vers ${newSaas}. Calcul du prorata sur les jours restants de l'offre actuelle.`;
+      } else {
+          msg = `Nouvelle offre ajoutée : ${newSaas}. Fin prévue le ${newExpDate.toLocaleDateString('fr-FR')}.`;
       }
-      
-      setEditingContact(prev => ({ 
-          ...prev, 
-          saas: newSaas,
-          previous_saas: currentSaas,
-          pending_prorata: prorataAmount,
-          active_saas: packSaas.length > 0 ? Array.from(new Set([...(prev.active_saas || []), ...packSaas])) : prev.active_saas
+      setEditingContact(prev => ({
+          ...prev, active_saas: [...currentActive, newSaas], saas_expiration_dates: { ...(prev.saas_expiration_dates || {}), [newSaas]: expDateStr }
       }));
       setProrataMsg(msg);
+  };
+
+  const handleRemoveSaasFromContact = (saasToRemove: string) => {
+      setEditingContact(prev => {
+          const newActive = (prev.active_saas || []).filter(s => s !== saasToRemove);
+          const newDates = { ...(prev.saas_expiration_dates || {}) };
+          delete newDates[saasToRemove];
+          return { ...prev, active_saas: newActive, saas_expiration_dates: newDates };
+      });
+      setProrataMsg(`Offre ${saasToRemove} retirée.`);
+  };
+
+  const handleSaasDateChange = (saas: string, date: string) => {
+      setEditingContact(prev => ({
+          ...prev, saas_expiration_dates: { ...(prev.saas_expiration_dates || {}), [saas]: date }
+      }));
   };
 
   const handleDeleteItem = async (table: string, id: string) => {
@@ -1655,27 +1709,14 @@ export default function AdminDashboard() {
 
   const scheduleMarketingDiffusion = () => {
       if(selectedContactsForDiffusion.length === 0) return alert("Sélectionnez au moins un contact pour la diffusion.");
-      
-      const newActions: IAAction[] = selectedContactsForDiffusion.map(contactId => {
-          const contact = contacts.find(c => c.id === contactId);
-          if (!contact) return null;
-          
-          let finalMsg = diffusionMessage || showDiffusionModal?.desc || '';
-          if (includeInviteLink) {
-              const url = `https://onyx-ops-hub.vercel.app/?invite_name=${encodeURIComponent(contact.full_name || '')}&invite_phone=${encodeURIComponent(contact.phone || '')}&invite_pack=${encodeURIComponent(contact.saas || '')}`;
-              finalMsg += `\n\n👉 Cliquez ici pour accéder à votre espace pré-configuré : ${url}`;
-          }
-          
-          return { id: `diff-${Date.now()}-${contact.id}`, module: 'Marketing', title: `Diffusion : ${showDiffusionModal?.title}`, desc: `Campagne destinée à ${contact.full_name}`, date: todayStr, status: 'En attente', phone: contact.phone, msg: finalMsg, contactId: contact.id };
-      }).filter(Boolean) as IAAction[];
-      
+      const newAction: IAAction = { id: Date.now().toString(), module: 'Marketing', title: `Diffusion : ${showDiffusionModal?.title}`, desc: `Envoi programmé à ${selectedContactsForDiffusion.length} contacts via le canal WhatsApp.`, date: todayStr, status: 'En attente' };
       setActionsIA(prev => {
-        const updated = [...newActions, ...prev];
+        const updated = [newAction, ...prev];
         localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
         return updated;
       });
       setShowDiffusionModal(null);
-      alert(`Campagne planifiée avec succès pour ${selectedContactsForDiffusion.length} membres. Les actions sont prêtes à être lancées dans le Journal IA !`);
+      alert(`Diffusion planifiée avec succès pour ${selectedContactsForDiffusion.length} membres.`);
   };
 
   // NOUVELLE FONCTION: Ouvre la modale pour un nouveau client avec date +7j par défaut
@@ -2339,6 +2380,20 @@ export default function AdminDashboard() {
 </div>
               </div>
 
+              {/* BANNIÈRE BAISSE CA */}
+              {stats.isRevenueDown && (
+                 <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 rounded-3xl shadow-sm animate-in fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                       <div className="bg-red-500/20 text-red-600 dark:text-red-400 p-3 rounded-2xl"><ArrowDownRight size={24} /></div>
+                       <div>
+                          <h2 className="text-lg font-black uppercase text-red-600 dark:text-red-400 tracking-tighter">Alerte : Baisse des ventes détectée</h2>
+                          <p className="text-xs text-red-500 dark:text-red-300 font-bold mt-1">Nouveaux revenus ce mois-ci ({stats.currentMonthRevenue.toLocaleString('fr-FR')} F) vs mois précédent ({stats.prevMonthRevenue.toLocaleString('fr-FR')} F).</p>
+                       </div>
+                    </div>
+                    <button onClick={() => setActiveView('marketing')} className="bg-red-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all w-full sm:w-auto shadow-lg">Lancer une campagne</button>
+                 </div>
+              )}
+
               {/* ALERTE PRORATAS EN ATTENTE */}
               {(() => {
                   const pendingProratas = contacts.filter(c => c.pending_prorata && c.pending_prorata > 0);
@@ -2827,6 +2882,9 @@ export default function AdminDashboard() {
                    </button>
                    <button onClick={runIaScan} className="flex items-center justify-center gap-2 bg-zinc-800 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-md active:scale-95">
                       <Sparkles size={14} /> Scan IA
+                   </button>
+                   <button onClick={handleExportCrmPdf} className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shadow-sm border border-zinc-200 dark:border-zinc-800 active:scale-95">
+                      <FileText size={14} /> Export PDF
                    </button>
                    <button 
                      onClick={openNewClientModal} 
@@ -3777,7 +3835,7 @@ export default function AdminDashboard() {
                             <p className="text-zinc-500 font-medium text-sm lg:text-base leading-relaxed max-w-2xl opacity-80">{article.desc}</p>
                          </div>
                          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:gap-4 w-full lg:w-max">
-                           <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); setDiffusionMessage(article.desc || ''); setIncludeInviteLink(false); }} className="flex-1 lg:flex-none bg-[#39FF14] text-black px-6 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-xl flex items-center justify-center gap-2 lg:gap-3 active:scale-95">
+                            <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="flex-1 lg:flex-none bg-[#39FF14] text-black px-6 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-xl flex items-center justify-center gap-2 lg:gap-3 active:scale-95">
                                <Send size={16} className="lg:w-[18px] lg:h-[18px]"/> Diffuser Segment
                             </button>
                             
@@ -4014,71 +4072,70 @@ export default function AdminDashboard() {
                  <input type="tel" required value={editingContact?.phone || ""} onChange={e => setEditingContact({...editingContact, phone: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="+221 7x xxx xx xx" />
               </div>
 
-              {/* GESTION ABONNEMENT EN COURS & UPGRADE */}
-              <div className="space-y-4 pt-6 border-t border-zinc-100">
-                <div className="flex justify-between items-center mb-2">
-                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4 sm:ml-6">
-                       Abonnement en cours
-                    </label>
+              {/* GESTION MULTI-ABONNEMENTS */}
+              <div className="space-y-4 pt-6 border-t border-zinc-100 dark:border-zinc-800">
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-4 sm:ml-6 block">
+                   Abonnements Actifs
+                </label>
+                
+                <div className="space-y-3">
+                   {(editingContact?.active_saas || []).length === 0 ? (
+                      <p className="text-xs text-zinc-400 italic ml-4 sm:ml-6">Aucun abonnement actif.</p>
+                   ) : (
+                      (editingContact?.active_saas || []).map((saas, idx) => (
+                         <div key={idx} className="bg-zinc-50 dark:bg-zinc-900/50 p-4 sm:p-5 rounded-[1.75rem] border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-[#39FF14]">
+                            <div>
+                               <p className="font-black text-sm uppercase text-black dark:text-white">{saas}</p>
+                               <p className="text-[10px] font-bold text-[#39FF14] uppercase tracking-widest mt-1">{getSaasPrice(saas).toLocaleString('fr-FR')} F/mois</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                               <input 
+                                  type="date"
+                                  value={editingContact?.saas_expiration_dates?.[saas] || ''}
+                                  onChange={e => handleSaasDateChange(saas, e.target.value)}
+                                  className="p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-xs outline-none focus:border-[#39FF14] transition-all text-black dark:text-white"
+                                  title="Date de fin"
+                               />
+                               <button type="button" onClick={() => handleRemoveSaasFromContact(saas)} className="p-3 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-colors" title="Retirer/Résilier">
+                                  <Trash2 size={16} />
+                               </button>
+                            </div>
+                         </div>
+                      ))
+                   )}
+                </div>
+
+                <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                   <select 
+                      onChange={handleAddSaasToContact} 
+                      value=""
+                      className="w-full p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl font-black text-[11px] sm:text-xs uppercase outline-none cursor-pointer appearance-none focus:border-[#39FF14] transition-all text-black dark:text-white"
+                   >
+                      <option value="" disabled>+ Ajouter un produit...</option>
+                      <optgroup label="📦 PACKS SAAS">
+                         <option value="Pack Tekki">Pack Tekki (22.900 F)</option>
+                         <option value="Pack Tekki Pro">Pack Tekki Pro (27.900 F)</option>
+                         <option value="Onyx CRM">Onyx CRM (39.900 F)</option>
+                         <option value="Pack Onyx Gold">Pack Onyx Gold (59.900 F)</option>
+                      </optgroup>
+                      <optgroup label="🧩 MODULES INDIVIDUELS">
+                         <option value="Onyx Jaay">Onyx Jaay (13.900 F)</option>
+                         <option value="Onyx Menu">Onyx Menu (13.900 F)</option>
+                         <option value="Onyx Booking">Onyx Booking (13.900 F)</option>
+                         <option value="Onyx Staff">Onyx Staff (13.900 F)</option>
+                         <option value="Onyx Stock">Onyx Stock (13.900 F)</option>
+                         <option value="Onyx Tiak">Onyx Tiak (13.900 F)</option>
+                         <option value="Onyx Tontine">Onyx Tontine (6.900 F)</option>
+                      </optgroup>
+                      <optgroup label="🚀 HIGH-TICKET">
+                         <option value="Onyx Boost">Onyx Boost (150.000 F)</option>
+                         <option value="Onyx Modernize">Onyx Modernize (300.000 F)</option>
+                         <option value="Add-on CM Pub">Add-on CM Pub (49.900 F)</option>
+                      </optgroup>
+                   </select>
                 </div>
                 
-                <div className="bg-zinc-50 p-5 sm:p-6 rounded-[1.75rem] sm:rounded-[2.25rem] border border-zinc-100 flex flex-col gap-4">
-                    <div className="flex justify-between items-center">
-                       <div>
-                           <p className="font-black text-sm uppercase">{editingContact?.saas || 'Aucun produit actif'}</p>
-                           <p className="text-xs text-[#39FF14] font-black mt-1">
-                               {editingContact?.saas ? (getSaasPrice(editingContact.saas).toLocaleString('fr-FR') + ' F/mois') : '-'}
-                           </p>
-                       </div>
-                       <button type="button" onClick={() => setIsUpgrading(!isUpgrading)} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-md">
-                           ⬆️ Changer d'offre
-                       </button>
-                    </div>
-
-                    {isUpgrading && (
-                       <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-                           <select 
-                              onChange={handleUpgradePack} 
-                              value={editingContact?.saas || ""}
-                              className="w-full p-4 bg-white border border-zinc-200 rounded-2xl font-black text-[11px] sm:text-xs uppercase outline-none cursor-pointer appearance-none focus:border-black transition-all"
-                           >
-                              <option value="" disabled>Sélectionner le produit...</option>
-                              <optgroup label="📦 PACKS SAAS">
-                                 <option value="Pack Tekki">Pack Tekki (22.900 F)</option>
-                                 <option value="Pack Tekki Pro">Pack Tekki Pro (27.900 F)</option>
-                                 <option value="Onyx CRM">Onyx CRM (39.900 F)</option>
-                                 <option value="Pack Onyx Gold">Pack Onyx Gold (59.900 F)</option>
-                              </optgroup>
-                              <optgroup label="🧩 MODULES INDIVIDUELS">
-                                 <option value="Onyx Jaay">Onyx Jaay (13.900 F)</option>
-                                 <option value="Onyx Menu">Onyx Menu (13.900 F)</option>
-                                 <option value="Onyx Booking">Onyx Booking (13.900 F)</option>
-                                 <option value="Onyx Staff">Onyx Staff (13.900 F)</option>
-                                 <option value="Onyx Stock">Onyx Stock (13.900 F)</option>
-                                 <option value="Onyx Tiak">Onyx Tiak (13.900 F)</option>
-                                 <option value="Onyx Tontine">Onyx Tontine (6.900 F)</option>
-                              </optgroup>
-                              <optgroup label="🚀 HIGH-TICKET">
-                                 <option value="Onyx Boost">Onyx Boost (150.000 F)</option>
-                                 <option value="Onyx Modernize">Onyx Modernize (300.000 F)</option>
-                                 <option value="Add-on CM Pub">Add-on CM Pub (49.900 F)</option>
-                              </optgroup>
-                           </select>
-                       </div>
-                    )}
-                    
-                    {prorataMsg && <p className="text-xs text-black font-bold bg-[#39FF14]/20 p-3 rounded-xl animate-in fade-in">{prorataMsg}</p>}
-
-                    <div className="mt-2">
-                       <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">Date de fin d'abonnement</label>
-                       <input 
-                          type="date" 
-                          value={editingContact?.expiration_date ? new Date(editingContact.expiration_date).toISOString().split('T')[0] : ''} 
-                          onChange={e => setEditingContact({...editingContact, expiration_date: e.target.value})} 
-                          className="w-full p-4 bg-white border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition-all" 
-                       />
-                    </div>
-                </div>
+                {prorataMsg && <p className="text-xs text-black font-bold bg-[#39FF14] p-3 rounded-xl animate-in fade-in">{prorataMsg}</p>}
               </div>
 
               <div className="space-y-2">
@@ -4153,19 +4210,6 @@ export default function AdminDashboard() {
               <div className="mb-8 sm:mb-10 mt-2 sm:mt-0">
                  <h2 className={`font-sans text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter`}>Planifier la Diffusion</h2>
                  <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1 sm:mt-2 italic line-clamp-2">&quot;{showDiffusionModal?.title}&quot;</p>
-              </div>
-
-              <div className="mb-6 mt-6">
-                 <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-2 block">Message de la campagne WhatsApp</label>
-                 <textarea
-                    value={diffusionMessage}
-                    onChange={(e) => setDiffusionMessage(e.target.value)}
-                    className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-sm font-medium outline-none focus:border-[#39FF14] min-h-[100px] resize-none text-black dark:text-white"
-                 />
-                 <label className="flex items-center gap-3 mt-3 cursor-pointer">
-                    <input type="checkbox" checked={includeInviteLink} onChange={(e) => setIncludeInviteLink(e.target.checked)} className="w-5 h-5 accent-black dark:accent-[#39FF14]" />
-                    <span className="text-xs font-bold text-black dark:text-white">Inclure le lien d'invitation personnalisé à la fin</span>
-                 </label>
               </div>
 
               <div className="flex-1 overflow-y-auto mb-8 sm:mb-10 pr-2 sm:pr-4 space-y-3 sm:space-y-4 custom-scrollbar">

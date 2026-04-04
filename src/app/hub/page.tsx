@@ -3,20 +3,27 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { 
   Smartphone, Truck, Utensils, Box, Lock, LogOut, 
-  User, GraduationCap, ArrowRight, ShieldCheck, Wallet, AlertTriangle, HelpCircle, X
+  User, GraduationCap, ArrowRight, ShieldCheck, Wallet, AlertTriangle, HelpCircle, X,
+  Search, CheckCircle, ExternalLink, Calendar, Users, MessageSquare, Mail
 } from "lucide-react";
-import AccountModal from "@/components/AccountModal"; // Import de la modale
+import AccountModal from "@/components/AccountModal";
 import { supabase } from "@/lib/supabaseClient";
 
+const spaceGrotesk = { className: "font-sans" };
+
 const APPS = [
-  { id: "vente", name: "Onyx Jaay", icon: Smartphone, color: "bg-blue-600", route: "/vente", desc: "Catalogue & Devis" },
-  { id: "stock", name: "Onyx Stock", icon: Box, color: "bg-emerald-600", route: "/stock", desc: "Gestion d'Inventaire" },
-  { id: "tiak", name: "Onyx Tiak", icon: Truck, color: "bg-orange-600", route: "/tiak", desc: "Logistique & Livraisons" },
-  { id: "menu", name: "Onyx Menu", icon: Utensils, color: "bg-red-600", route: "/menu", desc: "Menu QR & Commandes" },
-  { id: "formation", name: "Onyx Formation", icon: GraduationCap, color: "bg-purple-600", route: "/formation", desc: "Académie Marketing" },
-  { id: "tontine", name: "Onyx Tontine", icon: Wallet, color: "bg-[#009FDF]", route: "/tontine/admin", desc: "Finance & Tontine" },
+  { id: "vente", name: "Onyx Jaay", icon: Smartphone, color: "bg-green-500", route: "/vente", desc: "Catalogue & Boutique", price: "13 900 F" },
+  { id: "stock", name: "Onyx Stock", icon: Box, color: "bg-emerald-600", route: "/stock", desc: "Gestion d'Inventaire", price: "13 900 F" },
+  { id: "tiak", name: "Onyx Tiak", icon: Truck, color: "bg-teal-500", route: "/tiak", desc: "Logistique & Livraisons", price: "13 900 F" },
+  { id: "menu", name: "Onyx Menu", icon: Utensils, color: "bg-rose-500", route: "/menu", desc: "Menu QR & Commandes", price: "13 900 F" },
+  { id: "booking", name: "Onyx Booking", icon: Calendar, color: "bg-indigo-500", route: "/booking", desc: "Rendez-vous en ligne", price: "13 900 F" },
+  { id: "formation", name: "Onyx Formation", icon: GraduationCap, color: "bg-yellow-500", route: "/admin/saas/formation", desc: "Académie Marketing", price: "13 900 F" },
+  { id: "tontine", name: "Onyx Tontine", icon: Wallet, color: "bg-pink-500", route: "/tontine/admin", desc: "Finance & Tontine", price: "6 900 F" },
+  { id: "staff", name: "Onyx Staff", icon: Users, color: "bg-cyan-500", route: "/staff", desc: "RH & Plannings", price: "13 900 F" },
+  { id: "crm", name: "Onyx CRM", icon: ShieldCheck, color: "bg-[#39FF14]", route: "/crm", desc: "CRM B2B HT", price: "39 900 F" },
 ];
 
 export default function OnyxHubPortal() {
@@ -26,6 +33,7 @@ export default function OnyxHubPortal() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +43,6 @@ export default function OnyxHubPortal() {
         const { data } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
         setUser(data ? { ...session.user, ...data } : session.user);
       } else {
-        // Vérification de la session personnalisée CRM
         const customSession = localStorage.getItem('onyx_custom_session');
         if (customSession) {
           try {
@@ -74,12 +81,31 @@ export default function OnyxHubPortal() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const openApp = (appId: string, route: string) => {
-    if (user?.active_saas?.includes(appId)) {
-      router.push(route);
-    } else {
-      alert("Vous n'avez pas encore souscrit à cette application. Contactez le support sur WhatsApp pour l'activer !");
-    }
+  const checkAccess = (appId: string, user: any) => {
+     if (!user) return false;
+     const activeSaas = user.active_saas || [];
+     const allSaas = [user.saas || '', ...activeSaas].map((s: string) => (s || '').toLowerCase());
+     if (allSaas.some((s: string) => s.includes('gold'))) return true;
+     
+     if (appId === 'vente' && allSaas.some((s: string) => s.includes('jaay') || s.includes('tekki') || s.includes('solo') || s.includes('trio') || s.includes('duo'))) return true;
+     if (appId === 'stock' && allSaas.some((s: string) => s.includes('stock') || s.includes('tekki') || s.includes('trio'))) return true;
+     if (appId === 'tiak' && allSaas.some((s: string) => s.includes('tiak') || s.includes('tekki') || s.includes('trio') || s.includes('duo'))) return true;
+     if (appId === 'formation' && allSaas.some((s: string) => s.includes('formation') || s.includes('tekki pro'))) return true;
+     if (appId === 'staff' && allSaas.some((s: string) => s.includes('staff') || s.includes('tekki pro'))) return true;
+     if (appId === 'crm' && allSaas.some((s: string) => s.includes('crm'))) return true;
+     if (appId === 'menu' && allSaas.some((s: string) => s.includes('menu'))) return true;
+     if (appId === 'booking' && allSaas.some((s: string) => s.includes('booking'))) return true;
+     if (appId === 'tontine' && allSaas.some((s: string) => s.includes('tontine'))) return true;
+
+     return false;
+  };
+
+  const getAppExpiryDate = (appId: string, user: any) => {
+      if (user?.saas_expiration_dates) {
+          const match = Object.keys(user.saas_expiration_dates).find(k => k.toLowerCase().includes(appId) || (appId === 'vente' && k.toLowerCase().includes('jaay')));
+          if (match) return user.saas_expiration_dates[match];
+      }
+      return user?.expiration_date || user?.expiry_date;
   };
 
   const formatDate = (dateString: string) => {
@@ -108,6 +134,8 @@ export default function OnyxHubPortal() {
     if (diffDays <= 5) return { expired: false, days: diffDays };
     return null;
   })();
+
+  const filteredApps = APPS.filter(app => app.name.toLowerCase().includes(searchQuery.toLowerCase()) || app.desc.toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (loading || !user) {
     return (
@@ -141,7 +169,7 @@ export default function OnyxHubPortal() {
             </div>
             
             {isProfileMenuOpen && (
-              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-2xl border border-zinc-200 py-1 animate-in fade-in zoom-in-95">
+              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-2xl border border-zinc-200 py-1 animate-in fade-in zoom-in-95 z-50">
                 <button onClick={() => { setIsAccountModalOpen(true); setIsProfileMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100">
                   <User size={16}/> Mon Compte
                 </button>
@@ -175,106 +203,149 @@ export default function OnyxHubPortal() {
             </div>
           )}
 
-          <div className="mb-12 text-center sm:text-left">
+          <div className="mb-12 text-center sm:text-left flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div>
              <h2 className="text-3xl sm:text-4xl font-black uppercase text-zinc-900 tracking-tighter mb-2">
                Bonjour, {user?.full_name?.split(' ')[0] || 'Gérant'} !
              </h2>
              <p className="text-zinc-500 font-medium">Sélectionnez une application pour commencer à travailler.</p>
-             <p className="text-sm text-gray-600 mt-2">
-                Fin d'accès : {formatDate(user?.expiration_date || user?.expiry_date)}
-              </p>
              {(user?.expiration_date || user?.expiry_date) && (
               <div className="mt-4 inline-flex items-center gap-2 bg-white border border-zinc-200 shadow-sm text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-full">
                 <ShieldCheck size={16} className={user.type === 'Client' ? 'text-green-500' : 'text-yellow-500'} />
                 <span className="text-zinc-600">Statut :</span> 
                 <span className={user.type === 'Client' ? 'text-green-600' : 'text-yellow-600'}>{user.type || 'Essai'}</span>
                 <span className="text-zinc-400 mx-1">|</span>
-                <span className="text-zinc-600">Valide jusqu'au :</span> 
+                <span className="text-zinc-600">Fin globale :</span> 
                 <span className="text-zinc-800">{formatDate(user.expiration_date || user.expiry_date)}</span>
               </div>
              )}
+            </div>
+            
+            {/* BARRE DE RECHERCHE */}
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
+              <input 
+                type="text" 
+                placeholder="Rechercher une application..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-white border border-zinc-200 rounded-full py-3 pl-12 pr-4 text-sm font-bold outline-none focus:border-[#39FF14] focus:ring-2 focus:ring-[#39FF14]/20 transition-all shadow-sm"
+              />
+            </div>
           </div>
   
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 sm:gap-8">
-            {APPS.map((app) => {
-              let expDate = null;
-              if (user?.saas_expiration_dates && user.saas_expiration_dates[app.id]) {
-                  expDate = new Date(user.saas_expiration_dates[app.id]);
-              } else if (user?.expiration_date) {
-                  expDate = new Date(user.expiration_date);
-              }
-              const isExpired = expDate ? new Date(expDate).setHours(23,59,59,999) < new Date().getTime() : false;
-              
-              const saasNameLower = (user?.saas || '').toLowerCase();
-              
-              let isPackAccess = false;
-              if (saasNameLower.includes('trio') && ['vente', 'tiak', 'stock'].includes(app.id)) isPackAccess = true;
-              else if (saasNameLower.includes('duo') && ['vente', 'tiak'].includes(app.id)) isPackAccess = true;
-              else if (saasNameLower.includes('solo') && ['vente'].includes(app.id)) isPackAccess = true;
-
-              const hasAccess = user?.active_saas?.includes(app.id) || saasNameLower.includes(app.id.toLowerCase()) || isPackAccess;
-              
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8">
+            {filteredApps.map((app) => {
+              const hasAccess = checkAccess(app.id, user);
+              const expDateStr = getAppExpiryDate(app.id, user);
+              const isExpired = expDateStr ? new Date(expDateStr).setHours(23,59,59,999) < new Date().getTime() : false;
               const isUnlocked = hasAccess && !isExpired;
 
               const AppIcon = app.icon;
               
-              const cardContent = (
-                <div 
-                  className={`flex flex-col items-center gap-4 group transition-all duration-300 ${isUnlocked ? 'cursor-pointer hover:-translate-y-2' : 'opacity-50 grayscale'}`}
-                >
-                  <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-3xl flex items-center justify-center relative shadow-xl transition-all duration-300 ${isUnlocked ? `${app.color} text-white group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)]` : 'bg-zinc-200 text-zinc-400 border-2 border-zinc-300'}`}>
-                     <AppIcon size={40} className={`transition-transform duration-300 ${isUnlocked ? 'group-hover:scale-110' : ''}`} />
-                     
-                     {!isUnlocked && (
-                       <div className="absolute -top-2 -right-2 bg-black text-white p-1.5 rounded-full shadow-lg">
-                         <Lock size={14} />
-                       </div>
-                     )}
-                  </div>
-                  
-                  <div className="text-center">
-                     <h3 className="font-black text-sm uppercase text-zinc-800 tracking-tight">{app.name}</h3>
-                     <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{app.desc}</p>
-                     {hasAccess && isExpired && <p className="text-[10px] font-black text-red-500 uppercase mt-1 border border-red-500 rounded-md px-1 inline-block">Expiré</p>}
-                  </div>
-                </div>
-              );
-
-              if (isUnlocked) {
-                return (
-                  <Link href={app.route} key={app.id}>
-                    {cardContent}
-                  </Link>
-                )
-              }
-  
               return (
-                <div key={app.id} onClick={() => alert(hasAccess && isExpired ? `Votre abonnement pour ${app.name} a expiré. Veuillez contacter le support pour le renouveler.` : "Vous n'avez pas encore souscrit à cette application. Contactez le support sur WhatsApp pour l'activer !")}>
-                  {cardContent}
-                </div>
+                  <div key={app.id} className={`flex flex-col bg-white rounded-3xl p-6 border transition-all duration-300 ${isUnlocked ? 'border-[#39FF14]/50 shadow-[0_10px_30px_rgba(57,255,20,0.15)] hover:-translate-y-2' : 'border-zinc-200 shadow-sm opacity-80 grayscale hover:grayscale-0'}`}>
+                      <div className="flex justify-between items-start mb-6">
+                          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${isUnlocked ? app.color + ' text-white' : 'bg-zinc-200 text-zinc-500'}`}>
+                              <AppIcon size={28} />
+                          </div>
+                          {isUnlocked ? (
+                              <span className="bg-[#39FF14]/10 text-green-700 border border-[#39FF14]/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm">
+                                  <CheckCircle size={12}/> Actif
+                              </span>
+                          ) : (
+                              <span className="bg-zinc-100 text-zinc-500 border border-zinc-200 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm">
+                                  <Lock size={12}/> Verrouillé
+                              </span>
+                          )}
+                      </div>
+                      
+                      <div className="flex-1">
+                          <h3 className="font-black text-2xl text-zinc-900 uppercase tracking-tighter mb-1">{app.name}</h3>
+                          <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6">{app.desc}</p>
+                          
+                          {isUnlocked && expDateStr && (
+                              <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 mb-6 flex justify-between items-center">
+                                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Fin d'abonnement</p>
+                                  <p className="text-xs font-black text-zinc-800 bg-white px-2 py-1 rounded-lg border border-zinc-200">{formatDate(expDateStr)}</p>
+                              </div>
+                          )}
+                          {!isUnlocked && (
+                              <div className="mb-6">
+                                <p className="text-sm font-black text-black bg-[#39FF14] px-4 py-2 rounded-xl w-max shadow-sm">{app.price} <span className="text-[10px] font-bold text-black/60 uppercase">/ mois</span></p>
+                              </div>
+                          )}
+                      </div>
+
+                      <div className="mt-auto pt-5 border-t border-zinc-100">
+                          {isUnlocked ? (
+                              <button onClick={() => window.location.href = app.route} className="w-full bg-black text-[#39FF14] py-3.5 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors flex items-center justify-center gap-2 shadow-lg">
+                                  Ouvrir l'application <ArrowRight size={16}/>
+                              </button>
+                          ) : (
+                              <button onClick={() => window.open(`https://wa.me/221785338417?text=${encodeURIComponent(`Bonjour, je souhaite activer le module ${app.name} (${app.price}/mois) sur mon espace OnyxOps.`)}`, '_blank')} className="w-full bg-zinc-100 text-black py-3.5 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-colors flex items-center justify-center gap-2 border border-zinc-200 shadow-sm">
+                                  Activer ce module <ExternalLink size={14}/>
+                              </button>
+                          )}
+                      </div>
+                  </div>
               );
             })}
           </div>
-  
-          <div className="mt-20 bg-black text-white rounded-[3rem] p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14] opacity-[0.05] rounded-full blur-3xl pointer-events-none"></div>
-             <div className="relative z-10">
-                <span className="bg-[#39FF14] text-black text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-widest mb-4 inline-block">Mise à jour</span>
-                <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">Onyx Tiak est disponible !</h3>
-                <p className="text-zinc-400 text-sm max-w-md">Connectez vos livreurs en temps réel à vos commandes WhatsApp et sécurisez vos encaissements.</p>
-             </div>
-             <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite activer Onyx Tiak', '_blank')} className="relative z-10 whitespace-nowrap bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-xs hover:bg-white transition-all shadow-lg flex items-center gap-2">
-               Activer maintenant <ArrowRight size={16}/>
-             </button>
-          </div>
         </main>
+
+        {/* --- FOOTER RESTAURÉ --- */}
+        <footer className="bg-black text-white py-16 border-t border-zinc-900 mt-20 relative z-10">
+           <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8 mb-12">
+              <div className="md:col-span-2">
+                 <div className="flex items-center gap-3 mb-6">
+                    <Image src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" width={150} height={50} className="h-[40px] w-auto object-contain grayscale opacity-80" unoptimized />
+                    <span className={`${spaceGrotesk.className} font-black tracking-tighter text-2xl text-white`}>ONYX OPS</span>
+                 </div>
+                 <p className="text-zinc-500 text-sm max-w-sm mb-6">
+                    Le premier écosystème digital tout-en-un pour les entreprises au Sénégal. Gagnez du temps, augmentez vos ventes et dominez votre marché grâce à l'automatisation WhatsApp.
+                 </p>
+                 <div className="flex items-center gap-4">
+                    <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite vous contacter.', '_blank')} className="text-zinc-400 hover:text-[#39FF14] transition"><MessageSquare size={20}/></button>
+                    <button onClick={() => window.open('mailto:contact@onyxops.com')} className="text-zinc-400 hover:text-[#39FF14] transition"><Mail size={20}/></button>
+                 </div>
+              </div>
+              
+             <div>
+                 <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Solutions</h4>
+                 <ul className="space-y-4 text-sm text-zinc-500 font-bold">
+                    <li><button onClick={() => router.push('/jaay')} className="hover:text-[#39FF14] transition">Onyx Jaay</button></li>
+                    <li><button onClick={() => router.push('/tiak')} className="hover:text-[#39FF14] transition">Onyx Tiak</button></li>
+                    <li><button onClick={() => router.push('/menu')} className="hover:text-[#39FF14] transition">Onyx Menu</button></li>
+                    <li><button onClick={() => router.push('/trio')} className="hover:text-[#39FF14] transition">Pack Trio</button></li>
+                 </ul>
+              </div>
+
+              <div>
+                 <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Entreprise</h4>
+                 <ul className="space-y-4 text-sm text-zinc-500 font-bold">
+                    <li><button onClick={() => router.push('/')} className="hover:text-[#39FF14] transition">Accueil</button></li>
+                    <li><button onClick={() => router.push('/ambassadeurs/login')} className="hover:text-[#39FF14] transition">Programme Ambassadeur</button></li>
+                    <li><button onClick={() => router.push('/login')} className="hover:text-[#39FF14] transition">Connexion Hub</button></li>
+                 </ul>
+              </div>
+           </div>
+           
+           <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-xs text-zinc-600 font-bold">© {new Date().getFullYear()} OnyxOps Elite. Tous droits réservés. Dakar, Sénégal.</p>
+              <div className="flex gap-4 text-xs font-bold text-zinc-600">
+                 <button className="hover:text-white transition">CGV</button>
+                 <button className="hover:text-white transition">Confidentialités</button>
+              </div>
+           </div>
+        </footer>
       </div>
 
       {isAccountModalOpen && user && (
         <AccountModal 
+          onClose={() => setIsAccountModalOpen(false)} 
           user={user}
-          onClose={() => setIsAccountModalOpen(false)}
-          onUpdate={setUser}
+          onUpdate={(updatedUser) => setUser(updatedUser)}
         />
       )}
 
@@ -288,17 +359,21 @@ export default function OnyxHubPortal() {
               <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-6">Guide de démarrage rapide</p>
 
               <div className="space-y-4 mb-8">
-                 <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
-                    <h3 className="font-black text-sm uppercase flex items-center gap-2 mb-1"><span className="w-5 h-5 rounded-full bg-[#39FF14] text-black flex items-center justify-center text-[10px]">1</span> Applications déverrouillées</h3>
-                    <p className="text-xs text-zinc-600 font-medium">Les outils colorés sont ceux inclus dans votre abonnement. Cliquez dessus pour y accéder instantanément.</p>
+                 <div className="flex gap-4 items-start">
+                    <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center font-black text-xs shrink-0">1</div>
+                    <p className="text-sm text-zinc-600 font-medium">Sélectionnez une application active dans la grille principale pour y accéder.</p>
                  </div>
-                 <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
-                    <h3 className="font-black text-sm uppercase flex items-center gap-2 mb-1"><span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px]">2</span> Applications verrouillées <Lock size={12}/></h3>
-                    <p className="text-xs text-zinc-600 font-medium">Les outils grisés nécessitent un abonnement. Contactez le support pour les débloquer ou ajouter un module.</p>
+                 <div className="flex gap-4 items-start">
+                    <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center font-black text-xs shrink-0">2</div>
+                    <p className="text-sm text-zinc-600 font-medium">Si une application est grisée, c'est que vous n'y avez pas encore accès. Cliquez dessus pour demander son activation.</p>
+                 </div>
+                 <div className="flex gap-4 items-start">
+                    <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center font-black text-xs shrink-0">3</div>
+                    <p className="text-sm text-zinc-600 font-medium">Gérez votre profil et vos mots de passe depuis le menu en haut à droite.</p>
                  </div>
               </div>
 
-              <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite être accompagné sur l\'utilisation de mon Hub OnyxOps.', '_blank')} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black text-xs uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-xl">
+              <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg">
                  Contacter un expert sur WhatsApp
               </button>
            </div>
