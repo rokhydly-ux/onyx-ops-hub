@@ -190,6 +190,14 @@ export default function AdminDashboard() {
   const [crmViewMode, setCrmViewMode] = useState<'list' | 'grid'>('list');
   const [advFilterSaas, setAdvFilterSaas] = useState("Tous");
   const [advFilterExp, setAdvFilterExp] = useState<'all'|'30j'|'expired'>('all');
+  
+  // --- ÉTATS POUR OBJECTIFS BUSINESS INTELLIGENCE ---
+  const [mrrGoal, setMrrGoal] = useState<number>(500000);
+  const [saasGoal, setSaasGoal] = useState<number>(15);
+  const [cmGoal, setCmGoal] = useState<number>(3);
+  const [editingBiGoal, setEditingBiGoal] = useState<'mrr' | 'saas' | 'cm' | null>(null);
+  const [biGoalInputValue, setBiGoalInputValue] = useState<number>(0);
+
   const [crmSearch, setCrmSearch] = useState("");
   const [crmCardFilter, setCrmCardFilter] = useState<string | null>(null);
   const [financeSearch, setFinanceSearch] = useState("");
@@ -358,6 +366,7 @@ export default function AdminDashboard() {
      const { data: withdrawalsData } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
      const { data: commercialsData } = await supabase.from('commercials').select('*').order('created_at', { ascending: false });
      const { data: hardwareData } = await supabase.from('hardware_stock').select('*').order('name', { ascending: true });
+     const { data: adminSettings } = await supabase.from('admin_settings').select('*').eq('id', 1).maybeSingle();
      
      if (contactsData) setContacts(contactsData);
      if (leadsData) {
@@ -375,6 +384,11 @@ export default function AdminDashboard() {
      if (withdrawalsData) setWithdrawals(withdrawalsData);
      if (commercialsData) setCommercials(commercialsData);
      if (hardwareData && hardwareData.length > 0) setHardwareStock(hardwareData);
+     if (adminSettings) {
+       setMrrGoal(adminSettings.mrr_goal || 500000);
+       setSaasGoal(adminSettings.saas_goal || 15);
+       setCmGoal(adminSettings.cm_goal || 3);
+     }
      
      // Nouveau calcul précis du revenu MRR
      const realRevenue = contactsData?.reduce((acc: number, c: any) => {
@@ -2179,6 +2193,42 @@ export default function AdminDashboard() {
     XLSX.writeFile(workbook, `Transactions_Finances_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const handleExportBIPdf = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Rapport Business Intelligence - OnyxOps", 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+
+    // Calculs actuels pour le rapport
+    const saasCount = contacts.filter(c => c.type === 'Client' && c.saas && !['Add-on CM Pub', 'Onyx Boost', 'Onyx Modernize'].includes(c.saas)).length;
+    const cmCount = contacts.filter(c => c.type === 'Client' && (c.saas === 'Add-on CM Pub' || (c.active_saas && c.active_saas.includes('cmpub')))).length;
+
+    const tableColumn = ["Indicateur", "Valeur Actuelle", "Objectif Fixé", "Taux d'accomplissement"];
+    const tableRows = [
+      ["Revenu Mensuel Récurrent (MRR)", `${stats.revenue.toLocaleString('fr-FR')} F`, `${mrrGoal.toLocaleString('fr-FR')} F`, `${Math.round((stats.revenue / mrrGoal) * 100)}%`],
+      ["Ventes SaaS (Logiciels)", `${saasCount}`, `${saasGoal}`, `${Math.round((saasCount / saasGoal) * 100)}%`],
+      ["Ventes Options (CM & Pub)", `${cmCount}`, `${cmGoal}`, `${Math.round((cmCount / cmGoal) * 100)}%`]
+    ];
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY || 80;
+    doc.setFontSize(14);
+    doc.text("Performances Globales de Conversion", 14, finalY + 15);
+    doc.setFontSize(10);
+    doc.text(`• Taux de conversion global (Leads vers Clients) : ${conversionRate.toFixed(1)}%`, 14, finalY + 25);
+    doc.text(`• Panier moyen par client actif : ${Math.round(avgRevenuePerClient).toLocaleString('fr-FR')} F CFA`, 14, finalY + 32);
+
+    doc.save(`Onyx_Rapport_BI_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const handleExportIAPdf = () => {
     const reportWindow = window.open("", "_blank");
     if (reportWindow) {
@@ -3202,22 +3252,31 @@ export default function AdminDashboard() {
           {activeView === 'bi' && (() => {
              const saasCount = contacts.filter(c => c.type === 'Client' && c.saas && !['Add-on CM Pub', 'Onyx Boost', 'Onyx Modernize'].includes(c.saas)).length;
              const cmCount = contacts.filter(c => c.type === 'Client' && (c.saas === 'Add-on CM Pub' || (c.active_saas && c.active_saas.includes('cmpub')))).length;
-             const saasData = [{ name: 'Vendus', value: saasCount, fill: '#39FF14' }, { name: 'Restant', value: Math.max(15 - saasCount, 0), fill: '#27272a' }];
-             const cmData = [{ name: 'Vendus', value: cmCount, fill: '#00E5FF' }, { name: 'Restant', value: Math.max(3 - cmCount, 0), fill: '#27272a' }];
-             const mrrGoal = 500000;
+             const saasData = [{ name: 'Vendus', value: saasCount, fill: '#39FF14' }, { name: 'Restant', value: Math.max(saasGoal - saasCount, 0), fill: '#27272a' }];
+             const cmData = [{ name: 'Vendus', value: cmCount, fill: '#00E5FF' }, { name: 'Restant', value: Math.max(cmGoal - cmCount, 0), fill: '#27272a' }];
              
              return (
                <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1200px] mx-auto">
-                  <div className="flex items-center gap-6 bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                     <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#39FF14] shadow-lg shrink-0"><Activity size={32}/></div>
-                     <div>
-                        <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter`}>Business Intelligence</h2>
-                        <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Objectifs & Prévisions (Année 1)</p>
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                     <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#39FF14] shadow-lg shrink-0"><Activity size={32}/></div>
+                        <div>
+                           <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter`}>Business Intelligence</h2>
+                           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Objectifs & Prévisions (Année 1)</p>
+                        </div>
+                     </div>
+                     <div className="flex flex-wrap items-center gap-3">
+                        <button onClick={handleExportBIPdf} className="flex items-center gap-2 bg-black text-[#39FF14] px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg w-max">
+                           <Download size={14} /> Exporter PDF
+                        </button>
+                        <button onClick={async () => { setMrrGoal(500000); setSaasGoal(15); setCmGoal(3); await supabase.from('admin_settings').upsert({ id: 1, mrr_goal: 500000, saas_goal: 15, cm_goal: 3 }); }} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors w-max">
+                           <RefreshCcw size={14} /> Réinitialiser
+                        </button>
                      </div>
                   </div>
   
                   <div className="grid md:grid-cols-2 gap-8">
-                     <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col items-center">
+                     <div onClick={() => { setEditingBiGoal('saas'); setBiGoalInputValue(saasGoal); }} className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col items-center cursor-pointer hover:ring-2 hover:ring-black/20 dark:hover:ring-white/50 transition-all">
                         <h3 className="font-black uppercase text-lg mb-6">Objectif Ventes SaaS</h3>
                         <div className="h-48 w-full relative">
                            <ResponsiveContainer width="100%" height="100%">
@@ -3227,12 +3286,12 @@ export default function AdminDashboard() {
                               </PieChart>
                            </ResponsiveContainer>
                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <span className="text-3xl font-black">{saasCount}/15</span>
+                              <span className="text-3xl font-black">{saasCount}/{saasGoal}</span>
                            </div>
                         </div>
                      </div>
   
-                     <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col items-center">
+                     <div onClick={() => { setEditingBiGoal('cm'); setBiGoalInputValue(cmGoal); }} className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col items-center cursor-pointer hover:ring-2 hover:ring-black/20 dark:hover:ring-white/50 transition-all">
                         <h3 className="font-black uppercase text-lg mb-6">Objectif Options CM & Pub</h3>
                         <div className="h-48 w-full relative">
                            <ResponsiveContainer width="100%" height="100%">
@@ -3242,13 +3301,13 @@ export default function AdminDashboard() {
                               </PieChart>
                            </ResponsiveContainer>
                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <span className="text-3xl font-black">{cmCount}/3</span>
+                              <span className="text-3xl font-black">{cmCount}/{cmGoal}</span>
                            </div>
                         </div>
                      </div>
                   </div>
   
-                  <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                  <div onClick={() => { setEditingBiGoal('mrr'); setBiGoalInputValue(mrrGoal); }} className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm cursor-pointer hover:ring-2 hover:ring-black/20 dark:hover:ring-white/50 transition-all">
                      <h3 className="font-black uppercase text-lg mb-6">MRR Tracker (Revenu Mensuel Récurrent)</h3>
                      <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
                         <div className="bg-zinc-50 dark:bg-zinc-800 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex-1 text-center w-full">
@@ -4987,6 +5046,43 @@ export default function AdminDashboard() {
 
              <button onClick={() => { generateDevis(quoteModal.lead, quoteModal.designation, quoteModal.price); setQuoteModal(null); }} className="w-full mt-8 bg-black text-[#39FF14] py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
                  Générer & Envoyer
+             </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODALE D'ÉDITION BI GOAL --- */}
+      {editingBiGoal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setEditingBiGoal, null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-950 dark:text-white p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto">
+             <button onClick={() => setEditingBiGoal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+             <h2 className="font-sans text-2xl font-black uppercase tracking-tighter mb-2">Ajuster l'Objectif</h2>
+             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-6">
+               {editingBiGoal === 'mrr' ? 'Revenu Mensuel Récurrent (MRR)' : editingBiGoal === 'saas' ? 'Objectif Ventes SaaS' : 'Objectif Options CM & Pub'}
+             </p>
+
+             <div className="space-y-4">
+                <div>
+                   <label className="text-[10px] font-black uppercase text-zinc-400 ml-2 tracking-widest">Nouvel Objectif</label>
+                   <input 
+                      type="number" 
+                      value={biGoalInputValue} 
+                      onChange={e => setBiGoalInputValue(Number(e.target.value))} 
+                      className="w-full p-4 mt-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-xl outline-none focus:border-[#39FF14] transition-colors" 
+                   />
+                </div>
+             </div>
+
+             <button onClick={async () => {
+                 const payload: any = {};
+                 if (editingBiGoal === 'mrr') { setMrrGoal(biGoalInputValue); payload.mrr_goal = biGoalInputValue; }
+                 else if (editingBiGoal === 'saas') { setSaasGoal(biGoalInputValue); payload.saas_goal = biGoalInputValue; }
+                 else if (editingBiGoal === 'cm') { setCmGoal(biGoalInputValue); payload.cm_goal = biGoalInputValue; }
+                 
+                 await supabase.from('admin_settings').upsert({ id: 1, ...payload });
+                 setEditingBiGoal(null);
+             }} className="w-full mt-8 bg-black text-[#39FF14] py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
+                 <CheckCircle size={16}/> Mettre à jour l'objectif
              </button>
           </div>
         </div>
