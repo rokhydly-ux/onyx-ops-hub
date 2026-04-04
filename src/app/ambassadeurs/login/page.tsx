@@ -12,7 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function AmbassadeursPage() {
   const router = useRouter();
-  const [id, setId] = useState("+221762237425");
+  const [id, setId] = useState("");
   const [pin, setPin] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,7 +42,7 @@ export default function AmbassadeursPage() {
     const p6 = rawPhone.startsWith('221') ? rawPhone.substring(3) : rawPhone;
 
     const uniquePhones = Array.from(new Set([p1, p2, p3, p4, p5, p6]));
-    const orConditions = uniquePhones.map(p => `contact.eq.${p},phone.eq.${p}`).join(',');
+    const orConditions = uniquePhones.map(p => `contact.eq."${p}",phone.eq."${p}"`).join(',');
 
     try {
       // Vérification dans la table des ambassadeurs
@@ -54,7 +54,9 @@ export default function AmbassadeursPage() {
       if (fetchErr || !membersList || membersList.length === 0) {
         throw new Error("Identifiant introuvable.");
       }
-      const data = membersList[0];
+      
+      // S'assurer de prendre la correspondance exacte (évite les conflits si Supabase renvoie un mauvais match)
+      const data = membersList.find(m => uniquePhones.includes(m.phone) || uniquePhones.includes(m.contact)) || membersList[0];
 
       const submittedPin = pin === "0000" ? "central2026" : pin + "00";
       if (data.password_temp !== submittedPin && data.password_temp !== "central2026") {
