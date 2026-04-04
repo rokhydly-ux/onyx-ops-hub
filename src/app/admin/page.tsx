@@ -47,6 +47,7 @@ type Contact = {
   avatar_url?: string;
   password_temp?: string | null;
   assigned_to?: string;
+  commercial_id?: string;
   activity?: string;
   budget?: string;
   pending_prorata?: number;
@@ -240,6 +241,8 @@ export default function AdminDashboard() {
   const [leadFilter, setLeadFilter] = useState("Tous");
   const [partnerSearch, setPartnerSearch] = useState("");
   const [showAddCommercialModal, setShowAddCommercialModal] = useState(false);
+  const [showEditCommercialModal, setShowEditCommercialModal] = useState(false);
+  const [editCommercialForm, setEditCommercialForm] = useState<any>({});
   const [newCommercialForm, setNewCommercialForm] = useState({ full_name: '', phone: '' });
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
@@ -1605,6 +1608,38 @@ export default function AdminDashboard() {
       }
   };
 
+  const handleUpdateCommercial = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+          let cleanPhone = editCommercialForm.phone.replace(/\s+/g, '');
+          if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+              cleanPhone = `+221${cleanPhone}`;
+          } else if (!cleanPhone.startsWith('+')) {
+              cleanPhone = `+${cleanPhone}`;
+          }
+
+          const { error } = await supabase.from('commercials').update({
+              full_name: editCommercialForm.full_name,
+              phone: cleanPhone,
+              status: editCommercialForm.status,
+              password_temp: editCommercialForm.password_temp
+          }).eq('id', editCommercialForm.id);
+
+          if (error) throw error;
+          
+          alert("Commercial mis à jour avec succès !");
+          setShowEditCommercialModal(false);
+          fetchSupabaseData();
+      } catch (err: any) {
+          alert("Erreur : " + err.message);
+      }
+  };
+
+  const handleResetCommercialPin = () => {
+      setEditCommercialForm({ ...editCommercialForm, password_temp: 'central2026' });
+      alert("Le PIN a été réinitialisé à 0000 (central2026). Cliquez sur Enregistrer pour valider.");
+  };
+
   const handleConvertPartnerToClient = async () => {
       if(!selectedPartner || !supabase) return;
       const { error } = await supabase.from('clients').insert({
@@ -2755,6 +2790,35 @@ export default function AdminDashboard() {
                        <button onClick={() => setActiveView('journal-ia' as ViewType)} className="w-full text-center mt-4 text-[10px] text-zinc-400 uppercase font-black tracking-widest hover:text-white transition-colors">Voir tout le planning IA</button>
                     </div>
                  </div>
+              </div>
+
+              {/* WIDGET ÉQUIPE TERRAIN */}
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 lg:p-8 rounded-3xl shadow-sm mt-6 animate-in slide-in-from-bottom-6">
+                  <div className="flex justify-between items-center mb-6">
+                      <div className="flex items-center gap-4">
+                          <div className="p-3 bg-black text-[#39FF14] rounded-xl"><Briefcase size={20}/></div>
+                          <div>
+                              <h3 className="font-black uppercase text-base tracking-tighter text-black dark:text-white">Équipe Terrain</h3>
+                              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Performances Commerciaux</p>
+                          </div>
+                      </div>
+                      <button onClick={() => setActiveView('team')} className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-5 py-2.5 rounded-xl hover:scale-105 transition-all shadow-lg hidden sm:block">Gérer l'équipe</button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {commercials.slice(0, 4).map(comm => {
+                          const repSales = contacts.filter(c => (c.commercial_id === comm.id || c.assigned_to === comm.full_name) && c.type === 'Client').length;
+                          return (
+                              <div key={comm.id} onClick={() => setActiveView('team')} className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col items-center text-center cursor-pointer hover:border-[#39FF14]/50 transition-colors">
+                                  <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-700 mb-3 overflow-hidden border border-zinc-300 dark:border-zinc-600">
+                                      <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(comm.full_name)}&background=random`} alt={comm.full_name} className="w-full h-full object-cover" />
+                                  </div>
+                                  <p className="font-bold text-xs uppercase truncate w-full text-black dark:text-white">{comm.full_name}</p>
+                                  <p className="text-[10px] text-[#39FF14] font-black mt-2 bg-black px-3 py-1 rounded-full">{repSales} Ventes</p>
+                              </div>
+                          );
+                      })}
+                      {commercials.length === 0 && <p className="text-xs text-zinc-400 col-span-4 text-center py-4">Aucun commercial actif.</p>}
+                  </div>
               </div>
             </div>
           )}
@@ -3987,44 +4051,64 @@ export default function AdminDashboard() {
                </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {commercials.map(comm => {
-                  const repSales = contacts.filter(c => c.assigned_to === comm.full_name && c.type === 'Client').length;
-                  const repGoal = 20; // Objectif par défaut
-                  const repProgress = Math.min(100, Math.round((repSales / repGoal) * 100));
-                  
-                  return (
-                  <div key={comm.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-[2rem] shadow-sm flex flex-col items-center text-center relative overflow-hidden group hover:border-[#39FF14]/50 hover:shadow-lg transition-all">
-                     <div className="absolute top-4 right-4">
-                        <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
-                     </div>
-                     <div className="w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-3xl font-black text-black dark:text-white mb-4 overflow-hidden border-2 border-zinc-200 dark:border-zinc-700 shadow-inner group-hover:scale-110 transition-transform">
-                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(comm.full_name)}&background=random`} alt={comm.full_name} className="w-full h-full object-cover" />
-                     </div>
-                     <h3 className="font-black uppercase text-lg text-black dark:text-white mb-1">{comm.full_name}</h3>
-                     <p className="text-xs font-bold text-zinc-500 mb-4">{comm.phone}</p>
-                     
-                     {/* PROGRESS BAR */}
-                     <div className="w-full mb-6 text-left">
-                        <div className="flex justify-between items-end mb-2">
-                           <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Objectif Ventes</span>
-                           <span className="text-[10px] font-bold text-zinc-500">{repSales} / {repGoal}</span>
-                        </div>
-                        <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden shadow-inner">
-                           <div className="bg-[#39FF14] h-full transition-all" style={{ width: `${repProgress}%` }}></div>
-                        </div>
-                     </div>
-
-                     <div className="flex gap-3 w-full">
-                        <button onClick={() => handleDeleteItem('commercials', comm.id)} className="w-full py-3 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-2">
-                           <Trash2 size={14}/> Supprimer
-                        </button>
-                     </div>
-                  </div>
-               )})}
-               {commercials.length === 0 && (
-                  <div className="col-span-full p-20 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[3rem]">Aucun commercial trouvé</div>
-               )}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto mt-6">
+                <table className="w-full text-left min-w-[800px]">
+                    <thead className="bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
+                        <tr>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Commercial</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Contact</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Ventes Validées</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Statut</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
+                        {commercials.map(comm => {
+                            const repSales = contacts.filter(c => (c.commercial_id === comm.id || c.assigned_to === comm.full_name) && c.type === 'Client').length;
+                            return (
+                                <tr key={comm.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                                    <td className="p-5 lg:p-6 flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-zinc-800 shadow-sm shrink-0">
+                                            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(comm.full_name)}&background=random`} alt={comm.full_name} className="w-full h-full object-cover" />
+                                        </div>
+                                        <p className="font-black text-sm uppercase text-black dark:text-white">{comm.full_name}</p>
+                                    </td>
+                                    <td className="p-5 lg:p-6">
+                                        <p className="text-xs font-bold text-zinc-500">{comm.phone}</p>
+                                    </td>
+                                    <td className="p-5 lg:p-6 text-center">
+                                        <span className="text-xl font-black text-[#39FF14]">{repSales}</span>
+                                    </td>
+                                    <td className="p-5 lg:p-6 text-center">
+                                        <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
+                                    </td>
+                                    <td className="p-5 lg:p-6 text-right space-x-2">
+                                        <button onClick={() => {
+                                            setEditCommercialForm({
+                                                id: comm.id,
+                                                full_name: comm.full_name,
+                                                phone: comm.phone,
+                                                status: comm.status || 'Actif',
+                                                password_temp: comm.password_temp || 'central2026'
+                                            });
+                                            setShowEditCommercialModal(true);
+                                        }} className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors" title="Modifier">
+                                            <Edit3 size={16}/>
+                                        </button>
+                                        <button onClick={() => handleDeleteItem('commercials', comm.id)} className="p-2 bg-red-50 dark:bg-red-900/30 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors" title="Supprimer">
+                                            <Trash2 size={16}/>
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                        {commercials.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="p-8 text-center text-zinc-500 font-bold uppercase text-xs tracking-widest italic opacity-50">Aucun commercial trouvé</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
          </div>
       )}
@@ -4904,6 +4988,44 @@ export default function AdminDashboard() {
              {isCreatingUser ? 'Création en cours...' : <><UserPlus size={18}/> Créer l'accès</>}
            </button>
            <p className="text-[10px] text-zinc-500 font-bold text-center mt-4">Le code PIN "0000" sera attribué par défaut.</p>
+         </form>
+       </div>
+     </div>
+  )}
+
+  {/* --- MODALE ÉDITION COMMERCIAL MANUEL --- */}
+  {showEditCommercialModal && (
+     <div id="modal-overlay" onClick={handleOutsideClick(setShowEditCommercialModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto">
+         <button onClick={() => setShowEditCommercialModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
+         <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-8 text-black dark:text-white`}>Modifier Commercial</h2>
+         
+         <form onSubmit={handleUpdateCommercial} className="space-y-4">
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Nom Complet</label>
+              <input type="text" required value={editCommercialForm.full_name} onChange={e => setEditCommercialForm({...editCommercialForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="Ex: Moussa Diop" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Téléphone</label>
+              <input type="tel" required value={editCommercialForm.phone} onChange={e => setEditCommercialForm({...editCommercialForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="77 000 00 00" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Statut</label>
+              <select value={editCommercialForm.status} onChange={e => setEditCommercialForm({...editCommercialForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]">
+                  <option value="Actif">Actif</option>
+                  <option value="Suspendu">Suspendu</option>
+              </select>
+           </div>
+           
+           <div className="pt-4 mt-2 border-t border-zinc-100 dark:border-zinc-800">
+              <button type="button" onClick={handleResetCommercialPin} className="w-full bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 py-3 rounded-xl font-black uppercase text-[10px] hover:bg-orange-100 dark:hover:bg-orange-500/20 transition-all flex justify-center items-center gap-2 border border-orange-200 dark:border-orange-500/20">
+                  <RefreshCcw size={14}/> Réinitialiser PIN (0000)
+              </button>
+           </div>
+
+           <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-[1.5rem] font-black uppercase text-xs mt-4 shadow-xl hover:scale-[1.02] transition-all flex justify-center items-center gap-2">
+             <CheckCircle size={18}/> Enregistrer
+           </button>
          </form>
        </div>
      </div>
