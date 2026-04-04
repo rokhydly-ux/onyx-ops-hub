@@ -16,6 +16,7 @@ const spaceGrotesk = { className: "font-sans" };
 const PRODUCTS_CATALOG = [
   { category: "📦 Packs SaaS (30% / 10%)", items: [
     { name: "Pack Tekki", price: 22900, type: "saas" },
+    { name: "OnyxTekki (Resto)", price: 22900, type: "saas" },
     { name: "Pack Tekki Pro", price: 27900, type: "saas" },
     { name: "Onyx CRM", price: 29900, type: "saas" },
     { name: "Pack Onyx Gold", price: 59900, type: "saas" },

@@ -165,20 +165,7 @@ export default function AdminDashboard() {
 
   // NOUVEAU : État pour la modale de la carte des Hubs
   const [selectedHub, setSelectedHub] = useState<string | null>(null);
-  const [actionsIA, setActionsIA] = useState<IAAction[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('onyx_actions_ia');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.error("Erreur de parsing pour actionsIA depuis localStorage", e);
-          return [];
-        }
-      }
-    }
-    return [];
-  });
+  const [actionsIA, setActionsIA] = useState<IAAction[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [showRapportIA, setShowRapportIA] = useState(false);
   const [showSaasLogin, setShowSaasLogin] = useState<{ id: string; name: string; color: string } | null>(null);
@@ -367,6 +354,8 @@ export default function AdminDashboard() {
      const { data: commercialsData } = await supabase.from('commercials').select('*').order('created_at', { ascending: false });
      const { data: hardwareData } = await supabase.from('hardware_stock').select('*').order('name', { ascending: true });
      const { data: adminSettings } = await supabase.from('admin_settings').select('*').eq('id', 1).maybeSingle();
+     const { data: actionsData } = await supabase.from('actions_ia').select('*').order('created_at', { ascending: false });
+     const { data: articlesData } = await supabase.from('marketing_articles').select('*').order('created_at', { ascending: false });
      
      if (contactsData) setContacts(contactsData);
      if (leadsData) {
@@ -389,6 +378,8 @@ export default function AdminDashboard() {
        setSaasGoal(adminSettings.saas_goal || 15);
        setCmGoal(adminSettings.cm_goal || 3);
      }
+     if (actionsData) setActionsIA(actionsData);
+     if (articlesData) setMarketingArticles(articlesData);
      
      // Nouveau calcul précis du revenu MRR
      const realRevenue = contactsData?.reduce((acc: number, c: any) => {
@@ -491,24 +482,9 @@ export default function AdminDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [adminUser]);
 
-  // --- PERSISTANCE LOCALE DES ARTICLES MARKETING ---
-  useEffect(() => {
-   const savedArticles = localStorage.getItem('onyx_marketing_articles');
-   if (savedArticles) setMarketingArticles(JSON.parse(savedArticles));
- }, []);
-
- useEffect(() => {
-   if (marketingArticles.length > 0) {
-     localStorage.setItem('onyx_marketing_articles', JSON.stringify(marketingArticles));
-   }
- }, [marketingArticles]);
-
-  const deleteActionIA = (id: string) => {
-    setActionsIA(prev => {
-      const updated = prev.filter(a => a.id !== id);
-      localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-      return updated;
-    });
+  const deleteActionIA = async (id: string) => {
+    await supabase.from('actions_ia').delete().eq('id', id);
+    setActionsIA(prev => prev.filter(a => a.id !== id));
   };
 
   // --- LOGIQUE DE CRÉATION DE COMPTE MODIFIÉE (J+7, Identifiants de test Ambassadeur) ---
@@ -661,7 +637,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleRelanceProspectsFroids = () => {
+  const handleRelanceProspectsFroids = async () => {
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
     
@@ -683,11 +659,8 @@ export default function AdminDashboard() {
         msg: `Bonjour ${p.full_name}, nous n'avons plus de vos nouvelles ! Avez-vous pu avancer sur votre projet de digitalisation ? Notre équipe OnyxOps est disponible pour vous accompagner si vous avez des questions.`
     }));
 
-    setActionsIA(prev => {
-        const updated = [...newActions, ...prev];
-        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-        return updated;
-    });
+    await supabase.from('actions_ia').insert(newActions);
+    setActionsIA(prev => [...newActions, ...prev]);
 
     alert(`${coldProspects.length} prospect(s) froid(s) détecté(s). Les actions de relance ont été ajoutées au Journal IA !`);
     setActiveView('journal-ia');
@@ -796,27 +769,22 @@ export default function AdminDashboard() {
     if (e.target.id === "modal-overlay") { setter(val); }
   };
 
-  const executeWA = (phone: string | undefined, msg: string | undefined, idIA?: string) => {
+  const executeWA = async (phone: string | undefined, msg: string | undefined, idIA?: string) => {
     if(phone && msg) window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     if (idIA) {
-      setActionsIA(prev => {
-        const updated = prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a);
-        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-        return updated;
-      });
+      await supabase.from('actions_ia').update({ status: 'Réalisé' }).eq('id', idIA);
+      setActionsIA(prev => prev.map(a => a.id === idIA ? { ...a, status: 'Réalisé' } : a));
     }
   };
 
-  const executeAllWA = () => {
+  const executeAllWA = async () => {
     const pendingActions = actionsIA.filter(a => a.status === 'En attente' && a.phone);
     if (pendingActions.length === 0) return alert("Aucune action en attente avec un numéro valide.");
     if (!confirm(`Voulez-vous exécuter automatiquement ${pendingActions.length} actions ?\n\n(Remarque : Autorisez les pop-ups sur votre navigateur pour que toutes les fenêtres WhatsApp puissent s'ouvrir).`)) return;
 
-    setActionsIA(prev => {
-      const updated = prev.map(a => (a.status === 'En attente' && a.phone) ? { ...a, status: 'Réalisé' } : a);
-      localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-      return updated;
-    });
+    const ids = pendingActions.map(a => a.id);
+    await supabase.from('actions_ia').update({ status: 'Réalisé' }).in('id', ids);
+    setActionsIA(prev => prev.map(a => ids.includes(a.id) ? { ...a, status: 'Réalisé' } : a));
 
     pendingActions.forEach((a, i) => {
        setTimeout(() => {
@@ -863,11 +831,8 @@ export default function AdminDashboard() {
         msg: `Bonjour ${p.full_name}, c'est Maïmouna d'OnyxOps. J'ai vu que vous aviez commencé votre inscription sans aller au bout, puis-je vous aider à la finaliser ?`
      }));
      
-     setActionsIA(prev => {
-        const updated = [...newActions, ...prev];
-        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-        return updated;
-     });
+     await supabase.from('actions_ia').insert(newActions);
+     setActionsIA(prev => [...newActions, ...prev]);
      
      alert(`${trueAbandoned.length} relance(s) de paniers abandonnés générée(s) et ajoutée(s) au Planificateur IA !`);
      setActiveView('journal-ia');
@@ -911,11 +876,8 @@ export default function AdminDashboard() {
                      phone: contact.phone,
                      msg: `Bonjour ${contact.full_name} ! L'équipe Marketing Onyx prend le relais. Nous venons de créer votre espace. Quand seriez-vous disponible pour notre appel de lancement (stratégie éditoriale) ?`
                  };
-                 setActionsIA(prev => {
-                     const updated = [newAction, ...prev];
-                     localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-                     return updated;
-                 });
+                 await supabase.from('actions_ia').insert([newAction]);
+                 setActionsIA(prev => [newAction, ...prev]);
                  alert(`🎯 Action "Onboarding CM & Pub" automatiquement ajoutée au Journal IA pour ${contact.full_name}.`);
              }
          }
@@ -1457,14 +1419,11 @@ export default function AdminDashboard() {
    return [actions.client, actions.reply, actions.invite, actions.ambassador];
   };
 
-  const planifyCrmAction = (title: string, desc: string, phone: string, msg: string) => {
+  const planifyCrmAction = async (title: string, desc: string, phone: string, msg: string) => {
    const newAction: IAAction = { id: Date.now().toString(), module: 'CRM', title, desc, date: todayStr, status: 'En attente', phone, msg };
    
-   setActionsIA(prev => {
-      const updated = [newAction, ...prev];
-      localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-      return updated;
-   });
+   await supabase.from('actions_ia').insert([newAction]);
+   setActionsIA(prev => [newAction, ...prev]);
    
    alert("Action planifiée avec succès dans le Journal IA !");
 };
@@ -1472,19 +1431,30 @@ export default function AdminDashboard() {
   const handleAddSaasToContact = (e: React.ChangeEvent<HTMLSelectElement>) => {
       const newSaas = e.target.value;
       if (!newSaas) return;
-      const currentActive = editingContact?.active_saas || [];
+      let currentActive = editingContact?.active_saas || [];
       if (currentActive.includes(newSaas)) return;
       const newExpDate = new Date();
       newExpDate.setMonth(newExpDate.getMonth() + 1);
       const expDateStr = newExpDate.toISOString().split('T')[0];
       let msg = "";
-      if (newSaas.includes('Pack') && currentActive.some(s => s.includes('Onyx Jaay') || s.includes('Solo'))) {
+      let saasToRemove: string[] = [];
+      
+      if (newSaas === 'OnyxTekki (Resto)' && currentActive.includes('Onyx Menu')) {
+          saasToRemove.push('Onyx Menu');
+          msg = `Upgrade détecté. L'abonnement Onyx Menu a été absorbé par le pack OnyxTekki (Resto). Facturation au prorata requise.`;
+      } else if ((newSaas.includes('Pack') || newSaas.includes('OnyxTekki')) && currentActive.some(s => s.includes('Onyx Jaay') || s.includes('Solo'))) {
           msg = `Upgrade détecté vers ${newSaas}. Calcul du prorata sur les jours restants de l'offre actuelle.`;
       } else {
           msg = `Nouvelle offre ajoutée : ${newSaas}. Fin prévue le ${newExpDate.toLocaleDateString('fr-FR')}.`;
       }
+      
+      currentActive = currentActive.filter(s => !saasToRemove.includes(s));
+      const newDates = { ...(editingContact?.saas_expiration_dates || {}) };
+      saasToRemove.forEach(s => delete newDates[s]);
+      newDates[newSaas] = expDateStr;
+
       setEditingContact(prev => ({
-          ...prev, active_saas: [...currentActive, newSaas], saas_expiration_dates: { ...(prev.saas_expiration_dates || {}), [newSaas]: expDateStr }
+          ...prev, active_saas: [...currentActive, newSaas], saas_expiration_dates: newDates
       }));
       setProrataMsg(msg);
   };
@@ -1800,7 +1770,7 @@ export default function AdminDashboard() {
      }
   };
 
-  const runIAArticleSuggestion = () => {
+  const runIAArticleSuggestion = async () => {
    const suggestions = [
      { title: 'BOOSTER SES VENTES WHATSAPP AVEC L\'IA', desc: 'Scripts de vente générés par IA pour augmenter vos taux de conversion.', category: 'Stratégie', cible: 'Tous' },
      { title: 'CRÉER L\'URGENCE SUR SES OFFRES (FOMO)', desc: 'Comment formuler des messages qui poussent à l\'achat immédiat.', category: 'Copywriting', cible: 'E-commerce' },
@@ -1811,22 +1781,16 @@ export default function AdminDashboard() {
    const randomIdea = suggestions[Math.floor(Math.random() * suggestions.length)];
    const newArt = { id: Date.now().toString(), ...randomIdea };
    
-   setMarketingArticles(prev => {
-     const updated = [newArt, ...prev];
-     localStorage.setItem('onyx_marketing_articles', JSON.stringify(updated));
-     return updated;
-   });
+   await supabase.from('marketing_articles').insert([newArt]);
+   setMarketingArticles(prev => [newArt, ...prev]);
    alert("Intelligence Artificielle : Nouvel article suggéré et ajouté au pipeline.");
 };
 
-  const scheduleMarketingDiffusion = () => {
+  const scheduleMarketingDiffusion = async () => {
       if(selectedContactsForDiffusion.length === 0) return alert("Sélectionnez au moins un contact pour la diffusion.");
       const newAction: IAAction = { id: Date.now().toString(), module: 'Marketing', title: `Diffusion : ${showDiffusionModal?.title}`, desc: `Envoi programmé à ${selectedContactsForDiffusion.length} contacts via le canal WhatsApp.`, date: todayStr, status: 'En attente' };
-      setActionsIA(prev => {
-        const updated = [newAction, ...prev];
-        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-        return updated;
-      });
+      await supabase.from('actions_ia').insert([newAction]);
+      setActionsIA(prev => [newAction, ...prev]);
       setShowDiffusionModal(null);
       alert(`Diffusion planifiée avec succès pour ${selectedContactsForDiffusion.length} membres.`);
   };
@@ -1920,11 +1884,8 @@ export default function AdminDashboard() {
     }
 
     if (newActions.length > 0) {
-        setActionsIA(prev => {
-            const updated = [...newActions, ...prev];
-            localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-            return updated;
-        });
+        await supabase.from('actions_ia').insert(newActions);
+        setActionsIA(prev => [...newActions, ...prev]);
         alert(`${newActions.length} relance(s) automatique(s) scannée(s) et ajoutée(s) au Journal IA. Une copie a été envoyée sur rokhydly@gmail.com.`);
     } else {
         alert('Scan IA terminé. Aucun lead ne correspondait aux critères de relance (J-2, J-0).');
@@ -4022,8 +3983,13 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {commercials.map(comm => (
-                  <div key={comm.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-[2rem] shadow-sm flex flex-col items-center text-center relative overflow-hidden group">
+               {commercials.map(comm => {
+                  const repSales = contacts.filter(c => c.assigned_to === comm.full_name && c.type === 'Client').length;
+                  const repGoal = 20; // Objectif par défaut
+                  const repProgress = Math.min(100, Math.round((repSales / repGoal) * 100));
+                  
+                  return (
+                  <div key={comm.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-[2rem] shadow-sm flex flex-col items-center text-center relative overflow-hidden group hover:border-[#39FF14]/50 hover:shadow-lg transition-all">
                      <div className="absolute top-4 right-4">
                         <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
                      </div>
@@ -4031,14 +3997,26 @@ export default function AdminDashboard() {
                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(comm.full_name)}&background=random`} alt={comm.full_name} className="w-full h-full object-cover" />
                      </div>
                      <h3 className="font-black uppercase text-lg text-black dark:text-white mb-1">{comm.full_name}</h3>
-                     <p className="text-xs font-bold text-zinc-500 mb-6">{comm.phone}</p>
+                     <p className="text-xs font-bold text-zinc-500 mb-4">{comm.phone}</p>
+                     
+                     {/* PROGRESS BAR */}
+                     <div className="w-full mb-6 text-left">
+                        <div className="flex justify-between items-end mb-2">
+                           <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Objectif Ventes</span>
+                           <span className="text-[10px] font-bold text-zinc-500">{repSales} / {repGoal}</span>
+                        </div>
+                        <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden shadow-inner">
+                           <div className="bg-[#39FF14] h-full transition-all" style={{ width: `${repProgress}%` }}></div>
+                        </div>
+                     </div>
+
                      <div className="flex gap-3 w-full">
                         <button onClick={() => handleDeleteItem('commercials', comm.id)} className="w-full py-3 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-2">
                            <Trash2 size={14}/> Supprimer
                         </button>
                      </div>
                   </div>
-               ))}
+               )})}
                {commercials.length === 0 && (
                   <div className="col-span-full p-20 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[3rem]">Aucun commercial trouvé</div>
                )}
@@ -4082,10 +4060,9 @@ export default function AdminDashboard() {
                                <button onClick={() => setEditingArticle(article)} className="flex-1 bg-zinc-100 text-black py-3 lg:py-4 rounded-2xl text-[9px] lg:text-[10px] font-black uppercase hover:bg-zinc-200 transition-all flex items-center justify-center gap-2">
                                   <Edit3 size={14}/> Modifier
                                </button>
-                               <button onClick={() => {
-                                   const newArts = marketingArticles.filter((a: any) => a.id !== article.id);
-                                   setMarketingArticles(newArts);
-                                   localStorage.setItem('onyx_marketing_articles', JSON.stringify(newArts));
+                               <button onClick={async () => {
+                                   await supabase.from('marketing_articles').delete().eq('id', article.id);
+                                   setMarketingArticles(prev => prev.filter((a: any) => a.id !== article.id));
                                }} className="flex-1 bg-red-50 text-red-500 py-3 lg:py-4 rounded-2xl text-[9px] lg:text-[10px] font-black uppercase hover:bg-red-100 transition-all flex items-center justify-center gap-2">
                                   <Trash2 size={14}/> Supprimer
                                </button>
@@ -4112,15 +4089,12 @@ export default function AdminDashboard() {
                                     <p className="font-bold text-sm uppercase text-black dark:text-white">{s.title}</p>
                                     <p className="text-xs text-zinc-500 mt-1">{s.description}</p>
                                 </div>
-                                <button onClick={() => {
+                                <button onClick={async () => {
                                     const newAction: IAAction = {
                                         id: s.id, module: 'Marketing', title: s.title, desc: s.description, date: todayStr, status: 'En attente', phone: s.clientPhone, msg: s.msg, contactId: s.contactId
                                     };
-                                    setActionsIA(prev => {
-                                        const updated = [newAction, ...prev];
-                                        localStorage.setItem('onyx_actions_ia', JSON.stringify(updated));
-                                        return updated;
-                                    });
+                                    await supabase.from('actions_ia').insert([newAction]);
+                                    setActionsIA(prev => [newAction, ...prev]);
                                     setIaSuggestions(prev => prev.filter(item => item.id !== s.id));
                                 }} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition shadow-md whitespace-nowrap">
                                     Planifier
@@ -4353,6 +4327,7 @@ export default function AdminDashboard() {
                       <option value="" disabled>+ Ajouter un produit...</option>
                       <optgroup label="📦 PACKS SAAS">
                          <option value="Pack Tekki">Pack Tekki (22.900 F)</option>
+                         <option value="OnyxTekki (Resto)">OnyxTekki (Resto) (22.900 F)</option>
                          <option value="Pack Tekki Pro">Pack Tekki Pro (27.900 F)</option>
                          <option value="Onyx CRM">Onyx CRM (39.900 F)</option>
                          <option value="Pack Onyx Gold">Pack Onyx Gold (59.900 F)</option>
@@ -4951,9 +4926,9 @@ export default function AdminDashboard() {
             </div>
 
             <button 
-              onClick={() => {
-                const updatedArts = marketingArticles.map(a => a.id === editingArticle.id ? editingArticle : a);
-                setMarketingArticles(updatedArts);
+              onClick={async () => {
+                await supabase.from('marketing_articles').update(editingArticle).eq('id', editingArticle.id);
+                setMarketingArticles(prev => prev.map(a => a.id === editingArticle.id ? editingArticle : a));
                 setEditingArticle(null);
               }}
               className="w-full mt-6 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-xs hover:scale-[1.03] transition-all shadow-[0_20px_40px_rgba(57,255,20,0.15)] flex justify-center items-center gap-2"

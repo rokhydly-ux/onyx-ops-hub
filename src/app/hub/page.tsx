@@ -7,7 +7,7 @@ import Image from "next/image";
 import { 
   Smartphone, Truck, Utensils, Box, Lock, LogOut, 
   User, GraduationCap, ArrowRight, ShieldCheck, Wallet, AlertTriangle, HelpCircle, X,
-  Search, CheckCircle, ExternalLink, Calendar, Users, MessageSquare, Mail
+  Search, CheckCircle, ExternalLink, Calendar, Users, MessageSquare, Mail, Package
 } from "lucide-react";
 import AccountModal from "@/components/AccountModal";
 import { supabase } from "@/lib/supabaseClient";
@@ -25,6 +25,17 @@ const APPS = [
   { id: "staff", name: "Onyx Staff", icon: Users, color: "bg-cyan-500", route: "/staff", desc: "RH & Plannings", price: "13 900 F" },
   { id: "crm", name: "Onyx CRM", icon: ShieldCheck, color: "bg-[#39FF14]", route: "/crm", desc: "CRM B2B HT", price: "39 900 F" },
 ];
+
+const PACK_CONTENTS: Record<string, string[]> = {
+  "pack tekki": ["vente", "stock", "tiak"],
+  "pack tekki (boutique)": ["vente", "stock", "tiak"],
+  "onyxtekki (resto)": ["menu", "stock", "tiak"],
+  "pack tekki pro": ["vente", "stock", "tiak", "formation", "staff"],
+  "onyx crm": ["crm", "booking"],
+  "pack onyx crm": ["crm", "booking"],
+  "pack onyx gold": ["vente", "stock", "tiak", "formation", "staff", "crm", "booking", "menu", "tontine"],
+  "onyx gold": ["vente", "stock", "tiak", "formation", "staff", "crm", "booking", "menu", "tontine"]
+};
 
 export default function OnyxHubPortal() {
   const router = useRouter();
@@ -85,19 +96,35 @@ export default function OnyxHubPortal() {
      if (!user) return false;
      const activeSaas = user.active_saas || [];
      const allSaas = [user.saas || '', ...activeSaas].map((s: string) => (s || '').toLowerCase());
-     if (allSaas.some((s: string) => s.includes('gold'))) return true;
      
-     if (appId === 'vente' && allSaas.some((s: string) => s.includes('jaay') || s.includes('tekki') || s.includes('solo') || s.includes('trio') || s.includes('duo'))) return true;
-     if (appId === 'stock' && allSaas.some((s: string) => s.includes('stock') || s.includes('tekki') || s.includes('trio'))) return true;
-     if (appId === 'tiak' && allSaas.some((s: string) => s.includes('tiak') || s.includes('tekki') || s.includes('trio') || s.includes('duo'))) return true;
-     if (appId === 'formation' && allSaas.some((s: string) => s.includes('formation') || s.includes('tekki pro'))) return true;
-     if (appId === 'staff' && allSaas.some((s: string) => s.includes('staff') || s.includes('tekki pro'))) return true;
-     if (appId === 'crm' && allSaas.some((s: string) => s.includes('crm'))) return true;
-     if (appId === 'menu' && allSaas.some((s: string) => s.includes('menu'))) return true;
-     if (appId === 'booking' && allSaas.some((s: string) => s.includes('booking'))) return true;
-     if (appId === 'tontine' && allSaas.some((s: string) => s.includes('tontine'))) return true;
-
+     if (allSaas.some((s: string) => s === appId.toLowerCase() || s.includes(appId.toLowerCase()))) return true;
+     
+     for (const saas of allSaas) {
+         for (const [packName, modules] of Object.entries(PACK_CONTENTS)) {
+             if (saas.includes(packName) && modules.includes(appId)) {
+                 return true;
+             }
+         }
+     }
      return false;
+  };
+
+  const getIncludedPack = (appId: string, user: any) => {
+     if (!user) return null;
+     const activeSaas = user.active_saas || [];
+     const allSaas = [user.saas || '', ...activeSaas];
+     
+     for (const saas of allSaas) {
+         if (!saas) continue;
+         if (saas.toLowerCase() === appId.toLowerCase() || saas.toLowerCase().includes(appId.toLowerCase())) continue;
+
+         for (const [packName, modules] of Object.entries(PACK_CONTENTS)) {
+             if (saas.toLowerCase().includes(packName) && modules.includes(appId)) {
+                 return saas;
+             }
+         }
+     }
+     return null;
   };
 
   const getAppExpiryDate = (appId: string, user: any) => {
@@ -237,7 +264,9 @@ export default function OnyxHubPortal() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8">
             {filteredApps.map((app) => {
               const hasAccess = checkAccess(app.id, user);
-              const expDateStr = getAppExpiryDate(app.id, user);
+              const includedPack = getIncludedPack(app.id, user);
+              const actualAppIdOrPack = includedPack || app.id;
+              const expDateStr = getAppExpiryDate(actualAppIdOrPack, user);
               const isExpired = expDateStr ? new Date(expDateStr).setHours(23,59,59,999) < new Date().getTime() : false;
               const isUnlocked = hasAccess && !isExpired;
 
@@ -264,6 +293,14 @@ export default function OnyxHubPortal() {
                           <h3 className="font-black text-2xl text-zinc-900 uppercase tracking-tighter mb-1">{app.name}</h3>
                           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6">{app.desc}</p>
                           
+                          {includedPack && isUnlocked && (
+                              <div className="mb-4">
+                                  <span className="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm w-max">
+                                      <Package size={14} /> Inclus dans {includedPack}
+                                  </span>
+                              </div>
+                          )}
+
                           {isUnlocked && expDateStr && (
                               <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 mb-6 flex justify-between items-center">
                                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Fin d'abonnement</p>

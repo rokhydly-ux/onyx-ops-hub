@@ -19,7 +19,7 @@ import InteractiveParticles from "@/components/InteractiveParticles";
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
-type PlanKey = "solo" | "tekki" | "tekkipro" | "crm" | "gold";
+type PlanKey = "solo" | "tekki" | "resto" | "tekkipro" | "crm" | "gold";
 
 // --- DATA ---
 const ECOSYSTEM_SAAS = [
@@ -45,6 +45,7 @@ const ONBOARDING_CATEGORIES = [
 const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: string[]; why: string; cible: string; avantage: string; chiffreCle: string }> = {
   solo: { title: "Onyx Jaay", desc: "La boutique WhatsApp ultime pour arrêter de perdre des ventes en DM.", benefits: ["Catalogue Digital Rapide", "Panier WhatsApp Auto", "Paiement Mobile Intégré"], why: "Arrêter le bricolage.", cible: "Boutiques Insta/WA", avantage: "Simple et efficace.", chiffreCle: "Zéro perte" },
   tekki: { title: "Pack Tekki", desc: "Vendez, gérez votre stock et vos livreurs depuis une seule interface.", benefits: ["Onyx Jaay + Stock + Tiak", "Suivi livreurs en temps réel", "Contrôle des marges"], why: "Contrôle total du cash.", cible: "E-commerce & PME", avantage: "Écosystème parfait.", chiffreCle: "Bénéfice immédiat" },
+  resto: { title: "OnyxTekki (Resto)", desc: "L'écosystème complet pour la restauration. Menu QR, gestion de stock et suivi des livreurs.", benefits: ["Onyx Menu (QR Code)", "Gestion des Stocks", "Logistique Onyx Tiak"], why: "Service rapide et sans erreur.", cible: "Restaurants & Fast-Foods", avantage: "Commandes fluides.", chiffreCle: "Zéro attente" },
   tekkipro: { title: "Pack Tekki Pro", desc: "L'écosystème Tekki couplé à notre académie marketing pour doubler vos ventes.", benefits: ["Tout le Pack Tekki", "Onyx Formation (Ads)", "Pointage & Paie (Staff)"], why: "Croissance agressive.", cible: "Entrepreneurs", avantage: "Tout inclus.", chiffreCle: "Ventes x2" },
   crm: { title: "Onyx CRM", desc: "Le Cerveau Financier B2B. Trackez chaque lead et sécurisez chaque marge.", benefits: ["Pipeline Kanban B2B", "Calcul Marges HT/TTC", "Devis & Catalogues auto"], why: "Fidéliser et closer.", cible: "Agences, B2B & Services", avantage: "Fidélité Max.", chiffreCle: "Clients x3" },
   gold: { title: "Pack Onyx Gold", desc: "L'arsenal VIP complet. Toutes nos applications déverrouillées.", benefits: ["Écosystème 100% Illimité", "Accès Complet CRM & SaaS", "Support Dédié 24/7"], why: "Pour tout écraser.", cible: "Grandes structures", avantage: "La totale.", chiffreCle: "Sans limite" },
@@ -193,7 +194,7 @@ export default function OnyxOpsElite() {
 
   // WORKFLOW PARTENAIRE
   const [partnerStep, setPartnerStep] = useState<'landing' | 'form' | 'success' | 'dashboard'>('landing');
-  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, tekkipro: 1, crm: 0, gold: 0 });
+  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, resto: 0, tekkipro: 1, crm: 0, gold: 0 });
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", address: "", country: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [addonCm, setAddonCm] = useState(false);
@@ -649,8 +650,8 @@ export default function OnyxOpsElite() {
 };
 
   // Mises à jour des tarifs sur la simulation des commissions
-  const commissionM1 = Math.round((packCounts.solo || 0) * 13900 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30 + (packCounts.crm || 0) * 39900 * 0.30 + (packCounts.gold || 0) * 59900 * 0.30);
-  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13900 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10 + (packCounts.crm || 0) * 39900 * 0.10 + (packCounts.gold || 0) * 59900 * 0.10);
+  const commissionM1 = Math.round((packCounts.solo || 0) * 13900 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.resto || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30 + (packCounts.crm || 0) * 39900 * 0.30 + (packCounts.gold || 0) * 59900 * 0.30);
+  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13900 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.resto || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10 + (packCounts.crm || 0) * 39900 * 0.10 + (packCounts.gold || 0) * 59900 * 0.10);
 
   const navigateTo = (view: any, scrollId?: string) => {
     setIsMobileMenuOpen(false); 
@@ -1284,6 +1285,7 @@ export default function OnyxOpsElite() {
                       {[
                         { id: 'solo', label: 'Onyx Jaay (13.900F)', max: 50 },
                         { id: 'tekki', label: 'Pack Tekki (22.900F)', max: 40 },
+                    { id: 'resto', label: 'OnyxTekki (Resto) (22.900F)', max: 40 },
                         { id: 'tekkipro', label: 'Pack Tekki Pro (27.900F)', max: 30 },
                         { id: 'crm', label: 'Pack Onyx CRM (39.900F)', max: 25 },
                         { id: 'gold', label: 'Pack Onyx Gold (59.900F)', max: 20 },

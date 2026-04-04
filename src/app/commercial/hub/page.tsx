@@ -148,6 +148,7 @@ export default function CommercialHub() {
                   
                   <optgroup label="📦 LES PACKS SAAS (Les plus rentables)" className="bg-zinc-900 text-[#39FF14] font-black">
                     <option value="Pack Tekki">Pack Tekki (Vente, Stock, Livreurs) - 22.900 F</option>
+                  <option value="OnyxTekki (Resto)">OnyxTekki (Resto) - 22.900 F</option>
                     <option value="Pack Tekki Pro">Pack Tekki Pro (La totale PME) - 27.900 F</option>
                     <option value="Onyx CRM">Onyx CRM (Devis, Marges, Leads B2B) - 29.900 F</option>
                     <option value="Pack Onyx Gold">Pack Onyx Gold (VIP Multi-Business) - 59.900 F</option>
