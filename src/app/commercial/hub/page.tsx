@@ -15,6 +15,7 @@ export default function CommercialHub() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
+  const [myClients, setMyClients] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     shopName: '',
     phone: '',
@@ -28,8 +29,17 @@ export default function CommercialHub() {
       setCurrentUser(data);
       setEditName(data.full_name || '');
       setEditAvatar(data.avatar_url || '');
+      fetchMyActivity(data.id);
     }
   }, []);
+
+  const fetchMyActivity = async (commercialId: string) => {
+    const { data } = await supabase.from('clients')
+      .select('*')
+      .eq('commercial_id', commercialId)
+      .eq('type', 'Client');
+    if (data) setMyClients(data);
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,20 +66,46 @@ export default function CommercialHub() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.shopName || !formData.phone || !formData.product) {
       alert("Veuillez remplir tous les champs obligatoires.");
       return;
     }
 
-    // Simulation d'envoi
-    alert(`Succès ! Le lien d'activation a été envoyé sur le WhatsApp de ${formData.shopName} pour l'offre ${formData.product} ${addCm ? '(Avec Option CM)' : ''}.`);
-    
-    // Reset form
-    setFormData({ shopName: '', phone: '', product: '' });
-    setAddCm(false);
-    setActiveTab('activite');
+    try {
+      let cleanPhone = formData.phone.replace(/\s+/g, '');
+      if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+          cleanPhone = `+221${cleanPhone}`;
+      } else if (!cleanPhone.startsWith('+')) {
+          cleanPhone = `+${cleanPhone}`;
+      }
+
+      // Vraie insertion dans la base de données
+      const { error } = await supabase.from('clients').insert([{
+        full_name: formData.shopName,
+        phone: cleanPhone,
+        saas: formData.product + (addCm ? ' + Add-on CM Pub' : ''),
+        type: 'Client',
+        status: 'Nouveau',
+        source: 'Terrain / Commercial',
+        commercial_id: currentUser?.id, // Liaison avec le VRAI commercial connecté
+        assigned_to: currentUser?.full_name,
+        password_temp: 'central2026'
+      }]);
+
+      if (error) throw error;
+
+      alert(`Succès ! Le client ${formData.shopName} a bien été enregistré sur votre compte.`);
+      
+      setFormData({ shopName: '', phone: '', product: '' });
+      setAddCm(false);
+      
+      if (currentUser?.id) fetchMyActivity(currentUser.id);
+      setActiveTab('activite');
+    } catch (err: any) {
+      alert("Erreur lors de la création : " + err.message);
+    }
   };
 
   return (
@@ -206,9 +242,6 @@ export default function CommercialHub() {
                 )}
               </div>
 
-              {/* Champ caché pour identifier le commercial */}
-              <input type="hidden" name="commercialId" value="COM-Moussa-D" />
-
               <button type="submit" className="w-full mt-6 bg-[#39FF14] text-black font-black uppercase text-sm tracking-widest py-5 rounded-xl shadow-[0_10px_30px_rgba(57,255,20,0.2)] hover:bg-white transition-all flex justify-center items-center gap-2">
                 <Send size={18} /> Générer l'accès client
               </button>
@@ -221,12 +254,12 @@ export default function CommercialHub() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-zinc-900 p-6 rounded-[2rem] border border-zinc-800 shadow-lg flex flex-col items-center justify-center text-center">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Comptes ce mois</p>
-                <p className="text-4xl font-black text-white">12</p>
+                <p className="text-4xl font-black text-white">{myClients.length}</p>
               </div>
               <div className="bg-zinc-900 p-6 rounded-[2rem] border border-[#39FF14]/30 shadow-[0_0_30px_rgba(57,255,20,0.1)] flex flex-col items-center justify-center text-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-[#39FF14]/20 blur-xl rounded-full"></div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions</p>
-                <p className="text-2xl font-black text-[#39FF14]">142 500 F</p>
+                <p className="text-2xl font-black text-[#39FF14]">{(myClients.length * 5000).toLocaleString()} F</p>
               </div>
             </div>
 
@@ -234,38 +267,20 @@ export default function CommercialHub() {
               <h3 className="font-black uppercase text-sm tracking-widest text-zinc-400 mb-4">Derniers Comptes Ouverts</h3>
               <div className="space-y-3">
                 
-                <div className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 flex justify-between items-center">
-                  <div>
-                    <p className="font-black text-white text-sm">Boutique Fanta</p>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Pack Tekki</p>
-                  </div>
-                  <span className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-[10px] font-black uppercase px-2 py-1 rounded-md">
-                    <Clock size={12} /> Essai 30J
-                  </span>
-                </div>
-
-                <div className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 flex justify-between items-center">
-                  <div>
-                    <p className="font-black text-white text-sm">Resto La Teranga</p>
-                    <div className="flex gap-2 mt-1">
-                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Onyx CRM</p>
-                      <span className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest bg-[#00E5FF]/10 px-1 rounded">+ CM</span>
+                {myClients.slice(0, 5).map(client => (
+                  <div key={client.id} className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 flex justify-between items-center">
+                    <div>
+                      <p className="font-black text-white text-sm">{client.full_name}</p>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">{client.saas}</p>
                     </div>
+                    <span className="flex items-center gap-1 bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] text-[10px] font-black uppercase px-2 py-1 rounded-md">
+                      <CheckCircle size={12} /> Validé
+                    </span>
                   </div>
-                  <span className="flex items-center gap-1 bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] text-[10px] font-black uppercase px-2 py-1 rounded-md">
-                    <CheckCircle size={12} /> Abonné
-                  </span>
-                </div>
-
-                <div className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 flex justify-between items-center">
-                  <div>
-                    <p className="font-black text-white text-sm">Salon Coiffure Pro</p>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Onyx Booking</p>
-                  </div>
-                  <span className="flex items-center gap-1 bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] text-[10px] font-black uppercase px-2 py-1 rounded-md">
-                    <CheckCircle size={12} /> Abonné
-                  </span>
-                </div>
+                ))}
+                {myClients.length === 0 && (
+                  <p className="text-zinc-500 text-xs text-center py-4">Aucun client enregistré pour le moment.</p>
+                )}
 
               </div>
             </div>
