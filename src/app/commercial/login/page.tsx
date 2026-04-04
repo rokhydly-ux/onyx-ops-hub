@@ -21,21 +21,25 @@ export default function CommercialLogin() {
 
     try {
       // Nettoyage et formatage du numéro de téléphone
-      let cleanPhone = phone.replace(/\s+/g, '');
-      if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
-         cleanPhone = `+221${cleanPhone}`;
-      } else if (!cleanPhone.startsWith('+')) {
-         cleanPhone = `+${cleanPhone}`;
-      }
+      let rawPhone = phone.replace(/[^0-9+]/g, '');
+      const p1 = rawPhone;
+      const p2 = rawPhone.startsWith('+') ? rawPhone.substring(1) : `+${rawPhone}`;
+      const p3 = rawPhone.length === 9 ? `+221${rawPhone}` : rawPhone;
+      const p4 = rawPhone.length === 9 ? `221${rawPhone}` : rawPhone;
+      const p5 = rawPhone.startsWith('+221') ? rawPhone.substring(4) : rawPhone;
+      const p6 = rawPhone.startsWith('221') ? rawPhone.substring(3) : rawPhone;
+
+      const uniquePhones = Array.from(new Set([p1, p2, p3, p4, p5, p6]));
+      const orConditions = uniquePhones.map(p => `phone.eq.${p}`).join(',');
 
       // Vérification dans la table des commerciaux
-      const { data: commercial, error } = await supabase
+      const { data: commercials, error } = await supabase
         .from('commercials')
         .select('*')
-        .eq('phone', cleanPhone)
-        .single();
+        .or(orConditions);
 
-      if (error || !commercial) throw new Error("Numéro de téléphone introuvable.");
+      if (error || !commercials || commercials.length === 0) throw new Error("Numéro de téléphone introuvable.");
+      const commercial = commercials[0];
       
       const submittedPin = pin === "0000" ? "central2026" : pin + "00";
       if (commercial.password_temp !== submittedPin && commercial.password_temp !== "central2026") throw new Error("Code PIN incorrect.");
@@ -66,7 +70,7 @@ export default function CommercialLogin() {
         </div>
 
         {/* Formulaire */}
-        <form className="mt-8 space-y-6" onSubmit={(e) => e.preventDefault()}>
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="space-y-4">
             
             {/* Numéro de téléphone */}
@@ -81,6 +85,8 @@ export default function CommercialLogin() {
                 <input 
                   type="tel" 
                   required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="7X XXX XX XX" 
                   className="flex-1 min-w-0 block w-full px-4 py-3 rounded-none rounded-r-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#00FF00] focus:border-transparent" 
                 />

@@ -88,24 +88,28 @@ export default function AmbassadeursPage() {
     setError("");
 
     // Nettoyage du numéro de téléphone
-    let cleanPhone = id.replace(/\s+/g, '');
-    if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
-       cleanPhone = `+221${cleanPhone}`;
-    } else if (!cleanPhone.startsWith('+')) {
-       cleanPhone = `+${cleanPhone}`;
-    }
+    let rawPhone = id.replace(/[^0-9+]/g, '');
+    const p1 = rawPhone;
+    const p2 = rawPhone.startsWith('+') ? rawPhone.substring(1) : `+${rawPhone}`;
+    const p3 = rawPhone.length === 9 ? `+221${rawPhone}` : rawPhone;
+    const p4 = rawPhone.length === 9 ? `221${rawPhone}` : rawPhone;
+    const p5 = rawPhone.startsWith('+221') ? rawPhone.substring(4) : rawPhone;
+    const p6 = rawPhone.startsWith('221') ? rawPhone.substring(3) : rawPhone;
+
+    const uniquePhones = Array.from(new Set([p1, p2, p3, p4, p5, p6]));
+    const orConditions = uniquePhones.map(p => `contact.eq.${p},phone.eq.${p}`).join(',');
 
     try {
       // Vérification dans la table des ambassadeurs
-      const { data, error: fetchErr } = await supabase
+      const { data: membersList, error: fetchErr } = await supabase
         .from('ambassadors')
         .select('*')
-        .or(`contact.eq.${cleanPhone},phone.eq.${cleanPhone}`)
-        .single();
+        .or(orConditions);
 
-      if (fetchErr || !data) {
+      if (fetchErr || !membersList || membersList.length === 0) {
         throw new Error("Identifiant introuvable.");
       }
+      const data = membersList[0];
 
       const submittedPin = pin === "0000" ? "central2026" : pin + "00";
       if (data.password_temp !== submittedPin && data.password_temp !== "central2026") {
