@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 import { 
-  Smartphone, Truck, Box, Utensils, Calendar, 
+  Smartphone, Truck, Box, Utensils, Calendar, Calculator,
   ArrowRight, Users, Target, 
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
   Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search,
   ChevronDown,
-  ShieldAlert, ChevronLeft, Activity, Rocket,
-  Crosshair 
+  ShieldAlert, ChevronLeft, Activity, Rocket, Bot,
+  Crosshair, RefreshCcw
 } from "lucide-react";
 import InteractiveParticles from "@/components/InteractiveParticles";
 
@@ -205,6 +205,7 @@ export default function OnyxOpsElite() {
   const [articles, setArticles] = useState<any[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [blogEmail, setBlogEmail] = useState("");
+  const [simBudget, setSimBudget] = useState(50000);
 
   const waNumber = "221785338417";
   const getWaLink = (msg: string) => `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
@@ -672,6 +673,14 @@ export default function OnyxOpsElite() {
     }
   };
 
+  const simMultiplier = simBudget / 50000;
+  const simMinLeads = simMultiplier * 150;
+  const simMaxLeads = simMultiplier * 200;
+  const simMinSales = simMultiplier * 15;
+  const simMaxSales = simMultiplier * 20;
+  const simMinRev = simMinSales * 10000;
+  const simMaxRev = simMaxSales * 10000;
+
   return (
     <div className={`${inter.className} min-h-screen bg-white text-black overflow-x-hidden pt-20 relative`}>
       <InteractiveParticles themeColor="#39FF14" />
@@ -812,11 +821,34 @@ export default function OnyxOpsElite() {
                     <span className="font-black text-black bg-[#39FF14]/20 px-1 rounded animate-pulse inline-block">Fini les 'Prix en Inbox'</span> qui ne mènent à rien ou vos amis qui mettent en sourdine vos <span className="font-black text-black bg-[#39FF14]/20 px-1 rounded animate-pulse inline-block">50 statuts photos</span> de produits. Donnez à vos clients un catalogue clair, laissez-les choisir, et réveillez-vous avec des notifications de paiement et des commandes prêtes à livrer.
                   </p>
 
-                  <div className="bg-black border border-[#39FF14] p-5 rounded-2xl mb-10 shadow-[0_0_25px_rgba(57,255,20,0.3)] relative overflow-hidden group">
+                  <div className="bg-black border border-[#39FF14] p-6 rounded-3xl mb-10 shadow-[0_0_30px_rgba(57,255,20,0.2)] relative overflow-hidden group">
                     <div className="absolute top-0 left-0 w-2 h-full bg-[#39FF14]"></div>
-                    <p className="text-sm font-bold text-zinc-300 leading-relaxed pl-2">
-                      💡 Sur Meta, un contact coûte environ 110 FCFA. Avec 5 000 F de pub et notre méthode de ciblage incluse, amenez plus de <span className="text-black bg-[#39FF14] px-2 py-0.5 rounded font-black">45 acheteurs chauds</span> sur votre boutique dès ce soir. Zéro blabla, que du cash.
-                    </p>
+                    <h3 className="text-white font-black uppercase text-lg mb-4 flex items-center gap-2 pl-2"><Target className="text-[#39FF14]"/> Simulateur de Rentabilité Meta</h3>
+                    <p className="text-sm text-zinc-400 font-bold mb-6 pl-2">Ajustez votre budget publicitaire pour estimer vos retours avec notre méthode.</p>
+                    
+                    <div className="mb-8 pl-2 pr-2">
+                       <div className="flex justify-between text-xs font-bold text-zinc-500 mb-2 uppercase tracking-widest">
+                          <span>50k (Starter)</span>
+                          <span className="text-[#39FF14]">{simBudget.toLocaleString('fr-FR')} FCFA / mois</span>
+                          <span>300k (Pro)</span>
+                       </div>
+                       <input type="range" min="50000" max="300000" step="50000" value={simBudget} onChange={(e) => setSimBudget(Number(e.target.value))} className="w-full accent-[#39FF14] h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer" />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 text-center pl-2 pr-2">
+                       <div className="bg-zinc-900 p-3 rounded-2xl border border-zinc-800 flex flex-col justify-center">
+                          <p className="text-[9px] sm:text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Contacts</p>
+                          <p className="text-sm sm:text-lg font-black text-white">{simMinLeads} - {simMaxLeads}</p>
+                       </div>
+                       <div className="bg-zinc-900 p-3 rounded-2xl border border-zinc-800 flex flex-col justify-center">
+                          <p className="text-[9px] sm:text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Ventes (10%)</p>
+                          <p className="text-sm sm:text-lg font-black text-white">{simMinSales} - {simMaxSales}</p>
+                       </div>
+                       <div className="bg-[#39FF14]/10 p-3 rounded-2xl border border-[#39FF14]/30 flex flex-col justify-center">
+                          <p className="text-[9px] sm:text-[10px] font-black uppercase text-[#39FF14] tracking-widest mb-1">Xaliss Généré</p>
+                          <p className="text-sm sm:text-lg font-black text-[#39FF14]">{simMinRev.toLocaleString('fr-FR')} - {simMaxRev.toLocaleString('fr-FR')}</p>
+                       </div>
+                    </div>
                   </div>
                   
                   <div className="flex flex-col sm:flex-row gap-4 mb-10">
@@ -870,7 +902,7 @@ export default function OnyxOpsElite() {
             <section className="w-full bg-[#050505] py-16 md:py-24 relative mt-10 overflow-hidden">
               <div className="max-w-7xl mx-auto px-6 relative z-10">
                 <div className="text-center max-w-3xl mx-auto mb-16">
-                  <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 text-white leading-tight`}>
+                  <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 bg-gradient-to-r from-white via-[#39FF14] to-emerald-500 bg-clip-text text-transparent leading-tight`}>
                     OnyxCRM : Le Cerveau Financier de votre Entreprise.
                   </h2>
                   <p className="text-zinc-400 text-base md:text-xl font-medium leading-relaxed">
@@ -880,30 +912,30 @@ export default function OnyxOpsElite() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
                   <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl text-left hover:border-zinc-600 transition-colors">
-                    <div className="text-3xl mb-4">💰</div>
+                    <Calculator className="text-[#39FF14] mb-4 w-8 h-8" />
                     <h3 className="text-white font-black uppercase text-sm mb-2">Contrôle des Marges</h3>
                     <p className="text-zinc-500 text-xs font-medium">Prix HT, Vente TTC, Marge nette.</p>
                   </div>
                   <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl text-left hover:border-zinc-600 transition-colors">
-                    <div className="text-3xl mb-4">📄</div>
+                    <FileText className="text-[#39FF14] mb-4 w-8 h-8" />
                     <h3 className="text-white font-black uppercase text-sm mb-2">Devis & Factures</h3>
                     <p className="text-zinc-500 text-xs font-medium">Générés en 1 clic.</p>
                   </div>
                   <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl text-left hover:border-zinc-600 transition-colors">
-                    <div className="text-3xl mb-4">🤖</div>
+                    <Bot className="text-[#39FF14] mb-4 w-8 h-8" />
                     <h3 className="text-white font-black uppercase text-sm mb-2">Fidélisation IA</h3>
                     <p className="text-zinc-500 text-xs font-medium">Catalogues sur-mesure et ciblage.</p>
                   </div>
                   <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-3xl text-left hover:border-zinc-600 transition-colors">
-                    <div className="text-3xl mb-4">🔄</div>
+                    <RefreshCcw className="text-[#39FF14] mb-4 w-8 h-8" />
                     <h3 className="text-white font-black uppercase text-sm mb-2">Import Universel</h3>
                     <p className="text-zinc-500 text-xs font-medium">Odoo & Excel sans friction.</p>
                   </div>
                 </div>
 
                 <div className="text-center">
-                   <button onClick={() => router.push('/solutions/onyxcrm')} className="inline-flex justify-center items-center gap-3 bg-white text-black px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-lg">
-                     Découvrir OnyxCRM <ArrowRight size={20} />
+                   <button onClick={() => router.push('/solutions/onyxcrm')} className="glitch-hover inline-flex justify-center items-center gap-3 bg-[#39FF14] text-black px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(57,255,20,0.4)] border border-transparent">
+                     <span className="glitch-text">Découvrir OnyxCRM</span> <ArrowRight size={20} />
                    </button>
                 </div>
               </div>

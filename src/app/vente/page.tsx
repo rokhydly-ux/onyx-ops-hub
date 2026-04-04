@@ -9,7 +9,7 @@ import {
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download, Box,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, GripVertical,
   Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, EyeOff, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut, Megaphone, Send, XCircle, CheckCircle, Edit3, Copy, LogIn, Wallet, ExternalLink
-, ChevronLeft } from 'lucide-react';
+, ChevronLeft, GraduationCap } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
 import { supabase } from "@/lib/supabaseClient";
@@ -180,6 +180,33 @@ const getEmbedUrl = (url: string) => {
         return `https://www.youtube.com/embed/${videoId}`;
     }
     return url;
+};
+
+const PACK_CONTENTS: Record<string, string[]> = {
+  "pack tekki": ["vente", "stock", "tiak"],
+  "pack tekki (boutique)": ["vente", "stock", "tiak"],
+  "onyxtekki (resto)": ["menu", "stock", "tiak"],
+  "pack tekki pro": ["vente", "stock", "tiak", "formation", "staff"],
+  "onyx crm": ["crm", "booking"],
+  "pack onyx crm": ["crm", "booking"],
+  "pack onyx gold": ["vente", "stock", "tiak", "formation", "staff", "crm", "booking", "menu", "tontine"],
+  "onyx gold": ["vente", "stock", "tiak", "formation", "staff", "crm", "booking", "menu", "tontine"]
+};
+
+const checkAccess = (appId: string, userObj: any) => {
+  if (!userObj) return false;
+  const activeSaas = userObj.active_saas || [];
+  const allSaas = [userObj.saas || '', ...activeSaas].map((s: string) => (s || '').toLowerCase());
+  
+  if (allSaas.some((s: string) => s.includes('gold'))) return true;
+  if (allSaas.some((s: string) => s === appId.toLowerCase() || s.includes(appId.toLowerCase()))) return true;
+  
+  for (const saas of allSaas) {
+      for (const [packName, modules] of Object.entries(PACK_CONTENTS)) {
+          if (saas.includes(packName) && modules.includes(appId)) return true;
+      }
+  }
+  return false;
 };
 
 const WIDGET_TYPE = 'WIDGET';
@@ -2733,6 +2760,13 @@ export default function OnyxJaayShop() {
 
           {isShopOwner && (
             <>
+            <div className="hidden md:flex items-center gap-1 bg-white/50 dark:bg-zinc-900 p-1 rounded-full border border-zinc-200 dark:border-zinc-800 backdrop-blur-md mr-2 shadow-sm">
+                <button className="p-2 bg-black dark:bg-white text-[#39FF14] dark:text-black rounded-full shadow-md transition-all" title="Onyx Jaay (Vente)"><ShoppingCart size={16}/></button>
+                {checkAccess('stock', authUser) && <button onClick={() => window.location.href='/stock'} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Onyx Stock"><Box size={16}/></button>}
+                {checkAccess('tiak', authUser) && <button onClick={() => window.location.href='/tiak'} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Onyx Tiak"><Truck size={16}/></button>}
+                {checkAccess('formation', authUser) && <button onClick={() => window.location.href='/admin/saas/formation'} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Onyx Formation"><GraduationCap size={16}/></button>}
+                {checkAccess('staff', authUser) && <button onClick={() => window.location.href='/staff'} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Onyx Staff"><Users size={16}/></button>}
+            </div>
             <div className="relative">
               <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="p-2 rounded-full bg-white/50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 backdrop-blur-md relative">
                 <Bell size={16} className="text-black dark:text-white" />

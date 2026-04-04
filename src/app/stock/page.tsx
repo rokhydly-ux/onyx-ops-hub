@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   Box, LogOut, ChevronLeft, Loader2, Plus, Search, 
-  AlertTriangle, ArrowUp, ArrowDown, Filter, Package
+  AlertTriangle, ArrowUp, ArrowDown, Filter, Package,
+  ShoppingCart, Truck, GraduationCap, Users
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -165,6 +166,13 @@ export default function OnyxStock() {
              </div>
           </div>
           <div className="flex items-center gap-3">
+             <div className="hidden md:flex items-center gap-1 bg-zinc-100 p-1 rounded-full border border-zinc-200 mr-2 shadow-sm">
+                {checkAccess('vente', user) && <button onClick={() => window.location.href='/vente'} className="p-2 text-zinc-500 hover:text-black transition-colors" title="Onyx Jaay (Vente)"><ShoppingCart size={16}/></button>}
+                <button className="p-2 bg-black text-[#39FF14] rounded-full shadow-md transition-all" title="Onyx Stock"><Box size={16}/></button>
+                {checkAccess('tiak', user) && <button onClick={() => window.location.href='/tiak'} className="p-2 text-zinc-500 hover:text-black transition-colors" title="Onyx Tiak"><Truck size={16}/></button>}
+                {checkAccess('formation', user) && <button onClick={() => window.location.href='/admin/saas/formation'} className="p-2 text-zinc-500 hover:text-black transition-colors" title="Onyx Formation"><GraduationCap size={16}/></button>}
+                {checkAccess('staff', user) && <button onClick={() => window.location.href='/staff'} className="p-2 text-zinc-500 hover:text-black transition-colors" title="Onyx Staff"><Users size={16}/></button>}
+             </div>
              <div className="w-10 h-10 bg-zinc-200 rounded-full flex items-center justify-center shadow-sm font-black text-sm uppercase overflow-hidden text-black border-2 border-white">
                 {user?.photo_url ? <img src={user.photo_url} alt="Avatar" className="w-full h-full object-cover" /> : user?.full_name?.substring(0, 2) || "U"}
              </div>
