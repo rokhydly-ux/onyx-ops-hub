@@ -3,241 +3,279 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Box, Search, AlertTriangle, Home, Store, ArrowDown, ArrowUp, RefreshCcw, Download, QrCode } from "lucide-react";
-import * as XLSX from 'xlsx';
+import { 
+  Box, LogOut, ChevronLeft, Loader2, Plus, Search, 
+  AlertTriangle, ArrowUp, ArrowDown, Filter, Package
+} from "lucide-react";
 
-export default function OnyxStockDashboard() {
+const spaceGrotesk = { className: "font-sans" };
+
+const PACK_CONTENTS: Record<string, string[]> = {
+  "pack tekki": ["vente", "stock", "tiak"],
+  "pack tekki (boutique)": ["vente", "stock", "tiak"],
+  "onyxtekki (resto)": ["menu", "stock", "tiak"],
+  "pack tekki pro": ["vente", "stock", "tiak", "formation", "staff"],
+  "onyx crm": ["crm", "booking"],
+  "pack onyx crm": ["crm", "booking"],
+  "pack onyx gold": ["vente", "stock", "tiak", "formation", "staff", "crm", "booking", "menu", "tontine"],
+  "onyx gold": ["vente", "stock", "tiak", "formation", "staff", "crm", "booking", "menu", "tontine"]
+};
+
+export default function OnyxStock() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const [shopId, setShopId] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filter, setFilter] = useState<"all" | "low" | "out">("all");
-  const [isUpdating, setIsUpdating] = useState<number | null>(null);
+  const [filterType, setFilterType] = useState<'all' | 'low' | 'out'>('all');
+
+  // --- 1. VÉRIFICATION SÉCURISÉE DE L'ACCÈS ---
+  const checkAccess = (appId: string, userObj: any) => {
+    if (!userObj) return false;
+    const activeSaas = userObj.active_saas || [];
+    const allSaas = [userObj.saas || '', ...activeSaas].map((s: string) => (s || '').toLowerCase());
+    
+    if (allSaas.some((s: string) => s.includes('gold'))) return true;
+    if (allSaas.some((s: string) => s === appId.toLowerCase() || s.includes(appId.toLowerCase()))) return true;
+    
+    for (const saas of allSaas) {
+        for (const [packName, modules] of Object.entries(PACK_CONTENTS)) {
+            if (saas.includes(packName) && modules.includes(appId)) {
+                return true;
+            }
+        }
+    }
+    return false;
+  };
 
   useEffect(() => {
     const verifyAuth = async () => {
+      let activeUser = null;
       const { data: { session } } = await supabase.auth.getSession();
-      let userId = session?.user?.id;
-      let userData: any = null;
-
-      // Fallback session
-      if (!userId) {
+      
+      if (session?.user) {
+        const { data } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
+        activeUser = data ? { ...session.user, ...data } : session.user;
+      } else {
         const customSession = localStorage.getItem('onyx_custom_session');
         if (customSession) {
-            try { 
-                userData = JSON.parse(customSession);
-                userId = userData.id; 
+            try {
+                const parsedUser = JSON.parse(customSession);
+                const { data } = await supabase.from('clients').select('*').eq('id', parsedUser.id).maybeSingle();
+                activeUser = data || parsedUser;
             } catch (e) {}
         }
-      } else {
-         const { data } = await supabase.from('clients').select('saas, active_saas').eq('id', userId).maybeSingle();
-         userData = data;
       }
 
-      if (!userId) {
-          router.push('/');
+      // ÉJECTION SI ACCÈS REFUSÉ
+      if (!activeUser || !checkAccess('stock', activeUser)) {
+          alert("Accès refusé. Vous n'avez pas l'abonnement requis pour Onyx Stock.");
+          window.location.href = '/hub';
           return;
       }
 
-      // --- VÉRIFICATION D'ACCÈS SAAS (STOCK) ---
-      const activeModules = userData?.active_saas || [];
-      const mainSaas = (userData?.saas || '').toLowerCase();
-      const hasStockAccess = activeModules.includes('stock') || mainSaas.includes('stock') || mainSaas.includes('trio') || mainSaas.includes('full') || mainSaas.includes('elite') || mainSaas.includes('master');
+      setUser(activeUser);
+      if (activeUser) localStorage.setItem('onyx_custom_session', JSON.stringify(activeUser));
 
-      if (!hasStockAccess) {
-          alert("Accès refusé 🔒\n\nVous n'avez pas souscrit au module Onyx Stock. Redirection vers votre Hub.");
-          router.push('/dashboard');
-          return;
-      }
-
-      const { data: shop } = await supabase.from('shops').select('id, name, currency').eq('owner_id', userId).single();
-      if (shop) {
-          setShopId(shop.id);
-          fetchInventory(shop.id);
-      }
+      // Chargement de la boutique et du stock
+      await fetchInventory(activeUser.id, activeUser.phone);
       setIsLoading(false);
     };
+
     verifyAuth();
-  }, [router]);
+  }, []);
 
-  const fetchInventory = async (id: string) => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, name, stock, cost_price, price, category, image, barcode')
-        .eq('shop_id', id)
-        .order('name', { ascending: true });
-      
-      if (data && !error) setProducts(data);
+  // --- 2. CHARGEMENT DES PRODUITS ---
+  const fetchInventory = async (userId: string, userPhone: string) => {
+      let { data: shop } = await supabase.from('shops').select('id, name, currency').eq('owner_id', userId).maybeSingle();
+      if (!shop && userPhone) {
+          const { data: shopByPhone } = await supabase.from('shops').select('id, name, currency').eq('phone', userPhone).maybeSingle();
+          shop = shopByPhone;
+      }
+
+      if (shop) {
+          setShopId(shop.id);
+          const { data: productsData } = await supabase.from('products').select('*').eq('shop_id', shop.id).order('name', { ascending: true });
+          if (productsData) setProducts(productsData);
+      }
   };
 
-  // Mises à jour en temps réel (si une vente est faite sur Onyx Jaay, ça baisse ici direct)
-  useEffect(() => {
-    if (!shopId) return;
-    const channel = supabase.channel('stock-updates')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'products', filter: `shop_id=eq.${shopId}` }, (payload) => {
-         setProducts(prev => prev.map(p => p.id === payload.new.id ? { ...p, stock: payload.new.stock } : p));
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [shopId]);
-
-  const handleUpdateStock = async (id: number, newStock: number) => {
+  // --- 3. MISE À JOUR RAPIDE DU STOCK ---
+  const handleUpdateStock = async (productId: number, newStock: number) => {
       if (newStock < 0) return;
-      setIsUpdating(id);
       
-      // Mise à jour optimiste
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, stock: newStock } : p));
+      // Mise à jour optimiste UI
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock } : p));
       
-      // Update BDD
-      await supabase.from('products').update({ stock: newStock }).eq('id', id);
-      setIsUpdating(null);
+      // Mise à jour Supabase
+      try {
+          await supabase.from('products').update({ stock: newStock }).eq('id', productId);
+      } catch (err) {
+          console.error("Erreur de mise à jour du stock", err);
+      }
   };
 
-  const handleExportStock = () => {
-      const exportData = products.map(p => ({
-          'Nom du Produit': p.name,
-          'Catégorie': p.category || 'Non classé',
-          'Code-barre / SKU': p.barcode || 'N/A',
-          'Quantité en Stock': p.stock || 0,
-          'Coût d\'achat unitaire': p.cost_price || 0,
-          'Valeur Stock (Coût)': (p.stock || 0) * (p.cost_price || 0),
-          'Prix de vente unitaire': p.price || 0,
-          'Valeur Stock (Vente potentielle)': (p.stock || 0) * (p.price || 0)
-      }));
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Inventaire");
-      XLSX.writeFile(workbook, `onyx_inventaire_${new Date().toISOString().split('T')[0]}.xlsx`);
+  const handleLogout = async () => {
+    localStorage.removeItem('onyx_custom_session');
+    await supabase.auth.signOut();
+    window.location.href = '/login';
   };
-
-  if (isLoading) return <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-black"><div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
   const filteredProducts = products.filter(p => {
-      const matchSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.barcode || '').toLowerCase().includes(searchTerm.toLowerCase());
-      if (!matchSearch) return false;
-      if (filter === 'low') return p.stock > 0 && p.stock <= 5;
-      if (filter === 'out') return p.stock === 0;
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase()));
+      if (!matchesSearch) return false;
+      
+      if (filterType === 'low') return p.stock > 0 && p.stock <= 5;
+      if (filterType === 'out') return p.stock === 0;
       return true;
   });
 
   const totalItems = products.reduce((sum, p) => sum + (p.stock || 0), 0);
-  const totalValueCost = products.reduce((sum, p) => sum + ((p.stock || 0) * (p.cost_price || 0)), 0);
-  const totalValueSales = products.reduce((sum, p) => sum + ((p.stock || 0) * (p.price || 0)), 0);
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 5).length;
   const outOfStockCount = products.filter(p => p.stock === 0).length;
+  const inventoryValue = products.reduce((sum, p) => sum + ((p.cost_price || p.costPrice || 0) * (p.stock || 0)), 0);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-zinc-50">
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-zinc-50 font-sans text-black pb-24">
+      
       {/* HEADER */}
-      <header className="h-20 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-8 bg-white/80 dark:bg-black/80 backdrop-blur-md sticky top-0 z-20">
+      <header className="bg-white border-b border-zinc-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg"><Box size={20}/></div>
-              <h1 className="text-2xl font-black tracking-tighter uppercase hidden sm:block">Onyx <span className="text-emerald-500">Stock</span></h1>
+             <button onClick={() => window.location.href = '/hub'} className="p-2 bg-zinc-100 hover:bg-zinc-200 rounded-full transition-colors">
+                 <ChevronLeft size={20} />
+             </button>
+             <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                   <Box size={20} className="text-emerald-600"/>
+                </div>
+                <div>
+                   <h1 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter leading-none`}>Onyx Stock</h1>
+                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Gestion d'Inventaire</p>
+                </div>
+             </div>
           </div>
-          <div className="flex items-center gap-4">
-              <button onClick={handleExportStock} className="hidden md:flex items-center gap-2 p-2 px-4 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 rounded-xl hover:bg-emerald-100 transition font-bold text-sm shadow-sm">
-                  <Download size={16}/> Exporter Inventaire
-              </button>
-              <button onClick={() => router.push('/vente')} className="hidden sm:flex items-center gap-2 p-2 px-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition font-bold text-sm" title="Onyx Jaay">
-                  <Store size={16}/> Onyx Jaay
-              </button>
-              <button onClick={() => router.push('/dashboard')} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"><Home size={18}/></button>
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-zinc-200 rounded-full flex items-center justify-center shadow-sm font-black text-sm uppercase overflow-hidden text-black border-2 border-white">
+                {user?.photo_url ? <img src={user.photo_url} alt="Avatar" className="w-full h-full object-cover" /> : user?.full_name?.substring(0, 2) || "U"}
+             </div>
+             <button onClick={handleLogout} className="p-2 text-zinc-400 hover:text-red-500 transition-colors bg-zinc-100 hover:bg-red-50 rounded-full hidden sm:block" title="Se déconnecter">
+               <LogOut size={16} />
+             </button>
           </div>
+        </div>
       </header>
 
-      <main className="p-4 sm:p-8 max-w-[1600px] mx-auto space-y-8">
-          
-          {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-             <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Articles en rayon</p>
-                <p className="text-3xl sm:text-4xl font-black">{totalItems}</p>
-             </div>
-             <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Valeur du Stock (Coût)</p>
-                <p className="text-2xl sm:text-3xl font-black text-zinc-700 dark:text-zinc-300">{totalValueCost.toLocaleString()} F</p>
-             </div>
-             <div className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-[2rem] border border-emerald-200 dark:border-emerald-800/30 shadow-sm cursor-pointer" onClick={() => setFilter(filter === 'low' ? 'all' : 'low')}>
-                <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-1"><AlertTriangle size={12}/> Stock Faible (&lt;5)</p>
-                <p className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400">{lowStockCount}</p>
-             </div>
-             <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-[2rem] border border-red-200 dark:border-red-800/30 shadow-sm cursor-pointer" onClick={() => setFilter(filter === 'out' ? 'all' : 'out')}>
-                <p className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-2 flex items-center gap-1"><Box size={12}/> Ruptures (0)</p>
-                <p className="text-3xl sm:text-4xl font-black text-red-600 dark:text-red-400">{outOfStockCount}</p>
-             </div>
-          </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
+         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+            <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>Tableau de bord <span className="text-emerald-500">Inventaire</span></h2>
+            <button onClick={() => window.location.href = '/vente'} className="bg-black text-emerald-400 px-6 py-3 rounded-xl font-black text-xs uppercase hover:scale-105 transition-transform flex items-center gap-2 shadow-lg">
+                <Plus size={16}/> Créer un produit
+            </button>
+         </div>
 
-          {/* CONTROLS */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-             <div className="relative flex-1 max-w-md">
-                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                 <input 
+         {/* KPI CARDS */}
+         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+             <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+                 <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-2 flex items-center gap-2"><Package size={14}/> Articles en stock</p>
+                 <p className="text-3xl font-black text-black">{totalItems.toLocaleString()}</p>
+             </div>
+             <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+                 <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-2 flex items-center gap-2"><AlertTriangle size={14}/> Stock Faible (&lt;5)</p>
+                 <p className="text-3xl font-black text-orange-500">{lowStockCount}</p>
+             </div>
+             <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+                 <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-2 flex items-center gap-2"><Box size={14}/> En rupture</p>
+                 <p className="text-3xl font-black text-red-500">{outOfStockCount}</p>
+             </div>
+             <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-200 shadow-sm">
+                 <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest mb-2 flex items-center gap-2"><Box size={14}/> Valeur d'achat (Est.)</p>
+                 <p className="text-3xl font-black text-emerald-600">{inventoryValue.toLocaleString()} F</p>
+             </div>
+         </div>
+
+         {/* INVENTORY LIST */}
+         <div className="bg-white rounded-[2rem] border border-zinc-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-zinc-200 flex flex-col md:flex-row justify-between items-center gap-4 bg-zinc-50">
+               <div className="relative w-full md:w-96">
+                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <input 
                     type="text" 
-                    placeholder="Rechercher par nom ou scanner code-barre..." 
-                    value={searchTerm} 
-                    onChange={e => setSearchTerm(e.target.value)} 
-                    className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/50 transition" 
-                 />
-                 <QrCode size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-             </div>
-             <div className="flex gap-2 bg-zinc-50 dark:bg-zinc-950 p-1.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 w-max overflow-x-auto">
-                 <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-xl text-xs font-bold uppercase transition ${filter === 'all' ? 'bg-white dark:bg-zinc-800 shadow-md text-black dark:text-white' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>Tout</button>
-                 <button onClick={() => setFilter('low')} className={`px-4 py-2 rounded-xl text-xs font-bold uppercase transition ${filter === 'low' ? 'bg-white dark:bg-zinc-800 shadow-md text-emerald-500' : 'text-zinc-500 hover:text-emerald-500'}`}>Faible</button>
-                 <button onClick={() => setFilter('out')} className={`px-4 py-2 rounded-xl text-xs font-bold uppercase transition ${filter === 'out' ? 'bg-white dark:bg-zinc-800 shadow-md text-red-500' : 'text-zinc-500 hover:text-red-500'}`}>Ruptures</button>
-             </div>
-          </div>
+                    placeholder="Rechercher par nom ou code-barre..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-emerald-500 transition-colors"
+                  />
+               </div>
+               <div className="flex bg-white border border-zinc-200 rounded-xl p-1 w-full md:w-auto">
+                   <button onClick={() => setFilterType('all')} className={`flex-1 md:px-6 py-2 rounded-lg text-xs font-black uppercase transition-colors ${filterType === 'all' ? 'bg-black text-emerald-400' : 'text-zinc-500 hover:bg-zinc-100'}`}>Tous</button>
+                   <button onClick={() => setFilterType('low')} className={`flex-1 md:px-6 py-2 rounded-lg text-xs font-black uppercase transition-colors ${filterType === 'low' ? 'bg-orange-500 text-white' : 'text-zinc-500 hover:bg-zinc-100'}`}>Faible</button>
+                   <button onClick={() => setFilterType('out')} className={`flex-1 md:px-6 py-2 rounded-lg text-xs font-black uppercase transition-colors ${filterType === 'out' ? 'bg-red-500 text-white' : 'text-zinc-500 hover:bg-zinc-100'}`}>Rupture</button>
+               </div>
+            </div>
 
-          {/* TABLEAU INVENTAIRE */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                 <table className="w-full text-left">
-                    <thead className="bg-zinc-50 dark:bg-zinc-800/50">
+            <div className="overflow-x-auto">
+               <table className="w-full text-left">
+                   <thead className="bg-zinc-100 border-b border-zinc-200">
                        <tr>
-                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-500">Produit & Réf</th>
-                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-500">Catégorie</th>
-                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">Niveau de Stock</th>
-                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Ajustement</th>
+                           <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-widest">Produit</th>
+                           <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-widest">Catégorie</th>
+                           <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-widest text-center">Statut</th>
+                           <th className="p-4 text-[10px] font-black uppercase text-zinc-500 tracking-widest text-right">Quantité</th>
                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+                   </thead>
+                   <tbody className="divide-y divide-zinc-100">
                        {filteredProducts.map(p => (
-                          <tr key={p.id} className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors ${p.stock === 0 ? 'bg-red-50/30 dark:bg-red-900/10' : ''}`}>
-                             <td className="p-5 flex items-center gap-4">
-                                <img src={p.image || "https://placehold.co/100"} alt={p.name} className="w-12 h-12 rounded-xl object-cover bg-zinc-100 dark:bg-zinc-800 shrink-0" />
-                                <div>
-                                   <p className="font-bold text-sm text-black dark:text-white max-w-[250px] truncate">{p.name}</p>
-                                   <p className="text-[10px] text-zinc-400 mt-1 font-mono uppercase">{p.barcode || `REF-${p.id}`}</p>
-                                </div>
-                             </td>
-                             <td className="p-5">
-                                <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest truncate max-w-[150px] inline-block">{p.category || 'Général'}</span>
-                             </td>
-                             <td className="p-5 text-center">
-                                <span className={`text-xl font-black ${p.stock === 0 ? 'text-red-500' : p.stock <= 5 ? 'text-emerald-500' : 'text-black dark:text-white'}`}>
-                                   {p.stock}
-                                </span>
-                                {p.stock === 0 && <p className="text-[9px] font-black text-red-500 uppercase mt-1 animate-pulse">Rupture</p>}
-                             </td>
-                             <td className="p-5 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                   <button onClick={() => handleUpdateStock(p.id, Math.max(0, p.stock - 1))} disabled={p.stock === 0 || isUpdating === p.id} className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition disabled:opacity-50"><ArrowDown size={16}/></button>
-                                   <input 
-                                      type="number" 
-                                      value={p.stock} 
-                                      onChange={(e) => handleUpdateStock(p.id, parseInt(e.target.value) || 0)}
-                                      className="w-16 h-10 text-center bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-sm outline-none focus:border-emerald-500"
-                                   />
-                                   <button onClick={() => handleUpdateStock(p.id, p.stock + 1)} disabled={isUpdating === p.id} className="w-10 h-10 rounded-xl bg-black dark:bg-white text-emerald-500 dark:text-black hover:bg-emerald-500 hover:text-black dark:hover:bg-emerald-500 transition flex items-center justify-center"><ArrowUp size={16}/></button>
-                                </div>
-                             </td>
-                          </tr>
+                           <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
+                               <td className="p-4 flex items-center gap-4">
+                                   <img src={p.image || 'https://via.placeholder.com/50'} alt={p.name} className="w-12 h-12 rounded-xl object-cover bg-zinc-200 shrink-0" />
+                                   <div>
+                                       <p className="font-bold text-sm text-black line-clamp-1">{p.name}</p>
+                                       <p className="text-[10px] text-zinc-400 font-mono mt-1">Ref: {p.barcode || p.id}</p>
+                                   </div>
+                               </td>
+                               <td className="p-4">
+                                   <span className="bg-zinc-100 text-zinc-600 px-3 py-1 rounded-md text-[10px] font-black uppercase">{p.category || 'N/A'}</span>
+                               </td>
+                               <td className="p-4 text-center">
+                                   {p.stock === 0 ? (
+                                       <span className="bg-red-100 text-red-600 px-2 py-1 rounded-md text-[10px] font-black uppercase">Rupture</span>
+                                   ) : p.stock <= 5 ? (
+                                       <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded-md text-[10px] font-black uppercase">Faible</span>
+                                   ) : (
+                                       <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[10px] font-black uppercase">En Stock</span>
+                                   )}
+                               </td>
+                               <td className="p-4">
+                                   <div className="flex items-center justify-end gap-1">
+                                       <button onClick={() => handleUpdateStock(p.id, p.stock - 1)} className="w-8 h-8 flex items-center justify-center bg-zinc-100 rounded-lg text-black hover:bg-zinc-200 transition-colors font-black">-</button>
+                                       <input 
+                                          type="number" 
+                                          value={p.stock} 
+                                          onChange={(e) => handleUpdateStock(p.id, parseInt(e.target.value) || 0)}
+                                          className={`w-14 text-center font-black text-sm outline-none border-b-2 bg-transparent ${p.stock === 0 ? 'text-red-500 border-red-500' : p.stock <= 5 ? 'text-orange-500 border-orange-500' : 'text-emerald-600 border-emerald-600 focus:border-black'}`}
+                                       />
+                                       <button onClick={() => handleUpdateStock(p.id, p.stock + 1)} className="w-8 h-8 flex items-center justify-center bg-zinc-100 rounded-lg text-black hover:bg-zinc-200 transition-colors font-black">+</button>
+                                   </div>
+                               </td>
+                           </tr>
                        ))}
-                       {filteredProducts.length === 0 && <tr><td colSpan={4} className="p-12 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs">Aucun produit trouvé</td></tr>}
-                    </tbody>
-                 </table>
-              </div>
-          </div>
+                       {filteredProducts.length === 0 && (
+                           <tr><td colSpan={4} className="p-10 text-center text-zinc-500 font-bold">Aucun produit trouvé.</td></tr>
+                       )}
+                   </tbody>
+               </table>
+            </div>
+         </div>
       </main>
     </div>
   );
