@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, BookOpen, Users, PlayCircle, TrendingUp, 
   Search, Filter, CheckCircle, Clock, MoreVertical, 
-  Sun, Moon, Award, GraduationCap
+  Sun, Moon, Award, GraduationCap, X
 } from 'lucide-react';
 
 // Mock Data pour les apprenants (Clients Onyx Formation)
@@ -21,6 +21,7 @@ export default function OnyxFormationAdmin() {
   const [activeTab, setActiveTab] = useState<'students' | 'courses'>('students');
   const [isDark, setIsDark] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingStudent, setEditingStudent] = useState<any>(null);
 
   // Thème dynamique pour le Toggle Dark/Light Mode
   const theme = {
@@ -94,7 +95,7 @@ export default function OnyxFormationAdmin() {
         
         {/* STATS RAPIDES */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
-          <div className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-3xl shadow-lg transition-colors`}>
+          <div onClick={() => alert("Détails apprenants à venir...")} className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-3xl shadow-lg transition-transform hover:scale-105 cursor-pointer`}>
             <div className="flex justify-between items-start mb-4">
               <div className="p-2 bg-blue-500/10 rounded-lg"><Users size={20} className="text-blue-500"/></div>
             </div>
@@ -102,7 +103,7 @@ export default function OnyxFormationAdmin() {
             <p className="text-3xl font-black">342</p>
           </div>
           
-          <div className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-3xl shadow-lg transition-colors`}>
+          <div onClick={() => alert("Détails de complétion à venir...")} className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-3xl shadow-lg transition-transform hover:scale-105 cursor-pointer`}>
             <div className="flex justify-between items-start mb-4">
               <div className="p-2 bg-[#39FF14]/10 rounded-lg"><Award size={20} className="text-[#39FF14]"/></div>
             </div>
@@ -110,7 +111,7 @@ export default function OnyxFormationAdmin() {
             <p className="text-3xl font-black">68%</p>
           </div>
 
-          <div className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-3xl shadow-lg transition-colors`}>
+          <div onClick={() => alert("Statistiques vidéo à venir...")} className={`${theme.cardBg} border ${theme.cardBorder} p-6 rounded-3xl shadow-lg transition-transform hover:scale-105 cursor-pointer`}>
             <div className="flex justify-between items-start mb-4">
               <div className="p-2 bg-purple-500/10 rounded-lg"><PlayCircle size={20} className="text-purple-500"/></div>
             </div>
@@ -118,7 +119,7 @@ export default function OnyxFormationAdmin() {
             <p className="text-3xl font-black text-purple-500">1,240h</p>
           </div>
 
-          <div className="bg-[#39FF14] text-black p-6 rounded-3xl shadow-[0_10px_30px_rgba(57,255,20,0.15)] flex flex-col justify-center">
+          <div onClick={() => alert("Rapport des ventes à venir...")} className="bg-[#39FF14] text-black p-6 rounded-3xl shadow-[0_10px_30px_rgba(57,255,20,0.15)] flex flex-col justify-center transition-transform hover:scale-105 cursor-pointer">
             <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">Revenu Formation (Mois)</p>
             <p className="text-3xl font-black tracking-tighter">4.7M F</p>
             <button className="mt-4 w-full bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform">
@@ -160,7 +161,7 @@ export default function OnyxFormationAdmin() {
                   </thead>
                   <tbody className={`divide-y ${isDark ? 'divide-zinc-800' : 'divide-zinc-200'}`}>
                     {MOCK_STUDENTS.map((student) => (
-                      <tr key={student.id} className={`${theme.hoverBg} transition-colors`}>
+                      <tr key={student.id} onClick={() => setEditingStudent(student)} className={`${theme.hoverBg} transition-colors cursor-pointer group`}>
                         <td className="p-5">
                           <p className="font-black text-sm">{student.name}</p>
                           <p className={`text-[10px] font-bold ${theme.textSub}`}>{student.shop}</p>
@@ -198,7 +199,7 @@ export default function OnyxFormationAdmin() {
                           </span>
                         </td>
                         <td className="p-5 text-right">
-                          <button className={`${theme.textMuted} hover:text-[#39FF14] p-2 transition-colors`}>
+                          <button className={`${theme.textMuted} group-hover:text-[#39FF14] p-2 transition-colors`}>
                             <MoreVertical size={18} />
                           </button>
                         </td>
@@ -265,6 +266,22 @@ export default function OnyxFormationAdmin() {
           </div>
         )}
       </main>
+
+      {/* MODALE D'ÉDITION APPRENANT */}
+      {editingStudent && (
+          <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setEditingStudent(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className={`${theme.cardBg} border ${theme.cardBorder} p-8 rounded-3xl w-full max-w-md shadow-2xl relative animate-in zoom-in-95`}>
+               <button onClick={() => setEditingStudent(null)} className={`absolute top-6 right-6 ${theme.textMuted} hover:${theme.text} transition-colors`}><X size={20}/></button>
+               <h3 className="text-xl font-black uppercase mb-6">Gérer l'apprenant</h3>
+               <p className="font-bold mb-4 text-lg">{editingStudent.name} <span className="text-xs font-normal text-zinc-500">({editingStudent.shop})</span></p>
+               <div className="space-y-3">
+                  <button onClick={() => { alert("L'accès de cet apprenant a été mis en pause."); setEditingStudent(null); }} className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl text-sm font-bold text-left hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">Mettre en pause l'accès</button>
+                  <button onClick={() => { alert("Certificat généré avec succès !"); setEditingStudent(null); }} className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl text-sm font-bold text-left hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">Générer Certificat (PDF)</button>
+                  <button onClick={() => { alert("L'apprenant a été supprimé."); setEditingStudent(null); }} className="w-full p-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-sm font-bold text-left hover:bg-red-100 dark:hover:bg-red-500/20 transition">Retirer de la formation</button>
+               </div>
+            </div>
+          </div>
+      )}
     </div>
   );
 }

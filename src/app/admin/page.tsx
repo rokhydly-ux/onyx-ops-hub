@@ -149,6 +149,7 @@ export default function AdminDashboard() {
   const [showProductModal, setShowProductModal] = useState<{lead: any, type: string} | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [quoteModal, setQuoteModal] = useState<{lead: any, designation: string, price: number} | null>(null);
   const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
   const [prorataMsg, setProrataMsg] = useState("");
   const [isUpgrading, setIsUpgrading] = useState(false);
@@ -918,6 +919,7 @@ export default function AdminDashboard() {
         <html>
           <head>
             <title>Facture Acompte - ${lead.full_name}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
               .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); }
@@ -932,6 +934,7 @@ export default function AdminDashboard() {
               .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
               .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
               .footer { clear: both; text-align: center; padding-top: 40px; font-size: 12px; color: #aaa; }
+              @media print { body { padding: 0; margin: 0; -webkit-print-color-adjust: exact; } .invoice-box { box-shadow: none; border: none; width: 100%; max-width: 100%; padding: 15px; } }
             </style>
           </head>
           <body>
@@ -1005,7 +1008,21 @@ export default function AdminDashboard() {
     }, 500);
   };
 
-  const generateDevis = (lead: any) => {
+  const handleOpenQuoteModal = (lead: any) => {
+    const saasPriceMap: any = {
+       'Onyx Jaay': 13900, 'Pack Tekki': 22900, 'Pack Tekki Pro': 27900, 'Onyx CRM': 39900,
+       'Pack Onyx CRM': 39900, 'Pack Onyx Gold': 59900, 'Add-on CM Pub': 49900,
+       'Onyx Boost': 150000, 'Onyx Modernize': 300000
+    };
+    const monthly = saasPriceMap[lead.saas] || 13900;
+    const isOneShot = lead.saas === 'Onyx Modernize' || lead.saas === 'Onyx Boost';
+    const total = isOneShot ? monthly : (monthly * 12);
+    const designation = isOneShot ? `Prestation Globale - ${lead.saas}` : `Abonnement Annuel (12 mois) - ${lead.saas || 'Offre Onyx'}`;
+    
+    setQuoteModal({ lead, designation, price: total });
+  };
+
+  const generateDevis = (lead: any, customDesignation?: string, customPrice?: number) => {
     const saasPriceMap: any = {
        'Onyx Jaay': 13900,
        'Pack Tekki': 22900,
@@ -1021,8 +1038,8 @@ export default function AdminDashboard() {
     const monthly = saasPriceMap[lead.saas] || 13900;
     const isOneShot = lead.saas === 'Onyx Modernize' || lead.saas === 'Onyx Boost';
     
-    const total = isOneShot ? monthly : (monthly * 12);
-    const designation = isOneShot ? `Prestation Globale - ${lead.saas}` : `Abonnement Annuel (12 mois) - ${lead.saas || 'Offre Onyx'}`;
+    const total = customPrice !== undefined ? customPrice : (isOneShot ? monthly : (monthly * 12));
+    const designation = customDesignation || (isOneShot ? `Prestation Globale - ${lead.saas}` : `Abonnement Annuel (12 mois) - ${lead.saas || 'Offre Onyx'}`);
     const totalStr = total.toLocaleString('fr-FR') + ' F CFA';
 
     const invoiceWindow = window.open("", "_blank");
@@ -1031,6 +1048,7 @@ export default function AdminDashboard() {
         <html>
           <head>
             <title>Devis Global - ${lead.full_name}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
               .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); }
@@ -1045,6 +1063,7 @@ export default function AdminDashboard() {
               .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
               .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
               .footer { clear: both; text-align: center; padding-top: 40px; font-size: 12px; color: #aaa; }
+              @media print { body { padding: 0; margin: 0; -webkit-print-color-adjust: exact; } .invoice-box { box-shadow: none; border: none; width: 100%; max-width: 100%; padding: 15px; } }
             </style>
           </head>
           <body>
@@ -1140,6 +1159,7 @@ export default function AdminDashboard() {
         <html>
           <head>
             <title>Facture Finale - ${lead.full_name}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
               .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); }
@@ -1152,6 +1172,7 @@ export default function AdminDashboard() {
               th { background-color: #000; color: #fff; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
               .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
               .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
+              @media print { body { padding: 0; margin: 0; -webkit-print-color-adjust: exact; } .invoice-box { box-shadow: none; border: none; width: 100%; max-width: 100%; padding: 15px; } }
             </style>
           </head>
           <body>
@@ -1200,6 +1221,7 @@ export default function AdminDashboard() {
         <html>
           <head>
             <title>Facture Prorata - ${lead.full_name}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
               .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); }
@@ -1214,6 +1236,7 @@ export default function AdminDashboard() {
               .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
               .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
               .footer { clear: both; text-align: center; padding-top: 40px; font-size: 12px; color: #aaa; }
+              @media print { body { padding: 0; margin: 0; -webkit-print-color-adjust: exact; } .invoice-box { box-shadow: none; border: none; width: 100%; max-width: 100%; padding: 15px; } }
             </style>
           </head>
           <body>
@@ -2357,7 +2380,7 @@ export default function AdminDashboard() {
                <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-zinc-100 rounded-full text-black"><Menu size={24}/></button>
                <h2 className={`font-sans text-xl font-black uppercase tracking-tighter text-black dark:text-white`}>ONYX OPS</h2>
             </div>
-            <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>
+            <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter text-black dark:text-white`}>
                {activeView === 'dashboard' ? 'Terminal Central' : activeView.replace('-', ' ')}
             </h2>
             <div className="flex items-center gap-3 mt-1">
@@ -2375,9 +2398,6 @@ export default function AdminDashboard() {
             <div className="hidden lg:flex items-center gap-5 pr-10 border-r border-zinc-200">
                <button onClick={fetchSupabaseData} className={`text-zinc-400 hover:text-black transition-all ${isRefreshing ? 'animate-spin text-[#39FF14]' : ''}`} title="Rafraîchir les données">
                   <RefreshCcw size={22}/>
-               </button>
-               <button onClick={toggleTheme} className="text-zinc-400 hover:text-black dark:hover:text-white transition-all" title="Mode Sombre / Clair">
-                  {theme === 'dark' ? <Sun size={22}/> : <Moon size={22}/>}
                </button>
                <button
                  onClick={() => { setTempAdminProfile({ ...adminProfile }); setShowProfileModal(true); }}
@@ -2464,12 +2484,12 @@ export default function AdminDashboard() {
                 <div onClick={() => setActiveView('finance')} className="bg-black p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden cursor-pointer hover:scale-[1.03] transition-all group border border-zinc-800">
                   <div className="absolute -top-12 -right-12 p-12 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 text-[#39FF14]"><Wallet size={200}/></div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d&apos;Affaires Mensuel</p>
-                  <p className={`font-sans text-5xl lg:text-6xl font-black text-[#39FF14] tracking-tighter`}>{stats.revenue.toLocaleString('fr-FR')} <span className="text-2xl opacity-50 font-medium">F</span></p>
+                  <p className={`font-sans text-3xl lg:text-4xl font-black text-[#39FF14] tracking-tighter`}>{stats.revenue.toLocaleString('fr-FR')} <span className="text-xl opacity-50 font-medium">F</span></p>
                 </div>
 
                 <div onClick={() => setActiveView('leads')} className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:border-black hover:shadow-2xl transition-all group relative overflow-hidden">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Flux de Leads (24h)</p>
-                  <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>{leads.length}</p>
+                  <p className={`font-sans text-3xl lg:text-4xl font-black text-black tracking-tighter`}>{leads.length}</p>
                   <div className="flex items-center gap-3 mt-6">
                     <div className="flex -space-x-4">
                       {leads.slice(0, 5).map((l, i) => (
@@ -2485,7 +2505,7 @@ export default function AdminDashboard() {
                 <div onClick={() => setActiveView('crm')} className="bg-[#39FF14] p-6 rounded-3xl shadow-xl cursor-pointer hover:scale-[1.03] transition-all group relative overflow-hidden border border-[#32E612]">
    <div className="absolute -bottom-10 -right-10 opacity-10 text-black group-hover:rotate-[-15deg] transition-all duration-700"><Megaphone size={180}/></div>
    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/40 mb-4">Contacts CRM & Leads</p>
-   <p className={`font-sans text-5xl lg:text-6xl font-black text-black tracking-tighter`}>{contacts.length + leads.length}</p>
+   <p className={`font-sans text-3xl lg:text-4xl font-black text-black tracking-tighter`}>{contacts.length + leads.length}</p>
    <div className="mt-6 flex items-center gap-2">
       <div className="px-3 py-1 bg-black text-[#39FF14] rounded-full text-[10px] font-black uppercase shadow-lg">Live</div>
    </div>
@@ -2729,22 +2749,22 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Taux de Conversion</p>
-                  <p className={`font-sans text-5xl font-black text-black tracking-tighter`}>{conversionRate.toFixed(1)}%</p>
+                  <p className={`font-sans text-3xl font-black text-black tracking-tighter`}>{conversionRate.toFixed(1)}%</p>
                   <p className="text-xs font-bold text-zinc-500 mt-2">Leads → Clients</p>
                 </div>
                 <div className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Produit Populaire</p>
-                  <p className={`font-sans text-3xl font-black text-black tracking-tighter`}>{popularSaas}</p>
+                  <p className={`font-sans text-2xl font-black text-black tracking-tighter`}>{popularSaas}</p>
                   <p className="text-xs font-bold text-zinc-500 mt-2">SaaS le plus vendu</p>
                 </div>
                 <div className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Top Ambassadeur</p>
-                  <p className={`font-sans text-3xl font-black text-black tracking-tighter truncate`}>{topAmbassador?.full_name || 'N/A'}</p>
+                  <p className={`font-sans text-2xl font-black text-black tracking-tighter truncate`}>{topAmbassador?.full_name || 'N/A'}</p>
                   <p className="text-xs font-bold text-zinc-500 mt-2">{topAmbassador?.sales || 0} ventes</p>
                 </div>
                 <div className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4">Panier Moyen Client</p>
-                  <p className={`font-sans text-5xl font-black text-black tracking-tighter`}>{Math.round(avgRevenuePerClient).toLocaleString('fr-FR')}</p>
+                  <p className={`font-sans text-3xl font-black text-black tracking-tighter`}>{Math.round(avgRevenuePerClient).toLocaleString('fr-FR')}</p>
                   <p className="text-xs font-bold text-zinc-500 mt-2">Revenu / Client</p>
                 </div>
               </div>
@@ -2946,7 +2966,7 @@ export default function AdminDashboard() {
                     >
                        <card.icon size={26} className="mb-4 opacity-80" />
                        <div>
-                         <p className={`font-sans text-4xl lg:text-5xl font-black mb-1 tracking-tighter`}>{card.val}</p>
+                         <p className={`font-sans text-2xl lg:text-3xl font-black mb-1 tracking-tighter`}>{card.val}</p>
                          <p className="text-[9px] lg:text-[11px] font-black uppercase tracking-[0.2em] opacity-60 leading-none">{card.label}</p>
                        </div>
                     </div>
@@ -3340,7 +3360,7 @@ export default function AdminDashboard() {
                      <div className="flex items-center gap-6">
                         <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#00E5FF] shadow-lg shrink-0"><Layers size={32}/></div>
                         <div>
-                           <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Pipeline High-Ticket</h2>
+                           <h2 className={`font-sans text-xl lg:text-2xl font-black uppercase tracking-tighter`}>Pipeline High-Ticket</h2>
                            <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Onyx Boost & Onyx Modernize</p>
                         </div>
                      </div>
@@ -3453,7 +3473,7 @@ export default function AdminDashboard() {
                                           <button onClick={() => generateAcompte(c)} className="flex-1 text-[10px] font-black uppercase text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5" title="Générer Acompte">
                                              <FileText size={12}/> Acompte
                                           </button>
-                                          <button onClick={() => generateDevis(c)} className="flex-1 text-[10px] font-black uppercase text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5" title="Générer Devis">
+                                          <button onClick={() => handleOpenQuoteModal(c)} className="flex-1 text-[10px] font-black uppercase text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5" title="Générer Devis">
                                              <ClipboardList size={12}/> Devis
                                           </button>
                                        </div>
@@ -3481,7 +3501,7 @@ export default function AdminDashboard() {
                    <div className="flex items-center gap-6 lg:gap-5 relative z-10">
                       <div className="p-5 lg:p-6 bg-black rounded-[1.5rem] lg:rounded-[2rem] text-[#39FF14] shadow-2xl shadow-[#39FF14]/10"><Wallet size={32} className="lg:w-10 lg:h-10"/></div>
                       <div>
-                         <h2 className={`font-sans text-3xl lg:text-5xl font-black uppercase tracking-tighter`}>Hub Financier</h2>
+                         <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Hub Financier</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Registre des Revenus & Commissions 2026</p>
                       </div>
                    </div>
@@ -3507,7 +3527,7 @@ export default function AdminDashboard() {
                          <card.icon size={24} className="opacity-40" />
                          <div>
                             <p className="text-[10px] lg:text-[11px] font-black uppercase tracking-widest opacity-60 mb-2 lg:mb-3">{card.label}</p>
-                            <p className={`font-sans text-3xl lg:text-4xl font-black tracking-tighter`}>{card.val}</p>
+                            <p className={`font-sans text-2xl lg:text-3xl font-black tracking-tighter`}>{card.val}</p>
                          </div>
                       </div>
                    ))}
@@ -3582,7 +3602,7 @@ export default function AdminDashboard() {
                    <div className="flex items-center gap-6 lg:gap-5 relative z-10">
                       <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><DollarSign size={32}/></div>
                       <div>
-                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Retraits Ambassadeurs</h2>
+                         <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Retraits Ambassadeurs</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Validation des commissions</p>
                       </div>
                    </div>
@@ -3627,7 +3647,7 @@ export default function AdminDashboard() {
                                   </div>
                                </td>
                                <td className="p-5 lg:p-6 text-center">
-                                  <p className={`font-sans text-2xl lg:text-3xl font-black text-[#39FF14] tracking-tighter`}>{w.amount?.toLocaleString()} F</p>
+                                  <p className={`font-sans text-xl lg:text-2xl font-black text-[#39FF14] tracking-tighter`}>{w.amount?.toLocaleString()} F</p>
                                </td>
                                <td className="p-5 lg:p-6 text-right">
                                   {w.status === 'En attente' ? (
@@ -3660,7 +3680,7 @@ export default function AdminDashboard() {
              <div className="space-y-10 lg:space-y-16 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto pt-6 lg:pt-10">
                 <div className="text-center space-y-4 lg:space-y-6 max-w-4xl mx-auto px-4">
                    <div className="inline-block px-4 py-1.5 bg-black text-[#39FF14] rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.3em] mb-2 lg:mb-4 shadow-2xl shadow-[#39FF14]/20">Terminal Écosystème</div>
-                   <h2 className={`font-sans text-4xl sm:text-5xl lg:text-7xl font-black uppercase tracking-tighter text-black dark:text-white leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
+                   <h2 className={`font-sans text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tighter text-black dark:text-white leading-none`}>Onyx <span className="text-[#39FF14]">Ecosystem</span></h2>
                    <p className="text-xs lg:text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] lg:tracking-[0.4em] leading-relaxed">Déploiement & Gouvernance du Catalogue SaaS</p>
                 </div>
                 
@@ -3670,7 +3690,7 @@ export default function AdminDashboard() {
                          <div className={`absolute top-0 right-0 w-20 lg:w-24 h-20 lg:h-24 ${saas.color} opacity-[0.05] translate-x-8 lg:translate-x-10 -translate-y-8 lg:-translate-y-10 rounded-full group-hover:scale-150 transition-transform duration-1000`}></div>
                          <div className="relative z-10">
                             <div className={`w-10 h-10 rounded-xl mb-4 lg:mb-5 flex items-center justify-center text-white shadow-lg ${saas.color} group-hover:rotate-12 transition-transform duration-500`}><Box size={20} className="lg:w-5 lg:h-5"/></div>
-                            <h3 className={`font-sans text-lg lg:text-xl font-black uppercase text-black dark:text-white tracking-tighter leading-tight`}>{saas.name}</h3>
+                            <h3 className={`font-sans text-base lg:text-lg font-black uppercase text-black dark:text-white tracking-tighter leading-tight`}>{saas.name}</h3>
                             <p className="text-[10px] lg:text-xs font-bold text-zinc-400 mt-1.5 lg:mt-2 leading-relaxed group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors line-clamp-2">{saas.desc}</p>
                             <p className="text-[10px] font-black text-[#39FF14] mt-2">{saas.price} {saas.price !== 'Sur Devis' ? '/ mois' : ''}</p>
                          </div>
@@ -3700,7 +3720,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-5">
                      <div className="p-4 bg-black text-[#39FF14] rounded-2xl"><Truck size={32}/></div>
                      <div>
-                        <h2 className="text-3xl font-black uppercase">Logistique & Stock</h2>
+                        <h2 className="text-2xl font-black uppercase">Logistique & Stock</h2>
                         <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Matériel, TPE & Terminaux</p>
                      </div>
                   </div>
@@ -3718,7 +3738,7 @@ export default function AdminDashboard() {
                           </div>
                           <p className="font-bold text-sm mb-4 h-10">{item.name}</p>
                           <div className="flex justify-between items-end">
-                              <p className={`text-4xl font-black ${item.qty <= item.min ? 'text-red-500' : 'text-black'}`}>{item.qty}</p>
+                              <p className={`text-3xl font-black ${item.qty <= item.min ? 'text-red-500' : 'text-black'}`}>{item.qty}</p>
                               <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
                                   <button onClick={() => updateHardwareStock(item.id, -1)} className="p-2 hover:bg-white rounded-lg transition-colors"><Minus size={14}/></button>
                                   <button onClick={() => updateHardwareStock(item.id, 1)} className="p-2 hover:bg-white rounded-lg transition-colors"><Plus size={14}/></button>
@@ -3737,7 +3757,7 @@ export default function AdminDashboard() {
    <div className="flex items-center gap-6 lg:gap-5 relative z-10">
       <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Handshake size={32} className="lg:w-[38px] lg:h-[38px]"/></div>
       <div>
-         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
+         <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Génération de Revenus & Croissance Réseau</p>
       </div>
    </div>
@@ -3763,22 +3783,22 @@ export default function AdminDashboard() {
                       <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'nouveaux' ? 'all' : 'nouveaux')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'nouveaux' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
                         <UserPlus size={24} className="mb-3"/>
                         <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Nouveaux ambassadeurs</p>
-                        <p className={`font-sans text-2xl lg:text-3xl font-black mt-1`}>{nouveaux.length}</p>
+                        <p className={`font-sans text-xl lg:text-2xl font-black mt-1`}>{nouveaux.length}</p>
                       </button>
                       <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'top' ? 'all' : 'top')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'top' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
                         <TrendingUp size={24} className="mb-3"/>
                         <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Top performers</p>
-                        <p className={`font-sans text-2xl lg:text-3xl font-black mt-1`}>{top.length}</p>
+                        <p className={`font-sans text-xl lg:text-2xl font-black mt-1`}>{top.length}</p>
                       </button>
                       <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'moins' ? 'all' : 'moins')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'moins' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
                         <ArrowDownRight size={24} className="mb-3"/>
                         <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Moins performants</p>
-                        <p className={`font-sans text-2xl lg:text-3xl font-black mt-1`}>{moins.length}</p>
+                        <p className={`font-sans text-xl lg:text-2xl font-black mt-1`}>{moins.length}</p>
                       </button>
                       <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'gains' ? 'all' : 'gains')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'gains' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
                         <Wallet size={24} className="mb-3"/>
                         <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Gains à reverser</p>
-                        <p className={`font-sans text-2xl lg:text-3xl font-black mt-1`}>{gainsAReverser.toLocaleString()} F</p>
+                        <p className={`font-sans text-xl lg:text-2xl font-black mt-1`}>{gainsAReverser.toLocaleString()} F</p>
                       </button>
                     </div>
                   );
@@ -3837,7 +3857,7 @@ export default function AdminDashboard() {
                                   </div>
                                </td>
                                <td className="p-5 lg:p-6 text-center">
-                                  <p className={`font-sans text-3xl lg:text-4xl font-black text-black tracking-tighter`}>{p.sales || 0}</p>
+                                  <p className={`font-sans text-2xl lg:text-3xl font-black text-black tracking-tighter`}>{p.sales || 0}</p>
                                   <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 uppercase mt-1">Ventes Clôturées</p>
                                </td>
                                <td className="p-5 lg:p-6 text-right">
@@ -3933,7 +3953,7 @@ export default function AdminDashboard() {
                <div className="flex items-center gap-6 lg:gap-5 relative z-10">
                   <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Briefcase size={32} className="lg:w-[38px] lg:h-[38px]"/></div>
                   <div>
-                     <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Équipe Commerciale</h2>
+                     <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Équipe Commerciale</h2>
                      <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Agents Onyx Hub</p>
                   </div>
                </div>
@@ -3974,7 +3994,7 @@ export default function AdminDashboard() {
                    <div className="flex items-center gap-6 lg:gap-5 relative z-10">
                       <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl group-hover:rotate-12 transition-all shrink-0"><Megaphone size={32} className="lg:w-[36px] lg:h-[36px]"/></div>
                       <div>
-                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Hub Marketing</h2>
+                         <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Hub Marketing</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Articles de Blog & Stratégies de Capture IA</p>
                       </div>
                    </div>
@@ -3991,7 +4011,7 @@ export default function AdminDashboard() {
                                <span className="bg-black text-[#39FF14] px-3 lg:px-4 py-1.5 rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em]">{article.category || 'Stratégie'}</span>
                                <span className="bg-zinc-100 text-zinc-500 px-3 lg:px-4 py-1.5 rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em]">Cible : {article.cible || 'Tous'}</span>
                             </div>
-                            <h3 className={`font-sans text-2xl lg:text-3xl font-black uppercase text-black tracking-tighter mb-3 lg:mb-4 group-hover:text-[#39FF14] transition-colors leading-tight`}>{article.title}</h3>
+                            <h3 className={`font-sans text-xl lg:text-2xl font-black uppercase text-black tracking-tighter mb-3 lg:mb-4 group-hover:text-[#39FF14] transition-colors leading-tight`}>{article.title}</h3>
                             <p className="text-zinc-500 font-medium text-sm lg:text-base leading-relaxed max-w-2xl opacity-80">{article.desc}</p>
                          </div>
                          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:gap-4 w-full lg:w-max">
@@ -4025,7 +4045,7 @@ export default function AdminDashboard() {
           {activeView === 'planning-marketing' && (
              <div className="space-y-12 animate-in fade-in max-w-[1200px] mx-auto">
                 <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                    <h2 className="text-2xl font-black uppercase mb-6 flex items-center gap-3 text-black dark:text-white"><Sparkles className="text-[#39FF14]"/> Suggestions IA ({iaSuggestions.length})</h2>
+                    <h2 className="text-xl md:text-2xl font-black uppercase mb-6 flex items-center gap-3 text-black dark:text-white"><Sparkles className="text-[#39FF14]"/> Suggestions IA ({iaSuggestions.length})</h2>
                     <div className="space-y-4">
                         {iaSuggestions.map(s => (
                             <div key={s.id} className="bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -4063,7 +4083,7 @@ export default function AdminDashboard() {
                    <div className="flex items-center gap-6 lg:gap-5 relative z-10">
                       <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><FileText size={32}/></div>
                       <div>
-                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Journal & Actions IA</h2>
+                         <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Journal & Actions IA</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Registre complet des tâches planifiées</p>
                       </div>
                    </div>
@@ -4126,7 +4146,7 @@ export default function AdminDashboard() {
                  <div className="flex items-center gap-6 lg:gap-5 relative z-10">
                     <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><HelpCircle size={32}/></div>
                     <div>
-                       <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Aide & Tutoriels</h2>
+                       <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Aide & Tutoriels</h2>
                        <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Maîtrisez votre Hub OnyxOps</p>
                     </div>
                  </div>
@@ -4356,7 +4376,7 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
                  <button type="button" onClick={() => generateAcompte(editingContact)} className="bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-200 dark:hover:bg-zinc-700 transition flex items-center justify-center gap-2 shadow-sm"><FileText size={14}/> Facture Acompte</button>
-                 <button type="button" onClick={() => generateDevis(editingContact)} className="bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-200 dark:hover:bg-zinc-700 transition flex items-center justify-center gap-2 shadow-sm"><ClipboardList size={14}/> Devis Global</button>
+                 <button type="button" onClick={() => handleOpenQuoteModal(editingContact)} className="bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white py-3 rounded-xl font-black text-[10px] uppercase hover:bg-zinc-200 dark:hover:bg-zinc-700 transition flex items-center justify-center gap-2 shadow-sm"><ClipboardList size={14}/> Devis Global</button>
                  <button type="button" onClick={() => generateFactureFinale(editingContact)} className="bg-[#39FF14]/10 text-black dark:text-[#39FF14] py-3 rounded-xl font-black text-[10px] uppercase hover:bg-[#39FF14] hover:text-black transition flex items-center justify-center gap-2 shadow-sm border border-[#39FF14]/30"><Download size={14}/> Exporter Facture</button>
               </div>
 
@@ -4943,6 +4963,32 @@ export default function AdminDashboard() {
                  </button>
               </form>
            </div>
+        </div>
+      )}
+
+      {/* --- MODALE D'ÉDITION DE DEVIS --- */}
+      {quoteModal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setQuoteModal, null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-950 dark:text-white p-8 rounded-[2rem] max-w-md w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto">
+             <button onClick={() => setQuoteModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+             <h2 className="font-sans text-2xl font-black uppercase tracking-tighter mb-2">Éditer le Devis</h2>
+             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-6">Pour : {quoteModal.lead.full_name}</p>
+
+             <div className="space-y-4">
+                <div>
+                   <label className="text-[10px] font-black uppercase text-zinc-400 ml-2 tracking-widest">Désignation du service</label>
+                   <input type="text" value={quoteModal.designation} onChange={e => setQuoteModal({...quoteModal, designation: e.target.value})} className="w-full p-4 mt-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" />
+                </div>
+                <div>
+                   <label className="text-[10px] font-black uppercase text-zinc-400 ml-2 tracking-widest">Montant Total (F CFA)</label>
+                   <input type="number" value={quoteModal.price} onChange={e => setQuoteModal({...quoteModal, price: Number(e.target.value)})} className="w-full p-4 mt-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" />
+                </div>
+             </div>
+
+             <button onClick={() => { generateDevis(quoteModal.lead, quoteModal.designation, quoteModal.price); setQuoteModal(null); }} className="w-full mt-8 bg-black text-[#39FF14] py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
+                 Générer & Envoyer
+             </button>
+          </div>
         </div>
       )}
       
