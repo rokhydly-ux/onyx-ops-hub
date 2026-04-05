@@ -246,6 +246,7 @@ export default function AdminDashboard() {
   const [editCommercialForm, setEditCommercialForm] = useState<any>({});
   const [newCommercialForm, setNewCommercialForm] = useState({ full_name: '', phone: '', objective: 20 });
   const [viewCommercialClients, setViewCommercialClients] = useState<any>(null);
+  const [commercialHistoryFilter, setCommercialHistoryFilter] = useState('all');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const activeSalesTeam = [
@@ -1536,6 +1537,13 @@ export default function AdminDashboard() {
       phoneClean = `+221${phoneClean}`;
   }
 
+  let finalExpDate = editingContact.expiration_date;
+  if (!finalExpDate) {
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      finalExpDate = d.toISOString().split('T')[0];
+  }
+
   const payload: any = {
     full_name: editingContact.full_name,
     phone: phoneClean,
@@ -1548,7 +1556,7 @@ export default function AdminDashboard() {
     address: editingContact.address || '',
     activity: editingContact.activity || '',
     avatar_url: editingContact.avatar_url || '',
-    expiration_date: editingContact.expiration_date || null,
+    expiration_date: finalExpDate,
     source: editingContact.source || 'Admin',
     updated_at: new Date().toISOString()
   };
@@ -2480,12 +2488,11 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3 mt-1">
                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.3em]">{todayStr}</span>
                <span className="w-1 h-1 bg-zinc-300 rounded-full"></span>
-               <span className="text-[10px] font-black text-[#39FF14] uppercase bg-black px-2 py-0.5 rounded-md">Live Session</span>
             </div>
           </div>
           
           <div className="flex items-center gap-4 lg:gap-6">
-            <div className="hidden lg:flex flex-1 max-w-md relative">
+            <div className="hidden lg:flex flex-1 min-w-[400px] xl:min-w-[600px] relative">
                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
                <input type="search" placeholder="Recherche globale (leads, CRM, ambassadeurs…)" value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full pl-12 pr-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
             </div>
@@ -2579,6 +2586,15 @@ export default function AdminDashboard() {
                   <div className="absolute -top-12 -right-12 p-12 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 text-[#39FF14]"><Wallet size={200}/></div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d&apos;Affaires Mensuel</p>
                   <p className={`font-sans text-3xl lg:text-4xl font-black text-[#39FF14] tracking-tighter`}>{stats.revenue.toLocaleString('fr-FR')} <span className="text-xl opacity-50 font-medium">F</span></p>
+                </div>
+
+                <div onClick={() => setActiveView('team')} className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] cursor-pointer hover:border-[#00E5FF]/50 transition-all group relative overflow-hidden flex flex-col justify-between">
+                  <div className="absolute -bottom-6 -right-6 p-6 opacity-[0.05] group-hover:scale-125 group-hover:-rotate-12 transition-all duration-700 text-[#00E5FF]"><Users size={120}/></div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4 relative z-10">Acquisition Terrain</p>
+                  <div className="relative z-10">
+                     <p className={`font-sans text-3xl lg:text-4xl font-black text-[#00E5FF] tracking-tighter`}>{contacts.filter(c => c.source?.includes('Commercial') || c.commercial_id).length}</p>
+                     <p className="text-xs font-bold text-zinc-500 mt-1 uppercase tracking-widest">Comptes Créés</p>
+                  </div>
                 </div>
 
                 <div onClick={() => setActiveView('leads')} className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:border-black hover:shadow-2xl transition-all group relative overflow-hidden">
@@ -2844,34 +2860,6 @@ export default function AdminDashboard() {
                  </div>
               </div>
 
-              {/* WIDGET ÉQUIPE TERRAIN */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 lg:p-8 rounded-3xl shadow-sm mt-6 animate-in slide-in-from-bottom-6">
-                  <div className="flex justify-between items-center mb-6">
-                      <div className="flex items-center gap-4">
-                          <div className="p-3 bg-black text-[#39FF14] rounded-xl"><Briefcase size={20}/></div>
-                          <div>
-                              <h3 className="font-black uppercase text-base tracking-tighter text-black dark:text-white">Équipe Terrain</h3>
-                              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Performances Commerciaux</p>
-                          </div>
-                      </div>
-                      <button onClick={() => setActiveView('team')} className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-5 py-2.5 rounded-xl hover:scale-105 transition-all shadow-lg hidden sm:block">Gérer l'équipe</button>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      {commercials.slice(0, 4).map(comm => {
-                          const repSales = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client').length;
-                          return (
-                              <div key={comm.id} onClick={() => setActiveView('team')} className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col items-center text-center cursor-pointer hover:border-[#39FF14]/50 transition-colors">
-                                  <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-700 mb-3 overflow-hidden border border-zinc-300 dark:border-zinc-600">
-                                      <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(comm.full_name)}&background=random`} alt={comm.full_name} className="w-full h-full object-cover" />
-                                  </div>
-                                  <p className="font-bold text-xs uppercase truncate w-full text-black dark:text-white">{comm.full_name}</p>
-                                  <p className="text-[10px] text-[#39FF14] font-black mt-2 bg-black px-3 py-1 rounded-full">{repSales} Ventes</p>
-                              </div>
-                          );
-                      })}
-                      {commercials.length === 0 && <p className="text-xs text-zinc-400 col-span-4 text-center py-4">Aucun commercial actif.</p>}
-                  </div>
-              </div>
             </div>
           )}
 
@@ -3192,6 +3180,19 @@ export default function AdminDashboard() {
                     <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
                       {expiringClients.length}
                     </span>
+                    <button 
+                       onClick={async () => {
+                           if (!confirm("Voulez-vous vraiment prolonger ces clients de 30 jours et remettre cette liste à 0 ?")) return;
+                           const updates = expiringClients.map(c => {
+                               const next = new Date(); next.setDate(next.getDate() + 30);
+                               return supabase.from('clients').update({ expiration_date: next.toISOString().split('T')[0] }).eq('id', c.id);
+                           });
+                           await Promise.all(updates); fetchSupabaseData(); alert("Renouvellements remis à 0 avec succès !");
+                       }} 
+                       className="ml-auto bg-zinc-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-zinc-700 transition"
+                    >
+                       Remettre à 0
+                    </button>
                   </div>
 
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4214,7 +4215,7 @@ export default function AdminDashboard() {
                                         <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
                                     </td>
                                     <td className="p-5 lg:p-6 text-right space-x-2">
-                                        <button onClick={() => setViewCommercialClients(comm)} className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-500 hover:bg-purple-500 hover:text-white rounded-lg transition-colors" title="Historique d'Acquisition">
+                                        <button onClick={() => { setViewCommercialClients(comm); setCommercialHistoryFilter('all'); }} className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-500 hover:bg-purple-500 hover:text-white rounded-lg transition-colors" title="Historique d'Acquisition">
                                             <Users size={16}/>
                                         </button>
                                         <button onClick={() => {
@@ -5114,26 +5115,69 @@ export default function AdminDashboard() {
       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-10 rounded-[3rem] max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#00E5FF] my-auto">
          <button onClick={() => setViewCommercialClients(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
          <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white`}>Historique d'Acquisition</h2>
-         <p className="text-xs font-bold text-zinc-500 mb-6 uppercase tracking-widest">Commercial : {viewCommercialClients.full_name}</p>
+         
+         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Commercial : {viewCommercialClients.full_name}</p>
+            <select 
+                value={commercialHistoryFilter} 
+                onChange={(e) => setCommercialHistoryFilter(e.target.value)} 
+                className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none cursor-pointer"
+            >
+                <option value="all">Tout le temps</option>
+                <option value="month">Ce mois-ci</option>
+                <option value="year">Cette année</option>
+            </select>
+         </div>
 
          <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar space-y-3">
             {(() => {
                const commClients = contacts
                    .filter(c => (c.commercial_id && String(c.commercial_id) === String(viewCommercialClients.id)) || c.assigned_to === viewCommercialClients.full_name)
+                   .filter(c => {
+                       if (commercialHistoryFilter === 'all') return true;
+                       const d = new Date(c.created_at || 0);
+                       const now = new Date();
+                       if (commercialHistoryFilter === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                       if (commercialHistoryFilter === 'year') return d.getFullYear() === now.getFullYear();
+                       return true;
+                   })
                    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
                if (commClients.length === 0) return <p className="text-zinc-500 text-sm italic text-center py-10">Aucun compte créé par ce commercial pour le moment.</p>;
-               return commClients.map(c => (
-                   <div key={c.id} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex justify-between items-center hover:border-[#00E5FF]/50 transition-colors">
-                       <div>
-                          <p className="font-bold text-sm text-black dark:text-white">{c.full_name}</p>
-                          <p className="text-xs text-zinc-500 mt-1">{c.phone}</p>
-                       </div>
-                       <div className="text-right">
-                          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${c.type === 'Client' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'bg-orange-500/10 text-orange-500'}`}>{c.type}</span>
-                          <p className="text-[10px] font-bold text-zinc-400 mt-1.5">{new Date(c.created_at).toLocaleDateString('fr-FR')}</p>
-                       </div>
+               
+               const totalSales = commClients.filter(c => c.type?.trim().toLowerCase() === 'client').length;
+               const totalRevenue = commClients.filter(c => c.type?.trim().toLowerCase() === 'client').reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
+               const totalCommissions = totalSales * 5000;
+
+               return (
+                   <>
+                   <div className="flex justify-between bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 mb-4 shadow-sm">
+                      <div className="text-center"><p className="text-[10px] font-black uppercase text-zinc-400">Total Ventes</p><p className="text-lg font-black text-black dark:text-white">{totalSales}</p></div>
+                      <div className="text-center"><p className="text-[10px] font-black uppercase text-zinc-400">CA Généré</p><p className="text-lg font-black text-[#00E5FF]">{totalRevenue.toLocaleString()} F</p></div>
+                      <div className="text-center"><p className="text-[10px] font-black uppercase text-zinc-400">Commissions</p><p className="text-lg font-black text-[#39FF14]">{totalCommissions.toLocaleString()} F</p></div>
                    </div>
-               ));
+                   {commClients.map(c => {
+                       const price = getSaasPrice(c.saas || '');
+                       const commission = c.type?.trim().toLowerCase() === 'client' ? 5000 : 0;
+                       return (
+                       <div key={c.id} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex justify-between items-center hover:border-[#00E5FF]/50 transition-colors">
+                           <div>
+                              <p className="font-bold text-sm text-black dark:text-white">{c.full_name}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs text-zinc-500">{c.phone}</span>
+                                  <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 px-2 py-0.5 rounded text-black dark:text-white font-bold">{c.saas || 'Aucun produit'}</span>
+                              </div>
+                              <p className="text-[10px] font-bold text-zinc-400 mt-1.5">{new Date(c.created_at).toLocaleDateString('fr-FR')} à {new Date(c.created_at).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</p>
+                           </div>
+                           <div className="text-right flex flex-col items-end">
+                              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg mb-1.5 ${c.type?.trim().toLowerCase() === 'client' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'bg-orange-500/10 text-orange-500'}`}>{c.type}</span>
+                              <p className="text-xs font-black text-black dark:text-white">{price.toLocaleString()} F</p>
+                              {commission > 0 && <p className="text-[10px] font-black text-[#39FF14] mt-0.5">+ {commission.toLocaleString()} F comm.</p>}
+                           </div>
+                       </div>
+                       );
+                   })}
+                   </>
+               );
             })()}
          </div>
       </div>
