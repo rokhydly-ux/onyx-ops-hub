@@ -4617,8 +4617,18 @@ export default function AdminDashboard() {
                  <input type="text" value={editingContact?.activity || ""} onChange={e => setEditingContact({...editingContact, activity: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="Ex: E-commerce, Restauration..." />
               </div>
               <div className="space-y-2">
-                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Photo de profil (URL)</label>
-                 <input type="url" value={editingContact?.avatar_url || ""} onChange={e => setEditingContact({...editingContact, avatar_url: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="https://..." />
+                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Photo de profil (URL ou Fichier)</label>
+                 <div className="flex flex-col sm:flex-row items-center gap-4 ml-4 sm:ml-6 mb-2">
+                     {editingContact?.avatar_url ? (
+                         <img src={editingContact.avatar_url} alt="Avatar" className="w-16 h-16 rounded-2xl object-cover border-2 border-[#39FF14] shadow-sm shrink-0" />
+                     ) : (
+                         <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center font-black text-xl text-black dark:text-white shadow-sm shrink-0">{editingContact?.full_name?.charAt(0) || '?'}</div>
+                     )}
+                     <div className="flex-1 flex flex-col gap-2 w-full pr-4 sm:pr-6">
+                         <input type="url" value={editingContact?.avatar_url || ""} onChange={e => setEditingContact({...editingContact, avatar_url: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border-none rounded-xl font-bold text-xs sm:text-sm outline-none focus:ring-[2px] focus:ring-[#39FF14]/10 transition-all text-black dark:text-white placeholder:text-zinc-400" placeholder="URL de l'image (https://...)" />
+                         <input type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setEditingContact({...editingContact, avatar_url: reader.result as string}); reader.readAsDataURL(file); } }} className="w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-black dark:file:text-white hover:file:bg-[#39FF14] hover:file:text-black transition cursor-pointer" />
+                     </div>
+                 </div>
               </div>
 
               <div>
