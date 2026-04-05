@@ -243,7 +243,8 @@ export default function AdminDashboard() {
   const [showAddCommercialModal, setShowAddCommercialModal] = useState(false);
   const [showEditCommercialModal, setShowEditCommercialModal] = useState(false);
   const [editCommercialForm, setEditCommercialForm] = useState<any>({});
-  const [newCommercialForm, setNewCommercialForm] = useState({ full_name: '', phone: '' });
+  const [newCommercialForm, setNewCommercialForm] = useState({ full_name: '', phone: '', objective: 20 });
+  const [viewCommercialClients, setViewCommercialClients] = useState<any>(null);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const activeSalesTeam = [
@@ -1592,14 +1593,15 @@ export default function AdminDashboard() {
               full_name: newCommercialForm.full_name,
               phone: cleanPhone,
               status: 'Actif',
-              password_temp: 'central2026'
+              password_temp: 'central2026',
+              objective: newCommercialForm.objective || 20
           }]);
 
           if (error) throw error;
           
           alert(`Commercial ${newCommercialForm.full_name} créé ! Il peut se connecter avec le PIN 0000.`);
           setShowAddCommercialModal(false);
-          setNewCommercialForm({ full_name: '', phone: '' });
+          setNewCommercialForm({ full_name: '', phone: '', objective: 20 });
           fetchSupabaseData();
       } catch (err: any) {
           alert(err.message);
@@ -1622,7 +1624,8 @@ export default function AdminDashboard() {
               full_name: editCommercialForm.full_name,
               phone: cleanPhone,
               status: editCommercialForm.status,
-              password_temp: editCommercialForm.password_temp
+              password_temp: editCommercialForm.password_temp,
+              objective: editCommercialForm.objective || 20
           }).eq('id', editCommercialForm.id);
 
           if (error) throw error;
@@ -2531,7 +2534,7 @@ export default function AdminDashboard() {
             <div className={`space-y-12 max-w-[1600px] mx-auto transition-all duration-700 ${isRefreshing ? 'opacity-30 scale-[0.98] grayscale' : 'opacity-100 scale-100 grayscale-0'}`}>
               
               {/* STATS PRINCIPALES */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div onClick={() => setActiveView('finance')} className="bg-black p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden cursor-pointer hover:scale-[1.03] transition-all group border border-zinc-800">
                   <div className="absolute -top-12 -right-12 p-12 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 text-[#39FF14]"><Wallet size={200}/></div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d&apos;Affaires Mensuel</p>
@@ -2713,6 +2716,15 @@ export default function AdminDashboard() {
                        <p className="text-[10px] font-black uppercase text-[#39FF14] mb-1 tracking-widest flex items-center gap-2"><Layers size={12}/> Carte des Hubs Sénégal</p>
                        <p className="text-[9px] font-bold text-zinc-400 uppercase leading-relaxed">Cliquez pour voir les contacts par zone</p>
                     </div>
+                  </div>
+                </div>
+
+                <div onClick={() => setActiveView('team')} className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] cursor-pointer hover:border-[#00E5FF]/50 transition-all group relative overflow-hidden flex flex-col justify-between">
+                  <div className="absolute -bottom-6 -right-6 p-6 opacity-[0.05] group-hover:scale-125 group-hover:-rotate-12 transition-all duration-700 text-[#00E5FF]"><Users size={120}/></div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4 relative z-10">Acquisition Terrain</p>
+                  <div className="relative z-10">
+                     <p className={`font-sans text-3xl lg:text-4xl font-black text-[#00E5FF] tracking-tighter`}>{contacts.filter(c => c.source?.includes('Commercial') || c.commercial_id).length}</p>
+                     <p className="text-xs font-bold text-zinc-500 mt-1 uppercase tracking-widest">Comptes Créés</p>
                   </div>
                 </div>
               </div>
@@ -3208,6 +3220,11 @@ export default function AdminDashboard() {
                            <div className="mb-4">
                               <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-lg tracking-widest ${c.type === 'Client' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'bg-zinc-100 text-zinc-500'}`}>{c.type}</span>
                               {c.activity && <span className="ml-2 text-[9px] font-black bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-2 py-1 rounded-lg uppercase">{c.activity}</span>}
+                              {c.source && (
+                                  <span className={`ml-2 text-[9px] font-black px-2 py-1 rounded-lg uppercase ${c.source.includes('Commercial') ? 'bg-[#00E5FF]/10 text-[#00E5FF]' : c.source.includes('Ambassadeur') ? 'bg-yellow-500/10 text-yellow-500' : 'bg-purple-500/10 text-purple-500'}`}>
+                                     <Crosshair size={10} className="inline mr-1"/> {c.source}
+                                  </span>
+                              )}
                            </div>
                            <div className="flex-1">
                               {renderSaas(c)}
@@ -3251,6 +3268,11 @@ export default function AdminDashboard() {
                           <div className="flex flex-col gap-2">
                              <span className={`px-4 py-2 text-[9px] lg:text-[10px] font-black uppercase rounded-2xl w-max tracking-widest ${c.type === 'Client' ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/20' : 'bg-zinc-100 text-zinc-500'}`}>{c.type}</span>
                              {c.activity && <span className="text-[9px] lg:text-[10px] font-black bg-zinc-200 text-black px-2 py-0.5 rounded-lg uppercase w-max ml-2">{c.activity}</span>}
+                             {c.source && (
+                                 <span className={`text-[9px] lg:text-[10px] font-black px-2 py-0.5 rounded-lg uppercase w-max ml-2 ${c.source.includes('Commercial') ? 'bg-[#00E5FF]/10 text-[#00E5FF]' : c.source.includes('Ambassadeur') ? 'bg-yellow-500/10 text-yellow-500' : 'bg-purple-500/10 text-purple-500'}`}>
+                                    {c.source}
+                                 </span>
+                             )}
                              <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 mt-1.5 uppercase ml-2">{c.status || 'Non catégorisé'}</p>
                           </div>
                         </td>
@@ -4051,6 +4073,45 @@ export default function AdminDashboard() {
                </button>
             </div>
 
+            {/* PODIUM GAMIFICATION */}
+            {(() => {
+                const sortedComms = [...commercials].map(c => {
+                    const sales = contacts.filter(cont => ((cont.commercial_id && String(cont.commercial_id) === String(c.id)) || cont.assigned_to === c.full_name) && cont.type?.trim().toLowerCase() === 'client').length;
+                    return { ...c, sales };
+                }).sort((a, b) => b.sales - a.sales);
+                
+                if (sortedComms.length < 3) return null;
+                
+                return (
+                    <div className="flex items-end justify-center gap-4 mb-12 mt-8 px-4">
+                        <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-100">
+                            <div className="w-12 h-12 rounded-full bg-zinc-300 flex items-center justify-center font-black text-xl mb-2">{sortedComms[1].full_name.charAt(0)}</div>
+                            <div className="bg-zinc-200 dark:bg-zinc-800 w-24 sm:w-32 h-32 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-zinc-400">
+                                <span className="text-2xl font-black text-zinc-500">2</span>
+                                <span className="text-xs font-bold mt-2">{sortedComms[1].sales} ventes</span>
+                            </div>
+                            <p className="text-xs font-black uppercase mt-3">{sortedComms[1].full_name.split(' ')[0]}</p>
+                        </div>
+                        <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700">
+                            <div className="w-16 h-16 rounded-full bg-yellow-400 flex items-center justify-center font-black text-2xl mb-2 border-4 border-yellow-200 shadow-[0_0_30px_rgba(250,204,21,0.4)]">{sortedComms[0].full_name.charAt(0)}</div>
+                            <div className="bg-gradient-to-t from-yellow-500/20 to-yellow-400 w-28 sm:w-36 h-40 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-yellow-300 shadow-2xl">
+                                <span className="text-3xl font-black text-yellow-900">1</span>
+                                <span className="text-sm font-black mt-2 text-yellow-800">{sortedComms[0].sales} ventes</span>
+                            </div>
+                            <p className="text-sm font-black uppercase mt-3 text-yellow-500">{sortedComms[0].full_name.split(' ')[0]}</p>
+                        </div>
+                        <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
+                            <div className="w-12 h-12 rounded-full bg-orange-400 flex items-center justify-center font-black text-xl mb-2">{sortedComms[2].full_name.charAt(0)}</div>
+                            <div className="bg-orange-100 dark:bg-orange-900/50 w-24 sm:w-32 h-24 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-orange-500">
+                                <span className="text-2xl font-black text-orange-600">3</span>
+                                <span className="text-xs font-bold mt-2 text-orange-500">{sortedComms[2].sales} ventes</span>
+                            </div>
+                            <p className="text-xs font-black uppercase mt-3">{sortedComms[2].full_name.split(' ')[0]}</p>
+                        </div>
+                    </div>
+                );
+            })()}
+
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto mt-6">
                 <table className="w-full text-left min-w-[800px]">
                     <thead className="bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
@@ -4083,13 +4144,17 @@ export default function AdminDashboard() {
                                         <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
                                     </td>
                                     <td className="p-5 lg:p-6 text-right space-x-2">
+                                        <button onClick={() => setViewCommercialClients(comm)} className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-500 hover:bg-purple-500 hover:text-white rounded-lg transition-colors" title="Historique d'Acquisition">
+                                            <Users size={16}/>
+                                        </button>
                                         <button onClick={() => {
                                             setEditCommercialForm({
                                                 id: comm.id,
                                                 full_name: comm.full_name,
                                                 phone: comm.phone,
                                                 status: comm.status || 'Actif',
-                                                password_temp: comm.password_temp || 'central2026'
+                                                password_temp: comm.password_temp || 'central2026',
+                                                objective: comm.objective || 20
                                             });
                                             setShowEditCommercialModal(true);
                                         }} className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors" title="Modifier">
@@ -4967,6 +5032,36 @@ export default function AdminDashboard() {
          </div>
       )}
 
+  {/* --- MODALE HISTORIQUE CLIENTS DU COMMERCIAL --- */}
+  {viewCommercialClients && (
+    <div id="modal-overlay" onClick={handleOutsideClick(setViewCommercialClients, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+      <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-10 rounded-[3rem] max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#00E5FF] my-auto">
+         <button onClick={() => setViewCommercialClients(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
+         <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white`}>Historique d'Acquisition</h2>
+         <p className="text-xs font-bold text-zinc-500 mb-6 uppercase tracking-widest">Commercial : {viewCommercialClients.full_name}</p>
+
+         <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar space-y-3">
+            {(() => {
+               const commClients = contacts.filter(c => (c.commercial_id && String(c.commercial_id) === String(viewCommercialClients.id)) || c.assigned_to === viewCommercialClients.full_name);
+               if (commClients.length === 0) return <p className="text-zinc-500 text-sm italic text-center py-10">Aucun compte créé par ce commercial pour le moment.</p>;
+               return commClients.map(c => (
+                   <div key={c.id} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex justify-between items-center hover:border-[#00E5FF]/50 transition-colors">
+                       <div>
+                          <p className="font-bold text-sm text-black dark:text-white">{c.full_name}</p>
+                          <p className="text-xs text-zinc-500 mt-1">{c.phone}</p>
+                       </div>
+                       <div className="text-right">
+                          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${c.type === 'Client' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'bg-orange-500/10 text-orange-500'}`}>{c.type}</span>
+                          <p className="text-[10px] font-bold text-zinc-400 mt-1.5">{new Date(c.created_at).toLocaleDateString('fr-FR')}</p>
+                       </div>
+                   </div>
+               ));
+            })()}
+         </div>
+      </div>
+    </div>
+  )}
+
   {/* --- MODALE AJOUT COMMERCIAL MANUEL --- */}
   {showAddCommercialModal && (
      <div id="modal-overlay" onClick={handleOutsideClick(setShowAddCommercialModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
@@ -4982,6 +5077,10 @@ export default function AdminDashboard() {
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Téléphone</label>
               <input type="tel" required value={newCommercialForm.phone} onChange={e => setNewCommercialForm({...newCommercialForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="77 000 00 00" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Objectif (Ventes/Mois)</label>
+              <input type="number" required value={newCommercialForm.objective} onChange={e => setNewCommercialForm({...newCommercialForm, objective: Number(e.target.value)})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="20" />
            </div>
 
            <button type="submit" disabled={isCreatingUser} className="w-full bg-[#39FF14] text-black py-4 rounded-[1.5rem] font-black uppercase text-xs mt-6 shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 flex justify-center items-center gap-2">
@@ -5004,6 +5103,10 @@ export default function AdminDashboard() {
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Nom Complet</label>
               <input type="text" required value={editCommercialForm.full_name} onChange={e => setEditCommercialForm({...editCommercialForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="Ex: Moussa Diop" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Objectif (Ventes/Mois)</label>
+              <input type="number" required value={editCommercialForm.objective || 20} onChange={e => setEditCommercialForm({...editCommercialForm, objective: Number(e.target.value)})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="20" />
            </div>
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Téléphone</label>

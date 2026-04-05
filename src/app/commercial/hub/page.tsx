@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut, Settings, X } from 'lucide-react';
+import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut, Settings, X, Trophy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -36,8 +36,7 @@ export default function CommercialHub() {
   const fetchMyActivity = async (commercialId: string) => {
     const { data } = await supabase.from('clients')
       .select('*')
-      .eq('commercial_id', commercialId)
-      .eq('type', 'Client');
+      .eq('commercial_id', commercialId);
     if (data) setMyClients(data);
   };
 
@@ -81,17 +80,21 @@ export default function CommercialHub() {
           cleanPhone = `+${cleanPhone}`;
       }
 
+      const trialEndDate = new Date();
+      trialEndDate.setMonth(trialEndDate.getMonth() + 1);
+
       // Vraie insertion dans la base de données
       const { error } = await supabase.from('clients').insert([{
         full_name: formData.shopName,
         phone: cleanPhone,
         saas: formData.product + (addCm ? ' + Add-on CM Pub' : ''),
-        type: 'Client',
+        type: 'Prospect',
         status: 'Nouveau',
         source: 'Terrain / Commercial',
         commercial_id: currentUser?.id, // Liaison avec le VRAI commercial connecté
         assigned_to: currentUser?.full_name,
-        password_temp: 'central2026'
+        password_temp: 'central2026',
+        expiration_date: trialEndDate.toISOString().split('T')[0]
       }]);
 
       if (error) throw error;
@@ -118,7 +121,7 @@ export default function CommercialHub() {
          {currentUser?.avatar_url && <img src={currentUser.avatar_url} alt="Avatar" className="w-12 h-12 rounded-full border-2 border-zinc-800 object-cover hidden sm:block" />}
          <div>
             <h1 className="text-2xl font-black uppercase tracking-tighter">Portail <span className="text-[#39FF14]">Commercial</span></h1>
-            <p className="text-zinc-400 text-xs font-bold mt-1">Agent : {currentUser?.full_name || 'Inconnu'} • Objectif : 12/20</p>
+            <p className="text-zinc-400 text-xs font-bold mt-1">Agent : {currentUser?.full_name || 'Inconnu'} • Objectif : {myClients.filter(c => c.type?.trim().toLowerCase() === 'client').length}/{currentUser?.objective || 20}</p>
          </div>
       </div>
           <div className="flex items-center gap-2">
@@ -248,18 +251,42 @@ export default function CommercialHub() {
             </form>
           </div>
         ) : (
+          (() => {
+            const convertedCount = myClients.filter(c => c.type?.trim().toLowerCase() === 'client').length;
+            const goal = currentUser?.objective || 20;
+            const progress = Math.min(100, (convertedCount / goal) * 100);
+            return (
           <div className="space-y-6 max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4">
             <h2 className="text-3xl font-black uppercase tracking-tight mb-6">Mon <span className="text-[#39FF14]">Activité</span></h2>
             
+            {/* GAMIFICATION WIDGET */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-sm relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 rounded-full blur-3xl pointer-events-none"></div>
+               <h3 className="flex items-center gap-2 text-lg font-black uppercase mb-4 text-[#39FF14]">
+                  <Trophy size={20} /> Progression Objectif
+               </h3>
+               <div className="flex justify-between items-end mb-2 relative z-10">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Ventes Converties</span>
+                  <span className="text-xl font-black text-white">{convertedCount} <span className="text-sm text-zinc-500">/ {goal}</span></span>
+               </div>
+               <div className="w-full bg-black rounded-full h-3 mb-3 overflow-hidden shadow-inner relative z-10 border border-zinc-800">
+                  <div className="bg-[#39FF14] h-full transition-all duration-1000 ease-out relative" style={{ width: `${progress}%` }}>
+                     <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"></div>
+                  </div>
+               </div>
+               <p className="text-xs font-bold text-zinc-400 relative z-10">
+                  {convertedCount >= goal ? '🎯 Objectif atteint ! Excellent travail.' : `Allez ! Plus que ${goal - convertedCount} ventes pour atteindre votre objectif et votre prime.`}
+               </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-zinc-900 p-6 rounded-[2rem] border border-zinc-800 shadow-lg flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Comptes ce mois</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Comptes Ouverts (Essais)</p>
                 <p className="text-4xl font-black text-white">{myClients.length}</p>
               </div>
               <div className="bg-zinc-900 p-6 rounded-[2rem] border border-[#39FF14]/30 shadow-[0_0_30px_rgba(57,255,20,0.1)] flex flex-col items-center justify-center text-center relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-[#39FF14]/20 blur-xl rounded-full"></div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions</p>
-                <p className="text-2xl font-black text-[#39FF14]">{(myClients.length * 5000).toLocaleString()} F</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions (Ventes)</p>
+                <p className="text-2xl font-black text-[#39FF14]">{(convertedCount * 5000).toLocaleString()} F</p>
               </div>
             </div>
 
@@ -273,8 +300,8 @@ export default function CommercialHub() {
                       <p className="font-black text-white text-sm">{client.full_name}</p>
                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">{client.saas}</p>
                     </div>
-                    <span className="flex items-center gap-1 bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] text-[10px] font-black uppercase px-2 py-1 rounded-md">
-                      <CheckCircle size={12} /> Validé
+                    <span className={`flex items-center gap-1 text-[10px] font-black uppercase px-2 py-1 rounded-md ${client.type === 'Client' ? 'bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14]' : 'bg-orange-500/10 border border-orange-500/30 text-orange-500'}`}>
+                      {client.type === 'Client' ? <CheckCircle size={12} /> : <Clock size={12} />} {client.type === 'Client' ? 'Converti' : 'En essai'}
                     </span>
                   </div>
                 ))}
@@ -285,6 +312,8 @@ export default function CommercialHub() {
               </div>
             </div>
           </div>
+          );
+          })()
         )}
       </main>
 
