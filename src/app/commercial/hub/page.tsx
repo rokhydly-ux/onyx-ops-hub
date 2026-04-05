@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut, Settings, X, Trophy } from 'lucide-react';
+import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut, Settings, X, Trophy, Target, Star, Medal } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -15,6 +15,8 @@ export default function CommercialHub() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
+  const [topCommercials, setTopCommercials] = useState<any[]>([]);
+  const [userRank, setUserRank] = useState<number | null>(null);
   const [myClients, setMyClients] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     shopName: '',
@@ -30,8 +32,28 @@ export default function CommercialHub() {
       setEditName(data.full_name || '');
       setEditAvatar(data.avatar_url || '');
       fetchMyActivity(data.id);
+      fetchLeaderboard(data.id);
     }
   }, []);
+
+  const fetchLeaderboard = async (currentId: string) => {
+      const { data: allComms } = await supabase.from('commercials').select('*').eq('status', 'Actif');
+      const { data: allClients } = await supabase.from('clients').select('commercial_id, type');
+      
+      if (allComms && allClients) {
+          const commsWithSales = allComms.map(c => {
+              const sales = allClients.filter(client => 
+                  ((client.commercial_id && String(client.commercial_id) === String(c.id))) 
+                  && client.type?.trim().toLowerCase() === 'client'
+              ).length;
+              return { ...c, sales };
+          }).sort((a, b) => b.sales - a.sales);
+          
+          setTopCommercials(commsWithSales);
+          const myRank = commsWithSales.findIndex(c => String(c.id) === String(currentId)) + 1;
+          setUserRank(myRank > 0 ? myRank : null);
+      }
+  };
 
   const fetchMyActivity = async (commercialId: string) => {
     const { data } = await supabase.from('clients')
@@ -82,19 +104,23 @@ export default function CommercialHub() {
 
       const trialEndDate = new Date();
       trialEndDate.setMonth(trialEndDate.getMonth() + 1);
+      const trialEndDateStr = trialEndDate.toISOString().split('T')[0];
+      const saasName = formData.product + (addCm ? ' + Add-on CM Pub' : '');
 
       // Vraie insertion dans la base de données
       const { error } = await supabase.from('clients').insert([{
         full_name: formData.shopName,
         phone: cleanPhone,
-        saas: formData.product + (addCm ? ' + Add-on CM Pub' : ''),
+        saas: saasName,
+        active_saas: [saasName],
+        saas_expiration_dates: { [saasName]: trialEndDateStr },
         type: 'Prospect',
         status: 'Nouveau',
         source: 'Terrain / Commercial',
         commercial_id: currentUser?.id, // Liaison avec le VRAI commercial connecté
         assigned_to: currentUser?.full_name,
         password_temp: 'central2026',
-        expiration_date: trialEndDate.toISOString().split('T')[0]
+        expiration_date: trialEndDateStr
       }]);
 
       if (error) throw error;
@@ -252,13 +278,88 @@ export default function CommercialHub() {
           </div>
         ) : (
           (() => {
-            const convertedCount = myClients.filter(c => c.type?.trim().toLowerCase() === 'client').length;
+            const convertedClients = myClients.filter(c => c.type?.trim().toLowerCase() === 'client');
+            const convertedCount = convertedClients.length;
             const goal = currentUser?.objective || 20;
             const progress = Math.min(100, (convertedCount / goal) * 100);
+            
+            const getSaasPrice = (saasName: string) => {
+               if (!saasName) return 0;
+               if (saasName.includes('Gold')) return 59900;
+               if (saasName.includes('CRM')) return 39900;
+               if (saasName.includes('Tekki Pro')) return 27900;
+               if (saasName.includes('Tekki')) return 22900;
+               if (saasName.includes('Tontine')) return 6900;
+               if (saasName.includes('Jaay') || saasName.includes('Solo')) return 13900;
+               if (saasName.includes('Menu') || saasName.includes('Booking') || saasName.includes('Staff') || saasName.includes('Stock') || saasName.includes('Tiak')) return 13900;
+               if (saasName.includes('Add-on CM Pub')) return 49900;
+               if (saasName.includes('Boost')) return 150000;
+               if (saasName.includes('Modernize')) return 300000;
+               return 0;
+            };
+
+            const totalCA = convertedClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
+            let prime = 0;
+            if (totalCA >= 1000000) prime = 100000;
+            else if (totalCA >= 500000) prime = 50000;
+            else if (totalCA >= 250000) prime = 20000;
+
+            const urgentProspects = myClients.filter(c => {
+               if (c.type !== 'Prospect' || !c.expiration_date) return false;
+               const daysLeft = Math.ceil((new Date(c.expiration_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+               return daysLeft <= 5 && daysLeft >= 0;
+            });
+
+            // Gamification Intelligente (Suggestions automatiques)
+            const getNextMission = () => {
+                const total = myClients.length;
+                if (total === 0) return { title: "Démarrage", desc: "Enregistrez votre premier prospect sur le terrain.", reward: "1er Prospect" };
+                if (convertedCount === 0) return { title: "Première Victoire", desc: "Convertissez votre 1er prospect en client payant.", reward: "Badge Vendeur" };
+                if (convertedCount < 5) return { title: "Lancement", desc: `Atteignez 5 ventes validées (${convertedCount}/5).`, reward: "Bonus Confiance" };
+                if (convertedCount < Math.ceil(goal / 2)) return { title: "Mi-parcours", desc: `Atteignez la moitié de votre objectif (${convertedCount}/${Math.ceil(goal/2)}).`, reward: "Badge Intermédiaire" };
+                if (convertedCount < goal) return { title: "Sprint Final", desc: `Atteignez votre objectif mensuel de ${goal} ventes.`, reward: "Prime Objectif" };
+                return { title: "Explosion des scores", desc: `Dépassez votre objectif ! Vos commissions s'envolent.`, reward: "Super Prime" };
+            };
+            const mission = getNextMission();
+
             return (
           <div className="space-y-6 max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4">
             <h2 className="text-3xl font-black uppercase tracking-tight mb-6">Mon <span className="text-[#39FF14]">Activité</span></h2>
             
+            {/* ALERTE 25 JOURS (J-5 AVANT EXPIRATION) */}
+            {urgentProspects.length > 0 && (
+               <div className="bg-orange-500/10 border border-orange-500/30 p-5 rounded-[1.5rem] shadow-sm relative overflow-hidden group">
+                  <div className="flex items-start gap-3 relative z-10">
+                     <AlertTriangle className="text-orange-500 shrink-0 mt-0.5" size={24} />
+                     <div>
+                        <h4 className="text-orange-500 font-black uppercase tracking-widest text-xs mb-1">Alerte Conversion (Essai &gt; 25 jours)</h4>
+                        <p className="text-xs text-orange-400/80 font-bold leading-relaxed mb-3">
+                           Vous avez {urgentProspects.length} prospect(s) dont l'essai expire dans moins de 5 jours. Relancez-les maintenant pour valider vos commissions !
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                           {urgentProspects.map(p => (
+                              <button key={p.id} onClick={() => window.open(`https://wa.me/${p.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${p.full_name}, votre période d'essai OnyxOps se termine bientôt. Souhaitez-vous l'activer définitivement ?`)}`, '_blank')} className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-[10px] font-black uppercase px-3 py-1.5 rounded-lg hover:bg-orange-500 hover:text-black transition-colors flex items-center gap-1.5">
+                                 <Send size={10} /> {p.full_name}
+                              </button>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            )}
+
+            {/* MISSION DYNAMIQUE */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-sm mt-6">
+              <h3 className="flex items-center gap-2 text-lg font-black uppercase mb-3 text-[#00E5FF]">
+                 <Target size={20} /> Mission Actuelle
+              </h3>
+              <p className="text-sm font-bold text-white mb-1">{mission.title}</p>
+              <p className="text-xs text-zinc-400 mb-4">{mission.desc}</p>
+              <div className="inline-flex items-center gap-2 bg-[#00E5FF]/10 text-[#00E5FF] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-[#00E5FF]/30 shadow-sm">
+                 <Star size={14} /> Récompense : {mission.reward}
+              </div>
+            </div>
+
             {/* GAMIFICATION WIDGET */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-sm relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -281,32 +382,87 @@ export default function CommercialHub() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-zinc-900 p-6 rounded-[2rem] border border-zinc-800 shadow-lg flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Comptes Ouverts (Essais)</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Comptes Ouverts</p>
                 <p className="text-4xl font-black text-white">{myClients.length}</p>
               </div>
               <div className="bg-zinc-900 p-6 rounded-[2rem] border border-[#39FF14]/30 shadow-[0_0_30px_rgba(57,255,20,0.1)] flex flex-col items-center justify-center text-center relative overflow-hidden">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions (Ventes)</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Commissions Fixes</p>
                 <p className="text-2xl font-black text-[#39FF14]">{(convertedCount * 5000).toLocaleString()} F</p>
               </div>
+              <div className="bg-zinc-900 p-6 rounded-[2rem] border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.1)] flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-2">CA Généré</p>
+                <p className="text-2xl font-black text-blue-500">{totalCA.toLocaleString()} F</p>
+              </div>
+              <div className="bg-zinc-900 p-6 rounded-[2rem] border border-yellow-500/30 shadow-[0_0_30px_rgba(234,179,8,0.1)] flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <p className="text-[10px] font-black uppercase tracking-widest text-yellow-400 mb-2">Prime sur CA</p>
+                <p className="text-2xl font-black text-yellow-500">+{prime.toLocaleString()} F</p>
+              </div>
+            </div>
+            <div className="mt-2 text-center text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
+               Paliers de Prime : 250k = +20k | 500k = +50k | 1M = +100k
             </div>
 
-            <div className="mt-8">
-              <h3 className="font-black uppercase text-sm tracking-widest text-zinc-400 mb-4">Derniers Comptes Ouverts</h3>
-              <div className="space-y-3">
+            {/* PODIUM GAMIFICATION */}
+            {topCommercials.length > 0 && (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-sm mt-6">
+                <h3 className="flex items-center gap-2 text-lg font-black uppercase mb-6 text-white">
+                   <Medal size={20} className="text-yellow-500" /> Classement Équipe
+                </h3>
+                {topCommercials.length >= 3 && (
+                    <div className="flex items-end justify-center gap-4 mb-8 px-2">
+                        <div className="flex flex-col items-center">
+                            <div className="w-10 h-10 rounded-full bg-zinc-300 flex items-center justify-center font-black text-black mb-2 border-2 border-zinc-400">{topCommercials[1].full_name.charAt(0)}</div>
+                            <div className="bg-zinc-800 w-20 sm:w-24 h-24 rounded-t-2xl flex flex-col items-center justify-start pt-3 border-t-4 border-zinc-400">
+                                <span className="text-xl font-black text-zinc-400">2</span>
+                                <span className="text-[10px] font-bold mt-1 text-zinc-300">{topCommercials[1].sales} ventes</span>
+                            </div>
+                            <p className="text-[10px] font-black uppercase mt-2 text-zinc-400 truncate max-w-[80px]">{topCommercials[1].full_name.split(' ')[0]}</p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <div className="w-14 h-14 rounded-full bg-yellow-400 flex items-center justify-center font-black text-2xl mb-2 border-4 border-yellow-200 shadow-[0_0_20px_rgba(250,204,21,0.4)] text-yellow-900">{topCommercials[0].full_name.charAt(0)}</div>
+                            <div className="bg-gradient-to-t from-yellow-500/20 to-yellow-500/40 w-24 sm:w-28 h-32 rounded-t-2xl flex flex-col items-center justify-start pt-3 border-t-4 border-yellow-400">
+                                <span className="text-2xl font-black text-yellow-500">1</span>
+                                <span className="text-xs font-black mt-1 text-yellow-500">{topCommercials[0].sales} ventes</span>
+                            </div>
+                            <p className="text-[10px] font-black uppercase mt-2 text-yellow-500 truncate max-w-[80px]">{topCommercials[0].full_name.split(' ')[0]}</p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <div className="w-10 h-10 rounded-full bg-orange-400 flex items-center justify-center font-black text-white mb-2 border-2 border-orange-300">{topCommercials[2].full_name.charAt(0)}</div>
+                            <div className="bg-orange-900/50 w-20 sm:w-24 h-20 rounded-t-2xl flex flex-col items-center justify-start pt-3 border-t-4 border-orange-500">
+                                <span className="text-xl font-black text-orange-500">3</span>
+                                <span className="text-[10px] font-bold mt-1 text-orange-400">{topCommercials[2].sales} ventes</span>
+                            </div>
+                            <p className="text-[10px] font-black uppercase mt-2 text-orange-400 truncate max-w-[80px]">{topCommercials[2].full_name.split(' ')[0]}</p>
+                        </div>
+                    </div>
+                )}
+                <div className="bg-black border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                   <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Votre Classement</span>
+                   <span className="text-lg font-black text-[#39FF14]">#{userRank || '-'}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 pb-10">
+              <h3 className="font-black uppercase text-sm tracking-widest text-zinc-400 mb-4">Historique Complet d'Acquisition ({myClients.length})</h3>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                 
-                {myClients.slice(0, 5).map(client => (
-                  <div key={client.id} className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 flex justify-between items-center">
+                {myClients.map(client => (
+                  <div key={client.id} className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 flex justify-between items-center hover:border-zinc-700 transition-colors">
                     <div>
                       <p className="font-black text-white text-sm">{client.full_name}</p>
                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">{client.saas}</p>
                     </div>
-                    <span className={`flex items-center gap-1 text-[10px] font-black uppercase px-2 py-1 rounded-md ${client.type === 'Client' ? 'bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14]' : 'bg-orange-500/10 border border-orange-500/30 text-orange-500'}`}>
-                      {client.type === 'Client' ? <CheckCircle size={12} /> : <Clock size={12} />} {client.type === 'Client' ? 'Converti' : 'En essai'}
-                    </span>
+                    <div className="text-right">
+                      <span className={`flex items-center justify-end gap-1 text-[10px] font-black uppercase px-2 py-1 rounded-md mb-1 ${client.type?.trim().toLowerCase() === 'client' ? 'bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14]' : 'bg-orange-500/10 border border-orange-500/30 text-orange-500'}`}>
+                        {client.type?.trim().toLowerCase() === 'client' ? <CheckCircle size={12} /> : <Clock size={12} />} {client.type?.trim().toLowerCase() === 'client' ? 'Converti' : 'En essai'}
+                      </span>
+                      <p className="text-[9px] text-zinc-500">{new Date(client.created_at || Date.now()).toLocaleDateString('fr-FR')}</p>
+                    </div>
                   </div>
                 ))}
                 {myClients.length === 0 && (
-                  <p className="text-zinc-500 text-xs text-center py-4">Aucun client enregistré pour le moment.</p>
+                  <p className="text-zinc-500 text-xs text-center py-4 italic">Aucun client enregistré pour le moment.</p>
                 )}
 
               </div>

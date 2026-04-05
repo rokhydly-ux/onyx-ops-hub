@@ -11,7 +11,8 @@ import {
   Clock, FileText, Zap, MapPin, 
   MessageSquare, MessageCircle, Box, Wallet, Megaphone, Sparkles, Activity, RefreshCcw, Bell,
   TrendingUp, ChevronDown, ChevronLeft, ChevronRight, Send, Download, Layers, ExternalLink, DollarSign,
-  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon, Truck, Minus, ClipboardList, Mail, Briefcase
+  AlertCircle, AlertTriangle, UserPlus, X, Edit3, Lock as LockIcon, Menu, Calendar, XCircle, HelpCircle, PlayCircle, Sun, Moon, Truck, Minus, ClipboardList, Mail, Briefcase,
+  Crosshair
 } from "lucide-react";
 
 import * as XLSX from 'xlsx';
@@ -1335,6 +1336,45 @@ export default function AdminDashboard() {
     });
 
     doc.save(`Onyx_CRM_Membres_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  // --- EXPORTS ÉQUIPE COMMERCIALE ---
+  const handleExportCommercialsPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Performances Équipe Commerciale - OnyxOps", 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+
+    const tableColumn = ["Commercial", "Contact", "Ventes", "CA Généré", "Dernière Vente", "Statut"];
+    const tableRows = commercials.map(comm => {
+        const commClients = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client');
+        const repSales = commClients.length;
+        const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
+        const lastSaleDate = repSales > 0 ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR') : '-';
+        return [comm.full_name, comm.phone, repSales.toString(), `${caTotal.toLocaleString('fr-FR')} F`, lastSaleDate, comm.status || 'Actif'];
+    });
+
+    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 40, theme: 'grid', headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] } });
+    doc.save(`Onyx_Commerciaux_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const handleExportCommercialsExcel = () => {
+    if (commercials.length === 0) return alert("Aucun commercial à exporter.");
+    const exportData = commercials.map(comm => {
+        const commClients = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client');
+        const repSales = commClients.length;
+        const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
+        const lastSaleDate = repSales > 0 ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR') : '-';
+        return { 
+            'Nom Complet': comm.full_name, 'Téléphone': comm.phone, 'Objectif (Ventes)': comm.objective || 20, 
+            'Ventes Validées': repSales, 'CA Généré (F CFA)': caTotal, 'Dernière Vente': lastSaleDate, 'Statut': comm.status || 'Actif' 
+        };
+    });
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Équipe Commerciale");
+    XLSX.writeFile(workbook, `Onyx_Commerciaux_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const updateLeadAssignee = async (id: string, assignee: string) => {
@@ -4068,46 +4108,63 @@ export default function AdminDashboard() {
                      <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Agents Onyx Hub</p>
                   </div>
                </div>
-               <button onClick={() => setShowAddCommercialModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-6 py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0 relative z-10">
-                  <UserPlus size={16}/> Nouveau Commercial
-               </button>
+               <div className="flex flex-wrap items-center justify-end gap-3 relative z-10 w-full md:w-auto mt-4 md:mt-0">
+                  <button onClick={handleExportCommercialsExcel} className="flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-black dark:text-white px-4 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-95 shrink-0">
+                     <Download size={14}/> Excel
+                  </button>
+                  <button onClick={handleExportCommercialsPDF} className="flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-black dark:text-white px-4 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-95 shrink-0">
+                     <FileText size={14}/> PDF
+                  </button>
+                  <button onClick={() => setShowAddCommercialModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0">
+                     <UserPlus size={16}/> Nouveau Commercial
+                  </button>
+               </div>
             </div>
 
             {/* PODIUM GAMIFICATION */}
             {(() => {
                 const sortedComms = [...commercials].map(c => {
-                    const sales = contacts.filter(cont => ((cont.commercial_id && String(cont.commercial_id) === String(c.id)) || cont.assigned_to === c.full_name) && cont.type?.trim().toLowerCase() === 'client').length;
-                    return { ...c, sales };
+                    const commClients = contacts.filter(cont => ((cont.commercial_id && String(cont.commercial_id) === String(c.id)) || cont.assigned_to === c.full_name) && cont.type?.trim().toLowerCase() === 'client');
+                    const sales = commClients.length;
+                    const caTotal = commClients.reduce((acc, cont) => acc + getSaasPrice(cont.saas || ''), 0);
+                    return { ...c, sales, caTotal };
                 }).sort((a, b) => b.sales - a.sales);
                 
-                if (sortedComms.length < 3) return null;
+                if (sortedComms.length === 0) return null;
                 
                 return (
                     <div className="flex items-end justify-center gap-4 mb-12 mt-8 px-4">
-                        <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-100">
-                            <div className="w-12 h-12 rounded-full bg-zinc-300 flex items-center justify-center font-black text-xl mb-2">{sortedComms[1].full_name.charAt(0)}</div>
-                            <div className="bg-zinc-200 dark:bg-zinc-800 w-24 sm:w-32 h-32 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-zinc-400">
-                                <span className="text-2xl font-black text-zinc-500">2</span>
-                                <span className="text-xs font-bold mt-2">{sortedComms[1].sales} ventes</span>
+                        {sortedComms.length > 1 && (
+                            <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-100">
+                                <div className="w-12 h-12 rounded-full bg-zinc-300 flex items-center justify-center font-black text-xl mb-2">{sortedComms[1].full_name.charAt(0)}</div>
+                                <div className="bg-zinc-200 dark:bg-zinc-800 w-24 sm:w-32 h-32 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-zinc-400">
+                                    <span className="text-2xl font-black text-zinc-500">2</span>
+                                    <span className="text-xs font-bold mt-2">{sortedComms[1].sales} ventes</span>
+                                    <span className="text-[9px] font-black text-zinc-500 mt-1">{sortedComms[1].caTotal.toLocaleString()} F</span>
+                                </div>
+                                <p className="text-xs font-black uppercase mt-3">{sortedComms[1].full_name.split(' ')[0]}</p>
                             </div>
-                            <p className="text-xs font-black uppercase mt-3">{sortedComms[1].full_name.split(' ')[0]}</p>
-                        </div>
+                        )}
                         <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700">
                             <div className="w-16 h-16 rounded-full bg-yellow-400 flex items-center justify-center font-black text-2xl mb-2 border-4 border-yellow-200 shadow-[0_0_30px_rgba(250,204,21,0.4)]">{sortedComms[0].full_name.charAt(0)}</div>
                             <div className="bg-gradient-to-t from-yellow-500/20 to-yellow-400 w-28 sm:w-36 h-40 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-yellow-300 shadow-2xl">
                                 <span className="text-3xl font-black text-yellow-900">1</span>
                                 <span className="text-sm font-black mt-2 text-yellow-800">{sortedComms[0].sales} ventes</span>
+                                <span className="text-[10px] font-black text-yellow-700 mt-1">{sortedComms[0].caTotal.toLocaleString()} F</span>
                             </div>
                             <p className="text-sm font-black uppercase mt-3 text-yellow-500">{sortedComms[0].full_name.split(' ')[0]}</p>
                         </div>
-                        <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
-                            <div className="w-12 h-12 rounded-full bg-orange-400 flex items-center justify-center font-black text-xl mb-2">{sortedComms[2].full_name.charAt(0)}</div>
-                            <div className="bg-orange-100 dark:bg-orange-900/50 w-24 sm:w-32 h-24 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-orange-500">
-                                <span className="text-2xl font-black text-orange-600">3</span>
-                                <span className="text-xs font-bold mt-2 text-orange-500">{sortedComms[2].sales} ventes</span>
+                        {sortedComms.length > 2 && (
+                            <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
+                                <div className="w-12 h-12 rounded-full bg-orange-400 flex items-center justify-center font-black text-xl mb-2">{sortedComms[2].full_name.charAt(0)}</div>
+                                <div className="bg-orange-100 dark:bg-orange-900/50 w-24 sm:w-32 h-24 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-orange-500">
+                                    <span className="text-2xl font-black text-orange-600">3</span>
+                                    <span className="text-xs font-bold mt-2 text-orange-500">{sortedComms[2].sales} ventes</span>
+                                    <span className="text-[9px] font-black text-orange-500 mt-1">{sortedComms[2].caTotal.toLocaleString()} F</span>
+                                </div>
+                                <p className="text-xs font-black uppercase mt-3">{sortedComms[2].full_name.split(' ')[0]}</p>
                             </div>
-                            <p className="text-xs font-black uppercase mt-3">{sortedComms[2].full_name.split(' ')[0]}</p>
-                        </div>
+                        )}
                     </div>
                 );
             })()}
@@ -4119,13 +4176,20 @@ export default function AdminDashboard() {
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Commercial</th>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Contact</th>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Ventes Validées</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">CA Généré</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Dernière Vente</th>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Statut</th>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
                         {commercials.map(comm => {
-                            const repSales = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client').length;
+                            const commClients = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client');
+                            const repSales = commClients.length;
+                            const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
+                            const lastSaleDate = repSales > 0 
+                               ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR')
+                               : '-';
                             return (
                                 <tr key={comm.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                                     <td className="p-5 lg:p-6 flex items-center gap-4">
@@ -4138,7 +4202,13 @@ export default function AdminDashboard() {
                                         <p className="text-xs font-bold text-zinc-500">{comm.phone}</p>
                                     </td>
                                     <td className="p-5 lg:p-6 text-center">
+                                        <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest">{caTotal.toLocaleString('fr-FR')} F</span>
+                                    </td>
+                                    <td className="p-5 lg:p-6 text-center">
                                         <span className="text-xl font-black text-[#39FF14]">{repSales}</span>
+                                    </td>
+                                    <td className="p-5 lg:p-6 text-center">
+                                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{lastSaleDate}</span>
                                     </td>
                                     <td className="p-5 lg:p-6 text-center">
                                         <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
@@ -4446,10 +4516,16 @@ export default function AdminDashboard() {
                 </label>
                 
                 <div className="space-y-3">
-                   {(editingContact?.active_saas || []).length === 0 ? (
-                      <p className="text-xs text-zinc-400 italic ml-4 sm:ml-6">Aucun abonnement actif.</p>
-                   ) : (
-                      (editingContact?.active_saas || []).map((saas, idx) => (
+                   {(() => {
+                      const activeSaasList = (editingContact?.active_saas?.length ?? 0) > 0 
+                         ? editingContact.active_saas 
+                         : (editingContact?.saas ? [editingContact.saas] : []);
+                      
+                      if (!activeSaasList || activeSaasList.length === 0) {
+                         return <p className="text-xs text-zinc-400 italic ml-4 sm:ml-6">Aucun abonnement actif.</p>;
+                      }
+                      
+                      return activeSaasList.map((saas: string, idx: number) => (
                          <div key={idx} className="bg-zinc-50 dark:bg-zinc-900/50 p-4 sm:p-5 rounded-[1.75rem] border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-[#39FF14]">
                             <div>
                                <p className="font-black text-sm uppercase text-black dark:text-white">{saas}</p>
@@ -4458,7 +4534,7 @@ export default function AdminDashboard() {
                             <div className="flex items-center gap-3">
                                <input 
                                   type="date"
-                                  value={editingContact?.saas_expiration_dates?.[saas] || ''}
+                                  value={editingContact?.saas_expiration_dates?.[saas] || editingContact?.expiration_date || ''}
                                   onChange={e => handleSaasDateChange(saas, e.target.value)}
                                   className="p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-xs outline-none focus:border-[#39FF14] transition-all text-black dark:text-white"
                                   title="Date de fin"
@@ -4468,8 +4544,8 @@ export default function AdminDashboard() {
                                </button>
                             </div>
                          </div>
-                      ))
-                   )}
+                      ));
+                   })()}
                 </div>
 
                 <div className="mt-4 animate-in fade-in slide-in-from-top-2">
@@ -5042,7 +5118,9 @@ export default function AdminDashboard() {
 
          <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar space-y-3">
             {(() => {
-               const commClients = contacts.filter(c => (c.commercial_id && String(c.commercial_id) === String(viewCommercialClients.id)) || c.assigned_to === viewCommercialClients.full_name);
+               const commClients = contacts
+                   .filter(c => (c.commercial_id && String(c.commercial_id) === String(viewCommercialClients.id)) || c.assigned_to === viewCommercialClients.full_name)
+                   .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
                if (commClients.length === 0) return <p className="text-zinc-500 text-sm italic text-center py-10">Aucun compte créé par ce commercial pour le moment.</p>;
                return commClients.map(c => (
                    <div key={c.id} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex justify-between items-center hover:border-[#00E5FF]/50 transition-colors">
