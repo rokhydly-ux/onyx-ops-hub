@@ -248,6 +248,8 @@ export default function AdminDashboard() {
   const [viewCommercialClients, setViewCommercialClients] = useState<any>(null);
   const [commercialHistoryFilter, setCommercialHistoryFilter] = useState('all');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [commissionModal, setCommissionModal] = useState<any>(null);
+  const [commissionAmount, setCommissionAmount] = useState<string>('');
 
   const activeSalesTeam = [
       { name: 'Admin Onyx', avatar: 'https://ui-avatars.com/api/?name=AO&background=000&color=39FF14' },
@@ -1686,6 +1688,26 @@ export default function AdminDashboard() {
       }
   };
 
+  const handleAddManualCommission = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+          const amount = parseInt(commissionAmount);
+          if (isNaN(amount) || amount <= 0) throw new Error("Veuillez entrer un montant valide.");
+          
+          const currentCommission = commissionModal.manual_commission || 0;
+          const { error } = await supabase.from('commercials').update({ manual_commission: currentCommission + amount }).eq('id', commissionModal.id);
+          
+          if (error) throw error;
+          
+          alert(`Prime de ${amount.toLocaleString('fr-FR')} F attribuée avec succès à ${commissionModal.full_name} !`);
+          setCommissionModal(null);
+          setCommissionAmount('');
+          fetchSupabaseData();
+      } catch (err: any) {
+          alert("Erreur : " + err.message);
+      }
+  };
+
   const handleResetCommercialPin = () => {
       setEditCommercialForm({ ...editCommercialForm, password_temp: 'central2026' });
       alert("Le PIN a été réinitialisé à 0000 (central2026). Cliquez sur Enregistrer pour valider.");
@@ -2492,7 +2514,7 @@ export default function AdminDashboard() {
           </div>
           
           <div className="flex items-center gap-4 lg:gap-6">
-            <div className="hidden lg:flex flex-1 min-w-[400px] xl:min-w-[600px] relative">
+            <div className="hidden lg:flex flex-1 max-w-[250px] xl:max-w-[400px] relative">
                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
                <input type="search" placeholder="Recherche globale (leads, CRM, ambassadeurs…)" value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="w-full pl-12 pr-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
             </div>
@@ -4215,6 +4237,9 @@ export default function AdminDashboard() {
                                         <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
                                     </td>
                                     <td className="p-5 lg:p-6 text-right space-x-2">
+                                        <button onClick={() => { setCommissionModal(comm); setCommissionAmount(''); }} className="p-2 bg-green-50 dark:bg-green-900/30 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-colors" title="Attribuer Prime Manuelle">
+                                            <DollarSign size={16}/>
+                                        </button>
                                         <button onClick={() => { setViewCommercialClients(comm); setCommercialHistoryFilter('all'); }} className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-500 hover:bg-purple-500 hover:text-white rounded-lg transition-colors" title="Historique d'Acquisition">
                                             <Users size={16}/>
                                         </button>
@@ -5182,6 +5207,33 @@ export default function AdminDashboard() {
          </div>
       </div>
     </div>
+  )}
+
+  {/* --- MODALE COMMISSION MANUELLE --- */}
+  {commissionModal && (
+     <div id="modal-overlay" onClick={handleOutsideClick(setCommissionModal, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-green-500 my-auto">
+         <button onClick={() => setCommissionModal(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
+         <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white`}>Attribuer Prime</h2>
+         <p className="text-xs font-bold text-zinc-500 mb-8 uppercase tracking-widest">Commercial : {commissionModal.full_name}</p>
+         
+         <form onSubmit={handleAddManualCommission} className="space-y-4">
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Montant de la prime (F CFA)</label>
+              <input type="number" required value={commissionAmount} onChange={e => setCommissionAmount(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-lg outline-none focus:border-green-500" placeholder="Ex: 15000" />
+           </div>
+           
+           <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/50 p-4 rounded-2xl mt-4">
+              <p className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest mb-1">Primes cumulées</p>
+              <p className="text-lg font-black text-green-700 dark:text-green-300">{(commissionModal.manual_commission || 0).toLocaleString('fr-FR')} F</p>
+           </div>
+
+           <button type="submit" className="w-full bg-green-500 text-white py-4 rounded-[1.5rem] font-black uppercase text-xs mt-4 shadow-xl hover:scale-[1.02] transition-all flex justify-center items-center gap-2">
+             <CheckCircle size={18}/> Confirmer l'attribution
+           </button>
+         </form>
+       </div>
+     </div>
   )}
 
   {/* --- MODALE AJOUT COMMERCIAL MANUEL --- */}
