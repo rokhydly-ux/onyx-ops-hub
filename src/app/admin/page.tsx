@@ -36,6 +36,7 @@ type Contact = {
   email?: string;
   phone: string;
   address?: string;
+  city?: string;
   country?: string;
   status: string;
   type: string;
@@ -943,6 +944,7 @@ export default function AdminDashboard() {
                   <h3>Facturé à</h3>
                   <p>${lead.full_name}</p>
                   <p>${lead.phone}</p>
+                  ${lead.city ? `<p>${lead.city}</p>` : ''}
                 </div>
                 <div class="info-box" style="text-align: right;">
                   <h3>Informations de paiement</h3>
@@ -1072,6 +1074,7 @@ export default function AdminDashboard() {
                   <h3>Adressé à</h3>
                   <p>${lead.full_name}</p>
                   <p>${lead.phone}</p>
+                  ${lead.city ? `<p>${lead.city}</p>` : ''}
                 </div>
                 <div class="info-box" style="text-align: right;">
                   <h3>Informations de paiement</h3>
@@ -1178,6 +1181,7 @@ export default function AdminDashboard() {
               <div class="info-section">
                 <div class="info-box">
                   <h3>Facturé à</h3><p>${lead.full_name}</p><p>${lead.phone}</p>
+                  ${lead.city ? `<p>${lead.city}</p>` : ''}
                 </div>
               </div>
               <table><thead><tr><th>Désignation</th><th style="text-align: center;">Qté</th><th style="text-align: right;">Total</th></tr></thead>
@@ -1245,6 +1249,7 @@ export default function AdminDashboard() {
                   <h3>Facturé à</h3>
                   <p>${lead.full_name}</p>
                   <p>${lead.phone}</p>
+                  ${lead.city ? `<p>${lead.city}</p>` : ''}
                 </div>
                 <div class="info-box" style="text-align: right;">
                   <h3>Informations de paiement</h3>
@@ -1560,6 +1565,7 @@ export default function AdminDashboard() {
     active_saas: editingContact.active_saas || [],
     saas_expiration_dates: editingContact.saas_expiration_dates || {},
     address: editingContact.address || '',
+    city: editingContact.city || '',
     activity: editingContact.activity || '',
     avatar_url: editingContact.avatar_url || '',
     expiration_date: finalExpDate,
@@ -4622,6 +4628,10 @@ export default function AdminDashboard() {
                 {prorataMsg && <p className="text-xs text-black font-bold bg-[#39FF14] p-3 rounded-xl animate-in fade-in">{prorataMsg}</p>}
               </div>
 
+              <div className="space-y-2">
+                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Ville / Quartier</label>
+                 <input type="text" value={editingContact?.city || ""} onChange={e => setEditingContact({...editingContact, city: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="Ex: Dakar, Plateau" />
+              </div>
               <div className="space-y-2">
                  <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Quartier / Adresse</label>
                  <input type="text" value={editingContact?.address || ""} onChange={e => setEditingContact({...editingContact, address: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="Quartier ou adresse postale" />

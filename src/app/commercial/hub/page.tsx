@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut, Settings, X, Trophy, Target, Star, Medal, Sun, Moon } from 'lucide-react';
+import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut, Settings, X, Trophy, Target, Star, Medal, Sun, Moon, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -21,6 +21,7 @@ export default function CommercialHub() {
   const [formData, setFormData] = useState({
     shopName: '',
     phone: '',
+    city: '',
     product: ''
   });
 
@@ -71,13 +72,21 @@ export default function CommercialHub() {
 
   const fetchMyActivity = async (commercialId: string, fullName: string) => {
     if (!commercialId && !fullName) return;
-    let orQuery = [];
-    if (commercialId) orQuery.push(`commercial_id.eq.${commercialId}`);
-    if (fullName) orQuery.push(`assigned_to.eq."${fullName}"`);
     
-    const { data } = await supabase.from('clients').select('*').or(orQuery.join(','));
-    if (data) {
-        const sorted = data.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    const promises = [];
+    if (commercialId) promises.push(supabase.from('clients').select('*').eq('commercial_id', commercialId));
+    if (fullName) promises.push(supabase.from('clients').select('*').eq('assigned_to', fullName));
+    
+    const results = await Promise.all(promises);
+    const allData = results.flatMap(r => r.data || []);
+    
+    // Dédoublonnage par ID garanti à 100%
+    const uniqueClientsMap = new Map();
+    allData.forEach(item => uniqueClientsMap.set(item.id, item));
+    const uniqueData = Array.from(uniqueClientsMap.values());
+    
+    if (uniqueData.length > 0) {
+        const sorted = uniqueData.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setMyClients(sorted);
     }
   };
@@ -131,6 +140,7 @@ export default function CommercialHub() {
       const { error } = await supabase.from('clients').insert([{
         full_name: formData.shopName,
         phone: cleanPhone,
+        city: formData.city,
         saas: saasName,
         active_saas: [saasName],
         saas_expiration_dates: { [saasName]: trialEndDateStr },
@@ -147,7 +157,7 @@ export default function CommercialHub() {
 
       alert(`Succès ! Le client ${formData.shopName} a bien été enregistré sur votre compte.`);
       
-      setFormData({ shopName: '', phone: '', product: '' });
+      setFormData({ shopName: '', phone: '', city: '', product: '' });
       setAddCm(false);
       
       if (currentUser?.id) fetchMyActivity(currentUser.id, currentUser.full_name);
@@ -206,6 +216,55 @@ export default function CommercialHub() {
       return { title: "Explosion des scores", desc: `Dépassez votre objectif ! Vos commissions s'envolent.`, reward: "Super Prime" };
   };
   const mission = getNextMission();
+
+  // --- GÉNÉRATION ACOMPTE (COMMERCIAL) ---
+  const generateAcompte = (client: any) => {
+      const montant = client.saas?.includes('Modernize') ? '150 000' : client.saas?.includes('Boost') ? '75 000' : '25 000';
+      const totalStr = montant + ' F CFA';
+      const invoiceWindow = window.open("", "_blank");
+      if (invoiceWindow) {
+          invoiceWindow.document.write(`
+          <html>
+              <head>
+              <title>Facture Acompte - ${client.full_name}</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
+                  .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; }
+                  .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+                  .header h1 { font-size: 32px; font-weight: 900; margin: 0; text-transform: uppercase; }
+                  .info-section { display: flex; justify-content: space-between; margin-bottom: 40px; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+                  .info-box p { margin: 4px 0; font-size: 14px; font-weight: bold; }
+                  table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                  th { background-color: #000; color: #fff; padding: 12px; text-align: left; }
+                  td { padding: 12px; border-bottom: 1px solid #eee; }
+                  .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+                  .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
+              </style>
+              </head>
+              <body>
+              <div class="invoice-box">
+                  <div class="header">
+                  <div><h1>FACTURE D'ACOMPTE</h1><p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #39FF14;">ONYX OPS</p></div>
+                  <div style="text-align: right;"><p style="margin: 0; font-size: 14px;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p><p style="margin: 0; font-size: 14px;"><strong>Réf:</strong> AC-${Date.now().toString().slice(-6)}</p><p style="margin: 0; font-size: 14px;"><strong>Commercial:</strong> ${currentUser?.full_name || ''}</p></div>
+                  </div>
+                  <div class="info-section">
+                  <div class="info-box"><h3 style="font-size: 11px; text-transform: uppercase; color: #888;">Facturé à</h3><p>${client.full_name}</p><p>${client.phone}</p>${client.city ? `<p>${client.city}</p>` : ''}</div>
+                  <div class="info-box" style="text-align: right;"><h3 style="font-size: 11px; text-transform: uppercase; color: #888;">Paiement</h3><p>Lien sécurisé : pay.onyxops.com/acompte</p><p>Wave / Orange Money</p></div>
+                  </div>
+                  <table>
+                  <thead><tr><th>Désignation</th><th style="text-align: center;">Qté</th><th style="text-align: right;">Total</th></tr></thead>
+                  <tbody><tr><td>Acompte Démarrage - ${client.saas || 'Offre Onyx'}</td><td style="text-align: center;">1</td><td style="text-align: right;">${totalStr}</td></tr></tbody>
+                  </table>
+                  <div class="totals"><div class="total-row"><span>NET À PAYER</span><span>${totalStr}</span></div></div>
+              </div>
+              <script>window.print();</script>
+              </body>
+          </html>
+          `);
+          invoiceWindow.document.close();
+      }
+  };
 
   return (
     <div className={`min-h-screen ${themeBg} flex flex-col font-sans pb-20 transition-colors`}>
@@ -272,6 +331,18 @@ export default function CommercialHub() {
                     className={`w-full ${inputBg} rounded-r-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] transition`}
                   />
                 </div>
+              </div>
+              
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Ville / Quartier *</label>
+                <input 
+                  type="text" 
+                  required
+                  value={formData.city}
+                  onChange={e => setFormData({...formData, city: e.target.value})}
+                  placeholder="Ex: Dakar, Plateau" 
+                  className={`w-full ${inputBg} rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] transition`}
+                />
               </div>
               
               <div>
@@ -479,12 +550,16 @@ export default function CommercialHub() {
                     <div>
                       <p className={`font-black ${isDark ? 'text-white' : 'text-black'} text-sm`}>{client.full_name}</p>
                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">{client.saas}</p>
+                      {client.city && <p className="text-[10px] font-bold bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded uppercase mt-1 w-max">{client.city}</p>}
                     </div>
-                    <div className="text-left sm:text-right">
+                    <div className="text-left sm:text-right flex flex-col sm:items-end gap-2">
                       <span className={`flex items-center justify-end gap-1 text-[10px] font-black uppercase px-2 py-1 rounded-md mb-1 ${client.type?.trim().toLowerCase() === 'client' ? 'bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14]' : 'bg-orange-500/10 border border-orange-500/30 text-orange-500'}`}>
                         {client.type?.trim().toLowerCase() === 'client' ? <CheckCircle size={12} /> : <Clock size={12} />} {client.type?.trim().toLowerCase() === 'client' ? 'Converti' : 'En essai'}
                       </span>
-                      <p className="text-[9px] text-zinc-500">{new Date(client.created_at || Date.now()).toLocaleDateString('fr-FR')}</p>
+                      <div className="flex items-center gap-2">
+                         <p className="text-[9px] text-zinc-500">{new Date(client.created_at || Date.now()).toLocaleDateString('fr-FR')}</p>
+                         <button onClick={() => generateAcompte(client)} className="text-[9px] font-black uppercase bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white px-2 py-1 rounded hover:text-[#39FF14] transition-colors flex items-center gap-1 shadow-sm"><FileText size={10} /> Facture</button>
+                      </div>
                     </div>
                   </div>
                 ))}
