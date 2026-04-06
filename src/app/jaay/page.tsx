@@ -239,8 +239,8 @@ export default function OnyxJaayLanding() {
 
       {/* Navbar */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
-         <button onClick={() => window.location.href = '/'} className="font-sans text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black hover:scale-105 transition-transform">
-            ONYX<span className="text-[#39FF14] drop-shadow-sm">JAAY</span>
+         <button onClick={() => window.location.href = '/'} className="flex items-center gap-2 hover:scale-105 transition-transform">
+            <img src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" alt="Onyx Logo" width="350" height="250" className="h-[60px] w-auto object-contain" />
          </button>
          
          <div className="flex items-center gap-4">

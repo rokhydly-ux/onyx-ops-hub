@@ -777,8 +777,7 @@ export default function OnyxOpsElite() {
         {/* --- NAVIGATION --- */}
         <nav className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex justify-between items-center w-full z-50 shadow-sm transition-all duration-300">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateTo('home')}>
-            <Image src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" width={150} height={50} className="h-[40px] w-auto object-contain" unoptimized />
-            <span className={`${spaceGrotesk.className} font-black tracking-tighter text-2xl hidden sm:block`}>ONYX OPS</span>
+            <Image src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" alt="Onyx Logo" width={350} height={250} className="h-[60px] w-auto object-contain" unoptimized />
           </div>
           
           <div className="hidden lg:flex gap-8 font-bold text-sm uppercase items-center">
@@ -1458,8 +1457,8 @@ export default function OnyxOpsElite() {
                 <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-zinc-200 mb-8">
                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Votre Lien de Parrainage</p>
                    <div className="bg-zinc-100 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 border border-zinc-200 hover:border-black transition">
-                      <span className="text-sm font-bold text-zinc-600 truncate flex-1">https://onyxops.com/ref/ambassadeur-demo</span>
-                      <button onClick={() => handleCopy('https://onyxops.com/ref/ambassadeur-demo', 'link')} className="w-full md:w-auto bg-black text-[#39FF14] px-6 py-3 rounded-xl text-xs font-black uppercase hover:scale-105 transition flex justify-center items-center gap-2">
+                      <span className="text-sm font-bold text-zinc-600 truncate flex-1">https://onyxlinks.com/ref/ambassadeur-demo</span>
+                      <button onClick={() => handleCopy('https://onyxlinks.com/ref/ambassadeur-demo', 'link')} className="w-full md:w-auto bg-black text-[#39FF14] px-6 py-3 rounded-xl text-xs font-black uppercase hover:scale-105 transition flex justify-center items-center gap-2">
                         {copiedLink === 'link' ? <><Check size={16}/> Copié</> : <><Link size={16}/> Copier le lien</>}
                       </button>
                    </div>
@@ -1959,15 +1958,14 @@ export default function OnyxOpsElite() {
            <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8 mb-12">
               <div className="md:col-span-2">
                  <div className="flex items-center gap-3 mb-6">
-                    <Image src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Onyx Logo" width={150} height={50} className="h-[40px] w-auto object-contain grayscale opacity-80" unoptimized />
-                    <span className={`${spaceGrotesk.className} font-black tracking-tighter text-2xl text-white`}>ONYX OPS</span>
+                 <Image src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" alt="Onyx Logo" width={350} height={250} className="h-[60px] w-auto object-contain grayscale opacity-80" unoptimized />
                  </div>
                  <p className="text-zinc-500 text-sm max-w-sm mb-6">
                     Le premier écosystème digital tout-en-un pour les entreprises au Sénégal. Gagnez du temps, augmentez vos ventes et dominez votre marché grâce à l'automatisation WhatsApp.
                  </p>
                  <div className="flex items-center gap-4">
                     <button onClick={() => handleWaClick("Contact Support", "Bonjour l'équipe OnyxOps, je souhaite vous contacter.")} className="text-zinc-400 hover:text-[#39FF14] transition"><MessageSquare size={20}/></button>
-                    <button onClick={() => window.open('mailto:contact@onyxops.com')} className="text-zinc-400 hover:text-[#39FF14] transition"><Mail size={20}/></button>
+                    <button onClick={() => window.open('mailto:contact@onyxlinks.com')} className="text-zinc-400 hover:text-[#39FF14] transition"><Mail size={20}/></button>
                  </div>
               </div>
               

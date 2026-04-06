@@ -1768,7 +1768,7 @@ export default function DynamicShopPage() {
                   </div>
               </div>
               <div className="flex flex-col items-center gap-2 mt-8 border-t border-zinc-200 dark:border-zinc-800 pt-6">
-                  <p className="text-xs text-zinc-400 dark:text-zinc-600">&copy; {new Date().getFullYear()} {shopInfo.name}. Propulsé par <a href="https://onyxops.com" target="_blank" className="font-bold text-black dark:text-white hover:text-[#39FF14]">OnyxOps</a>.</p>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-600">&copy; {new Date().getFullYear()} {shopInfo.name}. Propulsé par <a href="https://onyxlinks.com" target="_blank" className="font-bold text-black dark:text-white hover:text-[#39FF14]">OnyxOps</a>.</p>
                   <button onClick={() => router.push('/vente')} className="text-[10px] font-bold text-zinc-300 dark:text-zinc-700 hover:text-black dark:hover:text-white transition-colors uppercase tracking-widest mt-2">Accès Administrateur</button>
               </div>
           </footer>

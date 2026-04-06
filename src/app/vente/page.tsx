@@ -3051,7 +3051,7 @@ export default function OnyxJaayShop() {
                             </form>
                         </div>
                     </div>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-600">&copy; {new Date().getFullYear()} {shopInfo.name}. Propulsé par <a href="https://onyxops.com" target="_blank" className="font-bold text-black dark:text-white">OnyxOps</a>.</p>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-600">&copy; {new Date().getFullYear()} {shopInfo.name}. Propulsé par <a href="https://onyxlinks.com" target="_blank" className="font-bold text-black dark:text-white">OnyxOps</a>.</p>
                 </footer>
             )}
           </div>
@@ -6830,7 +6830,7 @@ function ShopSettings({ promoCodes, setPromoCodes, shopInfo, setShopInfo, delive
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
                   <label className="text-xs font-bold text-zinc-500 uppercase mb-1 block">Lien public de la boutique</label>
                   <div className="flex items-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 focus-within:border-[#39FF14] transition-colors">
-                      <span className="text-sm font-bold text-zinc-400">https://onyx-ops-hub.vercel.app/</span>
+                      <span className="text-sm font-bold text-zinc-400">https://onyxlinks.com/</span>
                       <input type="text" value={shopInfo.slug || ''} onChange={(e) => setShopInfo({...shopInfo, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} className="w-full bg-transparent p-3 pl-1 font-bold text-sm outline-none text-black dark:text-white" placeholder="keur-yaay" />
                   </div>
                   <p className="text-[10px] text-zinc-400 mt-2 italic">Ceci sera l'URL que vous partagerez à vos clients.</p>

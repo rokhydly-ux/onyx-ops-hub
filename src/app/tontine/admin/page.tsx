@@ -1914,7 +1914,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
               <div>
                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2 mb-1 block">URL personnalisée de la tontine</label>
                 <div className="flex items-center bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden focus-within:border-black transition">
-                  <span className="bg-zinc-100 text-zinc-500 px-4 py-4 font-bold text-sm border-r border-zinc-200 hidden sm:block">onyxops.com/tontine/</span>
+                  <span className="bg-zinc-100 text-zinc-500 px-4 py-4 font-bold text-sm border-r border-zinc-200 hidden sm:block">onyxlinks.com/tontine/</span>
                   <input type="text" required value={settingsForm.slug} onChange={e => setSettingsForm({...settingsForm, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} className="w-full p-4 bg-transparent font-bold text-sm outline-none text-black" />
                 </div>
                 <p className="text-[9px] font-bold text-orange-500 mt-1.5 ml-2">⚠️ Attention : changer ce lien rendra l'ancien lien WhatsApp invalide.</p>

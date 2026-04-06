@@ -721,7 +721,7 @@ export default function AdminDashboard() {
         <div className="flex flex-col items-center gap-6">
           <div className="w-16 h-16 border-t-4 border-l-4 border-[#39FF14] rounded-full animate-spin shadow-[0_0_20px_#39FF14]"></div>
           <div className="text-center">
-            <h1 className={`font-sans text-2xl font-black text-white uppercase tracking-[0.5em]`}>OnyxOps</h1>
+            <img src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" alt="Onyx Logo" width="350" height="250" className="w-[150px] h-auto object-contain mx-auto mb-2" />
             <p className="text-[10px] font-bold text-[#39FF14] uppercase tracking-widest mt-2 animate-pulse">Initialisation du Terminal de Contrôle...</p>
           </div>
         </div>
@@ -950,7 +950,7 @@ export default function AdminDashboard() {
                 </div>
                 <div class="info-box" style="text-align: right;">
                   <h3>Informations de paiement</h3>
-                  <p>Lien sécurisé : pay.onyxops.com/acompte</p>
+                <p>Lien sécurisé : pay.onyxlinks.com/acompte</p>
                   <p>Wave / Orange Money</p>
                 </div>
               </div>
@@ -992,7 +992,7 @@ export default function AdminDashboard() {
     }
 
     setTimeout(() => {
-      const msg = `Bonjour ${lead.full_name},\n\nVoici votre facture d'acompte (${montant} F CFA) pour le démarrage de l'offre ${lead.saas || 'Onyx'}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxops.com/acompte\n\nMerci de votre confiance !`;
+      const msg = `Bonjour ${lead.full_name},\n\nVoici votre facture d'acompte (${montant} F CFA) pour le démarrage de l'offre ${lead.saas || 'Onyx'}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxlinks.com/acompte\n\nMerci de votre confiance !`;
       window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     }, 500);
   };
@@ -1255,7 +1255,7 @@ export default function AdminDashboard() {
                 </div>
                 <div class="info-box" style="text-align: right;">
                   <h3>Informations de paiement</h3>
-                  <p>Lien sécurisé : pay.onyxops.com/prorata</p>
+              <p>Lien sécurisé : pay.onyxlinks.com/prorata</p>
                   <p>Wave / Orange Money</p>
                 </div>
               </div>
@@ -1297,7 +1297,7 @@ export default function AdminDashboard() {
     }
 
     setTimeout(() => {
-      const msg = `Bonjour ${lead.full_name},\n\nSuite à l'évolution de votre abonnement vers l'offre ${lead.saas}, voici votre facture de régularisation au prorata d'un montant de ${totalStr}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxops.com/prorata\n\nMerci de votre confiance !`;
+      const msg = `Bonjour ${lead.full_name},\n\nSuite à l'évolution de votre abonnement vers l'offre ${lead.saas}, voici votre facture de régularisation au prorata d'un montant de ${totalStr}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxlinks.com/prorata\n\nMerci de votre confiance !`;
       window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     }, 500);
   };
@@ -2395,9 +2395,7 @@ export default function AdminDashboard() {
       {/* ================= SIDEBAR GAUCHE ================= */}
       <aside className="w-72 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col z-30 shadow-sm hidden md:flex transition-all">
         <div className="p-6">
-          <h1 className={`font-sans text-3xl font-black tracking-tighter uppercase cursor-pointer group text-black dark:text-white`} onClick={() => setActiveView('dashboard')}>
-            ONYX<span className="text-[#39FF14] group-hover:drop-shadow-[0_0_8px_rgba(57,255,20,0.6)] transition-all">OPS</span>
-          </h1>
+          <img src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" alt="Onyx Logo" width="350" height="250" className="w-[150px] h-auto object-contain cursor-pointer" onClick={() => setActiveView('dashboard')} />
           <div className="mt-2 flex items-center gap-2">
              <div className="w-1.5 h-1.5 bg-[#39FF14] rounded-full animate-pulse"></div>
              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Admin Hub 2026</p>
@@ -2479,7 +2477,7 @@ export default function AdminDashboard() {
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
             <div className="relative bg-white dark:bg-zinc-950 dark:text-white w-72 h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
                 <div className="p-6 flex justify-between items-center border-b border-zinc-100">
-                  <h1 className="font-sans text-2xl font-black tracking-tighter uppercase">ONYX<span className="text-[#39FF14]">OPS</span></h1>
+                  <img src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" alt="Onyx Logo" width="350" height="250" className="w-[120px] h-auto object-contain" />
                   <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-zinc-100 rounded-full hover:bg-zinc-200"><X size={20}/></button>
                 </div>
                 <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
@@ -2527,7 +2525,7 @@ export default function AdminDashboard() {
           <div className="flex flex-col">
             <div className="flex items-center gap-4 md:hidden mb-1">
                <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-zinc-100 rounded-full text-black"><Menu size={24}/></button>
-               <h2 className={`font-sans text-xl font-black uppercase tracking-tighter text-black dark:text-white`}>ONYX OPS</h2>
+               <img src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" alt="Onyx Logo" width="350" height="250" className="w-[100px] h-auto object-contain" />
             </div>
             <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter text-black dark:text-white`}>
                {activeView === 'dashboard' ? 'Terminal Central' : activeView.replace('-', ' ')}
