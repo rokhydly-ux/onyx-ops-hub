@@ -4216,7 +4216,8 @@ export default function AdminDashboard() {
                             const commClients = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client');
                             const repSales = commClients.length;
                             const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
-                            const convRate = (comm.clicks || 0) > 0 ? ((repSales / comm.clicks) * 100).toFixed(1) + '%' : '0%';
+                            const rawConvRate = (comm.clicks || 0) > 0 ? (repSales / comm.clicks) * 100 : 0;
+                            const convRate = rawConvRate > 0 ? rawConvRate.toFixed(1) + '%' : '0%';
                             const lastSaleDate = repSales > 0 
                                ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR')
                                : '-';
@@ -4238,7 +4239,7 @@ export default function AdminDashboard() {
                                         <span className="text-xl font-black text-[#39FF14]">{repSales}</span>
                                     </td>
                                     <td className="p-5 lg:p-6 text-center">
-                                        <span className="text-sm font-black text-zinc-500 dark:text-zinc-400">{convRate}</span>
+                                        <span className={`text-sm font-black ${rawConvRate >= 15 ? 'bg-[#39FF14]/10 text-[#39FF14] px-3 py-1.5 rounded-lg border border-[#39FF14]/30 shadow-sm' : 'text-zinc-500 dark:text-zinc-400'}`}>{convRate}</span>
                                     </td>
                                     <td className="p-5 lg:p-6 text-center">
                                         <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest">{caTotal.toLocaleString('fr-FR')} F</span>
