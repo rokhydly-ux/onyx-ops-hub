@@ -250,6 +250,7 @@ export default function AdminDashboard() {
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [commissionModal, setCommissionModal] = useState<any>(null);
   const [commissionAmount, setCommissionAmount] = useState<string>('');
+  const [viewingAvatarUrl, setViewingAvatarUrl] = useState<string | null>(null);
 
   const activeSalesTeam = [
       { name: 'Admin Onyx', avatar: 'https://ui-avatars.com/api/?name=AO&background=000&color=39FF14' },
@@ -1349,13 +1350,14 @@ export default function AdminDashboard() {
     doc.setFontSize(11);
     doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
 
-    const tableColumn = ["Commercial", "Contact", "Ventes", "CA Généré", "Dernière Vente", "Statut"];
+    const tableColumn = ["Commercial", "Contact", "Clics", "Ventes", "Taux Conv.", "CA Généré", "Dernière Vente", "Statut"];
     const tableRows = commercials.map(comm => {
         const commClients = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client');
         const repSales = commClients.length;
         const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
         const lastSaleDate = repSales > 0 ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR') : '-';
-        return [comm.full_name, comm.phone, repSales.toString(), `${caTotal.toLocaleString('fr-FR')} F`, lastSaleDate, comm.status || 'Actif'];
+        const convRate = (comm.clicks || 0) > 0 ? ((repSales / comm.clicks) * 100).toFixed(1) + '%' : '0%';
+        return [comm.full_name, comm.phone, (comm.clicks || 0).toString(), repSales.toString(), convRate, `${caTotal.toLocaleString('fr-FR')} F`, lastSaleDate, comm.status || 'Actif'];
     });
 
     autoTable(doc, { head: [tableColumn], body: tableRows, startY: 40, theme: 'grid', headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] } });
@@ -1369,9 +1371,11 @@ export default function AdminDashboard() {
         const repSales = commClients.length;
         const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
         const lastSaleDate = repSales > 0 ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR') : '-';
+        const convRate = (comm.clicks || 0) > 0 ? ((repSales / comm.clicks) * 100).toFixed(1) + '%' : '0%';
         return { 
             'Nom Complet': comm.full_name, 'Téléphone': comm.phone, 'Objectif (Ventes)': comm.objective || 20, 
-            'Ventes Validées': repSales, 'CA Généré (F CFA)': caTotal, 'Dernière Vente': lastSaleDate, 'Statut': comm.status || 'Actif' 
+            'Clics Générés': comm.clicks || 0,
+            'Ventes Validées': repSales, 'Taux de Conversion': convRate, 'CA Généré (F CFA)': caTotal, 'Dernière Vente': lastSaleDate, 'Statut': comm.status || 'Actif' 
         };
     });
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -3272,7 +3276,7 @@ export default function AdminDashboard() {
                         <div key={c.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:border-[#39FF14] transition-all flex flex-col group">
                            <div className="flex justify-between items-start mb-4">
                               <div className="flex items-center gap-3">
-                                 {c.avatar_url ? <img src={c.avatar_url} className="w-12 h-12 rounded-2xl object-cover shadow-sm" /> : <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">{c.full_name?.charAt(0)}</div>}
+                                 {c.avatar_url ? <img onClick={(e) => { e.stopPropagation(); setViewingAvatarUrl(c.avatar_url!); }} src={c.avatar_url} className="w-12 h-12 rounded-2xl object-cover shadow-sm cursor-zoom-in hover:scale-105 transition-transform" title="Agrandir l'image" /> : <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">{c.full_name?.charAt(0)}</div>}
                                  <div>
                                     <p className="font-black text-sm uppercase leading-tight truncate max-w-[150px]">{c.full_name}</p>
                                     <p className="text-xs text-[#39FF14] font-black mt-0.5">{c.phone}</p>
@@ -3320,7 +3324,7 @@ export default function AdminDashboard() {
                       <tr key={c.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-all group">
                         <td className="p-3 lg:p-4">
                           <div className="flex items-center gap-4 lg:gap-6">
-                             {c.avatar_url ? <img src={c.avatar_url} alt="" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl object-cover shadow-sm shrink-0" /> : <div className="w-10 h-10 lg:w-12 lg:h-12 bg-zinc-100 dark:bg-zinc-800 rounded-xl lg:rounded-2xl flex items-center justify-center font-black text-sm lg:text-base text-black dark:text-white group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm shrink-0">{c.full_name?.charAt(0)}</div>}
+                             {c.avatar_url ? <img onClick={(e) => { e.stopPropagation(); setViewingAvatarUrl(c.avatar_url!); }} src={c.avatar_url} alt="" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl object-cover shadow-sm shrink-0 cursor-zoom-in hover:scale-105 transition-transform" title="Agrandir l'image" /> : <div className="w-10 h-10 lg:w-12 lg:h-12 bg-zinc-100 dark:bg-zinc-800 rounded-xl lg:rounded-2xl flex items-center justify-center font-black text-sm lg:text-base text-black dark:text-white group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm shrink-0">{c.full_name?.charAt(0)}</div>}
                              <div>
                                 <p className="font-black text-sm lg:text-base uppercase text-black dark:text-white tracking-tight leading-tight">{c.full_name}</p>
                                 <p className="text-xs lg:text-sm text-[#39FF14] font-black mt-1">{c.phone}</p>
@@ -4198,7 +4202,9 @@ export default function AdminDashboard() {
                         <tr>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Commercial</th>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Contact</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Clics</th>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Ventes Validées</th>
+                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Taux Conv.</th>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">CA Généré</th>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Dernière Vente</th>
                             <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Statut</th>
@@ -4210,6 +4216,7 @@ export default function AdminDashboard() {
                             const commClients = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client');
                             const repSales = commClients.length;
                             const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
+                            const convRate = (comm.clicks || 0) > 0 ? ((repSales / comm.clicks) * 100).toFixed(1) + '%' : '0%';
                             const lastSaleDate = repSales > 0 
                                ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR')
                                : '-';
@@ -4225,10 +4232,16 @@ export default function AdminDashboard() {
                                         <p className="text-xs font-bold text-zinc-500">{comm.phone}</p>
                                     </td>
                                     <td className="p-5 lg:p-6 text-center">
-                                        <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest">{caTotal.toLocaleString('fr-FR')} F</span>
+                                        <span className="text-sm font-black text-zinc-500 dark:text-zinc-400">{comm.clicks || 0}</span>
                                     </td>
                                     <td className="p-5 lg:p-6 text-center">
                                         <span className="text-xl font-black text-[#39FF14]">{repSales}</span>
+                                    </td>
+                                    <td className="p-5 lg:p-6 text-center">
+                                        <span className="text-sm font-black text-zinc-500 dark:text-zinc-400">{convRate}</span>
+                                    </td>
+                                    <td className="p-5 lg:p-6 text-center">
+                                        <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest">{caTotal.toLocaleString('fr-FR')} F</span>
                                     </td>
                                     <td className="p-5 lg:p-6 text-center">
                                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{lastSaleDate}</span>
@@ -4620,7 +4633,7 @@ export default function AdminDashboard() {
                  <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Photo de profil (URL ou Fichier)</label>
                  <div className="flex flex-col sm:flex-row items-center gap-4 ml-4 sm:ml-6 mb-2">
                      {editingContact?.avatar_url ? (
-                         <img src={editingContact.avatar_url} alt="Avatar" className="w-16 h-16 rounded-2xl object-cover border-2 border-[#39FF14] shadow-sm shrink-0" />
+                         <img onClick={() => setViewingAvatarUrl(editingContact.avatar_url!)} src={editingContact.avatar_url} alt="Avatar" className="w-16 h-16 rounded-2xl object-cover border-2 border-[#39FF14] shadow-sm shrink-0 cursor-zoom-in hover:scale-105 transition-transform" title="Agrandir l'image" />
                      ) : (
                          <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center font-black text-xl text-black dark:text-white shadow-sm shrink-0">{editingContact?.full_name?.charAt(0) || '?'}</div>
                      )}
@@ -5317,6 +5330,17 @@ export default function AdminDashboard() {
        </div>
      </div>
   )}
+
+  {/* --- MODALE AFFICHAGE AVATAR GRAND FORMAT --- */}
+  {viewingAvatarUrl && (
+    <div id="modal-overlay" onClick={handleOutsideClick(setViewingAvatarUrl, null)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+       <div className="relative max-w-md md:max-w-2xl w-full flex items-center justify-center animate-in zoom-in-95 duration-300">
+          <button onClick={() => setViewingAvatarUrl(null)} className="absolute -top-12 right-0 sm:-right-12 p-3 bg-zinc-100/10 hover:bg-zinc-100/20 text-white rounded-full transition-all"><X size={24}/></button>
+          <img src={viewingAvatarUrl} alt="Avatar en grand" className="w-full max-h-[80vh] object-contain rounded-3xl shadow-[0_0_50px_rgba(57,255,20,0.15)] border border-zinc-800" />
+       </div>
+    </div>
+  )}
+
 {/* MODALE ÉDITION ARTICLE IA */}
 {editingArticle && (
         <div id="modal-overlay" onClick={handleOutsideClick(setEditingArticle, null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">

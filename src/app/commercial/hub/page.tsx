@@ -496,20 +496,29 @@ export default function CommercialHub() {
         )}
       </main>
 
-      {/* Navigation Bas (Mobile) */}
-      <nav className="fixed bottom-0 w-full bg-black border-t border-zinc-800 flex justify-around p-4 z-50 pb-safe">
+      {/* Navigation Bas (Mobile) avec animation fluide */}
+      <nav className="fixed bottom-0 w-full bg-white dark:bg-black border-t border-zinc-200 dark:border-zinc-800 flex relative z-50 pb-safe sm:hidden overflow-hidden">
+        {/* Background animé (Pillule) */}
+        <div 
+           className="absolute top-0 bottom-0 w-1/2 p-2 transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] pointer-events-none" 
+           style={{ transform: activeTab === 'nouveau' ? 'translateX(0%)' : 'translateX(100%)' }}
+        >
+           <div className="w-full h-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.25rem] shadow-sm"></div>
+        </div>
+        
         <button 
           onClick={() => setActiveTab('nouveau')}
-          className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'nouveau' ? 'text-[#39FF14]' : 'text-zinc-500 hover:text-zinc-400'}`}
+          className={`flex-1 flex flex-col items-center py-3.5 gap-1.5 transition-all duration-500 relative z-10 ${activeTab === 'nouveau' ? 'text-black dark:text-[#39FF14]' : 'text-zinc-400 hover:text-zinc-500'}`}
         >
-          <UserPlus size={24} />
+          <UserPlus size={24} className={`transition-transform duration-500 ${activeTab === 'nouveau' ? 'scale-110' : 'scale-100'}`} />
           <span className="text-[10px] font-black uppercase tracking-widest">Nouveau Client</span>
         </button>
+        
         <button 
           onClick={() => setActiveTab('activite')}
-          className={`flex flex-col items-center gap-1.5 transition-colors ${activeTab === 'activite' ? 'text-[#39FF14]' : 'text-zinc-500 hover:text-zinc-400'}`}
+          className={`flex-1 flex flex-col items-center py-3.5 gap-1.5 transition-all duration-500 relative z-10 ${activeTab === 'activite' ? 'text-black dark:text-[#39FF14]' : 'text-zinc-400 hover:text-zinc-500'}`}
         >
-          <Activity size={24} />
+          <Activity size={24} className={`transition-transform duration-500 ${activeTab === 'activite' ? 'scale-110' : 'scale-100'}`} />
           <span className="text-[10px] font-black uppercase tracking-widest">Mon Activité</span>
         </button>
       </nav>
