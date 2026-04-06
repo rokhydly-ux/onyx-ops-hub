@@ -709,40 +709,96 @@ export default function CommercialHub() {
           </div>
         )}
 
-        {activeTab === 'multimedia' && (
+        {activeTab === 'multimedia' && (() => {
+          const defaultMaterials = [
+            { id: 'd1', title: 'Démo Onyx Jaay - Vente WhatsApp', type: 'Vidéo', url: 'https://www.youtube.com/watch?v=acFsObjm2E0' },
+            { id: 'd2', title: 'Présentation Onyx Tiak - Logistique', type: 'Vidéo', url: 'https://www.youtube.com/watch?v=acFsObjm2E0' },
+            { id: 'd3', title: 'Affiche Promo Pack Tekki', type: 'Image', url: 'https://images.unsplash.com/photo-1557821552-17105176677c?q=80&w=800&auto=format&fit=crop' },
+            { id: 'd4', title: 'Visuel Onyx CRM', type: 'Image', url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop' },
+          ];
+
+          const displayedMaterials = marketingMaterials.length > 0 ? marketingMaterials : defaultMaterials;
+          const videos = displayedMaterials.filter((m: any) => m.type === 'Vidéo');
+          const photos = displayedMaterials.filter((m: any) => m.type !== 'Vidéo');
+
+          return (
           <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4">
             <div className="text-center mb-6">
               <h2 className="text-3xl font-black uppercase tracking-tight">Médias & <span className="text-[#39FF14]">Démos</span></h2>
               <p className="text-sm font-bold text-zinc-500">Vidéos de démonstration et visuels à partager à vos clients.</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {marketingMaterials.map((media: any) => (
-                  <div key={media.id} className={`${cardBg} rounded-[2rem] overflow-hidden shadow-sm border flex flex-col`}>
-                     <div className="h-48 bg-zinc-800 relative">
-                        {media.type === 'Vidéo' && getEmbedUrl(media.url) ? (
-                           <iframe src={getEmbedUrl(media.url)} className="w-full h-full border-0" allowFullScreen></iframe>
-                        ) : (
-                           <img src={media.type === 'Vidéo' ? `https://img.youtube.com/vi/${media.url.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg` : media.url} alt={media.title} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" onError={(e:any) => e.target.src = 'https://placehold.co/600x400/111/39FF14?text=Média'} />
-                        )}
-                        <span className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase border border-[#39FF14]/30 flex items-center gap-1">
-                           {media.type === 'Vidéo' ? <Video size={12}/> : <ImageIcon size={12}/>} {media.type}
-                        </span>
-                     </div>
-                     <div className="p-5 flex flex-col gap-4">
-                        <h3 className={`font-black text-lg ${isDark ? 'text-white' : 'text-black'}`}>{media.title}</h3>
-                        <div className="flex flex-wrap items-center gap-2">
-                           <button onClick={() => handleShareMedia(media.url, media.title, 'whatsapp')} className="p-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebd58] transition" title="WhatsApp"><MessageSquare size={16}/></button>
-                           <button onClick={() => handleShareMedia(media.url, media.title, 'facebook')} className="p-2 bg-[#1877F2] text-white rounded-lg hover:opacity-80 transition" title="Facebook"><Facebook size={16}/></button>
-                           <button onClick={() => handleShareMedia(media.url, media.title, 'twitter')} className="p-2 bg-black text-white rounded-lg hover:bg-zinc-800 transition" title="X (Twitter)"><Twitter size={16}/></button>
-                           <button onClick={() => handleShareMedia(media.url, media.title, 'copy')} className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"><Link size={14}/> Copier Lien</button>
+            {videos.length > 0 && (
+               <div className="mb-10">
+                  <h3 className={`flex items-center gap-2 text-xl font-black uppercase mb-6 ${isDark ? 'text-white' : 'text-black'}`}>
+                     <Video className="text-[#39FF14]" size={24} /> Vidéos de Démo
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     {videos.map((media: any) => (
+                        <div key={media.id} className={`${cardBg} rounded-[2rem] overflow-hidden shadow-sm border flex flex-col group`}>
+                           <div className="h-48 bg-zinc-800 relative overflow-hidden">
+                              {getEmbedUrl(media.url) ? (
+                                 <iframe src={getEmbedUrl(media.url)} className="w-full h-full border-0" allowFullScreen></iframe>
+                              ) : (
+                                 <img src={`https://img.youtube.com/vi/${media.url.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg`} alt={media.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" onError={(e:any) => e.target.src = 'https://placehold.co/600x400/111/39FF14?text=Vidéo'} />
+                              )}
+                              <span className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase border border-[#39FF14]/30 flex items-center gap-1">
+                                 <Video size={12}/> Vidéo
+                              </span>
+                           </div>
+                           <div className="p-5 flex flex-col gap-4">
+                              <h3 className={`font-black text-lg ${isDark ? 'text-white' : 'text-black'}`}>{media.title}</h3>
+                              <div className="flex flex-wrap items-center gap-2">
+                                 <button onClick={() => handleShareMedia(media.url, media.title, 'whatsapp')} className="p-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebd58] transition" title="WhatsApp"><MessageSquare size={16}/></button>
+                                 <button onClick={() => handleShareMedia(media.url, media.title, 'facebook')} className="p-2 bg-[#1877F2] text-white rounded-lg hover:opacity-80 transition" title="Facebook"><Facebook size={16}/></button>
+                                 <button onClick={() => handleShareMedia(media.url, media.title, 'twitter')} className="p-2 bg-black text-white rounded-lg hover:bg-zinc-800 transition" title="X (Twitter)"><Twitter size={16}/></button>
+                                 <button onClick={() => handleShareMedia(media.url, media.title, 'copy')} className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"><Link size={14}/> Copier Lien</button>
+                              </div>
+                           </div>
                         </div>
-                     </div>
+                     ))}
                   </div>
-               ))}
-            </div>
+               </div>
+            )}
+
+            {photos.length > 0 && (
+               <div>
+                  <h3 className={`flex items-center gap-2 text-xl font-black uppercase mb-6 ${isDark ? 'text-white' : 'text-black'}`}>
+                     <ImageIcon className="text-[#39FF14]" size={24} /> Visuels & Affiches
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     {photos.map((media: any) => (
+                        <div key={media.id} className={`${cardBg} rounded-[2rem] overflow-hidden shadow-sm border flex flex-col group`}>
+                           <div className="h-48 bg-zinc-800 relative overflow-hidden">
+                              <img src={media.url} alt={media.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" onError={(e:any) => e.target.src = 'https://placehold.co/600x400/111/39FF14?text=Image'} />
+                              <span className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase border border-[#39FF14]/30 flex items-center gap-1">
+                                 <ImageIcon size={12}/> Image
+                              </span>
+                           </div>
+                           <div className="p-5 flex flex-col gap-4">
+                              <h3 className={`font-black text-lg ${isDark ? 'text-white' : 'text-black'}`}>{media.title}</h3>
+                              <div className="flex flex-wrap items-center gap-2">
+                                 <button onClick={() => handleShareMedia(media.url, media.title, 'whatsapp')} className="p-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebd58] transition" title="WhatsApp"><MessageSquare size={16}/></button>
+                                 <button onClick={() => handleShareMedia(media.url, media.title, 'facebook')} className="p-2 bg-[#1877F2] text-white rounded-lg hover:opacity-80 transition" title="Facebook"><Facebook size={16}/></button>
+                                 <button onClick={() => handleShareMedia(media.url, media.title, 'twitter')} className="p-2 bg-black text-white rounded-lg hover:bg-zinc-800 transition" title="X (Twitter)"><Twitter size={16}/></button>
+                                 <button onClick={() => handleShareMedia(media.url, media.title, 'copy')} className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"><Link size={14}/> Copier Lien</button>
+                              </div>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+            
+            {marketingMaterials.length === 0 && (
+               <div className="mt-8 text-center p-6 border border-dashed border-zinc-500/50 rounded-2xl">
+                  <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Affichage de démonstration</p>
+                  <p className="text-zinc-600 text-xs mt-2">L'administrateur n'a pas encore ajouté de contenu réel. Ces médias sont des exemples.</p>
+               </div>
+            )}
           </div>
-        )}
+          );
+        })()}
       </main>
       </div>
 
