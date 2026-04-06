@@ -266,6 +266,68 @@ export default function CommercialHub() {
       }
   };
 
+  // --- GÉNÉRATION FACTURE GLOBALE (COMMERCIAL) ---
+  const generateFactureFinale = (client: any) => {
+      const getMontant = (saas: string) => {
+         if (!saas) return '13 900';
+         if (saas.includes('Modernize')) return '300 000';
+         if (saas.includes('Boost')) return '150 000';
+         if (saas.includes('Gold')) return '59 900';
+         if (saas.includes('Add-on CM Pub')) return '49 900';
+         if (saas.includes('CRM')) return '39 900';
+         if (saas.includes('Tekki Pro')) return '27 900';
+         if (saas.includes('Tekki') || saas.includes('Trio')) return '22 900';
+         if (saas.includes('Tontine')) return '6 900';
+         return '13 900';
+      };
+      
+      const montant = getMontant(client.saas);
+      const totalStr = montant + ' F CFA';
+      const invoiceWindow = window.open("", "_blank");
+      if (invoiceWindow) {
+          invoiceWindow.document.write(`
+          <html>
+              <head>
+              <title>Facture - ${client.full_name}</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 40px; color: #111; }
+                  .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; border-radius: 10px; }
+                  .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+                  .header h1 { font-size: 32px; font-weight: 900; margin: 0; text-transform: uppercase; }
+                  .info-section { display: flex; justify-content: space-between; margin-bottom: 40px; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+                  .info-box p { margin: 4px 0; font-size: 14px; font-weight: bold; }
+                  table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                  th { background-color: #000; color: #fff; padding: 12px; text-align: left; }
+                  td { padding: 12px; border-bottom: 1px solid #eee; }
+                  .totals { width: 50%; float: right; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+                  .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #000; }
+              </style>
+              </head>
+              <body>
+              <div class="invoice-box">
+                  <div class="header">
+                  <div><h1>FACTURE</h1><p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: #39FF14;">ONYX OPS</p></div>
+                  <div style="text-align: right;"><p style="margin: 0; font-size: 14px;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p><p style="margin: 0; font-size: 14px;"><strong>Réf:</strong> FAC-${Date.now().toString().slice(-6)}</p><p style="margin: 0; font-size: 14px;"><strong>Commercial:</strong> ${currentUser?.full_name || ''}</p></div>
+                  </div>
+                  <div class="info-section">
+                  <div class="info-box"><h3 style="font-size: 11px; text-transform: uppercase; color: #888;">Facturé à</h3><p>${client.full_name}</p><p>${client.phone}</p>${client.city ? `<p>${client.city}</p>` : ''}</div>
+                  <div class="info-box" style="text-align: right;"><h3 style="font-size: 11px; text-transform: uppercase; color: #888;">Paiement</h3><p>Lien sécurisé : pay.onyxops.com</p><p>Wave / Orange Money</p></div>
+                  </div>
+                  <table>
+                  <thead><tr><th>Désignation</th><th style="text-align: center;">Qté</th><th style="text-align: right;">Total</th></tr></thead>
+                  <tbody><tr><td>Abonnement - ${client.saas || 'Offre Onyx'}</td><td style="text-align: center;">1</td><td style="text-align: right;">${totalStr}</td></tr></tbody>
+                  </table>
+                  <div class="totals"><div class="total-row"><span>NET À PAYER</span><span>${totalStr}</span></div></div>
+              </div>
+              <script>window.print();</script>
+              </body>
+          </html>
+          `);
+          invoiceWindow.document.close();
+      }
+  };
+
   return (
     <div className={`min-h-screen ${themeBg} flex flex-col font-sans pb-20 transition-colors`}>
       
@@ -295,6 +357,25 @@ export default function CommercialHub() {
 
       {/* Contenu principal */}
       <main className="flex-1 p-6">
+        
+        {/* Navigation Bureau (Desktop) */}
+        <div className="hidden sm:flex justify-center mb-8 animate-in fade-in slide-in-from-top-4">
+           <div className={`flex p-1.5 rounded-2xl ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-100 border-zinc-200'} border shadow-sm`}>
+              <button 
+                 onClick={() => setActiveTab('nouveau')} 
+                 className={`flex items-center gap-2 px-8 py-3 rounded-xl font-black uppercase text-xs transition-all ${activeTab === 'nouveau' ? (isDark ? 'bg-black text-[#39FF14] shadow-md' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}
+              >
+                 <UserPlus size={16} /> Nouveau Client
+              </button>
+              <button 
+                 onClick={() => setActiveTab('activite')} 
+                 className={`flex items-center gap-2 px-8 py-3 rounded-xl font-black uppercase text-xs transition-all ${activeTab === 'activite' ? (isDark ? 'bg-black text-[#39FF14] shadow-md' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}
+              >
+                 <Activity size={16} /> Mon Activité
+              </button>
+           </div>
+        </div>
+
         {activeTab === 'nouveau' ? (
           <div className="space-y-6 max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4">
             <div className="text-center mb-6">
@@ -552,13 +633,14 @@ export default function CommercialHub() {
                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">{client.saas}</p>
                       {client.city && <p className="text-[10px] font-bold bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded uppercase mt-1 w-max">{client.city}</p>}
                     </div>
-                    <div className="text-left sm:text-right flex flex-col sm:items-end gap-2">
+                    <div className="text-left sm:text-right flex flex-col sm:items-end gap-1.5 mt-2 sm:mt-0">
                       <span className={`flex items-center justify-end gap-1 text-[10px] font-black uppercase px-2 py-1 rounded-md mb-1 ${client.type?.trim().toLowerCase() === 'client' ? 'bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14]' : 'bg-orange-500/10 border border-orange-500/30 text-orange-500'}`}>
                         {client.type?.trim().toLowerCase() === 'client' ? <CheckCircle size={12} /> : <Clock size={12} />} {client.type?.trim().toLowerCase() === 'client' ? 'Converti' : 'En essai'}
                       </span>
-                      <div className="flex items-center gap-2">
-                         <p className="text-[9px] text-zinc-500">{new Date(client.created_at || Date.now()).toLocaleDateString('fr-FR')}</p>
-                         <button onClick={() => generateAcompte(client)} className="text-[9px] font-black uppercase bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white px-2 py-1 rounded hover:text-[#39FF14] transition-colors flex items-center gap-1 shadow-sm"><FileText size={10} /> Facture</button>
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                         <p className="text-[9px] text-zinc-500 hidden sm:block">{new Date(client.created_at || Date.now()).toLocaleDateString('fr-FR')}</p>
+                         <button onClick={() => generateAcompte(client)} className="text-[9px] font-black uppercase bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white px-2 py-1 rounded hover:text-[#39FF14] transition-colors flex items-center gap-1 shadow-sm"><FileText size={10} /> Acompte</button>
+                         <button onClick={() => generateFactureFinale(client)} className="text-[9px] font-black uppercase bg-[#39FF14] text-black px-2 py-1 rounded hover:bg-white transition-colors flex items-center gap-1 shadow-sm"><FileText size={10} /> Facture</button>
                       </div>
                     </div>
                   </div>
