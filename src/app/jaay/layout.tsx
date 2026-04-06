@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Onyx Jaay | Catalogue Digital WhatsApp",
     description: "Transformez vos discussions interminables en commandes fermes avec le 1er catalogue phygital 100% WhatsApp.",
-    url: "https://onyx-ops-hub.vercel.app/jaay",
+    url: "https://onyxlinks.com/jaay",
     siteName: "OnyxOps",
     images: [
       {
