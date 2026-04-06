@@ -753,7 +753,7 @@ export default function AmbassadorHub() {
       {/* MODALE DE DEMANDE DE RETRAIT */}
       {showWithdrawModal && (
         <div id="withdraw-modal-overlay" onClick={(e: any) => e.target.id === 'withdraw-modal-overlay' && setShowWithdrawModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2.5rem] w-full max-w-md relative shadow-2xl animate-in zoom-in-95">
+           <div className="bg-zinc-900 border border-zinc-800 p-6 sm:p-8 rounded-3xl w-full max-w-md relative shadow-2xl animate-in zoom-in-95">
               <button onClick={() => setShowWithdrawModal(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white transition-colors"><X size={20}/></button>
               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-white`}>Demande de Retrait</h2>
               <p className="text-zinc-400 text-sm font-bold mb-6">Solde disponible : <span className="text-[#39FF14]">{totalEarnings.toLocaleString()} F</span></p>
@@ -784,7 +784,7 @@ export default function AmbassadorHub() {
 
       {showSettings && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-           <div className="bg-zinc-900 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl relative border border-zinc-800">
+           <div className="bg-zinc-900 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl relative border border-zinc-800">
               <button onClick={() => setShowSettings(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white"><X size={20}/></button>
               <h2 className="text-xl font-black mb-6 text-white uppercase tracking-tighter"><Settings className="inline mr-2 text-[#39FF14]"/> Mon Profil</h2>
               <form onSubmit={handleUpdateProfile} className="space-y-4">

@@ -3018,39 +3018,39 @@ export default function AdminDashboard() {
 
           {/* ================= VUE LEADS (FLUX RÉEL) ================= */}
           {activeView === 'leads' && (
-             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 max-w-[1400px] mx-auto">
-                <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 bg-white p-5 lg:p-6 rounded-3xl border border-zinc-200 shadow-sm">
-                   <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-black rounded-[1.75rem] flex items-center justify-center text-[#39FF14] shadow-2xl animate-pulse"><MessageSquare size={32}/></div>
+             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 max-w-[1400px] mx-auto">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white p-4 lg:p-5 rounded-2xl border border-zinc-200 shadow-sm">
+                   <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-black rounded-xl flex items-center justify-center text-[#39FF14] shadow-2xl animate-pulse"><MessageSquare size={24}/></div>
                       <div>
-                         <h2 className={`font-sans text-3xl lg:text-4xl font-black uppercase tracking-tighter`}>Flux de Leads</h2>
-                         <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Capture en temps réel • Hub WhatsApp : 78 533 84 17</p>
+                         <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Flux de Leads</h2>
+                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Capture en temps réel • Hub WhatsApp : 78 533 84 17</p>
                       </div>
                    </div>
                   <div className="flex flex-wrap items-center gap-4">
-                     <select value={leadFilter} onChange={e => setLeadFilter(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14] bg-white cursor-pointer">
+                     <select value={leadFilter} onChange={e => setLeadFilter(e.target.value)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14] bg-white cursor-pointer">
                        <option value="Tous">Tous les leads</option>
                        <option value="Partiel">Paniers Abandonnés</option>
                      </select>
-                     <input type="search" placeholder="Rechercher un lead…" value={leadSearch} onChange={e => setLeadSearch(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium w-48 md:w-56 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
-                     <button onClick={runAbandonedCartsScan} className="bg-black text-[#39FF14] px-5 py-3 rounded-2xl font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-2 shrink-0">
+                     <input type="search" placeholder="Rechercher un lead…" value={leadSearch} onChange={e => setLeadSearch(e.target.value)} className="px-4 py-2.5 rounded-xl border border-zinc-200 text-xs font-medium w-40 md:w-56 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
+                     <button onClick={runAbandonedCartsScan} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-xl font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-2 shrink-0">
                        <Sparkles size={16}/> Relancer Abandons
                      </button>
-                      <div className="bg-zinc-50 border border-zinc-100 px-6 py-4 rounded-2xl flex items-center gap-3">
+                      <div className="bg-zinc-50 border border-zinc-100 px-4 py-2.5 rounded-xl flex items-center gap-2">
                          <span className="w-2 h-2 bg-[#39FF14] rounded-full animate-ping"></span>
-                         <span className="text-[10px] lg:text-[11px] font-black uppercase text-zinc-500">Flux Connecté</span>
+                         <span className="text-[9px] lg:text-[10px] font-black uppercase text-zinc-500">Flux Connecté</span>
                       </div>
                    </div>
                 </div>
 
-                <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto">
+                <div className="bg-white border border-zinc-200 rounded-[2rem] lg:rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
                    <table className="w-full text-left min-w-[800px]">
                       <thead className="bg-zinc-50/50 border-b border-zinc-100">
                          <tr>
-                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Origine & Contact</th>
-                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Intention / Produit</th>
-                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Message Reçu</th>
-                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Traitement</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Origine & Contact</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Intention / Produit</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Message Reçu</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Traitement</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
@@ -3063,30 +3063,30 @@ export default function AdminDashboard() {
                            const isPartial = (l.intent || '').toLowerCase().includes('partiel');
                            return (
                            <tr key={l.id} className={`hover:bg-zinc-50/50 transition-all group ${isPartial ? 'bg-orange-50/30' : ''}`}>
-                               <td className="p-6 lg:p-5">
+                               <td className="p-3 lg:p-4">
                                   <p className="font-black text-sm uppercase text-black">{l.full_name}</p>
                                   <p className="text-xs text-[#39FF14] font-black mt-1">{l.phone}</p>
                                   <p className="text-[9px] text-zinc-400 font-bold uppercase mt-1.5 opacity-80">Source : {l.source || 'Site Web'}</p>
                                </td>
-                               <td className="p-6 lg:p-5">
+                               <td className="p-3 lg:p-4">
                                   <div className="flex flex-col gap-2">
                                     <span className={`text-[9px] lg:text-[10px] font-black px-3 py-1.5 rounded-xl uppercase inline-block shadow-lg w-max tracking-widest ${isPartial ? 'bg-orange-500 text-white shadow-orange-500/20' : 'bg-black text-[#39FF14]'}`}>{l.intent}</span>
                                      <p className="text-[9px] font-bold text-zinc-400 uppercase ml-2 mt-1">{l.created_at ? new Date(l.created_at).toLocaleDateString() : todayStr}</p>
                                   </div>
                                </td>
-                               <td className="p-6 lg:p-5">
+                               <td className="p-3 lg:p-4">
                                   <p className="text-xs text-zinc-600 font-medium italic max-w-xs leading-relaxed opacity-80 border-l-2 border-zinc-200 pl-4 py-1">&quot;{l.message}&quot;</p>
                                </td>
-                               <td className="p-6 lg:p-5 text-right">
+                               <td className="p-3 lg:p-4 text-right">
                                   <div className="flex flex-wrap items-center justify-end gap-2">
                                      <div className="relative lead-actions-wrap">
-                                        <button onClick={(e) => { e.stopPropagation(); setLeadActionsOpen(leadActionsOpen === l.id ? null : l.id); }} className="bg-[#39FF14] text-black px-5 py-3 rounded-[1.25rem] text-[10px] font-black uppercase shadow-xl hover:bg-black hover:text-[#39FF14] transition-all active:scale-95 flex items-center gap-2">
+                                        <button onClick={(e) => { e.stopPropagation(); setLeadActionsOpen(leadActionsOpen === l.id ? null : l.id); }} className="bg-[#39FF14] text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-xl hover:bg-black hover:text-[#39FF14] transition-all active:scale-95 flex items-center gap-2">
                                            <MoreHorizontal size={16}/> Actions
                                         </button>
                                         {leadActionsOpen === l.id && (
-                                           <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-50 py-2">
+                                           <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-zinc-200 rounded-xl shadow-2xl z-50 py-2">
                                               {getLeadPriorityActions(l).map((a, idx) => (
-                                                 <button key={idx} onClick={() => { a.fn(); setLeadActionsOpen(null); }} className="w-full text-left px-5 py-2.5 text-[10px] font-black uppercase hover:bg-zinc-50 transition-colors flex items-center gap-2">
+                                                 <button key={idx} onClick={() => { a.fn(); setLeadActionsOpen(null); }} className="w-full text-left px-4 py-2 text-[9px] font-black uppercase hover:bg-zinc-50 transition-colors flex items-center gap-2">
                                                     {idx === 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#39FF14] animate-pulse"></span>}
                                                     {a.label}
                                                  </button>
@@ -3094,7 +3094,7 @@ export default function AdminDashboard() {
                                            </div>
                                         )}
                                      </div>
-                                     <button onClick={() => handleDeleteLead(l.id)} className="bg-red-500/10 text-red-600 px-4 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-red-500/20 transition-all" title="Supprimer">Supprimer</button>
+                                     <button onClick={() => handleDeleteLead(l.id)} className="bg-red-500/10 text-red-600 px-3 py-2 rounded-lg text-[9px] font-black uppercase hover:bg-red-500/20 transition-all" title="Supprimer">Supprimer</button>
                                   </div>
                                </td>
                             </tr>
@@ -3106,7 +3106,7 @@ export default function AdminDashboard() {
                            if (search && ![l.full_name, l.phone, l.intent, l.message].some(v => String(v||'').toLowerCase().includes(search))) return false;
                            return true;
                         }).length === 0 && (
-                            <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-widest italic opacity-50">Aucun lead actif dans le flux pour le moment.</td></tr>
+                            <tr><td colSpan={4} className="p-10 lg:p-16 text-center text-zinc-300 font-black uppercase text-xs tracking-widest italic opacity-50">Aucun lead actif dans le flux pour le moment.</td></tr>
                          )}
                       </tbody>
                    </table>
@@ -3116,10 +3116,10 @@ export default function AdminDashboard() {
 
           {/* ================= VUE CRM & MEMBRES ================= */}
           {activeView === 'crm' && (
-            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 max-w-[1600px] mx-auto">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 max-w-[1600px] mx-auto">
               
               {/* CARTES STATS CRM */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-5">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                  {[
                     { id: 'all', label: 'Membres CRM', val: contacts.length, icon: Users, color: 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-black dark:text-white' },
                     { id: 'new_clients', label: 'Clients Actifs', val: contacts.filter(c=>c.type==='Client').length, icon: CheckCircle, color: 'bg-black text-[#39FF14] shadow-2xl border-black dark:border-zinc-800' },
@@ -3129,11 +3129,11 @@ export default function AdminDashboard() {
                     <div 
                       key={card.id} 
                       onClick={() => setCrmCardFilter(crmCardFilter === card.id ? null : card.id)} 
-                      className={`p-5 lg:p-6 rounded-[3rem] lg:rounded-[3.5rem] border cursor-pointer hover:scale-[1.04] transition-all flex flex-col justify-between min-h-[180px] ${card.color} ${crmCardFilter === card.id ? 'ring-[6px] ring-[#39FF14]/30 scale-[1.02]' : ''}`}
+                      className={`p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border cursor-pointer hover:scale-[1.04] transition-all flex flex-col justify-between min-h-[140px] lg:min-h-[160px] ${card.color} ${crmCardFilter === card.id ? 'ring-[4px] ring-[#39FF14]/30 scale-[1.02]' : ''}`}
                     >
-                       <card.icon size={26} className="mb-4 opacity-80" />
+                       <card.icon size={22} className="mb-3 opacity-80" />
                        <div>
-                         <p className={`font-sans text-2xl lg:text-3xl font-black mb-1 tracking-tighter`}>{card.val}</p>
+                         <p className={`font-sans text-xl lg:text-2xl font-black mb-1 tracking-tighter`}>{card.val}</p>
                          <p className="text-[9px] lg:text-[11px] font-black uppercase tracking-[0.2em] opacity-60 leading-none">{card.label}</p>
                        </div>
                     </div>
@@ -3141,17 +3141,17 @@ export default function AdminDashboard() {
               </div>
 
               {/* BARRE DE RECHERCHE CRM */}
-              <div className="flex flex-col bg-white dark:bg-zinc-900 p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
+              <div className="flex flex-col bg-white dark:bg-zinc-900 p-4 lg:p-5 rounded-[1.5rem] lg:rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
                 <div className="flex flex-col xl:flex-row justify-between gap-4 items-center w-full">
                 <div className="absolute top-0 left-0 w-2 h-full bg-[#39FF14] opacity-0 group-hover:opacity-100 transition-all"></div>
                 <div className="flex-1 w-full relative">
-                  <Search className="absolute left-6 lg:left-8 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5 lg:w-6 lg:h-6 transition-all group-focus-within:text-[#39FF14]" />
+                  <Search className="absolute left-4 lg:left-5 top-1/2 -translate-y-1/2 text-zinc-400 w-4 h-4 lg:w-5 lg:h-5 transition-all group-focus-within:text-[#39FF14]" />
                   <input 
                     type="text" 
                     placeholder="Filtrer par nom, téléphone, statut..." 
                     value={crmSearch} 
                     onChange={(e) => setCrmSearch(e.target.value)} 
-                    className="w-full pl-14 pr-6 py-4 bg-zinc-50 border-none rounded-2xl outline-none font-black text-xs text-black focus:ring-4 focus:ring-[#39FF14]/10 transition-all uppercase placeholder:text-zinc-300" 
+                    className="w-full pl-12 pr-4 py-2.5 bg-zinc-50 border-none rounded-xl outline-none font-black text-xs text-black focus:ring-2 focus:ring-[#39FF14]/10 transition-all uppercase placeholder:text-zinc-300" 
                   />
                 </div>
                 
@@ -3159,7 +3159,7 @@ export default function AdminDashboard() {
                    <select 
                      value={crmTypeFilter} 
                      onChange={(e) => setCrmTypeFilter(e.target.value)} 
-                     className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
+                     className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
                    >
                       <option value="Tous">Base Complète</option>
                       <option value="Client">Clients Officiels</option>
@@ -3168,27 +3168,27 @@ export default function AdminDashboard() {
                    <select 
                      value={crmActivityFilter} 
                      onChange={(e) => setCrmActivityFilter(e.target.value)} 
-                     className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
+                     className="px-3 py-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg font-black text-[10px] uppercase tracking-widest outline-none border-none cursor-pointer appearance-none text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
                    >
                       <option value="Tous">Tous Secteurs</option>
                       {Array.from(new Set(contacts.map(c => c.activity).filter((a): a is string => Boolean(a)))).map(act => <option key={act} value={act}>{act}</option>)}
                       <option value="Non défini">Non défini</option>
                    </select>
-                   <button onClick={handleFixMissingExpiryDates} className="flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-md active:scale-95">
+                   <button onClick={handleFixMissingExpiryDates} className="flex items-center justify-center gap-2 bg-blue-500 text-white px-3 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-sm active:scale-95">
                       <Clock size={14} /> Régulariser Dates
                    </button>
-                   <button onClick={handleRelanceProspectsFroids} className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shadow-sm border border-zinc-200 dark:border-zinc-800 active:scale-95">
+                   <button onClick={handleRelanceProspectsFroids} className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-3 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shadow-sm border border-zinc-200 dark:border-zinc-800 active:scale-95">
                       <MessageCircle size={14} /> Relance Froids
                    </button>
-                   <button onClick={runIaScan} className="flex items-center justify-center gap-2 bg-zinc-800 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-md active:scale-95">
+                   <button onClick={runIaScan} className="flex items-center justify-center gap-2 bg-zinc-800 text-white px-3 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-sm active:scale-95">
                       <Sparkles size={14} /> Scan IA
                    </button>
-                   <button onClick={handleExportCrmPdf} className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shadow-sm border border-zinc-200 dark:border-zinc-800 active:scale-95">
+                   <button onClick={handleExportCrmPdf} className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-3 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shadow-sm border border-zinc-200 dark:border-zinc-800 active:scale-95">
                       <FileText size={14} /> Export PDF
                    </button>
                    <button 
                      onClick={openNewClientModal} 
-                     className="flex items-center justify-center gap-2 bg-[#39FF14] text-black px-5 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-lg active:scale-95"
+                     className="flex items-center justify-center gap-2 bg-[#39FF14] text-black px-4 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-sm active:scale-95"
                    >
                       <Plus size={14} /> Ajouter Nouveau
                    </button>
@@ -3292,9 +3292,9 @@ export default function AdminDashboard() {
 
               {/* TABLEAU CRM */}
               {crmViewMode === 'grid' ? (
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 mt-6">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
                      {filteredContacts.map(c => (
-                        <div key={c.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm hover:border-[#39FF14] transition-all flex flex-col group">
+                        <div key={c.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm hover:border-[#39FF14] transition-all flex flex-col group">
                            <div className="flex justify-between items-start mb-4">
                               <div className="flex items-center gap-3">
                                  {c.avatar_url ? <img onClick={(e) => { e.stopPropagation(); setViewingAvatarUrl(c.avatar_url!); }} src={c.avatar_url} className="w-12 h-12 rounded-2xl object-cover shadow-sm cursor-zoom-in hover:scale-105 transition-transform" title="Agrandir l'image" /> : <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">{c.full_name?.charAt(0)}</div>}
@@ -3327,10 +3327,10 @@ export default function AdminDashboard() {
                            </div>
                         </div>
                      ))}
-                     {filteredContacts.length === 0 && <div className="col-span-full p-20 text-center text-zinc-300 font-black uppercase text-xs tracking-widest opacity-50">Aucun résultat trouvé</div>}
+                     {filteredContacts.length === 0 && <div className="col-span-full p-10 text-center text-zinc-300 font-black uppercase text-xs tracking-widest opacity-50">Aucun résultat trouvé</div>}
                  </div>
               ) : (
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm relative overflow-x-auto mt-6">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] lg:rounded-2xl overflow-hidden shadow-sm relative overflow-x-auto mt-4">
                 <table className="w-full text-left min-w-[800px]">
                   <thead className="bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
                     <tr>
@@ -3555,9 +3555,9 @@ export default function AdminDashboard() {
              
              return (
                <div className="space-y-8 animate-in fade-in slide-in-from-right-6 max-w-[1600px] mx-auto h-full flex flex-col">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0">
                      <div className="flex items-center gap-6">
-                        <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#00E5FF] shadow-lg shrink-0"><Layers size={32}/></div>
+                        <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-[#00E5FF] shadow-lg shrink-0"><Layers size={24}/></div>
                         <div>
                            <h2 className={`font-sans text-xl lg:text-2xl font-black uppercase tracking-tighter`}>Pipeline High-Ticket</h2>
                            <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Onyx Boost & Onyx Modernize</p>
@@ -3693,59 +3693,59 @@ export default function AdminDashboard() {
 
           {/* ================= VUE FINANCES (FULL) ================= */}
           {activeView === 'finance' && (
-             <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto">
+             <div className="space-y-6 animate-in fade-in slide-in-from-right-6 max-w-[1500px] mx-auto">
                 {/* HEADER FINANCE */}
-                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-5 lg:p-6 rounded-[3rem] lg:rounded-3xl border border-zinc-200 shadow-sm gap-5 relative overflow-hidden">
+                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 shadow-sm gap-4 relative overflow-hidden">
                    <div className="absolute top-0 right-0 w-40 h-40 bg-zinc-50 opacity-40 translate-x-20 -translate-y-20 rounded-full"></div>
-                   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
-                      <div className="p-5 lg:p-6 bg-black rounded-[1.5rem] lg:rounded-[2rem] text-[#39FF14] shadow-2xl shadow-[#39FF14]/10"><Wallet size={32} className="lg:w-10 lg:h-10"/></div>
+                   <div className="flex items-center gap-4 lg:gap-5 relative z-10">
+                      <div className="p-3 lg:p-4 bg-black rounded-xl text-[#39FF14] shadow-2xl shadow-[#39FF14]/10"><Wallet size={24} className="lg:w-8 lg:h-8"/></div>
                       <div>
-                         <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Hub Financier</h2>
-                         <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Registre des Revenus & Commissions 2026</p>
+                         <h2 className={`font-sans text-xl lg:text-2xl font-black uppercase tracking-tighter`}>Hub Financier</h2>
+                         <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Registre des Revenus & Commissions 2026</p>
                       </div>
                    </div>
                    <div className="flex gap-4 relative z-10">
-                      <button onClick={exportFinanceReport} className="w-full md:w-auto bg-black text-[#39FF14] px-8 lg:px-10 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-2xl active:scale-95">
+                      <button onClick={exportFinanceReport} className="w-full md:w-auto bg-black text-[#39FF14] px-5 lg:px-6 py-2.5 lg:py-3 rounded-xl font-black uppercase text-[9px] lg:text-[10px] tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-2xl active:scale-95">
                          <Download size={18}/> Exporter Rapport
                       </button>
-                      <button onClick={handleExportFinanceExcel} className="hidden md:flex w-full md:w-auto bg-white text-black border border-zinc-200 px-8 lg:px-10 py-4 lg:py-5 rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest items-center justify-center gap-3 hover:scale-105 transition-all shadow-sm active:scale-95">
+                      <button onClick={handleExportFinanceExcel} className="hidden md:flex w-full md:w-auto bg-white text-black border border-zinc-200 px-5 lg:px-6 py-2.5 lg:py-3 rounded-xl font-black uppercase text-[9px] lg:text-[10px] tracking-widest items-center justify-center gap-2 hover:scale-105 transition-all shadow-sm active:scale-95">
                          <FileText size={18}/> Export Excel
                       </button>
                    </div>
                 </div>
                 
                 {/* GRID FINANCIÈRE */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                    {[
                       { label: 'Revenus Globaux', val: `${stats.revenue.toLocaleString('fr-FR')} F`, color: 'bg-black text-[#39FF14]', icon: TrendingUp },
                       { label: 'MRR (Clients actifs)', val: `${stats.revenue.toLocaleString('fr-FR')} F`, color: 'bg-white text-black border-zinc-200', icon: RefreshCcw },
                       { label: 'Commissions Dues', val: `${partners.filter(p => p.status !== 'En attente').reduce((s, p) => s + ((p.sales ?? 0) * 5000), 0).toLocaleString('fr-FR')} F`, color: 'bg-white text-black border-zinc-200', icon: Handshake },
                       { label: 'Clients Actifs', val: String(stats.activeClients), color: 'bg-red-50 text-red-600 border-red-100', icon: TrendingUp },
                    ].map((card, i) => (
-                      <div key={i} className={`p-5 lg:p-6 rounded-[3rem] lg:rounded-[3.5rem] shadow-sm flex flex-col justify-between h-48 lg:h-56 border transition-all hover:translate-y-[-5px] ${card.color}`}>
+                      <div key={i} className={`p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl shadow-sm flex flex-col justify-between h-32 lg:h-40 border transition-all hover:translate-y-[-5px] ${card.color}`}>
                          <card.icon size={24} className="opacity-40" />
                          <div>
-                            <p className="text-[10px] lg:text-[11px] font-black uppercase tracking-widest opacity-60 mb-2 lg:mb-3">{card.label}</p>
-                            <p className={`font-sans text-2xl lg:text-3xl font-black tracking-tighter`}>{card.val}</p>
+                            <p className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest opacity-60 mb-1 lg:mb-2">{card.label}</p>
+                            <p className={`font-sans text-xl lg:text-2xl font-black tracking-tighter`}>{card.val}</p>
                          </div>
                       </div>
                    ))}
                 </div>
 
                 {/* TABLEAU TRANSACTIONS */}
-                <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl p-5 lg:p-12 shadow-sm overflow-x-auto">
-                   <div className="flex flex-col lg:flex-row gap-6 lg:gap-5 mb-10 lg:mb-12">
+                <div className="bg-white border border-zinc-200 rounded-[2rem] lg:rounded-2xl p-4 lg:p-6 shadow-sm overflow-x-auto">
+                   <div className="flex flex-col lg:flex-row gap-4 mb-6 lg:mb-8">
                       <div className="flex-1 relative min-w-[300px]">
-                         <Search className="absolute left-6 lg:left-8 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5 lg:w-6 lg:h-6" />
+                         <Search className="absolute left-4 lg:left-5 top-1/2 -translate-y-1/2 text-zinc-400 w-4 h-4 lg:w-5 lg:h-5" />
                          <input 
                            type="text" 
                            placeholder="Recherche : Client, Réf, Montant..." 
                            value={financeSearch} 
                            onChange={e => setFinanceSearch(e.target.value)} 
-                           className="w-full pl-16 lg:pl-20 pr-6 lg:pr-8 py-4 lg:py-5 bg-zinc-50 border-none rounded-[2rem] outline-none font-black text-xs lg:text-sm uppercase transition-all focus:ring-[6px] focus:ring-[#39FF14]/5 placeholder:text-zinc-300" 
+                           className="w-full pl-12 lg:pl-14 pr-4 lg:pr-5 py-2.5 lg:py-3 bg-zinc-50 border-none rounded-xl outline-none font-black text-[10px] lg:text-xs uppercase transition-all focus:ring-2 focus:ring-[#39FF14]/10 placeholder:text-zinc-300" 
                          />
                       </div>
-                      <select value={financeTypeFilter} onChange={e => setFinanceTypeFilter(e.target.value)} className="px-6 lg:px-8 py-4 lg:py-5 bg-zinc-50 border-none rounded-[2rem] font-black text-[10px] lg:text-[11px] uppercase tracking-widest cursor-pointer appearance-none text-zinc-500 hover:text-black outline-none focus:ring-4 focus:ring-zinc-100">
+                      <select value={financeTypeFilter} onChange={e => setFinanceTypeFilter(e.target.value)} className="px-4 lg:px-5 py-2.5 lg:py-3 bg-zinc-50 border-none rounded-xl font-black text-[9px] lg:text-[10px] uppercase tracking-widest cursor-pointer appearance-none text-zinc-500 hover:text-black outline-none focus:ring-2 focus:ring-zinc-100">
                          <option value="Tous">Base Transactions</option>
                          <option value="Entrée">Entrées (+) </option>
                          <option value="Sortie">Sorties (-) </option>
@@ -3755,38 +3755,38 @@ export default function AdminDashboard() {
                    <table className="w-full text-left min-w-[800px]">
                       <thead className="bg-zinc-50/50 border-b border-zinc-100">
                          <tr>
-                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Date & Référence</th>
-                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Désignation</th>
-                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Flux Monétaire</th>
-                            <th className="p-6 lg:p-5 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Statut Terminal</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Date & Référence</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Désignation</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Flux Monétaire</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Statut Terminal</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
                          {filteredTransactions.map(t => (
                             <tr key={t.id} className="hover:bg-zinc-50 transition-all group">
-                               <td className="p-6 lg:p-5">
-                                  <p className="font-black text-xs lg:text-sm text-black">{t.date}</p>
+                               <td className="p-3 lg:p-4">
+                                  <p className="font-black text-[10px] lg:text-xs text-black">{t.date}</p>
                                   <p className="text-[9px] lg:text-[10px] font-black text-zinc-400 tracking-[0.15em] uppercase mt-1">{t.ref}</p>
                                </td>
-                               <td className="p-6 lg:p-5">
-                                  <p className="font-black text-sm lg:text-base uppercase text-black tracking-tighter">{t.client}</p>
+                               <td className="p-3 lg:p-4">
+                                  <p className="font-black text-xs lg:text-sm uppercase text-black tracking-tighter">{t.client}</p>
                                   <div className="flex items-center gap-2 mt-1">
-                                     <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400">{t.type}</p>
+                                     <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400">{t.type}</p>
                                      {(contacts.find(c => c.full_name === t.client)?.activity || t.activity) && <span className="text-[8px] lg:text-[9px] font-black bg-zinc-200 text-black px-2 py-0.5 rounded-md uppercase">{contacts.find(c => c.full_name === t.client)?.activity || t.activity}</span>}
                                   </div>
                                </td>
-                               <td className="p-6 lg:p-5">
-                                  <div className={`flex items-baseline gap-2 font-black text-xl lg:text-2xl tracking-tighter ${t.amount > 0 ? 'text-[#39FF14]' : 'text-red-500'}`}>
+                               <td className="p-3 lg:p-4">
+                                  <div className={`flex items-baseline gap-2 font-black text-lg lg:text-xl tracking-tighter ${t.amount > 0 ? 'text-[#39FF14]' : 'text-red-500'}`}>
                                      {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} <span className="text-[9px] lg:text-[10px] uppercase opacity-60">F CFA</span>
                                   </div>
                                </td>
-                               <td className="p-6 lg:p-5 text-right">
-                                  <span className={`text-[9px] lg:text-[10px] font-black uppercase px-4 lg:px-5 py-2 lg:py-2.5 rounded-2xl shadow-sm ${t.status === 'Payé' || t.status === 'Versé' ? 'bg-[#39FF14]/10 text-black border border-[#39FF14]/20' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>{t.status}</span>
+                               <td className="p-3 lg:p-4 text-right">
+                                  <span className={`text-[9px] lg:text-[10px] font-black uppercase px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl shadow-sm ${t.status === 'Payé' || t.status === 'Versé' ? 'bg-[#39FF14]/10 text-black border border-[#39FF14]/20' : 'bg-yellow-50 text-yellow-600 border border-yellow-100'}`}>{t.status}</span>
                                </td>
                             </tr>
                          ))}
                          {filteredTransactions.length === 0 && (
-                            <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50">Aucune transaction trouvée</td></tr>
+                            <tr><td colSpan={4} className="p-10 lg:p-16 text-center text-zinc-300 font-black uppercase text-xs tracking-[0.3em] opacity-50">Aucune transaction trouvée</td></tr>
                          )}
                       </tbody>
                    </table>
@@ -3796,63 +3796,63 @@ export default function AdminDashboard() {
 
           {/* ================= VUE DEMANDES DE RETRAIT ================= */}
           {activeView === 'withdrawals' && (
-             <div className="space-y-8 animate-in fade-in slide-in-from-right-6 max-w-[1400px] mx-auto">
-                <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden">
+             <div className="space-y-6 animate-in fade-in slide-in-from-right-6 max-w-[1400px] mx-auto">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 shadow-sm relative overflow-hidden">
                    <div className="flex items-center gap-6 lg:gap-5 relative z-10">
-                      <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><DollarSign size={32}/></div>
+                      <div className="w-14 lg:w-16 h-14 lg:h-16 bg-black rounded-[1.25rem] lg:rounded-[1.5rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><DollarSign size={24}/></div>
                       <div>
-                         <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Retraits Ambassadeurs</h2>
-                         <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Validation des commissions</p>
+                         <h2 className={`font-sans text-xl lg:text-2xl font-black uppercase tracking-tighter`}>Retraits Ambassadeurs</h2>
+                         <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Validation des commissions</p>
                       </div>
                    </div>
                   <div className="flex items-center gap-4 relative z-10">
-                     <button onClick={handleExportWithdrawals} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-2">
+                     <button onClick={handleExportWithdrawals} className="bg-black text-[#39FF14] px-4 py-2 rounded-lg font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-2">
                         <Download size={16}/> Export Payés
                      </button>
-                     <select value={withdrawalFilter} onChange={e => setWithdrawalFilter(e.target.value)} className="px-4 py-3 rounded-xl border border-zinc-200 text-xs font-bold focus:outline-none focus:border-[#39FF14] bg-zinc-50 dark:bg-zinc-900 cursor-pointer outline-none transition-colors">
+                     <select value={withdrawalFilter} onChange={e => setWithdrawalFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-zinc-200 text-[10px] font-bold focus:outline-none focus:border-[#39FF14] bg-zinc-50 dark:bg-zinc-900 cursor-pointer outline-none transition-colors">
                         <option value="Tous">Tous les retraits</option>
                         <option value="En attente">En attente</option>
                         <option value="Payé">Payés</option>
                         <option value="Rejeté">Rejetés</option>
                      </select>
-                     <div className="flex flex-col items-end bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                         <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Total en attente</p>
-                         <p className="text-2xl font-black text-orange-500">{withdrawals.filter(w => w.status === 'En attente').reduce((sum, w) => sum + (Number(w.amount) || 0), 0).toLocaleString()} F</p>
+                     <div className="flex flex-col items-end bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                         <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest mb-1">Total en attente</p>
+                         <p className="text-xl font-black text-orange-500">{withdrawals.filter(w => w.status === 'En attente').reduce((sum, w) => sum + (Number(w.amount) || 0), 0).toLocaleString()} F</p>
                      </div>
                   </div>
                 </div>
 
-                <div className="bg-white border border-zinc-200 rounded-[3.5rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto">
+                <div className="bg-white border border-zinc-200 rounded-[2rem] lg:rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
                    <table className="w-full text-left min-w-[800px]">
                       <thead className="bg-zinc-50/50 border-b border-zinc-100">
                          <tr>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Date & Partenaire</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Méthode & Numéro</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Montant Demandé</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Action / Statut</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Date & Partenaire</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Méthode & Numéro</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Montant Demandé</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Action / Statut</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
                         {withdrawals.filter(w => withdrawalFilter === 'Tous' || w.status === withdrawalFilter).map(w => (
                             <tr key={w.id} className="hover:bg-zinc-50 transition-all">
-                               <td className="p-5 lg:p-6">
-                                  <p className="font-black text-sm lg:text-base uppercase text-black tracking-tighter leading-tight">{w.ambassador_name || "Inconnu"}</p>
+                               <td className="p-3 lg:p-4">
+                                  <p className="font-black text-xs lg:text-sm uppercase text-black tracking-tighter leading-tight">{w.ambassador_name || "Inconnu"}</p>
                                   <p className="text-[10px] text-zinc-500 font-bold mt-1">{new Date(w.created_at).toLocaleString('fr-FR')}</p>
                                </td>
-                               <td className="p-5 lg:p-6">
+                               <td className="p-3 lg:p-4">
                                   <div className="flex flex-col gap-1">
                                      <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase w-max tracking-widest ${w.method === 'Wave' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{w.method}</span>
-                                     <p className="text-xs font-black text-black ml-1">{w.phone}</p>
+                                     <p className="text-[10px] font-black text-black ml-1">{w.phone}</p>
                                   </div>
                                </td>
-                               <td className="p-5 lg:p-6 text-center">
-                                  <p className={`font-sans text-xl lg:text-2xl font-black text-[#39FF14] tracking-tighter`}>{w.amount?.toLocaleString()} F</p>
+                               <td className="p-3 lg:p-4 text-center">
+                                  <p className={`font-sans text-lg lg:text-xl font-black text-[#39FF14] tracking-tighter`}>{w.amount?.toLocaleString()} F</p>
                                </td>
-                               <td className="p-5 lg:p-6 text-right">
+                               <td className="p-3 lg:p-4 text-right">
                                   {w.status === 'En attente' ? (
                                     <div className="flex justify-end gap-2">
-                                       <button onClick={() => { setValidateWithdrawalModal(w); setWithdrawalProof(''); }} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-1"><CheckCircle size={14}/> Valider</button>
-                                        <button onClick={() => handleUpdateWithdrawalStatus(w.id, 'Rejeté')} className="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-red-100 transition-all flex items-center gap-1"><X size={14}/> Rejeter</button>
+                                       <button onClick={() => { setValidateWithdrawalModal(w); setWithdrawalProof(''); }} className="bg-black text-[#39FF14] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center gap-1"><CheckCircle size={12}/> Valider</button>
+                                        <button onClick={() => handleUpdateWithdrawalStatus(w.id, 'Rejeté')} className="bg-red-50 text-red-500 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-red-100 transition-all flex items-center gap-1"><X size={12}/> Rejeter</button>
                                     </div>
                                   ) : (
                                    <div className="flex flex-col items-end gap-1">
@@ -3866,7 +3866,7 @@ export default function AdminDashboard() {
                             </tr>
                          ))}
                          {withdrawals.length === 0 && (
-                            <tr><td colSpan={4} className="p-20 lg:p-32 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50">Aucune demande de retrait</td></tr>
+                            <tr><td colSpan={4} className="p-10 lg:p-16 text-center text-zinc-300 font-black uppercase text-xs lg:text-sm tracking-[0.3em] opacity-50">Aucune demande de retrait</td></tr>
                          )}
                       </tbody>
                    </table>
@@ -3965,8 +3965,8 @@ export default function AdminDashboard() {
          <option value="Tous">Tous secteurs</option>
          {Array.from(new Set(partners.map(p => p.activity).filter(Boolean))).map(act => <option key={act as string} value={act as string}>{act as string}</option>)}
       </select>
-      <input type="search" placeholder="Rechercher..." value={partnerSearch} onChange={e => setPartnerSearch(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium w-48 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
-      <button onClick={() => setShowAddPartnerModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-5 py-3 rounded-2xl font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0">
+      <input type="search" placeholder="Rechercher..." value={partnerSearch} onChange={e => setPartnerSearch(e.target.value)} className="px-3 py-2 rounded-xl border border-zinc-200 text-xs font-medium w-40 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
+      <button onClick={() => setShowAddPartnerModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-4 py-2 rounded-xl font-black uppercase text-[9px] hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0">
          <Plus size={16}/> Ajouter
       </button>
    </div>
@@ -4227,23 +4227,23 @@ export default function AdminDashboard() {
 
       {/* ================= VUE ÉQUIPE COMMERCIALE ================= */}
       {activeView === 'team' && (
-         <div className="space-y-12 animate-in fade-in max-w-[1200px] mx-auto">
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 bg-white dark:bg-zinc-900 p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
+         <div className="space-y-6 animate-in fade-in max-w-[1200px] mx-auto">
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white dark:bg-zinc-900 p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
                <div className="flex items-center gap-6 lg:gap-5 relative z-10">
-                  <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Briefcase size={32} className="lg:w-[38px] lg:h-[38px]"/></div>
+                  <div className="w-12 lg:w-16 h-12 lg:h-16 bg-black rounded-xl lg:rounded-2xl flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Briefcase size={24} className="lg:w-[28px] lg:h-[28px]"/></div>
                   <div>
-                     <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Équipe Commerciale</h2>
+                     <h2 className={`font-sans text-xl lg:text-2xl font-black uppercase tracking-tighter`}>Équipe Commerciale</h2>
                      <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Agents Onyx Hub</p>
                   </div>
                </div>
                <div className="flex flex-wrap items-center justify-end gap-3 relative z-10 w-full md:w-auto mt-4 md:mt-0">
-                  <button onClick={handleExportCommercialsExcel} className="flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-black dark:text-white px-4 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-95 shrink-0">
+                  <button onClick={handleExportCommercialsExcel} className="flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-black dark:text-white px-4 py-2 rounded-lg font-black uppercase text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-95 shrink-0">
                      <Download size={14}/> Excel
                   </button>
-                  <button onClick={handleExportCommercialsPDF} className="flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-black dark:text-white px-4 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-95 shrink-0">
+                  <button onClick={handleExportCommercialsPDF} className="flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-black dark:text-white px-4 py-2 rounded-lg font-black uppercase text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-95 shrink-0">
                      <FileText size={14}/> PDF
                   </button>
-                  <button onClick={() => setShowAddCommercialModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0">
+                  <button onClick={() => setShowAddCommercialModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-4 py-2 rounded-lg font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0">
                      <UserPlus size={16}/> Nouveau Commercial
                   </button>
                </div>
@@ -4261,7 +4261,7 @@ export default function AdminDashboard() {
                 if (sortedComms.length === 0) return null;
                 
                 return (
-                    <div className="flex items-end justify-center gap-4 mb-12 mt-8 px-4">
+                    <div className="flex items-end justify-center gap-4 mb-6 mt-4 px-2">
                         {sortedComms.length > 1 && (
                             <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-100">
                                 <div className="w-12 h-12 rounded-full bg-zinc-300 flex items-center justify-center font-black text-xl mb-2">{sortedComms[1].full_name.charAt(0)}</div>
@@ -4297,19 +4297,19 @@ export default function AdminDashboard() {
                 );
             })()}
 
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[3rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto mt-6">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] lg:rounded-2xl overflow-hidden shadow-sm overflow-x-auto mt-4">
                 <table className="w-full text-left min-w-[800px]">
                     <thead className="bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
                         <tr>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Commercial</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Contact</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Clics</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Ventes Validées</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Taux Conv.</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">CA Généré</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Dernière Vente</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Statut</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Actions</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Commercial</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Contact</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Clics</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Ventes Validées</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Taux Conv.</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">CA Généré</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Dernière Vente</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Statut</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
@@ -4324,34 +4324,34 @@ export default function AdminDashboard() {
                                : '-';
                             return (
                                 <tr key={comm.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                                    <td className="p-5 lg:p-6 flex items-center gap-4">
+                                    <td className="p-3 lg:p-4 flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-zinc-800 shadow-sm shrink-0">
                                             <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(comm.full_name)}&background=random`} alt={comm.full_name} className="w-full h-full object-cover" />
                                         </div>
                                         <p className="font-black text-sm uppercase text-black dark:text-white">{comm.full_name}</p>
                                     </td>
-                                    <td className="p-5 lg:p-6">
+                                    <td className="p-3 lg:p-4">
                                         <p className="text-xs font-bold text-zinc-500">{comm.phone}</p>
                                     </td>
-                                    <td className="p-5 lg:p-6 text-center">
+                                    <td className="p-3 lg:p-4 text-center">
                                         <span className="text-sm font-black text-zinc-500 dark:text-zinc-400">{comm.clicks || 0}</span>
                                     </td>
-                                    <td className="p-5 lg:p-6 text-center">
+                                    <td className="p-3 lg:p-4 text-center">
                                         <span className="text-xl font-black text-[#39FF14]">{repSales}</span>
                                     </td>
-                                    <td className="p-5 lg:p-6 text-center">
+                                    <td className="p-3 lg:p-4 text-center">
                                         <span className={`text-sm font-black ${rawConvRate >= 15 ? 'bg-[#39FF14]/10 text-[#39FF14] px-3 py-1.5 rounded-lg border border-[#39FF14]/30 shadow-sm' : 'text-zinc-500 dark:text-zinc-400'}`}>{convRate}</span>
                                     </td>
-                                    <td className="p-5 lg:p-6 text-center">
+                                    <td className="p-3 lg:p-4 text-center">
                                         <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest">{caTotal.toLocaleString('fr-FR')} F</span>
                                     </td>
-                                    <td className="p-5 lg:p-6 text-center">
+                                    <td className="p-3 lg:p-4 text-center">
                                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{lastSaleDate}</span>
                                     </td>
-                                    <td className="p-5 lg:p-6 text-center">
+                                    <td className="p-3 lg:p-4 text-center">
                                         <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
                                     </td>
-                                    <td className="p-5 lg:p-6 text-right space-x-2">
+                                    <td className="p-3 lg:p-4 text-right space-x-2">
                                         <button onClick={() => { setCommissionModal(comm); setCommissionAmount(''); }} className="p-2 bg-green-50 dark:bg-green-900/30 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-colors" title="Attribuer Prime Manuelle">
                                             <DollarSign size={16}/>
                                         </button>
@@ -4392,22 +4392,22 @@ export default function AdminDashboard() {
           {/* ================= VUE MARKETING ================= */}
           {activeView === 'marketing' && (
              <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1200px] mx-auto">
-                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group gap-6">
-                   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
-                      <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl group-hover:rotate-12 transition-all shrink-0"><Megaphone size={32} className="lg:w-[36px] lg:h-[36px]"/></div>
+                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 shadow-sm relative overflow-hidden group gap-4">
+                   <div className="flex items-center gap-4 lg:gap-5 relative z-10">
+                      <div className="w-14 lg:w-16 h-14 lg:h-16 bg-black rounded-[1.25rem] lg:rounded-[1.5rem] flex items-center justify-center text-[#39FF14] shadow-2xl group-hover:rotate-12 transition-all shrink-0"><Megaphone size={28} className="lg:w-[32px] lg:h-[32px]"/></div>
                       <div>
                          <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Hub Marketing</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Articles de Blog & Stratégies de Capture IA</p>
                       </div>
                    </div>
-                   <button onClick={runIAArticleSuggestion} className="w-full md:w-auto bg-black text-[#39FF14] px-8 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest flex items-center justify-center gap-3 shadow-2xl hover:scale-105 transition-all relative z-10 active:scale-95">
+                   <button onClick={runIAArticleSuggestion} className="w-full md:w-auto bg-black text-[#39FF14] px-6 lg:px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-2xl hover:scale-105 transition-all relative z-10 active:scale-95">
                       <Sparkles size={16} className="lg:w-[18px] lg:h-[18px]"/> Suggestion IA Article
                    </button>
                 </div>
 
                 <div className="space-y-6 lg:space-y-8">
                    {marketingArticles.map((article: any) => (
-                      <div key={article.id} className="bg-white p-5 lg:p-12 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 lg:gap-6 hover:border-black transition-all group">
+                      <div key={article.id} className="bg-white p-5 lg:p-8 rounded-[2rem] lg:rounded-2xl border border-zinc-200 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 lg:gap-6 hover:border-black transition-all group">
                          <div className="flex-1 w-full">
                             <div className="flex flex-wrap gap-3 lg:gap-4 mb-4 lg:mb-6">
                                <span className="bg-black text-[#39FF14] px-3 lg:px-4 py-1.5 rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em]">{article.category || 'Stratégie'}</span>
@@ -4417,18 +4417,18 @@ export default function AdminDashboard() {
                             <p className="text-zinc-500 font-medium text-sm lg:text-base leading-relaxed max-w-2xl opacity-80">{article.desc}</p>
                          </div>
                          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:gap-4 w-full lg:w-max">
-                            <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="flex-1 lg:flex-none bg-[#39FF14] text-black px-6 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-xl flex items-center justify-center gap-2 lg:gap-3 active:scale-95">
+                            <button onClick={() => { setShowDiffusionModal(article); setSelectedContactsForDiffusion([]); }} className="flex-1 lg:flex-none bg-[#39FF14] text-black px-4 lg:px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-black hover:text-[#39FF14] transition-all shadow-xl flex items-center justify-center gap-2 active:scale-95">
                                <Send size={16} className="lg:w-[18px] lg:h-[18px]"/> Diffuser Segment
                             </button>
                             
                             <div className="flex gap-2">
-                               <button onClick={() => setEditingArticle(article)} className="flex-1 bg-zinc-100 text-black py-3 lg:py-4 rounded-2xl text-[9px] lg:text-[10px] font-black uppercase hover:bg-zinc-200 transition-all flex items-center justify-center gap-2">
+                               <button onClick={() => setEditingArticle(article)} className="flex-1 bg-zinc-100 text-black py-2 lg:py-3 rounded-xl text-[9px] lg:text-[10px] font-black uppercase hover:bg-zinc-200 transition-all flex items-center justify-center gap-2">
                                   <Edit3 size={14}/> Modifier
                                </button>
                                <button onClick={async () => {
                                    await supabase.from('marketing_articles').delete().eq('id', article.id);
                                    setMarketingArticles(prev => prev.filter((a: any) => a.id !== article.id));
-                               }} className="flex-1 bg-red-50 text-red-500 py-3 lg:py-4 rounded-2xl text-[9px] lg:text-[10px] font-black uppercase hover:bg-red-100 transition-all flex items-center justify-center gap-2">
+                               }} className="flex-1 bg-red-50 text-red-500 py-2 lg:py-3 rounded-xl text-[9px] lg:text-[10px] font-black uppercase hover:bg-red-100 transition-all flex items-center justify-center gap-2">
                                   <Trash2 size={14}/> Supprimer
                                </button>
                             </div>
@@ -4445,11 +4445,11 @@ export default function AdminDashboard() {
           {/* ================= VUE PLANNING MARKETING ================= */}
           {activeView === 'planning-marketing' && (
              <div className="space-y-12 animate-in fade-in max-w-[1200px] mx-auto">
-                <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <div className="bg-white dark:bg-zinc-900 p-5 lg:p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                     <h2 className="text-xl md:text-2xl font-black uppercase mb-6 flex items-center gap-3 text-black dark:text-white"><Sparkles className="text-[#39FF14]"/> Suggestions IA ({iaSuggestions.length})</h2>
                     <div className="space-y-4">
                         {iaSuggestions.map(s => (
-                            <div key={s.id} className="bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                            <div key={s.id} className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-xl border border-zinc-100 dark:border-zinc-700 flex flex-col md:flex-row justify-between md:items-center gap-4">
                                 <div>
                                     <p className="font-bold text-sm uppercase text-black dark:text-white">{s.title}</p>
                                     <p className="text-xs text-zinc-500 mt-1">{s.description}</p>
@@ -4477,28 +4477,28 @@ export default function AdminDashboard() {
           {/* ================= VUE JOURNAL IA ================= */}
           {activeView === 'journal-ia' && (
              <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1200px] mx-auto">
-                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group gap-6">
-                   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
-                      <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><FileText size={32}/></div>
+                <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 shadow-sm relative overflow-hidden group gap-4">
+                   <div className="flex items-center gap-4 relative z-10">
+                      <div className="w-14 lg:w-16 h-14 lg:h-16 bg-black rounded-[1.25rem] lg:rounded-[1.5rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><FileText size={28}/></div>
                       <div>
                          <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Journal & Actions IA</h2>
                          <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Registre complet des tâches planifiées</p>
                       </div>
                    </div>
-                   <button onClick={() => setShowRapportIA(true)} className="w-full md:w-auto bg-[#39FF14] text-black px-8 lg:px-10 py-4 lg:py-5 rounded-[1.75rem] lg:rounded-[2rem] font-black uppercase text-[10px] lg:text-[11px] tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-black hover:text-[#39FF14] transition-all relative z-10 active:scale-95">
+                   <button onClick={() => setShowRapportIA(true)} className="w-full md:w-auto bg-[#39FF14] text-black px-6 lg:px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-black hover:text-[#39FF14] transition-all relative z-10 active:scale-95">
                       <Sparkles size={16}/> Lancer Scan CRM
                    </button>
                 </div>
 
-                <div className="bg-white border border-zinc-200 rounded-[3rem] lg:rounded-3xl p-5 lg:p-12 shadow-sm">
+                <div className="bg-white border border-zinc-200 rounded-[2rem] lg:rounded-2xl p-4 lg:p-6 shadow-sm">
                    <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4 border-b border-zinc-100 pb-6">
                       <h3 className="font-black uppercase text-lg text-black">Historique & Tâches ({actionsIA.length})</h3>
                       <div className="flex gap-3">
-                         <button onClick={handleExportIAPdf} className="bg-zinc-100 text-black px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-2">
+                         <button onClick={handleExportIAPdf} className="bg-zinc-100 text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all flex items-center justify-center gap-2">
                             <Download size={16}/> Export PDF
                          </button>
                          {actionsIA.filter(a => a.status === 'En attente' && a.phone).length > 0 && (
-                            <button onClick={executeAllWA} className="bg-black text-[#39FF14] px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">
+                            <button onClick={executeAllWA} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">
                                <Send size={16}/> Exécuter Tout
                             </button>
                          )}
@@ -4540,9 +4540,9 @@ export default function AdminDashboard() {
           {/* ================= VUE AIDE & TUTORIELS ================= */}
           {activeView === 'help' && (
             <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 max-w-[1200px] mx-auto">
-              <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden">
-                 <div className="flex items-center gap-6 lg:gap-5 relative z-10">
-                    <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><HelpCircle size={32}/></div>
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 shadow-sm relative overflow-hidden">
+                 <div className="flex items-center gap-4 relative z-10">
+                    <div className="w-14 lg:w-16 h-14 lg:h-16 bg-black rounded-[1.25rem] lg:rounded-[1.5rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><HelpCircle size={28}/></div>
                     <div>
                        <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Aide & Tutoriels</h2>
                        <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Maîtrisez votre Hub OnyxOps</p>
@@ -4559,7 +4559,7 @@ export default function AdminDashboard() {
                      { title: "Configuration Boutique", desc: "Paramétrer les zones de livraison et l'assistant WhatsApp sur Onyx Jaay.", icon: Settings },
                      { title: "Cartographie des Hubs", desc: "Analyser la répartition géographique de vos clients et partenaires.", icon: MapPin },
                   ].map((tuto, i) => (
-                     <div key={i} onClick={() => alert("Ce tutoriel vidéo sera bientôt disponible.")} className="bg-white border border-zinc-200 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:border-black transition-all group cursor-pointer">
+                     <div key={i} onClick={() => alert("Ce tutoriel vidéo sera bientôt disponible.")} className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:border-black transition-all group cursor-pointer">
                         <div className="w-12 h-12 bg-zinc-100 rounded-2xl flex items-center justify-center text-black mb-6 group-hover:bg-black group-hover:text-[#39FF14] transition-colors"><tuto.icon size={20}/></div>
                         <h3 className="font-black text-lg uppercase mb-2 leading-tight">{tuto.title}</h3>
                         <p className="text-xs text-zinc-500 font-medium leading-relaxed mb-6">{tuto.desc}</p>
@@ -4568,9 +4568,9 @@ export default function AdminDashboard() {
                   ))}
               </div>
               
-              <div className="bg-black text-white p-8 sm:p-12 rounded-[3rem] shadow-2xl border border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-6 mt-8">
+              <div className="bg-black text-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-6 mt-8">
                   <div><h3 className="text-xl sm:text-2xl font-black uppercase tracking-tighter mb-2 text-[#39FF14]">Besoin d'aide supplémentaire ?</h3><p className="text-sm font-medium text-zinc-400">Notre équipe de support technique est disponible sur WhatsApp pour répondre à vos questions.</p></div>
-                  <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black text-xs uppercase hover:bg-white transition-colors shrink-0 whitespace-nowrap">Contacter le Support</button>
+                  <button onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black text-xs uppercase hover:bg-white transition-colors shrink-0 whitespace-nowrap">Contacter le Support</button>
               </div>
             </div>
           )}
@@ -4588,7 +4588,7 @@ export default function AdminDashboard() {
       {/* MODALE SAAS: ACTIVATION & WhatsApp */}
       {showSaasLogin && saasModalMode === 'create' && (
          <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasLogin, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-500 overflow-y-auto">
-            <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-xl w-full relative shadow-[0_0_120px_rgba(57,255,20,0.15)] animate-in zoom-in-95 duration-500 border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
+            <div className="bg-white p-6 sm:p-10 rounded-3xl sm:rounded-[2rem] max-w-xl w-full relative shadow-[0_0_120px_rgba(57,255,20,0.15)] animate-in zoom-in-95 duration-500 border-t-[8px] border-[#39FF14] my-auto">
                <button onClick={() => setShowSaasLogin(null)} className="absolute top-6 sm:top-12 right-6 sm:right-12 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all active:scale-90"><X size={20} className="sm:w-[26px] sm:h-[26px]"/></button>
                
                <div className="text-center mb-10 sm:mb-14 mt-4 sm:mt-0">
@@ -4634,7 +4634,7 @@ export default function AdminDashboard() {
       {/* MODALE CRM EDIT / NEW */}
       {showContactModal && editingContact && (
         <div id="modal-overlay" onClick={handleOutsideClick(setShowContactModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-          <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 duration-500 border-t-[8px] sm:border-t-[12px] border-black my-auto">
+          <div className="bg-white p-6 sm:p-10 rounded-3xl sm:rounded-[2.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 duration-500 border-t-[8px] border-black my-auto">
             <button onClick={() => setShowContactModal(false)} className="absolute top-6 sm:top-12 right-6 sm:right-12 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
             
             <h2 className={`font-sans text-3xl sm:text-4xl font-black uppercase tracking-tighter mb-10 sm:mb-14 text-black mt-2 sm:mt-0`}>{editingContact?.id ? 'Modifier Fiche' : 'Nouveau Membre CRM'}</h2>
@@ -4813,7 +4813,7 @@ export default function AdminDashboard() {
       {/* MODALE DIFFUSION MARKETING */}
       {showDiffusionModal && (
         <div id="modal-overlay" onClick={handleOutsideClick(setShowDiffusionModal, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-           <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[85vh] sm:max-h-[85vh] flex flex-col border-t-[8px] sm:border-t-[12px] border-[#39FF14] my-auto">
+           <div className="bg-white p-6 sm:p-10 rounded-3xl sm:rounded-[2.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[85vh] flex flex-col border-t-[8px] border-[#39FF14] my-auto">
               <button onClick={() => setShowDiffusionModal(null)} className="absolute top-6 sm:top-6 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all active:scale-90"><X size={20} className="sm:w-6 sm:h-6"/></button>
               <div className="mb-8 sm:mb-10 mt-2 sm:mt-0">
                  <h2 className={`font-sans text-2xl sm:text-3xl font-black uppercase text-black tracking-tighter`}>Planifier la Diffusion</h2>
@@ -4856,7 +4856,7 @@ export default function AdminDashboard() {
       {/* MODALE DÉTAILS PARTENAIRE */}
       {showPartnerModal && selectedPartner && (
          <div id="modal-overlay" onClick={handleOutsideClick(setShowPartnerModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-            <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] sm:rounded-[5.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto border-t-[8px] sm:border-t-[12px] border-black custom-scrollbar my-auto">
+            <div className="bg-white p-6 sm:p-10 rounded-3xl sm:rounded-[2.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto border-t-[8px] border-black custom-scrollbar my-auto">
                <button onClick={() => setShowPartnerModal(false)} className="absolute top-6 sm:top-6 right-6 sm:right-10 p-3 sm:p-4 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20} className="sm:w-6 sm:h-6"/></button>
                
                <div className="mb-10 sm:mb-14 text-center mt-4 sm:mt-0">
@@ -4910,7 +4910,7 @@ export default function AdminDashboard() {
       {/* MODALE ÉDITION PARTENAIRE */}
       {showEditPartnerModal && (
         <div id="modal-overlay" onClick={handleOutsideClick(setShowEditPartnerModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-            <div className="bg-white p-6 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[8px] border-black my-auto">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl border-t-[8px] border-black my-auto">
                 <button onClick={() => setShowEditPartnerModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
                 <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter mb-8 text-black`}>Éditer Ambassadeur</h2>
                 <form onSubmit={handleUpdatePartner} className="space-y-4">
@@ -4979,7 +4979,7 @@ export default function AdminDashboard() {
       {/* --- MODALE PROFIL TERMINAL --- */}
       {showProfileModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowProfileModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-          <div className="bg-white p-5 sm:p-16 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in-95 text-center border-t-[12px] border-[#39FF14] my-auto">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl animate-in zoom-in-95 text-center border-t-[8px] border-[#39FF14] my-auto">
             <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
             
             <div className="relative w-32 h-32 mx-auto mb-6">
@@ -5024,7 +5024,7 @@ export default function AdminDashboard() {
       {/* --- MODALE RAPPORT IA --- */}
       {showRapportIA && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowRapportIA(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl animate-in fade-in duration-500 overflow-y-auto">
-          <div className="bg-white p-5 sm:p-16 rounded-3xl max-w-2xl w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in-95 border-t-[14px] border-[#39FF14] my-auto">
+          <div className="bg-white p-6 sm:p-10 rounded-3xl max-w-2xl w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto">
             <button onClick={() => setShowRapportIA(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
             
             <div className="flex items-center gap-6 mb-10">
@@ -5172,7 +5172,7 @@ export default function AdminDashboard() {
       {/* --- MODALE SÉLECTION PRODUIT (CRÉATION CLIENT) --- */}
       {showProductModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowProductModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
-          <div className="bg-white dark:bg-zinc-950 dark:text-white p-8 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[12px] border-[#39FF14] animate-in zoom-in-95 my-auto">
+          <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto">
             <button onClick={() => setShowProductModal(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
             
             <h3 className="text-2xl font-black uppercase text-black dark:text-white tracking-tighter mb-2">Assigner un SaaS</h3>
@@ -5205,7 +5205,7 @@ export default function AdminDashboard() {
       {/* --- MODALE AJOUT AMBASSADEUR MANUEL (COMPLÈTE) --- */}
       {showAddPartnerModal && (
          <div id="modal-overlay" onClick={handleOutsideClick(setShowAddPartnerModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-           <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[8px] border-black dark:border-zinc-800 my-auto">
+           <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl border-t-[8px] border-black dark:border-zinc-800 my-auto">
              <button onClick={() => setShowAddPartnerModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
              <h2 className={`font-sans text-3xl font-black uppercase tracking-tighter mb-8 text-black dark:text-white`}>Candidature Ambassadeur</h2>
              
@@ -5279,7 +5279,7 @@ export default function AdminDashboard() {
   {/* --- MODALE HISTORIQUE CLIENTS DU COMMERCIAL --- */}
   {viewCommercialClients && (
     <div id="modal-overlay" onClick={handleOutsideClick(setViewCommercialClients, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-      <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-10 rounded-[3rem] max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#00E5FF] my-auto">
+      <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#00E5FF] my-auto">
          <button onClick={() => setViewCommercialClients(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
          <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white`}>Historique d'Acquisition</h2>
          
@@ -5354,7 +5354,7 @@ export default function AdminDashboard() {
   {/* --- MODALE COMMISSION MANUELLE --- */}
   {commissionModal && (
      <div id="modal-overlay" onClick={handleOutsideClick(setCommissionModal, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-green-500 my-auto">
+       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-green-500 my-auto">
          <button onClick={() => setCommissionModal(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
          <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white`}>Attribuer Prime</h2>
          <p className="text-xs font-bold text-zinc-500 mb-8 uppercase tracking-widest">Commercial : {commissionModal.full_name}</p>
@@ -5381,7 +5381,7 @@ export default function AdminDashboard() {
   {/* --- MODALE AJOUT COMMERCIAL MANUEL --- */}
   {showAddCommercialModal && (
      <div id="modal-overlay" onClick={handleOutsideClick(setShowAddCommercialModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto">
+       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto">
          <button onClick={() => setShowAddCommercialModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
          <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-8 text-black dark:text-white`}>Nouveau Commercial</h2>
          
@@ -5411,7 +5411,7 @@ export default function AdminDashboard() {
   {/* --- MODALE ÉDITION COMMERCIAL MANUEL --- */}
   {showEditCommercialModal && (
      <div id="modal-overlay" onClick={handleOutsideClick(setShowEditCommercialModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto">
+       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto">
          <button onClick={() => setShowEditCommercialModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
          <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-8 text-black dark:text-white`}>Modifier Commercial</h2>
          
@@ -5463,7 +5463,7 @@ export default function AdminDashboard() {
 {/* MODALE ÉDITION ARTICLE IA */}
 {editingArticle && (
         <div id="modal-overlay" onClick={handleOutsideClick(setEditingArticle, null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500">
-          <div className="bg-white dark:bg-zinc-950 dark:text-white p-8 sm:p-12 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl border-t-[12px] border-[#39FF14] animate-in zoom-in-95 my-auto">
+          <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto">
             <button onClick={() => setEditingArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
             
             <h3 className="text-2xl font-black uppercase text-black dark:text-white tracking-tighter mb-6">Éditer l'Article</h3>

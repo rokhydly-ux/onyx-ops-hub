@@ -1487,7 +1487,7 @@ export default function OnyxOpsElite() {
         {/* --- MODALES COMMUNES --- */}
         {showAuthModal && (
           <div id="modal-overlay" onClick={handleOutsideClick(setShowAuthModal)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white p-10 rounded-[3.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl animate-in zoom-in">
               <button onClick={() => setShowAuthModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
               <div className="flex justify-center gap-4 mb-8 bg-zinc-100 p-1.5 rounded-2xl">
                  <button onClick={() => setAuthMode('login')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition ${authMode === 'login' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Se connecter</button>
@@ -1527,7 +1527,7 @@ export default function OnyxOpsElite() {
 
           return (
             <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasChoice)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-              <div className="bg-white p-8 md:p-10 rounded-[3.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14] max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <div className="bg-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14] max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-50" onClick={() => setShowSaasChoice(null)}><X size={20}/></button>
                 
                 {/* SYSTÈME D'ONGLETS */}
@@ -1696,7 +1696,7 @@ export default function OnyxOpsElite() {
         {/* --- MODALE : ONBOARDING CAPTURE LEAD (MAIMOUNA) --- */}
         {showOnboarding && (
           <div id="modal-overlay" onClick={handleOutsideClick(setShowOnboarding)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in overflow-y-auto">
-            <div className="bg-white rounded-[3rem] w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(57,255,20,0.15)] animate-in zoom-in min-h-[500px]">
+            <div className="bg-white rounded-3xl w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(57,255,20,0.15)] animate-in zoom-in min-h-[500px]">
               <button onClick={() => setShowOnboarding(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
 
               {/* Colonne Gauche : Image Conseillère */}
@@ -1710,7 +1710,7 @@ export default function OnyxOpsElite() {
               </div>
 
               {/* Colonne Droite : Formulaire */}
-              <div className="flex-1 p-8 sm:p-12 flex flex-col justify-center">
+              <div className="flex-1 p-6 sm:p-10 flex flex-col justify-center">
                  {onboardingStep === 1 && (
                    <div className="space-y-6 animate-in slide-in-from-right-8">
                      <div className="mb-8">
@@ -1819,7 +1819,7 @@ export default function OnyxOpsElite() {
         {/* --- MODALE EXIT INTENT REVISITÉE AVEC FORMULAIRE & BÉNÉFICES CHIFFRÉS --- */}
         {showExitIntent && (
           <div id="modal-overlay" onClick={handleOutsideClick(setShowExitIntent)} className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
-            <div className="bg-white p-10 md:p-12 rounded-[4rem] max-w-lg w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in text-center border-t-8 border-black">
+            <div className="bg-white p-6 sm:p-10 rounded-3xl max-w-lg w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in text-center border-t-8 border-black">
               <button onClick={() => setShowExitIntent(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
               
               <div className="w-20 h-20 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-bounce">

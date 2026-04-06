@@ -875,7 +875,7 @@ export default function CommercialHub() {
 
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-         <div className={`${cardBg} rounded-[2rem] p-8 max-w-sm w-full shadow-2xl relative border`}>
+         <div className={`${cardBg} rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl relative border`}>
               <button onClick={() => setShowSettings(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-white"><X size={20}/></button>
         <h2 className={`text-xl font-black mb-6 ${isDark ? 'text-white' : 'text-black'} uppercase tracking-tighter`}><Settings className="inline mr-2 text-[#39FF14]"/> Mon Profil</h2>
           <form onSubmit={handleUpdateProfile} className="space-y-4">
