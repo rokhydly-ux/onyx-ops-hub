@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut, Settings, X, Trophy, Target, Star, Medal, Sun, Moon, FileText } from 'lucide-react';
+import { UserPlus, Activity, CheckCircle, Clock, AlertTriangle, Send, LogOut, Settings, X, Trophy, Target, Star, Medal, Sun, Moon, FileText, MonitorPlay, Share2, Facebook, Twitter, Link, PlayCircle, Video, Image as ImageIcon, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+
+const REGIONS_SENEGAL = ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou", "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou", "Tambacounda", "Thiès", "Ziguinchor"];
 
 export default function CommercialHub() {
   const router = useRouter();
@@ -21,9 +23,12 @@ export default function CommercialHub() {
   const [formData, setFormData] = useState({
     shopName: '',
     phone: '',
-    city: '',
+    region: '',
+    address: '',
     product: ''
   });
+  const [marketingMaterials, setMarketingMaterials] = useState<any[]>([]);
+  const [newMedia, setNewMedia] = useState({ title: '', url: '', type: 'Vidéo' });
 
   const [theme, setTheme] = useState('dark');
   useEffect(() => {
@@ -49,6 +54,15 @@ export default function CommercialHub() {
       fetchMyActivity(data.id, data.full_name);
       fetchLeaderboard(data.id);
     }
+  }, []);
+
+  const fetchMarketingMaterials = async () => {
+     const { data } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
+     if (data) setMarketingMaterials(data);
+  };
+
+  useEffect(() => {
+    fetchMarketingMaterials();
   }, []);
 
   const fetchLeaderboard = async (currentId: string) => {
@@ -140,7 +154,8 @@ export default function CommercialHub() {
       const { error } = await supabase.from('clients').insert([{
         full_name: formData.shopName,
         phone: cleanPhone,
-        city: formData.city,
+        city: formData.region,
+        address: formData.address,
         saas: saasName,
         active_saas: [saasName],
         saas_expiration_dates: { [saasName]: trialEndDateStr },
@@ -157,7 +172,7 @@ export default function CommercialHub() {
 
       alert(`Succès ! Le client ${formData.shopName} a bien été enregistré sur votre compte.`);
       
-      setFormData({ shopName: '', phone: '', city: '', product: '' });
+      setFormData({ shopName: '', phone: '', region: '', address: '', product: '' });
       setAddCm(false);
       
       if (currentUser?.id) fetchMyActivity(currentUser.id, currentUser.full_name);
@@ -328,8 +343,33 @@ export default function CommercialHub() {
       }
   };
 
+  const handleShareMedia = (url: string, title: string, platform: string) => {
+     const text = `Découvrez ${title} : ${url}`;
+     if (platform === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+     } else if (platform === 'facebook') {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+     } else if (platform === 'twitter') {
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+     } else {
+        navigator.clipboard.writeText(text);
+        alert("Lien copié !");
+     }
+  };
+
+  const getEmbedUrl = (url: string) => {
+    if (!url) return '';
+    let videoId = '';
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+    if (match && match[1]) {
+        videoId = match[1];
+        return `https://www.youtube.com/embed/${videoId}`;
+    }
+    return url;
+  };
+
   return (
-    <div className={`min-h-screen ${themeBg} flex flex-col font-sans pb-20 transition-colors`}>
+    <div className={`min-h-screen ${themeBg} flex flex-col font-sans pb-20 sm:pb-0 transition-colors`}>
       
       {/* En-tête */}
       <header className={`${headerBg} border-b p-6 shadow-md sticky top-0 z-40 transition-colors`}>
@@ -355,26 +395,22 @@ export default function CommercialHub() {
         </div>
       </header>
 
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar Desktop */}
+        <aside className="hidden sm:flex w-64 flex-col border-r border-zinc-200 dark:border-zinc-800 p-4 space-y-2 overflow-y-auto">
+           <button onClick={() => setActiveTab('nouveau')} className={`flex items-center gap-3 p-4 rounded-xl font-bold transition-all ${activeTab === 'nouveau' ? (isDark ? 'bg-black text-[#39FF14] shadow-md' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+             <UserPlus size={20}/> Nouveau Client
+           </button>
+           <button onClick={() => setActiveTab('activite')} className={`flex items-center gap-3 p-4 rounded-xl font-bold transition-all ${activeTab === 'activite' ? (isDark ? 'bg-black text-[#39FF14] shadow-md' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+             <Activity size={20}/> Mon Activité
+           </button>
+           <button onClick={() => setActiveTab('multimedia')} className={`flex items-center gap-3 p-4 rounded-xl font-bold transition-all ${activeTab === 'multimedia' ? (isDark ? 'bg-black text-[#39FF14] shadow-md' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-black dark:hover:text-white'}`}>
+             <MonitorPlay size={20}/> Médias & Démos
+           </button>
+        </aside>
+
       {/* Contenu principal */}
-      <main className="flex-1 p-6">
-        
-        {/* Navigation Bureau (Desktop) */}
-        <div className="hidden sm:flex justify-center mb-8 animate-in fade-in slide-in-from-top-4">
-           <div className={`flex p-1.5 rounded-2xl ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-100 border-zinc-200'} border shadow-sm`}>
-              <button 
-                 onClick={() => setActiveTab('nouveau')} 
-                 className={`flex items-center gap-2 px-8 py-3 rounded-xl font-black uppercase text-xs transition-all ${activeTab === 'nouveau' ? (isDark ? 'bg-black text-[#39FF14] shadow-md' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}
-              >
-                 <UserPlus size={16} /> Nouveau Client
-              </button>
-              <button 
-                 onClick={() => setActiveTab('activite')} 
-                 className={`flex items-center gap-2 px-8 py-3 rounded-xl font-black uppercase text-xs transition-all ${activeTab === 'activite' ? (isDark ? 'bg-black text-[#39FF14] shadow-md' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}
-              >
-                 <Activity size={16} /> Mon Activité
-              </button>
-           </div>
-        </div>
+      <main className="flex-1 p-6 overflow-y-auto custom-scrollbar">
 
         {activeTab === 'nouveau' ? (
           <div className="space-y-6 max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4">
@@ -415,13 +451,26 @@ export default function CommercialHub() {
               </div>
               
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Ville / Quartier *</label>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Région *</label>
+                <select 
+                  required
+                  value={formData.region}
+                  onChange={e => setFormData({...formData, region: e.target.value})}
+                  className={`w-full ${inputBg} rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] transition cursor-pointer appearance-none`}
+                >
+                  <option value="" disabled>Sélectionner la région...</option>
+                  {REGIONS_SENEGAL.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Adresse / Quartier Exact *</label>
                 <input 
                   type="text" 
                   required
-                  value={formData.city}
-                  onChange={e => setFormData({...formData, city: e.target.value})}
-                  placeholder="Ex: Dakar, Plateau" 
+                  value={formData.address}
+                  onChange={e => setFormData({...formData, address: e.target.value})}
+                  placeholder="Ex: Parcelles Assainies, Unité 12" 
                   className={`w-full ${inputBg} rounded-xl p-4 font-bold focus:outline-none focus:border-[#39FF14] transition`}
                 />
               </div>
@@ -659,7 +708,43 @@ export default function CommercialHub() {
             </div>
           </div>
         )}
+
+        {activeTab === 'multimedia' && (
+          <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-black uppercase tracking-tight">Médias & <span className="text-[#39FF14]">Démos</span></h2>
+              <p className="text-sm font-bold text-zinc-500">Vidéos de démonstration et visuels à partager à vos clients.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {marketingMaterials.map((media: any) => (
+                  <div key={media.id} className={`${cardBg} rounded-[2rem] overflow-hidden shadow-sm border flex flex-col`}>
+                     <div className="h-48 bg-zinc-800 relative">
+                        {media.type === 'Vidéo' && getEmbedUrl(media.url) ? (
+                           <iframe src={getEmbedUrl(media.url)} className="w-full h-full border-0" allowFullScreen></iframe>
+                        ) : (
+                           <img src={media.type === 'Vidéo' ? `https://img.youtube.com/vi/${media.url.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg` : media.url} alt={media.title} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" onError={(e:any) => e.target.src = 'https://placehold.co/600x400/111/39FF14?text=Média'} />
+                        )}
+                        <span className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase border border-[#39FF14]/30 flex items-center gap-1">
+                           {media.type === 'Vidéo' ? <Video size={12}/> : <ImageIcon size={12}/>} {media.type}
+                        </span>
+                     </div>
+                     <div className="p-5 flex flex-col gap-4">
+                        <h3 className={`font-black text-lg ${isDark ? 'text-white' : 'text-black'}`}>{media.title}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                           <button onClick={() => handleShareMedia(media.url, media.title, 'whatsapp')} className="p-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebd58] transition" title="WhatsApp"><MessageSquare size={16}/></button>
+                           <button onClick={() => handleShareMedia(media.url, media.title, 'facebook')} className="p-2 bg-[#1877F2] text-white rounded-lg hover:opacity-80 transition" title="Facebook"><Facebook size={16}/></button>
+                           <button onClick={() => handleShareMedia(media.url, media.title, 'twitter')} className="p-2 bg-black text-white rounded-lg hover:bg-zinc-800 transition" title="X (Twitter)"><Twitter size={16}/></button>
+                           <button onClick={() => handleShareMedia(media.url, media.title, 'copy')} className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"><Link size={14}/> Copier Lien</button>
+                        </div>
+                     </div>
+                  </div>
+               ))}
+            </div>
+          </div>
+        )}
       </main>
+      </div>
 
       {/* Navigation Bas (Mobile) avec animation fluide */}
       <nav className={`fixed bottom-0 w-full ${headerBg} border-t flex relative z-50 pb-safe sm:hidden overflow-hidden`}>

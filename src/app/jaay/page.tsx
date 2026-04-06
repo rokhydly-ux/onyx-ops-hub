@@ -19,12 +19,14 @@ const ONBOARDING_CATEGORIES = [
   "Autre"
 ];
 
+const REGIONS_SENEGAL = ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou", "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou", "Tambacounda", "Thiès", "Ziguinchor"];
+
 export default function OnyxJaayLanding() {
   const router = useRouter();
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
-  const [leadData, setLeadData] = useState({ name: '', phone: '', email: '', category: '', customCategory: '', saas: 'Onyx Jaay' });
+  const [leadData, setLeadData] = useState({ name: '', phone: '', email: '', category: '', customCategory: '', saas: 'Onyx Jaay', region: '', address: '' });
   const [countryCode, setCountryCode] = useState("+221");
   const waNumber = "221785338417";
 
@@ -108,6 +110,8 @@ export default function OnyxJaayLanding() {
         intent: data.intent || 'Contact',
         phone: data.contact || '',
         full_name: data.full_name || 'Visiteur Anonyme',
+        city: data.city || data.region || leadData.region || '',
+        address: data.address || leadData.address || '',
         message: data.message || '',
         status: 'Nouveau',
         password: 'central2026'
@@ -140,9 +144,9 @@ export default function OnyxJaayLanding() {
 
     const finalPhone = cleanNumber.startsWith('+221') ? cleanNumber : `${countryCode}${cleanNumber}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Onyx Jaay)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Activité:* ${finalCategory}\n\n_Le client a créé son compte lui-même via le formulaire complet._`;
+    const msg = `🚀 *NOUVEAU LEAD (Onyx Jaay)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n\n_Le client a créé son compte lui-même via le formulaire complet._`;
 
-    await saveLead({ source: 'Landing Page Onyx Jaay', intent: 'Création Compte Onyx Jaay', contact: finalPhone, full_name: leadData.name, message: `Activité: ${finalCategory} | Email: ${leadData.email}`, email: leadData.email });
+    await saveLead({ source: 'Landing Page Onyx Jaay', intent: 'Création Compte Onyx Jaay', contact: finalPhone, full_name: leadData.name, city: leadData.region, address: leadData.address, message: `Activité: ${finalCategory} | Email: ${leadData.email}`, email: leadData.email });
     
     setShowOnboarding(false);
     alert(`Merci ${leadData.name} ! Vos informations sont enregistrées.\nVous allez être redirigé vers notre équipe WhatsApp pour l'activation immédiate de votre espace.`);
@@ -162,13 +166,15 @@ export default function OnyxJaayLanding() {
 
     const finalPhone = cleanNumber.startsWith('+221') ? cleanNumber : `${countryCode}${cleanNumber}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Activité:* ${finalCategory || 'Non renseignée'}\n\n_Le client souhaite un diagnostic gratuit._`;
+    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory || 'Non renseignée'}\n\n_Le client souhaite un diagnostic gratuit._`;
 
     await saveLead({
        source: 'Exit Intent Onyx Jaay',
        intent: `Diagnostic Gratuit`,
        contact: finalPhone,
        full_name: leadData.name || 'Visiteur',
+       city: leadData.region,
+       address: leadData.address,
        message: `Demande de diagnostic gratuit | Activité: ${finalCategory || 'Non renseignée'} | Email: ${leadData.email}`
     });
 
@@ -248,6 +254,7 @@ export default function OnyxJaayLanding() {
                     <button onClick={() => window.location.href = '/solutions/onyx-tiak'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🚚 Onyx Tiak</button>
                     <button onClick={() => window.location.href = '/solutions/onyx-menu'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🍽️ Onyx Menu</button>
                  </div>
+
              </div>
              <button onClick={() => window.location.href = '/'} className="bg-zinc-100 text-black px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-black hover:text-[#39FF14] transition-colors flex items-center gap-1">
                  <ChevronLeft size={14}/> Accueil
@@ -535,6 +542,19 @@ export default function OnyxJaayLanding() {
                          />
                        </div>
                      </div>
+                     
+                     <div>
+                       <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Région *</label>
+                       <select required value={leadData.region} onChange={e => setLeadData({...leadData, region: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition cursor-pointer appearance-none">
+                         <option value="" disabled>Sélectionner votre région</option>
+                         {REGIONS_SENEGAL.map(r => <option key={r} value={r}>{r}</option>)}
+                       </select>
+                     </div>
+
+                     <div>
+                       <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Adresse / Quartier *</label>
+                       <input type="text" required value={leadData.address} onChange={e => setLeadData({...leadData, address: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="Votre adresse complète" />
+                     </div>
 
                      <div>
                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Adresse Email <span className="text-zinc-400 font-medium">(Optionnel)</span></label>
@@ -600,6 +620,13 @@ export default function OnyxJaayLanding() {
                    className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" 
                  />
                </div>
+
+               <select value={leadData.region} onChange={e => setLeadData({...leadData, region: e.target.value})} required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition cursor-pointer appearance-none">
+                 <option value="" disabled>Votre région *</option>
+                 {REGIONS_SENEGAL.map(r => <option key={r} value={r}>{r}</option>)}
+               </select>
+               
+               <input type="text" placeholder="Quartier / Adresse *" required value={leadData.address} onChange={e => setLeadData({...leadData, address: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
 
                <select 
                  value={leadData.category} 
@@ -677,9 +704,8 @@ export default function OnyxJaayLanding() {
         {!isBotOpen && !isBotDismissed && (
            <div className="relative group animate-bounce flex items-center justify-center">
              <button 
-               onClick={(e) => { e.stopPropagation(); setIsBotDismissed(true); }} 
+               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsBotDismissed(true); }} 
                className="absolute -top-1 -right-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-black p-1 rounded-full z-10 transition-colors shadow-sm"
-               aria-label="Fermer l'assistant"
              >
                <X size={14} />
              </button>

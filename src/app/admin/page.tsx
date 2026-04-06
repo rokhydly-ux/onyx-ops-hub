@@ -36,7 +36,7 @@ type Contact = {
   email?: string;
   phone: string;
   address?: string;
-  city?: string;
+  city?: string; // Utilisé pour Région
   country?: string;
   status: string;
   type: string;
@@ -195,6 +195,7 @@ export default function AdminDashboard() {
   const [actionTabFilter, setActionTabFilter] = useState("IA");
   const [actionSearchFilter, setActionSearchFilter] = useState("");
   const [marketingArticles, setMarketingArticles] = useState<any[]>([]);
+  const [editingMaterial, setEditingMaterial] = useState<any>(null);
   const [showDiffusionModal, setShowDiffusionModal] = useState<any>(null);
   const [selectedContactsForDiffusion, setSelectedContactsForDiffusion] = useState<string[]>([]);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
@@ -242,6 +243,7 @@ export default function AdminDashboard() {
   const [leadSearch, setLeadSearch] = useState("");
   const [leadFilter, setLeadFilter] = useState("Tous");
   const [partnerSearch, setPartnerSearch] = useState("");
+  const [partnerActivityFilter, setPartnerActivityFilter] = useState("Tous");
   const [showAddCommercialModal, setShowAddCommercialModal] = useState(false);
   const [showEditCommercialModal, setShowEditCommercialModal] = useState(false);
   const [editCommercialForm, setEditCommercialForm] = useState<any>({});
@@ -1749,6 +1751,19 @@ export default function AdminDashboard() {
         setNewMaterial({ title: '', type: 'Canva', url: '' });
         fetchSupabaseData();
         alert("Ressource ajoutée avec succès !");
+    }
+  };
+
+  const handleUpdateMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMaterial.title || !editingMaterial.url) return;
+    const { error } = await supabase.from('marketing_materials').update({
+        title: editingMaterial.title, type: editingMaterial.type, url: editingMaterial.url
+    }).eq('id', editingMaterial.id);
+    if (error) alert("Erreur: " + error.message);
+    else {
+        setEditingMaterial(null);
+        fetchSupabaseData();
     }
   };
 
@@ -3946,6 +3961,10 @@ export default function AdminDashboard() {
       </div>
    </div>
    <div className="flex items-center gap-4 relative z-10">
+      <select value={partnerActivityFilter} onChange={e => setPartnerActivityFilter(e.target.value)} className="hidden sm:block px-4 py-3 rounded-2xl border border-zinc-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14] cursor-pointer appearance-none bg-white">
+         <option value="Tous">Tous secteurs</option>
+         {Array.from(new Set(partners.map(p => p.activity).filter(Boolean))).map(act => <option key={act as string} value={act as string}>{act as string}</option>)}
+      </select>
       <input type="search" placeholder="Rechercher..." value={partnerSearch} onChange={e => setPartnerSearch(e.target.value)} className="px-5 py-3 rounded-2xl border border-zinc-200 text-sm font-medium w-48 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]" />
       <button onClick={() => setShowAddPartnerModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-5 py-3 rounded-2xl font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0">
          <Plus size={16}/> Ajouter
@@ -4026,6 +4045,7 @@ export default function AdminDashboard() {
                            else if (partnerKpiFilter === 'top') list = bySales.slice(0, 5);
                            else if (partnerKpiFilter === 'moins') list = bySales.slice(-5).reverse();
                            else if (partnerKpiFilter === 'gains') list = actifs.filter(p => (p.sales ?? 0) > 0);
+                           if (partnerActivityFilter !== 'Tous') list = list.filter(p => (p.activity || 'Non défini') === partnerActivityFilter);
                            if (partnerSearch || globalSearch) list = list.filter(p => [p.full_name, p.contact, p.activity].some(v => String(v||'').toLowerCase().includes((globalSearch || partnerSearch).toLowerCase())));
                            return list;
                          })().map(p => (
@@ -4058,6 +4078,7 @@ export default function AdminDashboard() {
                            else if (partnerKpiFilter === 'top') list = bySales.slice(0, 5);
                            else if (partnerKpiFilter === 'moins') list = bySales.slice(-5).reverse();
                            else if (partnerKpiFilter === 'gains') list = actifs.filter(p => (p.sales ?? 0) > 0);
+                           if (partnerActivityFilter !== 'Tous') list = list.filter(p => (p.activity || 'Non défini') === partnerActivityFilter);
                            if (partnerSearch || globalSearch) list = list.filter(p => [p.full_name, p.contact, p.activity].some(v => String(v||'').toLowerCase().includes((globalSearch || partnerSearch).toLowerCase())));
                            return list.length === 0;
                          })() && (
@@ -4069,9 +4090,30 @@ export default function AdminDashboard() {
 
                 {/* MATÉRIEL MARKETING */}
                 <div className="mt-12 bg-white border border-zinc-200 rounded-[3.5rem] lg:rounded-3xl shadow-sm p-6 lg:p-12">
-                  <h3 className="text-xl font-black uppercase text-black mb-6">Matériel Marketing Ambassadeurs</h3>
+                  <h3 className="text-xl font-black uppercase text-black mb-6">Matériel Marketing (Ambassadeurs & Commerciaux)</h3>
                   
                   {/* Formulaire d'ajout */}
+                  {editingMaterial ? (
+                    <form onSubmit={handleUpdateMaterial} className="mb-8 p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-4">
+                      <div className="flex justify-between items-center mb-2">
+                         <h4 className="font-black uppercase">Modifier la ressource</h4>
+                         <button type="button" onClick={() => setEditingMaterial(null)}><X size={16}/></button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" placeholder="Titre" value={editingMaterial.title} onChange={e => setEditingMaterial({...editingMaterial, title: e.target.value})} className="w-full p-3 bg-white border border-zinc-200 rounded-xl font-medium text-sm focus:outline-none" />
+                        <select value={editingMaterial.type} onChange={e => setEditingMaterial({...editingMaterial, type: e.target.value})} className="w-full p-3 bg-white border border-zinc-200 rounded-xl font-medium text-sm focus:outline-none">
+                          <option>Canva</option>
+                          <option>PDF</option>
+                          <option>Vidéo</option>
+                          <option>Image</option>
+                        </select>
+                        <input type="url" placeholder="URL" value={editingMaterial.url} onChange={e => setEditingMaterial({...editingMaterial, url: e.target.value})} className="w-full p-3 bg-white border border-zinc-200 rounded-xl font-medium text-sm focus:outline-none" />
+                      </div>
+                      <button type="submit" className="w-full md:w-auto bg-black text-[#39FF14] px-8 py-3 rounded-xl text-xs font-black uppercase hover:bg-zinc-800 transition-all">
+                        Enregistrer les modifications
+                      </button>
+                    </form>
+                  ) : (
                   <form onSubmit={handleAddMaterial} className="mb-8 p-6 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <input 
@@ -4088,6 +4130,8 @@ export default function AdminDashboard() {
                       >
                         <option>Canva</option>
                         <option>PDF</option>
+                        <option>Vidéo</option>
+                        <option>Image</option>
                       </select>
                       <input 
                         type="url"
@@ -4101,6 +4145,7 @@ export default function AdminDashboard() {
                       Ajouter la ressource
                     </button>
                   </form>
+                  )}
 
                   {/* Liste des ressources */}
                   <div className="space-y-3">
@@ -4115,9 +4160,12 @@ export default function AdminDashboard() {
                             <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-500 hover:underline">{material.url}</a>
                           </div>
                         </div>
-                        <button onClick={() => handleDeleteMaterial(material.id)} className="p-2 text-zinc-400 hover:bg-red-100 hover:text-red-600 rounded-full transition-all">
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={() => setEditingMaterial(material)} className="p-2 text-zinc-400 hover:bg-blue-100 hover:text-blue-600 rounded-full transition-all"><Edit3 size={16} /></button>
+                          <button onClick={() => handleDeleteMaterial(material.id)} className="p-2 text-zinc-400 hover:bg-red-100 hover:text-red-600 rounded-full transition-all">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                      {marketingMaterials.length === 0 && (
@@ -4629,8 +4677,11 @@ export default function AdminDashboard() {
               </div>
 
               <div className="space-y-2">
-                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Ville / Quartier</label>
-                 <input type="text" value={editingContact?.city || ""} onChange={e => setEditingContact({...editingContact, city: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all placeholder:text-zinc-300" placeholder="Ex: Dakar, Plateau" />
+                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Région</label>
+                 <select value={editingContact?.city || ""} onChange={e => setEditingContact({...editingContact, city: e.target.value})} className="w-full p-5 sm:p-6 bg-zinc-50 border-none rounded-[1.75rem] sm:rounded-[2.25rem] font-black text-xs sm:text-sm uppercase outline-none focus:ring-[6px] sm:focus:ring-[8px] focus:ring-[#39FF14]/10 transition-all cursor-pointer appearance-none">
+                    <option value="">Sélectionner une région...</option>
+                    {["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou", "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou", "Tambacounda", "Thiès", "Ziguinchor"].map(r => <option key={r} value={r}>{r}</option>)}
+                 </select>
               </div>
               <div className="space-y-2">
                  <label className="text-[10px] sm:text-[11px] font-black uppercase text-zinc-400 ml-4 sm:ml-6 tracking-widest">Quartier / Adresse</label>
@@ -4963,10 +5014,19 @@ export default function AdminDashboard() {
       {showHubsMap && (() => {
         const HUBS_ZONES = [
           { id: "dakar", label: "Dakar", x: 18, y: 48 },
-          { id: "thies", label: "Thiès", x: 32, y: 42 },
-          { id: "saint-louis", label: "Saint-Louis", x: 28, y: 22 },
-          { id: "ziguinchor", label: "Ziguinchor", x: 38, y: 82 },
-          { id: "mbour", label: "Mbour", x: 20, y: 62 },
+          { id: "Thiès", label: "Thiès", x: 28, y: 48 },
+          { id: "Diourbel", label: "Diourbel", x: 35, y: 48 },
+          { id: "Fatick", label: "Fatick", x: 35, y: 55 },
+          { id: "Kaolack", label: "Kaolack", x: 40, y: 55 },
+          { id: "Kaffrine", label: "Kaffrine", x: 50, y: 55 },
+          { id: "Louga", label: "Louga", x: 40, y: 35 },
+          { id: "Saint-Louis", label: "Saint-Louis", x: 35, y: 20 },
+          { id: "Matam", label: "Matam", x: 70, y: 30 },
+          { id: "Tambacounda", label: "Tambacounda", x: 75, y: 60 },
+          { id: "Kédougou", label: "Kédougou", x: 80, y: 80 },
+          { id: "Kolda", label: "Kolda", x: 55, y: 80 },
+          { id: "Sédhiou", label: "Sédhiou", x: 45, y: 80 },
+          { id: "Ziguinchor", label: "Ziguinchor", x: 35, y: 80 },
           { id: "international", label: "Hub International", x: 92, y: 50 },
         ];
         const INTERNATIONAL_COUNTRIES = ['mali', 'côte d\'ivoire', 'cote d\'ivoire', 'côte d’ivoire', 'cote d’ivoire', 'guinée', 'guinee', 'mauritanie', 'gambie'];
@@ -4979,9 +5039,10 @@ export default function AdminDashboard() {
           const label = zone.label.toLowerCase();
           const labels = [label, label.replace(/-/g, ' '), label.replace(/ /g, '-')];
           return contacts.filter(c => {
+            const city = (c.city || '').toLowerCase();
             const addr = (c.address || '').toLowerCase();
             const country = (c.country || '').toLowerCase();
-            return labels.some(l => addr.includes(l) || country.includes(l));
+            return labels.some(l => city.includes(l) || addr.includes(l) || country.includes(l));
           });
         };
         const zoneContacts = selectedHub ? getContactsForZone(selectedHub) : [];
@@ -5002,8 +5063,8 @@ export default function AdminDashboard() {
                 </div>
                 <button onClick={() => { setShowHubsMap(false); setSelectedHub(null); }} className="p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
               </div>
-              <div className="flex-1 flex flex-col sm:flex-row min-h-0">
-                <div className="flex-1 relative p-6 min-h-[320px] bg-zinc-900">
+              <div className="flex-1 flex flex-col sm:flex-row min-h-0 overflow-y-auto sm:overflow-hidden">
+                <div className="w-full sm:flex-1 relative p-4 sm:p-6 min-h-[300px] sm:min-h-[320px] bg-zinc-900 shrink-0">
                   <svg viewBox="0 0 100 100" className="w-full h-full absolute inset-0 p-4" preserveAspectRatio="xMidYMid meet">
                     <path d={senegalPath} fill="none" stroke="#39FF14" strokeWidth="0.8" opacity="0.25" className="transition-opacity duration-300" />
                   </svg>
@@ -5017,7 +5078,7 @@ export default function AdminDashboard() {
                     />
                   ))}
                 </div>
-                <div className="w-full sm:w-80 border-t sm:border-t-0 sm:border-l border-zinc-200 dark:border-zinc-800 p-5 flex flex-col bg-zinc-50 dark:bg-zinc-900">
+                <div className="w-full sm:w-80 border-t sm:border-t-0 sm:border-l border-zinc-200 dark:border-zinc-800 p-4 sm:p-5 flex flex-col bg-zinc-50 dark:bg-zinc-900 shrink-0">
                   <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-3">
                     {currentZone ? `Contacts • ${currentZone.label}` : "Cliquez sur un point (Dakar, Thiès…)"}
                   </h3>

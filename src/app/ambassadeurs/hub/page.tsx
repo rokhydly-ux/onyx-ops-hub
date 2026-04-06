@@ -6,7 +6,7 @@ import {
   LogOut, Link as LinkIcon, Info, ShieldCheck, 
   ChevronDown, Package, Zap, ArrowRight, X,
   MessageCircle, Trash2, Trophy, Settings,
-  Sun, Moon, Medal, Target, Download, FileText, Image as ImageIcon,
+  Sun, Moon, Medal, Target, Download, FileText, Image as ImageIcon, Facebook, Twitter, Video,
   Clock, ShoppingBag
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -125,6 +125,24 @@ export default function AmbassadorHub() {
     };
     fetchDashboardData();
   }, []);
+
+  const handleShareMedia = (url: string, title: string, platform: string) => {
+     const text = `Découvrez ${title} : ${url}`;
+     if (platform === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+     } else if (platform === 'facebook') {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+     } else if (platform === 'twitter') {
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+     }
+  };
+  const getEmbedUrl = (url: string) => {
+      if (!url) return '';
+      let videoId = '';
+      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+      if (match && match[1]) { videoId = match[1]; return `https://www.youtube.com/embed/${videoId}`; }
+      return url;
+  };
 
   // Logique de calcul des commissions (Tableau des filleuls)
   const calculateCommission = (price: number, hasCM: boolean, isMonth1: boolean) => {
@@ -482,36 +500,32 @@ export default function AmbassadorHub() {
             <ShoppingBag size={22} /> Boîte à Outils Marketing
           </h2>
           
-          <div className="grid md:grid-cols-2 gap-8">
-             <div>
-                <h3 className={`font-bold text-sm uppercase mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-black'}`}><ImageIcon size={16}/> Visuels & PDF</h3>
-                <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {marketingMaterials.length === 0 ? (
                      <p className="text-zinc-500 text-sm">Aucun matériel disponible pour le moment.</p>
                   ) : marketingMaterials.map((material) => (
-                     <a 
-                       key={material.id}
-                       href={material.url} 
-                       target="_blank" 
-                       rel="noopener noreferrer" 
-                       className={`inline-flex items-center gap-2 ${isDark ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-zinc-100 text-black border-zinc-200'} border hover:bg-[#39FF14] hover:text-black hover:border-[#39FF14] px-5 py-3 rounded-xl font-black uppercase text-[10px] transition-colors shadow-sm`}
-                     >
-                      {material.type.toLowerCase() === 'canva' ? <ImageIcon size={14}/> : <FileText size={14}/>}
-                      {material.title || (material.type.toLowerCase() === 'canva' ? 'Ouvrir Canva' : 'Télécharger le PDF')}
-                    </a>
+                    <div key={material.id} className={`${cardBg} rounded-[2rem] overflow-hidden shadow-sm border flex flex-col transition-transform hover:scale-[1.02]`}>
+                       <div className="h-48 bg-zinc-800 relative">
+                          {material.type === 'Vidéo' && getEmbedUrl(material.url) ? (
+                             <iframe src={getEmbedUrl(material.url)} className="w-full h-full border-0" allowFullScreen></iframe>
+                          ) : (
+                             <img src={material.type === 'Vidéo' ? `https://img.youtube.com/vi/${material.url.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg` : material.url} alt={material.title} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" onError={(e:any) => e.target.src = 'https://placehold.co/600x400/111/39FF14?text=Média'} />
+                          )}
+                          <span className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase border border-[#39FF14]/30 flex items-center gap-1">
+                             {material.type === 'Vidéo' ? <Video size={12}/> : <ImageIcon size={12}/>} {material.type}
+                          </span>
+                       </div>
+                       <div className="p-5 flex flex-col gap-4">
+                          <h3 className={`font-black text-lg ${isDark ? 'text-white' : 'text-black'}`}>{material.title}</h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                             <button onClick={() => handleShareMedia(material.url, material.title, 'whatsapp')} className="p-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebd58] transition" title="WhatsApp"><MessageCircle size={16}/></button>
+                             <button onClick={() => handleShareMedia(material.url, material.title, 'facebook')} className="p-2 bg-[#1877F2] text-white rounded-lg hover:opacity-80 transition" title="Facebook"><Facebook size={16}/></button>
+                             <button onClick={() => handleShareMedia(material.url, material.title, 'twitter')} className="p-2 bg-black text-white rounded-lg hover:bg-zinc-800 transition" title="X (Twitter)"><Twitter size={16}/></button>
+                             <button onClick={() => { navigator.clipboard.writeText(material.url); alert("Lien copié !"); }} className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"><LinkIcon size={14}/> Copier Lien</button>
+                          </div>
+                       </div>
+                    </div>
                   ))}
-                </div>
-             </div>
-             
-             <div>
-                <h3 className={`font-bold text-sm uppercase mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-black'}`}><MessageCircle size={16}/> Scripts WhatsApp Rapides</h3>
-                <div className="space-y-3">
-                   <div className={`p-4 rounded-xl border ${isDark ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'} relative group`}>
-                      <p className={`text-xs italic mb-3 leading-relaxed ${textMuted}`}>"Salut ! Je travaille avec OnyxOps, on a une solution pour créer ton catalogue WhatsApp avec paiement intégré et suivi de tes livreurs. Tu veux voir une démo rapide ?"</p>
-                      <button onClick={() => { navigator.clipboard.writeText("Salut ! Je travaille avec OnyxOps, on a une solution pour créer ton catalogue WhatsApp avec paiement intégré et suivi de tes livreurs. Tu veux voir une démo rapide ?"); alert("Script copié !"); }} className="text-[10px] font-black uppercase text-[#39FF14] flex items-center gap-1 hover:underline"><Copy size={12}/> Copier le script</button>
-                   </div>
-                </div>
-             </div>
           </div>
         </section>
 

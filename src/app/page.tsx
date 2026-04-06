@@ -19,6 +19,8 @@ import InteractiveParticles from "@/components/InteractiveParticles";
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
+const REGIONS_SENEGAL = ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou", "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou", "Tambacounda", "Thiès", "Ziguinchor"];
+
 type PlanKey = "solo" | "tekki" | "resto" | "tekkipro" | "crm" | "gold";
 
 // --- DATA ---
@@ -157,7 +159,7 @@ export default function OnyxOpsElite() {
   // ONBOARDING (Maimouna Modal & Exit Intent)
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
-  const [leadData, setLeadData] = useState({ name: '', phone: '', email: '', category: '', customCategory: '', saas: '' });
+  const [leadData, setLeadData] = useState({ name: '', phone: '', email: '', category: '', customCategory: '', saas: '', region: '', address: '' });
   const [countryCode, setCountryCode] = useState("+221"); // NOUVEAU: Dropdown pays
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [hasTriggeredExitIntent, setHasTriggeredExitIntent] = useState(false);
@@ -180,7 +182,7 @@ export default function OnyxOpsElite() {
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [botMessages, setBotMessages] = useState<any[]>([]);
   const [botStep, setBotStep] = useState(0);
-  const [botUserData, setBotUserData] = useState({ name: "", phone: "", sector: "", product: "" });
+  const [botUserData, setBotUserData] = useState({ name: "", phone: "", sector: "", product: "", city: "", address: "" });
   const [userReply, setUserReply] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -345,6 +347,7 @@ export default function OnyxOpsElite() {
     try {
       const extra = { city: data.city, address: data.address, country: data.country, status: data.status, sales_exp: data.sales_exp, objective: data.objective, strategy: data.strategy };
       const finalName = data.full_name || data.name || 'Visiteur Web';
+      const finalCity = data.city || data.region || leadData.region || '';
 
       const payload: Record<string, any> = {
         source: data.source || 'Site Web',
@@ -352,6 +355,8 @@ export default function OnyxOpsElite() {
         phone: data.contact || '',
         message: typeof data.message === 'string' ? data.message : JSON.stringify({ ...extra, ...data }) || '',
         full_name: finalName,
+        city: finalCity,
+        address: data.address || leadData.address || '',
         status: 'Nouveau',
         password: 'central2026' // Mot de passe par défaut pour permettre le login
       };
@@ -423,13 +428,15 @@ export default function OnyxOpsElite() {
 
     const finalPhone = leadData.phone.replace(/\s+/g, '').startsWith('+221') ? leadData.phone.replace(/\s+/g, '') : `${countryCode}${leadData.phone.replace(/\s+/g, '')}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte._`;
+    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte._`;
 
     await saveLead({
        source: 'Onboarding Site',
        intent: `Création Compte (${leadData.saas || 'Pack Trio'})`,
        contact: finalPhone,
        full_name: leadData.name,
+       city: leadData.region,
+       address: leadData.address,
        message: `Activité: ${finalCategory} | Email: ${leadData.email}`
     });
 
@@ -450,13 +457,15 @@ export default function OnyxOpsElite() {
 
     const finalPhone = leadData.phone.replace(/\s+/g, '').startsWith('+221') ? leadData.phone.replace(/\s+/g, '') : `${countryCode}${leadData.phone.replace(/\s+/g, '')}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Activité:* ${finalCategory || 'Non renseignée'}\n\n_Le client souhaite un diagnostic gratuit._`;
+    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory || 'Non renseignée'}\n\n_Le client souhaite un diagnostic gratuit._`;
 
     await saveLead({
        source: 'Exit Intent',
        intent: `Diagnostic Gratuit`,
        contact: finalPhone,
        full_name: leadData.name || 'Visiteur',
+       city: leadData.region,
+       address: leadData.address,
        message: `Demande de diagnostic gratuit | Activité: ${finalCategory || 'Non renseignée'} | Email: ${leadData.email}`
     });
 
@@ -492,7 +501,32 @@ export default function OnyxOpsElite() {
       setTimeout(() => {
         setBotMessages(prev => [...prev, { 
           sender: 'bot', 
-          text: `Merci ! Quel est votre secteur d'activité actuel ?`, 
+          text: `Merci ! Dans quelle région vous trouvez-vous ?`, 
+          options: ["Dakar", "Thiès", "Autre Région", "Hors Sénégal"] 
+        }]);
+        setBotStep(1.5);
+      }, 1000);
+    }
+    else if (botStep === 1.5) {
+      currentData.city = reply; 
+      setBotUserData(currentData);
+      saveLead({ source: 'Bot Fanta', intent: `Région: ${reply}`, contact: currentData.phone, full_name: currentData.name, city: reply });
+      setTimeout(() => {
+        setBotMessages(prev => [...prev, { 
+          sender: 'bot', 
+          text: `C'est noté. Pourriez-vous préciser votre adresse ou quartier (Ex: Médina, Sacré-Coeur...) ?`
+        }]);
+        setBotStep(1.75);
+      }, 1000);
+    }
+    else if (botStep === 1.75) {
+      currentData.address = reply;
+      setBotUserData(currentData);
+      saveLead({ source: 'Bot Fanta', intent: `Adresse: ${reply}`, contact: currentData.phone, full_name: currentData.name, city: currentData.city, address: reply });
+      setTimeout(() => {
+        setBotMessages(prev => [...prev, { 
+          sender: 'bot', 
+          text: `C'est noté. Quel est votre secteur d'activité actuel ?`, 
           options: ["Boutique / Vente en ligne", "Restaurant / Fast Food", "Devenir Partenaire/Ambassadeur", "Autre (Précisez)"] 
         }]);
         setBotStep(2);
@@ -1751,6 +1785,19 @@ export default function OnyxOpsElite() {
                        </div>
 
                        <div>
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Région *</label>
+                         <select required value={leadData.region} onChange={e => setLeadData({...leadData, region: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition cursor-pointer appearance-none">
+                           <option value="" disabled>Sélectionner votre région</option>
+                           {REGIONS_SENEGAL.map(r => <option key={r} value={r}>{r}</option>)}
+                         </select>
+                       </div>
+
+                       <div>
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Adresse / Quartier *</label>
+                         <input type="text" required value={leadData.address} onChange={e => setLeadData({...leadData, address: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="Votre adresse complète" />
+                       </div>
+
+                       <div>
                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Adresse Email <span className="text-zinc-400 font-medium">(Optionnel)</span></label>
                          <input type="email" value={leadData.email} onChange={e => setLeadData({...leadData, email: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="contact@monbusiness.com" />
                        </div>
@@ -1814,6 +1861,17 @@ export default function OnyxOpsElite() {
                      className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" 
                    />
                  </div>
+
+                 <select 
+                   value={leadData.region} 
+                   onChange={e => setLeadData({...leadData, region: e.target.value})}
+                   required
+                   className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition cursor-pointer appearance-none"
+                 >
+                   <option value="" disabled>Votre région *</option>
+                   {REGIONS_SENEGAL.map(r => <option key={r} value={r}>{r}</option>)}
+                 </select>
+                 <input type="text" placeholder="Quartier / Adresse *" required value={leadData.address} onChange={e => setLeadData({...leadData, address: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
 
                  <select 
                    value={leadData.category} 
