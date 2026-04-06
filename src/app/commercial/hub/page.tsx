@@ -412,7 +412,7 @@ export default function CommercialHub() {
       {/* Contenu principal */}
       <main className="flex-1 p-6 overflow-y-auto custom-scrollbar">
 
-        {activeTab === 'nouveau' ? (
+        {activeTab === 'nouveau' && (
           <div className="space-y-6 max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4">
             <div className="text-center mb-6">
               <h2 className="text-3xl font-black uppercase tracking-tight">Nouveau <span className="text-[#39FF14]">Client</span></h2>
@@ -550,7 +550,8 @@ export default function CommercialHub() {
               </button>
             </form>
           </div>
-        ) : (
+        )}
+        {activeTab === 'activite' && (
           <div className="space-y-6 max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4">
             <h2 className="text-3xl font-black uppercase tracking-tight mb-6">Mon <span className="text-[#39FF14]">Activité</span></h2>
             

@@ -500,33 +500,91 @@ export default function AmbassadorHub() {
             <ShoppingBag size={22} /> Boîte à Outils Marketing
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {marketingMaterials.length === 0 ? (
-                     <p className="text-zinc-500 text-sm">Aucun matériel disponible pour le moment.</p>
-                  ) : marketingMaterials.map((material) => (
-                    <div key={material.id} className={`${cardBg} rounded-[2rem] overflow-hidden shadow-sm border flex flex-col transition-transform hover:scale-[1.02]`}>
-                       <div className="h-48 bg-zinc-800 relative">
-                          {material.type === 'Vidéo' && getEmbedUrl(material.url) ? (
-                             <iframe src={getEmbedUrl(material.url)} className="w-full h-full border-0" allowFullScreen></iframe>
-                          ) : (
-                             <img src={material.type === 'Vidéo' ? `https://img.youtube.com/vi/${material.url.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg` : material.url} alt={material.title} className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" onError={(e:any) => e.target.src = 'https://placehold.co/600x400/111/39FF14?text=Média'} />
-                          )}
-                          <span className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase border border-[#39FF14]/30 flex items-center gap-1">
-                             {material.type === 'Vidéo' ? <Video size={12}/> : <ImageIcon size={12}/>} {material.type}
-                          </span>
-                       </div>
-                       <div className="p-5 flex flex-col gap-4">
-                          <h3 className={`font-black text-lg ${isDark ? 'text-white' : 'text-black'}`}>{material.title}</h3>
-                          <div className="flex flex-wrap items-center gap-2">
-                             <button onClick={() => handleShareMedia(material.url, material.title, 'whatsapp')} className="p-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebd58] transition" title="WhatsApp"><MessageCircle size={16}/></button>
-                             <button onClick={() => handleShareMedia(material.url, material.title, 'facebook')} className="p-2 bg-[#1877F2] text-white rounded-lg hover:opacity-80 transition" title="Facebook"><Facebook size={16}/></button>
-                             <button onClick={() => handleShareMedia(material.url, material.title, 'twitter')} className="p-2 bg-black text-white rounded-lg hover:bg-zinc-800 transition" title="X (Twitter)"><Twitter size={16}/></button>
-                             <button onClick={() => { navigator.clipboard.writeText(material.url); alert("Lien copié !"); }} className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"><LinkIcon size={14}/> Copier Lien</button>
-                          </div>
-                       </div>
-                    </div>
-                  ))}
-          </div>
+          {(() => {
+            const defaultMaterials = [
+              { id: 'd1', title: 'Démo Onyx Jaay - Vente WhatsApp', type: 'Vidéo', url: 'https://www.youtube.com/watch?v=acFsObjm2E0' },
+              { id: 'd2', title: 'Présentation Onyx Tiak - Logistique', type: 'Vidéo', url: 'https://www.youtube.com/watch?v=acFsObjm2E0' },
+              { id: 'd3', title: 'Affiche Promo Pack Tekki', type: 'Image', url: 'https://images.unsplash.com/photo-1557821552-17105176677c?q=80&w=800&auto=format&fit=crop' },
+              { id: 'd4', title: 'Visuel Onyx CRM', type: 'Image', url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop' },
+            ];
+
+            const displayedMaterials = marketingMaterials.length > 0 ? marketingMaterials : defaultMaterials;
+            const videos = displayedMaterials.filter((m: any) => m.type === 'Vidéo');
+            const photos = displayedMaterials.filter((m: any) => m.type !== 'Vidéo');
+
+            return (
+               <div className="space-y-8">
+                  {videos.length > 0 && (
+                     <div>
+                        <h3 className={`flex items-center gap-2 text-xl font-black uppercase mb-4 ${isDark ? 'text-white' : 'text-black'}`}>
+                           <Video className="text-[#39FF14]" size={20} /> Vidéos de Démo
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                           {videos.map((material: any) => (
+                              <div key={material.id} className={`${cardBg} rounded-[2rem] overflow-hidden shadow-sm border flex flex-col transition-transform hover:scale-[1.02] group`}>
+                                 <div className="h-48 bg-zinc-800 relative overflow-hidden">
+                                    {getEmbedUrl(material.url) ? (
+                                       <iframe src={getEmbedUrl(material.url)} className="w-full h-full border-0" allowFullScreen></iframe>
+                                    ) : (
+                                       <img src={`https://img.youtube.com/vi/${material.url.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg`} alt={material.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" onError={(e:any) => e.target.src = 'https://placehold.co/600x400/111/39FF14?text=Vidéo'} />
+                                    )}
+                                    <span className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase border border-[#39FF14]/30 flex items-center gap-1">
+                                       <Video size={12}/> Vidéo
+                                    </span>
+                                 </div>
+                                 <div className="p-5 flex flex-col gap-4">
+                                    <h3 className={`font-black text-lg ${isDark ? 'text-white' : 'text-black'}`}>{material.title}</h3>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                       <button onClick={() => handleShareMedia(material.url, material.title, 'whatsapp')} className="p-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebd58] transition" title="WhatsApp"><MessageCircle size={16}/></button>
+                                       <button onClick={() => handleShareMedia(material.url, material.title, 'facebook')} className="p-2 bg-[#1877F2] text-white rounded-lg hover:opacity-80 transition" title="Facebook"><Facebook size={16}/></button>
+                                       <button onClick={() => handleShareMedia(material.url, material.title, 'twitter')} className="p-2 bg-black text-white rounded-lg hover:bg-zinc-800 transition" title="X (Twitter)"><Twitter size={16}/></button>
+                                       <button onClick={() => { navigator.clipboard.writeText(material.url); alert("Lien copié !"); }} className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"><LinkIcon size={14}/> Copier Lien</button>
+                                    </div>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  )}
+
+                  {photos.length > 0 && (
+                     <div>
+                        <h3 className={`flex items-center gap-2 text-xl font-black uppercase mb-4 ${isDark ? 'text-white' : 'text-black'}`}>
+                           <ImageIcon className="text-[#39FF14]" size={20} /> Visuels & Affiches
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                           {photos.map((material: any) => (
+                              <div key={material.id} className={`${cardBg} rounded-[2rem] overflow-hidden shadow-sm border flex flex-col transition-transform hover:scale-[1.02] group`}>
+                                 <div className="h-48 bg-zinc-800 relative overflow-hidden">
+                                    <img src={material.url} alt={material.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" onError={(e:any) => e.target.src = 'https://placehold.co/600x400/111/39FF14?text=Image'} />
+                                    <span className="absolute top-4 left-4 bg-black/80 backdrop-blur-md text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase border border-[#39FF14]/30 flex items-center gap-1">
+                                       <ImageIcon size={12}/> Image
+                                    </span>
+                                 </div>
+                                 <div className="p-5 flex flex-col gap-4">
+                                    <h3 className={`font-black text-lg ${isDark ? 'text-white' : 'text-black'}`}>{material.title}</h3>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                       <button onClick={() => handleShareMedia(material.url, material.title, 'whatsapp')} className="p-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebd58] transition" title="WhatsApp"><MessageCircle size={16}/></button>
+                                       <button onClick={() => handleShareMedia(material.url, material.title, 'facebook')} className="p-2 bg-[#1877F2] text-white rounded-lg hover:opacity-80 transition" title="Facebook"><Facebook size={16}/></button>
+                                       <button onClick={() => handleShareMedia(material.url, material.title, 'twitter')} className="p-2 bg-black text-white rounded-lg hover:bg-zinc-800 transition" title="X (Twitter)"><Twitter size={16}/></button>
+                                       <button onClick={() => { navigator.clipboard.writeText(material.url); alert("Lien copié !"); }} className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"><LinkIcon size={14}/> Copier Lien</button>
+                                    </div>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  )}
+
+                  {marketingMaterials.length === 0 && (
+                     <div className="mt-8 text-center p-6 border border-dashed border-zinc-500/50 rounded-2xl">
+                        <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Affichage de démonstration</p>
+                        <p className="text-zinc-600 text-xs mt-2">L'administrateur n'a pas encore ajouté de contenu réel. Ces médias sont des exemples.</p>
+                     </div>
+                  )}
+               </div>
+            );
+          })()}
         </section>
 
         {/* TABLEAU DES FILLEULS */}

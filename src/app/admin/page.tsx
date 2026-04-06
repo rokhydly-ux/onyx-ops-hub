@@ -4148,32 +4148,66 @@ export default function AdminDashboard() {
                   )}
 
                   {/* Liste des ressources */}
-                  <div className="space-y-3">
-                    {marketingMaterials.map(material => (
-                      <div key={material.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
-                        <div className="flex items-center gap-4">
-                          <span className={`px-3 py-1 text-xs font-bold rounded-lg ${material.type === 'Canva' ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'}`}>
-                            {material.type}
-                          </span>
-                          <div>
-                            <p className="font-bold text-black">{material.title}</p>
-                            <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-500 hover:underline">{material.url}</a>
-                          </div>
+                  {(() => {
+                     const videos = marketingMaterials.filter(m => m.type === 'Vidéo');
+                     const photos = marketingMaterials.filter(m => m.type !== 'Vidéo');
+
+                     return (
+                        <div className="space-y-8">
+                           {videos.length > 0 && (
+                             <div>
+                                <h4 className="font-black text-sm uppercase mb-4 flex items-center gap-2 text-black"><PlayCircle size={18} className="text-[#39FF14]"/> Vidéos de Démo</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                   {videos.map(material => (
+                                     <div key={material.id} className="bg-zinc-50 rounded-2xl border border-zinc-100 p-4 flex flex-col justify-between hover:border-black transition-colors group">
+                                        <div>
+                                           <div className="flex justify-between items-start mb-3">
+                                              <span className="px-2 py-1 text-[9px] font-black uppercase rounded-lg bg-black text-[#39FF14] tracking-widest">{material.type}</span>
+                                              <div className="flex gap-1">
+                                                 <button onClick={() => setEditingMaterial(material)} className="p-1.5 text-zinc-400 hover:text-blue-600 bg-white rounded-lg shadow-sm transition-colors"><Edit3 size={14}/></button>
+                                                 <button onClick={() => handleDeleteMaterial(material.id)} className="p-1.5 text-zinc-400 hover:text-red-600 bg-white rounded-lg shadow-sm transition-colors"><Trash2 size={14}/></button>
+                                              </div>
+                                           </div>
+                                           <p className="font-bold text-sm text-black mb-1 line-clamp-2">{material.title}</p>
+                                           <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-500 hover:underline truncate block">{material.url}</a>
+                                        </div>
+                                     </div>
+                                   ))}
+                                </div>
+                             </div>
+                           )}
+
+                           {photos.length > 0 && (
+                             <div>
+                                <h4 className="font-black text-sm uppercase mb-4 flex items-center gap-2 text-black"><FileText size={18} className="text-purple-500"/> Visuels & Documents</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                   {photos.map(material => (
+                                     <div key={material.id} className="bg-zinc-50 rounded-2xl border border-zinc-100 p-4 flex flex-col justify-between hover:border-black transition-colors group">
+                                        <div>
+                                           <div className="flex justify-between items-start mb-3">
+                                              <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-lg tracking-widest ${material.type === 'Canva' ? 'bg-purple-100 text-purple-700' : material.type === 'PDF' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{material.type}</span>
+                                              <div className="flex gap-1">
+                                                 <button onClick={() => setEditingMaterial(material)} className="p-1.5 text-zinc-400 hover:text-blue-600 bg-white rounded-lg shadow-sm transition-colors"><Edit3 size={14}/></button>
+                                                 <button onClick={() => handleDeleteMaterial(material.id)} className="p-1.5 text-zinc-400 hover:text-red-600 bg-white rounded-lg shadow-sm transition-colors"><Trash2 size={14}/></button>
+                                              </div>
+                                           </div>
+                                           <p className="font-bold text-sm text-black mb-1 line-clamp-2">{material.title}</p>
+                                           <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-500 hover:underline truncate block">{material.url}</a>
+                                        </div>
+                                     </div>
+                                   ))}
+                                </div>
+                             </div>
+                           )}
+
+                           {marketingMaterials.length === 0 && (
+                             <div className="p-10 text-center text-zinc-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed border-zinc-100 rounded-[2rem]">
+                               Aucun matériel marketing ajouté.
+                             </div>
+                           )}
                         </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => setEditingMaterial(material)} className="p-2 text-zinc-400 hover:bg-blue-100 hover:text-blue-600 rounded-full transition-all"><Edit3 size={16} /></button>
-                          <button onClick={() => handleDeleteMaterial(material.id)} className="p-2 text-zinc-400 hover:bg-red-100 hover:text-red-600 rounded-full transition-all">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                     {marketingMaterials.length === 0 && (
-                        <div className="p-10 text-center text-zinc-400 text-xs font-bold uppercase tracking-widest border-2 border-dashed border-zinc-100 rounded-[2rem]">
-                          Aucun matériel marketing ajouté.
-                        </div>
-                      )}
-                  </div>
+                     );
+                  })()}
                 </div>
              </div>
           )}
