@@ -133,6 +133,29 @@ const PaymentMethods = () => (
   </div>
 );
 
+// Composants d'icônes personnalisés pour la barre de navigation
+const CustomNavIcons = {
+  Lock: ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+  ),
+  Menu: ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <line x1="4" y1="12" x2="20" y2="12"></line>
+      <line x1="4" y1="6" x2="20" y2="6"></line>
+      <line x1="4" y1="18" x2="20" y2="18"></line>
+    </svg>
+  ),
+  Close: ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  )
+};
+
 export default function OnyxOpsElite() {
   const router = useRouter();
   const [activeView, setActiveView] = useState<'home' | 'about' | 'blog' | 'dashboard'>('home');
@@ -801,7 +824,7 @@ export default function OnyxOpsElite() {
                </div>
             ) : (
                <button onClick={() => setShowAuthModal(true)} className="bg-black text-[#39FF14] px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition shadow-md flex items-center gap-2">
-                 <Lock size={14}/> Accès Hub
+                 <CustomNavIcons.Lock size={14}/> Accès Hub
                </button>
             )}
           </div>
@@ -813,7 +836,7 @@ export default function OnyxOpsElite() {
                </button>
              )}
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2.5 bg-zinc-100 rounded-full text-black">
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMobileMenuOpen ? <CustomNavIcons.Close className="w-6 h-6" /> : <CustomNavIcons.Menu className="w-6 h-6" />}
             </button>
           </div>
         </nav>
