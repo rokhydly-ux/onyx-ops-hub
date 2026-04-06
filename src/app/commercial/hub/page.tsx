@@ -800,6 +800,49 @@ export default function CommercialHub() {
           </div>
           );
         })()}
+
+        {/* --- FOOTER --- */}
+        <footer className={`mt-20 py-12 border-t relative z-10 ${isDark ? 'bg-black text-white border-zinc-900' : 'bg-white text-black border-zinc-200'}`}>
+           <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-8 mb-10">
+              <div className="md:col-span-2">
+                 <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center border border-zinc-800"><span className="text-[#39FF14] font-black text-xl">O</span></div>
+                    <span className="font-sans font-black tracking-tighter text-2xl">ONYX OPS</span>
+                 </div>
+                 <p className={`text-sm max-w-sm mb-6 ${isDark ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                    Le premier écosystème digital tout-en-un pour les entreprises au Sénégal. Gagnez du temps, augmentez vos ventes et dominez votre marché grâce à l'automatisation WhatsApp.
+                 </p>
+              </div>
+              
+             <div>
+                 <h4 className={`font-black uppercase text-sm tracking-widest mb-6 ${isDark ? 'text-zinc-300' : 'text-zinc-800'}`}>Solutions</h4>
+                 <ul className={`space-y-4 text-sm font-bold ${isDark ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                    <li><a href="/jaay" className="hover:text-[#39FF14] transition">Onyx Jaay</a></li>
+                    <li><a href="/solutions/onyx-tiak" className="hover:text-[#39FF14] transition">Onyx Tiak</a></li>
+                    <li><a href="/solutions/onyx-menu" className="hover:text-[#39FF14] transition">Onyx Menu</a></li>
+                    <li><a href="/" className="hover:text-[#39FF14] transition">Pack Trio</a></li>
+                 </ul>
+              </div>
+
+              <div>
+                 <h4 className={`font-black uppercase text-sm tracking-widest mb-6 ${isDark ? 'text-zinc-300' : 'text-zinc-800'}`}>Entreprise</h4>
+                 <ul className={`space-y-4 text-sm font-bold ${isDark ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                    <li><a href="/" className="hover:text-[#39FF14] transition">Tarifs</a></li>
+                    <li><a href="/ambassadeurs/login" className="hover:text-[#39FF14] transition">Programme Ambassadeur</a></li>
+                    <li><a href="/" className="hover:text-[#39FF14] transition">Le Blog</a></li>
+                    <li><a href="/login" className="hover:text-[#39FF14] transition">Connexion Hub</a></li>
+                 </ul>
+              </div>
+           </div>
+           
+           <div className={`max-w-7xl mx-auto px-6 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4 ${isDark ? 'border-zinc-900' : 'border-zinc-200'}`}>
+              <p className="text-xs text-zinc-500 font-bold">© 2026 OnyxOps Elite. Tous droits réservés. Dakar, Sénégal.</p>
+              <div className="flex gap-4 text-xs font-bold text-zinc-500">
+                 <button className="hover:text-[#39FF14] transition">CGV</button>
+                 <button className="hover:text-[#39FF14] transition">Confidentialités</button>
+              </div>
+           </div>
+        </footer>
       </main>
       </div>
 

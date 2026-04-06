@@ -3951,13 +3951,13 @@ export default function AdminDashboard() {
 
           {/* ================= VUE AMBASSADEURS ================= */}
           {activeView === 'partners' && (
-             <div className="space-y-12 animate-in fade-in max-w-[1400px] mx-auto">
-                <div className="flex flex-col md:flex-row justify-between md:items-center gap-5 lg:gap-6 bg-white p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden">
-   <div className="flex items-center gap-6 lg:gap-5 relative z-10">
-      <div className="w-16 lg:w-20 h-16 lg:h-20 bg-black rounded-[1.75rem] lg:rounded-[2.25rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Handshake size={32} className="lg:w-[38px] lg:h-[38px]"/></div>
+             <div className="space-y-6 animate-in fade-in max-w-[1400px] mx-auto">
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white p-4 lg:p-5 rounded-[2rem] lg:rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden">
+   <div className="flex items-center gap-4 relative z-10">
+      <div className="w-14 lg:w-16 h-14 lg:h-16 bg-black rounded-[1.25rem] lg:rounded-[1.5rem] flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Handshake size={28} className="lg:w-[32px] lg:h-[32px]"/></div>
       <div>
-         <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
-         <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Génération de Revenus & Croissance Réseau</p>
+         <h2 className={`font-sans text-xl lg:text-2xl font-black uppercase tracking-tighter`}>Ambassadeurs Onyx</h2>
+         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Génération de Revenus & Croissance Réseau</p>
       </div>
    </div>
    <div className="flex items-center gap-4 relative z-10">
@@ -3982,26 +3982,26 @@ export default function AdminDashboard() {
                   const moins = bySales.slice(-5).reverse();
                   const gainsAReverser = actifs.reduce((s, p) => s + ((p.sales ?? 0) * 5000), 0);
                   return (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'nouveaux' ? 'all' : 'nouveaux')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'nouveaux' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
-                        <UserPlus size={24} className="mb-3"/>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'nouveaux' ? 'all' : 'nouveaux')} className={`p-4 rounded-[1.5rem] lg:rounded-2xl border-2 transition-all text-left ${partnerKpiFilter === 'nouveaux' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
+                        <UserPlus size={20} className="mb-2"/>
                         <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Nouveaux ambassadeurs</p>
-                        <p className={`font-sans text-xl lg:text-2xl font-black mt-1`}>{nouveaux.length}</p>
+                        <p className={`font-sans text-lg lg:text-xl font-black mt-1`}>{nouveaux.length}</p>
                       </button>
-                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'top' ? 'all' : 'top')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'top' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
-                        <TrendingUp size={24} className="mb-3"/>
+                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'top' ? 'all' : 'top')} className={`p-4 rounded-[1.5rem] lg:rounded-2xl border-2 transition-all text-left ${partnerKpiFilter === 'top' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
+                        <TrendingUp size={20} className="mb-2"/>
                         <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Top performers</p>
-                        <p className={`font-sans text-xl lg:text-2xl font-black mt-1`}>{top.length}</p>
+                        <p className={`font-sans text-lg lg:text-xl font-black mt-1`}>{top.length}</p>
                       </button>
-                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'moins' ? 'all' : 'moins')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'moins' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
-                        <ArrowDownRight size={24} className="mb-3"/>
+                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'moins' ? 'all' : 'moins')} className={`p-4 rounded-[1.5rem] lg:rounded-2xl border-2 transition-all text-left ${partnerKpiFilter === 'moins' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
+                        <ArrowDownRight size={20} className="mb-2"/>
                         <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Moins performants</p>
-                        <p className={`font-sans text-xl lg:text-2xl font-black mt-1`}>{moins.length}</p>
+                        <p className={`font-sans text-lg lg:text-xl font-black mt-1`}>{moins.length}</p>
                       </button>
-                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'gains' ? 'all' : 'gains')} className={`p-5 lg:p-6 rounded-[2rem] lg:rounded-3xl border-2 transition-all text-left ${partnerKpiFilter === 'gains' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
-                        <Wallet size={24} className="mb-3"/>
+                      <button onClick={() => setPartnerKpiFilter(partnerKpiFilter === 'gains' ? 'all' : 'gains')} className={`p-4 rounded-[1.5rem] lg:rounded-2xl border-2 transition-all text-left ${partnerKpiFilter === 'gains' ? 'bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.2)]' : 'bg-white border-zinc-200 hover:border-[#39FF14]/50'}`}>
+                        <Wallet size={20} className="mb-2"/>
                         <p className="text-[9px] font-black uppercase tracking-widest opacity-70">Gains à reverser</p>
-                        <p className={`font-sans text-xl lg:text-2xl font-black mt-1`}>{gainsAReverser.toLocaleString()} F</p>
+                        <p className={`font-sans text-lg lg:text-xl font-black mt-1`}>{gainsAReverser.toLocaleString()} F</p>
                       </button>
                     </div>
                   );
@@ -4009,30 +4009,30 @@ export default function AdminDashboard() {
 
                 {/* CANDIDATURES EN ATTENTE */}
                 {partners.filter(p => p.status === 'En attente').length > 0 && (
-                   <div className="bg-red-50 border-2 border-red-100 p-5 lg:p-6 rounded-[3.5rem] lg:rounded-3xl animate-pulse">
-                      <h3 className="font-black uppercase text-xs lg:text-sm text-red-600 mb-6 flex items-center gap-3 tracking-[0.2em]"><AlertCircle size={18} className="lg:w-5 lg:h-5"/> Dossiers en attente de validation</h3>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                   <div className="bg-red-50 border-2 border-red-100 p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl animate-pulse">
+                      <h3 className="font-black uppercase text-xs text-red-600 mb-4 flex items-center gap-2 tracking-[0.2em]"><AlertCircle size={16}/> Dossiers en attente de validation</h3>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                          {partners.filter(p => p.status === 'En attente').map(ambassador => (
-                            <div key={ambassador.id} className="bg-white p-5 lg:p-6 rounded-[2rem] lg:rounded-[2.25rem] flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm border border-red-100 group">
+                            <div key={ambassador.id} className="bg-white p-4 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3 shadow-sm border border-red-100 group">
                                <div>
-                                  <p className="font-black text-xs lg:text-sm uppercase text-black">{ambassador.full_name}</p>
+                                  <p className="font-black text-xs uppercase text-black">{ambassador.full_name}</p>
                                   <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{ambassador.contact} • {ambassador.activity}</p>
                                </div>
-                               <button onClick={() => approveAmbassador(ambassador.id)} className="bg-black text-[#39FF14] px-6 lg:px-8 py-3 lg:py-4 rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95 w-full sm:w-auto">Valider</button>
+                               <button onClick={() => approveAmbassador(ambassador.id)} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all shadow-xl active:scale-95 w-full sm:w-auto">Valider</button>
                             </div>
                          ))}
                       </div>
                    </div>
                 )}
 
-                <div className="bg-white border border-zinc-200 rounded-[3.5rem] lg:rounded-3xl overflow-hidden shadow-sm overflow-x-auto">
+                <div className="bg-white border border-zinc-200 rounded-[2rem] lg:rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
                    <table className="w-full text-left min-w-[800px]">
                       <thead className="bg-zinc-50/50 border-b border-zinc-100">
                          <tr>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Ambassadeur & Contact</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Secteur / Statut</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Volume Ventes</th>
-                            <th className="p-5 lg:p-6 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Ambassadeur & Contact</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Secteur / Statut</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Volume Ventes</th>
+                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Contrôle</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-50">
@@ -4050,22 +4050,22 @@ export default function AdminDashboard() {
                            return list;
                          })().map(p => (
                             <tr key={p.id} className="hover:bg-zinc-50 transition-all">
-                               <td className="p-5 lg:p-6">
-                                  <p className="font-black text-sm lg:text-base uppercase text-black tracking-tighter leading-tight">{p.full_name}</p>
+                               <td className="p-3 lg:p-4">
+                                  <p className="font-black text-xs lg:text-sm uppercase text-black tracking-tighter leading-tight">{p.full_name}</p>
                                   <p className="text-xs text-[#39FF14] font-black mt-1">{p.contact}</p>
                                </td>
-                               <td className="p-5 lg:p-6">
+                               <td className="p-3 lg:p-4">
                                   <div className="flex flex-col gap-2">
-                                     <span className="bg-zinc-100 text-black px-4 py-1.5 rounded-xl text-[9px] lg:text-[10px] font-black uppercase w-max tracking-widest">{p.activity}</span>
-                                     <p className="text-[9px] lg:text-[10px] font-black text-[#39FF14] uppercase ml-2 mt-1">{p.status}</p>
+                                     <span className="bg-zinc-100 text-black px-3 py-1 rounded-xl text-[9px] font-black uppercase w-max tracking-widest">{p.activity}</span>
+                                     <p className="text-[9px] font-black text-[#39FF14] uppercase ml-2 mt-1">{p.status}</p>
                                   </div>
                                </td>
-                               <td className="p-5 lg:p-6 text-center">
-                                  <p className={`font-sans text-2xl lg:text-3xl font-black text-black tracking-tighter`}>{p.sales || 0}</p>
+                               <td className="p-3 lg:p-4 text-center">
+                                  <p className={`font-sans text-xl lg:text-2xl font-black text-black tracking-tighter`}>{p.sales || 0}</p>
                                   <p className="text-[9px] lg:text-[10px] font-bold text-zinc-400 uppercase mt-1">Ventes Clôturées</p>
                                </td>
-                               <td className="p-5 lg:p-6 text-right">
-                                  <button onClick={() => { setSelectedPartner(p); setShowPartnerModal(true); }} className="bg-black text-white px-6 lg:px-8 py-3 lg:py-4 rounded-[1.25rem] lg:rounded-[1.5rem] text-[9px] lg:text-[11px] font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-all shadow-xl active:scale-95">Console Détails</button>
+                               <td className="p-3 lg:p-4 text-right">
+                                  <button onClick={() => { setSelectedPartner(p); setShowPartnerModal(true); }} className="bg-black text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-all shadow-xl active:scale-95">Console Détails</button>
                                </td>
                             </tr>
                          ))}
@@ -4089,7 +4089,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* MATÉRIEL MARKETING */}
-                <div className="mt-12 bg-white border border-zinc-200 rounded-[3.5rem] lg:rounded-3xl shadow-sm p-6 lg:p-12">
+                <div className="mt-6 bg-white border border-zinc-200 rounded-[2rem] lg:rounded-2xl shadow-sm p-5 lg:p-8">
                   <h3 className="text-xl font-black uppercase text-black mb-6">Matériel Marketing (Ambassadeurs & Commerciaux)</h3>
                   
                   {/* Formulaire d'ajout */}
@@ -4159,16 +4159,19 @@ export default function AdminDashboard() {
                                 <h4 className="font-black text-sm uppercase mb-4 flex items-center gap-2 text-black"><PlayCircle size={18} className="text-[#39FF14]"/> Vidéos de Démo</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                    {videos.map(material => (
-                                     <div key={material.id} className="bg-zinc-50 rounded-2xl border border-zinc-100 p-4 flex flex-col justify-between hover:border-black transition-colors group">
+                                     <div key={material.id} className="bg-zinc-50 rounded-2xl border border-zinc-100 p-4 flex flex-col justify-between hover:border-black transition-colors group overflow-hidden">
                                         <div>
-                                           <div className="flex justify-between items-start mb-3">
-                                              <span className="px-2 py-1 text-[9px] font-black uppercase rounded-lg bg-black text-[#39FF14] tracking-widest">{material.type}</span>
-                                              <div className="flex gap-1">
+                                           <div className="w-full h-32 mb-3 bg-zinc-800 rounded-xl overflow-hidden relative">
+                                              <img src={`https://img.youtube.com/vi/${material.url.split('v=')[1]?.split('&')[0]}/hqdefault.jpg`} alt={material.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" onError={(e:any) => e.target.src = 'https://placehold.co/600x400/111/39FF14?text=Vidéo'} />
+                                              <span className="absolute top-2 left-2 px-2 py-1 text-[9px] font-black uppercase rounded-lg bg-black text-[#39FF14] tracking-widest">{material.type}</span>
+                                           </div>
+                                           <div className="flex justify-between items-start mb-2">
+                                              <p className="font-bold text-sm text-black line-clamp-2 pr-2">{material.title}</p>
+                                              <div className="flex gap-1 shrink-0">
                                                  <button onClick={() => setEditingMaterial(material)} className="p-1.5 text-zinc-400 hover:text-blue-600 bg-white rounded-lg shadow-sm transition-colors"><Edit3 size={14}/></button>
                                                  <button onClick={() => handleDeleteMaterial(material.id)} className="p-1.5 text-zinc-400 hover:text-red-600 bg-white rounded-lg shadow-sm transition-colors"><Trash2 size={14}/></button>
                                               </div>
                                            </div>
-                                           <p className="font-bold text-sm text-black mb-1 line-clamp-2">{material.title}</p>
                                            <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-500 hover:underline truncate block">{material.url}</a>
                                         </div>
                                      </div>
@@ -4182,16 +4185,26 @@ export default function AdminDashboard() {
                                 <h4 className="font-black text-sm uppercase mb-4 flex items-center gap-2 text-black"><FileText size={18} className="text-purple-500"/> Visuels & Documents</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                    {photos.map(material => (
-                                     <div key={material.id} className="bg-zinc-50 rounded-2xl border border-zinc-100 p-4 flex flex-col justify-between hover:border-black transition-colors group">
+                                     <div key={material.id} className="bg-zinc-50 rounded-2xl border border-zinc-100 p-4 flex flex-col justify-between hover:border-black transition-colors group overflow-hidden">
                                         <div>
-                                           <div className="flex justify-between items-start mb-3">
-                                              <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-lg tracking-widest ${material.type === 'Canva' ? 'bg-purple-100 text-purple-700' : material.type === 'PDF' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{material.type}</span>
-                                              <div className="flex gap-1">
+                                           {material.type === 'Image' && (
+                                              <div className="w-full h-32 mb-3 bg-zinc-200 rounded-xl overflow-hidden relative">
+                                                 <img src={material.url} alt={material.title} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" onError={(e:any) => e.target.style.display = 'none'} />
+                                                 <span className="absolute top-2 left-2 px-2 py-1 text-[9px] font-black uppercase rounded-lg tracking-widest bg-blue-100 text-blue-700">{material.type}</span>
+                                              </div>
+                                           )}
+                                           <div className="flex justify-between items-start mb-2">
+                                              <div>
+                                                 {material.type !== 'Image' && (
+                                                    <span className={`inline-block mb-2 px-2 py-1 text-[9px] font-black uppercase rounded-lg tracking-widest ${material.type === 'Canva' ? 'bg-purple-100 text-purple-700' : material.type === 'PDF' ? 'bg-red-100 text-red-700' : 'bg-zinc-200 text-zinc-700'}`}>{material.type}</span>
+                                                 )}
+                                                 <p className="font-bold text-sm text-black line-clamp-2 pr-2">{material.title}</p>
+                                              </div>
+                                              <div className="flex gap-1 shrink-0">
                                                  <button onClick={() => setEditingMaterial(material)} className="p-1.5 text-zinc-400 hover:text-blue-600 bg-white rounded-lg shadow-sm transition-colors"><Edit3 size={14}/></button>
                                                  <button onClick={() => handleDeleteMaterial(material.id)} className="p-1.5 text-zinc-400 hover:text-red-600 bg-white rounded-lg shadow-sm transition-colors"><Trash2 size={14}/></button>
                                               </div>
                                            </div>
-                                           <p className="font-bold text-sm text-black mb-1 line-clamp-2">{material.title}</p>
                                            <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-500 hover:underline truncate block">{material.url}</a>
                                         </div>
                                      </div>
