@@ -7,7 +7,7 @@ import Image from "next/image";
 import { 
   Smartphone, Truck, Utensils, Box, Lock, LogOut, 
   User, GraduationCap, ArrowRight, ShieldCheck, Wallet, AlertTriangle, HelpCircle, X,
-  Search, CheckCircle, ExternalLink, Calendar, Users, MessageSquare, Mail, Package
+  Search, CheckCircle, ExternalLink, Calendar, Users, MessageSquare, Mail, Package, Sparkles
 } from "lucide-react";
 import AccountModal from "@/components/AccountModal";
 import { supabase } from "@/lib/supabaseClient";
@@ -51,8 +51,17 @@ export default function OnyxHubPortal() {
     const verifyAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const { data } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
-        setUser(data ? { ...session.user, ...data } : session.user);
+        let role = 'CLIENT';
+        let profileData = null;
+        const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).maybeSingle();
+        if (userData) {
+          role = userData.role;
+          profileData = userData;
+        } else {
+          const { data: clientData } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
+          if (clientData) profileData = clientData;
+        }
+        setUser(profileData ? { ...session.user, ...profileData, role } : { ...session.user, role });
       } else {
         const customSession = localStorage.getItem('onyx_custom_session');
         if (customSession) {
@@ -60,10 +69,10 @@ export default function OnyxHubPortal() {
             const parsedSession = JSON.parse(customSession);
             const { data } = await supabase.from('clients').select('*').eq('id', parsedSession.id).maybeSingle();
             if (data) {
-                setUser(data);
+                setUser({ ...data, role: 'CLIENT' });
                 localStorage.setItem('onyx_custom_session', JSON.stringify(data));
             } else {
-                setUser(parsedSession);
+                setUser({ ...parsedSession, role: parsedSession.role || 'CLIENT' });
             }
           } catch(e) {}
         } else {
@@ -94,6 +103,7 @@ export default function OnyxHubPortal() {
 
   const checkAccess = (appId: string, user: any) => {
      if (!user) return false;
+     if (user.role === 'SUPER_ADMIN') return true;
      const activeSaas = user.active_saas || [];
      const allSaas = [user.saas || '', ...activeSaas].map((s: string) => (s || '').toLowerCase());
      
@@ -236,14 +246,18 @@ export default function OnyxHubPortal() {
                Bonjour, {user?.full_name?.split(' ')[0] || 'Gérant'} !
              </h2>
              <p className="text-zinc-500 font-medium">Sélectionnez une application pour commencer à travailler.</p>
-             {(user?.expiration_date || user?.expiry_date) && (
+             {(user?.expiration_date || user?.expiry_date || user?.role === 'SUPER_ADMIN') && (
               <div className="mt-4 inline-flex items-center gap-2 bg-white border border-zinc-200 shadow-sm text-xs font-bold uppercase tracking-wider py-2 px-4 rounded-full">
-                <ShieldCheck size={16} className={user.type === 'Client' ? 'text-green-500' : 'text-yellow-500'} />
+                <ShieldCheck size={16} className={user?.role === 'SUPER_ADMIN' ? 'text-purple-500' : user.type === 'Client' ? 'text-green-500' : 'text-yellow-500'} />
                 <span className="text-zinc-600">Statut :</span> 
-                <span className={user.type === 'Client' ? 'text-green-600' : 'text-yellow-600'}>{user.type || 'Essai'}</span>
-                <span className="text-zinc-400 mx-1">|</span>
-                <span className="text-zinc-600">Fin globale :</span> 
-                <span className="text-zinc-800">{formatDate(user.expiration_date || user.expiry_date)}</span>
+                <span className={user?.role === 'SUPER_ADMIN' ? 'text-purple-600' : user.type === 'Client' ? 'text-green-600' : 'text-yellow-600'}>{user?.role === 'SUPER_ADMIN' ? 'Super Admin' : (user.type || 'Essai')}</span>
+                {user?.role !== 'SUPER_ADMIN' && (
+                  <>
+                    <span className="text-zinc-400 mx-1">|</span>
+                    <span className="text-zinc-600">Fin globale :</span> 
+                    <span className="text-zinc-800">{formatDate(user.expiration_date || user.expiry_date)}</span>
+                  </>
+                )}
               </div>
              )}
             </div>
@@ -267,13 +281,13 @@ export default function OnyxHubPortal() {
               const includedPack = getIncludedPack(app.id, user);
               const actualAppIdOrPack = includedPack || app.id;
               const expDateStr = getAppExpiryDate(actualAppIdOrPack, user);
-              const isExpired = expDateStr ? new Date(expDateStr).setHours(23,59,59,999) < new Date().getTime() : false;
+              const isExpired = user?.role !== 'SUPER_ADMIN' && expDateStr ? new Date(expDateStr).setHours(23,59,59,999) < new Date().getTime() : false;
               const isUnlocked = hasAccess && !isExpired;
 
               const AppIcon = app.icon;
               
               return (
-                  <div key={app.id} className={`flex flex-col bg-white rounded-3xl p-6 border transition-all duration-300 ${isUnlocked ? 'border-[#39FF14]/50 shadow-[0_10px_30px_rgba(57,255,20,0.15)] hover:-translate-y-2' : 'border-zinc-200 shadow-sm opacity-80 grayscale hover:grayscale-0'}`}>
+                  <div key={app.id} className={`flex flex-col bg-white rounded-3xl p-6 border transition-all duration-300 ${isUnlocked ? 'border-[#39FF14]/50 shadow-[0_10px_30px_rgba(57,255,20,0.15)] hover:-translate-y-2 hover:scale-105' : 'border-zinc-200 shadow-sm opacity-50 grayscale hover:grayscale-0'}`}>
                       <div className="flex justify-between items-start mb-6">
                           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${isUnlocked ? app.color + ' text-white' : 'bg-zinc-200 text-zinc-500'}`}>
                               <AppIcon size={28} />
@@ -328,6 +342,37 @@ export default function OnyxHubPortal() {
                   </div>
               );
             })}
+
+            {/* CARTE EXCLUSIVE SUPER ADMIN */}
+            {user?.role === 'SUPER_ADMIN' && (
+              <div className="flex flex-col bg-white rounded-3xl p-6 border border-purple-500/50 shadow-[0_10px_30px_rgba(168,85,247,0.15)] hover:-translate-y-2 hover:scale-105 transition-all duration-300">
+                  <div className="flex justify-between items-start mb-6">
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-purple-500 text-white">
+                          <Sparkles size={28} />
+                      </div>
+                      <span className="bg-purple-500/10 text-purple-700 border border-purple-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm">
+                          <CheckCircle size={12}/> God Mode
+                      </span>
+                  </div>
+                  
+                  <div className="flex-1">
+                      <h3 className="font-black text-2xl text-zinc-900 uppercase tracking-tighter mb-1">OnyxSocial</h3>
+                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6">Usine IA</p>
+                      
+                      <div className="mb-4">
+                          <span className="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm w-max">
+                              <ShieldCheck size={14} /> Exclusif Admin
+                          </span>
+                      </div>
+                  </div>
+
+                  <div className="mt-auto pt-5 border-t border-zinc-100">
+                      <a href="/onyxsocial" target="_blank" className="w-full bg-black text-[#39FF14] py-3.5 rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors flex items-center justify-center gap-2 shadow-lg">
+                          Ouvrir l'application <ArrowRight size={16}/>
+                      </a>
+                  </div>
+              </div>
+            )}
           </div>
         </main>
 

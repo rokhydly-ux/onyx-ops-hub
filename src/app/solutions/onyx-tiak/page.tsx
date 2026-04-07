@@ -111,53 +111,36 @@ export default function OnyxTiakLanding() {
     <main className="min-h-screen bg-zinc-950 text-white overflow-x-hidden selection:bg-[#39FF14]/30 pb-24">
       {/* NAVBAR */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
-         <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-white hover:scale-105 transition-transform`}>
-            ONYX<span className="text-[#39FF14] drop-shadow-sm">TIAK</span>
-         </button>
-         
-         <div className="flex items-center gap-4">
-             <div className="relative" ref={dropdownRef}>
-                 <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-white flex items-center gap-1 transition-colors">
-                    Autres Solutions <ChevronDown size={14} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+           <button onClick={() => window.location.href = '/'} className="flex items-center gap-2 hover:scale-105 transition-transform">
+              <img src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" alt="Onyx Logo" className="h-[60px] w-auto object-contain" />
+           </button>
+        </nav>
+
+        {/* 1. HERO SECTION */}
+        <section className="pt-20 pb-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+           <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
+              <div className="inline-flex items-center gap-2 bg-[#39FF14]/10 text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-[#39FF14]/20">
+                 <Truck size={14} /> La logistique simplifiée
+              </div>
+              <h1 className={`${spaceGrotesk.className} text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6`}>
+                 Ne perdez plus <br/> la trace de vos <span className="text-[#39FF14] underline decoration-[#39FF14]/30 decoration-8 underline-offset-8">livraisons.</span>
+              </h1>
+              <p className="text-zinc-400 text-lg md:text-xl font-medium mb-8 leading-relaxed">
+                 Assignez vos courses, suivez vos livreurs en temps réel, notifiez vos clients sur WhatsApp et contrôlez votre caisse sans erreurs.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                 <button onClick={() => handleWaClick("Onyx Tiak")} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition shadow-[0_0_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2">
+                    Démarrer l'essai gratuit <ArrowRight size={18}/>
                  </button>
-                 <div className={`absolute top-full right-0 mt-2 bg-zinc-900 border border-zinc-800 shadow-2xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
-                    <button onClick={() => window.location.href = '/'} className="text-left px-4 py-2 text-xs font-bold text-zinc-400 hover:bg-black hover:text-[#39FF14] rounded-xl transition">🏠 Accueil Onyx</button>
-                    <button onClick={() => window.location.href = '/jaay'} className="text-left px-4 py-2 text-xs font-bold text-zinc-400 hover:bg-black hover:text-[#39FF14] rounded-xl transition">🛍️ Onyx Jaay</button>
-                    <button onClick={() => window.location.href = '/solutions/onyx-tontine'} className="text-left px-4 py-2 text-xs font-bold text-zinc-400 hover:bg-black hover:text-[#39FF14] rounded-xl transition">💰 Onyx Tontine</button>
-                    <button onClick={() => window.location.href = '/solutions/onyx-menu'} className="text-left px-4 py-2 text-xs font-bold text-zinc-400 hover:bg-black hover:text-[#39FF14] rounded-xl transition">🍽️ Onyx Menu</button>
-                 </div>
-             </div>
-             <button onClick={() => window.location.href = '/'} className="bg-zinc-900 text-white border border-zinc-800 px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-white hover:text-black transition-colors flex items-center gap-1">
-                 <ChevronLeft size={14}/> Accueil
-             </button>
-         </div>
-      </nav>
-
-      {/* 1. HERO SECTION */}
-      <section className="pt-16 pb-24 px-6 text-center max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-         <div className="inline-flex items-center gap-2 bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-8 shadow-[0_0_20px_rgba(57,255,20,0.2)]">
-             <Crosshair size={14} /> Logistique & Sécurité CFA
-         </div>
-         <h1 className={`${spaceGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.95] mb-8`}>
-            VOS LIVREURS NE VOUS VOLERONT PLUS JAMAIS <span className="text-[#FACC15]">VOTRE TEMPS</span> NI <span className="text-[#39FF14] underline decoration-[#39FF14]/30 underline-offset-8">VOTRE ARGENT.</span>
-         </h1>
-         <p className="text-zinc-400 text-lg md:text-xl font-medium max-w-3xl mx-auto mb-12 leading-relaxed">
-            Suivez vos colis en temps réel, sécurisez vos encaissements et informez vos clients sur WhatsApp. <strong className="text-white">Le contrôle total de votre flotte logistique au Sénégal.</strong>
-         </p>
-         
-         <button onClick={() => handleWaClick("Onyx Tiak (Essai Gratuit)")} className="bg-[#39FF14] text-black px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group">
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
-            <ShieldCheck size={24} className="relative z-10" /> <span className="relative z-10">Sécuriser ma logistique (Essai Gratuit)</span>
-         </button>
-
-         {/* HERO IMAGE PLACEHOLDER */}
-         <div className="mt-20 relative max-w-4xl mx-auto">
-            <div className="absolute inset-0 bg-[#39FF14] opacity-[0.05] blur-[100px] rounded-full"></div>
-            <div className="w-full aspect-video bg-zinc-900 border border-zinc-800 rounded-[2rem] shadow-2xl relative z-10 flex items-center justify-center overflow-hidden group">
-               <img src="https://i.ibb.co/Gv1ZR1BF/Sans-titre-1024-x-768-px-Pr-sentation.png" alt="Illustration Onyx Tiak" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-            </div>
-         </div>
-      </section>
+              </div>
+           </div>
+           <div className="relative animate-in slide-in-from-right-8 fade-in duration-1000 delay-200">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#39FF14] rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
+              <div className="border border-zinc-800 rounded-[2rem] shadow-2xl relative z-10 flex items-center justify-center overflow-hidden group">
+                 <img src="https://i.ibb.co/Gv1ZR1BF/Sans-titre-1024-x-768-px-Pr-sentation.png" alt="Illustration Onyx Tiak" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              </div>
+           </div>
+        </section>
 
       {/* 2. PROBLÈME VS SOLUTION */}
       <section className="py-24 px-6 border-t border-zinc-900 bg-black">
