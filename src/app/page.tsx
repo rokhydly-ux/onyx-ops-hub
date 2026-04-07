@@ -15,13 +15,15 @@ import {
   Crosshair, RefreshCcw
 } from "lucide-react";
 import InteractiveParticles from "@/components/InteractiveParticles";
+import useEmblaCarousel from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
 
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
 const REGIONS_SENEGAL = ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou", "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou", "Tambacounda", "Thiès", "Ziguinchor"];
 
-type PlanKey = "solo" | "tekki" | "resto" | "tekkipro" | "crm" | "gold";
+type PlanKey = "solo" | "tekki" | "resto" | "tekkipro" | "crm" | "gold" | "booster";
 
 // --- DATA ---
 const ECOSYSTEM_SAAS = [
@@ -51,6 +53,7 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
   tekkipro: { title: "Pack Tekki Pro", desc: "L'écosystème Tekki couplé à notre académie marketing pour doubler vos ventes.", benefits: ["Tout le Pack Tekki", "Onyx Formation (Ads)", "Pointage & Paie (Staff)"], why: "Croissance agressive.", cible: "Entrepreneurs", avantage: "Tout inclus.", chiffreCle: "Ventes x2" },
   crm: { title: "Onyx CRM", desc: "Le Cerveau Financier B2B. Trackez chaque lead et sécurisez chaque marge.", benefits: ["Pipeline Kanban B2B", "Calcul Marges HT/TTC", "Devis & Catalogues auto"], why: "Fidéliser et closer.", cible: "Agences, B2B & Services", avantage: "Fidélité Max.", chiffreCle: "Clients x3" },
   gold: { title: "Pack Onyx Gold", desc: "L'arsenal VIP complet. Toutes nos applications déverrouillées.", benefits: ["Écosystème 100% Illimité", "Accès Complet CRM & SaaS", "Support Dédié 24/7"], why: "Pour tout écraser.", cible: "Grandes structures", avantage: "La totale.", chiffreCle: "Sans limite" },
+  booster: { title: "Booster Ventes", desc: "Le propulseur de vos ventes avec des campagnes publicitaires sur mesure.", benefits: ["Création de vidéos", "Textes de vente IA", "Budget pub inclus"], why: "Plus de clients.", cible: "E-commerce", avantage: "Clé en main.", chiffreCle: "Trafic boosté" },
 };
 
 const SOLUTIONS = [
@@ -219,10 +222,22 @@ export default function OnyxOpsElite() {
 
   // WORKFLOW PARTENAIRE
   const [partnerStep, setPartnerStep] = useState<'landing' | 'form' | 'success' | 'dashboard'>('landing');
-  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, resto: 0, tekkipro: 1, crm: 0, gold: 0 });
+  const [packCounts, setPackCounts] = useState<Record<PlanKey, number>>({ solo: 2, tekki: 1, resto: 0, tekkipro: 1, crm: 0, gold: 0, booster: 0 });
   const [partnerForm, setPartnerForm] = useState({ full_name: "", contact: "", city: "", address: "", country: "", status: "", sales_exp: "", objective: "", strategy: "" });
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
-  const [addonCm, setAddonCm] = useState(false);
+  const [isBoosterActive, setIsBoosterActive] = useState(false);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 6000, stopOnInteraction: false })]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => {
+      setSelectedIndex(emblaApi.selectedScrollSnap());
+    };
+    emblaApi.on('select', onSelect);
+    onSelect();
+  }, [emblaApi]);
 
   // --- AFFILIATION (AMBASSADEUR) ---
   const [refId, setRefId] = useState<string | null>(null);
@@ -709,8 +724,8 @@ export default function OnyxOpsElite() {
 };
 
   // Mises à jour des tarifs sur la simulation des commissions
-  const commissionM1 = Math.round((packCounts.solo || 0) * 13900 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.resto || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30 + (packCounts.crm || 0) * 39900 * 0.30 + (packCounts.gold || 0) * 59900 * 0.30);
-  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13900 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.resto || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10 + (packCounts.crm || 0) * 39900 * 0.10 + (packCounts.gold || 0) * 59900 * 0.10);
+  const commissionM1 = Math.round((packCounts.solo || 0) * 13900 * 0.30 + (packCounts.tekki || 0) * 22900 * 0.30 + (packCounts.resto || 0) * 22900 * 0.30 + (packCounts.tekkipro || 0) * 27900 * 0.30 + (packCounts.crm || 0) * 39900 * 0.30 + (packCounts.gold || 0) * 59900 * 0.30 + (packCounts.booster || 0) * 39900 * 0.30);
+  const recurrentPerMonth = Math.round((packCounts.solo || 0) * 13900 * 0.10 + (packCounts.tekki || 0) * 22900 * 0.10 + (packCounts.resto || 0) * 22900 * 0.10 + (packCounts.tekkipro || 0) * 27900 * 0.10 + (packCounts.crm || 0) * 39900 * 0.10 + (packCounts.gold || 0) * 59900 * 0.10 + (packCounts.booster || 0) * 39900 * 0.10);
 
   const navigateTo = (view: any, scrollId?: string) => {
     setIsMobileMenuOpen(false); 
@@ -858,8 +873,12 @@ export default function OnyxOpsElite() {
         {/* --- VUE ACCUEIL --- */}
         {activeView === 'home' && (
           <div className="animate-in fade-in duration-500">
-            <header className="pt-24 pb-16 px-6 max-w-7xl mx-auto relative z-10">
-              <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <header className="pt-24 pb-16 px-6 max-w-7xl mx-auto relative z-10 overflow-hidden">
+              <div className="overflow-hidden" ref={emblaRef}>
+                <div className="flex">
+                  {/* SLIDE 1 */}
+                  <div className="flex-[0_0_100%] min-w-0">
+                    <div className="grid lg:grid-cols-2 gap-12 items-center px-4">
                 {/* Colonne Gauche : Le Pitch & La Preuve */}
                 <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
                   {/* --- NOUVEAU COPYWRITING HERO --- */}
@@ -951,6 +970,74 @@ export default function OnyxOpsElite() {
                     </div>
                   </div>
                 </div>
+                    </div>
+                  </div>
+                  
+                  {/* SLIDE 2 : LE BOOSTER DE VENTES */}
+                  <div className="flex-[0_0_100%] min-w-0">
+                    <div className="grid lg:grid-cols-2 gap-12 items-center px-4">
+                      {/* Colonne Gauche */}
+                      <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
+                        <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm border border-zinc-800">
+                          <span>🚀 LE BOOSTER DE VENTES</span>
+                        </div>
+                        
+                        <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>
+                          NE CHERCHEZ PLUS DE CLIENTS. <br/>
+                          ON VOUS LES <span className="text-[#39FF14] drop-shadow-sm bg-black px-2 py-1 rounded-xl">AMÈNE.</span>
+                        </h1>
+                        
+                        <p className={`${inter.className} text-zinc-600 text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
+                          Arrêtez de poster dans le vide. Notre équipe crée pour vous des vidéos et des visuels qui vendent, et <strong className="text-black bg-[#39FF14]/20 px-1 rounded">on paie même vos premières publicités</strong> pour lancer la machine.
+                        </p>
+      
+                        <div className="flex flex-col sm:flex-row gap-4 mb-10">
+                          <button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14]">
+                            Activer le Booster <ArrowRight size={20}/>
+                          </button>
+                        </div>
+                      </div>
+      
+                      {/* Colonne Droite : Mockup */}
+                      <div className="relative mx-auto w-full max-w-[320px] lg:max-w-[360px] animate-in slide-in-from-right-8 fade-in duration-1000 mt-10 lg:mt-0">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[80%] bg-[#39FF14] rounded-full blur-[80px] opacity-40 pointer-events-none"></div>
+                        <div className="relative bg-black rounded-[3rem] border-[8px] border-black shadow-2xl overflow-hidden aspect-[9/16] flex flex-col items-center justify-center">
+                          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-3xl z-20"></div>
+                          <div className="w-full h-full bg-zinc-900 relative p-4 flex flex-col gap-4 pt-10">
+                            <div className="grid grid-cols-2 gap-3 mt-4">
+                               <div className="bg-zinc-800 rounded-2xl h-36 animate-pulse"></div>
+                               <div className="bg-zinc-800 rounded-2xl h-36 animate-pulse delay-75"></div>
+                               <div className="bg-zinc-800 rounded-2xl h-36 animate-pulse delay-150"></div>
+                               <div className="bg-zinc-800 rounded-2xl h-36 animate-pulse delay-300"></div>
+                            </div>
+                            <div className="absolute bottom-10 left-4 right-4 flex flex-col gap-3 z-30">
+                               <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce">
+                                  <div className="w-8 h-8 bg-[#39FF14] rounded-full flex items-center justify-center text-black"><Check size={16}/></div>
+                                  <div>
+                                     <p className="text-xs font-black uppercase text-black">Paiement reçu</p>
+                                     <p className="text-[10px] font-bold text-zinc-500">+ 25 000 F CFA</p>
+                                  </div>
+                               </div>
+                               <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce" style={{animationDelay: '0.5s'}}>
+                                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white"><Users size={16}/></div>
+                                  <div>
+                                     <p className="text-xs font-black uppercase text-black">Nouveau Client</p>
+                                     <p className="text-[10px] font-bold text-zinc-500">Depuis Meta Ads</p>
+                                  </div>
+                               </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* DOTS DE NAVIGATION */}
+              <div className="flex justify-center gap-3 mt-8">
+                 <button onClick={() => emblaApi?.scrollTo(0)} className={`w-3 h-3 rounded-full transition-all ${selectedIndex === 0 ? 'bg-[#39FF14] scale-125' : 'bg-zinc-300'}`}></button>
+                 <button onClick={() => emblaApi?.scrollTo(1)} className={`w-3 h-3 rounded-full transition-all ${selectedIndex === 1 ? 'bg-[#39FF14] scale-125' : 'bg-zinc-300'}`}></button>
               </div>
             </header>
 
@@ -1061,17 +1148,24 @@ export default function OnyxOpsElite() {
                    </div>
                 )}
 
-                {/* ADD-ON SWITCH */}
+                {/* BOOSTER SWITCH */}
                 <div className="flex justify-center mb-12">
-                   <div className={`bg-zinc-900 border p-4 rounded-2xl flex flex-col md:flex-row items-center gap-6 transition-all duration-500 ${(quizResult && quizResult.packId === 'agence') || addonCm ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-[1.02] md:scale-105' : 'border-zinc-800 shadow-xl'}`}>
-                      <div className="text-left">
-                         <p className="font-black text-white text-sm uppercase">Activer le Service CM & Pub <span className="text-[#39FF14] bg-[#39FF14]/10 px-2 py-1 rounded ml-2">+49 900 F/mois</span></p>
-                         <p className="text-xs text-zinc-400 font-medium mt-1">Nous gérons vos pubs et vos contenus.</p>
-                         {quizResult && quizResult.packId === 'agence' && <p className="text-[#39FF14] text-[10px] font-black uppercase mt-2 animate-pulse">👉 Hautement recommandé pour vous</p>}
+                   <div 
+                      className={`bg-zinc-900 border p-5 sm:p-6 rounded-[2rem] flex flex-col md:flex-row items-center gap-6 transition-all duration-500 cursor-pointer ${(quizResult && quizResult.packId === 'agence') || isBoosterActive ? 'border-[#39FF14] shadow-[0_0_40px_rgba(57,255,20,0.25)] scale-[1.02] md:scale-105' : 'border-zinc-800 shadow-xl hover:border-zinc-700'}`}
+                      onClick={() => setIsBoosterActive(!isBoosterActive)}
+                   >
+                      <div className="text-center md:text-left flex-1">
+                         <p className={`font-black text-sm sm:text-base uppercase transition-colors ${isBoosterActive ? 'text-[#39FF14]' : 'text-white'}`}>
+                            {isBoosterActive ? "🔥 Activer le Booster de Ventes" : "Offre Logiciel Uniquement"}
+                         </p>
+                         <p className={`text-xs font-bold mt-1.5 transition-colors ${isBoosterActive ? 'text-[#39FF14]' : 'text-zinc-500'}`}>
+                            {isBoosterActive ? "(Contenu + 15.000 F de Pub inclus)" : "Cliquez ici pour ajouter la création de contenu et la pub."}
+                         </p>
+                         {quizResult && quizResult.packId === 'agence' && <p className="text-[#39FF14] text-[10px] font-black uppercase mt-2 animate-pulse">👉 Hautement recommandé selon votre diagnostic</p>}
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" checked={addonCm} onChange={() => setAddonCm(!addonCm)} />
-                        <div className="w-14 h-8 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-[#39FF14]"></div>
+                      <label className="relative inline-flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" className="sr-only peer" checked={isBoosterActive} onChange={() => setIsBoosterActive(!isBoosterActive)} />
+                        <div className="w-16 h-8 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-[#39FF14]"></div>
                       </label>
                    </div>
                 </div>
@@ -1106,15 +1200,29 @@ export default function OnyxOpsElite() {
                         </div>
                         <div className="mb-6">
                           <div className="text-2xl xl:text-3xl font-black italic text-white flex items-center">
-                             {((typeof pack.price === 'number' ? pack.price : 0) + (addonCm ? 49900 : 0)).toLocaleString()} F
+                             {((typeof pack.price === 'number' ? pack.price : 0) + (isBoosterActive ? 39900 : 0)).toLocaleString()} F
                              {pack.id === 'tekkipro' && <TrendingUp size={20} className="inline-block ml-3 text-[#00E5FF]" />}
                              <span className="text-xs text-zinc-500 font-normal not-italic ml-2">{pack.isUnique ? ' (Unique)' : '/ mois'}</span>
                           </div>
-                          {addonCm && (
-                             <p className="text-[#39FF14] text-[10px] font-black uppercase mt-2 tracking-widest">+ Création de pubs et contenus Meta</p>
-                          )}
                         </div>
                         
+                        {isBoosterActive && (
+                           <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-2xl p-4 mb-6 flex flex-col gap-3">
+                              <div className="flex items-start gap-3">
+                                 <CheckCircle size={16} className="text-[#39FF14] shrink-0 mt-0.5" />
+                                 <span className="text-xs font-bold text-white leading-tight">Création de 4 vidéos pro par mois</span>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                 <CheckCircle size={16} className="text-[#39FF14] shrink-0 mt-0.5" />
+                                 <span className="text-xs font-bold text-white leading-tight">Rédaction des textes de vente (IA)</span>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                 <CheckCircle size={16} className="text-[#39FF14] shrink-0 mt-0.5" />
+                                 <span className="text-xs font-bold text-white leading-tight">15.000 F de budget pub Facebook/Insta INCLUS</span>
+                              </div>
+                           </div>
+                        )}
+
                         {/* TEXTE DYNAMIQUE DU QUIZ */}
                         {isRecommended && (
                            <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 p-4 rounded-2xl mb-6 text-xs text-[#39FF14] font-bold leading-relaxed shadow-inner">
@@ -1378,6 +1486,7 @@ export default function OnyxOpsElite() {
                         { id: 'tekkipro', label: 'Pack Tekki Pro (27.900F)', max: 30 },
                         { id: 'crm', label: 'Pack Onyx CRM (39.900F)', max: 25 },
                         { id: 'gold', label: 'Pack Onyx Gold (59.900F)', max: 20 },
+                        { id: 'booster', label: 'Booster Ventes (39.900F)', max: 30 },
                       ].map(pack => (
                         <div key={pack.id}>
                           <div className="flex justify-between mb-2">

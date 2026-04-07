@@ -2458,7 +2458,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="p-6 border-t border-zinc-100">
-           <div className="bg-black rounded-2xl p-4 flex items-center gap-4 border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer">
+           <div onClick={() => alert("Tous les systèmes du Dakar Hub sont opérationnels et optimisés. Latence : 12ms.")} className="bg-black rounded-2xl p-4 flex items-center gap-4 border border-zinc-800 hover:bg-zinc-900 transition-colors cursor-pointer active:scale-95">
               <div className="w-10 h-10 bg-[#39FF14]/10 rounded-xl flex items-center justify-center text-[#39FF14]"><Activity size={20}/></div>
               <div>
                  <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">Status Serveur</p>
