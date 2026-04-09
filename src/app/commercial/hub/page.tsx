@@ -170,7 +170,7 @@ export default function CommercialHub() {
 
       if (error) throw error;
 
-      alert(`Succès ! Le client ${formData.shopName} a bien été enregistré sur votre compte.`);
+      alert(`Succès ! Le Client ${formData.shopName} a bien été enregistré sur votre compte.`);
       
       setFormData({ shopName: '', phone: '', region: '', address: '', product: '' });
       setAddCm(false);
