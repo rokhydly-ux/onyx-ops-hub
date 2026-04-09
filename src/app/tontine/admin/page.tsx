@@ -483,7 +483,7 @@ export default function TontineAdminPage() {
      if (!paymentModal) return;
      try {
          setIsSaving(true);
-         let recu_url = null;
+         let recu_url: string | null = null;
          if (receiptFile) {
              recu_url = await uploadFileToSupabase(receiptFile, 'recus');
          }

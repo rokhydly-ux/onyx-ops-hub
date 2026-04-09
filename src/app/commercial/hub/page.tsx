@@ -87,7 +87,7 @@ export default function CommercialHub() {
   const fetchMyActivity = async (commercialId: string, fullName: string) => {
     if (!commercialId && !fullName) return;
     
-    const promises = [];
+    const promises: any[] = [];
     if (commercialId) promises.push(supabase.from('clients').select('*').eq('commercial_id', commercialId));
     if (fullName) promises.push(supabase.from('clients').select('*').eq('assigned_to', fullName));
     

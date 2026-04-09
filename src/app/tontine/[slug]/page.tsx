@@ -423,7 +423,7 @@ function SlugPageContent({ slug }: { slug: string }) {
      if (!paymentModal || !tontine) return;
      setTogglingPaymentFor(paymentModal.membreId);
      try {
-         let recu_url = null;
+         let recu_url: string | null = null;
          if (receiptFile) {
              recu_url = await uploadFileToSupabase(receiptFile, 'recus');
          }

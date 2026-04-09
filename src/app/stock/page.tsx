@@ -52,7 +52,7 @@ export default function OnyxStock() {
 
   useEffect(() => {
     const verifyAuth = async () => {
-      let activeUser = null;
+      let activeUser: any = null;
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {

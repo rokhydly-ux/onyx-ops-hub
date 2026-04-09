@@ -1765,7 +1765,7 @@ export default function OnyxJaayShop() {
     cart.forEach(item => {
       let variantInfo = "";
       if (item.selectedVariant) {
-        const parts = [];
+          const parts: string[] = [];
         if (item.selectedVariant.size) parts.push(`Taille: ${item.selectedVariant.size}`);
         if (item.selectedVariant.color) parts.push(`Couleur: ${item.selectedVariant.color}`);
         if (parts.length > 0) variantInfo = ` (${parts.join(', ')})`;
@@ -5269,7 +5269,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   const chartData = useMemo(() => {
     const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
     const today = new Date();
-    const data = [];
+    const data: any[] = [];
     const range = chartPeriod === 'week' ? 7 : 30;
     
     for (let i = range - 1; i >= 0; i--) {
@@ -5293,7 +5293,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
   const viewsChartData = (() => {
     const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
     const today = new Date();
-    const data = [];
+    const data: any[] = [];
     for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
@@ -5318,7 +5318,7 @@ function ShopDashboard({ products, productViews, viewHistory, onUpdateStock, onV
     });
 
     const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-    const data = [];
+    const data: any[] = [];
     const today = new Date();
     
     for (let i = 5; i >= 0; i--) {

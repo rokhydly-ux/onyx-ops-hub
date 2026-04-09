@@ -155,7 +155,7 @@ export default function Dashboard() {
     else if (moduleId.includes('formation')) moduleId = 'formation';
     else if (moduleId.includes('tontine')) moduleId = 'tontine';
 
-    let expDate = null;
+    let expDate: Date | null = null;
     if (profile?.saas_expiration_dates && profile.saas_expiration_dates[moduleId]) {
         expDate = new Date(profile.saas_expiration_dates[moduleId]);
     } else if (profile?.expiration_date) {

@@ -3,7 +3,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 import { 
   LayoutDashboard, Users, Handshake, Settings, LogOut, 
   Search, Plus, MoreHorizontal, Trash2, 
@@ -19,13 +19,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-
-// --- 2. HACK ANTI-CRASH POLICES ---
+// --- 1. HACK ANTI-CRASH POLICES ---
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
@@ -433,8 +427,9 @@ export default function AdminDashboard() {
        prevMonthRevenue,
        isRevenueDown
      });
-   } catch (error) {
+   } catch (error: any) {
      console.error("Erreur de chargement:", error);
+     alert("Erreur de chargement des données : " + error.message);
    } finally {
      setIsLoading(false);
      setIsRefreshing(false);
@@ -2159,7 +2154,7 @@ export default function AdminDashboard() {
        let hasMatch = false;
        const today = new Date().getTime();
        const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-       const datesToCheck = [];
+       const datesToCheck: number[] = [];
        if (c.expiration_date) datesToCheck.push(new Date(c.expiration_date).getTime());
        if (c.saas_expiration_dates) {
            Object.values(c.saas_expiration_dates).forEach(d => datesToCheck.push(new Date(d).getTime()));

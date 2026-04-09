@@ -39,7 +39,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     setMounted(true);
     
     const fetchSettings = async () => {
-      let currentUserId = null;
+      let currentUserId: string | null = null;
       let role = 'admin';
 
       // 1. Session locale

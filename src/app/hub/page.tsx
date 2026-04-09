@@ -52,7 +52,7 @@ export default function OnyxHubPortal() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         let role = 'CLIENT';
-        let profileData = null;
+        let profileData: any = null;
         const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).maybeSingle();
         if (userData) {
           role = userData.role;
@@ -61,7 +61,8 @@ export default function OnyxHubPortal() {
           const { data: clientData } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
           if (clientData) profileData = clientData;
         }
-        setUser(profileData ? { ...session.user, ...profileData, role } : { ...session.user, role });
+        setUser(profileData ? { ...session.user, ...(profileData as any), role } : { ...session.user, role });
+
       } else {
         const customSession = localStorage.getItem('onyx_custom_session');
         if (customSession) {
