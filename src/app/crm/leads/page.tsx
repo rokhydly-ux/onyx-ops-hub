@@ -139,6 +139,20 @@ export default function LeadsKanbanPage() {
 
   useEffect(() => {
     const init = async () => {
+      // 1. Vérification de la session locale (Employé CRM)
+      const customSession = localStorage.getItem('onyx_custom_session');
+      if (customSession) {
+        try {
+          const profile = JSON.parse(customSession);
+          setUserId(profile.id);
+          setUserRole(profile.role || 'commercial');
+          setUserName(profile.full_name || '');
+          fetchLeads(profile.id, profile.role || 'commercial', profile.full_name || '');
+          return; // On arrête l'exécution si la session locale existe
+        } catch (e) {}
+      }
+
+      // 2. Fallback sur la session Supabase (Administrateur)
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
@@ -147,6 +161,8 @@ export default function LeadsKanbanPage() {
         setUserRole(role);
         setUserName(name);
         fetchLeads(user.id, role, name);
+      } else {
+        setIsLoading(false);
       }
     };
     init();

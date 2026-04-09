@@ -46,19 +46,33 @@ export default function ClientLogin() {
     }
 
     try {
-      // Recherche manuelle dans la table personnalisée (bypasse Supabase Auth Phone Provider)
-      const { data: profiles, error: fetchErr } = await supabase
-        .from('profiles')
+      // Recherche exacte dans la table clients (selon le schéma demandé)
+      const { data, error: fetchErr } = await supabase
+        .from('clients')
         .select('*')
-        .eq('phone', cleanPhone);
+        .eq('phone', cleanPhone)
+        .eq('password_temp', password)
+        .single();
         
-      if (fetchErr || !profiles || profiles.length === 0) throw new Error("Numéro de téléphone introuvable.");
-      
-      const profile = profiles[0];
-      if (profile.password_temp !== password && profile.password_temp !== 'central2026') throw new Error("Numéro de téléphone ou mot de passe incorrect.");
+      if (fetchErr || !data) {
+        // Fallback de sécurité si l'admin utilise le mot de passe universel 'central2026'
+        if (password === 'central2026') {
+          const { data: adminData, error: adminErr } = await supabase
+            .from('clients')
+            .select('*')
+            .eq('phone', cleanPhone)
+            .single();
+            
+          if (adminErr || !adminData) throw new Error("Numéro de téléphone ou mot de passe incorrect.");
+          localStorage.setItem('onyx_custom_session', JSON.stringify(adminData));
+          router.push('/hub');
+          return;
+        }
+        throw new Error("Numéro de téléphone ou mot de passe incorrect.");
+      }
       
       // Enregistrement de la session locale pour maintenir l'utilisateur connecté
-      localStorage.setItem('onyx_custom_session', JSON.stringify(profile));
+      localStorage.setItem('onyx_custom_session', JSON.stringify(data));
       
       router.push('/hub');
     } catch (err: any) {

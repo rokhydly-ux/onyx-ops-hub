@@ -20,9 +20,18 @@ export default function CRMDashboard() {
 
   useEffect(() => {
     const checkAccess = async () => {
+      // 1. Vérification session locale (Employé)
+      const customSession = localStorage.getItem('onyx_custom_session');
+      if (customSession) {
+        try {
+          const profile = JSON.parse(customSession);
+          if (profile.role === 'commercial') return router.replace('/crm/leads');
+        } catch(e) {}
+      }
+
+      // 2. Vérification session Supabase (Admin)
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.user_metadata?.role === 'commercial') {
-        // Le commercial n'a pas accès au dashboard, redirection immédiate
         router.replace('/crm/leads');
       } else {
         setIsAuthorized(true);

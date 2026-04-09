@@ -357,25 +357,30 @@ export default function AdminDashboard() {
    setIsLoading(true);
    setIsRefreshing(true);
    try {
-     const { data: contactsData } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
-     const { data: leadsData } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
-     // CORRECTION ICI : On lit la table "ambassadors" et plus "partners"
-     const { data: partnersData } = await supabase.from('ambassadors').select('*').order('created_at', { ascending: false });
-     const { data: materialsData } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
-     const { data: withdrawalsData } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
-     const { data: commercialsData } = await supabase.from('commercials').select('*').order('created_at', { ascending: false });
-     const { data: hardwareData } = await supabase.from('hardware_stock').select('*').order('name', { ascending: true });
-     const { data: adminSettings } = await supabase.from('admin_settings').select('*').eq('id', 1).maybeSingle();
-     const { data: actionsData } = await supabase.from('actions_ia').select('*').order('created_at', { ascending: false });
-     const { data: articlesData } = await supabase.from('marketing_articles').select('*').order('created_at', { ascending: false });
+     const { data: { session } } = await supabase.auth.getSession();
+     
+     // Utilisation de l'API Service Role pour bypasser le RLS
+     const res = await fetch('/api/admin/data', {
+       headers: { 'Authorization': `Bearer ${session?.access_token || ''}` }
+     });
+     
+     const result = await res.json();
+     if (!res.ok) throw new Error(result.error || "Erreur de chargement depuis l'API");
+
+     const {
+       clients: contactsData, leads: leadsData, ambassadors: partnersData,
+       marketing_materials: materialsData, withdrawals: withdrawalsData,
+       commercials: commercialsData, hardware_stock: hardwareData,
+       admin_settings: adminSettings, actions_ia: actionsData, marketing_articles: articlesData
+     } = result.data;
      
      if (contactsData) setContacts(contactsData);
      if (leadsData) {
        const normalizePhone = (p: string) => (p || '').replace(/\s+/g, '').replace(/^\+?221/, '');
-       const activeLeads = leadsData.filter(lead => {
+       const activeLeads = leadsData.filter((lead: any) => {
            const isPendingOrNew = ['En attente', 'Nouveau', 'Nouveau Lead'].includes(lead.status) || !lead.status;
-           const notInContacts = !contactsData?.some(c => normalizePhone(c.phone) === normalizePhone(lead.phone));
-           const notInPartners = !partnersData?.some(p => normalizePhone(p.contact || p.phone) === normalizePhone(lead.phone));
+           const notInContacts = !contactsData?.some((c: any) => normalizePhone(c.phone) === normalizePhone(lead.phone));
+           const notInPartners = !partnersData?.some((p: any) => normalizePhone(p.contact || p.phone) === normalizePhone(lead.phone));
            return isPendingOrNew && notInContacts && notInPartners;
        });
        setLeads(activeLeads);
@@ -415,13 +420,13 @@ export default function AdminDashboard() {
      const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
      const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-     const currentMonthRevenue = contactsData?.filter(c => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === currentMonth && new Date(c.created_at).getFullYear() === currentYear).reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0) || 0;
-     const prevMonthRevenue = contactsData?.filter(c => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === prevMonth && new Date(c.created_at).getFullYear() === prevYear).reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0) || 0;
+     const currentMonthRevenue = contactsData?.filter((c: any) => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === currentMonth && new Date(c.created_at).getFullYear() === currentYear).reduce((acc: number, c: any) => acc + getSaasPrice(c.saas || ''), 0) || 0;
+     const prevMonthRevenue = contactsData?.filter((c: any) => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === prevMonth && new Date(c.created_at).getFullYear() === prevYear).reduce((acc: number, c: any) => acc + getSaasPrice(c.saas || ''), 0) || 0;
      const isRevenueDown = prevMonthRevenue > 0 && currentMonthRevenue < prevMonthRevenue;
 
      setStats({
        revenue: realRevenue,
-       activeClients: contactsData?.filter(c => c.type === 'Client').length || 0,
+       activeClients: contactsData?.filter((c: any) => c.type === 'Client').length || 0,
        pendingLeads: leadsData?.length || 0,
        newPartners: partnersData?.length || 0,
        currentMonthRevenue,
