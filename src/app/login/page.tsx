@@ -1,113 +1,81 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
-import { LogIn, Loader2, AlertCircle, Home } from "lucide-react";
-import InteractiveParticles from "@/components/InteractiveParticles";
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import { Phone, KeyRound, ArrowRight, Loader2, User } from 'lucide-react';
+import InteractiveParticles from '@/components/InteractiveParticles';
 
-export default function LoginPage() {
+const spaceGrotesk = { className: "font-sans" };
+
+export default function ClientLogin() {
   const router = useRouter();
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(true);
 
-  // Vérification de session active et redirection
+  // Vérification de session active au chargement
   useEffect(() => {
     const checkSession = async () => {
-      // 1. Vérifier si un administrateur est connecté
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && sessionStorage.getItem('onyx_admin_session') === '1') {
-        router.push("/admin");
-        return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const role = user.user_metadata?.role;
+        if (role === 'client' || role === 'admin' || role === 'superadmin') {
+          router.replace('/hub');
+        } else {
+          await supabase.auth.signOut();
+          setIsChecking(false);
+        }
+      } else {
+        setIsChecking(false);
       }
-
-      // 2. Vérifier si un client est déjà connecté (via custom session)
-      const customSession = localStorage.getItem('onyx_custom_session');
-      if (customSession) {
-        // Si une session client existe, redirection vers le hub client
-        router.push("/hub"); 
-        return;
-      }
-
-      setIsChecking(false);
     };
-    
     checkSession();
   }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setErrorMsg("");
+    setError(null);
+
+    // Nettoyage et formatage du numéro
+    let cleanPhone = phone.replace(/\s+/g, '');
+    if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+      cleanPhone = `+221${cleanPhone}`;
+    } else if (!cleanPhone.startsWith('+')) {
+      cleanPhone = `+${cleanPhone}`;
+    }
 
     try {
-      const cleanPhone = phone.replace(/\s+/g, '');
-      
-      // Requête dans la table clients pour l'authentification
-      const { data: client, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('phone', cleanPhone)
-        .eq('password_temp', password)
-        .single();
-
-      if (client && !error) {
-         // Succès - On enregistre la session client
-         localStorage.setItem('onyx_custom_session', JSON.stringify(client));
-         router.push("/hub");
-      } else {
-         setErrorMsg("Numéro de téléphone ou mot de passe incorrect.");
-      }
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        phone: cleanPhone,
+        password: password
+      });
+      if (authError || !data.user) throw new Error("Numéro de téléphone ou mot de passe incorrect.");
+      router.push('/hub');
     } catch (err: any) {
-      setErrorMsg("Erreur lors de la connexion. Veuillez réessayer.");
-    } finally {
+      setError(err.message);
       setIsLoading(false);
     }
   };
 
-  if (isChecking) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" />
-      </div>
-    );
-  }
+  if (isChecking) return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" /></div>;
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 font-sans text-white relative">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-black relative overflow-hidden">
       <InteractiveParticles themeColor="#39FF14" />
-      
-      <button onClick={() => router.push('/')} className="absolute top-6 left-6 text-zinc-400 hover:text-white flex items-center gap-2 font-bold text-sm bg-zinc-900 px-4 py-2 rounded-full border border-zinc-800 transition-colors z-20">
-        <Home size={16}/> Accueil
-      </button>
-
-      <div className="w-full max-w-sm text-center z-10 bg-black/60 p-8 rounded-[3rem] border border-zinc-800 backdrop-blur-xl shadow-2xl">
-        <div className="mx-auto w-20 h-20 bg-zinc-900 rounded-[2rem] flex items-center justify-center shadow-lg border border-zinc-800 mb-6">
-           <img src="https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png" alt="Logo" className="w-12 object-contain" />
-        </div>
-        
-        <h1 className="text-3xl font-black uppercase tracking-tighter mb-2 text-white">Hub Global</h1>
-        <p className="text-zinc-400 font-bold mb-10 text-xs">Connectez-vous à vos applications OnyxOps.</p>
-
+      <div className="w-full max-w-md bg-white/90 backdrop-blur-xl border border-zinc-200 rounded-[3rem] p-8 md:p-10 shadow-[0_30px_80px_rgba(0,0,0,0.1)] relative z-10 animate-in zoom-in-95 duration-500">
+        <div className="w-20 h-20 bg-black rounded-[2rem] flex items-center justify-center text-[#39FF14] mx-auto mb-6 shadow-[0_10px_30px_rgba(57,255,20,0.3)]"><User size={32} /></div>
+        <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-center tracking-tighter mb-2`}>Espace <span className="text-[#39FF14] bg-black px-2 py-0.5 rounded-lg">Client</span></h1>
+        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center mb-8">Accès à votre Hub & Produits Onyx</p>
         <form onSubmit={handleLogin} className="space-y-4">
-          <input 
-            type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required
-            placeholder="Numéro WhatsApp (ex: 77 123 45 67)"
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-4 font-bold text-white outline-none focus:border-[#39FF14] transition text-sm text-center placeholder:text-zinc-600"
-          />
-          <input 
-            type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-            placeholder="Mot de passe d'accès"
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-4 font-bold text-white outline-none focus:border-[#39FF14] transition text-sm text-center placeholder:text-zinc-600 tracking-widest"
-          />
-          
-          {errorMsg && <p className="text-red-500 text-xs font-bold pt-2 flex items-center justify-center gap-1"><AlertCircle size={14}/> {errorMsg}</p>}
-
-          <button type="submit" disabled={isLoading} className="w-full bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 mt-4">
-            {isLoading ? <Loader2 size={18} className="animate-spin" /> : <><LogIn size={18}/> Connexion</>}
+          <div className="relative"><Phone size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" /><input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Téléphone (Ex: 77 123 45 67)" className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 pl-12 font-bold text-sm text-black outline-none focus:border-black transition-colors" /></div>
+          <div className="relative"><KeyRound size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" /><input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 pl-12 font-bold text-sm text-black outline-none focus:border-black transition-colors tracking-widest" /></div>
+          {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg border border-red-200 animate-in fade-in">{error}</p>}
+          <button type="submit" disabled={isLoading} className="w-full mt-4 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-[#39FF14] hover:text-black transition-all shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-2 disabled:opacity-50">
+            {isLoading ? <Loader2 size={18} className="animate-spin" /> : <><ArrowRight size={18} /> Accéder au Hub</>}
           </button>
         </form>
       </div>

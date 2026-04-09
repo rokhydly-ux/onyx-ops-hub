@@ -23,7 +23,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { phone, role, fullName, objective } = body;
+    const { phone, role, fullName, objective, password, saas } = body;
+    const finalPassword = password || '000000'; // Mot de passe fourni par l'admin ou par défaut
 
     if (!phone || !role || !fullName) {
       return NextResponse.json(
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     // 2. Création de l'utilisateur dans Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       phone: cleanPhone,
-      password: '000000', // Correspond au PIN '0000' + '00' sur le front
+      password: finalPassword,
       phone_confirm: true, // Permet la connexion immédiate sans confirmation SMS
       user_metadata: {
         full_name: fullName,
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
         phone: cleanPhone,
         role: role,
         status: 'Actif',
-        password_temp: '000000',
+        password_temp: finalPassword,
       },
     ]);
 
@@ -75,9 +76,23 @@ export async function POST(request: Request) {
 
     // 4. (Optionnel) Synchronisation avec vos tables spécifiques
     if (role.toLowerCase() === 'commercial') {
-      await supabaseAdmin.from('commercials').upsert([{ id: userId, full_name: fullName, phone: cleanPhone, status: 'Actif', password_temp: '000000', objective: objective || 20 }]);
+      await supabaseAdmin.from('commercials').upsert([{ id: userId, full_name: fullName, phone: cleanPhone, status: 'Actif', password_temp: finalPassword, objective: objective || 20 }]);
     } else if (role.toLowerCase() === 'ambassadeur' || role.toLowerCase() === 'ambassador') {
-      await supabaseAdmin.from('ambassadors').upsert([{ id: userId, full_name: fullName, contact: cleanPhone, phone: cleanPhone, status: 'Actif', password_temp: '000000' }]);
+      await supabaseAdmin.from('ambassadors').upsert([{ id: userId, full_name: fullName, contact: cleanPhone, phone: cleanPhone, status: 'Actif', password_temp: finalPassword }]);
+    } else if (role.toLowerCase() === 'client') {
+      const trialEndDate = new Date();
+      trialEndDate.setMonth(trialEndDate.getMonth() + 1);
+      await supabaseAdmin.from('clients').upsert([{ 
+         id: userId, 
+         full_name: fullName, 
+         phone: cleanPhone, 
+         status: 'Compte Créé', 
+         password_temp: finalPassword,
+         type: 'Client',
+         saas: saas || '',
+         active_saas: saas ? [saas] : [],
+         expiration_date: trialEndDate.toISOString().split('T')[0]
+      }], { onConflict: 'phone' });
     }
 
     return NextResponse.json({ success: true, user: authData.user }, { status: 200 });

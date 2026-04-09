@@ -501,46 +501,30 @@ export default function AdminDashboard() {
 
   // --- LOGIQUE DE CRÉATION DE COMPTE MODIFIÉE (J+7, Identifiants de test Ambassadeur) ---
   const handleCreateAccount = async (lead: any, type: 'client' | 'ambassadeur', saasName?: string) => {
-   const table = type === 'client' ? 'clients' : 'ambassadors';
    const tempPass = "central2026"; // Mot de passe fixe demandé
    
    // On utilise le VRAI numéro du prospect pour qu'il puisse se connecter (Clients et Ambassadeurs)
    const phone = (lead.phone || '').replace(/\s+/g, '');
-   const phoneColumn = type === 'client' ? 'phone' : 'contact';
 
    try {
-   // Calcul de la date d'expiration (1 mois pour l'essais gratuit ou abonnement)
-   const trialEndDate = new Date();
-   trialEndDate.setMonth(trialEndDate.getMonth() + 1);
-
-   let extractedActivity = '';
-   if (lead.message) {
-     const match = lead.message.match(/Activit[eé]:\s*([^|]+)/i);
-     if (match) extractedActivity = match[1].trim();
-   }
-
-     const payload: any = {
-       full_name: lead.full_name || 'Test Ambassadeur',
-       [phoneColumn]: phone, 
-       password_temp: tempPass,
-       source: lead.source || 'Lead Admin',
-       status: 'Actif', // Rendu 'Actif' au lieu de 'Approuvé' pour qu'il s'affiche direct
-       updated_at: new Date().toISOString()
-     };
-
-     if (type === 'client') {
-       if (saasName) payload.saas = saasName;
-       if (extractedActivity) payload.activity = extractedActivity;
-       payload.expiration_date = trialEndDate.toISOString().split('T')[0];
-     }
-
-     const { error } = await supabase.from(table).upsert(payload, { onConflict: phoneColumn });
-     if (error) throw error;
+     const res = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            phone: phone,
+            fullName: lead.full_name || 'Nouveau Membre',
+            role: type,
+            password: tempPass,
+            saas: saasName
+        })
+     });
+     const result = await res.json();
+     if (!res.ok) throw new Error(result.error || "Erreur de création du compte.");
 
      // NOUVEAU : On supprime TOUS les leads (partiels ou complets) liés à ce numéro pour éviter les doublons
      await supabase.from('leads').delete().eq('phone', lead.phone);
 
-     const portal = type === 'client' ? 'https://onyxlinks.com/login' : 'https://onyxlinks.com/ambassadeurs';
+     const portal = type === 'client' ? 'https://onyxlinks.com/login' : 'https://onyxlinks.com/ambassadeurs/login';
      const welcomeMsg = `Félicitations ! Ton compte est prêt.\n🔗 Accès : ${portal}\n📱 ID : ${phone}\n🔑 Code PIN : 0000`;
 
      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(welcomeMsg)}`, '_blank');
@@ -1576,20 +1560,30 @@ export default function AdminDashboard() {
   };
 
   // Si c'est une modification, on garde l'ID pour mettre à jour
-  if (editingContact.id) {
-    payload.id = editingContact.id;
-  }
-
-  const { data, error } = await supabase
-    .from('clients')
-    .upsert(payload)
-    .select();
-
-  if (error) {
-    console.error('Erreur Supabase:', error);
-    alert("Erreur Supabase: " + error.message);
-    return; 
-  }
+  try {
+    if (editingContact.id) {
+      payload.id = editingContact.id;
+      const { error } = await supabase.from('clients').upsert(payload);
+      if (error) throw error;
+    } else {
+      // Nouveau client => Passage par l'API pour créer l'authentification
+      const res = await fetch('/api/create-user', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+             phone: phoneClean,
+             fullName: editingContact.full_name,
+             role: 'client',
+             password: editingContact.password_temp || 'central2026',
+             saas: editingContact.saas
+         })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Erreur lors de la création d'accès Supabase");
+      
+      // Mise à jour de la table clients avec tous les champs supplémentaires
+      await supabase.from('clients').update(payload).eq('id', result.user.id);
+    }
 
   // SUPPRIMER LE LEAD ASSOCIÉ POUR NETTOYER L'INBOX
   if (phoneClean) {
@@ -1599,6 +1593,9 @@ export default function AdminDashboard() {
   setShowContactModal(false);
   fetchSupabaseData(); // Rafraîchit l'affichage
   alert("Fiche CRM enregistrée avec succès !");
+  } catch (err: any) {
+     alert("Erreur: " + err.message);
+  }
 };
 
   const approveAmbassador = async (id: string) => {
@@ -1850,27 +1847,38 @@ export default function AdminDashboard() {
         const p = contacts.find(c => c.id === saasCreateForm.prospectId);
         if(p) { targetPhone = p.phone; targetName = p.full_name; }
      }
+
+     let cleanPhone = targetPhone.replace(/\s+/g, '');
+     if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+         cleanPhone = `+221${cleanPhone}`;
+     } else if (!cleanPhone.startsWith('+')) {
+         cleanPhone = `+${cleanPhone}`;
+     }
      
      const msg = `Félicitations ${targetName} ! Votre espace ${showSaasLogin.name} est actif.\nLien : https://${showSaasLogin.id}.onyxops.com\nIdentifiant : ${targetPhone}\nMot de passe : ${saasCreateForm.password}`;
      
-     // Calcul de la date d'expiration (1 mois)
-     const trialEndDate = new Date();
-     trialEndDate.setMonth(trialEndDate.getMonth() + 1);
-
-     await supabase.from('clients').upsert({
-        full_name: targetName,
-        phone: targetPhone,
-        password_temp: saasCreateForm.password, // IMPORTANT: Sauvegarde du mot de passe pour la connexion
-        type: 'Client',
-        saas: showSaasLogin.name,
-        status: 'Compte Créé',
-        expiration_date: trialEndDate.toISOString().split('T')[0]
-     }, { onConflict: 'phone' });
+     try {
+       const res = await fetch('/api/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              phone: cleanPhone,
+              fullName: targetName,
+              role: 'client',
+              password: saasCreateForm.password,
+              saas: showSaasLogin.name
+          })
+       });
+       const result = await res.json();
+       if (!res.ok) throw new Error(result.error || "Erreur de création d'accès.");
 
      alert(`Compte ${showSaasLogin.name} créé et enregistré !`);
      setShowSaasLogin(null);
      fetchSupabaseData();
      window.open(`https://wa.me/${targetPhone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
+     } catch(err:any) {
+         alert("Erreur: " + err.message);
+     }
   };
 
   const handleFixMissingExpiryDates = async () => {
