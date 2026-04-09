@@ -1651,15 +1651,20 @@ export default function AdminDashboard() {
               cleanPhone = `+${cleanPhone}`;
           }
 
-          const { error } = await supabase.from('commercials').insert([{
-              full_name: newCommercialForm.full_name,
-              phone: cleanPhone,
-              status: 'Actif',
-              password_temp: 'central2026',
-              objective: newCommercialForm.objective || 20
-          }]);
-
-          if (error) throw error;
+          // Appel de l'API sécurisée pour créer l'utilisateur Auth + le profil
+          const res = await fetch('/api/create-user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  phone: cleanPhone,
+                  fullName: newCommercialForm.full_name,
+                  role: 'commercial',
+                  objective: newCommercialForm.objective || 20
+              })
+          });
+          
+          const result = await res.json();
+          if (!res.ok) throw new Error(result.error || "Erreur lors de la création du compte.");
           
           alert(`Commercial ${newCommercialForm.full_name} créé ! Il peut se connecter avec le PIN 0000.`);
           setShowAddCommercialModal(false);

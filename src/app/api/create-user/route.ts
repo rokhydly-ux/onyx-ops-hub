@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { phone, role, fullName } = body;
+    const { phone, role, fullName, objective } = body;
 
     if (!phone || !role || !fullName) {
       return NextResponse.json(
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
     // 4. (Optionnel) Synchronisation avec vos tables spécifiques
     if (role.toLowerCase() === 'commercial') {
-      await supabaseAdmin.from('commercials').upsert([{ id: userId, full_name: fullName, phone: cleanPhone, status: 'Actif', password_temp: '000000' }]);
+      await supabaseAdmin.from('commercials').upsert([{ id: userId, full_name: fullName, phone: cleanPhone, status: 'Actif', password_temp: '000000', objective: objective || 20 }]);
     } else if (role.toLowerCase() === 'ambassadeur' || role.toLowerCase() === 'ambassador') {
       await supabaseAdmin.from('ambassadors').upsert([{ id: userId, full_name: fullName, contact: cleanPhone, phone: cleanPhone, status: 'Actif', password_temp: '000000' }]);
     }
