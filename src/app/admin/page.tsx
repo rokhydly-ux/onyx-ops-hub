@@ -351,11 +351,19 @@ export default function AdminDashboard() {
    setIsLoading(true);
    setIsRefreshing(true);
    try {
-     const { data: { session } } = await supabase.auth.getSession();
+     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+     
+     if (sessionError || !session?.access_token) {
+        throw new Error("Jeton d'authentification introuvable. Veuillez vous reconnecter.");
+     }
      
      // Utilisation de l'API Service Role pour bypasser le RLS
      const res = await fetch('/api/admin/data', {
-       headers: { 'Authorization': `Bearer ${session?.access_token || ''}` }
+       headers: { 
+         'Authorization': `Bearer ${session.access_token}`,
+         'Content-Type': 'application/json'
+       },
+       cache: 'no-store'
      });
      
      // 1. GESTION DE L'ERREUR BRUTE (HTML 404/500) AVANT LE PARSING JSON

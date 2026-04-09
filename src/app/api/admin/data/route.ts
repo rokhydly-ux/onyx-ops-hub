@@ -18,14 +18,14 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('Authorization');
     const token = authHeader ? authHeader.split(' ')[1] : undefined;
 
-    if (!token) {
-      return NextResponse.json({ error: "Token d'autorisation manquant." }, { status: 401 });
+    if (!token || token === 'undefined' || token === 'null') {
+      return NextResponse.json({ error: "Token d'autorisation manquant ou mal formaté dans la requête." }, { status: 401 });
     }
 
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Session invalide ou expirée." }, { status: 401 });
+      return NextResponse.json({ error: `Rejet Supabase : ${authError?.message || 'Utilisateur introuvable.'}` }, { status: 401 });
     }
 
     // 2. Vérification stricte du rôle Super Admin
