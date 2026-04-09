@@ -358,8 +358,14 @@ export default function AdminDashboard() {
        headers: { 'Authorization': `Bearer ${session?.access_token || ''}` }
      });
      
+     // 1. GESTION DE L'ERREUR BRUTE (HTML 404/500) AVANT LE PARSING JSON
+     if (!res.ok) {
+       const errorText = await res.text();
+       console.error("Erreur serveur brute :", errorText);
+       throw new Error(`Erreur réseau: ${res.status}. Vérifiez la console pour les détails.`);
+     }
+
      const result = await res.json();
-     if (!res.ok) throw new Error(result.error || "Erreur de chargement depuis l'API");
 
      const {
        clients: contactsData, leads: leadsData, ambassadors: partnersData,
