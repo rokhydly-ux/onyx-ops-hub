@@ -11,6 +11,7 @@ export default function CRMSettingsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState('general');
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Mocks pour les nouveaux onglets
   const [teamMembers] = useState([{ id: 1, name: 'Boss Admin', role: 'Super Admin', color: '#39FF14' }, { id: 2, name: 'Moussa Diop', role: 'Commercial', color: '#3b82f6' }]);
@@ -20,8 +21,12 @@ export default function CRMSettingsPage() {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const { data, error } = await supabase.from('crm_settings').select('*').eq('id', 1).single();
-      if (data) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        const { data, error } = await supabase.from('crm_settings').select('*').eq('user_id', user.id).single();
+        if (data) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+      }
       setIsLoading(false);
     };
     fetchSettings();
@@ -29,8 +34,11 @@ export default function CRMSettingsPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) {
+      return alert("Erreur: Utilisateur non authentifié.");
+    }
     setIsSaving(true);
-    const { error } = await supabase.from('crm_settings').upsert({ id: 1, ...settings });
+    const { error } = await supabase.from('crm_settings').upsert({ user_id: userId, ...settings });
     setIsSaving(false);
     if (error) {
       alert("Erreur lors de la sauvegarde : " + error.message);
@@ -85,6 +93,7 @@ export default function CRMSettingsPage() {
         <button onClick={() => setActiveTab('team')} className={`px-5 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'team' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><Users size={14}/> Mon Équipe</button>
         <button onClick={() => setActiveTab('auto')} className={`px-5 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'auto' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><Bot size={14}/> Automatisations</button>
         <button onClick={() => setActiveTab('integrations')} className={`px-5 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'integrations' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><Plug size={14}/> Intégrations</button>
+        <button onClick={() => setActiveTab('sync')} className={`px-5 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'sync' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><Database size={14}/> Import & Sync</button>
       </div>
 
       {activeTab === 'general' && (
@@ -214,6 +223,46 @@ export default function CRMSettingsPage() {
                  <div><h4 className="font-black text-base uppercase">Meta Ads API</h4><p className="text-xs font-bold text-zinc-500">Remontée des leads directs depuis Facebook/IG.</p></div>
               </div>
               <span className="bg-red-500/10 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20">Déconnecté</span>
+           </div>
+        </div>
+      )}
+
+      {activeTab === 'sync' && (
+        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-8 shadow-sm animate-in fade-in space-y-8">
+           <h3 className="font-black text-xl uppercase mb-6">Import & Synchro Leads</h3>
+           
+           {/* Import Manuel & Mapping */}
+           <div className="p-6 border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-4">
+              <h4 className="font-bold text-sm uppercase flex items-center gap-2"><Database size={16}/> Import Manuel (CSV/Excel)</h4>
+              <p className="text-xs text-zinc-500">Uploadez votre fichier pour déclencher l'assistant de Mapping des colonnes (ex: 'Téléphone 1' → 'phone').</p>
+              <input type="file" accept=".csv, .xlsx" className="w-full text-xs file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-zinc-100 dark:file:bg-zinc-900 file:text-black dark:file:text-white cursor-pointer" />
+              <button className="bg-black dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-xl text-xs font-bold hover:scale-105 transition-all">Lancer le Mapping IA</button>
+           </div>
+
+           {/* Google Sheets OAuth */}
+           <div className="p-6 border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-4">
+              <h4 className="font-bold text-sm uppercase flex items-center gap-2"><Plug size={16}/> Synchronisation Google Sheets</h4>
+              <p className="text-xs text-zinc-500">Connectez votre compte Google pour synchroniser automatiquement vos tableaux de prospection en lecture seule.</p>
+              
+              <button className="flex items-center gap-2 bg-[#4285F4] text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-[#3367D6] transition-colors shadow-md">
+                 <Plug size={16}/> Se connecter avec Google
+              </button>
+              
+              <div className="grid grid-cols-2 gap-4 mt-4 bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                 <div className="col-span-2">
+                    <label className="text-[10px] font-black tracking-widest text-zinc-500 uppercase">ID du Spreadsheet</label>
+                    <input type="text" placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms" className="w-full p-3 mt-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-[#39FF14]" />
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-black tracking-widest text-zinc-500 uppercase">Début Campagne</label>
+                    <input type="date" className="w-full p-3 mt-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-[#39FF14] cursor-pointer" />
+                 </div>
+                 <div>
+                    <label className="text-[10px] font-black tracking-widest text-zinc-500 uppercase">Fin Campagne</label>
+                    <input type="date" className="w-full p-3 mt-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-[#39FF14] cursor-pointer" />
+                 </div>
+              </div>
+              <button className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest w-full hover:scale-[1.02] transition-transform">Forcer la Synchro</button>
            </div>
         </div>
       )}

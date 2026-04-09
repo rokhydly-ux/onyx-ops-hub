@@ -1,28 +1,51 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { supabase } from '@/lib/supabaseClient';
+
+// Helper pour récupérer l'utilisateur via l'entête d'autorisation ou la session locale
+const getUserFromRequest = async (request: Request) => {
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader ? authHeader.split(' ')[1] : undefined;
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  return { user, error };
+};
 
 // GET : Récupérer tous les leads pour le Kanban
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const sql = `
-      SELECT 
-        l.id,
-        l.amount,
-        l.status,
-        l.category,
-        c.full_name as name,
-        c.whatsapp_number,
-        u.full_name as assignee,
-        u.color_badge as "avatarColor"
-      FROM crm_leads l
-      JOIN crm_contacts c ON l.contact_id = c.id
-      LEFT JOIN users u ON l.assignee_id = u.id
-      ORDER BY l.created_at DESC
-    `;
-    
-    const result = await query(sql);
-    
-    return NextResponse.json({ leads: result.rows }, { status: 200 });
+    const { user, error: authError } = await getUserFromRequest(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    // Multi-Tenancy : on filtre STRICTEMENT par tenant_id
+    const { data, error } = await supabase
+      .from('crm_leads')
+      .select(`
+        id,
+        amount,
+        status,
+        category,
+        crm_contacts ( full_name, whatsapp_number ),
+        users ( full_name, color_badge )
+      `)
+      .eq('tenant_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Formatage pour correspondre au composant React
+    const formattedLeads = data.map((l: any) => ({
+      id: l.id,
+      amount: l.amount,
+      status: l.status,
+      category: l.category,
+      name: l.crm_contacts?.full_name,
+      whatsapp_number: l.crm_contacts?.whatsapp_number,
+      assignee: l.users?.full_name,
+      avatarColor: l.users?.color_badge
+    }));
+
+    return NextResponse.json({ leads: formattedLeads }, { status: 200 });
   } catch (error: any) {
     console.error("Erreur GET Leads:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -32,6 +55,11 @@ export async function GET() {
 // PATCH : Mettre à jour le statut du lead (Drag & Drop)
 export async function PATCH(request: Request) {
   try {
+    const { user, error: authError } = await getUserFromRequest(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, status } = body;
     
@@ -39,14 +67,18 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "L'id et le statut sont requis." }, { status: 400 });
     }
     
-    const sql = `UPDATE crm_leads SET status = $1 WHERE id = $2 RETURNING *`;
-    const result = await query(sql, [status, id]);
+    // Update avec vérification Multi-Tenant
+    const { data, error } = await supabase
+      .from('crm_leads')
+      .update({ status })
+      .eq('id', id)
+      .eq('tenant_id', user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
     
-    if (result.rowCount === 0) {
-      return NextResponse.json({ error: "Lead introuvable." }, { status: 404 });
-    }
-    
-    return NextResponse.json({ success: true, lead: result.rows[0] }, { status: 200 });
+    return NextResponse.json({ success: true, lead: data }, { status: 200 });
   } catch (error: any) {
     console.error("Erreur PATCH Lead:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -56,6 +88,11 @@ export async function PATCH(request: Request) {
 // POST : Création manuelle d'un nouveau lead (Transaction SQL)
 export async function POST(request: Request) {
   try {
+    const { user, error: authError } = await getUserFromRequest(request);
+    if (authError || !user) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { full_name, whatsapp_number, amount, category, assignee_id } = body;
     
@@ -63,19 +100,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Le nom et le numéro WhatsApp sont requis." }, { status: 400 });
     }
     
-    await query('BEGIN'); // Début de la transaction
+    // Multi-tenant : on ajoute le tenant_id
+    const { data: contact, error: contactError } = await supabase
+      .from('crm_contacts')
+      .upsert(
+        { tenant_id: user.id, full_name, whatsapp_number },
+        { onConflict: 'whatsapp_number' }
+      )
+      .select('id')
+      .single();
+      
+    if (contactError) throw contactError;
     
-    const contactSql = `INSERT INTO crm_contacts (full_name, whatsapp_number) VALUES ($1, $2) RETURNING id`;
-    const contactResult = await query(contactSql, [full_name, whatsapp_number]);
-    const contactId = contactResult.rows[0].id;
-    
-    const leadSql = `INSERT INTO crm_leads (contact_id, amount, category, assignee_id, status) VALUES ($1, $2, $3, $4, 'Nouveau') RETURNING *`;
-    const leadResult = await query(leadSql, [contactId, amount || 0, category || 'Général', assignee_id || null]);
-    
-    await query('COMMIT'); // Validation de la transaction
-    return NextResponse.json({ success: true, lead: leadResult.rows[0] }, { status: 201 });
+    const { data: lead, error: leadError } = await supabase
+      .from('crm_leads')
+      .insert([{
+        tenant_id: user.id,
+        contact_id: contact.id,
+        amount: amount || 0,
+        category: category || 'Général',
+        assignee_id: assignee_id || null,
+        status: 'Nouveau'
+      }])
+      .select()
+      .single();
+
+    if (leadError) throw leadError;
+
+    return NextResponse.json({ success: true, lead }, { status: 201 });
   } catch (error: any) {
-    await query('ROLLBACK'); // Annulation en cas d'erreur
     console.error("Erreur POST Lead:", error.message);
     return NextResponse.json({ error: "Erreur lors de la création du lead." }, { status: 500 });
   }

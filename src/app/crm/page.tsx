@@ -1,6 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 import { 
   TrendingUp, 
   Users, 
@@ -13,6 +15,26 @@ import {
 } from 'lucide-react';
 
 export default function CRMDashboard() {
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.role === 'commercial') {
+        // Le commercial n'a pas accès au dashboard, redirection immédiate
+        router.replace('/crm/leads');
+      } else {
+        setIsAuthorized(true);
+      }
+    };
+    checkAccess();
+  }, [router]);
+
+  if (!isAuthorized) {
+    return <div className="h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div></div>;
+  }
+
   // Mock Data - KPIs
   const kpis = [
     { title: "Nouveaux Leads (24h)", value: "12", icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },

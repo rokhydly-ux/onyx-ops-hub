@@ -16,6 +16,7 @@ import {
   Settings
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { useTheme } from 'next-themes';
 
 const NAV_LINKS = [
   { name: 'Dashboard', href: '/crm', icon: LayoutDashboard },
@@ -29,38 +30,29 @@ const NAV_LINKS = [
 export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [theme, setTheme] = useState('dark');
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [crmSettings, setCrmSettings] = useState({ crm_name: 'ONYX CRM', logo_url: '', theme_color: '#39FF14' });
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    const savedTheme = localStorage.getItem('onyx_theme') || 'dark';
-    setTheme(savedTheme);
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
     
     const fetchSettings = async () => {
-      const { data } = await supabase.from('crm_settings').select('*').eq('id', 1).single();
-      if (data) {
-        setCrmSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserRole(user.user_metadata?.role || 'admin');
+        const { data } = await supabase.from('crm_settings').select('*').eq('user_id', user.id).single();
+        if (data) {
+          setCrmSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+        }
       }
     };
     fetchSettings();
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('onyx_theme', newTheme);
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   const getCurrentPageTitle = () => {
@@ -69,6 +61,11 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   };
 
   if (!mounted) return null;
+
+  const visibleLinks = NAV_LINKS.filter(link => {
+    if (userRole === 'commercial' && (link.name === 'Dashboard' || link.name === 'Paramètres')) return false;
+    return true;
+  });
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-black dark:text-white font-sans overflow-hidden transition-colors duration-300">
@@ -86,7 +83,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         </div>
         <div className="flex-1 py-6 px-4 space-y-2 overflow-y-auto custom-scrollbar">
           <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4 px-2">Menu Principal</div>
-          {NAV_LINKS.map((link) => {
+          {visibleLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
               <Link
@@ -130,9 +127,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <div className="flex items-center gap-2 pl-3 border-l border-zinc-200 dark:border-zinc-800">
-              <div className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center shadow-sm" style={{ color: crmSettings.theme_color }}>
+          <Link href="/crm/settings" className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" style={{ color: crmSettings.theme_color }}>
                 <UserCircle size={20} />
-              </div>
+          </Link>
             </div>
           </div>
         </header>
@@ -145,7 +142,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
       {/* --- BOTTOM NAVIGATION MOBILE --- */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex justify-around items-center h-16 px-2 z-50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
-        {NAV_LINKS.map((link) => {
+        {visibleLinks.map((link) => {
           const isActive = pathname === link.href;
           return (
             <Link key={link.name} href={link.href} className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${isActive ? '' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`} style={isActive ? { color: crmSettings.theme_color } : {}}>
