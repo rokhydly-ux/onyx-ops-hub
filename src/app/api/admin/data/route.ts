@@ -13,18 +13,24 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 export async function GET(request: Request) {
+  console.log("➡️ 🔥 APPEL API ADMIN REÇU ! Le routeur fonctionne bien.");
+  
   try {
     // 1. Vérification de l'identité via le token de session du frontend
     const authHeader = request.headers.get('Authorization');
     const token = authHeader ? authHeader.split(' ')[1] : undefined;
+    
+    console.log("🔑 Token extrait de l'en-tête :", token ? "OUI (Présent)" : "NON (Absent)");
 
     if (!token || token === 'undefined' || token === 'null') {
+      console.log("❌ ERREUR : Le token est vide ou mal formaté.");
       return NextResponse.json({ error: "Token d'autorisation manquant ou mal formaté dans la requête." }, { status: 401 });
     }
 
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
+      console.error("❌ REJET SUPABASE AUTH :", authError?.message);
       return NextResponse.json({ error: `Rejet Supabase : ${authError?.message || 'Utilisateur introuvable.'}` }, { status: 401 });
     }
 
