@@ -32,54 +32,41 @@ export default function AmbassadeursPage() {
     setAuthLoading(true);
     setError("");
 
-    // Nettoyage du numéro de téléphone
-    let rawPhone = id.replace(/[^0-9+]/g, '');
-    const p1 = rawPhone;
-    const p2 = rawPhone.startsWith('+') ? rawPhone.substring(1) : `+${rawPhone}`;
-    const p3 = rawPhone.length === 9 ? `+221${rawPhone}` : rawPhone;
-    const p4 = rawPhone.length === 9 ? `221${rawPhone}` : rawPhone;
-    const p5 = rawPhone.startsWith('+221') ? rawPhone.substring(4) : rawPhone;
-    const p6 = rawPhone.startsWith('221') ? rawPhone.substring(3) : rawPhone;
-
-    const uniquePhones = Array.from(new Set([p1, p2, p3, p4, p5, p6]));
+    // Nettoyage et formatage du numéro
+    let cleanPhone = id.replace(/\s+/g, '');
+    if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+      cleanPhone = `+221${cleanPhone}`;
+    } else if (!cleanPhone.startsWith('+')) {
+      cleanPhone = `+${cleanPhone}`;
+    }
 
     try {
-      const { data: membersByPhone } = await supabase
-        .from('ambassadors')
-        .select('*')
-        .in('phone', uniquePhones);
-        
-      const { data: membersByContact } = await supabase
-        .from('ambassadors')
-        .select('*')
-        .in('contact', uniquePhones);
+      const submittedPin = pin === "0000" ? "central2026" : pin + "00";
+      const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
 
-      const membersList = [...(membersByPhone || []), ...(membersByContact || [])];
+      // 1. Authentification Supabase Auth d'abord pour valider le RLS
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: submittedPin,
+      });
 
-      if (membersList.length === 0) {
-        throw new Error("Identifiant introuvable.");
+      if (authError || !authData.user) {
+        throw new Error("Numéro de téléphone ou code PIN incorrect.");
       }
-      
-      const data = membersList.find(m => uniquePhones.includes(m.phone) || uniquePhones.includes(m.contact));
-      if (!data) throw new Error("Identifiant introuvable.");
 
+      // 2. Récupération des données avec les droits RLS
+      const { data: ambassadors, error: fetchErr } = await supabase
+        .from('ambassadors')
+        .select('*')
+        .eq('id', authData.user.id);
+
+      if (fetchErr || !ambassadors || ambassadors.length === 0) {
+        throw new Error("Profil ambassadeur introuvable après connexion.");
+      }
+
+      const data = ambassadors[0];
       if (data.status !== 'Actif') {
          throw new Error("Votre compte n'est pas encore validé par l'administrateur.");
-      }
-
-      const submittedPin = pin === "0000" ? "central2026" : pin + "00";
-      if (data.password_temp !== submittedPin && data.password_temp !== "central2026") {
-        throw new Error("Code PIN incorrect.");
-      }
-
-      // Synchronisation avec Supabase Auth (Email Fantôme) pour la session globale
-      try {
-          // Format strict pour l'email fantôme
-          const cleanPhoneForAuth = data.contact.startsWith('+') ? data.contact : `+${data.contact}`;
-          const authEmail = `${cleanPhoneForAuth}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
-          await supabase.auth.signInWithPassword({ email: authEmail, password: submittedPin });
-      } catch(e) {
-          console.warn("Erreur Auth silencieuse (Ambassadeur):", e);
       }
 
       localStorage.setItem('onyx_ambassador_session', JSON.stringify(data));

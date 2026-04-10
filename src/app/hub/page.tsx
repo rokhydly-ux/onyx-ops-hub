@@ -197,11 +197,17 @@ export default function OnyxHubPortal() {
           
           <div className="relative" ref={profileMenuRef}>
             <div className="flex items-center gap-3">
+              {user?.email === 'rokhydly@gmail.com' && (
+                 <div className="hidden sm:flex items-center gap-2 bg-zinc-900 p-1.5 pr-4 rounded-full border border-zinc-800 shadow-sm mr-2">
+                    <img src={user.user_metadata?.avatar_url || "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"} alt="Super Admin" className="w-7 h-7 rounded-full object-cover border border-[#39FF14]" />
+                    <span className="text-[10px] font-black uppercase text-[#39FF14]">Super Admin</span>
+                 </div>
+              )}
               <button onClick={() => setShowHelpModal(true)} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-colors text-xs font-bold mr-2">
                  <HelpCircle size={14} /> <span className="hidden sm:inline">Aide</span>
               </button>
             <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center gap-3 bg-zinc-900 px-3 py-1.5 rounded-full border border-zinc-800 hover:border-[#39FF14] transition-colors">
-               <img src={user?.avatar_url || 'https://ui-avatars.com/api/?name=' + user?.full_name} alt="Avatar" className="w-6 h-6 rounded-full object-cover border border-[#39FF14]" />
+               <img src={user?.avatar_url || (user?.email === 'rokhydly@gmail.com' ? "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg" : 'https://ui-avatars.com/api/?name=' + user?.full_name)} alt="Avatar" className="w-6 h-6 rounded-full object-cover border border-[#39FF14]" />
                <span className="text-xs font-bold uppercase">{user?.full_name || 'Utilisateur'}</span>
             </button>
             </div>

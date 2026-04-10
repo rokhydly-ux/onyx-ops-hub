@@ -2738,6 +2738,13 @@ export default function OnyxJaayShop() {
         {/* Top Header Toggle */}
         <header className="absolute top-0 left-0 right-0 p-6 z-10 flex justify-between items-start pointer-events-none print:hidden">
           <div className="flex items-center gap-4 pointer-events-auto ml-auto">
+          {authUser && authUser.email === 'rokhydly@gmail.com' && (
+             <div className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 p-1.5 pr-4 rounded-full border border-zinc-200 dark:border-zinc-800 backdrop-blur-md shadow-sm">
+                <img src={authUser.user_metadata?.avatar_url || "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"} alt="Super Admin" className="w-7 h-7 rounded-full object-cover border border-[#39FF14]" />
+                <span className="text-[10px] font-black uppercase text-[#39FF14]">Super Admin</span>
+             </div>
+          )}
+
           <button onClick={() => setIsCartOpen(true)} className="hidden md:flex items-center gap-2 bg-white/50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-800 text-black dark:text-white px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-800 transition backdrop-blur-md">
             <div className="relative">
               <ShoppingCart size={18} />

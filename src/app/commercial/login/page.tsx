@@ -21,140 +21,88 @@ export default function CommercialLogin() {
 
     try {
       // Nettoyage et formatage du numéro de téléphone
-      let rawPhone = phone.replace(/[^0-9+]/g, '');
-      const p1 = rawPhone;
-      const p2 = rawPhone.startsWith('+') ? rawPhone.substring(1) : `+${rawPhone}`;
-      const p3 = rawPhone.length === 9 ? `+221${rawPhone}` : rawPhone;
-      const p4 = rawPhone.length === 9 ? `221${rawPhone}` : rawPhone;
-      const p5 = rawPhone.startsWith('+221') ? rawPhone.substring(4) : rawPhone;
-      const p6 = rawPhone.startsWith('221') ? rawPhone.substring(3) : rawPhone;
+      let cleanPhone = phone.replace(/\s+/g, '');
+      if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+        cleanPhone = `+221${cleanPhone}`;
+      } else if (!cleanPhone.startsWith('+')) {
+        cleanPhone = `+${cleanPhone}`;
+      }
 
-      const uniquePhones = Array.from(new Set([p1, p2, p3, p4, p5, p6]));
+      const submittedPin = pin === "0000" ? "central2026" : (pin.length === 4 ? pin + "00" : pin);
+      const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
 
+      // 1. Authentification Supabase Auth d'abord pour valider le RLS
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: submittedPin,
+      });
+
+      if (authError || !authData.user) {
+        throw new Error("Numéro de téléphone ou Code PIN incorrect.");
+      }
+
+      // 2. Récupération des données commerciales maintenant que nous sommes authentifiés
       const { data: commercials, error: fetchErr } = await supabase
         .from('commercials')
         .select('*')
-        .in('phone', uniquePhones);
+        .eq('id', authData.user.id);
 
       if (fetchErr || !commercials || commercials.length === 0) {
-        throw new Error("Numéro de téléphone introuvable.");
+        throw new Error("Profil commercial introuvable après connexion.");
       }
 
-      const commercial = commercials.find(c => uniquePhones.includes(c.phone));
-      if (!commercial) {
-        throw new Error("Numéro de téléphone introuvable.");
-      }
-
-      if (commercial.status !== 'Actif') throw new Error("Votre compte commercial n'est pas encore activé.");
-
-      const submittedPin = pin === "0000" ? "central2026" : pin + "00";
-      if (commercial.password_temp !== submittedPin && commercial.password_temp !== "central2026") throw new Error("Code PIN incorrect.");
-
-      // Synchronisation avec Supabase Auth (Email Fantôme) pour la session globale
-      try {
-          const cleanPhoneForAuth = commercial.phone.startsWith('+') ? commercial.phone : `+${commercial.phone}`;
-          const authEmail = `${cleanPhoneForAuth}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
-          await supabase.auth.signInWithPassword({ email: authEmail, password: submittedPin });
-      } catch(e) {
-          console.warn("Erreur Auth silencieuse (Commercial):", e);
+      const commercial = commercials[0];
+      if (commercial.status !== 'Actif') {
+        throw new Error("Votre compte commercial n'est pas encore activé.");
       }
 
       // Succès - Sauvegarde de la session locale
       localStorage.setItem('onyx_commercial_session', JSON.stringify(commercial));
       router.push('/commercial/hub');
-      
     } catch (err: any) {
-      setErrorMsg(err.message || "Erreur lors de la connexion.");
+      setErrorMsg(err.message || "Erreur de connexion.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-center items-center p-6 font-sans">
-      <div className="w-full max-w-sm space-y-8">
-        
-        {/* En-tête */}
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-black relative">
+      <div className="w-full max-w-md bg-white border border-gray-200 rounded-3xl p-8 md:p-10 shadow-2xl relative z-10">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#0a0a0a] mb-4 shadow-lg">
-            <Lock className="text-[#00FF00] w-8 h-8" />
+          <div className="w-16 h-16 bg-[#0a0a0a] rounded-2xl flex items-center justify-center text-[#00FF00] mx-auto mb-6 shadow-lg">
+            <Lock size={28} />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Portail Commercial</h1>
+          <h1 className="text-2xl font-black uppercase text-gray-900">Portail Commercial</h1>
           <p className="text-gray-500 mt-2">Connectez-vous pour accéder au terrain.</p>
         </div>
 
-        {/* Formulaire */}
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="space-y-4">
-            
-            {/* Numéro de téléphone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Numéro de téléphone <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone <span className="text-red-500">*</span></label>
               <div className="flex">
-                <span className="inline-flex items-center px-4 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                  +221
-                </span>
-                <input 
-                  type="tel" 
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="7X XXX XX XX" 
-                  className="flex-1 min-w-0 block w-full px-4 py-3 rounded-none rounded-r-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#00FF00] focus:border-transparent" 
-                />
+                <span className="inline-flex items-center px-4 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">+221</span>
+                <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="7X XXX XX XX" className="flex-1 min-w-0 block w-full px-4 py-3 rounded-none rounded-r-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#00FF00] focus:border-transparent" />
               </div>
             </div>
-
-            {/* Email (Optionnel) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email <span className="text-gray-400 font-normal">(Optionnel)</span>
-              </label>
-              <input 
-                type="email" 
-                placeholder="prenom@onyx.sn" 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#00FF00] focus:border-transparent" 
-              />
-            </div>
-
-            {/* Code PIN */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Code PIN (4 chiffres) <span className="text-red-500">*</span>
-              </label>
-              <input 
-                type="password" 
-                inputMode="numeric"
-                maxLength={4}
-                required
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="••••" 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#00FF00] focus:border-transparent tracking-widest text-center text-xl" 
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Code PIN (4 chiffres) <span className="text-red-500">*</span></label>
+              <input type="password" inputMode="numeric" maxLength={4} required value={pin} onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, ''))} placeholder="••••" className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#00FF00] focus:border-transparent tracking-widest text-center text-xl" />
             </div>
           </div>
-
           {errorMsg && <p className="text-red-500 text-sm text-center font-bold">{errorMsg}</p>}
-
           <button 
             type="submit" 
-            className="w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-sm text-base font-bold text-white bg-[#0a0a0a] hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00FF00] transition-colors"
+            disabled={isLoading}
+            className="w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-sm text-base font-bold text-white bg-[#0a0a0a] hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00FF00] transition-colors disabled:opacity-50"
           >
-            Se Connecter
+            {isLoading ? <Loader2 size={24} className="animate-spin"/> : "Se Connecter"}
           </button>
         </form>
 
-        <div className="text-center mt-2">
-           <button onClick={() => setShowForgot(true)} className="text-sm font-bold text-gray-500 hover:text-black transition-colors">Code PIN oublié ?</button>
-        </div>
-
         <div className="text-center mt-4">
-          <p className="text-xs text-gray-400">
-            Accès strictement réservé aux agents Onyx Hub.
-          </p>
+          <button onClick={() => setShowForgot(true)} className="text-sm font-bold text-gray-500 hover:text-black transition-colors">Code PIN oublié ?</button>
         </div>
       </div>
 

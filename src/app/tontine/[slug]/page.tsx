@@ -308,6 +308,18 @@ function SlugPageContent({ slug }: { slug: string }) {
       
       if (!cleanPhoneUser || !cleanPinUser) throw new Error("Veuillez remplir tous les champs (Numéro et Code PIN).");
       
+      // 1. Authentification Supabase Auth d'abord (Email Fantôme) pour valider le RLS
+      let formattedPhoneForAuth = cleanPhoneUser;
+      if (formattedPhoneForAuth.length === 9 && /^(7[05678]\d{7})$/.test(formattedPhoneForAuth)) formattedPhoneForAuth = `+221${formattedPhoneForAuth}`;
+      else if (!formattedPhoneForAuth.startsWith('+')) formattedPhoneForAuth = `+${formattedPhoneForAuth}`;
+
+      const authEmail = `${formattedPhoneForAuth}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+      const authPassword = cleanPinUser === "0000" ? "central2026" : cleanPinUser + "00";
+
+      try {
+          await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+      } catch(e) { console.warn("Tontine Auth Silencieuse échouée"); }
+
       const { data: membersList, error: fetchErr } = await supabase
         .from('tontine_members') 
         .select('*')

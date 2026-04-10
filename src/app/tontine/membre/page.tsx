@@ -200,6 +200,13 @@ function TontineMembreDashboard() {
     try {
       if (!tontineId) throw new Error("Lien de tontine invalide.");
 
+      // Synchronisation Supabase Auth globale AVANT la requête pour passer le RLS
+      try {
+          const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+          const authPassword = pin === "0000" ? "central2026" : pin + "00";
+          await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+      } catch(e) {}
+
       // Recherche du membre dans cette tontine spécifique par numéro de téléphone
       const { data: membersList, error: fetchErr } = await supabase
         .from('tontine_members') 
@@ -227,13 +234,6 @@ function TontineMembreDashboard() {
         throw new Error("Numéro de téléphone ou code PIN incorrect.");
       }
       
-      // Synchronisation silencieuse de la session globale Supabase pour que l'utilisateur soit loggé partout
-      try {
-          const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
-          const authPassword = pin === "0000" ? "central2026" : pin + "00";
-          await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
-      } catch(e) {}
-
       // Succès !
       localStorage.setItem(`tontine_session_${tontineId}`, matchedMember.id);
       await fetchDashboardData(matchedMember, tontine);

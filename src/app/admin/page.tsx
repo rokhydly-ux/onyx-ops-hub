@@ -357,30 +357,47 @@ export default function AdminDashboard() {
         throw new Error("Jeton d'authentification introuvable. Veuillez vous reconnecter.");
      }
      
-     // Utilisation de l'API Service Role pour bypasser le RLS
-     const res = await fetch('/api/admin/data', {
-       headers: { 
-         'Authorization': `Bearer ${session.access_token}`,
-         'Content-Type': 'application/json'
-       },
-       cache: 'no-store'
-     });
+     let resultData: any = null;
      
-     // 1. GESTION DE L'ERREUR BRUTE (HTML 404/500) AVANT LE PARSING JSON
-     if (!res.ok) {
-       const errorText = await res.text();
-       console.error("Erreur serveur brute :", errorText);
-       throw new Error(`Erreur réseau: ${res.status}. Vérifiez la console pour les détails.`);
+     try {
+         // Tentative via l'API (Bypass RLS avec Service Role)
+         const res = await fetch('/api/admin/data', {
+           headers: { 
+             'Authorization': `Bearer ${session.access_token}`,
+             'Content-Type': 'application/json'
+           },
+           cache: 'no-store'
+         });
+         
+         if (!res.ok) {
+            const errRes = await res.json().catch(() => ({}));
+            throw new Error(errRes.error || "Erreur de l'API admin (" + res.status + ")");
+         }
+         const result = await res.json();
+         resultData = result.data;
+     } catch (apiErr: any) {
+         console.error("⚠️ ERREUR API ADMIN :", apiErr.message);
+         alert("⚠️ ERREUR SERVEUR ADMIN :\n" + apiErr.message + "\n\nSi les données sont vides, VÉRIFIEZ que SUPABASE_SERVICE_ROLE_KEY est bien ajoutée dans Vercel ou votre fichier .env !");
+         // Fallback d'urgence : requêtes directes (fonctionne si l'admin a les bons droits RLS)
+         const [
+           { data: clients }, { data: leads }, { data: ambassadors },
+           { data: marketing_materials }, { data: withdrawals }, { data: commercials },
+           { data: hardware_stock }, { data: admin_settings }, { data: actions_ia }, { data: marketing_articles }
+         ] = await Promise.all([
+           supabase.from('clients').select('*'), supabase.from('leads').select('*'), supabase.from('ambassadors').select('*'),
+           supabase.from('marketing_materials').select('*'), supabase.from('withdrawals').select('*'), supabase.from('commercials').select('*'),
+           supabase.from('hardware_stock').select('*'), supabase.from('admin_settings').select('*').single(), supabase.from('actions_ia').select('*'),
+           supabase.from('marketing_articles').select('*')
+         ]);
+         resultData = { clients, leads, ambassadors, marketing_materials, withdrawals, commercials, hardware_stock, admin_settings, actions_ia, marketing_articles };
      }
-
-     const result = await res.json();
 
      const {
        clients: contactsData, leads: leadsData, ambassadors: partnersData,
        marketing_materials: materialsData, withdrawals: withdrawalsData,
        commercials: commercialsData, hardware_stock: hardwareData,
        admin_settings: adminSettings, actions_ia: actionsData, marketing_articles: articlesData
-     } = result.data;
+     } = resultData || {};
      
      if (contactsData) setContacts(contactsData);
      if (leadsData) {

@@ -352,6 +352,24 @@ export default function TontineAdminPage() {
             }
         }
       } else {
+        // NOUVEAU : Création de l'authentification Supabase Auth (Email Fantôme) pour le membre
+        let phoneClean = memberForm.telephone.replace(/\s+/g, "");
+        if (phoneClean.length === 9 && /^(7[05678]\d{7})$/.test(phoneClean)) phoneClean = `+221${phoneClean}`;
+        else if (!phoneClean.startsWith('+')) phoneClean = `+${phoneClean}`;
+
+        try {
+            await fetch('/api/create-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: phoneClean,
+                    fullName: memberForm.prenom_nom,
+                    role: 'tontine_member',
+                    password: memberForm.code_secret === "0000" ? "central2026" : memberForm.code_secret + "00"
+                })
+            });
+        } catch(e) { console.error("Erreur création auth membre tontine:", e); }
+
         const { data, error } = await supabase.from('tontine_members').insert([payload]).select();
         if (error) throw error;
         if (data) {
@@ -1314,6 +1332,12 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
             </div>
          </div>
          <div className="flex items-center gap-4">
+             {currentUser?.email === 'rokhydly@gmail.com' && (
+                <div className="hidden sm:flex items-center gap-2 bg-zinc-900 p-1.5 pr-4 rounded-full border border-zinc-800 shadow-sm">
+                   <img src={currentUser.user_metadata?.avatar_url || "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"} alt="Super Admin" className="w-7 h-7 rounded-full object-cover border border-[#39FF14]" />
+                   <span className="text-[10px] font-black uppercase text-[#39FF14]">Super Admin</span>
+                </div>
+             )}
              <button onClick={handleCopyLink} className="text-black px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all" style={{ backgroundColor: copied ? (tontine?.theme_color || '#39FF14') : '#fff' }}>
                  {copied ? <CheckCircle size={16} /> : <LinkIcon size={16} />}
                  {copied ? "Lien copié !" : "Lien Membres"}
