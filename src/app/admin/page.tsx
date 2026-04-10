@@ -379,8 +379,10 @@ export default function AdminDashboard() {
             throw new Error(errRes.error || "Erreur de l'API admin (" + res.status + ")");
          }
          const result = await res.json();
-         console.log("Données reçues de l'API:", Object.keys(result.data || {}));
-         resultData = result.data;
+         // Support des deux formats : l'objet est dans "data" ou directement à la racine
+         const payload = result.data || result;
+         console.log("Données reçues de l'API:", Object.keys(payload || {}));
+         resultData = payload;
      } catch (apiErr: any) {
          console.error("⚠️ ERREUR API ADMIN :", apiErr.message);
          alert("⚠️ ERREUR SERVEUR ADMIN :\n" + apiErr.message + "\n\nSi les données sont vides, VÉRIFIEZ que SUPABASE_SERVICE_ROLE_KEY est bien ajoutée dans Vercel ou votre fichier .env !");
@@ -398,36 +400,47 @@ export default function AdminDashboard() {
          resultData = { clients, leads, ambassadors, marketing_materials, withdrawals, commercials, hardware_stock, admin_settings, actions_ia, marketing_articles };
      }
 
-     const {
-       clients: contactsData, leads: leadsData, ambassadors: partnersData,
-       marketing_materials: materialsData, withdrawals: withdrawalsData,
-       commercials: commercialsData, hardware_stock: hardwareData,
-       admin_settings: adminSettings, actions_ia: actionsData, marketing_articles: articlesData
-     } = resultData || {};
+     // Normalisation : Si l'API renvoie des objets Supabase complets { data: [...] }, on extrait le tableau
+     const extractData = (obj: any) => Array.isArray(obj) ? obj : (obj?.data || []);
+
+     const contactsData = extractData(resultData?.clients);
+     const leadsData = extractData(resultData?.leads);
+     const partnersData = extractData(resultData?.ambassadors);
+     const materialsData = extractData(resultData?.marketing_materials);
+     const withdrawalsData = extractData(resultData?.withdrawals);
+     const commercialsData = extractData(resultData?.commercials);
+     const hardwareData = extractData(resultData?.hardware_stock);
+     const actionsData = extractData(resultData?.actions_ia);
+     const articlesData = extractData(resultData?.marketing_articles);
      
-     if (contactsData) setContacts(contactsData);
-     if (leadsData) {
-       const normalizePhone = (p: string) => (p || '').replace(/\s+/g, '').replace(/^\+?221/, '');
-       const activeLeads = leadsData.filter((lead: any) => {
-           const isPendingOrNew = ['En attente', 'Nouveau', 'Nouveau Lead'].includes(lead.status) || !lead.status;
-           const notInContacts = !contactsData?.some((c: any) => normalizePhone(c.phone) === normalizePhone(lead.phone));
-           const notInPartners = !partnersData?.some((p: any) => normalizePhone(p.contact || p.phone) === normalizePhone(lead.phone));
-           return isPendingOrNew && notInContacts && notInPartners;
-       });
-       setLeads(activeLeads);
-     }
-     if (partnersData) setPartners(partnersData);
-     if (materialsData) setMarketingMaterials(materialsData);
-     if (withdrawalsData) setWithdrawals(withdrawalsData);
-     if (commercialsData) setCommercials(commercialsData);
-     if (hardwareData && hardwareData.length > 0) setHardwareStock(hardwareData);
-     if (adminSettings) {
+     const adminSettingsObj = resultData?.admin_settings;
+     const adminSettings = Array.isArray(adminSettingsObj?.data) ? adminSettingsObj.data[0] : (adminSettingsObj?.data || adminSettingsObj);
+
+     setContacts(contactsData);
+     
+     const normalizePhone = (p: string) => (p || '').replace(/\s+/g, '').replace(/^\+?221/, '');
+     const activeLeads = leadsData.filter((lead: any) => {
+         const isPendingOrNew = ['En attente', 'Nouveau', 'Nouveau Lead'].includes(lead.status) || !lead.status;
+         const notInContacts = contactsData.some((c: any) => normalizePhone(c.phone) === normalizePhone(lead.phone));
+         const notInPartners = partnersData.some((p: any) => normalizePhone(p.contact || p.phone) === normalizePhone(lead.phone));
+         return isPendingOrNew && !notInContacts && !notInPartners;
+     });
+     
+     setLeads(activeLeads);
+     setPartners(partnersData);
+     setMarketingMaterials(materialsData);
+     setWithdrawals(withdrawalsData);
+     setCommercials(commercialsData);
+     if (hardwareData.length > 0) setHardwareStock(hardwareData);
+     
+     if (adminSettings && !Array.isArray(adminSettings)) {
        setMrrGoal(adminSettings.mrr_goal || 500000);
        setSaasGoal(adminSettings.saas_goal || 15);
        setCmGoal(adminSettings.cm_goal || 3);
      }
-     if (actionsData) setActionsIA(actionsData);
-     if (articlesData) setMarketingArticles(articlesData);
+     
+     setActionsIA(actionsData);
+     setMarketingArticles(articlesData);
      
      // Nouveau calcul précis du revenu MRR
      const realRevenue = contactsData?.reduce((acc: number, c: any) => {
