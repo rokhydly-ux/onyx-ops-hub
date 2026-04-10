@@ -63,13 +63,23 @@ export default function AmbassadeursPage() {
       const data = membersList.find(m => uniquePhones.includes(m.phone) || uniquePhones.includes(m.contact));
       if (!data) throw new Error("Identifiant introuvable.");
 
+      if (data.status !== 'Actif') {
+         throw new Error("Votre compte n'est pas encore validé par l'administrateur.");
+      }
+
       const submittedPin = pin === "0000" ? "central2026" : pin + "00";
       if (data.password_temp !== submittedPin && data.password_temp !== "central2026") {
         throw new Error("Code PIN incorrect.");
       }
 
-      if (data.status !== 'Actif') {
-         throw new Error("Votre compte n'est pas encore validé par l'administrateur.");
+      // Synchronisation avec Supabase Auth (Email Fantôme) pour la session globale
+      try {
+          // Format strict pour l'email fantôme
+          const cleanPhoneForAuth = data.contact.startsWith('+') ? data.contact : `+${data.contact}`;
+          const authEmail = `${cleanPhoneForAuth}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+          await supabase.auth.signInWithPassword({ email: authEmail, password: submittedPin });
+      } catch(e) {
+          console.warn("Erreur Auth silencieuse (Ambassadeur):", e);
       }
 
       localStorage.setItem('onyx_ambassador_session', JSON.stringify(data));

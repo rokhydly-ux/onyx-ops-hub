@@ -42,10 +42,11 @@ export async function POST(request: Request) {
     }
 
     // 2. Création de l'utilisateur dans Supabase Auth
+    const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      phone: cleanPhone,
+      email: authEmail,
       password: finalPassword,
-      phone_confirm: true, // Permet la connexion immédiate sans confirmation SMS
+      email_confirm: true, // Permet la connexion immédiate sans confirmation
       user_metadata: {
         full_name: fullName,
         role: role,

@@ -120,22 +120,37 @@ function TontineMembreDashboard() {
       }
       setTontine(tData);
 
-      // 2. Check for a persisted session in localStorage
-      const savedMemberId = localStorage.getItem(`tontine_session_${tontineId}`);
-      if (savedMemberId) {
-        const { data: memberData, error: memberError } = await supabase
-          .from('tontine_members') // CORRECTION ICI
-          .select('*')
-          .eq('id', savedMemberId)
-          .single();
-        
-        if (memberData && !memberError) {
-          await fetchDashboardData(memberData, tData);
-        } else {
-          // Clear invalid session
-          localStorage.removeItem(`tontine_session_${tontineId}`);
-          setCurrentUser(null);
-        }
+      let memberToLog = null;
+
+      // 2. OPTIMISATION SESSION: Vérification de la session globale (Site Principal Supabase)
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user && authData.user.email) {
+          const authPhone = authData.user.email.split('@')[0];
+          const { data: membersList } = await supabase.from('tontine_members').select('*').eq('tontine_id', tontineId);
+          if (membersList) {
+              memberToLog = membersList.find(m => {
+                  let dbPhone = String(m.telephone || '').split('.')[0].replace(/[^0-9]/g, '');
+                  if (dbPhone.length === 9 && /^(7[05678]\d{7})$/.test(dbPhone)) dbPhone = `+221${dbPhone}`;
+                  else if (!dbPhone.startsWith('+')) dbPhone = `+${dbPhone}`;
+                  return dbPhone === authPhone;
+              });
+          }
+      }
+
+      // 3. Fallback: Vérification de la session locale Tontine
+      if (!memberToLog) {
+          const savedMemberId = localStorage.getItem(`tontine_session_${tontineId}`);
+          if (savedMemberId) {
+              const { data: memberData, error: memberError } = await supabase.from('tontine_members').select('*').eq('id', savedMemberId).single();
+              if (memberData && !memberError) memberToLog = memberData;
+          }
+      }
+
+      if (memberToLog) {
+        await fetchDashboardData(memberToLog, tData);
+      } else {
+        localStorage.removeItem(`tontine_session_${tontineId}`);
+        setCurrentUser(null);
       }
       setIsCheckingSession(false);
     };
@@ -174,64 +189,52 @@ function TontineMembreDashboard() {
     setLoginError(null);
     setIsLoggingIn(true);
 
+    // Nettoyage et formatage du numéro
+    let cleanPhone = phone.replace(/\s+/g, '');
+    if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+      cleanPhone = `+221${cleanPhone}`;
+    } else if (!cleanPhone.startsWith('+')) {
+      cleanPhone = `+${cleanPhone}`;
+    }
+
     try {
       if (!tontineId) throw new Error("Lien de tontine invalide.");
 
-      // 1. Nettoyage NUCLÉAIRE utilisateur (On ne garde QUE les chiffres)
-      let cleanPhoneUser = phone.replace(/[^0-9]/g, '');
-      if (cleanPhoneUser.startsWith('221')) cleanPhoneUser = cleanPhoneUser.slice(3);
-      if (cleanPhoneUser.startsWith('00221')) cleanPhoneUser = cleanPhoneUser.slice(5);
-      
-      const cleanPinUser = pin.trim();
-      
-      if (!cleanPhoneUser || !cleanPinUser) throw new Error("Veuillez remplir tous les champs (Numéro et Code PIN).");
-      
-      // 2. Requête Supabase
+      // Recherche du membre dans cette tontine spécifique par numéro de téléphone
       const { data: membersList, error: fetchErr } = await supabase
         .from('tontine_members') 
         .select('*')
         .eq('tontine_id', tontineId);
       
       if (fetchErr) throw fetchErr;
-      
-      if (!membersList || membersList.length === 0) {
-          throw new Error("Aucun membre trouvé dans cette tontine.");
-      }
-
-      // 3. Recherche du membre
-      let debugDbPhone = "Aucun";
-      let debugDbPin = "Aucun";
 
       const matchedMember = membersList.find(m => {
-        // Nettoyage NUCLÉAIRE BDD (Gère même les bugs ".0" d'Excel)
         let rawPhone = String(m.telephone || '').split('.')[0]; 
         let dbPhone = rawPhone.replace(/[^0-9]/g, '');
-        
-        if (dbPhone.startsWith('221')) dbPhone = dbPhone.slice(3);
-        if (dbPhone.startsWith('00221')) dbPhone = dbPhone.slice(5);
+        if (dbPhone.length === 9 && /^(7[05678]\d{7})$/.test(dbPhone)) {
+            dbPhone = `+221${dbPhone}`;
+        } else if (!dbPhone.startsWith('+')) {
+            dbPhone = `+${dbPhone}`;
+        }
         
         let rawPin = String(m.code_secret || '').trim();
         let dbPin = (rawPin === '' || rawPin.toLowerCase() === 'null' || rawPin.toLowerCase() === 'undefined') ? '0000' : rawPin;
         
-        // MOUCHARD : Si le numéro correspond un peu, on sauvegarde ses vraies infos pour l'erreur
-        if (dbPhone === cleanPhoneUser || dbPhone.includes(cleanPhoneUser)) {
-           debugDbPhone = dbPhone;
-           debugDbPin = rawPin === '' || rawPin.toLowerCase() === 'null' ? 'VIDE (Auto-remplacé par 0000)' : dbPin;
-        }
-
-        return dbPhone === cleanPhoneUser && dbPin === cleanPinUser;
+        return dbPhone === cleanPhone && dbPin === pin;
       });
       
       if (!matchedMember) {
-        // LE FAMEUX RAYON X ! (Forcé en production pour aider au debug Excel)
-        if (debugDbPhone !== "Aucun") {
-            throw new Error(`RAYON X 🔍 -> Numéro BDD: "${debugDbPhone}", PIN BDD: "${debugDbPin}". Tu as tapé PIN: "${cleanPinUser}"`);
-        } else {
-            throw new Error("Numéro de téléphone ou code PIN incorrect.");
-        }
+        throw new Error("Numéro de téléphone ou code PIN incorrect.");
       }
       
-      // 4. Succès !
+      // Synchronisation silencieuse de la session globale Supabase pour que l'utilisateur soit loggé partout
+      try {
+          const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+          const authPassword = pin === "0000" ? "central2026" : pin + "00";
+          await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+      } catch(e) {}
+
+      // Succès !
       localStorage.setItem(`tontine_session_${tontineId}`, matchedMember.id);
       await fetchDashboardData(matchedMember, tontine);
       
@@ -248,6 +251,7 @@ function TontineMembreDashboard() {
     if (tontineId) {
       localStorage.removeItem(`tontine_session_${tontineId}`);
     }
+    supabase.auth.signOut();
     setCurrentUser(null);
     setPhone("");
     setPin("");
@@ -429,32 +433,38 @@ function TontineMembreDashboard() {
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
     try {
-        const payload: any = {};
+        const userUpdatePayload: { password?: string } = {};
+        const profileUpdatePayload: any = {};
+
         if (editPhotoUrl !== (currentUser.photo_url || '')) {
-            payload.photo_url = editPhotoUrl;
+            profileUpdatePayload.photo_url = editPhotoUrl;
         }
         if (editDateNaissance !== (currentUser.date_naissance || '')) {
-            payload.date_naissance = editDateNaissance;
-            payload.date_naissance_modifiee = true;
+            profileUpdatePayload.date_naissance = editDateNaissance;
+            profileUpdatePayload.date_naissance_modifiee = true;
         }
         if (editPin.trim().length > 0) {
-            if (editPin.trim().length < 4) throw new Error("Le code PIN doit contenir exactement 4 chiffres.");
-            payload.code_secret = editPin.trim();
+            if (editPin.trim().length !== 4) throw new Error("Le code PIN doit contenir exactement 4 chiffres.");
+            profileUpdatePayload.code_secret = editPin.trim();
+            userUpdatePayload.password = editPin.trim() === "0000" ? "central2026" : editPin.trim() + "00";
         }
 
-        if (Object.keys(payload).length > 0) {
-            // CORRECTION ICI
-            const { data, error } = await supabase.from('tontine_members').update(payload).eq('id', currentUser.id).select();
-            if (error) throw error;
-            if (!data || data.length === 0) throw new Error("Sécurité Supabase : Enregistrement bloqué.");
-            
-            setCurrentUser({...currentUser, ...payload});
-            setEditPin("");
-            
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
-            audio.volume = 0.4;
-            audio.play().catch(() => {});
+        if (userUpdatePayload.password) {
+            const { data: authData } = await supabase.auth.getUser();
+            if (authData?.user) {
+                await supabase.auth.updateUser(userUpdatePayload);
+            }
         }
+
+        if (Object.keys(profileUpdatePayload).length > 0) {
+            const { data, error } = await supabase.from('tontine_members').update(profileUpdatePayload).eq('id', currentUser.id).select().single();
+            if (error) throw error;
+            setCurrentUser(data);
+        }
+        
+        setEditPin("");
+        alert("Profil mis à jour !");
+
     } catch (e: any) {
         alert(e.message || "Erreur lors de la mise à jour.");
     } finally {
@@ -556,7 +566,7 @@ function TontineMembreDashboard() {
                 inputMode="numeric"
                 maxLength={4}
                 value={pin}
-                onChange={(e) => setPin(e.target.value)}
+                onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="Code PIN (défaut: 0000)"
                 className="w-full bg-zinc-800 border-2 border-zinc-700 rounded-2xl p-4 pl-12 font-bold text-white outline-none focus:border-white transition"
               />
@@ -691,22 +701,19 @@ function TontineMembreDashboard() {
                 </div>
 
             <div className="w-full mt-4">
-                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Code PIN Secret</label>
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Nouveau Code PIN</label>
                 <div className="relative">
                     <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                     <input 
                         type="password" 
-                        inputMode="numeric" 
-                        maxLength={4} 
+                        inputMode="numeric"
+                        maxLength={4}
                         value={editPin} 
                         onChange={e => setEditPin(e.target.value.replace(/[^0-9]/g, ''))} 
-                        placeholder={(!currentUser.code_secret || currentUser.code_secret === '0000') ? "⚠️ Non sécurisé (0000) - Changez-le !" : "•••• (Laissez vide pour garder)"} 
-                        className={`w-full p-3 pl-10 bg-zinc-50 border rounded-xl text-sm font-bold outline-none focus:border-black transition ${(!currentUser.code_secret || currentUser.code_secret === '0000') ? 'border-orange-300 placeholder:text-orange-500' : 'border-zinc-200'}`} 
+                        placeholder="•••• (Laissez vide pour ne pas changer)" 
+                        className="w-full p-3 pl-10 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black transition" 
                     />
                 </div>
-                {(!currentUser.code_secret || currentUser.code_secret === '0000') && (
-                    <p className="text-[9px] text-orange-500 font-bold mt-1.5 flex items-center gap-1"><AlertCircle size={10}/> Votre code est 0000, veuillez le changer pour sécuriser votre compte.</p>
-                )}
             </div>
 
             <button onClick={handleSaveProfile} disabled={isSavingProfile || (editDateNaissance === (currentUser.date_naissance || '') && editPhotoUrl === (currentUser.photo_url || '') && editPin === '')} className="w-full mt-6 py-4 rounded-xl font-black uppercase text-xs shadow-md hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2" style={{ backgroundColor: tontine.theme_color, color: '#000' }}>

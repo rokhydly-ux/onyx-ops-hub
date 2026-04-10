@@ -1631,8 +1631,8 @@ export default function OnyxOpsElite() {
                 {authMode === 'login' ? (
                    <>
                      <p className="text-zinc-500 text-sm font-bold mb-6 text-center">Connectez-vous au Hub Central pour gérer vos applications OnyxOps.</p>
-                     <button onClick={() => { window.location.href = 'https://onyxlinks.com/login'; }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
-                       <LogIn size={16}/> Aller vers le Login
+                     <button onClick={() => router.push('/login')} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
+                       <LogIn size={16}/> Se connecter
                      </button>
                    </>
                 ) : (

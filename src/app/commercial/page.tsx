@@ -26,7 +26,7 @@ export default function CommercialRecruitmentPage() {
           <div className="w-10 h-10 bg-[#39FF14] text-black font-black flex items-center justify-center rounded-xl text-xl">O</div>
           <span className={`${spaceGrotesk.className} font-black text-xl tracking-tighter uppercase hidden sm:block`}>Onyx Hub</span>
         </div>
-        <button onClick={() => router.push('/commercial/login')} className="bg-zinc-900 border border-zinc-800 text-white px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors flex items-center gap-2 shadow-lg">
+        <button onClick={() => router.push('/login')} className="bg-zinc-900 border border-zinc-800 text-white px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors flex items-center gap-2 shadow-lg">
           <LogIn size={14}/> Déjà membre ? Connexion
         </button>
       </header>

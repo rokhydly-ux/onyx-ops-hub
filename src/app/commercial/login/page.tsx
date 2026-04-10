@@ -45,9 +45,19 @@ export default function CommercialLogin() {
         throw new Error("Numéro de téléphone introuvable.");
       }
 
+      if (commercial.status !== 'Actif') throw new Error("Votre compte commercial n'est pas encore activé.");
+
       const submittedPin = pin === "0000" ? "central2026" : pin + "00";
       if (commercial.password_temp !== submittedPin && commercial.password_temp !== "central2026") throw new Error("Code PIN incorrect.");
-      if (commercial.status !== 'Actif') throw new Error("Votre compte commercial n'est pas encore activé.");
+
+      // Synchronisation avec Supabase Auth (Email Fantôme) pour la session globale
+      try {
+          const cleanPhoneForAuth = commercial.phone.startsWith('+') ? commercial.phone : `+${commercial.phone}`;
+          const authEmail = `${cleanPhoneForAuth}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+          await supabase.auth.signInWithPassword({ email: authEmail, password: submittedPin });
+      } catch(e) {
+          console.warn("Erreur Auth silencieuse (Commercial):", e);
+      }
 
       // Succès - Sauvegarde de la session locale
       localStorage.setItem('onyx_commercial_session', JSON.stringify(commercial));

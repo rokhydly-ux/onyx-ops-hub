@@ -11,7 +11,7 @@ const spaceGrotesk = { className: "font-sans" };
 export default function ClientLogin() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(true);
@@ -46,33 +46,19 @@ export default function ClientLogin() {
     }
 
     try {
-      // Recherche exacte dans la table clients (selon le schéma demandé)
-      const { data, error: fetchErr } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('phone', cleanPhone)
-        .eq('password_temp', password)
-        .single();
+      const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+      const submittedPassword = pin === "0000" ? "central2026" : (pin.length === 4 ? pin + "00" : pin);
+      const { data, error: fetchErr } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: submittedPassword,
+      });
         
-      if (fetchErr || !data) {
-        // Fallback de sécurité si l'admin utilise le mot de passe universel 'central2026'
-        if (password === 'central2026') {
-          const { data: adminData, error: adminErr } = await supabase
-            .from('clients')
-            .select('*')
-            .eq('phone', cleanPhone)
-            .single();
-            
-          if (adminErr || !adminData) throw new Error("Numéro de téléphone ou mot de passe incorrect.");
-          localStorage.setItem('onyx_custom_session', JSON.stringify(adminData));
-          router.push('/hub');
-          return;
-        }
+      if (fetchErr || !data.user) {
         throw new Error("Numéro de téléphone ou mot de passe incorrect.");
       }
       
       // Enregistrement de la session locale pour maintenir l'utilisateur connecté
-      localStorage.setItem('onyx_custom_session', JSON.stringify(data));
+      localStorage.setItem('onyx_custom_session', JSON.stringify(data.user));
       
       router.push('/hub');
     } catch (err: any) {
@@ -92,7 +78,7 @@ export default function ClientLogin() {
         <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center mb-8">Accès à votre Hub & Produits Onyx</p>
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="relative"><Phone size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" /><input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Téléphone (Ex: 77 123 45 67)" className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 pl-12 font-bold text-sm text-black outline-none focus:border-black transition-colors" /></div>
-          <div className="relative"><KeyRound size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" /><input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 pl-12 font-bold text-sm text-black outline-none focus:border-black transition-colors tracking-widest" /></div>
+          <div className="relative"><KeyRound size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" /><input type="password" required value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Code PIN ou Mot de passe" className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 pl-12 font-bold text-sm text-black outline-none focus:border-black transition-colors tracking-widest" /></div>
           {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg border border-red-200 animate-in fade-in">{error}</p>}
           <button type="submit" disabled={isLoading} className="w-full mt-4 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-[#39FF14] hover:text-black transition-all shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-2 disabled:opacity-50">
             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <><ArrowRight size={18} /> Accéder au Hub</>}

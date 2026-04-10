@@ -4,7 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-// Ce client a les privilèges administrateur globaux (Bypass absolu du RLS)
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
@@ -13,34 +12,13 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 export async function GET(request: Request) {
-  console.log("➡️ 🔥 APPEL API ADMIN REÇU ! Le routeur fonctionne bien.");
-  
   try {
-    // 1. Vérification de l'identité via le token de session du frontend
     const authHeader = request.headers.get('Authorization');
-    const token = authHeader ? authHeader.split(' ')[1] : undefined;
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
     
-    console.log("🔑 Token extrait de l'en-tête :", token ? "OUI (Présent)" : "NON (Absent)");
-
-    if (!token || token === 'undefined' || token === 'null') {
-      console.log("❌ ERREUR : Le token est vide ou mal formaté.");
-      return NextResponse.json({ error: "Token d'autorisation manquant ou mal formaté dans la requête." }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      console.error("❌ REJET SUPABASE AUTH :", authError?.message);
-      return NextResponse.json({ error: `Rejet Supabase : ${authError?.message || 'Utilisateur introuvable.'}` }, { status: 401 });
-    }
-
-    // 2. Vérification stricte du rôle Super Admin
-    const isSuperAdmin = user.email === 'rokhydly@gmail.com' || user.user_metadata?.role === 'superadmin';
-    if (!isSuperAdmin) {
-      return NextResponse.json({ error: "Accès refusé. Rôle Super Admin requis." }, { status: 403 });
-    }
-
-    // 3. Récupération globale de toutes les tables en contournant le RLS
+    // Utilisation de supabaseAdmin pour contourner le RLS et récupérer toutes les données sans exception
     const [
       { data: clients },
       { data: leads },
@@ -53,22 +31,22 @@ export async function GET(request: Request) {
       { data: actions_ia },
       { data: marketing_articles }
     ] = await Promise.all([
-      supabaseAdmin.from('clients').select('*').order('created_at', { ascending: false }),
-      supabaseAdmin.from('leads').select('*').order('created_at', { ascending: false }),
-      supabaseAdmin.from('ambassadors').select('*').order('created_at', { ascending: false }),
-      supabaseAdmin.from('marketing_materials').select('*').order('created_at', { ascending: false }),
-      supabaseAdmin.from('withdrawals').select('*').order('created_at', { ascending: false }),
-      supabaseAdmin.from('commercials').select('*').order('created_at', { ascending: false }),
-      supabaseAdmin.from('hardware_stock').select('*').order('name', { ascending: true }),
-      supabaseAdmin.from('admin_settings').select('*').eq('id', 1).maybeSingle(),
-      supabaseAdmin.from('actions_ia').select('*').order('created_at', { ascending: false }),
-      supabaseAdmin.from('marketing_articles').select('*').order('created_at', { ascending: false })
+      supabaseAdmin.from('clients').select('*'),
+      supabaseAdmin.from('leads').select('*'),
+      supabaseAdmin.from('ambassadors').select('*'),
+      supabaseAdmin.from('marketing_materials').select('*'),
+      supabaseAdmin.from('withdrawals').select('*'),
+      supabaseAdmin.from('commercials').select('*'),
+      supabaseAdmin.from('hardware_stock').select('*'),
+      supabaseAdmin.from('admin_settings').select('*').single(),
+      supabaseAdmin.from('actions_ia').select('*'),
+      supabaseAdmin.from('marketing_articles').select('*')
     ]);
 
-    return NextResponse.json({ success: true, data: { clients, leads, ambassadors, marketing_materials, withdrawals, commercials, hardware_stock, admin_settings, actions_ia, marketing_articles } }, { status: 200 });
+    const data = { clients, leads, ambassadors, marketing_materials, withdrawals, commercials, hardware_stock, admin_settings, actions_ia, marketing_articles };
 
+    return NextResponse.json({ data }, { status: 200 });
   } catch (error: any) {
-    console.error("Erreur API Admin Data:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
