@@ -46,7 +46,8 @@ export default function ClientLogin() {
     }
 
     try {
-      const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+      // LA RUSE : On fabrique l'email fantôme
+      const authEmail = `${cleanPhone}@clients.onyxcrm.com`;
       const submittedPassword = pin === "0000" ? "central2026" : (pin.length === 4 ? pin + "00" : pin);
       const { data, error: fetchErr } = await supabase.auth.signInWithPassword({
         email: authEmail,
@@ -57,8 +58,15 @@ export default function ClientLogin() {
         throw new Error("Numéro de téléphone ou mot de passe incorrect.");
       }
       
+      // On récupère les informations complètes du client (Nom, SaaS, etc.)
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
       // Enregistrement de la session locale pour maintenir l'utilisateur connecté
-      localStorage.setItem('onyx_custom_session', JSON.stringify(data.user));
+      localStorage.setItem('onyx_custom_session', JSON.stringify(clientData || data.user));
       
       router.push('/hub');
     } catch (err: any) {
