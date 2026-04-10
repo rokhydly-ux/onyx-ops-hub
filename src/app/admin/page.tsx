@@ -3,7 +3,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
 import { 
   LayoutDashboard, Users, Handshake, Settings, LogOut, 
   Search, Plus, MoreHorizontal, Trash2, 
@@ -19,7 +19,13 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// --- 1. HACK ANTI-CRASH POLICES ---
+// --- 1. INITIALISATION SUPABASE (SÉCURISÉE) ---
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+
+// --- 2. HACK ANTI-CRASH POLICES ---
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
 
@@ -350,97 +356,42 @@ export default function AdminDashboard() {
   const fetchSupabaseData = async () => {
    setIsLoading(true);
    setIsRefreshing(true);
-   console.log("--> DÉBUT fetchSupabaseData");
    try {
-     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+     const { data: contactsData } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
+     const { data: leadsData } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+     // CORRECTION ICI : On lit la table "ambassadors" et plus "partners"
+     const { data: partnersData } = await supabase.from('ambassadors').select('*').order('created_at', { ascending: false });
+     const { data: materialsData } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
+     const { data: withdrawalsData } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
+     const { data: commercialsData } = await supabase.from('commercials').select('*').order('created_at', { ascending: false });
+     const { data: hardwareData } = await supabase.from('hardware_stock').select('*').order('name', { ascending: true });
+     const { data: adminSettings } = await supabase.from('admin_settings').select('*').eq('id', 1).maybeSingle();
+     const { data: actionsData } = await supabase.from('actions_ia').select('*').order('created_at', { ascending: false });
+     const { data: articlesData } = await supabase.from('marketing_articles').select('*').order('created_at', { ascending: false });
      
-     if (sessionError || !session?.access_token) {
-        console.error("Erreur session:", sessionError);
-        throw new Error("Jeton d'authentification introuvable. Veuillez vous reconnecter.");
+     if (contactsData) setContacts(contactsData);
+     if (leadsData) {
+       const normalizePhone = (p: string) => (p || '').replace(/\s+/g, '').replace(/^\+?221/, '');
+       const activeLeads = leadsData.filter(lead => {
+           const isPendingOrNew = ['En attente', 'Nouveau', 'Nouveau Lead'].includes(lead.status) || !lead.status;
+           const notInContacts = !contactsData?.some(c => normalizePhone(c.phone) === normalizePhone(lead.phone));
+           const notInPartners = !partnersData?.some(p => normalizePhone(p.contact || p.phone) === normalizePhone(lead.phone));
+           return isPendingOrNew && notInContacts && notInPartners;
+       });
+       setLeads(activeLeads);
      }
-     
-     let resultData: any = null;
-     
-     try {
-         console.log("Token d'accès récupéré, appel API /api/admin/data...");
-         // Tentative via l'API (Bypass RLS avec Service Role)
-         const res = await fetch('/api/admin/data', {
-           headers: { 
-             'Authorization': `Bearer ${session.access_token}`,
-             'Content-Type': 'application/json'
-           },
-           cache: 'no-store'
-         });
-         
-         console.log("Statut de la réponse API:", res.status);
-         if (!res.ok) {
-            const errRes = await res.json().catch(() => ({}));
-            console.error("Erreur API détaillée:", errRes);
-            throw new Error(errRes.error || "Erreur de l'API admin (" + res.status + ")");
-         }
-         const result = await res.json();
-         // Support des deux formats : l'objet est dans "data" ou directement à la racine
-         const payload = result.data || result;
-         console.log("Données reçues de l'API:", Object.keys(payload || {}));
-         resultData = payload;
-     } catch (apiErr: any) {
-         console.error("⚠️ ERREUR API ADMIN :", apiErr.message);
-         alert("⚠️ ERREUR SERVEUR ADMIN :\n" + apiErr.message + "\n\nSi les données sont vides, VÉRIFIEZ que SUPABASE_SERVICE_ROLE_KEY est bien ajoutée dans Vercel ou votre fichier .env !");
-         // Fallback d'urgence : requêtes directes (fonctionne si l'admin a les bons droits RLS)
-         const [
-           { data: clients }, { data: leads }, { data: ambassadors },
-           { data: marketing_materials }, { data: withdrawals }, { data: commercials },
-           { data: hardware_stock }, { data: admin_settings }, { data: actions_ia }, { data: marketing_articles }
-         ] = await Promise.all([
-           supabase.from('clients').select('*'), supabase.from('leads').select('*'), supabase.from('ambassadors').select('*'),
-           supabase.from('marketing_materials').select('*'), supabase.from('withdrawals').select('*'), supabase.from('commercials').select('*'),
-           supabase.from('hardware_stock').select('*'), supabase.from('admin_settings').select('*').single(), supabase.from('actions_ia').select('*'),
-           supabase.from('marketing_articles').select('*')
-         ]);
-         resultData = { clients, leads, ambassadors, marketing_materials, withdrawals, commercials, hardware_stock, admin_settings, actions_ia, marketing_articles };
-     }
-
-     // Normalisation : Si l'API renvoie des objets Supabase complets { data: [...] }, on extrait le tableau
-     const extractData = (obj: any) => Array.isArray(obj) ? obj : (obj?.data || []);
-
-     const contactsData = extractData(resultData?.clients);
-     const leadsData = extractData(resultData?.leads);
-     const partnersData = extractData(resultData?.ambassadors);
-     const materialsData = extractData(resultData?.marketing_materials);
-     const withdrawalsData = extractData(resultData?.withdrawals);
-     const commercialsData = extractData(resultData?.commercials);
-     const hardwareData = extractData(resultData?.hardware_stock);
-     const actionsData = extractData(resultData?.actions_ia);
-     const articlesData = extractData(resultData?.marketing_articles);
-     
-     const adminSettingsObj = resultData?.admin_settings;
-     const adminSettings = Array.isArray(adminSettingsObj?.data) ? adminSettingsObj.data[0] : (adminSettingsObj?.data || adminSettingsObj);
-
-     setContacts(contactsData);
-     
-     const normalizePhone = (p: string) => (p || '').replace(/\s+/g, '').replace(/^\+?221/, '');
-     const activeLeads = leadsData.filter((lead: any) => {
-         const isPendingOrNew = ['En attente', 'Nouveau', 'Nouveau Lead'].includes(lead.status) || !lead.status;
-         const notInContacts = contactsData.some((c: any) => normalizePhone(c.phone) === normalizePhone(lead.phone));
-         const notInPartners = partnersData.some((p: any) => normalizePhone(p.contact || p.phone) === normalizePhone(lead.phone));
-         return isPendingOrNew && !notInContacts && !notInPartners;
-     });
-     
-     setLeads(activeLeads);
-     setPartners(partnersData);
-     setMarketingMaterials(materialsData);
-     setWithdrawals(withdrawalsData);
-     setCommercials(commercialsData);
-     if (hardwareData.length > 0) setHardwareStock(hardwareData);
-     
-     if (adminSettings && !Array.isArray(adminSettings)) {
+     if (partnersData) setPartners(partnersData);
+     if (materialsData) setMarketingMaterials(materialsData);
+     if (withdrawalsData) setWithdrawals(withdrawalsData);
+     if (commercialsData) setCommercials(commercialsData);
+     if (hardwareData && hardwareData.length > 0) setHardwareStock(hardwareData);
+     if (adminSettings) {
        setMrrGoal(adminSettings.mrr_goal || 500000);
        setSaasGoal(adminSettings.saas_goal || 15);
        setCmGoal(adminSettings.cm_goal || 3);
      }
-     
-     setActionsIA(actionsData);
-     setMarketingArticles(articlesData);
+     if (actionsData) setActionsIA(actionsData);
+     if (articlesData) setMarketingArticles(articlesData);
      
      // Nouveau calcul précis du revenu MRR
      const realRevenue = contactsData?.reduce((acc: number, c: any) => {
@@ -464,22 +415,21 @@ export default function AdminDashboard() {
      const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
      const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-     const currentMonthRevenue = contactsData?.filter((c: any) => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === currentMonth && new Date(c.created_at).getFullYear() === currentYear).reduce((acc: number, c: any) => acc + getSaasPrice(c.saas || ''), 0) || 0;
-     const prevMonthRevenue = contactsData?.filter((c: any) => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === prevMonth && new Date(c.created_at).getFullYear() === prevYear).reduce((acc: number, c: any) => acc + getSaasPrice(c.saas || ''), 0) || 0;
+     const currentMonthRevenue = contactsData?.filter(c => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === currentMonth && new Date(c.created_at).getFullYear() === currentYear).reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0) || 0;
+     const prevMonthRevenue = contactsData?.filter(c => c.type === 'Client' && c.created_at && new Date(c.created_at).getMonth() === prevMonth && new Date(c.created_at).getFullYear() === prevYear).reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0) || 0;
      const isRevenueDown = prevMonthRevenue > 0 && currentMonthRevenue < prevMonthRevenue;
 
      setStats({
        revenue: realRevenue,
-       activeClients: contactsData?.filter((c: any) => c.type === 'Client').length || 0,
+       activeClients: contactsData?.filter(c => c.type === 'Client').length || 0,
        pendingLeads: leadsData?.length || 0,
        newPartners: partnersData?.length || 0,
        currentMonthRevenue,
        prevMonthRevenue,
        isRevenueDown
      });
-   } catch (error: any) {
+   } catch (error) {
      console.error("Erreur de chargement:", error);
-     alert("Erreur de chargement des données : " + error.message);
    } finally {
      setIsLoading(false);
      setIsRefreshing(false);
@@ -551,31 +501,46 @@ export default function AdminDashboard() {
 
   // --- LOGIQUE DE CRÉATION DE COMPTE MODIFIÉE (J+7, Identifiants de test Ambassadeur) ---
   const handleCreateAccount = async (lead: any, type: 'client' | 'ambassadeur', saasName?: string) => {
+   const table = type === 'client' ? 'clients' : 'ambassadors';
    const tempPass = "central2026"; // Mot de passe fixe demandé
    
    // On utilise le VRAI numéro du prospect pour qu'il puisse se connecter (Clients et Ambassadeurs)
    const phone = (lead.phone || '').replace(/\s+/g, '');
+   const phoneColumn = type === 'client' ? 'phone' : 'contact';
 
    try {
-     console.log("--> Appel /api/create-user pour:", phone, type);
-     const res = await fetch('/api/create-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            phone: phone,
-            fullName: lead.full_name || 'Nouveau Membre',
-            role: type,
-            password: tempPass,
-            saas: saasName
-        })
-     });
-     const result = await res.json();
-     if (!res.ok) throw new Error(result.error || "Erreur de création du compte.");
+   // Calcul de la date d'expiration (1 mois pour l'essais gratuit ou abonnement)
+   const trialEndDate = new Date();
+   trialEndDate.setMonth(trialEndDate.getMonth() + 1);
+
+   let extractedActivity = '';
+   if (lead.message) {
+     const match = lead.message.match(/Activit[eé]:\s*([^|]+)/i);
+     if (match) extractedActivity = match[1].trim();
+   }
+
+     const payload: any = {
+       full_name: lead.full_name || 'Test Ambassadeur',
+       [phoneColumn]: phone, 
+       password_temp: tempPass,
+       source: lead.source || 'Lead Admin',
+       status: 'Actif', // Rendu 'Actif' au lieu de 'Approuvé' pour qu'il s'affiche direct
+       updated_at: new Date().toISOString()
+     };
+
+     if (type === 'client') {
+       if (saasName) payload.saas = saasName;
+       if (extractedActivity) payload.activity = extractedActivity;
+       payload.expiration_date = trialEndDate.toISOString().split('T')[0];
+     }
+
+     const { error } = await supabase.from(table).upsert(payload, { onConflict: phoneColumn });
+     if (error) throw error;
 
      // NOUVEAU : On supprime TOUS les leads (partiels ou complets) liés à ce numéro pour éviter les doublons
      await supabase.from('leads').delete().eq('phone', lead.phone);
 
-     const portal = type === 'client' ? 'https://onyxlinks.com/login' : 'https://onyxlinks.com/ambassadeurs/login';
+     const portal = type === 'client' ? 'https://onyxlinks.com/login' : 'https://onyxlinks.com/ambassadeurs';
      const welcomeMsg = `Félicitations ! Ton compte est prêt.\n🔗 Accès : ${portal}\n📱 ID : ${phone}\n🔑 Code PIN : 0000`;
 
      window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(welcomeMsg)}`, '_blank');
@@ -722,14 +687,12 @@ export default function AdminDashboard() {
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminAuthLoading(true);
-    console.log("--> Tentative de connexion Admin avec:", adminEmail.trim());
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: adminEmail.trim(),
         password: adminPasswordInput,
       });
       if (error || !data.user) {
-        console.error("Erreur signInWithPassword:", error);
         alert("Identifiants administrateur incorrects.");
         setAdminUser(null);
       } else {
@@ -1613,31 +1576,20 @@ export default function AdminDashboard() {
   };
 
   // Si c'est une modification, on garde l'ID pour mettre à jour
-  try {
-    if (editingContact.id) {
-      payload.id = editingContact.id;
-      const { error } = await supabase.from('clients').upsert(payload);
-      if (error) throw error;
-    } else {
-      // Nouveau client => Passage par l'API pour créer l'authentification
-      console.log("--> Création nouveau client via API pour:", phoneClean);
-      const res = await fetch('/api/create-user', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-             phone: phoneClean,
-             fullName: editingContact.full_name,
-             role: 'client',
-             password: editingContact.password_temp || 'central2026',
-             saas: editingContact.saas
-         })
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Erreur lors de la création d'accès Supabase");
-      
-      // Mise à jour de la table clients avec tous les champs supplémentaires
-      await supabase.from('clients').update(payload).eq('id', result.user.id);
-    }
+  if (editingContact.id) {
+    payload.id = editingContact.id;
+  }
+
+  const { data, error } = await supabase
+    .from('clients')
+    .upsert(payload)
+    .select();
+
+  if (error) {
+    console.error('Erreur Supabase:', error);
+    alert("Erreur Supabase: " + error.message);
+    return; 
+  }
 
   // SUPPRIMER LE LEAD ASSOCIÉ POUR NETTOYER L'INBOX
   if (phoneClean) {
@@ -1647,9 +1599,6 @@ export default function AdminDashboard() {
   setShowContactModal(false);
   fetchSupabaseData(); // Rafraîchit l'affichage
   alert("Fiche CRM enregistrée avec succès !");
-  } catch (err: any) {
-     alert("Erreur: " + err.message);
-  }
 };
 
   const approveAmbassador = async (id: string) => {
@@ -1702,20 +1651,15 @@ export default function AdminDashboard() {
               cleanPhone = `+${cleanPhone}`;
           }
 
-          // Appel de l'API sécurisée pour créer l'utilisateur Auth + le profil
-          const res = await fetch('/api/create-user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  phone: cleanPhone,
-                  fullName: newCommercialForm.full_name,
-                  role: 'commercial',
-                  objective: newCommercialForm.objective || 20
-              })
-          });
-          
-          const result = await res.json();
-          if (!res.ok) throw new Error(result.error || "Erreur lors de la création du compte.");
+          const { error } = await supabase.from('commercials').insert([{
+              full_name: newCommercialForm.full_name,
+              phone: cleanPhone,
+              status: 'Actif',
+              password_temp: 'central2026',
+              objective: newCommercialForm.objective || 20
+          }]);
+
+          if (error) throw error;
           
           alert(`Commercial ${newCommercialForm.full_name} créé ! Il peut se connecter avec le PIN 0000.`);
           setShowAddCommercialModal(false);
@@ -1901,38 +1845,27 @@ export default function AdminDashboard() {
         const p = contacts.find(c => c.id === saasCreateForm.prospectId);
         if(p) { targetPhone = p.phone; targetName = p.full_name; }
      }
-
-     let cleanPhone = targetPhone.replace(/\s+/g, '');
-     if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
-         cleanPhone = `+221${cleanPhone}`;
-     } else if (!cleanPhone.startsWith('+')) {
-         cleanPhone = `+${cleanPhone}`;
-     }
      
      const msg = `Félicitations ${targetName} ! Votre espace ${showSaasLogin.name} est actif.\nLien : https://${showSaasLogin.id}.onyxops.com\nIdentifiant : ${targetPhone}\nMot de passe : ${saasCreateForm.password}`;
      
-     try {
-       const res = await fetch('/api/create-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-              phone: cleanPhone,
-              fullName: targetName,
-              role: 'client',
-              password: saasCreateForm.password,
-              saas: showSaasLogin.name
-          })
-       });
-       const result = await res.json();
-       if (!res.ok) throw new Error(result.error || "Erreur de création d'accès.");
+     // Calcul de la date d'expiration (1 mois)
+     const trialEndDate = new Date();
+     trialEndDate.setMonth(trialEndDate.getMonth() + 1);
+
+     await supabase.from('clients').upsert({
+        full_name: targetName,
+        phone: targetPhone,
+        password_temp: saasCreateForm.password, // IMPORTANT: Sauvegarde du mot de passe pour la connexion
+        type: 'Client',
+        saas: showSaasLogin.name,
+        status: 'Compte Créé',
+        expiration_date: trialEndDate.toISOString().split('T')[0]
+     }, { onConflict: 'phone' });
 
      alert(`Compte ${showSaasLogin.name} créé et enregistré !`);
      setShowSaasLogin(null);
      fetchSupabaseData();
      window.open(`https://wa.me/${targetPhone?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(msg)}`, '_blank');
-     } catch(err:any) {
-         alert("Erreur: " + err.message);
-     }
   };
 
   const handleFixMissingExpiryDates = async () => {
