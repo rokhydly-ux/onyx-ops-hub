@@ -313,12 +313,13 @@ function SlugPageContent({ slug }: { slug: string }) {
       if (formattedPhoneForAuth.length === 9 && /^(7[05678]\d{7})$/.test(formattedPhoneForAuth)) formattedPhoneForAuth = `+221${formattedPhoneForAuth}`;
       else if (!formattedPhoneForAuth.startsWith('+')) formattedPhoneForAuth = `+${formattedPhoneForAuth}`;
 
-      const authEmail = `${formattedPhoneForAuth}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+      const authEmail = `${formattedPhoneForAuth}@clients.onyxcrm.com`;
       const authPassword = cleanPinUser === "0000" ? "central2026" : cleanPinUser + "00";
 
       try {
+          console.log("--> Tentative de connexion avec l'email fantôme:", authEmail);
           await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
-      } catch(e) { console.warn("Tontine Auth Silencieuse échouée"); }
+      } catch(e) { console.warn("Tontine Auth Silencieuse échouée", e); }
 
       const { data: membersList, error: fetchErr } = await supabase
         .from('tontine_members') 

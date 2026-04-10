@@ -29,7 +29,9 @@ export default function CommercialLogin() {
       }
 
       const submittedPin = pin === "0000" ? "central2026" : (pin.length === 4 ? pin + "00" : pin);
-      const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+      const authEmail = `${cleanPhone}@clients.onyxcrm.com`;
+
+      console.log("--> Tentative de connexion avec l'email fantôme:", authEmail);
 
       // 1. Authentification Supabase Auth d'abord pour valider le RLS
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -38,6 +40,7 @@ export default function CommercialLogin() {
       });
 
       if (authError || !authData.user) {
+        console.error("Erreur Auth:", authError);
         throw new Error("Numéro de téléphone ou Code PIN incorrect.");
       }
 

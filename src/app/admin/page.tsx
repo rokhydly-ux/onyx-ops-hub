@@ -350,16 +350,19 @@ export default function AdminDashboard() {
   const fetchSupabaseData = async () => {
    setIsLoading(true);
    setIsRefreshing(true);
+   console.log("--> DÉBUT fetchSupabaseData");
    try {
      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
      
      if (sessionError || !session?.access_token) {
+        console.error("Erreur session:", sessionError);
         throw new Error("Jeton d'authentification introuvable. Veuillez vous reconnecter.");
      }
      
      let resultData: any = null;
      
      try {
+         console.log("Token d'accès récupéré, appel API /api/admin/data...");
          // Tentative via l'API (Bypass RLS avec Service Role)
          const res = await fetch('/api/admin/data', {
            headers: { 
@@ -369,11 +372,14 @@ export default function AdminDashboard() {
            cache: 'no-store'
          });
          
+         console.log("Statut de la réponse API:", res.status);
          if (!res.ok) {
             const errRes = await res.json().catch(() => ({}));
+            console.error("Erreur API détaillée:", errRes);
             throw new Error(errRes.error || "Erreur de l'API admin (" + res.status + ")");
          }
          const result = await res.json();
+         console.log("Données reçues de l'API:", Object.keys(result.data || {}));
          resultData = result.data;
      } catch (apiErr: any) {
          console.error("⚠️ ERREUR API ADMIN :", apiErr.message);
@@ -538,6 +544,7 @@ export default function AdminDashboard() {
    const phone = (lead.phone || '').replace(/\s+/g, '');
 
    try {
+     console.log("--> Appel /api/create-user pour:", phone, type);
      const res = await fetch('/api/create-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -702,12 +709,14 @@ export default function AdminDashboard() {
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminAuthLoading(true);
+    console.log("--> Tentative de connexion Admin avec:", adminEmail.trim());
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: adminEmail.trim(),
         password: adminPasswordInput,
       });
       if (error || !data.user) {
+        console.error("Erreur signInWithPassword:", error);
         alert("Identifiants administrateur incorrects.");
         setAdminUser(null);
       } else {
@@ -1598,6 +1607,7 @@ export default function AdminDashboard() {
       if (error) throw error;
     } else {
       // Nouveau client => Passage par l'API pour créer l'authentification
+      console.log("--> Création nouveau client via API pour:", phoneClean);
       const res = await fetch('/api/create-user', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },

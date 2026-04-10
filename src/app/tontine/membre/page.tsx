@@ -202,10 +202,13 @@ function TontineMembreDashboard() {
 
       // Synchronisation Supabase Auth globale AVANT la requête pour passer le RLS
       try {
-          const authEmail = `${cleanPhone}@https://www.google.com/url?sa=E&source=gmail&q=clients.onyxcrm.com`;
+          const authEmail = `${cleanPhone}@clients.onyxcrm.com`;
           const authPassword = pin === "0000" ? "central2026" : pin + "00";
+          console.log("--> Tentative de connexion avec l'email fantôme:", authEmail);
           await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
-      } catch(e) {}
+      } catch(e) {
+          console.error("Erreur Auth silencieuse:", e);
+      }
 
       // Recherche du membre dans cette tontine spécifique par numéro de téléphone
       const { data: membersList, error: fetchErr } = await supabase
