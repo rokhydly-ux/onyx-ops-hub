@@ -63,10 +63,11 @@ export default function CRMSettingsPage() {
     }
     setIsSaving(true);
     
-    const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', userId).maybeSingle();
+    // On vérifie si la ligne existe pour éviter le conflit de clé primaire (crm_settings_pkey)
+    const { data: existing } = await supabase.from('crm_settings').select('tenant_id').eq('tenant_id', userId).maybeSingle();
     let error;
     if (existing) {
-        const res = await supabase.from('crm_settings').update(settings).eq('id', existing.id);
+        const res = await supabase.from('crm_settings').update(settings).eq('tenant_id', userId);
         error = res.error;
     } else {
         const res = await supabase.from('crm_settings').insert([{ tenant_id: userId, ...settings }]);
@@ -204,7 +205,7 @@ export default function CRMSettingsPage() {
                        <td className="p-5 text-right">
                           <button onClick={() => {
                              setEditingCommercial(member);
-                             setCommercialForm({ full_name: member.full_name, phone: member.phone, objective: member.objective || 20, status: member.status || 'Actif', password_temp: '••••' });
+                             setCommercialForm({ full_name: member.full_name, phone: member.phone, objective: member.objective || 20, status: member.status || 'Actif', password_temp: member.password_temp || '••••' });
                              setIsCommercialModalOpen(true);
                           }} className="p-2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"><Edit size={16}/></button>
                           <button onClick={async () => {
@@ -352,6 +353,17 @@ export default function CRMSettingsPage() {
                });
                
                if (res.ok) {
+                  // Persistance du mot de passe dans la table commercials
+                  if (payload.password_temp) {
+                      let cleanPhone = payload.phone.replace(/\s+/g, '');
+                      if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) cleanPhone = `+221${cleanPhone}`;
+                      else if (!cleanPhone.startsWith('+')) cleanPhone = `+${cleanPhone}`;
+                      
+                      await supabase.from('commercials')
+                         .update({ password_temp: payload.password_temp })
+                         .eq('phone', cleanPhone)
+                         .eq('tenant_id', userId);
+                  }
                   const { data } = await supabase.from('commercials').select('*').eq('tenant_id', userId);
                   if (data) setCommercials(data);
                   setIsCommercialModalOpen(false);

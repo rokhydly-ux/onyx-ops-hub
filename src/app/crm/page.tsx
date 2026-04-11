@@ -1,221 +1,193 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { UserPlus, Edit, Trash2, Loader2, X, Phone, Target as TargetIcon } from 'lucide-react';
+import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock } from 'lucide-react';
 
-interface Commercial {
-  id: string;
-  full_name: string;
-  phone: string;
-  objective: number;
-  status: 'Actif' | 'Suspendu';
-  created_at: string;
-  tenant_id: string;
-}
-
-export default function CRMSettingsPage() {
-  const [session, setSession] = useState<any>(null);
-  const [commercials, setCommercials] = useState<Commercial[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingCommercial, setEditingCommercial] = useState<Commercial | null>(null);
+export default function CRMDashboard() {
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [session, setSession] = useState<any>({});
   
-  const [formState, setFormState] = useState({
-    full_name: '',
-    phone: '',
-    password_temp: '0000',
-    objective: 20
-  });
+  const [realKpis, setRealKpis] = useState({ newLeads: 0, conversionRate: "0%", potentialCA: 0 });
+  const [realPerformers, setRealPerformers] = useState<any[]>([]);
+  const [realActivities, setRealActivities] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
 
   useEffect(() => {
-    const sessionStr = localStorage.getItem('onyx_custom_session');
-    if (sessionStr) {
-      const parsedSession = JSON.parse(sessionStr);
-      setSession(parsedSession);
-      fetchCommercials(parsedSession.id);
-    } else {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const fetchCommercials = async (tenantId: string) => {
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from('commercials')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false });
-
-    if (data) setCommercials(data);
-    if (error) console.error("Erreur de chargement des commerciaux:", error);
-    setIsLoading(false);
-  };
-
-  const handleOpenModal = (commercial: Commercial | null = null) => {
-    if (commercial) {
-      setEditingCommercial(commercial);
-      setFormState({
-        full_name: commercial.full_name,
-        phone: commercial.phone,
-        password_temp: '••••',
-        objective: commercial.objective || 20
-      });
-    } else {
-      setEditingCommercial(null);
-      setFormState({ full_name: '', phone: '', password_temp: '0000', objective: 20 });
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async (commercialId: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce commercial ? Cette action est irréversible.")) {
-      setIsSubmitting(true);
-      try {
-        const response = await fetch('/api/crm/commercials', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: commercialId, tenant_id: session.id }),
-        });
-
-        if (!response.ok) {
-          const result = await response.json();
-          throw new Error(result.error || 'Erreur lors de la suppression.');
-        }
-        
-        alert('Commercial supprimé avec succès.');
-        fetchCommercials(session.id);
-
-      } catch (error: any) {
-        alert(error.message);
-      } finally {
-        setIsSubmitting(false);
+    const checkAccess = async () => {
+      const sessionStr = localStorage.getItem('onyx_custom_session');
+      if (sessionStr) {
+        try {
+          const profile = JSON.parse(sessionStr);
+          if (profile.role === 'commercial') return router.replace('/crm/leads');
+          
+          setSession(profile);
+          setIsAuthorized(true);
+          return;
+        } catch(e) {}
       }
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!session?.id) {
-      alert("Session utilisateur introuvable. Veuillez vous reconnecter.");
-      return;
-    }
-    setIsSubmitting(true);
-
-    const payload: any = {
-      ...formState,
-      tenant_id: session.id,
-      id: editingCommercial?.id
+      router.replace('/login');
     };
-    
-    if (formState.password_temp === '••••') {
-      delete payload.password_temp;
-    }
+    checkAccess();
+  }, [router]);
 
-    try {
-      const response = await fetch('/api/crm/commercials', {
-        method: editingCommercial ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+  useEffect(() => {
+    const fetchRealData = async () => {
+      if (!session?.id) return;
+
+      const { data: leads } = await supabase
+        .from('crm_leads')
+        .select('*')
+        .eq('tenant_id', session.id)
+        .order('created_at', { ascending: false });
+
+      const safeLeads = leads || [];
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const newLeadsCount = safeLeads.filter((l: any) => new Date(l.created_at) > yesterday).length;
+
+      const wonLeads = safeLeads.filter((l: any) => l.status === 'Gagné' || l.status === 'Converti').length;
+      const convRate = safeLeads.length > 0 ? Math.round((wonLeads / safeLeads.length) * 100) : 0;
+
+      const caPotentiel = safeLeads
+        .filter((l: any) => !['Gagné', 'Converti', 'Perdu'].includes(l.status))
+        .reduce((acc: number, l: any) => acc + (Number(l.budget || l.amount || 0)), 0);
+
+      setRealKpis({ newLeads: newLeadsCount, conversionRate: `${convRate}%`, potentialCA: caPotentiel });
+
+      const perfMap: Record<string, number> = {};
+      safeLeads.forEach((l: any) => {
+        if (l.assigned_to) {
+          perfMap[l.assigned_to] = (perfMap[l.assigned_to] || 0) + 1;
+        }
       });
+      const perfArr = Object.entries(perfMap)
+        .map(([name, count], i) => ({
+          id: i, name, leads: count,
+          color: i % 3 === 0 ? "text-[#39FF14]" : i % 3 === 1 ? "text-blue-500" : "text-purple-500",
+          dot: i % 3 === 0 ? "bg-[#39FF14]" : i % 3 === 1 ? "bg-blue-500" : "bg-purple-500"
+        }))
+        .sort((a, b) => b.leads - a.leads)
+        .slice(0, 5);
+      setRealPerformers(perfArr);
 
-      const result = await response.json();
+      const recent = safeLeads.slice(0, 5);
+      setRealActivities(recent.map((l: any) => ({
+        id: l.id,
+        text: `Nouveau lead : ${l.full_name} (${l.intent || 'Contact'})`,
+        time: new Date(l.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        icon: Zap, iconBg: "bg-yellow-500/10", iconColor: "text-yellow-500"
+      })));
 
-      if (!response.ok) throw new Error(result.error || 'Une erreur est survenue.');
-      
-      alert(editingCommercial ? 'Commercial mis à jour !' : 'Commercial ajouté avec succès !');
-      setIsModalOpen(false);
-      fetchCommercials(session.id);
+      // Récupération des 5 prochains RDV de l'Agenda
+      const { data: appts } = await supabase
+        .from('booking_appointments')
+        .select('*')
+        .eq('tenant_id', session.id)
+        .gte('date_time', new Date(new Date().setHours(0,0,0,0)).toISOString())
+        .order('date_time', { ascending: true })
+        .limit(5);
+      if (appts) setAppointments(appts);
+    };
 
-    } catch (error: any) {
-      alert("Erreur: " + error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    if (isAuthorized) fetchRealData();
+  }, [isAuthorized, session]);
+
+  if (!isAuthorized) {
+    return <div className="h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div></div>;
+  }
+
+  const kpis = [
+    { title: "Nouveaux Leads (24h)", value: realKpis.newLeads.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { title: "Taux de Conversion", value: realKpis.conversionRate, icon: TrendingUp, color: "text-[#39FF14]", bg: "bg-[#39FF14]/10", valueColor: "text-[#39FF14]" },
+    { title: "CA Potentiel Pipeline", value: `${realKpis.potentialCA.toLocaleString('fr-FR')} F`, icon: Wallet, color: "text-purple-500", bg: "bg-purple-500/10" }
+  ];
 
   return (
-    <div className="max-w-[1600px] mx-auto w-full animate-in fade-in duration-500 flex flex-col h-full">
-      <div className="flex flex-col md:flex-row gap-4 mb-6 shrink-0 bg-white dark:bg-zinc-950 p-4 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm justify-between items-center">
-        <h2 className="text-2xl font-black uppercase tracking-tighter">Paramètres & Équipe</h2>
-        <button onClick={() => handleOpenModal()} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-black hover:text-[#39FF14] transition-all shadow-md active:scale-95">
-          <UserPlus size={16} /> Ajouter un commercial
+    <div className="max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">Tableau de Bord</h1>
+          <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Aperçu de vos performances</p>
+        </div>
+        <button onClick={() => router.push('/crm/settings')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-black hover:text-[#39FF14] transition-all flex items-center gap-2 shrink-0">
+           <UserPlus size={16} /> Ajouter membre équipe
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar pb-6">
-        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
-              <tr>
-                <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom & Contact</th>
-                <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Objectif Ventes</th>
-                <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
-                <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
-              {isLoading ? (
-                <tr><td colSpan={4} className="p-10 text-center"><Loader2 className="animate-spin inline-block" /></td></tr>
-              ) : commercials.map(c => (
-                <tr key={c.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors group">
-                  <td className="p-5">
-                    <p className="font-black text-sm uppercase text-black dark:text-white">{c.full_name}</p>
-                    <p className="text-xs font-bold text-[#39FF14] mt-1 flex items-center gap-1.5"><Phone size={12} className="text-zinc-500" /> {c.phone}</p>
-                  </td>
-                  <td className="p-5">
-                    <span className="font-black text-lg">{c.objective || 20}</span>
-                    <span className="text-xs text-zinc-500"> / mois</span>
-                  </td>
-                  <td className="p-5">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${c.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'bg-red-500/10 text-red-500'}`}>{c.status}</span>
-                  </td>
-                  <td className="p-5 text-right">
-                    <button onClick={() => handleOpenModal(c)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-xl transition-colors mr-2"><Edit size={18} /></button>
-                    <button onClick={() => handleDelete(c.id)} className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition"><Trash2 size={18} /></button>
-                  </td>
-                </tr>
-              ))}
-              {!isLoading && commercials.length === 0 && (
-                <tr><td colSpan={4} className="p-10 text-center text-zinc-500 italic">Aucun commercial ajouté.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {kpis.map((kpi, index) => (
+          <div key={index} className="bg-white dark:bg-zinc-950 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between hover:border-[#39FF14] transition-colors group">
+            <div className="flex justify-between items-start mb-4">
+              <div className={`p-3 rounded-xl ${kpi.bg} ${kpi.color}`}>
+                <kpi.icon size={20} />
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{kpi.title}</p>
+              <p className={`text-3xl font-black tracking-tighter ${kpi.valueColor || 'text-black dark:text-white'}`}>{kpi.value}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-zinc-950 rounded-3xl p-8 max-w-md w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95">
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
-            <h3 className="text-xl font-black uppercase mb-6">{editingCommercial ? 'Modifier' : 'Ajouter'} un commercial</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-zinc-500 uppercase">Nom complet</label>
-                <input type="text" required value={formState.full_name} onChange={e => setFormState({...formState, full_name: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-[#39FF14] focus:bg-white dark:focus:bg-zinc-950 rounded-lg transition-all" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-zinc-500 uppercase">Téléphone</label>
-                <input type="tel" required value={formState.phone} onChange={e => setFormState({...formState, phone: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-[#39FF14] focus:bg-white dark:focus:bg-zinc-950 rounded-lg transition-all" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-zinc-500 uppercase">Code PIN (4 chiffres)</label>
-                <input type="password" required inputMode="numeric" maxLength={4} value={formState.password_temp} onChange={e => setFormState({...formState, password_temp: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-[#39FF14] focus:bg-white dark:focus:bg-zinc-950 rounded-lg transition-all" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-zinc-500 uppercase">Objectif de ventes / mois</label>
-                <input type="number" required value={formState.objective} onChange={e => setFormState({...formState, objective: parseInt(e.target.value) || 0})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border-2 border-transparent focus:border-[#39FF14] focus:bg-white dark:focus:bg-zinc-950 rounded-lg transition-all" />
-              </div>
-              <div className="pt-4">
-                <button type="submit" disabled={isSubmitting} className="w-full bg-black text-[#39FF14] font-black uppercase text-sm py-4 rounded-xl hover:bg-zinc-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : (editingCommercial ? 'Mettre à jour' : 'Ajouter')}
-                </button>
-              </div>
-            </form>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm">
+           <h3 className="font-black uppercase text-lg mb-6 text-black dark:text-white">Top Performers (Leads gérés)</h3>
+           <div className="space-y-4">
+             {realPerformers.length > 0 ? realPerformers.map(rep => (
+                <div key={rep.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                   <div className="flex items-center gap-3">
+                      <span className={`w-3 h-3 rounded-full ${rep.dot} shadow-sm`}></span>
+                      <span className="font-bold text-sm uppercase text-black dark:text-white">{rep.name}</span>
+                   </div>
+                   <div className="text-right">
+                      <p className="font-black text-lg text-black dark:text-white">{rep.leads}</p>
+                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Leads Actifs</p>
+                   </div>
+                </div>
+             )) : <p className="text-zinc-500 text-sm font-medium italic">Aucun lead assigné pour le moment.</p>}
+           </div>
         </div>
-      )}
+
+        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm">
+           <div className="flex justify-between items-center mb-6">
+              <h3 className="font-black uppercase text-lg text-black dark:text-white flex items-center gap-2"><CalendarIcon size={20} className="text-[#39FF14]"/> Agenda Global</h3>
+              <button onClick={() => router.push('/crm/booking')} className="text-[10px] font-black uppercase text-zinc-500 hover:text-black dark:hover:text-white transition bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm">Voir tout le mois</button>
+           </div>
+           <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+              {appointments.length > 0 ? appointments.map(appt => (
+                  <div key={appt.id} className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-1 flex items-center gap-1.5">
+                          <Clock size={12}/> {new Date(appt.date_time).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} à {new Date(appt.date_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <p className="font-bold text-sm text-black dark:text-white uppercase">{appt.title}</p>
+                      <p className="text-xs text-zinc-500 mt-1">Avec : <span className="font-bold text-black dark:text-zinc-300">{appt.lead_name}</span></p>
+                  </div>
+              )) : <p className="text-zinc-500 text-sm font-medium italic">Aucun RDV prévu prochainement.</p>}
+           </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm">
+           <h3 className="font-black uppercase text-lg mb-6 text-black dark:text-white">Flux d'Activité</h3>
+           <div className="relative border-l-2 border-zinc-100 dark:border-zinc-800/60 ml-4 md:ml-6 space-y-8 pb-4 z-10 flex-1 overflow-y-auto custom-scrollbar pr-4">
+              {realActivities.length > 0 ? realActivities.map((act) => (
+                 <div key={act.id} className="relative pl-8 md:pl-10">
+                    <div className={`absolute -left-[17px] md:-left-[19px] top-1 w-8 h-8 rounded-full border-4 border-white dark:border-zinc-950 ${act.iconBg} ${act.iconColor} flex items-center justify-center z-10 shadow-sm`}>
+                       <act.icon size={14} />
+                    </div>
+                    <div>
+                       <p className="font-bold text-sm text-black dark:text-white leading-snug">{act.text}</p>
+                       <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1">{act.time}</p>
+                    </div>
+                 </div>
+              )) : <p className="text-zinc-500 text-sm font-medium pl-8 italic">Aucune activité récente détectée.</p>}
+           </div>
+        </div>
+      </div>
     </div>
   );
 }
