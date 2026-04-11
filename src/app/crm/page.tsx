@@ -17,15 +17,21 @@ import {
 export default function CRMDashboard() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [session, setSession] = useState<any>({});
 
   useEffect(() => {
     const checkAccess = async () => {
       // 1. Vérification session locale (Employé)
-      const customSession = localStorage.getItem('onyx_custom_session');
-      if (customSession) {
+      const sessionStr = localStorage.getItem('onyx_custom_session');
+      if (sessionStr) {
         try {
-          const profile = JSON.parse(customSession);
+          const profile = JSON.parse(sessionStr);
           if (profile.role === 'commercial') return router.replace('/crm/leads');
+          
+          // On sauvegarde la session en State pour filtrer les futures requêtes
+          setSession(profile);
+          setIsAuthorized(true);
+          return;
         } catch(e) {}
       }
 

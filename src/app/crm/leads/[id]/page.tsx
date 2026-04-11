@@ -45,10 +45,19 @@ export default function LeadDetailPage() {
       if (!leadId) return;
       setIsLoading(true);
       
+      const sessionStr = localStorage.getItem('onyx_custom_session');
+      const session = sessionStr ? JSON.parse(sessionStr) : {};
+
+      if (!session.id) {
+        setIsLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
-        .from('leads')
+        .from('crm_leads')
         .select('*')
         .eq('id', leadId)
+        .eq('tenant_id', session.id)
         .single();
         
       if (data && !error) {
@@ -64,12 +73,16 @@ export default function LeadDetailPage() {
   const handleWinLead = async () => {
     if (!confirm("Félicitations ! Voulez-vous transformer ce Lead en Client officiel ?")) return;
     
+    const sessionStr = localStorage.getItem('onyx_custom_session');
+    const session = sessionStr ? JSON.parse(sessionStr) : {};
+    
     try {
       // 1. Mettre à jour le statut du lead
-      await supabase.from('leads').update({ status: 'Gagné' }).eq('id', leadId);
+      await supabase.from('crm_leads').update({ status: 'Gagné' }).eq('id', leadId).eq('tenant_id', session.id);
       
       // 2. Insérer dans la table des clients
-      await supabase.from('clients').insert([{
+      await supabase.from('crm_contacts').insert([{
+        tenant_id: session.id,
         full_name: lead.full_name,
         phone: lead.phone,
         type: 'Client',
