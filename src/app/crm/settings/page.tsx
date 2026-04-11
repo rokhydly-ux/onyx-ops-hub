@@ -21,7 +21,7 @@ function CRMSettingsContent() {
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [isCommercialModalOpen, setIsCommercialModalOpen] = useState(false);
   const [editingCommercial, setEditingCommercial] = useState<any>(null);
-  const [commercialForm, setCommercialForm] = useState({ full_name: '', phone: '', objective: 20, status: 'Actif', password_temp: '0000' });
+  const [commercialForm, setCommercialForm] = useState({ full_name: '', phone: '', objective: 20, objective_period: 'Mois', status: 'Actif', password_temp: '0000' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -141,6 +141,14 @@ function CRMSettingsContent() {
              const campaign = r['campaign_name'] || r['campagne'] || '';
              const email = r['email'] || '';
              
+             // --- PRÉCISION DES DATES (Facebook created_time) ---
+             const dateKey = Object.keys(r).find(k => k.includes('created_time') || k.includes('date') || k.includes('time'));
+             let createdAt = new Date().toISOString();
+             if (dateKey && r[dateKey]) {
+                 const parsedDate = new Date(r[dateKey]);
+                 if (!isNaN(parsedDate.getTime())) createdAt = parsedDate.toISOString();
+             }
+
              let score = 'Froid';
              let timeframe = 'Se renseigne';
              let budget = 0;
@@ -157,6 +165,13 @@ function CRMSettingsContent() {
                 }
              }
              
+             // --- EXTRACTION ET NETTOYAGE DU BUDGET ---
+             const budgetKey = Object.keys(r).find(k => k.includes('budget') || k.includes('montant') || k.includes('prix') || k.includes('price'));
+             if (budgetKey && r[budgetKey]) {
+                 const rawBudget = String(r[budgetKey]).replace(/[^0-9]/g, '');
+                 if (rawBudget) budget = Number(rawBudget) || 0;
+             }
+             
              return {
                 tenant_id: tenantId,
                 full_name: name,
@@ -165,23 +180,26 @@ function CRMSettingsContent() {
                 campaign_name: campaign,
                 lead_score: score,
                 timeframe: timeframe,
-                budget: budget,
-                amount: budget,
+                budget_estime: Number(budget),
+                amount: Number(budget),
+                type: 'Prospect',
                 status: 'Nouveaux Leads',
                 source: 'Facebook Ads',
                 intent: campaign || 'Campagne FB',
+                created_at: createdAt
              };
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
           if (newLeads.length === 0) return alert("Aucun lead avec un numéro valide n'a été trouvé.");
 
           setIsSubmitting(true);
-          const { data, error } = await supabase.from('crm_leads').insert(newLeads).select();
+          const { data, error } = await supabase.from('clients').insert(newLeads).select();
           setIsSubmitting(false);
           
           if (!error && data) {
              alert(`${data.length} leads importés et scorés par l'IA avec succès !`);
              if (csvFileInputRef.current) csvFileInputRef.current.value = '';
+             window.location.reload();
           } else {
              alert("Erreur lors de l'importation : " + error?.message);
           }
@@ -250,7 +268,7 @@ function CRMSettingsContent() {
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm animate-in fade-in overflow-hidden">
            <div className="p-8 flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800">
               <h3 className="font-black text-xl uppercase">Gestion de l'Équipe</h3>
-              <button onClick={() => { setEditingCommercial(null); setCommercialForm({ full_name: '', phone: '', objective: 20, status: 'Actif', password_temp: '0000' }); setIsCommercialModalOpen(true); }} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all"><Plus size={16}/> Ajouter Commercial</button>
+              <button onClick={() => { setEditingCommercial(null); setCommercialForm({ full_name: '', phone: '', objective: 20, objective_period: 'Mois', status: 'Actif', password_temp: '0000' }); setIsCommercialModalOpen(true); }} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all"><Plus size={16}/> Ajouter Commercial</button>
            </div>
            <table className="w-full text-left">
               <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
@@ -277,7 +295,8 @@ function CRMSettingsContent() {
                           <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${workloadColor}`}>{activeLeadsCount} Leads</span>
                        </td>
                        <td className="p-5 text-center">
-                          <span className="font-black text-lg text-black dark:text-white">{member.objective || 20}</span>
+                          <span className="font-black text-lg text-black dark:text-white">{member.objective || 20}</span><br/>
+                          <span className="text-[9px] font-bold text-zinc-500 uppercase">/ {member.objective_period || 'Mois'}</span>
                        </td>
                        <td className="p-5 text-center">
                           <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${member.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>{member.status || 'Actif'}</span>
@@ -285,7 +304,7 @@ function CRMSettingsContent() {
                        <td className="p-5 text-right">
                           <button onClick={() => {
                              setEditingCommercial(member);
-                             setCommercialForm({ full_name: member.full_name, phone: member.phone, objective: member.objective || 20, status: member.status || 'Actif', password_temp: member.password_temp || '••••' });
+                             setCommercialForm({ full_name: member.full_name, phone: member.phone, objective: member.objective || 20, objective_period: member.objective_period || 'Mois', status: member.status || 'Actif', password_temp: member.password_temp || '••••' });
                              setIsCommercialModalOpen(true);
                           }} className="p-2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"><Edit size={16}/></button>
                           <button onClick={async () => {
@@ -422,7 +441,7 @@ function CRMSettingsContent() {
         <div id="modal-overlay" onClick={handleOutsideClick(setIsCommercialModalOpen, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white dark:bg-zinc-950 rounded-3xl p-8 max-w-md w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95">
             <button onClick={() => setIsCommercialModalOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
-            <h3 className="text-xl font-black uppercase mb-6 text-black dark:text-white">{editingCommercial ? 'Modifier' : 'Ajouter'} un commercial</h3>
+            <h3 className="text-xl font-black uppercase mb-6 text-black dark:text-white">{editingCommercial ? 'Ajuster Objectifs' : 'Nouveau Commercial'}</h3>
             <form onSubmit={async (e) => {
                e.preventDefault();
                setIsSubmitting(true);
@@ -438,6 +457,7 @@ function CRMSettingsContent() {
                        full_name: payload.full_name,
                        phone: payload.phone,
                        objective: payload.objective,
+                       objective_period: payload.objective_period,
                        status: payload.status,
                        password_temp: payload.password_temp === '••••' ? editingCommercial.password_temp : payload.password_temp
                    }).eq('id', editingCommercial.id).eq('tenant_id', userId);
@@ -447,6 +467,7 @@ function CRMSettingsContent() {
                        full_name: payload.full_name,
                        phone: payload.phone,
                        objective: payload.objective,
+                       objective_period: payload.objective_period,
                        status: payload.status || 'Actif',
                        password_temp: payload.password_temp === '••••' || !payload.password_temp ? '0000' : payload.password_temp,
                        tenant_id: userId
@@ -475,10 +496,18 @@ function CRMSettingsContent() {
                 <label className="text-xs font-bold text-zinc-500 uppercase">Code PIN</label>
                 <input type="password" required inputMode="numeric" maxLength={4} value={commercialForm.password_temp} onChange={e => setCommercialForm({...commercialForm, password_temp: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                  <div>
                    <label className="text-xs font-bold text-zinc-500 uppercase">Objectif</label>
                    <input type="number" required value={commercialForm.objective} onChange={e => setCommercialForm({...commercialForm, objective: parseInt(e.target.value) || 0})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" />
+                 </div>
+                 <div>
+                   <label className="text-xs font-bold text-zinc-500 uppercase">Période</label>
+                   <select value={commercialForm.objective_period} onChange={e => setCommercialForm({...commercialForm, objective_period: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white appearance-none cursor-pointer">
+                      <option value="Semaine">Semaine</option>
+                      <option value="Mois">Mois</option>
+                      <option value="Trimestre">Trimestre</option>
+                   </select>
                  </div>
                  {editingCommercial && (
                     <div>

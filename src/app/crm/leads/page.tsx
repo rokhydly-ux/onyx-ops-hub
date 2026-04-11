@@ -121,6 +121,7 @@ export default function LeadsKanbanPage() {
   const [commercialId, setCommercialId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('admin');
   const [userName, setUserName] = useState<string>('');
+  const [commercialData, setCommercialData] = useState<any>(null);
 
   // Modal "Quick Entry"
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -181,6 +182,12 @@ export default function LeadsKanbanPage() {
   }, [selectedLead]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -192,6 +199,12 @@ export default function LeadsKanbanPage() {
         setCommercialId(user.id);
         setUserRole(role);
         setUserName(name);
+
+        if (role === 'commercial') {
+           const { data: comm } = await supabase.from('commercials').select('*').eq('id', user.id).single();
+           if (comm) setCommercialData(comm);
+        }
+
         fetchLeads(tenantId, role, name);
       } else {
         setIsLoading(false);
@@ -199,6 +212,23 @@ export default function LeadsKanbanPage() {
     };
     init();
   }, []);
+
+  // --- NOTIFICATIONS PUSH TEMPS RÉEL ---
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase.channel('realtime-crm-leads')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_leads', filter: `tenant_id=eq.${userId}` }, (payload) => {
+         const newLead = payload.new;
+         if (userRole === 'commercial' && newLead.assigned_to !== userName) return;
+         
+         setLeads(prev => [newLead, ...prev]);
+         
+         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+             new Notification('🚨 Nouveau Lead !', { body: `${newLead.full_name} vient d'arriver dans votre pipeline.\nTéléphone: ${newLead.phone}`, icon: 'https://i.ibb.co/1Gssqd2p/LOGO-SITE.png' });
+         }
+      }).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, userRole, userName]);
 
   const fetchLeads = async (uid: string, role: string, name: string) => {
     setIsLoading(true);
@@ -290,20 +320,36 @@ export default function LeadsKanbanPage() {
              const campaign = r['campaign_name'] || r['campagne'] || '';
              const form = r['form_name'] || r['formulaire'] || '';
              
+             // --- PRÉCISION DES DATES (Facebook created_time) ---
+             const dateKey = Object.keys(r).find(k => k.includes('created_time') || k.includes('date') || k.includes('time'));
+             let createdAt = new Date().toISOString();
+             if (dateKey && r[dateKey]) {
+                 const parsedDate = new Date(r[dateKey]);
+                 if (!isNaN(parsedDate.getTime())) createdAt = parsedDate.toISOString();
+             }
+
              // SCORING IA AUTOMATIQUE
              let score = 'Froid';
              let timeframe = 'Se renseigne';
+             let budget = 0;
              const stateKey = Object.keys(r).find(k => k.includes('projet') || k.includes('état') || k.includes('etat'));
              
              if (stateKey) {
                 const val = String(r[stateKey]).toLowerCase();
                 if (val.includes('concret') || val.includes('maintenant') || val.includes('immédiat')) {
-                   score = 'Chaud'; timeframe = 'Immédiat';
+                   score = 'Chaud'; timeframe = 'Immédiat'; budget = 150000;
                 } else if (val.includes('mois')) {
-                   score = 'Tiède'; timeframe = '0-3 mois';
+                   score = 'Tiède'; timeframe = '0-3 mois'; budget = 50000;
                 } else if (val.includes('renseigne') || val.includes('curiosité')) {
-                   score = 'Froid'; timeframe = 'Se renseigne';
+                   score = 'Froid'; timeframe = 'Se renseigne'; budget = 0;
                 }
+             }
+             
+             // --- EXTRACTION ET NETTOYAGE DU BUDGET ---
+             const budgetKey = Object.keys(r).find(k => k.includes('budget') || k.includes('montant') || k.includes('prix') || k.includes('price'));
+             if (budgetKey && r[budgetKey]) {
+                 const rawBudget = String(r[budgetKey]).replace(/[^0-9]/g, '');
+                 if (rawBudget) budget = Number(rawBudget);
              }
              
              return {
@@ -314,9 +360,12 @@ export default function LeadsKanbanPage() {
                 form_name: form,
                 lead_score: score,
                 timeframe: timeframe,
+                budget: budget,
+                amount: budget,
                 status: 'Nouveaux Leads',
                 source: 'Facebook Ads',
                 intent: form || campaign || 'Campagne FB',
+                created_at: createdAt
              };
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
@@ -332,10 +381,7 @@ export default function LeadsKanbanPage() {
     });
   };
 
-  // --- OCR & OMNI-CAPTURE LOGIC ---
-  const handleImageDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const file = e.dataTransfer?.files[0];
+  const processOcrImage = async (file: File) => {
       if (file && file.type.startsWith('image/')) {
           setOcrLoading(true);
           try {
@@ -351,6 +397,7 @@ export default function LeadsKanbanPage() {
                   phone: phoneMatch ? phoneMatch[0].replace(/\s+/g, '') : prev.phone,
                   budget: budgetMatch ? budgetMatch[1].replace(/\s+/g, '') : prev.budget,
               }));
+              alert("Analyse de la capture terminée ! Vérifiez les informations extraites.");
           } catch (err) {
               alert("Erreur lors de l'analyse OCR.");
           }
@@ -508,6 +555,18 @@ export default function LeadsKanbanPage() {
              </span>
           </div>
         </div>
+        
+        {userRole === 'commercial' && commercialData && (
+           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl shadow-sm flex items-center gap-6 w-full md:w-auto">
+              <div>
+                 <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Objectif de la {commercialData.objective_period || 'Période'}</p>
+                 <p className="font-black text-lg text-black dark:text-white">{leads.filter(l => l.status === 'Gagné' || l.status === 'Converti').length} <span className="text-sm text-zinc-400">/ {commercialData.objective || 20} Ventes</span></p>
+              </div>
+              <div className="w-32 bg-zinc-100 dark:bg-zinc-800 h-3 rounded-full overflow-hidden shrink-0">
+                 <div className="bg-[#39FF14] h-full transition-all" style={{ width: `${Math.min((leads.filter(l => l.status === 'Gagné' || l.status === 'Converti').length / (commercialData.objective || 20)) * 100, 100)}%` }}></div>
+              </div>
+           </div>
+        )}
         
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
@@ -817,10 +876,23 @@ export default function LeadsKanbanPage() {
                   <div className="p-6">
                       {captureTab === 'ocr' && (
                           <div 
-                             className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl p-8 mb-6 text-center cursor-pointer hover:border-[#39FF14] transition-colors bg-zinc-50 dark:bg-zinc-900/50"
+                             className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl p-8 mb-6 text-center cursor-pointer hover:border-[#39FF14] transition-colors bg-zinc-50 dark:bg-zinc-900/50 outline-none"
                              onDragOver={e => e.preventDefault()}
-                             onDrop={handleImageDrop}
+                             onDrop={e => { e.preventDefault(); processOcrImage(e.dataTransfer?.files[0]); }}
+                             onClick={() => document.getElementById('ocr-file-upload')?.click()}
+                             tabIndex={0}
+                             onPaste={e => {
+                                const items = e.clipboardData?.items;
+                                if (!items) return;
+                                for (let i = 0; i < items.length; i++) {
+                                    if (items[i].type.indexOf('image') !== -1) {
+                                        processOcrImage(items[i].getAsFile() as File);
+                                        break;
+                                    }
+                                }
+                             }}
                           >
+                             <input type="file" id="ocr-file-upload" accept="image/*" className="hidden" onChange={e => processOcrImage(e.target.files?.[0] as File)} />
                              {ocrLoading ? (
                                 <div className="flex flex-col items-center justify-center gap-3">
                                    <div className="w-10 h-10 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div>
@@ -829,8 +901,8 @@ export default function LeadsKanbanPage() {
                              ) : (
                                 <>
                                    <Camera size={32} className="mx-auto mb-3 text-zinc-400" />
-                                   <p className="text-sm font-bold text-black dark:text-white">Glissez une capture d'écran ici</p>
-                                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-2">L'IA extraira le numéro et le budget.</p>
+                                   <p className="text-sm font-bold text-black dark:text-white">Collez (Ctrl+V), Glissez ou Cliquez</p>
+                                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-2">Pour uploader une capture d'écran</p>
                                 </>
                              )}
                           </div>
