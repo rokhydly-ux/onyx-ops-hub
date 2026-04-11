@@ -40,10 +40,21 @@ export default function PDFStudioPage() {
   }, []);
 
   const fetchData = async () => {
-    const { data: pData } = await supabase.from('crm_products').select('*').order('created_at', { ascending: false });
+    const sessionStr = localStorage.getItem('onyx_custom_session');
+    const session = sessionStr ? JSON.parse(sessionStr) : {};
+
+    if (!session.id) {
+      return;
+    }
+
+    const { data: pData } = await supabase
+      .from('crm_products')
+      .select('*')
+      .eq('tenant_id', session.id)
+      .order('created_at', { ascending: false });
     if (pData) setProducts(pData);
     
-    const { data: sData } = await supabase.from('crm_settings').select('*').eq('id', 1).single();
+    const { data: sData } = await supabase.from('crm_settings').select('*').eq('user_id', session.id).single();
     if (sData) setCrmSettings({ crm_name: sData.crm_name || 'ONYX CRM', logo_url: sData.logo_url || '', theme_color: sData.theme_color || '#39FF14' });
   };
 

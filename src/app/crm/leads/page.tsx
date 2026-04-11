@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   Plus, Search, Phone, MessageSquare, Mail, 
   UploadCloud, Facebook, Activity, CheckCircle, 
-  X, ShieldCheck, Zap, UserCheck, Edit, Trash2
+  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar
 } from 'lucide-react';
 import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,7 +14,7 @@ import { fr } from 'date-fns/locale';
 const KANBAN_COLS = ['Nouveaux Leads', 'En Cours', 'Converti', 'Perdu'];
 
 // --- COMPOSANTS DND-KIT (KANBAN) ---
-function KanbanColumn({ col, leads, onCardClick }: { col: string, leads: any[], onCardClick: (lead: any) => void }) {
+function KanbanColumn({ col, leads, onCardClick, onScheduleClick, onMessageClick }: { col: string, leads: any[], onCardClick: (lead: any) => void, onScheduleClick: (lead: any) => void, onMessageClick: (lead: any) => void }) {
   const { isOver, setNodeRef } = useDroppable({ id: col });
   return (
     <div 
@@ -28,7 +28,7 @@ function KanbanColumn({ col, leads, onCardClick }: { col: string, leads: any[], 
       
       <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
         {leads.map(lead => (
-          <KanbanCard key={lead.id} lead={lead} onClick={() => onCardClick(lead)} />
+          <KanbanCard key={lead.id} lead={lead} onClick={() => onCardClick(lead)} onScheduleClick={() => onScheduleClick(lead)} onMessageClick={() => onMessageClick(lead)} />
         ))}
         
         {leads.length === 0 && (
@@ -39,7 +39,7 @@ function KanbanColumn({ col, leads, onCardClick }: { col: string, leads: any[], 
   );
 }
 
-function KanbanCard({ lead, onClick }: { lead: any, onClick: () => void }) {
+function KanbanCard({ lead, onClick, onScheduleClick, onMessageClick }: { lead: any, onClick: () => void, onScheduleClick: () => void, onMessageClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
     data: { status: lead.status || 'Nouveaux Leads' }
@@ -77,9 +77,9 @@ function KanbanCard({ lead, onClick }: { lead: any, onClick: () => void }) {
       
       <div className="flex items-center justify-between mt-4">
         <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-md">{lead.intent || 'Contact'}</span>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button className="p-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-500 hover:text-black dark:hover:text-white"><MessageSquare size={12}/></button>
-          <button className="p-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-500 hover:text-black dark:hover:text-white"><Phone size={12}/></button>
+        <div className="flex items-center gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={(e) => { e.stopPropagation(); onScheduleClick(); }} className="p-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-500 hover:text-[#39FF14]" title="📅 Planifier RDV"><Calendar size={12}/></button>
+          <button onClick={(e) => { e.stopPropagation(); onMessageClick(); }} className="p-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-500 hover:text-blue-500" title="💬 Message Perso"><MessageSquare size={12}/></button>
         </div>
       </div>
     </div>
@@ -109,6 +109,13 @@ export default function LeadsKanbanPage() {
   // Modale "Observation Obligatoire" (dnd-kit)
   const [pendingMove, setPendingMove] = useState<{leadId: string, newStatus: string, oldStatus: string} | null>(null);
   const [observation, setObservation] = useState("");
+
+  // Scheduling Modal State
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleLead, setScheduleLead] = useState<any>(null);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [scheduleTitle, setScheduleTitle] = useState("");
 
   // Fetch notes when a lead is selected
   useEffect(() => {
@@ -172,13 +179,13 @@ export default function LeadsKanbanPage() {
     setIsLoading(true);
     
     let query = supabase
-      .from('leads')
+      .from('crm_leads')
       .select('*');
 
     if (role === 'commercial') {
-      query = query.eq('assigned_to', name);
+      query = query.eq('assigned_to', name).eq('tenant_id', uid);
     } else {
-      query = query.eq('user_id', uid);
+      query = query.eq('tenant_id', uid);
     }
     
     const { data } = await query
@@ -208,7 +215,7 @@ export default function LeadsKanbanPage() {
     await supabase.from('lead_notes').insert([{ lead_id: leadId, user_id: userId, note: observation.trim() }]);
 
     // 2. Mise à jour de l'état Kanban dans la DB et localement
-    await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
+    await supabase.from('crm_leads').update({ status: newStatus }).eq('id', leadId).eq('tenant_id', userId);
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
     
     setPendingMove(null);
@@ -249,7 +256,7 @@ export default function LeadsKanbanPage() {
       // Auto-Classification IA : Si historique d'achat détecté -> Tag 'Client'
       const isClient = item.history !== null;
       return {
-        user_id: userId,
+        tenant_id: userId,
         full_name: item.full_name,
         phone: item.phone,
         status: item.status,
@@ -259,7 +266,7 @@ export default function LeadsKanbanPage() {
       };
     });
 
-    const { data, error } = await supabase.from('leads').insert(newLeads).select();
+    const { data, error } = await supabase.from('crm_leads').insert(newLeads).select();
     if (!error && data) {
       setLeads(prev => [...data, ...prev]);
       alert("Importation réussie ! L'IA a automatiquement classifié les anciens acheteurs en 'CLIENT'.");
@@ -270,7 +277,7 @@ export default function LeadsKanbanPage() {
   const simulateFBWebhook = async () => {
     if (!userId) return;
     const newLead = {
-      user_id: userId,
+      tenant_id: userId,
       full_name: "Nouveau Lead FB " + Math.floor(Math.random() * 1000),
       phone: "+22170" + Math.floor(1000000 + Math.random() * 9000000),
       status: "Nouveaux Leads",
@@ -279,7 +286,7 @@ export default function LeadsKanbanPage() {
       is_client: false
     };
 
-    const { data } = await supabase.from('leads').insert([newLead]).select().single();
+    const { data } = await supabase.from('crm_leads').insert([newLead]).select().single();
     if (data) {
       setLeads(prev => [data, ...prev]);
       // Petit effet sonore ou alerte pour mimer l'instantanéité
@@ -299,7 +306,7 @@ export default function LeadsKanbanPage() {
     else if (selectedLead.status === 'En Cours' && actionType === 'whatsapp') nextStatus = 'Converti'; // Exemple de règle métier
 
     // Mise à jour BDD (On pourrait aussi loguer l'action dans une table `activities`)
-    await supabase.from('leads').update({ status: nextStatus }).eq('id', selectedLead.id);
+    await supabase.from('crm_leads').update({ status: nextStatus }).eq('id', selectedLead.id).eq('tenant_id', userId);
     
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, status: nextStatus } : l));
     
@@ -313,6 +320,45 @@ export default function LeadsKanbanPage() {
     }
 
     setSelectedLead(null);
+  };
+
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !scheduleLead || !scheduleDate || !scheduleTime) return;
+
+    const payload = {
+      tenant_id: userId,
+      commercial_id: userId,
+      lead_id: scheduleLead.id,
+      lead_name: scheduleLead.full_name,
+      title: scheduleTitle || `RDV avec ${scheduleLead.full_name}`,
+      date_time: `${scheduleDate}T${scheduleTime}:00`,
+      status: 'Planifié'
+    };
+
+    const { error } = await supabase.from('booking_appointments').insert([payload]);
+    if (error) {
+      alert("Erreur lors de la planification: " + error.message);
+    } else {
+      alert("Rendez-vous planifié avec succès !");
+      setScheduleModalOpen(false);
+      setScheduleLead(null);
+      setScheduleDate("");
+      setScheduleTime("");
+      setScheduleTitle("");
+    }
+  };
+
+  const handleMessageClick = (lead: any) => {
+    let text = '';
+    if (lead.status === 'Nouveaux Leads') text = `Bonjour ${lead.full_name}, suite à votre demande, nous aimerions échanger avec vous pour mieux comprendre votre besoin.`;
+    else if (lead.status === 'En Cours') text = `Bonjour ${lead.full_name}, comment avance votre réflexion suite à notre dernier échange ? Avez-vous pu consulter notre proposition ?`;
+    else if (lead.status === 'Converti') text = `Bonjour ${lead.full_name}, ravi de vous compter parmi nos clients ! Je reste à votre entière disposition.`;
+    else if (lead.status === 'Perdu') text = `Bonjour ${lead.full_name}, j'espère que vous allez bien. Avez-vous de nouveaux projets sur lesquels nous pourrions vous accompagner en ce moment ?`;
+    else text = `Bonjour ${lead.full_name},`;
+    
+    const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const filteredLeads = leads.filter(l => 
@@ -359,7 +405,14 @@ export default function LeadsKanbanPage() {
         <div className="flex-1 flex gap-6 overflow-x-auto pb-6 custom-scrollbar items-start">
           {KANBAN_COLS.map(col => {
             const colLeads = filteredLeads.filter(l => l.status === col || (col === 'Nouveaux Leads' && !l.status));
-            return <KanbanColumn key={col} col={col} leads={colLeads} onCardClick={setSelectedLead} />;
+            return <KanbanColumn 
+                      key={col} 
+                      col={col} 
+                      leads={colLeads} 
+                      onCardClick={setSelectedLead} 
+                      onScheduleClick={(l) => { setScheduleLead(l); setScheduleModalOpen(true); }} 
+                      onMessageClick={handleMessageClick} 
+                   />;
           })}
         </div>
       </DndContext>
@@ -498,6 +551,36 @@ export default function LeadsKanbanPage() {
               <button onClick={() => { setPendingMove(null); setObservation(""); }} className="flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors">Annuler</button>
               <button onClick={confirmMove} disabled={!observation.trim()} className="flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest text-black bg-[#39FF14] hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg disabled:opacity-50">Enregistrer</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- SCHEDULE MODAL --- */}
+      {scheduleModalOpen && scheduleLead && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95">
+            <button onClick={() => setScheduleModalOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
+            <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-2"><Calendar size={20} className="text-[#39FF14]"/> Planifier RDV</h3>
+            
+            <form onSubmit={handleScheduleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Titre (Optionnel)</label>
+                <input type="text" placeholder={`RDV avec ${scheduleLead.full_name}`} value={scheduleTitle} onChange={e => setScheduleTitle(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14]" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Date *</label>
+                  <input type="date" required value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14]" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Heure *</label>
+                  <input type="time" required value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14]" />
+                </div>
+              </div>
+              <button type="submit" className="w-full mt-4 bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2">
+                <CheckCircle size={16}/> Enregistrer le RDV
+              </button>
+            </form>
           </div>
         </div>
       )}

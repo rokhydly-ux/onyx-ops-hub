@@ -13,7 +13,8 @@ import {
   Sun,
   Moon,
   UserCircle,
-  Settings
+  Settings,
+  Calendar
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useTheme } from 'next-themes';
@@ -21,6 +22,7 @@ import { useTheme } from 'next-themes';
 const NAV_LINKS = [
   { name: 'Dashboard', href: '/crm', icon: LayoutDashboard },
   { name: 'Leads Kanban', href: '/crm/leads', icon: Columns },
+  { name: 'Agenda & RDV', href: '/crm/booking', icon: Calendar },
   { name: 'Studio PDF', href: '/crm/studio', icon: FileText },
   { name: 'Catalogue', href: '/crm/products', icon: Package },
   { name: 'Contacts', href: '/crm/contacts', icon: Users },
