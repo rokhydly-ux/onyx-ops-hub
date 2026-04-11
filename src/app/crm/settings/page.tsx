@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Settings, Save, Image as ImageIcon, Loader2, Palette, Type, Users, Bot, Plug, Plus, MessageSquare, Database, Activity, Phone, Edit, Trash2, X, CheckCircle } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
-export default function CRMSettingsPage() {
+function CRMSettingsContent() {
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
   const [settings, setSettings] = useState({ crm_name: 'ONYX CRM', logo_url: '', theme_color: '#39FF14' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(tabFromUrl === 'team' || tabFromUrl === 'equipe' ? 'team' : 'general');
   const [userId, setUserId] = useState<string | null>(null);
 
   const [commercials, setCommercials] = useState<any[]>([]);
@@ -340,34 +343,36 @@ export default function CRMSettingsPage() {
                e.preventDefault();
                setIsSubmitting(true);
                try {
-               const payload: any = { ...commercialForm, tenant_id: userId, id: editingCommercial?.id };
-               if (payload.password_temp === '••••') delete payload.password_temp;
-               
-               const res = await fetch('/api/crm/commercials', {
-                  method: editingCommercial ? 'PUT' : 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(payload)
-               });
-               
-               if (res.ok) {
-                  // Persistance du mot de passe dans la table commercials
-                  if (payload.password_temp) {
-                      let cleanPhone = payload.phone.replace(/\s+/g, '');
-                      if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) cleanPhone = `+221${cleanPhone}`;
-                      else if (!cleanPhone.startsWith('+')) cleanPhone = `+${cleanPhone}`;
-                      
-                      await supabase.from('commercials')
-                         .update({ password_temp: payload.password_temp })
-                         .eq('phone', cleanPhone)
-                         .eq('tenant_id', userId);
-                  }
-                  const { data } = await supabase.from('commercials').select('*').eq('tenant_id', userId);
-                  if (data) setCommercials(data);
-                  setIsCommercialModalOpen(false);
+               const payload: any = { ...commercialForm, tenant_id: userId };
+               let cleanPhone = payload.phone.replace(/\s+/g, '');
+               if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) cleanPhone = `+221${cleanPhone}`;
+               else if (!cleanPhone.startsWith('+')) cleanPhone = `+${cleanPhone}`;
+               payload.phone = cleanPhone;
+
+               if (editingCommercial) {
+                   const { error } = await supabase.from('commercials').update({
+                       full_name: payload.full_name,
+                       phone: payload.phone,
+                       objective: payload.objective,
+                       status: payload.status,
+                       password_temp: payload.password_temp === '••••' ? editingCommercial.password_temp : payload.password_temp
+                   }).eq('id', editingCommercial.id).eq('tenant_id', userId);
+                   if (error) throw error;
                } else {
-                  const err = await res.json();
-                  alert("Erreur: " + err.error);
+                   const { error } = await supabase.from('commercials').insert([{
+                       full_name: payload.full_name,
+                       phone: payload.phone,
+                       objective: payload.objective,
+                       status: payload.status || 'Actif',
+                       password_temp: payload.password_temp === '••••' || !payload.password_temp ? '0000' : payload.password_temp,
+                       tenant_id: userId
+                   }]);
+                   if (error) throw error;
                }
+
+               const { data } = await supabase.from('commercials').select('*').eq('tenant_id', userId);
+               if (data) setCommercials(data);
+               setIsCommercialModalOpen(false);
                } catch (err: any) {
                    alert("Erreur de sauvegarde: " + err.message);
                } finally {
@@ -411,5 +416,13 @@ export default function CRMSettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CRMSettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-500" /></div>}>
+      <CRMSettingsContent />
+    </Suspense>
   );
 }

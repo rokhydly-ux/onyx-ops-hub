@@ -108,7 +108,7 @@ export default function CRMDashboard() {
           <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">Tableau de Bord</h1>
           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Aperçu de vos performances</p>
         </div>
-        <button onClick={() => router.push('/crm/settings')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-black hover:text-[#39FF14] transition-all flex items-center gap-2 shrink-0">
+        <button onClick={() => router.push('/crm/settings?tab=team')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-black hover:text-[#39FF14] transition-all flex items-center gap-2 shrink-0">
            <UserPlus size={16} /> Ajouter membre équipe
         </button>
       </div>
