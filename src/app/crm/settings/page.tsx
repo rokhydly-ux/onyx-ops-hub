@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Settings, Save, Image as ImageIcon, Loader2, Palette, Type, Users, Bot, Plug, Plus, MessageSquare, Database, Activity, Phone, Edit, Trash2, X, CheckCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import Papa from 'papaparse';
 
 function CRMSettingsContent() {
   const searchParams = useSearchParams();
@@ -22,6 +23,7 @@ function CRMSettingsContent() {
   const [editingCommercial, setEditingCommercial] = useState<any>(null);
   const [commercialForm, setCommercialForm] = useState({ full_name: '', phone: '', objective: 20, status: 'Actif', password_temp: '0000' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
 
   const [msgJ0, setMsgJ0] = useState('Bonjour [Nom_Client], voici notre offre détaillée pour le montant de [Montant_Devis].');
   const [msgJ2, setMsgJ2] = useState('Bonjour [Nom_Client], avez-vous pu consulter notre proposition ?');
@@ -106,6 +108,80 @@ function CRMSettingsContent() {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const handleFileUploadCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Utilisateur non authentifié.");
+    const tenantId = user.user_metadata?.tenant_id || user.id;
+
+    Papa.parse(file, {
+       header: true,
+       skipEmptyLines: true,
+       complete: async (results) => {
+          const newLeads = results.data.map((row: any) => {
+             const r: any = {};
+             Object.keys(row).forEach(k => r[k.toLowerCase()] = row[k]);
+             
+             const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
+             let phoneRaw = r['whatsapp_number'] || r['phone_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
+             let phone = String(phoneRaw).replace(/\s+/g, '');
+             if (phone && !phone.startsWith('+')) {
+                 phone = phone.startsWith('221') ? `+${phone}` : `+221${phone}`;
+             }
+             
+             const campaign = r['campaign_name'] || r['campagne'] || '';
+             const email = r['email'] || '';
+             
+             let score = 'Froid';
+             let timeframe = 'Se renseigne';
+             let budget = 0;
+             const stateKey = Object.keys(r).find(k => k.includes('projet') || k.includes('état') || k.includes('etat'));
+             
+             if (stateKey) {
+                const val = String(r[stateKey]).toLowerCase();
+                if (val.includes('concret') || val.includes('maintenant') || val.includes('immédiat') || val.includes('pâtisserie') || val.includes('boulangerie')) {
+                   score = 'Chaud'; timeframe = 'Immédiat'; budget = 150000;
+                } else if (val.includes('mois') || val.includes('semaine')) {
+                   score = 'Tiède'; timeframe = '0-3 mois'; budget = 50000;
+                } else if (val.includes('renseigne') || val.includes('curiosité')) {
+                   score = 'Froid'; timeframe = 'Se renseigne'; budget = 0;
+                }
+             }
+             
+             return {
+                tenant_id: tenantId,
+                full_name: name,
+                phone: phone,
+                email: email,
+                campaign_name: campaign,
+                lead_score: score,
+                timeframe: timeframe,
+                budget: budget,
+                amount: budget,
+                status: 'Nouveaux Leads',
+                source: 'Facebook Ads',
+                intent: campaign || 'Campagne FB',
+             };
+          }).filter(l => l.phone); // Exclut les lignes sans numéro
+          
+          if (newLeads.length === 0) return alert("Aucun lead avec un numéro valide n'a été trouvé.");
+
+          setIsSubmitting(true);
+          const { data, error } = await supabase.from('crm_leads').insert(newLeads).select();
+          setIsSubmitting(false);
+          
+          if (!error && data) {
+             alert(`${data.length} leads importés et scorés par l'IA avec succès !`);
+             if (csvFileInputRef.current) csvFileInputRef.current.value = '';
+          } else {
+             alert("Erreur lors de l'importation : " + error?.message);
+          }
+       }
+    });
   };
 
   if (isLoading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-500" /></div>;
@@ -297,12 +373,15 @@ function CRMSettingsContent() {
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-8 shadow-sm animate-in fade-in space-y-8">
            <h3 className="font-black text-xl uppercase mb-6">Import & Synchro Leads</h3>
            
-           {/* Import Manuel & Mapping */}
+           {/* Import IA & CSV Facebook Ads */}
            <div className="p-6 border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-4">
-              <h4 className="font-bold text-sm uppercase flex items-center gap-2"><Database size={16}/> Import Manuel (CSV/Excel)</h4>
-              <p className="text-xs text-zinc-500">Uploadez votre fichier pour déclencher l'assistant de Mapping des colonnes (ex: 'Téléphone 1' → 'phone').</p>
-              <input type="file" accept=".csv, .xlsx" className="w-full text-xs file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-zinc-100 dark:file:bg-zinc-900 file:text-black dark:file:text-white cursor-pointer" />
-              <button className="bg-black dark:bg-white text-white dark:text-black px-6 py-2.5 rounded-xl text-xs font-bold hover:scale-105 transition-all">Lancer le Mapping IA</button>
+              <h4 className="font-bold text-sm uppercase flex items-center gap-2"><Database size={16}/> Import IA (CSV Facebook Ads)</h4>
+              <p className="text-xs text-zinc-500">Uploadez votre export Facebook brut. L'IA se chargera de le structurer, le scorer et de calculer le budget prévisionnel.</p>
+              <input type="file" accept=".csv" className="hidden" ref={csvFileInputRef} onChange={handleFileUploadCSV} />
+              <button onClick={() => csvFileInputRef.current?.click()} disabled={isSubmitting} className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl text-xs font-bold hover:scale-105 transition-all shadow-md flex items-center gap-2 w-max">
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Database size={16} />} 
+                  {isSubmitting ? 'Traitement en cours...' : 'Uploader un fichier CSV'}
+              </button>
            </div>
 
            {/* Google Sheets OAuth */}

@@ -19,19 +19,11 @@ export default function CRMCommercialLogin() {
   // Vérification de session active au chargement
   useEffect(() => {
     const checkSession = async () => {
-      const customSession = localStorage.getItem('onyx_custom_session');
-      if (customSession) {
-        const profile = JSON.parse(customSession);
-        if (profile.role === 'commercial') {
-          router.replace('/crm/leads');
-        } else {
-          setIsChecking(false);
-        }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.user_metadata?.role === 'commercial') {
+        router.replace('/crm/leads');
       } else {
-        // Fallback optionnel au cas où un admin utilise une vraie session Supabase
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && user.user_metadata?.role === 'commercial') router.replace('/crm/leads');
-        else setIsChecking(false);
+        setIsChecking(false);
       }
     };
     checkSession();
@@ -51,25 +43,37 @@ export default function CRMCommercialLogin() {
     }
 
     try {
-      // Recherche manuelle dans la table personnalisée (bypasse Supabase Auth Phone Provider)
-      const { data: profiles, error: fetchErr } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('phone', cleanPhone);
-        
-      if (fetchErr || !profiles || profiles.length === 0) throw new Error("Numéro de téléphone introuvable.");
-      
-      const profile = profiles[0];
-      if (profile.password_temp !== pin && profile.password_temp !== 'central2026') throw new Error("Numéro de téléphone ou code PIN incorrect.");
+      const submittedPin = pin === "0000" ? "central2026" : (pin.length === 4 ? pin + "00" : pin);
+      const authEmail = `${cleanPhone}@clients.onyxcrm.com`;
 
-      // Vérification stricte du rôle
-      const role = profile.role;
-      if (role !== 'commercial') {
-        throw new Error("Accès refusé : Vous n'avez pas le rôle d'employé (Commercial CRM).");
+      // 1. Authentification native Supabase Auth (Active le RLS)
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: submittedPin,
+      });
+
+      if (authError || !authData.user) {
+        throw new Error("Numéro de téléphone ou code PIN incorrect.");
+      }
+
+      // 2. Vérification dans la nouvelle table 'commercials'
+      const { data: commercial, error: fetchErr } = await supabase
+        .from('commercials')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+        
+      if (fetchErr || !commercial) {
+        await supabase.auth.signOut();
+        throw new Error("Accès refusé : Vous n'êtes pas enregistré comme commercial.");
+      }
+
+      if (commercial.status !== 'Actif') {
+        await supabase.auth.signOut();
+        throw new Error("Accès refusé : Votre compte commercial est inactif ou suspendu.");
       }
 
       // Connexion réussie, redirection vers le Kanban !
-      localStorage.setItem('onyx_custom_session', JSON.stringify(profile));
       router.push('/crm/leads');
       
     } catch (err: any) {

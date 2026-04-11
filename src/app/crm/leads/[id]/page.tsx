@@ -29,6 +29,7 @@ export default function LeadDetailPage() {
   const [lead, setLead] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [noteText, setNoteText] = useState("");
+  const [tenantId, setTenantId] = useState<string>("");
   const [localNotes, setLocalNotes] = useState<any[]>([]);
 
   // --- FAUSSES DONNÉES POUR LA TIMELINE (À connecter plus tard à une vraie table d'historique) ---
@@ -45,19 +46,20 @@ export default function LeadDetailPage() {
       if (!leadId) return;
       setIsLoading(true);
       
-      const sessionStr = localStorage.getItem('onyx_custom_session');
-      const session = sessionStr ? JSON.parse(sessionStr) : {};
-
-      if (!session.id) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         setIsLoading(false);
         return;
       }
       
+      const tId = user.user_metadata?.tenant_id || user.id;
+      setTenantId(tId);
+
       const { data, error } = await supabase
         .from('crm_leads')
         .select('*')
         .eq('id', leadId)
-        .eq('tenant_id', session.id)
+        .eq('tenant_id', tId)
         .single();
         
       if (data && !error) {
@@ -73,16 +75,13 @@ export default function LeadDetailPage() {
   const handleWinLead = async () => {
     if (!confirm("Félicitations ! Voulez-vous transformer ce Lead en Client officiel ?")) return;
     
-    const sessionStr = localStorage.getItem('onyx_custom_session');
-    const session = sessionStr ? JSON.parse(sessionStr) : {};
-    
     try {
       // 1. Mettre à jour le statut du lead
-      await supabase.from('crm_leads').update({ status: 'Gagné' }).eq('id', leadId).eq('tenant_id', session.id);
+      await supabase.from('crm_leads').update({ status: 'Gagné' }).eq('id', leadId).eq('tenant_id', tenantId);
       
       // 2. Insérer dans la table des clients
       await supabase.from('crm_contacts').insert([{
-        tenant_id: session.id,
+        tenant_id: tenantId,
         full_name: lead.full_name,
         phone: lead.phone,
         type: 'Client',
@@ -98,6 +97,32 @@ export default function LeadDetailPage() {
     } catch (error: any) {
       alert("Erreur lors de la conversion : " + error.message);
     }
+  };
+
+  // --- UPDATE CLOUD TEMPS RÉEL ---
+  const handleUpdateField = async (field: string, value: any) => {
+     setLead((prev: any) => ({ ...prev, [field]: value }));
+     if (tenantId) {
+         await supabase.from('crm_leads').update({ [field]: value }).eq('id', leadId).eq('tenant_id', tenantId);
+     }
+  };
+
+  // --- IA : GÉNÉRATION PROCHAINE ACTION ---
+  const generateNextAction = () => {
+     const obs = (lead.observation || '').toLowerCase();
+     const score = lead.lead_score || 'Froid';
+     let action = "💬 Envoyer un message de relance classique";
+
+     if (score === 'Chaud' && (obs.includes('visite') || obs.includes('rdv') || obs.includes('rencontre') || obs.includes('voir'))) {
+        action = "📅 Programmer un RDV physique";
+     } else if (score === 'Chaud' && obs.includes('devis')) {
+        action = "📄 Préparer et envoyer le devis final";
+     } else if (score === 'Tiède' && (obs.includes('réfléchit') || obs.includes('plus tard'))) {
+        action = "⏳ Programmer une relance à J+7";
+     } else if (score === 'Froid') {
+        action = "❄️ Ajouter à la campagne de Nurturing (Emailing)";
+     }
+     handleUpdateField('next_action', action);
   };
 
   // --- GESTION DES NOTES MANUELLES ---
@@ -201,12 +226,19 @@ export default function LeadDetailPage() {
 
             <div className="grid grid-cols-2 gap-4 mb-6">
                <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                  <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1 flex items-center gap-1.5"><Tag size={12}/> Intérêt</p>
-                  <p className="font-bold text-sm text-black dark:text-white truncate">{lead.intent || 'Non spécifié'}</p>
+                  <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1 flex items-center gap-1.5"><Activity size={12}/> Score IA</p>
+                  <select value={lead.lead_score || 'Froid'} onChange={(e) => handleUpdateField('lead_score', e.target.value)} className={`w-full bg-transparent font-black text-sm outline-none cursor-pointer ${lead.lead_score === 'Chaud' ? 'text-red-500' : lead.lead_score === 'Tiède' ? 'text-orange-500' : 'text-blue-500'}`}>
+                     <option value="Chaud" className="text-red-500">🔥 Chaud</option>
+                     <option value="Tiède" className="text-orange-500">⚡ Tiède</option>
+                     <option value="Froid" className="text-blue-500">❄️ Froid</option>
+                  </select>
                </div>
                <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                   <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1 flex items-center gap-1.5"><Wallet size={12}/> Potentiel</p>
-                  <p className="font-black text-lg text-[#39FF14] leading-none">{(Number(lead.amount) || Number(lead.budget) || 0).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-500 uppercase">F</span></p>
+                  <div className="flex items-center">
+                     <input type="number" placeholder="0" value={lead.budget || lead.amount || ''} onChange={(e) => handleUpdateField('budget', e.target.value)} onBlur={(e) => handleUpdateField('budget', e.target.value)} className="w-full bg-transparent font-black text-lg text-[#39FF14] outline-none placeholder:text-zinc-500" />
+                     <span className="text-[10px] text-zinc-500 uppercase font-black">F</span>
+                  </div>
                </div>
             </div>
 
@@ -227,6 +259,23 @@ export default function LeadDetailPage() {
                  </button>
                )}
             </div>
+          </div>
+
+          {/* DOSSIER & INTELLIGENCE */}
+          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
+             <h3 className="font-black text-lg uppercase tracking-tighter mb-4 flex items-center gap-2">
+                <Activity size={18} className="text-[#39FF14]"/> Analyse Commerciale
+             </h3>
+             <div className="space-y-4">
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">Observation / Réponse client</label>
+                   <textarea value={lead.observation || ''} onChange={(e) => handleUpdateField('observation', e.target.value)} onBlur={(e) => handleUpdateField('observation', e.target.value)} placeholder="Le client souhaite visiter demain..." className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl font-medium text-sm outline-none focus:border-[#39FF14] transition-colors resize-none min-h-[80px]" />
+                </div>
+                <button onClick={generateNextAction} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                   <Zap size={14}/> Générer l'action suivante (IA)
+                </button>
+                {lead.next_action && <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 p-3 rounded-xl text-xs font-bold text-black dark:text-white animate-in fade-in slide-in-from-top-2">{lead.next_action}</div>}
+             </div>
           </div>
 
           {/* SÉQUENCE DE RELANCE (Plan d'Engagement) */}

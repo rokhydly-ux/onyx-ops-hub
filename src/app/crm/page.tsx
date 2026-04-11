@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function CRMDashboard() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function CRMDashboard() {
   const [realPerformers, setRealPerformers] = useState<any[]>([]);
   const [realActivities, setRealActivities] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [conversionData, setConversionData] = useState<any[]>([]);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -86,6 +88,23 @@ export default function CRMDashboard() {
         .order('date_time', { ascending: true })
         .limit(5);
       if (appts) setAppointments(appts);
+
+      // --- CALCUL DU GRAPHIQUE DE CONVERSION (6 Derniers Mois) ---
+      const monthsNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+      const conversionMap = new Map();
+      for (let i = 5; i >= 0; i--) {
+         const d = new Date(); d.setMonth(d.getMonth() - i);
+         conversionMap.set(`${d.getFullYear()}-${d.getMonth()}`, { name: monthsNames[d.getMonth()], total: 0, gagne: 0 });
+      }
+      safeLeads.forEach((l: any) => {
+         const d = new Date(l.created_at);
+         const key = `${d.getFullYear()}-${d.getMonth()}`;
+         if (conversionMap.has(key)) {
+            conversionMap.get(key).total += 1;
+            if (l.status === 'Gagné' || l.status === 'Converti') conversionMap.get(key).gagne += 1;
+         }
+      });
+      setConversionData(Array.from(conversionMap.values()));
     };
 
     if (isAuthorized) fetchRealData();
@@ -182,6 +201,24 @@ export default function CRMDashboard() {
               )) : <p className="text-zinc-500 text-sm font-medium pl-8 italic">Aucune activité récente détectée.</p>}
            </div>
         </div>
+      </div>
+
+      {/* --- NOUVEAU GRAPHIQUE DE CONVERSION GLOBALE --- */}
+      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm mt-8">
+         <h3 className="font-black uppercase text-lg mb-6 text-black dark:text-white">Conversion Globale (6 derniers mois)</h3>
+         <div style={{ width: '100%', height: 300 }}>
+           <ResponsiveContainer>
+             <BarChart data={conversionData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+               <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
+               <XAxis dataKey="name" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
+               <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
+               <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '1rem', color: '#fff' }} />
+               <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingTop: '10px' }} />
+               <Bar dataKey="total" name="Total Leads" fill="#3f3f46" radius={[4, 4, 0, 0]} barSize={20} />
+               <Bar dataKey="gagne" name="Leads Gagnés" fill="#39FF14" radius={[4, 4, 0, 0]} barSize={20} />
+             </BarChart>
+           </ResponsiveContainer>
+         </div>
       </div>
     </div>
   );

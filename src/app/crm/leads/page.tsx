@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   Plus, Search, Phone, MessageSquare, Mail, 
-  UploadCloud, Facebook, Activity, CheckCircle, 
+  UploadCloud, Facebook, Activity, CheckCircle, Wallet, AlertTriangle,
   X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar
 } from 'lucide-react';
 import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import Papa from 'papaparse';
 
 const KANBAN_COLS = ['Nouveaux Leads', 'En Cours', 'Converti', 'Perdu'];
 
@@ -45,6 +46,8 @@ function KanbanCard({ lead, onClick, onScheduleClick, onMessageClick }: { lead: 
     data: { status: lead.status || 'Nouveaux Leads' }
   });
   
+  const isStagnant = (lead.status === 'Nouveaux Leads' || !lead.status) && lead.created_at && new Date(lead.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     zIndex: isDragging ? 50 : 1,
@@ -58,7 +61,7 @@ function KanbanCard({ lead, onClick, onScheduleClick, onMessageClick }: { lead: 
       {...listeners}
       {...attributes}
       onPointerUp={onClick}
-      className="bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-zinc-500 transition-colors cursor-grab active:cursor-grabbing group relative"
+      className={`bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border ${isStagnant ? 'border-red-500 hover:border-red-600 shadow-red-500/10' : 'border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-zinc-500'} transition-colors cursor-grab active:cursor-grabbing group relative`}
     >
       {lead.is_client && (
         <div className="absolute -top-2 -right-2 bg-[#39FF14] text-black text-[9px] font-black px-2 py-1 rounded-lg shadow-md flex items-center gap-1 z-10">
@@ -72,12 +75,27 @@ function KanbanCard({ lead, onClick, onScheduleClick, onMessageClick }: { lead: 
         </div>
       )}
 
+      {isStagnant && (
+        <div className="absolute -top-2 -left-2 bg-red-500 text-white text-[9px] font-black px-2 py-1 rounded-lg shadow-md flex items-center gap-1 z-10 animate-pulse">
+          <AlertTriangle size={10}/> +7 JOURS
+        </div>
+      )}
+
       <p className="font-black text-sm uppercase truncate pr-4">{lead.full_name}</p>
       <p className="text-[#39FF14] font-black text-xs mt-1">{lead.phone}</p>
       
       <div className="flex items-center justify-between mt-4">
         <div className="flex items-center gap-2">
           <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-md">{lead.intent || 'Contact'}</span>
+          {lead.lead_score && (
+            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-sm ${
+              lead.lead_score === 'Chaud' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
+              lead.lead_score === 'Tiède' ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20' :
+              'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+            }`}>
+              {lead.lead_score === 'Chaud' ? '🔥' : lead.lead_score === 'Tiède' ? '⚡' : '❄️'} {lead.lead_score}
+            </span>
+          )}
           {lead.assigned_to && (
             <span className="text-[9px] font-black text-black dark:text-white bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md truncate max-w-[75px]" title={`Assigné à ${lead.assigned_to}`}>
               👤 {lead.assigned_to.split(' ')[0]}
@@ -125,6 +143,7 @@ export default function LeadsKanbanPage() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
   const [scheduleTitle, setScheduleTitle] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch notes when a lead is selected
   useEffect(() => {
@@ -243,34 +262,66 @@ export default function LeadsKanbanPage() {
     }
   };
 
-  // --- IMPORTATION INTELLIGENTE (SIMULATION ODOO / EXCEL) ---
-  const handleSmartImport = async () => {
+  // --- IMPORTATION CSV INTELLIGENTE FACEBOOK ---
+  const handleSmartImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!userId) return;
-    // Simulation d'un parsing de fichier (Ex: CSV où certains ont acheté dans le passé)
-    const mockImport = [
-      { full_name: "Fatou Sow", phone: "+221771234567", status: "Nouveaux Leads", intent: "Catalogue", history: "Achat 2025" },
-      { full_name: "Ousmane Fall", phone: "+221768889900", status: "Nouveaux Leads", intent: "Devis", history: null }
-    ];
-
-    const newLeads = mockImport.map(item => {
-      // Auto-Classification IA : Si historique d'achat détecté -> Tag 'Client'
-      const isClient = item.history !== null;
-      return {
-        tenant_id: userId,
-        full_name: item.full_name,
-        phone: item.phone,
-        status: item.status,
-        intent: item.intent,
-        is_client: isClient, // Champ booléen pour pastille
-        source: "Import Excel"
-      };
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    Papa.parse(file, {
+       header: true,
+       skipEmptyLines: true,
+       complete: async (results) => {
+          const newLeads = results.data.map((row: any) => {
+             // Normalisation des clés en minuscules
+             const r: any = {};
+             Object.keys(row).forEach(k => r[k.toLowerCase()] = row[k]);
+             
+             const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
+             const phone = r['whatsapp_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
+             const campaign = r['campaign_name'] || r['campagne'] || '';
+             const form = r['form_name'] || r['formulaire'] || '';
+             
+             // SCORING IA AUTOMATIQUE
+             let score = 'Froid';
+             let timeframe = 'Se renseigne';
+             const stateKey = Object.keys(r).find(k => k.includes('projet') || k.includes('état') || k.includes('etat'));
+             
+             if (stateKey) {
+                const val = String(r[stateKey]).toLowerCase();
+                if (val.includes('concret') || val.includes('maintenant') || val.includes('immédiat')) {
+                   score = 'Chaud'; timeframe = 'Immédiat';
+                } else if (val.includes('mois')) {
+                   score = 'Tiède'; timeframe = '0-3 mois';
+                } else if (val.includes('renseigne') || val.includes('curiosité')) {
+                   score = 'Froid'; timeframe = 'Se renseigne';
+                }
+             }
+             
+             return {
+                tenant_id: userId,
+                full_name: name,
+                phone: phone,
+                campaign_name: campaign,
+                form_name: form,
+                lead_score: score,
+                timeframe: timeframe,
+                status: 'Nouveaux Leads',
+                source: 'Facebook Ads',
+                intent: form || campaign || 'Campagne FB',
+             };
+          }).filter(l => l.phone); // Exclut les lignes sans numéro
+          
+          const { data, error } = await supabase.from('crm_leads').insert(newLeads).select();
+          if (!error && data) {
+             setLeads(prev => [...data, ...prev]);
+             alert(`${data.length} leads importés et scorés par l'IA avec succès !`);
+          } else {
+             alert("Erreur lors de l'importation : " + error?.message);
+          }
+          if (fileInputRef.current) fileInputRef.current.value = '';
+       }
     });
-
-    const { data, error } = await supabase.from('crm_leads').insert(newLeads).select();
-    if (!error && data) {
-      setLeads(prev => [...data, ...prev]);
-      alert("Importation réussie ! L'IA a automatiquement classifié les anciens acheteurs en 'CLIENT'.");
-    }
   };
 
   // --- WEBHOOK FACEBOOK (SIMULATION PRIVYR) ---
@@ -361,19 +412,51 @@ export default function LeadsKanbanPage() {
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  // --- SUPPRESSION DES LEADS PERDUS ---
+  const handleClearLostLeads = async () => {
+    if (!userId) return;
+    const lostLeadsCount = leads.filter(l => l.status === 'Perdu').length;
+    if (lostLeadsCount === 0) {
+      return alert("Aucun lead en statut 'Perdu' à supprimer.");
+    }
+    if (!confirm(`Voulez-vous vraiment supprimer définitivement les ${lostLeadsCount} leads perdus ? Cette action est irréversible.`)) return;
+
+    let query = supabase.from('crm_leads').delete().eq('status', 'Perdu').eq('tenant_id', userId);
+    
+    if (userRole === 'commercial') {
+      query = query.eq('assigned_to', userName);
+    }
+
+    const { error } = await query;
+    if (error) {
+      alert("Erreur lors de la suppression : " + error.message);
+    } else {
+      setLeads(prev => prev.filter(l => l.status !== 'Perdu'));
+      alert(`${lostLeadsCount} leads perdus ont été supprimés avec succès.`);
+    }
+  };
+
   const filteredLeads = leads.filter(l => 
     (l.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
     (l.phone || '').includes(searchTerm)
   );
 
+  const stagnantLeadsCount = leads.filter(l => (l.status === 'Nouveaux Leads' || !l.status) && l.created_at && new Date(l.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length;
+  const activePipelineValue = leads.filter(l => ['En Cours', 'Audit en cours', 'Nouveaux Leads'].includes(l.status)).reduce((acc, l) => acc + (Number(l.budget || l.amount || 0)), 0);
+
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-500">
       
       {/* --- HEADER DES ACTIONS --- */}
-      <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-8">
+      <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">Pipeline Commercial</h1>
-          <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Gérez vos opportunités par glisser-déposer</p>
+          <div className="flex items-center gap-3 mt-1">
+             <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Gérez vos opportunités</p>
+             <span className="bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                <Wallet size={12}/> Pipeline Actif : {activePipelineValue.toLocaleString()} F
+             </span>
+          </div>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
@@ -389,16 +472,33 @@ export default function LeadsKanbanPage() {
           </div>
           {userRole !== 'commercial' && (
             <>
-              <button onClick={handleSmartImport} className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] transition-colors shadow-sm">
-                <UploadCloud size={16} className="text-zinc-500"/> Import IA (Excel)
+              <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleSmartImport} />
+              <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] transition-colors shadow-sm">
+                <UploadCloud size={16} className="text-zinc-500"/> Import IA (FB CSV)
               </button>
               <button onClick={simulateFBWebhook} className="flex items-center gap-2 bg-[#1877F2]/10 text-[#1877F2] border border-[#1877F2]/30 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#1877F2] hover:text-white transition-colors shadow-sm">
                 <Facebook size={16}/> Simuler Lead FB
               </button>
             </>
           )}
+          <button onClick={handleClearLostLeads} className="flex items-center gap-2 bg-red-500/10 text-red-500 border border-red-500/30 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-colors shadow-sm">
+            <Trash2 size={16}/> Vider Perdus
+          </button>
         </div>
       </div>
+
+      {/* --- ALERTE LEADS STAGNANTS --- */}
+      {stagnantLeadsCount > 0 && (
+        <div className="mb-6 bg-red-50 dark:bg-red-500/10 border-l-4 border-red-500 p-4 rounded-r-2xl flex items-center justify-between shadow-sm animate-in slide-in-from-top-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="text-red-500 shrink-0" size={24} />
+            <div>
+              <p className="font-black text-red-700 dark:text-red-400 uppercase text-sm tracking-tight">Leads en souffrance détectés</p>
+              <p className="text-xs text-red-600 dark:text-red-500 font-bold mt-0.5">Vous avez {stagnantLeadsCount} prospect(s) dans "Nouveaux Leads" depuis plus de 7 jours. Relancez-les avant qu'ils ne refroidissent !</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- KANBAN BOARD (dnd-kit) --- */}
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

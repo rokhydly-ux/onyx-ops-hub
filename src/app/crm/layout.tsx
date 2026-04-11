@@ -152,6 +152,15 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-6 relative scroll-smooth custom-scrollbar">
           {children}
         </main>
+        
+        {/* --- FOOTER GLOBAL CRM --- */}
+        <footer className="mt-auto py-4 px-6 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest shrink-0 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-md">
+            <div>© {new Date().getFullYear()} OnyxOps CRM. Tous droits réservés.</div>
+            <div className="flex gap-4">
+                <Link href="#" className="hover:text-black dark:hover:text-white transition-colors">Mentions Légales</Link>
+                <Link href="#" className="hover:text-black dark:hover:text-white transition-colors">Support 24/7</Link>
+            </div>
+        </footer>
       </div>
 
       {/* --- DRAWER MENU MOBILE --- */}
