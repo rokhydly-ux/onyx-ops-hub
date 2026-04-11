@@ -25,8 +25,12 @@ export default function ClientLogin() {
       } else {
         // Fallback optionnel au cas où un admin utilise une vraie session Supabase
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) router.replace('/hub');
-        else setIsChecking(false);
+        if (user && user.email === 'rokhydly@gmail.com') {
+           // Si c'est le super admin, on ne le bloque pas ici
+           setIsChecking(false);
+        } else {
+           setIsChecking(false);
+        }
       }
     };
     checkSession();
@@ -37,8 +41,9 @@ export default function ClientLogin() {
     setIsLoading(true);
     setError(null);
 
-    // Nettoyage et formatage du numéro
+    // 1. On nettoie le numéro saisi (pour éviter les bugs liés aux espaces)
     let cleanPhone = phone.replace(/\s+/g, '');
+    
     if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
       cleanPhone = `+221${cleanPhone}`;
     } else if (!cleanPhone.startsWith('+')) {
@@ -46,31 +51,34 @@ export default function ClientLogin() {
     }
 
     try {
-      // LA RUSE : On fabrique l'email fantôme
-      const authEmail = `${cleanPhone}@clients.onyxcrm.com`;
-      const submittedPassword = pin === "0000" ? "central2026" : (pin.length === 4 ? pin + "00" : pin);
-      const { data, error: fetchErr } = await supabase.auth.signInWithPassword({
-        email: authEmail,
-        password: submittedPassword,
-      });
-        
-      if (fetchErr || !data.user) {
-        throw new Error("Numéro de téléphone ou mot de passe incorrect.");
-      }
-      
-      // On récupère les informations complètes du client (Nom, SaaS, etc.)
-      const { data: clientData } = await supabase
+      // 2. Formatage du PIN selon ta règle personnalisée
+      const pinCode = pin === "0000" ? "central2026" : (pin.length === 4 ? pin + "00" : pin);
+
+      // 3. LA VRAIE LOGIQUE : On cherche directement le client dans la base de données
+      const { data: clientData, error: dbError } = await supabase
         .from('clients')
         .select('*')
-        .eq('id', data.user.id)
-        .single();
-
-      // Enregistrement de la session locale pour maintenir l'utilisateur connecté
-      localStorage.setItem('onyx_custom_session', JSON.stringify(clientData || data.user));
+        .eq('phone', cleanPhone)
+        .eq('password_temp', pinCode)
+        .single(); // .single() exige qu'une seule ligne corresponde exactement
+        
+      if (dbError || !clientData) {
+        console.error("Erreur de connexion client :", dbError?.message || "Client non trouvé");
+        throw new Error("Identifiants incorrects. Veuillez vérifier votre numéro et votre code PIN.");
+      }
       
+      // Succès ! Le client est trouvé avec le bon mot de passe.
+      console.log("Client authentifié :", clientData.full_name);
+
+      // 4. Enregistrement de la session locale pour maintenir l'utilisateur connecté
+      localStorage.setItem('onyx_custom_session', JSON.stringify(clientData));
+      
+      // 5. Redirection vers son espace personnel
       router.push('/hub');
+      
     } catch (err: any) {
       setError(err.message);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -85,10 +93,34 @@ export default function ClientLogin() {
         <h1 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-center tracking-tighter mb-2`}>Espace <span className="text-[#39FF14] bg-black px-2 py-0.5 rounded-lg">Client</span></h1>
         <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center mb-8">Accès à votre Hub & Produits Onyx</p>
         <form onSubmit={handleLogin} className="space-y-4">
-          <div className="relative"><Phone size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" /><input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Téléphone (Ex: 77 123 45 67)" className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 pl-12 font-bold text-sm text-black outline-none focus:border-black transition-colors" /></div>
-          <div className="relative"><KeyRound size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" /><input type="password" required value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Code PIN ou Mot de passe" className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 pl-12 font-bold text-sm text-black outline-none focus:border-black transition-colors tracking-widest" /></div>
+          <div className="relative">
+            <Phone size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input 
+              type="tel" 
+              required 
+              value={phone} 
+              onChange={(e) => setPhone(e.target.value)} 
+              placeholder="Téléphone (Ex: 77 123 45 67)" 
+              className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 pl-12 font-bold text-sm text-black outline-none focus:border-black transition-colors" 
+            />
+          </div>
+          <div className="relative">
+            <KeyRound size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input 
+              type="password" 
+              required 
+              value={pin} 
+              onChange={(e) => setPin(e.target.value)} 
+              placeholder="Code PIN ou Mot de passe" 
+              className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 pl-12 font-bold text-sm text-black outline-none focus:border-black transition-colors tracking-widest" 
+            />
+          </div>
           {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg border border-red-200 animate-in fade-in">{error}</p>}
-          <button type="submit" disabled={isLoading} className="w-full mt-4 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-[#39FF14] hover:text-black transition-all shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-2 disabled:opacity-50">
+          <button 
+            type="submit" 
+            disabled={isLoading} 
+            className="w-full mt-4 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-[#39FF14] hover:text-black transition-all shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center gap-2 disabled:opacity-50"
+          >
             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <><ArrowRight size={18} /> Accéder au Hub</>}
           </button>
         </form>
