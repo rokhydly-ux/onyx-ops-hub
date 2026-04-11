@@ -14,7 +14,9 @@ import {
   Moon,
   UserCircle,
   Settings,
-  Calendar
+  Calendar,
+  Menu,
+  X
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useTheme } from 'next-themes';
@@ -36,6 +38,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [crmSettings, setCrmSettings] = useState({ crm_name: 'ONYX CRM', logo_url: '', theme_color: '#39FF14' });
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -133,16 +136,22 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         
         {/* --- HEADER TOP BAR --- */}
         <header className="h-16 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-4 sm:px-6 z-10 shrink-0">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 -ml-2 rounded-lg text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
+            >
+              <Menu size={24} />
+            </button>
             <button
               onClick={() => router.push('/hub')}
-              className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white transition-colors flex items-center gap-2"
+              className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white transition-colors hidden sm:flex items-center gap-2"
               title="Retour au Hub"
             >
               <ArrowLeft size={16} />
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest hidden sm:inline-block">Hub</span>
             </button>
-            <h1 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
+            <h1 className="text-sm sm:text-xl font-black uppercase tracking-tight truncate">
               {getCurrentPageTitle()}
             </h1>
           </div>
@@ -159,23 +168,43 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* --- CHILDREN (CONTENT) --- */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 md:pb-6 relative scroll-smooth custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-6 relative scroll-smooth custom-scrollbar">
           {children}
         </main>
       </div>
 
-      {/* --- BOTTOM NAVIGATION MOBILE --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex justify-around items-center h-16 px-2 z-50 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
-        {visibleLinks.map((link) => {
-          const isActive = pathname === link.href;
-          return (
-            <Link key={link.name} href={link.href} className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${isActive ? '' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`} style={isActive ? { color: crmSettings.theme_color } : {}}>
-              <link.icon size={20} style={isActive ? { color: crmSettings.theme_color } : {}} />
-              <span className="text-[9px] font-black uppercase tracking-widest truncate max-w-full px-1">{link.name.split(' ')[0]}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* --- DRAWER MENU MOBILE --- */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-[100] flex">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+          <div className="relative w-64 h-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex flex-col animate-in slide-in-from-left duration-300 shadow-2xl">
+            <div className="h-16 flex items-center justify-between px-6 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+              <span className="text-lg font-black uppercase tracking-tighter" style={{ color: crmSettings.theme_color }}>{crmSettings.crm_name}</span>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 -mr-2 text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
+              <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4 px-2">Menu Principal</div>
+              {visibleLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-900 ${isActive ? 'bg-black shadow-lg dark:bg-zinc-900/80 border border-transparent' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}
+                    style={isActive ? { color: crmSettings.theme_color, borderColor: `${crmSettings.theme_color}40` } : {}}
+                  >
+                    <link.icon size={18} style={isActive ? { color: crmSettings.theme_color } : {}} />
+                    {link.name}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

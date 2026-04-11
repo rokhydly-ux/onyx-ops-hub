@@ -119,9 +119,9 @@ export default function BookingModulePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start">
         {/* COLONNE GAUCHE: LEADS À RELANCER */}
-        <div className="lg:col-span-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
+        <div className="md:col-span-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-5 sm:p-6 shadow-sm">
            <h3 className="font-black uppercase text-lg mb-4 flex items-center justify-between">
              Mes Leads à relancer
              <span className="bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] px-2 py-1 rounded-lg">{leads.length}</span>
@@ -145,7 +145,7 @@ export default function BookingModulePage() {
         </div>
 
         {/* COLONNE DROITE: AGENDA */}
-        <div className="lg:col-span-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
+        <div className="md:col-span-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-5 sm:p-6 shadow-sm">
            <div className="flex justify-between items-center mb-6 border-b border-zinc-100 dark:border-zinc-800 pb-4">
              <h3 className="font-black uppercase text-xl text-black dark:text-white">Calendrier des RDV</h3>
              <button onClick={() => setIsModalOpen(true)} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md hover:scale-105 transition-transform flex items-center gap-2">
@@ -197,7 +197,7 @@ export default function BookingModulePage() {
       {/* MODALE CRÉATION RDV */}
       {isModalOpen && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsModalOpen(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-zinc-950 rounded-3xl p-8 max-w-md w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95">
+          <div className="bg-white dark:bg-zinc-950 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95">
             <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
             <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-2"><CalendarIcon size={20} className="text-[#39FF14]"/> Planifier un RDV</h3>
             
