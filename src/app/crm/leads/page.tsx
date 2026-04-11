@@ -5,12 +5,13 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   Plus, Search, Phone, MessageSquare, Mail, 
   UploadCloud, Facebook, Activity, CheckCircle, Wallet, AlertTriangle,
-  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar
+  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan
 } from 'lucide-react';
 import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Papa from 'papaparse';
+import Tesseract from 'tesseract.js';
 
 const KANBAN_COLS = ['Nouveaux Leads', 'En Cours', 'Converti', 'Perdu'];
 
@@ -144,6 +145,13 @@ export default function LeadsKanbanPage() {
   const [scheduleTime, setScheduleTime] = useState("");
   const [scheduleTitle, setScheduleTitle] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Lead Capture (Manual + OCR) State
+  const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
+  const [captureTab, setCaptureTab] = useState<'manuel' | 'ocr'>('manuel');
+  const [captureForm, setCaptureForm] = useState({ full_name: '', phone: '', budget: '', lead_score: 'Tiède', source: 'WhatsApp' });
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrText, setOcrText] = useState("");
 
   // Fetch notes when a lead is selected
   useEffect(() => {
@@ -324,6 +332,48 @@ export default function LeadsKanbanPage() {
     });
   };
 
+  // --- OCR & OMNI-CAPTURE LOGIC ---
+  const handleImageDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const file = e.dataTransfer?.files[0];
+      if (file && file.type.startsWith('image/')) {
+          setOcrLoading(true);
+          try {
+              const result = await Tesseract.recognize(file, 'fra');
+              const text = result.data.text;
+              setOcrText(text);
+
+              const phoneMatch = text.match(/(?:\+221|221)?\s*(7[05678]\s*\d{3}\s*\d{2}\s*\d{2}|7[05678]\d{7})/);
+              const budgetMatch = text.match(/(\d[\d\s,.]*)\s*(F\b|FCFA|CFA|Francs)/i);
+
+              setCaptureForm(prev => ({
+                  ...prev,
+                  phone: phoneMatch ? phoneMatch[0].replace(/\s+/g, '') : prev.phone,
+                  budget: budgetMatch ? budgetMatch[1].replace(/\s+/g, '') : prev.budget,
+              }));
+          } catch (err) {
+              alert("Erreur lors de l'analyse OCR.");
+          }
+          setOcrLoading(false);
+      }
+  };
+
+  const saveCapturedLead = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!userId || !captureForm.full_name || !captureForm.phone) return alert("Le nom et le numéro sont obligatoires.");
+      
+      const payload = { tenant_id: userId, full_name: captureForm.full_name, phone: captureForm.phone, budget: captureForm.budget, lead_score: captureForm.lead_score, source: captureForm.source, status: 'Nouveaux Leads' };
+      const { data, error } = await supabase.from('crm_leads').insert([payload]).select();
+      if (!error && data) {
+          setLeads(prev => [data[0], ...prev]);
+          setIsCaptureModalOpen(false);
+          setCaptureForm({ full_name: '', phone: '', budget: '', lead_score: 'Tiède', source: 'WhatsApp' });
+          alert("Lead capturé avec succès !");
+      } else {
+          alert("Erreur : " + error?.message);
+      }
+  };
+
   // --- WEBHOOK FACEBOOK (SIMULATION PRIVYR) ---
   const simulateFBWebhook = async () => {
     if (!userId) return;
@@ -475,6 +525,9 @@ export default function LeadsKanbanPage() {
               <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleSmartImport} />
               <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] transition-colors shadow-sm">
                 <UploadCloud size={16} className="text-zinc-500"/> Import IA (FB CSV)
+              </button>
+              <button onClick={() => setIsCaptureModalOpen(true)} className="flex items-center gap-2 bg-black text-[#39FF14] px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors shadow-xl">
+                <Camera size={16} /> Omni-Capture
               </button>
               <button onClick={simulateFBWebhook} className="flex items-center gap-2 bg-[#1877F2]/10 text-[#1877F2] border border-[#1877F2]/30 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#1877F2] hover:text-white transition-colors shadow-sm">
                 <Facebook size={16}/> Simuler Lead FB
@@ -746,6 +799,69 @@ export default function LeadsKanbanPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* --- OMNI-CAPTURE MODAL --- */}
+      {isCaptureModalOpen && (
+          <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsCaptureModalOpen(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+              <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-lg shadow-2xl relative animate-in zoom-in-95 flex flex-col overflow-hidden border-t-4 border-t-[#39FF14]">
+                  <button onClick={() => setIsCaptureModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition z-20"><X size={20}/></button>
+                  <div className="p-6 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
+                      <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3 text-black dark:text-white"><Camera className="text-[#39FF14]"/> Omni-Capture</h2>
+                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Saisie ou Scan Intelligent (OCR)</p>
+                  </div>
+                  <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1.5 mx-6 mt-6 rounded-xl">
+                      <button onClick={() => setCaptureTab('manuel')} className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${captureTab === 'manuel' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>Saisie Manuelle</button>
+                      <button onClick={() => setCaptureTab('ocr')} className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${captureTab === 'ocr' ? 'bg-black text-[#39FF14] shadow-sm' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><Scan size={14}/> Scanner (OCR)</button>
+                  </div>
+                  <div className="p-6">
+                      {captureTab === 'ocr' && (
+                          <div 
+                             className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl p-8 mb-6 text-center cursor-pointer hover:border-[#39FF14] transition-colors bg-zinc-50 dark:bg-zinc-900/50"
+                             onDragOver={e => e.preventDefault()}
+                             onDrop={handleImageDrop}
+                          >
+                             {ocrLoading ? (
+                                <div className="flex flex-col items-center justify-center gap-3">
+                                   <div className="w-10 h-10 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div>
+                                   <p className="text-xs font-bold text-black dark:text-white uppercase tracking-widest animate-pulse">Analyse de l'image en cours...</p>
+                                </div>
+                             ) : (
+                                <>
+                                   <Camera size={32} className="mx-auto mb-3 text-zinc-400" />
+                                   <p className="text-sm font-bold text-black dark:text-white">Glissez une capture d'écran ici</p>
+                                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-2">L'IA extraira le numéro et le budget.</p>
+                                </>
+                             )}
+                          </div>
+                      )}
+                      <form onSubmit={saveCapturedLead} className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                              <input type="text" required placeholder="Nom Complet *" value={captureForm.full_name} onChange={e => setCaptureForm({...captureForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                              <input type="tel" required placeholder="Téléphone *" value={captureForm.phone} onChange={e => setCaptureForm({...captureForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                          </div>
+                          <div className="grid grid-cols-3 gap-4">
+                              <input type="text" placeholder="Budget Estimé" value={captureForm.budget} onChange={e => setCaptureForm({...captureForm, budget: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                              <select value={captureForm.lead_score} onChange={e => setCaptureForm({...captureForm, lead_score: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white cursor-pointer appearance-none">
+                                  <option value="Chaud">🔥 Chaud</option>
+                                  <option value="Tiède">⚡ Tiède</option>
+                                  <option value="Froid">❄️ Froid</option>
+                              </select>
+                              <select value={captureForm.source} onChange={e => setCaptureForm({...captureForm, source: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white cursor-pointer appearance-none">
+                                  <option value="WhatsApp">💬 WhatsApp</option>
+                                  <option value="Facebook Ads">📘 Facebook</option>
+                                  <option value="Instagram">📸 Instagram</option>
+                                  <option value="Appel">📞 Appel</option>
+                                  <option value="Site Web">🌐 Site Web</option>
+                              </select>
+                          </div>
+                          <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-all shadow-lg flex justify-center items-center gap-2 mt-4">
+                              <CheckCircle size={16}/> Enregistrer le Lead
+                          </button>
+                      </form>
+                  </div>
+              </div>
+          </div>
       )}
     </div>
   );

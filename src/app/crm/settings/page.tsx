@@ -65,14 +65,19 @@ function CRMSettingsContent() {
     setIsSaving(true);
     
     // On vérifie si la ligne existe pour éviter le conflit de clé primaire (crm_settings_pkey)
-    const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', userId).maybeSingle();
+    const { data: existing } = await supabase.from('crm_settings').select('tenant_id').eq('tenant_id', userId).maybeSingle();
     let error;
     if (existing) {
         const res = await supabase.from('crm_settings').update(settings).eq('tenant_id', userId);
         error = res.error;
     } else {
         const res = await supabase.from('crm_settings').insert([{ tenant_id: userId, ...settings }]);
-        error = res.error;
+        if (res.error && res.error.code === '23505') { // Code d'erreur pour contrainte unique
+            const retry = await supabase.from('crm_settings').update(settings).eq('tenant_id', userId);
+            error = retry.error;
+        } else {
+            error = res.error;
+        }
     }
     
     setIsSaving(false);
