@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Settings, Save, Image as ImageIcon, Loader2, Palette, Type, Users, Bot, Plug, Plus, MessageSquare, Database, Activity } from 'lucide-react';
+import { Settings, Save, Image as ImageIcon, Loader2, Palette, Type, Users, Bot, Plug, Plus, MessageSquare, Database, Activity, Phone, Edit, Trash2, X, CheckCircle } from 'lucide-react';
 
 export default function CRMSettingsPage() {
   const [settings, setSettings] = useState({ crm_name: 'ONYX CRM', logo_url: '', theme_color: '#39FF14' });
@@ -13,19 +13,43 @@ export default function CRMSettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Mocks pour les nouveaux onglets
-  const [teamMembers] = useState([{ id: 1, name: 'Boss Admin', role: 'Super Admin', color: '#39FF14' }, { id: 2, name: 'Moussa Diop', role: 'Commercial', color: '#3b82f6' }]);
+  const [commercials, setCommercials] = useState<any[]>([]);
+  const [allLeads, setAllLeads] = useState<any[]>([]);
+  const [isCommercialModalOpen, setIsCommercialModalOpen] = useState(false);
+  const [editingCommercial, setEditingCommercial] = useState<any>(null);
+  const [commercialForm, setCommercialForm] = useState({ full_name: '', phone: '', objective: 20, status: 'Actif', password_temp: '0000' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [msgJ0, setMsgJ0] = useState('Bonjour [Nom_Client], voici notre offre détaillée pour le montant de [Montant_Devis].');
   const [msgJ2, setMsgJ2] = useState('Bonjour [Nom_Client], avez-vous pu consulter notre proposition ?');
   const [msgJ7, setMsgJ7] = useState('Dernière relance pour votre devis. Cliquez ici : [Lien_Catalogue]');
 
+  const handleOutsideClick = (setter: any, val: any = false) => (e: any) => {
+    if (e.target.id === "modal-overlay") setter(val);
+  };
+
   useEffect(() => {
     const fetchSettings = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        const { data, error } = await supabase.from('crm_settings').select('*').eq('user_id', user.id).single();
+      let tId: string | null = null;
+      const sessionStr = localStorage.getItem('onyx_custom_session');
+      if (sessionStr) {
+         tId = JSON.parse(sessionStr).id;
+      }
+      if (!tId) {
+         const { data: { user } } = await supabase.auth.getUser();
+         if (user) tId = user.id;
+      }
+
+      if (tId) {
+        setUserId(tId);
+        const { data } = await supabase.from('crm_settings').select('*').eq('tenant_id', tId).maybeSingle();
         if (data) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+        
+        const { data: comms } = await supabase.from('commercials').select('*').eq('tenant_id', tId);
+        if (comms) setCommercials(comms);
+        
+        const { data: leads } = await supabase.from('crm_leads').select('status, assigned_to').eq('tenant_id', tId);
+        if (leads) setAllLeads(leads);
       }
       setIsLoading(false);
     };
@@ -38,7 +62,17 @@ export default function CRMSettingsPage() {
       return alert("Erreur: Utilisateur non authentifié.");
     }
     setIsSaving(true);
-    const { error } = await supabase.from('crm_settings').upsert({ user_id: userId, ...settings });
+    
+    const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', userId).maybeSingle();
+    let error;
+    if (existing) {
+        const res = await supabase.from('crm_settings').update(settings).eq('id', existing.id);
+        error = res.error;
+    } else {
+        const res = await supabase.from('crm_settings').insert([{ tenant_id: userId, ...settings }]);
+        error = res.error;
+    }
+    
     setIsSaving(false);
     if (error) {
       alert("Erreur lors de la sauvegarde : " + error.message);
@@ -135,24 +169,56 @@ export default function CRMSettingsPage() {
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm animate-in fade-in overflow-hidden">
            <div className="p-8 flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800">
               <h3 className="font-black text-xl uppercase">Gestion de l'Équipe</h3>
-              <button className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all"><Plus size={16}/> Inviter</button>
+              <button onClick={() => { setEditingCommercial(null); setCommercialForm({ full_name: '', phone: '', objective: 20, status: 'Actif', password_temp: '0000' }); setIsCommercialModalOpen(true); }} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all"><Plus size={16}/> Ajouter Commercial</button>
            </div>
            <table className="w-full text-left">
               <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
                  <tr>
                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Utilisateur</th>
-                    <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Rôle</th>
-                    <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Pastille (Couleur)</th>
+                    <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Workload (Leads Actifs)</th>
+                    <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Objectif Mensuel</th>
+                    <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Statut</th>
+                    <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
                  </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
-                 {teamMembers.map(member => (
+                 {commercials.map(member => {
+                    const activeLeadsCount = allLeads.filter(l => l.assigned_to === member.full_name && !['Gagné', 'Perdu', 'Converti'].includes(l.status)).length;
+                    const workloadColor = activeLeadsCount > 15 ? 'text-red-500 bg-red-500/10 border-red-500/20' : activeLeadsCount > 10 ? 'text-orange-500 bg-orange-500/10 border-orange-500/20' : 'text-[#39FF14] bg-[#39FF14]/10 border-[#39FF14]/30';
+
+                    return (
                     <tr key={member.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors">
-                       <td className="p-5 font-black text-sm uppercase">{member.name}</td>
-                       <td className="p-5"><span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-zinc-200 dark:border-zinc-700">{member.role}</span></td>
-                       <td className="p-5"><div className="flex items-center gap-3"><input type="color" defaultValue={member.color} className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0" /></div></td>
+                       <td className="p-5">
+                          <p className="font-black text-sm uppercase">{member.full_name}</p>
+                          <p className="text-[10px] text-zinc-500 font-bold tracking-widest mt-1"><Phone size={10} className="inline mr-1"/> {member.phone}</p>
+                       </td>
+                       <td className="p-5 text-center">
+                          <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${workloadColor}`}>{activeLeadsCount} Leads</span>
+                       </td>
+                       <td className="p-5 text-center">
+                          <span className="font-black text-lg text-black dark:text-white">{member.objective || 20}</span>
+                       </td>
+                       <td className="p-5 text-center">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${member.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>{member.status || 'Actif'}</span>
+                       </td>
+                       <td className="p-5 text-right">
+                          <button onClick={() => {
+                             setEditingCommercial(member);
+                             setCommercialForm({ full_name: member.full_name, phone: member.phone, objective: member.objective || 20, status: member.status || 'Actif', password_temp: '••••' });
+                             setIsCommercialModalOpen(true);
+                          }} className="p-2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"><Edit size={16}/></button>
+                          <button onClick={async () => {
+                             if (confirm('Supprimer ce commercial ?')) {
+                                await fetch('/api/crm/commercials', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: member.id, tenant_id: userId }) });
+                                setCommercials(prev => prev.filter(c => c.id !== member.id));
+                             }
+                          }} className="p-2 text-zinc-400 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                       </td>
                     </tr>
-                 ))}
+                 )})}
+                 {commercials.length === 0 && (
+                    <tr><td colSpan={5} className="p-10 text-center text-zinc-500 font-bold uppercase text-xs tracking-widest italic">Aucun commercial trouvé.</td></tr>
+                 )}
               </tbody>
            </table>
         </div>
@@ -264,6 +330,71 @@ export default function CRMSettingsPage() {
               </div>
               <button className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest w-full hover:scale-[1.02] transition-transform">Forcer la Synchro</button>
            </div>
+        </div>
+      )}
+
+      {/* MODALE COMMERCIAL */}
+      {isCommercialModalOpen && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setIsCommercialModalOpen, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 rounded-3xl p-8 max-w-md w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95">
+            <button onClick={() => setIsCommercialModalOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
+            <h3 className="text-xl font-black uppercase mb-6 text-black dark:text-white">{editingCommercial ? 'Modifier' : 'Ajouter'} un commercial</h3>
+            <form onSubmit={async (e) => {
+               e.preventDefault();
+               setIsSubmitting(true);
+               const payload: any = { ...commercialForm, tenant_id: userId, id: editingCommercial?.id };
+               if (payload.password_temp === '••••') delete payload.password_temp;
+               
+               const res = await fetch('/api/crm/commercials', {
+                  method: editingCommercial ? 'PUT' : 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+               });
+               
+               if (res.ok) {
+                  const { data } = await supabase.from('commercials').select('*').eq('tenant_id', userId);
+                  if (data) setCommercials(data);
+                  setIsCommercialModalOpen(false);
+               } else {
+                  const err = await res.json();
+                  alert("Erreur: " + err.error);
+               }
+               setIsSubmitting(false);
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-zinc-500 uppercase">Nom complet</label>
+                <input type="text" required value={commercialForm.full_name} onChange={e => setCommercialForm({...commercialForm, full_name: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-zinc-500 uppercase">Téléphone</label>
+                <input type="tel" required value={commercialForm.phone} onChange={e => setCommercialForm({...commercialForm, phone: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-zinc-500 uppercase">Code PIN</label>
+                <input type="password" required inputMode="numeric" maxLength={4} value={commercialForm.password_temp} onChange={e => setCommercialForm({...commercialForm, password_temp: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <label className="text-xs font-bold text-zinc-500 uppercase">Objectif</label>
+                   <input type="number" required value={commercialForm.objective} onChange={e => setCommercialForm({...commercialForm, objective: parseInt(e.target.value) || 0})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" />
+                 </div>
+                 {editingCommercial && (
+                    <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase">Statut</label>
+                      <select value={commercialForm.status} onChange={e => setCommercialForm({...commercialForm, status: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white appearance-none cursor-pointer">
+                         <option value="Actif">Actif</option>
+                         <option value="Suspendu">Suspendu</option>
+                      </select>
+                    </div>
+                 )}
+              </div>
+              <div className="pt-4">
+                <button type="submit" disabled={isSubmitting} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black font-black uppercase text-sm py-4 rounded-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 disabled:opacity-50">
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : (editingCommercial ? 'Mettre à jour' : 'Ajouter')}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

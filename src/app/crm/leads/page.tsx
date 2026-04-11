@@ -76,7 +76,14 @@ function KanbanCard({ lead, onClick, onScheduleClick, onMessageClick }: { lead: 
       <p className="text-[#39FF14] font-black text-xs mt-1">{lead.phone}</p>
       
       <div className="flex items-center justify-between mt-4">
-        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-md">{lead.intent || 'Contact'}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-md">{lead.intent || 'Contact'}</span>
+          {lead.assigned_to && (
+            <span className="text-[9px] font-black text-black dark:text-white bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md truncate max-w-[75px]" title={`Assigné à ${lead.assigned_to}`}>
+              👤 {lead.assigned_to.split(' ')[0]}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={(e) => { e.stopPropagation(); onScheduleClick(); }} className="p-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-500 hover:text-[#39FF14]" title="📅 Planifier RDV"><Calendar size={12}/></button>
           <button onClick={(e) => { e.stopPropagation(); onMessageClick(); }} className="p-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-500 hover:text-blue-500" title="💬 Message Perso"><MessageSquare size={12}/></button>
@@ -88,6 +95,7 @@ function KanbanCard({ lead, onClick, onScheduleClick, onMessageClick }: { lead: 
 
 export default function LeadsKanbanPage() {
   const [leads, setLeads] = useState<any[]>([]);
+  const [commercials, setCommercials] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
@@ -186,6 +194,8 @@ export default function LeadsKanbanPage() {
       query = query.eq('assigned_to', name).eq('tenant_id', uid);
     } else {
       query = query.eq('tenant_id', uid);
+      const { data: team } = await supabase.from('commercials').select('*').eq('tenant_id', uid).eq('status', 'Actif');
+      if (team) setCommercials(team);
     }
     
     const { data } = await query
@@ -462,6 +472,69 @@ export default function LeadsKanbanPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+              {/* --- NOUVEAU: ASSIGNATION INTELLIGENTE --- */}
+              {userRole !== 'commercial' && (
+                <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 mb-2">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2"><UserCheck size={14}/> Assignation Gérant</p>
+                  
+                  <select 
+                    value={selectedLead.assigned_to || ""}
+                    onChange={async (e) => {
+                      const newAssignee = e.target.value;
+                      await supabase.from('crm_leads').update({ assigned_to: newAssignee }).eq('id', selectedLead.id).eq('tenant_id', userId);
+                      setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, assigned_to: newAssignee } : l));
+                      setSelectedLead({ ...selectedLead, assigned_to: newAssignee });
+                      
+                      if (newAssignee) {
+                          const commercial = commercials.find(c => c.full_name === newAssignee);
+                          if (commercial && commercial.phone) {
+                              if (confirm(`Voulez-vous notifier ${commercial.full_name} par WhatsApp de cette nouvelle assignation ?`)) {
+                                  const msg = `Salut ${commercial.full_name}, un nouveau prospect vient de t'être assigné dans le CRM OnyxOps !\n\n👤 Prospect : ${selectedLead.full_name}\n📞 Contact : ${selectedLead.phone}\n🎯 Intérêt : ${selectedLead.intent || 'Non spécifié'}\n\nConnecte-toi sur ton espace pour le traiter au plus vite.`;
+                                  window.open(`https://wa.me/${commercial.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                              }
+                          }
+                      }
+                    }}
+                    className="w-full p-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer appearance-none"
+                  >
+                    <option value="">-- Non assigné --</option>
+                    {[...commercials].sort((a, b) => {
+                       const wlA = leads.filter(l => l.assigned_to === a.full_name && !['Converti', 'Perdu', 'Gagné'].includes(l.status)).length;
+                       const wlB = leads.filter(l => l.assigned_to === b.full_name && !['Converti', 'Perdu', 'Gagné'].includes(l.status)).length;
+                       return wlA - wlB;
+                    }).map(c => {
+                      const wl = leads.filter(l => l.assigned_to === c.full_name && !['Converti', 'Perdu', 'Gagné'].includes(l.status)).length;
+                      const isAvailable = wl < 15; // Quota idéal B2B
+                      return <option key={c.id} value={c.full_name}>{c.full_name} ({wl}/15 actifs) {isAvailable ? '🟢' : '🔴 Surchargé'}</option>
+                    })}
+                  </select>
+
+                  {/* Suggestion IA */}
+                  {commercials.length > 0 && !selectedLead.assigned_to && (() => {
+                    const sorted = [...commercials].sort((a,b) => (leads.filter(l => l.assigned_to === a.full_name && !['Converti', 'Perdu', 'Gagné'].includes(l.status)).length) - (leads.filter(l => l.assigned_to === b.full_name && !['Converti', 'Perdu', 'Gagné'].includes(l.status)).length));
+                    const best = sorted[0];
+                    if (leads.filter(l => l.assigned_to === best.full_name && !['Converti', 'Perdu', 'Gagné'].includes(l.status)).length < 15) {
+                      return (
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 font-bold">Suggestion :</span>
+                          <button onClick={async () => { 
+                             await supabase.from('crm_leads').update({ assigned_to: best.full_name }).eq('id', selectedLead.id).eq('tenant_id', userId); 
+                             setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, assigned_to: best.full_name } : l)); 
+                             setSelectedLead({ ...selectedLead, assigned_to: best.full_name }); 
+                             if (best && best.phone) {
+                                 if (confirm(`Voulez-vous notifier ${best.full_name} par WhatsApp de cette nouvelle assignation ?`)) {
+                                     const msg = `Salut ${best.full_name}, un nouveau prospect vient de t'être assigné dans le CRM OnyxOps !\n\n👤 Prospect : ${selectedLead.full_name}\n📞 Contact : ${selectedLead.phone}\n🎯 Intérêt : ${selectedLead.intent || 'Non spécifié'}\n\nConnecte-toi sur ton espace pour le traiter au plus vite.`;
+                                     window.open(`https://wa.me/${best.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                                 }
+                             }
+                          }} className="bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm flex items-center gap-1"><Zap size={12}/> Assigner à {best.full_name}</button>
+                        </div>
+                      );
+                    } else return <div className="mt-3 text-[10px] text-red-500 font-bold bg-red-500/10 px-3 py-1.5 rounded-lg">⚠️ L'équipe est saturée (+15 leads chacun).</div>;
+                  })()}
+                </div>
+              )}
+
               <div>
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3">Actions Rapides</p>
                 <div className="space-y-3">
