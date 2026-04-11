@@ -30,17 +30,14 @@ export default function CRMSettingsPage() {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      let tId: string | null = null;
-      const sessionStr = localStorage.getItem('onyx_custom_session');
-      if (sessionStr) {
-         tId = JSON.parse(sessionStr).id;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsLoading(false);
+        return;
       }
-      if (!tId) {
-         const { data: { user } } = await supabase.auth.getUser();
-         if (user) tId = user.id;
-      }
+      
+      const tId = user.user_metadata?.tenant_id || user.id;
 
-      if (tId) {
         setUserId(tId);
         const { data } = await supabase.from('crm_settings').select('*').eq('tenant_id', tId).maybeSingle();
         if (data) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
@@ -50,7 +47,6 @@ export default function CRMSettingsPage() {
         
         const { data: leads } = await supabase.from('crm_leads').select('status, assigned_to').eq('tenant_id', tId);
         if (leads) setAllLeads(leads);
-      }
       setIsLoading(false);
     };
     fetchSettings();
@@ -64,7 +60,7 @@ export default function CRMSettingsPage() {
     setIsSaving(true);
     
     // On vérifie si la ligne existe pour éviter le conflit de clé primaire (crm_settings_pkey)
-    const { data: existing } = await supabase.from('crm_settings').select('tenant_id').eq('tenant_id', userId).maybeSingle();
+    const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', userId).maybeSingle();
     let error;
     if (existing) {
         const res = await supabase.from('crm_settings').update(settings).eq('tenant_id', userId);
@@ -343,6 +339,7 @@ export default function CRMSettingsPage() {
             <form onSubmit={async (e) => {
                e.preventDefault();
                setIsSubmitting(true);
+               try {
                const payload: any = { ...commercialForm, tenant_id: userId, id: editingCommercial?.id };
                if (payload.password_temp === '••••') delete payload.password_temp;
                
@@ -371,7 +368,11 @@ export default function CRMSettingsPage() {
                   const err = await res.json();
                   alert("Erreur: " + err.error);
                }
+               } catch (err: any) {
+                   alert("Erreur de sauvegarde: " + err.message);
+               } finally {
                setIsSubmitting(false);
+               }
             }} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-zinc-500 uppercase">Nom complet</label>

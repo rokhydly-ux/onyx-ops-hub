@@ -20,19 +20,22 @@ export default function BookingModulePage() {
 
   useEffect(() => {
     const initData = async () => {
-      const sessionStr = localStorage.getItem('onyx_custom_session');
-      const currentSession = sessionStr ? JSON.parse(sessionStr) : {};
-      setSession(currentSession);
-
-      if (!currentSession.id) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         setIsLoading(false);
         return;
       }
+      
+      const role = user.user_metadata?.role || 'admin';
+      const fullName = user.user_metadata?.full_name || '';
+      const tenantId = user.user_metadata?.tenant_id || user.id;
+      
+      setSession({ id: tenantId, role, full_name: fullName, user_id: user.id });
 
       // Fetch Leads assigned to this user
-      let leadsQuery = supabase.from('crm_leads').select('*').eq('tenant_id', currentSession.id);
-      if (currentSession.role === 'commercial' && currentSession.full_name) {
-        leadsQuery = leadsQuery.eq('assigned_to', currentSession.full_name);
+      let leadsQuery = supabase.from('crm_leads').select('*').eq('tenant_id', tenantId);
+      if (role === 'commercial' && fullName) {
+        leadsQuery = leadsQuery.eq('assigned_to', fullName);
       }
       const { data: leadsData } = await leadsQuery.order('created_at', { ascending: false });
       if (leadsData) setLeads(leadsData);
@@ -41,7 +44,7 @@ export default function BookingModulePage() {
       const { data: apptData } = await supabase
         .from('booking_appointments')
         .select('*')
-        .eq('tenant_id', currentSession.id)
+        .eq('tenant_id', tenantId)
         .order('date_time', { ascending: true });
       if (apptData) setAppointments(apptData);
 
@@ -59,7 +62,7 @@ export default function BookingModulePage() {
     
     const payload = {
       tenant_id: session.id,
-      commercial_id: session.id,
+      commercial_id: session.user_id || session.id,
       lead_id: formState.lead_id,
       lead_name: selectedLead?.full_name || 'Lead Inconnu',
       title: formState.title || `Rendez-vous avec ${selectedLead?.full_name}`,

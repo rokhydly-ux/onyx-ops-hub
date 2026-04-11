@@ -44,32 +44,13 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     setMounted(true);
     
     const fetchSettings = async () => {
-      let currentUserId: string | null = null;
-      let role = 'admin';
-
-      // 1. Session locale
-      const customSession = localStorage.getItem('onyx_custom_session');
-      if (customSession) {
-        try {
-          const profile = JSON.parse(customSession);
-          currentUserId = profile.id;
-          role = profile.role || 'commercial';
-        } catch (e) {}
-      }
-
-      // 2. Session Supabase
-      if (!currentUserId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          currentUserId = user.id;
-          role = user.user_metadata?.role || 'admin';
-        }
-      }
-
-      if (currentUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const role = user.user_metadata?.role || 'admin';
+        const tenantId = user.user_metadata?.tenant_id || user.id;
+        
         setUserRole(role);
-        // Le tenant_id devrait être utilisé ici à terme pour les commerciaux, mais on garde la logique actuelle
-        const { data } = await supabase.from('crm_settings').select('*').eq('user_id', currentUserId).single();
+        const { data } = await supabase.from('crm_settings').select('*').eq('tenant_id', tenantId).maybeSingle();
         if (data) {
           setCrmSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
         }

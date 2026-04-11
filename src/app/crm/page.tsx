@@ -17,18 +17,13 @@ export default function CRMDashboard() {
 
   useEffect(() => {
     const checkAccess = async () => {
-      const sessionStr = localStorage.getItem('onyx_custom_session');
-      if (sessionStr) {
-        try {
-          const profile = JSON.parse(sessionStr);
-          if (profile.role === 'commercial') return router.replace('/crm/leads');
-          
-          setSession(profile);
-          setIsAuthorized(true);
-          return;
-        } catch(e) {}
-      }
-      router.replace('/login');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return router.replace('/login');
+      const role = user.user_metadata?.role || 'admin';
+      const tenantId = user.user_metadata?.tenant_id || user.id;
+      if (role === 'commercial') return router.replace('/crm/leads');
+      setSession({ id: tenantId });
+      setIsAuthorized(true);
     };
     checkAccess();
   }, [router]);

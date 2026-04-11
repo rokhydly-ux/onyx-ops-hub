@@ -32,20 +32,17 @@ export default function CRMContactsPage() {
 
   useEffect(() => {
     const fetchContacts = async () => {
-      // 1. On récupère la session du client connecté
-      const sessionStr = localStorage.getItem('onyx_custom_session');
-      const session = sessionStr ? JSON.parse(sessionStr) : {};
-
-      if (!session.id) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         setIsLoading(false);
         return;
       }
+      const tenantId = user.user_metadata?.tenant_id || user.id;
 
-      // 2. On pointe vers la bonne table avec le filtre d'isolation
       const { data, error } = await supabase
         .from('crm_contacts')
         .select('*')
-        .eq('tenant_id', session.id)
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
         
       if (data && !error) {

@@ -40,21 +40,20 @@ export default function PDFStudioPage() {
   }, []);
 
   const fetchData = async () => {
-    const sessionStr = localStorage.getItem('onyx_custom_session');
-    const session = sessionStr ? JSON.parse(sessionStr) : {};
-
-    if (!session.id) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return;
     }
+    const tenantId = user.user_metadata?.tenant_id || user.id;
 
     const { data: pData } = await supabase
       .from('crm_products')
       .select('*')
-      .eq('tenant_id', session.id)
+      .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false });
     if (pData) setProducts(pData);
     
-    const { data: sData } = await supabase.from('crm_settings').select('*').eq('user_id', session.id).single();
+    const { data: sData } = await supabase.from('crm_settings').select('*').eq('tenant_id', tenantId).maybeSingle();
     if (sData) setCrmSettings({ crm_name: sData.crm_name || 'ONYX CRM', logo_url: sData.logo_url || '', theme_color: sData.theme_color || '#39FF14' });
   };
 
@@ -255,26 +254,26 @@ export default function PDFStudioPage() {
             <button onClick={() => generatePDF('download')} disabled={isGenerating} className="flex-1 sm:flex-none bg-black text-white dark:bg-white dark:text-black px-4 sm:px-6 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-md flex items-center justify-center gap-2">
                <Download size={16} /> {isGenerating ? 'Génération...' : 'Télécharger PDF'}
             </button>
-            <button onClick={() => generatePDF('whatsapp')} disabled={isGenerating} className="flex-1 sm:flex-none px-4 sm:px-6 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2 text-black" style={{ backgroundColor: crmSettings.theme_color }}>
-               <MessageSquare size={16} /> Envoyer via WhatsApp
+            <button onClick={() => generatePDF('whatsapp')} disabled={isGenerating} className="flex-1 sm:flex-none px-4 sm:px-6 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2 text-black text-center leading-tight" style={{ backgroundColor: crmSettings.theme_color }}>
+               <MessageSquare size={16} className="shrink-0" /> <span className="hidden sm:inline">Envoyer via</span> WhatsApp
             </button>
          </div>
 
          {/* VISUAL A4 PREVIEW */}
-         <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center items-start custom-scrollbar">
-            <div className="w-full max-w-[700px] bg-white border border-zinc-300 shadow-2xl origin-top aspect-[1/1.414] flex flex-col overflow-hidden relative scale-[0.85] sm:scale-100 transform-gpu">
+         <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center items-start custom-scrollbar overflow-x-hidden">
+            <div className="w-full max-w-[700px] bg-white border border-zinc-300 shadow-2xl origin-top aspect-[1/1.414] flex flex-col overflow-hidden relative scale-[0.95] sm:scale-100 transform-gpu mb-4">
                
                {/* HEADER SIMULATION */}
-               <div className="bg-black p-8 text-center relative overflow-hidden shrink-0 h-48 flex flex-col items-center justify-center">
+               <div className="bg-black p-6 md:p-8 text-center relative overflow-hidden shrink-0 h-32 md:h-48 flex flex-col items-center justify-center">
                   <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(circle at center, ${crmSettings.theme_color} 0%, transparent 70%)` }}></div>
-                  <h1 className="text-3xl md:text-5xl font-black uppercase text-white relative z-10 tracking-tighter leading-tight px-4">{catalogName}</h1>
+                  <h1 className="text-2xl md:text-5xl font-black uppercase text-white relative z-10 tracking-tighter leading-tight px-4 line-clamp-2">{catalogName}</h1>
                   {prospectName && <div className="mt-4 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/20"><p className="text-xs font-bold text-white uppercase tracking-widest">Exclusivité : {prospectName}</p></div>}
                </div>
 
                {/* CONTENT SIMULATION */}
                <div className="flex-1 p-8 bg-zinc-50 overflow-hidden">
-                  <div className="flex justify-between items-end mb-6 border-b-2 border-black pb-2">
-                     <h2 className="text-lg font-black uppercase tracking-widest text-black">Sélection de {selectedProductsData.length} articles</h2>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 md:mb-6 border-b-2 border-black pb-2 gap-2">
+                     <h2 className="text-sm md:text-lg font-black uppercase tracking-widest text-black leading-tight">Sélection de {selectedProductsData.length} articles</h2>
                      <p className="text-xs font-bold text-zinc-500 uppercase">{new Date().toLocaleDateString('fr-FR')}</p>
                   </div>
 
@@ -303,16 +302,16 @@ export default function PDFStudioPage() {
                                  <p className="text-xs font-black" style={{ color: crmSettings.theme_color }}>{(customPrices[p.id] !== undefined ? customPrices[p.id] : (p.price_ttc || 0)).toLocaleString('fr-FR')} F</p>
                               </div>
                            ) : (
-                              <div key={i} className={`bg-white border border-zinc-200 shadow-sm rounded-xl overflow-hidden flex flex-col ${selectedTemplate === 'full' ? 'h-[300px]' : 'aspect-square'}`}>
+                              <div key={i} className={`bg-white border border-zinc-200 shadow-sm rounded-xl overflow-hidden flex flex-col ${selectedTemplate === 'full' ? 'h-[200px] md:h-[300px]' : 'aspect-square'}`}>
                                  <div className="flex-1 bg-zinc-100 relative overflow-hidden">
                                     <img src={p.image_url || `https://placehold.co/400x400/1a1a1a/39FF14?text=PRD`} className="w-full h-full object-cover" />
                                     {p.stock_status === 'Dormant' && <span className="absolute top-2 left-2 bg-red-500 text-white text-[8px] px-2 py-1 rounded-full font-black uppercase">Promo Spéciale</span>}
                                  </div>
                                  <div className="p-3 shrink-0 bg-white">
-                                    <p className={`font-black text-black uppercase leading-tight line-clamp-1 ${selectedTemplate === 'full' ? 'text-base' : 'text-[9px]'}`}>{p.name}</p>
+                                    <p className={`font-black text-black uppercase leading-tight line-clamp-1 ${selectedTemplate === 'full' ? 'text-sm md:text-base' : 'text-[9px]'}`}>{p.name}</p>
                                     <div className="flex justify-between items-end mt-1">
                                        <p className="text-[8px] font-bold text-zinc-400">Réf: {p.odoo_id || 'N/A'}</p>
-                                       <p className={`font-black ${selectedTemplate === 'full' ? 'text-lg' : 'text-[10px]'}`} style={{ color: crmSettings.theme_color }}>{(customPrices[p.id] !== undefined ? customPrices[p.id] : (p.price_ttc || 0)).toLocaleString('fr-FR')} F</p>
+                                       <p className={`font-black ${selectedTemplate === 'full' ? 'text-base md:text-lg' : 'text-[10px]'}`} style={{ color: crmSettings.theme_color }}>{(customPrices[p.id] !== undefined ? customPrices[p.id] : (p.price_ttc || 0)).toLocaleString('fr-FR')} F</p>
                                     </div>
                                  </div>
                               </div>

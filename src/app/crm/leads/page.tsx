@@ -99,6 +99,7 @@ export default function LeadsKanbanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
+  const [commercialId, setCommercialId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('admin');
   const [userName, setUserName] = useState<string>('');
 
@@ -154,28 +155,17 @@ export default function LeadsKanbanPage() {
 
   useEffect(() => {
     const init = async () => {
-      // 1. Vérification de la session locale (Employé CRM)
-      const customSession = localStorage.getItem('onyx_custom_session');
-      if (customSession) {
-        try {
-          const profile = JSON.parse(customSession);
-          setUserId(profile.id);
-          setUserRole(profile.role || 'commercial');
-          setUserName(profile.full_name || '');
-          fetchLeads(profile.id, profile.role || 'commercial', profile.full_name || '');
-          return; // On arrête l'exécution si la session locale existe
-        } catch (e) {}
-      }
-
-      // 2. Fallback sur la session Supabase (Administrateur)
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        setUserId(user.id);
         const role = user.user_metadata?.role || 'admin';
         const name = user.user_metadata?.full_name || '';
+        const tenantId = user.user_metadata?.tenant_id || user.id;
+        
+        setUserId(tenantId);
+        setCommercialId(user.id);
         setUserRole(role);
         setUserName(name);
-        fetchLeads(user.id, role, name);
+        fetchLeads(tenantId, role, name);
       } else {
         setIsLoading(false);
       }
@@ -338,7 +328,7 @@ export default function LeadsKanbanPage() {
 
     const payload = {
       tenant_id: userId,
-      commercial_id: userId,
+      commercial_id: commercialId || userId,
       lead_id: scheduleLead.id,
       lead_name: scheduleLead.full_name,
       title: scheduleTitle || `RDV avec ${scheduleLead.full_name}`,
