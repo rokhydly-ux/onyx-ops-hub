@@ -180,6 +180,19 @@ export default function CRMCatalogPage() {
       }
   };
 
+  const handleBulkDelete = async () => {
+      if (!confirm(`Voulez-vous vraiment supprimer ces ${selectedIds.size} produits ?`)) return;
+      try {
+          const idsToDelete = Array.from(selectedIds);
+          const { error } = await supabase.from('crm_products').delete().in('id', idsToDelete).eq('tenant_id', tenantId);
+          if (error) throw error;
+          setProducts(prev => prev.filter(p => !selectedIds.has(p.id)));
+          setSelectedIds(new Set());
+      } catch (err: any) {
+          alert("Erreur lors de la suppression groupée : " + err.message);
+      }
+  };
+
   const handleSaveProduct = async () => {
       if (!editForm.name) return alert("Le nom du produit est requis.");
       setIsSavingEdit(true);
@@ -398,6 +411,22 @@ export default function CRMCatalogPage() {
                 <span className="text-zinc-400 font-bold">-</span>
                 <input type="number" placeholder="Prix Max (F CFA)" value={maxPrice} onChange={e => setMaxPrice(e.target.value === '' ? '' : Number(e.target.value))} className="w-full md:w-32 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
               </div>
+              {filteredProducts.length > 0 && (
+                <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto">
+                   <label className="flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors w-full">
+                       <input 
+                         type="checkbox" 
+                         checked={selectedIds.size > 0 && selectedIds.size === filteredProducts.length}
+                         onChange={e => {
+                             if (e.target.checked) setSelectedIds(new Set(filteredProducts.map(p => p.id)));
+                             else setSelectedIds(new Set());
+                         }}
+                         className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer"
+                       />
+                       <span className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Tout sélectionner</span>
+                   </label>
+                </div>
+              )}
             </div>
           </div>
 
@@ -456,6 +485,10 @@ export default function CRMCatalogPage() {
           <button onClick={handleBulkTechnicalSheets} disabled={isGeneratingPdf} className="text-white dark:text-zinc-600 font-black uppercase text-xs hover:scale-105 transition-transform flex items-center gap-2 shrink-0 disabled:opacity-50">
             {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} 
             Générer Fiches Techniques
+          </button>
+          <div className="hidden sm:block w-px h-6 bg-zinc-800 dark:bg-zinc-200 shrink-0"></div>
+          <button onClick={handleBulkDelete} className="text-red-500 hover:text-red-400 font-black uppercase text-xs hover:scale-105 transition-transform flex items-center gap-2 shrink-0">
+            <Trash2 size={16} /> Supprimer Sélection
           </button>
         </div>
       )}
