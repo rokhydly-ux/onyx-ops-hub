@@ -2771,7 +2771,7 @@ export default function OnyxJaayShop() {
                 <button className="p-2 bg-black dark:bg-white text-[#39FF14] dark:text-black rounded-full shadow-md transition-all" title="Onyx Jaay (Vente)"><ShoppingCart size={16}/></button>
                 {checkAccess('stock', authUser) && <button onClick={() => window.location.href='/stock'} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Onyx Stock"><Box size={16}/></button>}
                 {checkAccess('tiak', authUser) && <button onClick={() => window.location.href='/tiak'} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Onyx Tiak"><Truck size={16}/></button>}
-                {checkAccess('formation', authUser) && <button onClick={() => window.location.href='/admin/saas/formation'} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Onyx Formation"><GraduationCap size={16}/></button>}
+                {checkAccess('formation', authUser) && <button onClick={() => window.location.href='/formation'} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Onyx Formation"><GraduationCap size={16}/></button>}
                 {checkAccess('staff', authUser) && <button onClick={() => window.location.href='/staff'} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Onyx Staff"><Users size={16}/></button>}
             </div>
             <div className="relative">

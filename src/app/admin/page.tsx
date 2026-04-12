@@ -79,7 +79,7 @@ const ECOSYSTEM_SAAS = [
   { id: "tiak", name: "Onyx Tiak", desc: "Logistique & Livreurs", price: "13 900 F", link: "/admin/saas/tiak", color: "bg-teal-500" },
   { id: "booking", name: "Onyx Booking", desc: "Rendez-vous", price: "13 900 F", link: "/admin/saas/booking", color: "bg-indigo-500" },
   { id: "tontine", name: "Onyx Tontine", desc: "Finance", price: "6 900 F", link: "/admin/saas/tontine", color: "bg-pink-500" },
-  { id: "formation", name: "Onyx Formation", desc: "Cours Androméda", price: "9 900 F", link: "/formation", color: "bg-yellow-500" },
+  { id: "formation", name: "Onyx Formation", desc: "Cours Androméda", price: "9 900 F", link: "/admin/saas/formation", color: "bg-yellow-500" },
   { id: "menu", name: "Onyx Menu", desc: "Resto", price: "13 900 F", link: "/admin/saas/menu", color: "bg-rose-500" },
   { id: "gold", name: "Pack Onyx Gold", desc: "L'Arsenal Complet VIP", price: "59 900 F", link: "/admin/saas/onyx-gold", color: "bg-lime-400" },
   { id: "cmpub", name: "Add-on CM Pub", desc: "Création de contenu", price: "49 900 F", link: "/admin/saas/cm-pub", color: "bg-purple-500" },

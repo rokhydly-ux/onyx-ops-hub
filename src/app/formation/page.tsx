@@ -7,7 +7,6 @@ import {
   PlayCircle, BookOpen, FileText, ChevronRight, 
   LogOut, Shield, Download, CheckCircle, Star, X, Save, Edit3, ArrowLeft 
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -25,7 +24,9 @@ const DEFAULT_COURSES: Course[] = [
 
 export default function OnyxFormationPage() {
   const router = useRouter();
-  const { user, loading, isAuthenticated, logout, updateUser } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Dashboard states
   const [progress, setProgress] = useState<Record<string, number>>({});
@@ -51,11 +52,31 @@ export default function OnyxFormationPage() {
   };
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [loading, isAuthenticated, router]);
+    const verifyAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        setIsAuthenticated(true);
+      } else {
+        const customSession = localStorage.getItem('onyx_custom_session');
+        if (customSession) {
+          setUser(JSON.parse(customSession));
+          setIsAuthenticated(true);
+        } else {
+          router.push('/login');
+        }
+      }
+      setLoading(false);
+    };
+    verifyAuth();
+  }, [router]);
   
+  const logout = async () => {
+    localStorage.removeItem('onyx_custom_session');
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   useEffect(() => {
     if(user) {
         setEditProfileForm({
@@ -85,7 +106,14 @@ export default function OnyxFormationPage() {
 
       if (error) throw error;
 
-      updateUser(editProfileForm);
+      const updatedUser = { ...user, ...editProfileForm };
+      setUser(updatedUser);
+      
+      const customSession = localStorage.getItem('onyx_custom_session');
+      if (customSession) {
+          localStorage.setItem('onyx_custom_session', JSON.stringify(updatedUser));
+      }
+
       setShowProfileModal(false);
       alert("Profil mis à jour avec succès !");
     } catch (err: any) {

@@ -326,7 +326,12 @@ function CRMSettingsContent() {
       setProgress(0);
       setProgressText('Démarrage du traitement...');
       try {
-          const { ordersMap, tenantId } = pendingOdooFile.data;
+          // 1. SÉCURISER LA RÉCUPÉRATION DU USER ET DU TENANT_ID
+          const { data: { user }, error: authError } = await supabase.auth.getUser();
+          if (authError || !user) throw new Error("Erreur d'authentification : Impossible de lier les données au tenant_id.");
+          const tenantId = user.user_metadata?.tenant_id || user.id;
+
+          const { ordersMap } = pendingOdooFile.data;
           const ordersArray = Array.from(ordersMap.values() as Iterable<any>);
           const totalRows = ordersArray.length;
           const chunkSize = 300;
@@ -356,7 +361,7 @@ function CRMSettingsContent() {
                   if (cleanPhone && !uniquePhones.has(cleanPhone)) {
                       uniquePhones.add(cleanPhone);
                       clientsToUpsert.push({
-                          tenant_id: tenantId,
+                          tenant_id: tenantId, // <-- LA LIGNE CRUCIALE (Injection forcée)
                           phone: cleanPhone,
                           full_name: order.customerName || 'Client Odoo',
                           type: 'Client',
@@ -366,7 +371,7 @@ function CRMSettingsContent() {
                   for (const item of order.items) {
                       if (item.name && !uniqueProductsMap.has(item.name)) {
                           uniqueProductsMap.set(item.name, {
-                              tenant_id: tenantId,
+                              tenant_id: tenantId, // <-- LA LIGNE CRUCIALE (Injection forcée)
                               name: item.name,
                               unit_price: item.price,
                               price_ttc: item.price,
@@ -376,7 +381,7 @@ function CRMSettingsContent() {
                   }
 
                   ordersToInsert.push({
-                      tenant_id: tenantId,
+                      tenant_id: tenantId, // <-- LA LIGNE CRUCIALE (Injection forcée)
                       order_ref: order.ref,
                       customer_name: order.customerName,
                       customer_phone: cleanPhone,
