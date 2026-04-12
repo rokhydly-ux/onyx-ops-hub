@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2 } from 'lucide-react';
+import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -12,6 +12,11 @@ export default function CRMCatalogPage() {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [tenantId, setTenantId] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState('Toutes');
+  const [minPrice, setMinPrice] = useState<number | ''>('');
+  const [maxPrice, setMaxPrice] = useState<number | ''>('');
+  const [viewingProduct, setViewingProduct] = useState<any>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -21,9 +26,16 @@ export default function CRMCatalogPage() {
   const [aiCampaigns, setAiCampaigns] = useState<any[]>([]);
   
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: '', unit_price: 0 });
+  const [editForm, setEditForm] = useState({ name: '', category: '', unit_price: 0, image_url: '' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Catégories
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: '', parent_id: '', cover_url: '' });
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,6 +60,12 @@ export default function CRMCatalogPage() {
         .select('*')
         .eq('tenant_id', tId);
       if (clientsData) setClients(clientsData);
+
+      const { data: catsData } = await supabase
+        .from('crm_categories')
+        .select('*')
+        .eq('tenant_id', tId);
+      if (catsData) setCategories(catsData);
 
       setIsLoading(false);
     };
@@ -92,14 +110,63 @@ export default function CRMCatalogPage() {
 
   const handleOpenAdd = () => {
       setEditingProduct(null);
-      setEditForm({ name: '', category: '', unit_price: 0 });
+      setEditForm({ name: '', category: '', unit_price: 0, image_url: '' });
       setIsAddingProduct(true);
   };
 
   const handleOpenEdit = (p: any) => {
       setEditingProduct(p);
       setIsAddingProduct(false);
-      setEditForm({ name: p.name || '', category: p.category || '', unit_price: p.unit_price || p.price_ttc || 0 });
+      setEditForm({ name: p.name || '', category: p.category || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '' });
+  };
+
+  const generateTechnicalSheet = async (p: any, bulkDoc?: jsPDF) => {
+      const doc = bulkDoc || new jsPDF();
+      
+      doc.setFillColor(0, 0, 0);
+      doc.rect(0, 0, 210, 40, 'F');
+      doc.setTextColor(57, 255, 20); // #39FF14
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.text("FICHE TECHNIQUE PRODUIT", 105, 25, { align: 'center' });
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(18);
+      doc.text(p.name || 'Produit sans nom', 14, 60);
+      
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Catégorie : ${p.category || 'Non catégorisé'}`, 14, 75);
+      doc.text(`Prix de vente : ${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA`, 14, 85);
+      
+      const status = getStockStatus(p.last_sold_date, p.created_at);
+      doc.text(`Statut (Rotation) : ${status.label}`, 14, 95);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Description :", 14, 115);
+      doc.setFont("helvetica", "normal");
+      const splitDesc = doc.splitTextToSize(p.description || "Aucune description détaillée disponible pour ce produit.", 180);
+      doc.text(splitDesc, 14, 125);
+
+      if (p.image_url) {
+          try {
+              const img = new Image();
+              img.crossOrigin = "Anonymous";
+              img.src = p.image_url;
+              await new Promise((resolve, reject) => {
+                  img.onload = resolve;
+                  img.onerror = reject;
+              });
+              doc.addImage(img, 'JPEG', 14, 150, 80, 80);
+          } catch (e) {
+              doc.setTextColor(150, 150, 150);
+              doc.text("(Image non disponible / Erreur de chargement)", 14, 160);
+          }
+      }
+      
+      if (!bulkDoc) {
+          doc.save(`Fiche_Technique_${(p.name || 'Produit').replace(/\s+/g, '_')}.pdf`);
+      }
   };
 
   const handleDeleteProduct = async (id: number) => {
@@ -117,7 +184,7 @@ export default function CRMCatalogPage() {
       if (!editForm.name) return alert("Le nom du produit est requis.");
       setIsSavingEdit(true);
       try {
-          const payload = { name: editForm.name, category: editForm.category, unit_price: editForm.unit_price, price_ttc: editForm.unit_price };
+          const payload = { name: editForm.name, category: editForm.category, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url };
           if (isAddingProduct) {
               const { data, error } = await supabase.from('crm_products').insert([{ ...payload, tenant_id: tenantId, last_sold_date: new Date().toISOString() }]).select().single();
               if (error) throw error;
@@ -134,6 +201,36 @@ export default function CRMCatalogPage() {
       } finally {
           setIsSavingEdit(false);
       }
+  };
+
+  const handleSaveCategory = async () => {
+      if (!categoryForm.name) return alert("Le nom de la catégorie est requis.");
+      setIsSavingCategory(true);
+      try {
+          const payload = { tenant_id: tenantId, name: categoryForm.name, parent_id: categoryForm.parent_id || null, cover_url: categoryForm.cover_url };
+          if (editingCategory) {
+              const { error } = await supabase.from('crm_categories').update(payload).eq('id', editingCategory.id).eq('tenant_id', tenantId);
+              if (error) throw error;
+              setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...payload } : c));
+          } else {
+              const { data, error } = await supabase.from('crm_categories').insert([payload]).select().single();
+              if (error) throw error;
+              setCategories(prev => [...prev, data]);
+          }
+          setCategoryForm({ name: '', parent_id: '', cover_url: '' });
+          setEditingCategory(null);
+      } catch(err: any) {
+          alert("Erreur lors de l'enregistrement de la catégorie : " + err.message);
+      } finally {
+          setIsSavingCategory(false);
+      }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+      if (!confirm("Voulez-vous vraiment supprimer cette catégorie ?")) return;
+      const { error } = await supabase.from('crm_categories').delete().eq('id', id).eq('tenant_id', tenantId);
+      if (error) alert("Erreur : " + error.message);
+      else setCategories(prev => prev.filter(c => c.id !== id));
   };
 
   const generateQuote = async () => {
@@ -230,10 +327,36 @@ export default function CRMCatalogPage() {
       } catch(err: any) { alert("Erreur d'enregistrement : " + err.message); } finally { setIsLoading(false); }
   };
 
-  const filteredProducts = products.filter(p => 
-    (p.name || '').toLowerCase().includes(search.toLowerCase()) || 
-    (p.category || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const handleBulkTechnicalSheets = async () => {
+      const selectedProducts = products.filter(p => selectedIds.has(p.id));
+      if (selectedProducts.length === 0) return;
+      setIsGeneratingPdf(true);
+      try {
+          const doc = new jsPDF();
+          for (let i = 0; i < selectedProducts.length; i++) {
+              if (i > 0) doc.addPage();
+              await generateTechnicalSheet(selectedProducts[i], doc);
+          }
+          doc.save(`Fiches_Techniques_Multiples.pdf`);
+      } catch(e) {
+          console.error(e);
+          alert("Erreur lors de la génération PDF.");
+      } finally {
+          setIsGeneratingPdf(false);
+          setSelectedIds(new Set());
+      }
+  };
+
+  const filteredProducts = React.useMemo(() => {
+    return products.filter(p => {
+      const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) || (p.category || '').toLowerCase().includes(search.toLowerCase());
+      const matchCat = categoryFilter === 'Toutes' || p.category === categoryFilter || (p.category || '').startsWith(categoryFilter + ' /');
+      const price = p.unit_price || p.price_ttc || 0;
+      const matchMin = minPrice === '' || price >= Number(minPrice);
+      const matchMax = maxPrice === '' || price <= Number(maxPrice);
+      return matchSearch && matchCat && matchMin && matchMax;
+    });
+  }, [products, search, categoryFilter, minPrice, maxPrice]);
 
   const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
 
@@ -249,119 +372,135 @@ export default function CRMCatalogPage() {
       </div>
 
       <div className="animate-in fade-in space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-            <div className="relative w-full sm:w-96">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-              <input 
-                type="text" 
-                placeholder="Rechercher un produit..." 
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14] transition-colors text-black dark:text-white"
-              />
+          <div className="flex flex-col gap-4 bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="relative w-full md:w-96">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <input type="text" placeholder="Rechercher un produit..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14] transition-colors text-black dark:text-white" />
+              </div>
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <button onClick={handleOpenAdd} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform"><Plus size={16}/> Nouveau</button>
+                <button onClick={() => setIsCategoryModalOpen(true)} className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-sm flex items-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors border border-zinc-200 dark:border-zinc-800"><FolderOpen size={16}/> Gérer Catégories</button>
+                <button onClick={handleOpenAiCampaign} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform"><Sparkles size={16}/> IA : Déstockage</button>
+              </div>
             </div>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button onClick={handleOpenAdd} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform">
-                 <Plus size={16}/> Nouveau
-              </button>
-              <button onClick={handleOpenAiCampaign} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform">
-                 <Sparkles size={16}/> IA : Déstockage
-              </button>
-              {selectedIds.size > 0 && (
-                <button onClick={() => setIsQuoteModalOpen(true)} className="bg-white dark:bg-zinc-800 text-black dark:text-white border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform">
-                  Créer un devis ({selectedIds.size})
-                </button>
-              )}
+            <div className="flex flex-col md:flex-row items-center gap-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <Filter size={16} className="text-zinc-400 shrink-0" />
+                <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] appearance-none cursor-pointer text-black dark:text-white">
+                  <option value="Toutes">Toutes les catégories</option>
+                  {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <SlidersHorizontal size={16} className="text-zinc-400 shrink-0" />
+                <input type="number" placeholder="Prix Min (F CFA)" value={minPrice} onChange={e => setMinPrice(e.target.value === '' ? '' : Number(e.target.value))} className="w-full md:w-32 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                <span className="text-zinc-400 font-bold">-</span>
+                <input type="number" placeholder="Prix Max (F CFA)" value={maxPrice} onChange={e => setMaxPrice(e.target.value === '' ? '' : Number(e.target.value))} className="w-full md:w-32 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+              </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-sm">
-            <table className="w-full text-left min-w-[800px]">
-              <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
-                <tr>
-                  <th className="p-4 w-12 text-center">
-                    <input 
-                      type="checkbox" 
-                      onChange={e => {
-                        if (e.target.checked) setSelectedIds(new Set(filteredProducts.map(p => p.id)));
-                        else setSelectedIds(new Set());
-                      }}
-                      checked={selectedIds.size > 0 && selectedIds.size === filteredProducts.length}
-                      className="w-4 h-4 accent-black dark:accent-[#39FF14]"
-                    />
-                  </th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Produit</th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Catégorie</th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Prix</th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut (Rotation)</th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Disponibilité</th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
-                {filteredProducts.map(product => {
-                  const status = getStockStatus(product.last_sold_date, product.created_at);
-                  return (
-                    <tr key={product.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors group">
-                      <td className="p-4 text-center">
-                        <input 
-                          type="checkbox" 
-                          checked={selectedIds.has(product.id)}
-                          onChange={() => toggleSelection(product.id)}
-                          className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer"
-                        />
-                      </td>
-                      <td className="p-4">
-                        <p className="font-bold text-sm text-black dark:text-white line-clamp-1">{product.name}</p>
-                      </td>
-                      <td className="p-4">
-                        <select 
-                          value={product.category || ''} 
-                          onChange={(e) => handleCategoryChange(product.id, e.target.value)}
-                          className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-bold px-3 py-1.5 rounded-lg outline-none focus:border-[#39FF14] text-zinc-700 dark:text-zinc-300 cursor-pointer"
-                        >
-                          <option value="">Non catégorisé</option>
-                          {uniqueCategories.map(cat => (
-                            <option key={cat as string} value={cat as string}>{cat as string}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-4">
-                        <p className="font-black text-sm">{product.unit_price ? product.unit_price.toLocaleString('fr-FR') : (product.price_ttc ? product.price_ttc.toLocaleString('fr-FR') : 0)} F</p>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${status.color}`}>
-                          {status.label}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <select 
-                          value={product.stock_status || 'Actif'} 
-                          onChange={(e) => handleStatusChange(product.id, e.target.value)}
-                          className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg outline-none cursor-pointer border appearance-none ${product.stock_status === 'Rupture' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' : 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'}`}
-                        >
-                          <option value="Actif">Actif</option>
-                          <option value="Rupture">Rupture</option>
-                        </select>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                           <button onClick={() => handleOpenEdit(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors" title="Éditer"><Edit size={14}/></button>
-                           <button onClick={() => handleDeleteProduct(product.id)} className="p-2 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white rounded-lg transition-colors" title="Supprimer"><Trash2 size={14}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filteredProducts.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="p-10 text-center text-zinc-500 font-bold uppercase text-xs tracking-widest italic">Aucun produit trouvé.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          {/* INTERFACE GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map(product => {
+               const status = getStockStatus(product.last_sold_date, product.created_at);
+               return (
+                 <div key={product.id} className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden flex flex-col hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-all shadow-sm group h-[320px]">
+                   <div className="h-40 bg-zinc-100 dark:bg-zinc-900 relative overflow-hidden shrink-0">
+                     {product.image_url ? (
+                       <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                     ) : (
+                       <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700"><Box size={40} /></div>
+                     )}
+                     <div className="absolute top-3 left-3 bg-white/80 dark:bg-black/60 p-1.5 rounded-lg backdrop-blur-md">
+                       <input type="checkbox" checked={selectedIds.has(product.id)} onChange={() => toggleSelection(product.id)} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer" />
+                     </div>
+                     <div className="absolute top-3 right-3">
+                        <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md ${status.color}`}>{status.label}</span>
+                     </div>
+                   </div>
+                   <div className="p-4 flex-1 flex flex-col">
+                     <p className="font-bold text-sm text-black dark:text-white line-clamp-2 mb-1">{product.name}</p>
+                     <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest truncate">{product.category || 'Non catégorisé'}</p>
+                     
+                     <div className="mt-auto pt-3 flex items-end justify-between border-t border-zinc-100 dark:border-zinc-800/50">
+                       <p className="font-black text-lg text-[#39FF14]">{(product.unit_price || product.price_ttc || 0).toLocaleString('fr-FR')} <span className="text-xs text-black dark:text-white">F</span></p>
+                       <div className="flex gap-1.5">
+                         <button onClick={() => setViewingProduct(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors shadow-sm" title="Voir Fiche Technique"><Eye size={14}/></button>
+                         <button onClick={() => handleOpenEdit(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors shadow-sm"><Edit size={14}/></button>
+                         <button onClick={() => handleDeleteProduct(product.id)} className="p-2 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white rounded-lg transition-colors shadow-sm"><Trash2 size={14}/></button>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               );
+            })}
+            {filteredProducts.length === 0 && (
+               <div className="col-span-full p-10 text-center text-zinc-500 font-bold uppercase text-xs tracking-widest italic bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl">Aucun produit trouvé.</div>
+            )}
           </div>
       </div>
+
+      {/* BARRE D'ACTIONS FLOTTANTE */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-white dark:text-black px-6 py-4 rounded-[2rem] shadow-2xl flex flex-wrap justify-center items-center gap-4 z-50 animate-in slide-in-from-bottom-8 border border-zinc-800 dark:border-zinc-200">
+          <div className="flex items-center gap-2 font-black uppercase tracking-widest text-xs shrink-0">
+            <span className="bg-[#39FF14] text-black w-6 h-6 rounded-full flex items-center justify-center">{selectedIds.size}</span>
+            Sélectionnés
+          </div>
+          <div className="hidden sm:block w-px h-6 bg-zinc-800 dark:bg-zinc-200 shrink-0"></div>
+          <button onClick={() => setIsQuoteModalOpen(true)} className="text-[#39FF14] dark:text-black font-black uppercase text-xs hover:scale-105 transition-transform flex items-center gap-2 shrink-0">
+            <FileText size={16} /> Créer un Devis
+          </button>
+          <button onClick={handleBulkTechnicalSheets} disabled={isGeneratingPdf} className="text-white dark:text-zinc-600 font-black uppercase text-xs hover:scale-105 transition-transform flex items-center gap-2 shrink-0 disabled:opacity-50">
+            {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} 
+            Générer Fiches Techniques
+          </button>
+        </div>
+      )}
+
+      {/* MODALE FICHE TECHNIQUE INDIVIDUELLE */}
+      {viewingProduct && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setViewingProduct(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 rounded-[2rem] p-8 max-w-2xl w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 flex flex-col md:flex-row gap-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <button onClick={() => setViewingProduct(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
+            
+            <div className="w-full md:w-1/2 flex flex-col items-center">
+              <div className="w-full aspect-square rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm mb-4">
+                {viewingProduct.image_url ? (
+                  <img src={viewingProduct.image_url} alt={viewingProduct.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700"><Box size={64} /></div>
+                )}
+              </div>
+            </div>
+            
+            <div className="w-full md:w-1/2 flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-3 py-1 rounded-full w-max mb-2 border border-[#39FF14]/30">{viewingProduct.category || 'Non catégorisé'}</span>
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white mb-2 leading-tight">{viewingProduct.name}</h2>
+              <p className="text-3xl font-black text-black dark:text-white mb-4">{(viewingProduct.unit_price || viewingProduct.price_ttc || 0).toLocaleString('fr-FR')} <span className="text-sm text-zinc-500">FCFA</span></p>
+              
+              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-6 flex-1 whitespace-pre-wrap">
+                 {viewingProduct.description || "Aucune description détaillée n'a été renseignée pour ce produit."}
+              </p>
+              
+              <div className="flex flex-col gap-3 mt-auto pt-6 border-t border-zinc-100 dark:border-zinc-800">
+                 <button onClick={async () => { setIsGeneratingPdf(true); await generateTechnicalSheet(viewingProduct); setIsGeneratingPdf(false); }} disabled={isGeneratingPdf} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
+                    {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                    Télécharger PDF Fiche
+                 </button>
+                 <button onClick={() => {
+                    const text = `Découvrez notre produit : *${viewingProduct.name}*\nPrix : ${(viewingProduct.unit_price || viewingProduct.price_ttc || 0).toLocaleString('fr-FR')} FCFA\n\n${viewingProduct.description || ''}`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                 }} className="w-full bg-[#25D366] text-white py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg">
+                    <Send size={16} /> Envoyer via WhatsApp
+                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODALE APERÇU DEVIS */}
       {isQuoteModalOpen && (
@@ -463,12 +602,85 @@ export default function CRMCatalogPage() {
                     <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Prix Unitaire (F CFA)</label>
                     <input type="number" value={editForm.unit_price} onChange={e => setEditForm({...editForm, unit_price: Number(e.target.value)})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
                 </div>
+                <div>
+                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block flex items-center gap-1"><ImageIcon size={14}/> URL de l'image de couverture</label>
+                    <input type="url" value={editForm.image_url} onChange={e => setEditForm({...editForm, image_url: e.target.value})} placeholder="https://..." className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                </div>
             </div>
             
             <button onClick={handleSaveProduct} disabled={isSavingEdit} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
                 {isSavingEdit ? <Loader2 size={16} className="animate-spin" /> : (isAddingProduct ? <Plus size={16} /> : <Edit size={16} />)}
                 Enregistrer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE GESTION DES CATÉGORIES */}
+      {isCategoryModalOpen && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsCategoryModalOpen(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 rounded-[2rem] p-8 max-w-2xl w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 flex flex-col md:flex-row gap-8 max-h-[90vh]">
+            <button onClick={() => setIsCategoryModalOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
+            
+            {/* Formulaire Catégorie */}
+            <div className="flex-1 space-y-4">
+              <h2 className="text-xl font-black uppercase tracking-tighter mb-6 text-black dark:text-white flex items-center gap-2"><FolderOpen size={20}/> {editingCategory ? 'Modifier' : 'Créer'} Catégorie</h2>
+              <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Nom de la catégorie *</label>
+                  <input type="text" value={categoryForm.name} onChange={e => setCategoryForm({...categoryForm, name: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+              </div>
+              <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Catégorie Parente (Optionnel)</label>
+                  <select value={categoryForm.parent_id} onChange={e => setCategoryForm({...categoryForm, parent_id: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer">
+                     <option value="">-- Aucune (Catégorie Principale) --</option>
+                     {categories.filter(c => !c.parent_id).map(c => (
+                         <option key={c.id} value={c.id}>{c.name}</option>
+                     ))}
+                  </select>
+              </div>
+              <div>
+                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Image de Couverture (URL)</label>
+                  <input type="url" value={categoryForm.cover_url} onChange={e => setCategoryForm({...categoryForm, cover_url: e.target.value})} placeholder="https://..." className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+              </div>
+              {categoryForm.cover_url && (
+                 <div className="w-full h-24 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden mt-2">
+                    <img src={categoryForm.cover_url} alt="Aperçu" className="w-full h-full object-cover" onError={(e: any) => e.target.style.display = 'none'} />
+                 </div>
+              )}
+              <div className="pt-2 flex gap-2">
+                 {editingCategory && <button onClick={() => { setEditingCategory(null); setCategoryForm({ name: '', parent_id: '', cover_url: '' }); }} className="flex-1 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800 transition">Annuler</button>}
+                 <button onClick={handleSaveCategory} disabled={isSavingCategory} className="flex-[2] bg-black dark:bg-white text-[#39FF14] dark:text-black py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
+                     {isSavingCategory ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Enregistrer
+                 </button>
+              </div>
+            </div>
+
+            {/* Liste des Catégories */}
+            <div className="flex-1 flex flex-col md:border-l border-zinc-200 dark:border-zinc-800 md:pl-8">
+              <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-4">Catégories Existantes</h3>
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                 {categories.map(c => (
+                    <div key={c.id} className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800 flex items-center justify-between group hover:border-[#39FF14] transition-colors">
+                       <div className="flex items-center gap-3">
+                          {c.cover_url ? (
+                             <img src={c.cover_url} alt="" className="w-8 h-8 rounded-lg object-cover bg-zinc-200 dark:bg-zinc-800" />
+                          ) : (
+                             <div className="w-8 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400"><FolderOpen size={14}/></div>
+                          )}
+                          <div>
+                             <p className="font-bold text-sm text-black dark:text-white line-clamp-1">{c.name}</p>
+                             {c.parent_id && <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mt-0.5">Sous-catégorie</p>}
+                          </div>
+                       </div>
+                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => { setEditingCategory(c); setCategoryForm({ name: c.name, parent_id: c.parent_id || '', cover_url: c.cover_url || '' }); }} className="p-1.5 text-zinc-400 hover:text-black dark:hover:text-white bg-white dark:bg-zinc-800 rounded-md shadow-sm"><Edit size={12}/></button>
+                          <button onClick={() => handleDeleteCategory(c.id)} className="p-1.5 text-zinc-400 hover:text-red-500 bg-white dark:bg-zinc-800 rounded-md shadow-sm"><Trash2 size={12}/></button>
+                       </div>
+                    </div>
+                 ))}
+                 {categories.length === 0 && <p className="text-xs text-zinc-400 italic">Aucune catégorie pour le moment.</p>}
+              </div>
+            </div>
           </div>
         </div>
       )}
