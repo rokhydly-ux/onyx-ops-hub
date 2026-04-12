@@ -79,7 +79,7 @@ const ECOSYSTEM_SAAS = [
   { id: "tiak", name: "Onyx Tiak", desc: "Logistique & Livreurs", price: "13 900 F", link: "/admin/saas/tiak", color: "bg-teal-500" },
   { id: "booking", name: "Onyx Booking", desc: "Rendez-vous", price: "13 900 F", link: "/admin/saas/booking", color: "bg-indigo-500" },
   { id: "tontine", name: "Onyx Tontine", desc: "Finance", price: "6 900 F", link: "/admin/saas/tontine", color: "bg-pink-500" },
-  { id: "formation", name: "Onyx Formation", desc: "Cours Androméda", price: "9 900 F", link: "/admin/saas/formation", color: "bg-yellow-500" },
+  { id: "formation", name: "Onyx Formation", desc: "Cours Androméda", price: "9 900 F", link: "/formation", color: "bg-yellow-500" },
   { id: "menu", name: "Onyx Menu", desc: "Resto", price: "13 900 F", link: "/admin/saas/menu", color: "bg-rose-500" },
   { id: "gold", name: "Pack Onyx Gold", desc: "L'Arsenal Complet VIP", price: "59 900 F", link: "/admin/saas/onyx-gold", color: "bg-lime-400" },
   { id: "cmpub", name: "Add-on CM Pub", desc: "Création de contenu", price: "49 900 F", link: "/admin/saas/cm-pub", color: "bg-purple-500" },
@@ -209,6 +209,8 @@ export default function AdminDashboard() {
   const [tempAdminProfile, setTempAdminProfile] = useState(adminProfile);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [histogramActiveIdx, setHistogramActiveIdx] = useState<number | null>(null);
+  const [showPrevisionnelModal, setShowPrevisionnelModal] = useState(false);
+  const [selectedCrmIds, setSelectedCrmIds] = useState<Set<string>>(new Set());
   
   const [chartFilter, setChartFilter] = useState<'week'|'month'|'year'>('week');
   const histogramData = (() => {
@@ -648,6 +650,23 @@ export default function AdminDashboard() {
       alert(`${suggestions.length} opportunité(s) générée(s) par l'IA. Veuillez les consulter dans le Planificateur.`);
     } else {
       alert("Scan IA terminé. Aucune nouvelle opportunité marketing détectée pour le moment.");
+    }
+  };
+
+  const handleBulkDeleteCrm = async () => {
+    if (selectedCrmIds.size === 0) return;
+    if (!confirm(`Voulez-vous vraiment supprimer ces ${selectedCrmIds.size} contacts de la base globale ?`)) return;
+    
+    try {
+      const idsToDelete = Array.from(selectedCrmIds);
+      const { error } = await supabase.from('clients').delete().in('id', idsToDelete).is('tenant_id', null);
+      if (error) throw error;
+      
+      setContacts(prev => prev.filter(c => !selectedCrmIds.has(c.id)));
+      setSelectedCrmIds(new Set());
+      alert("Contacts supprimés avec succès.");
+    } catch (err: any) {
+      alert("Erreur lors de la suppression : " + err.message);
     }
   };
 
@@ -2636,6 +2655,7 @@ export default function AdminDashboard() {
                   <div className="absolute -top-12 -right-12 p-12 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 text-[#39FF14]"><Wallet size={200}/></div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">Chiffre d&apos;Affaires Mensuel</p>
                   <p className={`font-sans text-3xl lg:text-4xl font-black text-[#39FF14] tracking-tighter`}>{stats.revenue.toLocaleString('fr-FR')} <span className="text-xl opacity-50 font-medium">F</span></p>
+                  <button onClick={(e) => { e.stopPropagation(); setShowPrevisionnelModal(true); }} className="absolute bottom-4 right-4 text-[#39FF14] text-[10px] font-black uppercase hover:underline z-20">Prévisionnel 12 mois</button>
                 </div>
 
                 <div onClick={() => setActiveView('team')} className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] cursor-pointer hover:border-[#00E5FF]/50 transition-all group relative overflow-hidden flex flex-col justify-between">
@@ -3297,8 +3317,11 @@ export default function AdminDashboard() {
               {crmViewMode === 'grid' ? (
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
                      {filteredContacts.map(c => (
-                        <div key={c.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm hover:border-[#39FF14] transition-all flex flex-col group">
-                           <div className="flex justify-between items-start mb-4">
+                        <div key={c.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm hover:border-[#39FF14] transition-all flex flex-col group relative">
+                           <div className="absolute top-4 left-4 z-10">
+                              <input type="checkbox" checked={selectedCrmIds.has(c.id)} onChange={(e) => { e.stopPropagation(); const newSet = new Set(selectedCrmIds); if (newSet.has(c.id)) newSet.delete(c.id); else newSet.add(c.id); setSelectedCrmIds(newSet); }} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer" />
+                           </div>
+                           <div className="flex justify-between items-start mb-4 pl-6">
                               <div className="flex items-center gap-3">
                                  {c.avatar_url ? <img onClick={(e) => { e.stopPropagation(); setViewingAvatarUrl(c.avatar_url!); }} src={c.avatar_url} className="w-12 h-12 rounded-2xl object-cover shadow-sm cursor-zoom-in hover:scale-105 transition-transform" title="Agrandir l'image" /> : <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">{c.full_name?.charAt(0)}</div>}
                                  <div>
@@ -3337,6 +3360,9 @@ export default function AdminDashboard() {
                 <table className="w-full text-left min-w-[800px]">
                   <thead className="bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
                     <tr>
+                      <th className="p-3 lg:p-4 text-center w-12">
+                        <input type="checkbox" checked={selectedCrmIds.size > 0 && selectedCrmIds.size === filteredContacts.length} onChange={(e) => { if (e.target.checked) setSelectedCrmIds(new Set(filteredContacts.map(c => c.id))); else setSelectedCrmIds(new Set()); }} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer" />
+                      </th>
                       <th className="p-3 lg:p-4 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Identité & WhatsApp</th>
                       <th className="p-3 lg:p-4 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Segment Terminal</th>
                       <th className="p-3 lg:p-4 text-[10px] lg:text-[11px] font-black uppercase tracking-[0.25em] text-zinc-400">Abonnements & Expirations</th>
@@ -3346,6 +3372,9 @@ export default function AdminDashboard() {
                   <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
                     {filteredContacts.map((c) => (
                       <tr key={c.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-all group">
+                        <td className="p-3 lg:p-4 text-center">
+                          <input type="checkbox" checked={selectedCrmIds.has(c.id)} onChange={() => { const newSet = new Set(selectedCrmIds); if (newSet.has(c.id)) newSet.delete(c.id); else newSet.add(c.id); setSelectedCrmIds(newSet); }} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer" />
+                        </td>
                         <td className="p-3 lg:p-4">
                           <div className="flex items-center gap-4 lg:gap-6">
                              {c.avatar_url ? <img onClick={(e) => { e.stopPropagation(); setViewingAvatarUrl(c.avatar_url!); }} src={c.avatar_url} alt="" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl object-cover shadow-sm shrink-0 cursor-zoom-in hover:scale-105 transition-transform" title="Agrandir l'image" /> : <div className="w-10 h-10 lg:w-12 lg:h-12 bg-zinc-100 dark:bg-zinc-800 rounded-xl lg:rounded-2xl flex items-center justify-center font-black text-sm lg:text-base text-black dark:text-white group-hover:bg-black group-hover:text-[#39FF14] transition-all uppercase shadow-sm shrink-0">{c.full_name?.charAt(0)}</div>}
@@ -3387,6 +3416,19 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
+              )}
+
+              {/* BARRE FLOTTANTE POUR SÉLECTION CRM */}
+              {selectedCrmIds.size > 0 && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-white dark:text-black px-6 py-4 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 z-50 animate-in slide-in-from-bottom-8 border border-zinc-800 dark:border-zinc-200">
+                  <div className="flex items-center gap-2 font-black uppercase tracking-widest text-xs">
+                    <span className="bg-[#39FF14] text-black w-6 h-6 rounded-full flex items-center justify-center">{selectedCrmIds.size}</span> Sélectionnés
+                  </div>
+                  <div className="w-px h-6 bg-zinc-800 dark:bg-zinc-200"></div>
+                  <button onClick={handleBulkDeleteCrm} className="text-red-500 hover:text-red-400 font-black uppercase text-xs flex items-center gap-2 transition-transform hover:scale-105">
+                    <Trash2 size={16} /> Supprimer
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -5624,6 +5666,23 @@ export default function AdminDashboard() {
         </div>
       )}
       
+      {/* MODALE PRÉVISIONNEL */}
+      {showPrevisionnelModal && (
+        <div id="modal-overlay" onClick={handleOutsideClick(setShowPrevisionnelModal, false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] max-w-sm w-full p-8 shadow-2xl relative animate-in zoom-in-95 my-auto text-center">
+             <button onClick={() => setShowPrevisionnelModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
+             <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"><Activity size={28}/></div>
+             <h2 className="text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white">CA Prévisionnel</h2>
+             <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6">Projection sur 12 mois (ARR)</p>
+             <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl flex flex-col items-center justify-center mb-6">
+                <p className="text-4xl font-black text-[#39FF14] tracking-tighter">{(stats.revenue * 12).toLocaleString('fr-FR')} F</p>
+                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mt-3">Basé sur le MRR actuel : {stats.revenue.toLocaleString('fr-FR')} F/mois</p>
+             </div>
+             <button onClick={() => setShowPrevisionnelModal(false)} className="w-full py-4 bg-black dark:bg-white text-white dark:text-black rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg">Fermer</button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

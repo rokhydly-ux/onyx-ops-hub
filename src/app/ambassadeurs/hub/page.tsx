@@ -31,6 +31,7 @@ const PRODUCTS_CATALOG = [
     { name: "Onyx Stock (Inventaire)", price: 13900, type: "saas" },
     { name: "Onyx Tiak (Livreurs)", price: 13900, type: "saas" },
     { name: "Onyx Tontine", price: 6900, type: "saas" },
+    { name: "Onyx Formation", price: 9900, type: "saas" },
   ]},
   { category: "🚀 Options & High-Ticket (15% / 5%)", items: [
     { name: "Option CM & Pub", price: 49900, type: "service" },
@@ -172,7 +173,7 @@ export default function AmbassadorHub() {
   const totalEarnings = prospects.reduce((sum, p) => {
     if (p.status === 'Converti' || p.status === 'Actif' || p.status === 'Payé') {
        const productName = p.intent || 'Onyx Jaay';
-       const price = productName.includes('Tekki Pro') ? 27900 : productName.includes('Tekki') ? 22900 : productName.includes('CRM') ? 29900 : productName.includes('Gold') ? 59900 : 13900;
+       const price = productName.includes('Tekki Pro') ? 27900 : productName.includes('Tekki') ? 22900 : productName.includes('CRM') ? 29900 : productName.includes('Gold') ? 59900 : productName.includes('Formation') ? 9900 : productName.includes('Tontine') ? 6900 : 13900;
        return sum + calculateCommission(price, false, true);
     }
     return sum;
@@ -609,7 +610,7 @@ export default function AmbassadorHub() {
                 <tbody className={`divide-y ${isDark ? 'divide-zinc-800' : 'divide-zinc-200'}`}>
                   {prospects.map((prospect, index) => {
                     const productName = prospect.intent || 'Onyx Jaay';
-                    const price = productName.includes('Tekki Pro') ? 27900 : productName.includes('Tekki') ? 22900 : productName.includes('CRM') ? 29900 : productName.includes('Gold') ? 59900 : 13900;
+                    const price = productName.includes('Tekki Pro') ? 27900 : productName.includes('Tekki') ? 22900 : productName.includes('CRM') ? 29900 : productName.includes('Gold') ? 59900 : productName.includes('Formation') ? 9900 : productName.includes('Tontine') ? 6900 : 13900;
                     const hasCM = productName.includes('CM');
                     const commission = calculateCommission(price, hasCM, true);
                     

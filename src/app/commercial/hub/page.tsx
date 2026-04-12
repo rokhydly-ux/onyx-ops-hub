@@ -501,6 +501,7 @@ export default function CommercialHub() {
                     <option value="Onyx Stock">Onyx Stock (Inventaire Seul) - 13.900 F</option>
                     <option value="Onyx Tiak">Onyx Tiak (Logistique Seule) - 13.900 F</option>
                     <option value="Onyx Tontine">Onyx Tontine (Finance) - 6.900 F</option>
+                    <option value="Onyx Formation">Onyx Formation (Cours Androméda) - 9.900 F</option>
                   </optgroup>
 
                   <optgroup label="🚀 OFFRES HIGH-TICKET (Agence)" className={`${isDark ? 'bg-zinc-900' : 'bg-white'} text-[#00E5FF] font-black`}>
