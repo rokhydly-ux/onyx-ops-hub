@@ -231,41 +231,51 @@ function CRMSettingsContent() {
           let currentCustomerName = "";
           let currentCustomerPhone = "";
           let currentDate = "";
+          const cleanedData: any[] = [];
 
-          results.data.forEach((row: any) => {
+          for (const row of results.data as any[]) {
             const r: any = {};
             Object.keys(row).forEach(k => r[k.toLowerCase()] = row[k]);
 
-            const ref = r['référence de la commande'] || r['order reference'] || r['name'] || r['référence'] || currentOrderRef;
-            if (ref) currentOrderRef = ref;
+            const ref = r['référence de la commande'] || r['order reference'] || r['name'] || r['référence'];
+            if (ref) {
+              currentOrderRef = ref;
+              currentCustomerName = r['client/nom'] || r['client'] || r['customer'] || '';
+              currentCustomerPhone = r['téléphone'] || r['client/téléphone'] || r['client/téléphone/mobile'] || r['phone'] || '';
+              currentDate = r['date de la commande'] || r['order date'] || r['date'] || '';
+            }
 
-            const customerName = r['client/nom'] || r['client'] || r['customer'] || currentCustomerName;
-            if (customerName) currentCustomerName = customerName;
+            cleanedData.push({
+              ...r,
+              'référence de la commande': currentOrderRef,
+              'client/nom': currentCustomerName,
+              'téléphone': currentCustomerPhone,
+              'date de la commande': currentDate
+            });
+          }
 
-            const customerPhone = r['téléphone'] || r['client/téléphone'] || r['phone'] || currentCustomerPhone;
-            if (customerPhone) currentCustomerPhone = customerPhone;
-
-            const date = r['date de la commande'] || r['order date'] || r['date'] || currentDate;
-            if (date) currentDate = date;
+          cleanedData.forEach((r: any) => {
+            const ref = r['référence de la commande'];
+            if (!ref) return; // Ignore les lignes totalement vides
 
             const productName = r['lignes de commande/produit/nom'] || r['produit'] || r['product'] || '';
-            const unitPriceRaw = r['lignes de commande/prix unitaire'] || r['prix unitaire'] || r['unit price'] || '0';
+            const unitPriceRaw = r['lignes de commande/prix unitaire'] || r['prix unitaire'] || r['unit price'] || r['total'] || '0';
             const unitPrice = parseFloat(String(unitPriceRaw).replace(/[^0-9.-]+/g, '')) || 0;
             const quantityRaw = r['lignes de commande/quantité'] || r['quantité'] || r['quantity'] || '1';
             const quantity = parseFloat(String(quantityRaw).replace(/[^0-9.-]+/g, '')) || 1;
 
-            if (!ordersMap.has(currentOrderRef)) {
-              ordersMap.set(currentOrderRef, {
-                ref: currentOrderRef,
-                customerName: currentCustomerName,
-                customerPhone: currentCustomerPhone,
-                date: currentDate,
+            if (!ordersMap.has(ref)) {
+              ordersMap.set(ref, {
+                ref: ref,
+                customerName: r['client/nom'],
+                customerPhone: r['téléphone'],
+                date: r['date de la commande'],
                 items: [],
                 total: 0
               });
             }
 
-            const order = ordersMap.get(currentOrderRef);
+            const order = ordersMap.get(ref);
             if (productName) {
               order.items.push({ name: productName, price: unitPrice, quantity });
               order.total += unitPrice * quantity;
@@ -320,10 +330,14 @@ function CRMSettingsContent() {
           const ordersArray = Array.from(ordersMap.values() as Iterable<any>);
           const totalRows = ordersArray.length;
           const chunkSize = 300;
+          const startTime = Date.now();
           
           for (let i = 0; i < totalRows; i += chunkSize) {
               const chunk = ordersArray.slice(i, i + chunkSize);
-              setProgressText(`Traitement de la ligne ${i} sur ${totalRows}...`);
+              const processed = i + chunk.length;
+              const elapsed = Date.now() - startTime;
+              const remainingSecs = Math.max(0, Math.round(((elapsed / processed) * totalRows - elapsed) / 1000));
+              setProgressText(`Traitement de la ligne ${processed} sur ${totalRows}... (${remainingSecs}s restantes)`);
               
               const clientsToUpsert: any[] = [];
               const ordersToInsert: any[] = [];
@@ -375,20 +389,24 @@ function CRMSettingsContent() {
               const productsToUpsert = Array.from(uniqueProductsMap.values());
 
               if (clientsToUpsert.length > 0) {
-                  await supabase.from('clients').upsert(clientsToUpsert, { onConflict: 'phone, tenant_id' });
+                  const { error: clientError } = await supabase.from('clients').upsert(clientsToUpsert, { onConflict: 'phone, tenant_id' });
+                  if (clientError) throw new Error("Erreur Clients: " + clientError.message);
               }
               if (productsToUpsert.length > 0) {
-                  await supabase.from('crm_products').upsert(productsToUpsert, { onConflict: 'name, tenant_id' });
+                  const { error: productError } = await supabase.from('crm_products').upsert(productsToUpsert, { onConflict: 'name, tenant_id' });
+                  if (productError) throw new Error("Erreur Produits: " + productError.message);
               }
               if (ordersToInsert.length > 0) {
-                  await supabase.from('crm_orders').upsert(ordersToInsert, { onConflict: 'order_ref, tenant_id' });
+                  const { error: orderError } = await supabase.from('crm_orders').upsert(ordersToInsert, { onConflict: 'order_ref, tenant_id' });
+                  if (orderError) throw new Error("Erreur Commandes: " + orderError.message);
               }
               if (uniquePhones.size > 0) {
                   const phonesArray = Array.from(uniquePhones);
-                  await supabase.from('crm_leads').update({ status: 'Gagné', type: 'Client' }).in('phone', phonesArray).eq('tenant_id', tenantId);
+                  const { error: leadError } = await supabase.from('crm_leads').update({ status: 'Gagné', type: 'Client' }).in('phone', phonesArray).eq('tenant_id', tenantId);
+                  if (leadError) throw new Error("Erreur Leads: " + leadError.message);
               }
 
-              setProgress(Math.round(((i + chunk.length) / totalRows) * 100));
+              setProgress(Math.round((processed / totalRows) * 100));
           }
 
           setProgressText('Importation terminée !');

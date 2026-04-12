@@ -126,6 +126,7 @@ export default function LeadsKanbanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [productFilter, setProductFilter] = useState("Tous");
+  const [sourceFilter, setSourceFilter] = useState("Toutes");
   const [userId, setUserId] = useState<string | null>(null);
   const [commercialId, setCommercialId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('admin');
@@ -164,6 +165,11 @@ export default function LeadsKanbanPage() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrText, setOcrText] = useState("");
   const [showStagnantList, setShowStagnantList] = useState(false);
+
+  // Import Progress State
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importProgressText, setImportProgressText] = useState('');
 
   // Fetch notes when a lead is selected
   useEffect(() => {
@@ -391,14 +397,27 @@ export default function LeadsKanbanPage() {
           const chunkArray = <T,>(arr: T[], size: number): T[][] => 
               Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
           
+          if (newLeads.length === 0) return alert("Aucun lead valide trouvé.");
+          setIsImporting(true);
+          setImportProgress(0);
+          setImportProgressText('Démarrage de l\'importation...');
+
           const chunks = chunkArray(newLeads, 300);
           let allData: any[] = [];
           let hasError = false;
+          let processed = 0;
+          const startTime = Date.now();
 
           for (const chunk of chunks) {
               const { data, error } = await supabase.from('crm_leads').upsert(chunk, { onConflict: 'phone, tenant_id' }).select();
               if (error) { alert("Erreur sur un lot : " + error.message); hasError = true; break; }
               if (data) allData = [...allData, ...data];
+              
+              processed += chunk.length;
+              const elapsed = Date.now() - startTime;
+              const remainingSecs = Math.max(0, Math.round(((elapsed / processed) * newLeads.length - elapsed) / 1000));
+              setImportProgress(Math.round((processed / newLeads.length) * 100));
+              setImportProgressText(`Traitement de la ligne ${processed} sur ${newLeads.length}... (${remainingSecs}s restantes)`);
           }
 
           if (!hasError && allData.length > 0) {
@@ -411,6 +430,7 @@ export default function LeadsKanbanPage() {
              if (!hasError) alert("Aucune nouvelle donnée importée.");
           }
           if (fileInputRef.current) fileInputRef.current.value = '';
+          setIsImporting(false);
        }
     });
   };
@@ -588,7 +608,8 @@ export default function LeadsKanbanPage() {
   const filteredLeads = leads.filter(l => 
     ((l.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
     (l.phone || '').includes(searchTerm)) &&
-    (productFilter === "Tous" || l.intent === productFilter)
+    (productFilter === "Tous" || l.intent === productFilter) &&
+    (sourceFilter === "Toutes" || l.source === sourceFilter)
   );
 
   const stagnantLeads = leads.filter(l => (l.status === 'Nouveaux Leads' || !l.status) && l.created_at && new Date(l.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
@@ -640,6 +661,16 @@ export default function LeadsKanbanPage() {
             <option value="Tous">Tous les produits</option>
             {Array.from(new Set(leads.map(l => l.intent).filter(Boolean))).map(intent => (
               <option key={intent as string} value={intent as string}>{intent as string}</option>
+            ))}
+          </select>
+          <select
+            value={sourceFilter}
+            onChange={e => setSourceFilter(e.target.value)}
+            className="px-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] transition-colors appearance-none cursor-pointer"
+          >
+            <option value="Toutes">Toutes les sources</option>
+            {Array.from(new Set(leads.map(l => l.source).filter(Boolean))).map(source => (
+              <option key={source as string} value={source as string}>{source as string}</option>
             ))}
           </select>
           <button onClick={handleExportCSV} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition-colors shadow-sm">
@@ -1067,6 +1098,22 @@ export default function LeadsKanbanPage() {
                   </div>
               </div>
           </div>
+      )}
+
+      {/* --- IMPORT PROGRESS MODAL --- */}
+      {isImporting && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 rounded-3xl p-8 max-w-md w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 text-center">
+            <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"><UploadCloud size={24}/></div>
+            <h3 className="text-xl font-black uppercase mb-2 text-black dark:text-white">Importation en cours</h3>
+            <div className="mb-6 w-full text-left animate-in fade-in">
+                <div className="w-full bg-zinc-200 rounded-full h-2.5 dark:bg-zinc-800 overflow-hidden shadow-inner">
+                   <div className="bg-[#39FF14] h-2.5 rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
+                </div>
+                <p className="text-xs font-bold text-zinc-500 mt-2 tracking-widest uppercase text-center">{importProgressText}</p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
