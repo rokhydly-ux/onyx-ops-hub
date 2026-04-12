@@ -247,7 +247,10 @@ export default function LeadsKanbanPage() {
     
     const { data } = await query
       .order('created_at', { ascending: false });
-    if (data) setLeads(data);
+    if (data) {
+       const sortedData = data.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+       setLeads(sortedData);
+    }
     setIsLoading(false);
   };
 
@@ -369,10 +372,14 @@ export default function LeadsKanbanPage() {
              };
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
-          const { data, error } = await supabase.from('crm_leads').insert(newLeads).select();
+          // UTILISATION DE UPSERT POUR METTRE À JOUR LES DOUBLONS AU LIEU DE LES CRÉER
+          const { data, error } = await supabase.from('crm_leads').upsert(newLeads, { onConflict: 'phone, tenant_id' }).select();
           if (!error && data) {
-             setLeads(prev => [...data, ...prev]);
-             alert(`${data.length} leads importés et scorés par l'IA avec succès !`);
+             setLeads(prev => {
+                 const merged = [...data, ...prev.filter(p => !data.find((d: any) => d.id === p.id))];
+                 return merged.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+             });
+             alert(`${data.length} leads importés et mis à jour par l'IA avec succès !`);
           } else {
              alert("Erreur lors de l'importation : " + error?.message);
           }
@@ -585,6 +592,15 @@ export default function LeadsKanbanPage() {
                 <Facebook size={16}/> Simuler Lead FB
               </button>
             </>
+          )}
+          {userRole !== 'commercial' && (
+            <button onClick={async () => {
+                if (confirm("🚨 DANGER : Voulez-vous vraiment supprimer TOUS vos leads ? Cette action est irréversible !")) {
+                    const { error } = await supabase.from('crm_leads').delete().eq('tenant_id', userId);
+                    if (error) alert("Erreur : " + error.message);
+                    else { alert("Base purgée avec succès !"); setLeads([]); }
+                }
+            }} className="flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-colors shadow-sm"><Trash2 size={16}/> Purger Base</button>
           )}
           <button onClick={handleClearLostLeads} className="flex items-center gap-2 bg-red-500/10 text-red-500 border border-red-500/30 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-colors shadow-sm">
             <Trash2 size={16}/> Vider Perdus

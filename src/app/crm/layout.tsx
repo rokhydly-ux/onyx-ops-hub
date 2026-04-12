@@ -61,6 +61,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
           setCrmSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
           if (data.theme_mode) {
              setTheme(data.theme_mode);
+             // Forçage immédiat sur le DOM pour Tailwind
+             if (data.theme_mode === 'dark') document.documentElement.classList.add('dark');
+             else document.documentElement.classList.remove('dark');
           }
         }
       }
@@ -71,6 +74,10 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const toggleTheme = async () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
+    
+    // Injection directe de la classe pour pallier aux lenteurs de next-themes
+    if (newTheme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
     
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
