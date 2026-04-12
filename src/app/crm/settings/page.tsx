@@ -326,10 +326,19 @@ function CRMSettingsContent() {
       setProgress(0);
       setProgressText('Démarrage du traitement...');
       try {
-          // 1. SÉCURISER LA RÉCUPÉRATION DU USER ET DU TENANT_ID
-          const { data: { user }, error: authError } = await supabase.auth.getUser();
-          if (authError || !user) throw new Error("Erreur d'authentification : Impossible de lier les données au tenant_id.");
-          const tenantId = user.user_metadata?.tenant_id || user.id;
+          // 1. Fetch de l'utilisateur EN TEMPS RÉEL (pas de state externe)
+          const { data: authData, error: authError } = await supabase.auth.getUser();
+          const userId = authData?.user?.user_metadata?.tenant_id || authData?.user?.id;
+
+          if (authError || !userId) {
+              console.error("Erreur d'authentification complète:", authError);
+              alert("Erreur critique : Impossible de vérifier votre identité. Veuillez rafraîchir la page.");
+              setPendingOdooFile(null);
+              setIsSubmittingOdoo(false);
+              setProgress(0);
+              setProgressText('');
+              return;
+          }
 
           const { ordersMap } = pendingOdooFile.data;
           const ordersArray = Array.from(ordersMap.values() as Iterable<any>);
@@ -361,7 +370,7 @@ function CRMSettingsContent() {
                   if (cleanPhone && !uniquePhones.has(cleanPhone)) {
                       uniquePhones.add(cleanPhone);
                       clientsToUpsert.push({
-                          tenant_id: tenantId, // <-- LA LIGNE CRUCIALE (Injection forcée)
+                          tenant_id: userId, // Injection de l'ID vérifié
                           phone: cleanPhone,
                           full_name: order.customerName || 'Client Odoo',
                           type: 'Client',
@@ -371,7 +380,7 @@ function CRMSettingsContent() {
                   for (const item of order.items) {
                       if (item.name && !uniqueProductsMap.has(item.name)) {
                           uniqueProductsMap.set(item.name, {
-                              tenant_id: tenantId, // <-- LA LIGNE CRUCIALE (Injection forcée)
+                              tenant_id: userId, // Injection de l'ID vérifié
                               name: item.name,
                               unit_price: item.price,
                               price_ttc: item.price,
@@ -381,7 +390,7 @@ function CRMSettingsContent() {
                   }
 
                   ordersToInsert.push({
-                      tenant_id: tenantId, // <-- LA LIGNE CRUCIALE (Injection forcée)
+                      tenant_id: userId, // Injection de l'ID vérifié
                       order_ref: order.ref,
                       customer_name: order.customerName,
                       customer_phone: cleanPhone,
@@ -392,6 +401,10 @@ function CRMSettingsContent() {
               }
 
               const productsToUpsert = Array.from(uniqueProductsMap.values());
+
+              console.log("🔍 VÉRIFICATION DU PAYLOAD CONTACTS :", clientsToUpsert[0]);
+              console.log("🔍 VÉRIFICATION DU PAYLOAD PRODUITS :", productsToUpsert[0]);
+              console.log("🔍 VÉRIFICATION DU PAYLOAD COMMANDES :", ordersToInsert[0]);
 
               if (clientsToUpsert.length > 0) {
                   const { error: clientError } = await supabase.from('crm_contacts').upsert(clientsToUpsert, { onConflict: 'phone, tenant_id' });
@@ -407,7 +420,7 @@ function CRMSettingsContent() {
               }
               if (uniquePhones.size > 0) {
                   const phonesArray = Array.from(uniquePhones);
-                  const { error: leadError } = await supabase.from('crm_leads').update({ status: 'Gagné', type: 'Client' }).in('phone', phonesArray).eq('tenant_id', tenantId);
+                  const { error: leadError } = await supabase.from('crm_leads').update({ status: 'Gagné', type: 'Client' }).in('phone', phonesArray).eq('tenant_id', userId);
                   if (leadError) throw new Error("Erreur Leads: " + leadError.message);
               }
 

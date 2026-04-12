@@ -3215,6 +3215,15 @@ export default function AdminDashboard() {
                    >
                       <Plus size={14} /> Ajouter Nouveau
                    </button>
+                   {filteredContacts.length > 0 && (
+                      <label className="flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-zinc-800 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-[#39FF14] transition-colors shadow-sm">
+                          <input type="checkbox" checked={selectedCrmIds.size > 0 && selectedCrmIds.size === filteredContacts.length} onChange={e => {
+                              if (e.target.checked) setSelectedCrmIds(new Set(filteredContacts.map(c => c.id)));
+                              else setSelectedCrmIds(new Set());
+                          }} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-black dark:hover:text-white">Sélection Multiple</span>
+                      </label>
+                   )}
                 </div>
               </div>
               
@@ -3420,7 +3429,7 @@ export default function AdminDashboard() {
 
               {/* BARRE FLOTTANTE POUR SÉLECTION CRM */}
               {selectedCrmIds.size > 0 && (
-                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-white dark:text-black px-6 py-4 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 z-50 animate-in slide-in-from-bottom-8 border border-zinc-800 dark:border-zinc-200">
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-white dark:text-black px-6 py-4 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 z-[100] animate-in slide-in-from-bottom-8 border border-zinc-800 dark:border-zinc-200">
                   <div className="flex items-center gap-2 font-black uppercase tracking-widest text-xs">
                     <span className="bg-[#39FF14] text-black w-6 h-6 rounded-full flex items-center justify-center">{selectedCrmIds.size}</span> Sélectionnés
                   </div>
