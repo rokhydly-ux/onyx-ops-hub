@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   Plus, Search, Phone, MessageSquare, Mail, 
   UploadCloud, Facebook, Activity, CheckCircle, Wallet, AlertTriangle,
-  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan, Eye
+  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan, Eye, Download
 } from 'lucide-react';
 import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
 import { formatDistanceToNow } from 'date-fns';
@@ -549,6 +549,30 @@ export default function LeadsKanbanPage() {
     }
   };
 
+  // --- EXPORT CSV (Prend en compte les filtres actifs : Recherche & Produit) ---
+  const handleExportCSV = () => {
+    if (filteredLeads.length === 0) return alert("Aucun lead à exporter.");
+    const exportData = filteredLeads.map(l => ({
+      'Nom Complet': l.full_name,
+      'Téléphone': l.phone,
+      'Statut Kanban': l.status || 'Nouveaux Leads',
+      'Produit / Intention': l.intent || 'N/A',
+      'Score (IA)': l.lead_score || 'N/A',
+      'Budget Estimé (FCFA)': l.budget || l.amount || 0,
+      'Source': l.source || 'N/A',
+      'Date de création': new Date(l.created_at).toLocaleDateString('fr-FR')
+    }));
+    const csv = Papa.unparse(exportData);
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' }); // Ajout du BOM UTF-8 pour la compatibilité Excel
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Leads_Onyx_Filtres_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const filteredLeads = leads.filter(l => 
     ((l.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
     (l.phone || '').includes(searchTerm)) &&
@@ -606,6 +630,9 @@ export default function LeadsKanbanPage() {
               <option key={intent as string} value={intent as string}>{intent as string}</option>
             ))}
           </select>
+          <button onClick={handleExportCSV} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition-colors shadow-sm">
+            <Download size={16}/> Exporter CSV
+          </button>
           {userRole !== 'commercial' && (
             <>
               <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleSmartImport} />
