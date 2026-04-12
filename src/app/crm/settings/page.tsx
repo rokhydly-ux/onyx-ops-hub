@@ -28,6 +28,8 @@ function CRMSettingsContent() {
   const [isSubmittingOdoo, setIsSubmittingOdoo] = useState(false);
   const odooFileInputRef = useRef<HTMLInputElement>(null);
   const [pendingOdooFile, setPendingOdooFile] = useState<any>(null);
+  const [progress, setProgress] = useState(0);
+  const [progressText, setProgressText] = useState('');
 
   const [msgJ0, setMsgJ0] = useState('Bonjour [Nom_Client], voici notre offre détaillée pour le montant de [Montant_Devis].');
   const [msgJ2, setMsgJ2] = useState('Bonjour [Nom_Client], avez-vous pu consulter notre proposition ?');
@@ -311,83 +313,94 @@ function CRMSettingsContent() {
   const handleConfirmOdooImport = async () => {
       if (!pendingOdooFile) return;
       setIsSubmittingOdoo(true);
+      setProgress(0);
+      setProgressText('Démarrage du traitement...');
       try {
           const { ordersMap, tenantId } = pendingOdooFile.data;
-          const clientsToUpsert: any[] = [];
-          const productsToUpsert: any[] = [];
-          const ordersToInsert: any[] = [];
+          const ordersArray = Array.from(ordersMap.values() as Iterable<any>);
+          const totalRows = ordersArray.length;
+          const chunkSize = 300;
           
-          const uniquePhones = new Set();
-          const uniqueProducts = new Set();
+          for (let i = 0; i < totalRows; i += chunkSize) {
+              const chunk = ordersArray.slice(i, i + chunkSize);
+              setProgressText(`Traitement de la ligne ${i} sur ${totalRows}...`);
+              
+              const clientsToUpsert: any[] = [];
+              const ordersToInsert: any[] = [];
+              const uniquePhones = new Set<string>();
+              const uniqueProductsMap = new Map<string, any>();
 
-          for (const order of Array.from(ordersMap.values() as Iterable<any>)) {
-            let cleanPhone = String(order.customerPhone || '').replace(/\s+/g, '');
-            if (cleanPhone && !cleanPhone.startsWith('+') && cleanPhone.length > 0) {
-                 if (cleanPhone.startsWith('00')) cleanPhone = '+' + cleanPhone.substring(2);
-                 else if (cleanPhone.length === 9) cleanPhone = `+221${cleanPhone}`;
-                 else if (cleanPhone.length === 10 && cleanPhone.startsWith('0')) cleanPhone = `+33${cleanPhone.substring(1)}`;
-                 else cleanPhone = `+${cleanPhone}`;
-            }
-            
-            if (cleanPhone && !uniquePhones.has(cleanPhone)) {
-                uniquePhones.add(cleanPhone);
-                clientsToUpsert.push({
-                    tenant_id: tenantId,
-                    phone: cleanPhone,
-                    full_name: order.customerName || 'Client Odoo',
-                    type: 'Client',
-                });
-            }
+              for (const order of chunk) {
+                  let cleanPhone = String(order.customerPhone || '').replace(/\s+/g, '');
+                  if (cleanPhone && !cleanPhone.startsWith('+') && cleanPhone.length > 0) {
+                       if (cleanPhone.startsWith('00')) cleanPhone = '+' + cleanPhone.substring(2);
+                       else if (cleanPhone.length === 9) cleanPhone = `+221${cleanPhone}`;
+                       else if (cleanPhone.length === 10 && cleanPhone.startsWith('0')) cleanPhone = `+33${cleanPhone.substring(1)}`;
+                       else cleanPhone = `+${cleanPhone}`;
+                  }
+                  
+                  if (cleanPhone && !uniquePhones.has(cleanPhone)) {
+                      uniquePhones.add(cleanPhone);
+                      clientsToUpsert.push({
+                          tenant_id: tenantId,
+                          phone: cleanPhone,
+                          full_name: order.customerName || 'Client Odoo',
+                          type: 'Client',
+                      });
+                  }
 
-            for (const item of order.items) {
-                if (item.name && !uniqueProducts.has(item.name)) {
-                    uniqueProducts.add(item.name);
-                    productsToUpsert.push({
-                        tenant_id: tenantId,
-                        name: item.name,
-                        unit_price: item.price,
-                        price_ttc: item.price, // Permet la visibilité dans le PDF Studio
-                        last_sold_date: order.date ? new Date(order.date).toISOString() : new Date().toISOString()
-                    });
-                }
-            }
+                  for (const item of order.items) {
+                      if (item.name && !uniqueProductsMap.has(item.name)) {
+                          uniqueProductsMap.set(item.name, {
+                              tenant_id: tenantId,
+                              name: item.name,
+                              unit_price: item.price,
+                              price_ttc: item.price,
+                              last_sold_date: order.date ? new Date(order.date).toISOString() : new Date().toISOString()
+                          });
+                      }
+                  }
 
-            ordersToInsert.push({
-                tenant_id: tenantId,
-                order_ref: order.ref,
-                customer_name: order.customerName,
-                customer_phone: cleanPhone,
-                order_date: order.date ? new Date(order.date).toISOString() : new Date().toISOString(),
-                total_amount: order.total,
-                items: order.items
-            });
+                  ordersToInsert.push({
+                      tenant_id: tenantId,
+                      order_ref: order.ref,
+                      customer_name: order.customerName,
+                      customer_phone: cleanPhone,
+                      order_date: order.date ? new Date(order.date).toISOString() : new Date().toISOString(),
+                      total_amount: order.total,
+                      items: order.items
+                  });
+              }
+
+              const productsToUpsert = Array.from(uniqueProductsMap.values());
+
+              if (clientsToUpsert.length > 0) {
+                  await supabase.from('clients').upsert(clientsToUpsert, { onConflict: 'phone, tenant_id' });
+              }
+              if (productsToUpsert.length > 0) {
+                  await supabase.from('crm_products').upsert(productsToUpsert, { onConflict: 'name, tenant_id' });
+              }
+              if (ordersToInsert.length > 0) {
+                  await supabase.from('crm_orders').upsert(ordersToInsert, { onConflict: 'order_ref, tenant_id' });
+              }
+              if (uniquePhones.size > 0) {
+                  const phonesArray = Array.from(uniquePhones);
+                  await supabase.from('crm_leads').update({ status: 'Gagné', type: 'Client' }).in('phone', phonesArray).eq('tenant_id', tenantId);
+              }
+
+              setProgress(Math.round(((i + chunk.length) / totalRows) * 100));
           }
 
-          if (clientsToUpsert.length > 0) {
-              const chunks = chunkArray(clientsToUpsert, 300);
-              for(const chunk of chunks) await supabase.from('clients').upsert(chunk, { onConflict: 'phone, tenant_id' });
-          }
-
-          if (productsToUpsert.length > 0) {
-              const chunks = chunkArray(productsToUpsert, 300);
-              for(const chunk of chunks) await supabase.from('crm_products').upsert(chunk, { onConflict: 'name, tenant_id' });
-          }
-
-          if (ordersToInsert.length > 0) {
-              const chunks = chunkArray(ordersToInsert, 300);
-              for(const chunk of chunks) await supabase.from('crm_orders').upsert(chunk, { onConflict: 'order_ref, tenant_id' });
-          }
-
-          const phoneChunks = chunkArray(Array.from(uniquePhones as Iterable<string>), 300);
-          for(const chunk of phoneChunks) await supabase.from('crm_leads').update({ status: 'Gagné', type: 'Client' }).in('phone', chunk).eq('tenant_id', tenantId);
-
-          alert(`Import Odoo réussi ! ${ordersMap.size} commandes, ${clientsToUpsert.length} clients et ${productsToUpsert.length} produits synchronisés.`);
+          setProgressText('Importation terminée !');
+          alert(`Import Odoo réussi ! ${totalRows} commandes synchronisées.`);
           setPendingOdooFile(null);
       } catch (err: any) {
           console.error("Erreur d'import Odoo :", err);
           alert("Erreur lors de l'enregistrement Odoo : " + err.message);
       } finally {
           setIsSubmittingOdoo(false);
+          setProgress(0);
+          setProgressText('');
       }
   };
 
@@ -755,10 +768,19 @@ function CRMSettingsContent() {
                <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-100 dark:border-zinc-800"><p className="text-2xl font-black text-[#39FF14]">{pendingOdooFile.productsCount}</p><p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest mt-1">Produits</p></div>
             </div>
 
+            {isSubmittingOdoo && (
+               <div className="mb-6 w-full text-left animate-in fade-in">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden shadow-inner">
+                     <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                  </div>
+                  <p className="text-xs font-bold text-zinc-500 mt-2 tracking-widest uppercase">{progressText}</p>
+               </div>
+            )}
+
             <div className="flex gap-3">
-               <button onClick={() => setPendingOdooFile(null)} disabled={isSubmittingOdoo} className="flex-1 py-4 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 rounded-xl font-black uppercase text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800 transition">Annuler</button>
-               <button onClick={handleConfirmOdooImport} disabled={isSubmittingOdoo} className="flex-[2] py-4 bg-black dark:bg-white text-[#39FF14] dark:text-black rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-lg flex items-center justify-center gap-2">
-                  {isSubmittingOdoo ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>} Valider
+               <button onClick={() => setPendingOdooFile(null)} disabled={isSubmittingOdoo} className="flex-1 py-4 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 rounded-xl font-black uppercase text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800 transition disabled:opacity-50">Annuler</button>
+               <button onClick={handleConfirmOdooImport} disabled={isSubmittingOdoo} className="flex-[2] py-4 bg-black dark:bg-white text-[#39FF14] dark:text-black rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100">
+                  {isSubmittingOdoo ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>} {isSubmittingOdoo ? 'Import...' : 'Valider'}
                </button>
             </div>
           </div>
