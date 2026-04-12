@@ -68,6 +68,14 @@ export default function OnyxHubPortal() {
         if (customSession) {
           try {
             const parsedSession = JSON.parse(customSession);
+          
+            // Authentification silencieuse pour passer le RLS
+            if (parsedSession.phone) {
+               const authEmail = `${parsedSession.phone}@clients.onyxcrm.com`;
+               const authPassword = parsedSession.password_temp || "central2026";
+               await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+            }
+          
             const { data } = await supabase.from('clients').select('*').eq('id', parsedSession.id).maybeSingle();
             if (data) {
                 setUser({ ...data, role: 'CLIENT' });

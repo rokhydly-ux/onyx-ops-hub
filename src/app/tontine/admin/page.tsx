@@ -84,7 +84,15 @@ export default function TontineAdminPage() {
           const customSession = localStorage.getItem('onyx_custom_session');
           if (customSession) {
               try { 
-                  finalUser = JSON.parse(customSession);
+                  const parsed = JSON.parse(customSession);
+                  finalUser = parsed;
+                  
+                  // Reconnexion silencieuse pour passer le RLS Supabase
+                  if (parsed.phone) {
+                      const authEmail = `${parsed.phone}@clients.onyxcrm.com`;
+                      const authPassword = parsed.password_temp || "central2026";
+                      await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+                  }
               } catch (e) {}
           }
         }

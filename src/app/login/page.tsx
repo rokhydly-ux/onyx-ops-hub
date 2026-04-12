@@ -67,6 +67,35 @@ export default function ClientLogin() {
         throw new Error("Identifiants incorrects. Veuillez vérifier votre numéro et votre code PIN.");
       }
       
+      // 4. SYNC AVEC SUPABASE AUTH (POUR LE RLS)
+      const authEmail = `${cleanPhone}@clients.onyxcrm.com`;
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: pinCode,
+      });
+
+      if (authError || !authData?.user) {
+        // Créer l'utilisateur s'il n'existe pas dans Auth mais existe dans clients
+        await supabase.auth.signUp({
+          email: authEmail,
+          password: pinCode,
+          options: {
+            data: {
+              full_name: clientData.full_name,
+              phone: clientData.phone,
+              role: clientData.type || 'Client',
+              tenant_id: clientData.id
+            }
+          }
+        });
+        
+        // Deuxième tentative
+        await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: pinCode,
+        });
+      }
+
       // Succès ! Le client est trouvé avec le bon mot de passe.
       console.log("Client authentifié :", clientData.full_name);
 

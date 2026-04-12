@@ -22,7 +22,24 @@ export default function CRMDashboard() {
 
   useEffect(() => {
     const checkAccess = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      let { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+          const customSession = localStorage.getItem('onyx_custom_session');
+          if (customSession) {
+              try {
+                  const parsed = JSON.parse(customSession);
+                  if (parsed.phone) {
+                      const authEmail = `${parsed.phone}@clients.onyxcrm.com`;
+                      const authPassword = parsed.password_temp || "central2026";
+                      await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+                      const res = await supabase.auth.getUser();
+                      user = res.data.user;
+                  }
+              } catch(e) {}
+          }
+      }
+      
       if (!user) return router.replace('/login');
       const role = user.user_metadata?.role || 'admin';
       const tenantId = user.user_metadata?.tenant_id || user.id;
