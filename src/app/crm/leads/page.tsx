@@ -125,6 +125,7 @@ export default function LeadsKanbanPage() {
   const [commercials, setCommercials] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [productFilter, setProductFilter] = useState("Tous");
   const [userId, setUserId] = useState<string | null>(null);
   const [commercialId, setCommercialId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('admin');
@@ -549,8 +550,9 @@ export default function LeadsKanbanPage() {
   };
 
   const filteredLeads = leads.filter(l => 
-    (l.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (l.phone || '').includes(searchTerm)
+    ((l.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (l.phone || '').includes(searchTerm)) &&
+    (productFilter === "Tous" || l.intent === productFilter)
   );
 
   const stagnantLeads = leads.filter(l => (l.status === 'Nouveaux Leads' || !l.status) && l.created_at && new Date(l.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
@@ -594,6 +596,16 @@ export default function LeadsKanbanPage() {
               className="pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] transition-colors"
             />
           </div>
+          <select
+            value={productFilter}
+            onChange={e => setProductFilter(e.target.value)}
+            className="px-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] transition-colors appearance-none cursor-pointer"
+          >
+            <option value="Tous">Tous les produits</option>
+            {Array.from(new Set(leads.map(l => l.intent).filter(Boolean))).map(intent => (
+              <option key={intent as string} value={intent as string}>{intent as string}</option>
+            ))}
+          </select>
           {userRole !== 'commercial' && (
             <>
               <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleSmartImport} />

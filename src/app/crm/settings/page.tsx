@@ -268,8 +268,11 @@ function CRMSettingsContent() {
           const uniqueProductsPreview = new Set();
           for (const order of Array.from(ordersMap.values() as Iterable<any>)) {
              let cleanPhone = String(order.customerPhone || '').replace(/\s+/g, '');
-             if (cleanPhone && !cleanPhone.startsWith('+')) {
-                 cleanPhone = cleanPhone.length === 9 ? `+221${cleanPhone}` : `+${cleanPhone}`;
+             if (cleanPhone && !cleanPhone.startsWith('+') && cleanPhone.length > 0) {
+                 if (cleanPhone.startsWith('00')) cleanPhone = '+' + cleanPhone.substring(2);
+                 else if (cleanPhone.length === 9) cleanPhone = `+221${cleanPhone}`;
+                 else if (cleanPhone.length === 10 && cleanPhone.startsWith('0')) cleanPhone = `+33${cleanPhone.substring(1)}`;
+                 else cleanPhone = `+${cleanPhone}`;
              }
              if (cleanPhone) uniquePhonesPreview.add(cleanPhone);
              for (const item of order.items) {
@@ -313,8 +316,11 @@ function CRMSettingsContent() {
 
           for (const order of Array.from(ordersMap.values() as Iterable<any>)) {
             let cleanPhone = String(order.customerPhone || '').replace(/\s+/g, '');
-            if (cleanPhone && !cleanPhone.startsWith('+')) {
-                cleanPhone = cleanPhone.length === 9 ? `+221${cleanPhone}` : `+${cleanPhone}`;
+            if (cleanPhone && !cleanPhone.startsWith('+') && cleanPhone.length > 0) {
+                 if (cleanPhone.startsWith('00')) cleanPhone = '+' + cleanPhone.substring(2);
+                 else if (cleanPhone.length === 9) cleanPhone = `+221${cleanPhone}`;
+                 else if (cleanPhone.length === 10 && cleanPhone.startsWith('0')) cleanPhone = `+33${cleanPhone.substring(1)}`;
+                 else cleanPhone = `+${cleanPhone}`;
             }
             
             if (cleanPhone && !uniquePhones.has(cleanPhone)) {
