@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   Plus, Search, Phone, MessageSquare, Mail, 
   UploadCloud, Facebook, Activity, CheckCircle, Wallet, AlertTriangle,
-  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan
+  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan, Eye
 } from 'lucide-react';
 import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
 import { formatDistanceToNow } from 'date-fns';
@@ -16,8 +16,10 @@ import Tesseract from 'tesseract.js';
 const KANBAN_COLS = ['Nouveaux Leads', 'En Cours', 'Converti', 'Perdu'];
 
 // --- COMPOSANTS DND-KIT (KANBAN) ---
-function KanbanColumn({ col, leads, onCardClick, onScheduleClick, onMessageClick }: { col: string, leads: any[], onCardClick: (lead: any) => void, onScheduleClick: (lead: any) => void, onMessageClick: (lead: any) => void }) {
+function KanbanColumn({ col, leads, visibleCount, onLoadMore, onCardClick, onScheduleClick, onMessageClick }: { col: string, leads: any[], visibleCount: number, onLoadMore: () => void, onCardClick: (lead: any) => void, onScheduleClick: (lead: any) => void, onMessageClick: (lead: any) => void }) {
   const { isOver, setNodeRef } = useDroppable({ id: col });
+  const visibleLeads = leads.slice(0, visibleCount);
+
   return (
     <div 
       ref={setNodeRef} 
@@ -29,10 +31,16 @@ function KanbanColumn({ col, leads, onCardClick, onScheduleClick, onMessageClick
       </div>
       
       <div className="space-y-3 pr-1">
-        {leads.map(lead => (
+        {visibleLeads.map(lead => (
           <KanbanCard key={lead.id} lead={lead} onClick={() => onCardClick(lead)} onScheduleClick={() => onScheduleClick(lead)} onMessageClick={() => onMessageClick(lead)} />
         ))}
         
+        {leads.length > visibleCount && (
+          <button onClick={onLoadMore} className="w-full py-2.5 bg-zinc-200 dark:bg-zinc-800 rounded-xl text-[10px] font-black uppercase text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white transition-colors">
+            Voir plus ({leads.length - visibleCount})
+          </button>
+        )}
+
         {leads.length === 0 && (
           <div className="p-6 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl text-zinc-400 text-[10px] font-bold uppercase tracking-widest">Glisser ici</div>
         )}
@@ -122,6 +130,7 @@ export default function LeadsKanbanPage() {
   const [userRole, setUserRole] = useState<string>('admin');
   const [userName, setUserName] = useState<string>('');
   const [commercialData, setCommercialData] = useState<any>(null);
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({ 'Nouveaux Leads': 20, 'En Cours': 20, 'Converti': 20, 'Perdu': 20 });
 
   // Modal "Quick Entry"
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -153,6 +162,7 @@ export default function LeadsKanbanPage() {
   const [captureForm, setCaptureForm] = useState({ full_name: '', phone: '', budget: '', lead_score: 'Tiède', source: 'WhatsApp' });
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrText, setOcrText] = useState("");
+  const [showStagnantList, setShowStagnantList] = useState(false);
 
   // Fetch notes when a lead is selected
   useEffect(() => {
@@ -467,7 +477,8 @@ export default function LeadsKanbanPage() {
     
     // Exécution de l'action réelle
     if (actionType === 'whatsapp') {
-      window.open(`https://wa.me/${selectedLead.phone.replace(/[^0-9]/g, '')}`, '_blank');
+      const msg = encodeURIComponent(`Bonjour ${selectedLead.full_name || ""}, suite à votre intérêt pour ${selectedLead.intent || "nos services"}...`);
+      window.open(`https://wa.me/${(selectedLead.phone || '').replace(/[^0-9]/g, '')}?text=${msg}`, '_blank');
     } else if (actionType === 'call') {
       window.open(`tel:${selectedLead.phone}`, '_self');
     } else if (actionType === 'email') {
@@ -538,7 +549,7 @@ export default function LeadsKanbanPage() {
     (l.phone || '').includes(searchTerm)
   );
 
-  const stagnantLeadsCount = leads.filter(l => (l.status === 'Nouveaux Leads' || !l.status) && l.created_at && new Date(l.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length;
+  const stagnantLeads = leads.filter(l => (l.status === 'Nouveaux Leads' || !l.status) && l.created_at && new Date(l.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const activePipelineValue = leads.filter(l => ['En Cours', 'Audit en cours', 'Nouveaux Leads'].includes(l.status)).reduce((acc, l) => acc + (Number(l.budget || l.amount || 0)), 0);
 
   return (
@@ -609,15 +620,36 @@ export default function LeadsKanbanPage() {
       </div>
 
       {/* --- ALERTE LEADS STAGNANTS --- */}
-      {stagnantLeadsCount > 0 && (
-        <div className="mb-6 bg-red-50 dark:bg-red-500/10 border-l-4 border-red-500 p-4 rounded-r-2xl flex items-center justify-between shadow-sm animate-in slide-in-from-top-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="text-red-500 shrink-0" size={24} />
-            <div>
-              <p className="font-black text-red-700 dark:text-red-400 uppercase text-sm tracking-tight">Leads en souffrance détectés</p>
-              <p className="text-xs text-red-600 dark:text-red-500 font-bold mt-0.5">Vous avez {stagnantLeadsCount} prospect(s) dans "Nouveaux Leads" depuis plus de 7 jours. Relancez-les avant qu'ils ne refroidissent !</p>
+      {stagnantLeads.length > 0 && (
+        <div className="mb-6 bg-red-50 dark:bg-red-500/10 border-l-4 border-red-500 p-4 rounded-r-2xl flex flex-col shadow-sm animate-in slide-in-from-top-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="text-red-500 shrink-0" size={24} />
+              <div>
+                <p className="font-black text-red-700 dark:text-red-400 uppercase text-sm tracking-tight">Leads en souffrance détectés</p>
+                <p className="text-xs text-red-600 dark:text-red-500 font-bold mt-0.5">Vous avez {stagnantLeads.length} prospect(s) dans "Nouveaux Leads" depuis plus de 7 jours.</p>
+              </div>
             </div>
+            <button onClick={() => setShowStagnantList(!showStagnantList)} className="bg-red-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-red-600 transition-colors shrink-0">
+               {showStagnantList ? 'Masquer' : 'Voir & Relancer'}
+            </button>
           </div>
+          {showStagnantList && (
+             <div className="mt-4 pt-4 border-t border-red-200 dark:border-red-500/30 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-in fade-in">
+                {stagnantLeads.map(l => (
+                   <div key={l.id} className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-red-100 dark:border-red-500/20 flex items-center justify-between shadow-sm">
+                      <div className="min-w-0 pr-2">
+                         <p className="font-black text-xs uppercase text-black dark:text-white truncate">{l.full_name}</p>
+                         <p className="text-[10px] font-bold text-zinc-500 truncate">{l.phone}</p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                         <button onClick={() => setSelectedLead(l)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg hover:text-black dark:hover:text-white transition-colors"><Eye size={14}/></button>
+                         <button onClick={() => handleMessageClick(l)} className="p-2 bg-[#25D366]/10 text-[#25D366] rounded-lg hover:bg-[#25D366] hover:text-white transition-colors"><MessageSquare size={14}/></button>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          )}
         </div>
       )}
 
@@ -625,11 +657,15 @@ export default function LeadsKanbanPage() {
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="flex gap-6 overflow-x-auto pb-6 items-start custom-scrollbar">
           {KANBAN_COLS.map(col => {
-            const colLeads = filteredLeads.filter(l => l.status === col || (col === 'Nouveaux Leads' && !l.status));
+            const colLeads = filteredLeads
+               .filter(l => l.status === col || (col === 'Nouveaux Leads' && !l.status))
+               .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); // Tri Absolu
             return <KanbanColumn 
                       key={col} 
                       col={col} 
                       leads={colLeads} 
+                      visibleCount={visibleCounts[col] || 20}
+                      onLoadMore={() => setVisibleCounts(prev => ({...prev, [col]: (prev[col] || 20) + 20}))}
                       onCardClick={setSelectedLead} 
                       onScheduleClick={(l) => { setScheduleLead(l); setScheduleModalOpen(true); }} 
                       onMessageClick={handleMessageClick} 

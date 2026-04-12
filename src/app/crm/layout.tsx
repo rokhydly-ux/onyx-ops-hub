@@ -72,12 +72,15 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleTheme = async () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
+    const isCurrentlyDark = document.documentElement.classList.contains('dark');
+    const newTheme = isCurrentlyDark ? 'light' : 'dark';
     
-    // Injection directe de la classe pour pallier aux lenteurs de next-themes
-    if (newTheme === 'dark') document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    setTheme(newTheme);
     
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
