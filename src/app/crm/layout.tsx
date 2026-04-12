@@ -10,8 +10,6 @@ import {
   Package,
   Users,
   ArrowLeft,
-  Sun,
-  Moon,
   UserCircle,
   Settings,
   Calendar,
@@ -70,24 +68,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     };
     fetchSettings();
   }, []);
-
-  const toggleTheme = async () => {
-    const isCurrentlyDark = document.documentElement.classList.contains('dark');
-    const newTheme = isCurrentlyDark ? 'light' : 'dark';
-    
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    setTheme(newTheme);
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-        const tenantId = user.user_metadata?.tenant_id || user.id;
-        await supabase.from('crm_settings').upsert({ tenant_id: tenantId, theme_mode: newTheme }, { onConflict: 'tenant_id' });
-    }
-  };
 
   const getCurrentPageTitle = () => {
     const currentLink = NAV_LINKS.find(link => link.href === pathname);
@@ -163,9 +143,6 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={toggleTheme} className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white transition-colors">
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
             <div className="flex items-center gap-2 pl-3 border-l border-zinc-200 dark:border-zinc-800">
               <button onClick={() => userRole === 'commercial' ? setShowCommercialProfile(true) : router.push('/crm/settings')} className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center shadow-sm hover:scale-105 transition-transform" style={{ color: crmSettings.theme_color }}>
                     <UserCircle size={20} />

@@ -258,7 +258,11 @@ export default function LeadsKanbanPage() {
     const { data } = await query
       .order('created_at', { ascending: false });
     if (data) {
-       const sortedData = data.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+       const sortedData = [...data].sort((a,b) => {
+           const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+           const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+           return dateB - dateA;
+       });
        setLeads(sortedData);
     }
     setIsLoading(false);
@@ -659,7 +663,11 @@ export default function LeadsKanbanPage() {
           {KANBAN_COLS.map(col => {
             const colLeads = filteredLeads
                .filter(l => l.status === col || (col === 'Nouveaux Leads' && !l.status))
-               .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); // Tri Absolu
+               .sort((a,b) => {
+                   const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                   const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                   return dateB - dateA;
+               }); // Tri Absolu
             return <KanbanColumn 
                       key={col} 
                       col={col} 

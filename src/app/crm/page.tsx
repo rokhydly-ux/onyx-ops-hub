@@ -43,7 +43,11 @@ export default function CRMDashboard() {
         .eq('tenant_id', session.id)
         .order('created_at', { ascending: false });
 
-      const safeLeads = leads || [];
+      const safeLeads = [...(leads || [])].sort((a,b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+      });
       setAllLeads(safeLeads);
 
       // Récupération des 5 prochains RDV de l'Agenda
