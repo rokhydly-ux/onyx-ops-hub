@@ -20,7 +20,7 @@ const APPS = [
   { id: "tiak", name: "Onyx Tiak", icon: Truck, color: "bg-teal-500", route: "/tiak", desc: "Logistique & Livraisons", price: "13 900 F" },
   { id: "menu", name: "Onyx Menu", icon: Utensils, color: "bg-rose-500", route: "/menu", desc: "Menu QR & Commandes", price: "13 900 F" },
   { id: "booking", name: "Onyx Booking", icon: Calendar, color: "bg-indigo-500", route: "/booking", desc: "Rendez-vous en ligne", price: "13 900 F" },
-  { id: "formation", name: "Onyx Formation", icon: GraduationCap, color: "bg-yellow-500", route: "/admin/saas/formation", desc: "Académie Marketing", price: "13 900 F" },
+  { id: "formation", name: "Onyx Formation", icon: GraduationCap, color: "bg-yellow-500", route: "/formation", desc: "Académie Marketing", price: "13 900 F" },
   { id: "tontine", name: "Onyx Tontine", icon: Wallet, color: "bg-pink-500", route: "/tontine/admin", desc: "Finance & Tontine", price: "6 900 F" },
   { id: "staff", name: "Onyx Staff", icon: Users, color: "bg-cyan-500", route: "/staff", desc: "RH & Plannings", price: "13 900 F" },
   { id: "crm", name: "Onyx CRM", icon: ShieldCheck, color: "bg-[#39FF14]", route: "/crm", desc: "CRM B2B HT", price: "39 900 F" },
