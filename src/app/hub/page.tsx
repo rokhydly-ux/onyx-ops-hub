@@ -46,23 +46,25 @@ export default function OnyxHubPortal() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const [purchasedModuleIds, setPurchasedModuleIds] = useState<string[]>([]);
 
   useEffect(() => {
     const verifyAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        let role = 'CLIENT';
-        let profileData: any = null;
-        const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).maybeSingle();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      let currentUser = authUser;
+      let role = 'CLIENT';
+      let profileData: any = null;
+
+      if (currentUser) {
+        const { data: userData } = await supabase.from('users').select('*').eq('id', currentUser.id).maybeSingle();
         if (userData) {
           role = userData.role;
           profileData = userData;
         } else {
-          const { data: clientData } = await supabase.from('clients').select('*').eq('id', session.user.id).maybeSingle();
+          const { data: clientData } = await supabase.from('clients').select('*').eq('id', currentUser.id).maybeSingle();
           if (clientData) profileData = clientData;
         }
-        setUser(profileData ? { ...session.user, ...(profileData as any), role } : { ...session.user, role });
-
+        setUser(profileData ? { ...currentUser, ...(profileData as any), role } : { ...currentUser, role });
       } else {
         const customSession = localStorage.getItem('onyx_custom_session');
         if (customSession) {
@@ -74,13 +76,18 @@ export default function OnyxHubPortal() {
                const authEmail = `${parsedSession.phone}@clients.onyxcrm.com`;
                const authPassword = parsedSession.password_temp || "central2026";
                await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+               
+               const res = await supabase.auth.getUser();
+               currentUser = res.data.user;
             }
           
             const { data } = await supabase.from('clients').select('*').eq('id', parsedSession.id).maybeSingle();
             if (data) {
+                profileData = data;
                 setUser({ ...data, role: 'CLIENT' });
                 localStorage.setItem('onyx_custom_session', JSON.stringify(data));
             } else {
+                profileData = parsedSession;
                 setUser({ ...parsedSession, role: parsedSession.role || 'CLIENT' });
             }
           } catch(e) {}
@@ -89,6 +96,43 @@ export default function OnyxHubPortal() {
           return;
         }
       }
+
+      // 2. Déterminer les modules achetés
+      let achats: string[] = [];
+      if (profileData) {
+          const activeSaas = profileData.active_saas || [];
+          const allSaas = [profileData.saas || '', ...activeSaas].map((s: string) => (s || '').toLowerCase());
+          
+          allSaas.forEach(saas => {
+              if (saas.includes('jaay') || saas.includes('solo')) achats.push('vente');
+              if (saas.includes('stock')) achats.push('stock');
+              if (saas.includes('tiak')) achats.push('tiak');
+              if (saas.includes('menu')) achats.push('menu');
+              if (saas.includes('booking')) achats.push('booking');
+              if (saas.includes('formation')) achats.push('formation');
+              if (saas.includes('tontine')) achats.push('tontine');
+              if (saas.includes('staff')) achats.push('staff');
+              if (saas.includes('crm')) achats.push('crm');
+              
+              for (const [packName, modules] of Object.entries(PACK_CONTENTS)) {
+                  if (saas.includes(packName)) {
+                      achats.push(...modules);
+                  }
+              }
+              if (saas.includes('gold')) {
+                  achats.push('vente', 'stock', 'tiak', 'formation', 'staff', 'crm', 'booking', 'menu', 'tontine');
+              }
+          });
+      }
+      const uniquePurchasedModuleIds = Array.from(new Set(achats));
+      setPurchasedModuleIds(uniquePurchasedModuleIds);
+
+      // 3. Debug logs
+      if (currentUser) {
+          console.log("ID du client connecté :", currentUser.id);
+          console.log("Modules achetés trouvés :", uniquePurchasedModuleIds);
+      }
+
       setLoading(false);
     };
     verifyAuth();
@@ -109,24 +153,6 @@ export default function OnyxHubPortal() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const checkAccess = (appId: string, user: any) => {
-     if (!user) return false;
-     if (user.role === 'SUPER_ADMIN') return true;
-     const activeSaas = user.active_saas || [];
-     const allSaas = [user.saas || '', ...activeSaas].map((s: string) => (s || '').toLowerCase());
-     
-     if (allSaas.some((s: string) => s === appId.toLowerCase() || s.includes(appId.toLowerCase()))) return true;
-     
-     for (const saas of allSaas) {
-         for (const [packName, modules] of Object.entries(PACK_CONTENTS)) {
-             if (saas.includes(packName) && modules.includes(appId)) {
-                 return true;
-             }
-         }
-     }
-     return false;
-  };
 
   const getIncludedPack = (appId: string, user: any) => {
      if (!user) return null;
@@ -292,12 +318,12 @@ export default function OnyxHubPortal() {
   
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8">
             {filteredApps.map((app) => {
-              const hasAccess = checkAccess(app.id, user);
+              const isPurchased = user?.role === 'SUPER_ADMIN' || purchasedModuleIds.includes(app.id);
               const includedPack = getIncludedPack(app.id, user);
               const actualAppIdOrPack = includedPack || app.id;
               const expDateStr = getAppExpiryDate(actualAppIdOrPack, user);
               const isExpired = user?.role !== 'SUPER_ADMIN' && expDateStr ? new Date(expDateStr).setHours(23,59,59,999) < new Date().getTime() : false;
-              const isUnlocked = hasAccess && !isExpired;
+              const isUnlocked = isPurchased && !isExpired;
 
               const AppIcon = app.icon;
               
