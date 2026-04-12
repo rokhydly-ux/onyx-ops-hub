@@ -387,16 +387,28 @@ export default function LeadsKanbanPage() {
              };
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
-          // UTILISATION DE UPSERT POUR METTRE À JOUR LES DOUBLONS AU LIEU DE LES CRÉER
-          const { data, error } = await supabase.from('crm_leads').upsert(newLeads, { onConflict: 'phone, tenant_id' }).select();
-          if (!error && data) {
+          // UTILISATION DE BATCHING POUR ÉVITER LES ERREURS API (LIMITE: 300)
+          const chunkArray = <T,>(arr: T[], size: number): T[][] => 
+              Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
+          
+          const chunks = chunkArray(newLeads, 300);
+          let allData: any[] = [];
+          let hasError = false;
+
+          for (const chunk of chunks) {
+              const { data, error } = await supabase.from('crm_leads').upsert(chunk, { onConflict: 'phone, tenant_id' }).select();
+              if (error) { alert("Erreur sur un lot : " + error.message); hasError = true; break; }
+              if (data) allData = [...allData, ...data];
+          }
+
+          if (!hasError && allData.length > 0) {
              setLeads(prev => {
-                 const merged = [...data, ...prev.filter(p => !data.find((d: any) => d.id === p.id))];
+                 const merged = [...allData, ...prev.filter(p => !allData.find((d: any) => d.id === p.id))];
                  return merged.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
              });
-             alert(`${data.length} leads importés et mis à jour par l'IA avec succès !`);
+             alert(`${allData.length} leads importés et mis à jour par l'IA avec succès !`);
           } else {
-             alert("Erreur lors de l'importation : " + error?.message);
+             if (!hasError) alert("Aucune nouvelle donnée importée.");
           }
           if (fileInputRef.current) fileInputRef.current.value = '';
        }

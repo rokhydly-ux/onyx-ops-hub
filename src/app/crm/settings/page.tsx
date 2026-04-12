@@ -111,6 +111,9 @@ function CRMSettingsContent() {
     }
   };
 
+  const chunkArray = <T,>(arr: T[], size: number): T[][] => 
+      Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
+
   const handleFileUploadCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -189,16 +192,19 @@ function CRMSettingsContent() {
           if (newLeads.length === 0) return alert("Aucun lead avec un numéro valide n'a été trouvé.");
 
           setIsSubmitting(true);
-          const { data, error } = await supabase.from('crm_leads').upsert(newLeads, { onConflict: 'phone, tenant_id' }).select();
+          
+          const chunks = chunkArray(newLeads, 300);
+          let totalImported = 0;
+          for (const chunk of chunks) {
+              const { data, error } = await supabase.from('crm_leads').upsert(chunk, { onConflict: 'phone, tenant_id' }).select('id');
+              if (error) { alert("Erreur d'import : " + error.message); break; }
+              if (data) totalImported += data.length;
+          }
           setIsSubmitting(false);
           
-          if (!error && data) {
-             alert(`${data.length} leads importés et scorés par l'IA avec succès !`);
-             if (csvFileInputRef.current) csvFileInputRef.current.value = '';
-             window.location.reload();
-          } else {
-             alert("Erreur lors de l'importation : " + error?.message);
-          }
+          alert(`${totalImported} leads importés et scorés par l'IA avec succès !`);
+          if (csvFileInputRef.current) csvFileInputRef.current.value = '';
+          window.location.reload();
        }
     });
   };
@@ -358,20 +364,22 @@ function CRMSettingsContent() {
           }
 
           if (clientsToUpsert.length > 0) {
-              await supabase.from('clients').upsert(clientsToUpsert, { onConflict: 'phone, tenant_id' });
+              const chunks = chunkArray(clientsToUpsert, 300);
+              for(const chunk of chunks) await supabase.from('clients').upsert(chunk, { onConflict: 'phone, tenant_id' });
           }
 
           if (productsToUpsert.length > 0) {
-              await supabase.from('crm_products').upsert(productsToUpsert, { onConflict: 'name, tenant_id' });
+              const chunks = chunkArray(productsToUpsert, 300);
+              for(const chunk of chunks) await supabase.from('crm_products').upsert(chunk, { onConflict: 'name, tenant_id' });
           }
 
           if (ordersToInsert.length > 0) {
-              await supabase.from('crm_orders').upsert(ordersToInsert, { onConflict: 'order_ref, tenant_id' });
+              const chunks = chunkArray(ordersToInsert, 300);
+              for(const chunk of chunks) await supabase.from('crm_orders').upsert(chunk, { onConflict: 'order_ref, tenant_id' });
           }
 
-          for (const phone of Array.from(uniquePhones as Iterable<string>)) {
-             await supabase.from('crm_leads').update({ status: 'Gagné', type: 'Client' }).eq('phone', phone).eq('tenant_id', tenantId);
-          }
+          const phoneChunks = chunkArray(Array.from(uniquePhones as Iterable<string>), 300);
+          for(const chunk of phoneChunks) await supabase.from('crm_leads').update({ status: 'Gagné', type: 'Client' }).in('phone', chunk).eq('tenant_id', tenantId);
 
           alert(`Import Odoo réussi ! ${ordersMap.size} commandes, ${clientsToUpsert.length} clients et ${productsToUpsert.length} produits synchronisés.`);
           setPendingOdooFile(null);

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal } from 'lucide-react';
+import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -36,6 +36,9 @@ export default function CRMCatalogPage() {
   const [categoryForm, setCategoryForm] = useState({ name: '', parent_id: '', cover_url: '' });
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -304,12 +307,27 @@ export default function CRMCatalogPage() {
       const dormantProducts = products.filter(p => getStockStatus(p.last_sold_date, p.created_at).label !== 'Actif');
       if (dormantProducts.length === 0) return alert("L'IA n'a détecté aucun produit en 'Alerte' ou 'Stock Mort'.");
 
-      const campaigns: any[] = [];
+      // Regroupement intelligent par catégorie
+      const categoryGroups = new Map<string, any[]>();
       dormantProducts.forEach(p => {
-          if (!p.category) return;
-          const matchedClients = clients.filter(c => c.activity && c.activity.toLowerCase().includes(p.category.toLowerCase()));
-          if (matchedClients.length > 0) campaigns.push({ product: p, clients: matchedClients });
+          const cat = p.category || 'Général';
+          if (!categoryGroups.has(cat)) categoryGroups.set(cat, []);
+          categoryGroups.get(cat)!.push(p);
       });
+
+      const campaigns: any[] = [];
+      for (const [category, prods] of Array.from(categoryGroups.entries())) {
+          const matchedClients = clients.filter(c => c.activity && c.activity.toLowerCase().includes(category.toLowerCase()));
+          if (matchedClients.length > 0) {
+              campaigns.push({ 
+                  category, 
+                  products: prods, 
+                  clients: matchedClients,
+                  msg: `Offre spéciale déstockage sur nos produits de la catégorie [${category}] ! Découvrez nos promos exclusives parfaites pour votre activité.`
+              });
+          }
+      }
+
       if (campaigns.length === 0) return alert("Aucun prospect ne correspond aux catégories des produits à déstocker.");
       setAiCampaigns(campaigns);
       setIsAiModalOpen(true);
@@ -324,12 +342,12 @@ export default function CRMCatalogPage() {
               actions.push({
                   tenant_id: tenantId,
                   module: 'Déstockage',
-                  title: `Offre Flash : ${camp.product.name}`,
-                  desc: `Campagne IA pour client du secteur ${client.activity}`,
+                  title: `Campagne Déstockage : ${camp.category}`,
+                  desc: `Campagne IA ciblant ${camp.products.length} produit(s) dormant(s)`,
                   date: todayStr,
                   status: 'En attente',
                   phone: client.phone,
-                  msg: `Bonjour ${client.full_name}, offre spéciale sur notre équipement : ${camp.product.name}. Parfait pour votre activité (${client.activity}) !`
+                  msg: `Bonjour ${client.full_name}, ${camp.msg}`
               });
           });
       });
@@ -370,6 +388,13 @@ export default function CRMCatalogPage() {
       return matchSearch && matchCat && matchMin && matchMax;
     });
   }, [products, search, categoryFilter, minPrice, maxPrice]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, categoryFilter, minPrice, maxPrice]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
 
@@ -432,7 +457,7 @@ export default function CRMCatalogPage() {
 
           {/* INTERFACE GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map(product => {
+            {paginatedProducts.map(product => {
                const status = getStockStatus(product.last_sold_date, product.created_at);
                return (
                  <div key={product.id} className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden flex flex-col hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-all shadow-sm group h-[320px]">
@@ -469,6 +494,14 @@ export default function CRMCatalogPage() {
                <div className="col-span-full p-10 text-center text-zinc-500 font-bold uppercase text-xs tracking-widest italic bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl">Aucun produit trouvé.</div>
             )}
           </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-8 pb-4">
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 disabled:opacity-50 text-black dark:text-white transition-colors shadow-sm"><ChevronLeft size={16}/></button>
+              <span className="text-xs font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-900 px-4 py-2 rounded-xl">Page {currentPage} / {totalPages}</span>
+              <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 disabled:opacity-50 text-black dark:text-white transition-colors shadow-sm"><ChevronRight size={16}/></button>
+            </div>
+          )}
       </div>
 
       {/* BARRE D'ACTIONS FLOTTANTE */}
@@ -598,11 +631,11 @@ export default function CRMCatalogPage() {
                  <div key={idx} className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                     <div className="flex items-center gap-2 mb-2">
                        <AlertTriangle size={14} className="text-orange-500" />
-                       <span className="font-bold text-sm text-black dark:text-white">{camp.product.name}</span>
+                       <span className="font-bold text-sm text-black dark:text-white">Catégorie : {camp.category}</span>
                     </div>
                     <p className="text-xs text-zinc-500 font-medium leading-relaxed">
-                       Ce produit de la catégorie <span className="font-black text-black dark:text-zinc-300">{camp.product.category}</span> ne tourne plus.
-                       L'IA a identifié <span className="font-black text-[#39FF14] bg-black px-2 py-0.5 rounded-md mx-1">{camp.clients.length} prospects</span> de ce secteur d'activité.
+                       Ces <span className="font-black text-black dark:text-zinc-300">{camp.products.length} produit(s)</span> dorment en stock.
+                       L'IA a ciblé <span className="font-black text-[#39FF14] bg-black px-2 py-0.5 rounded-md mx-1">{camp.clients.length} clients/leads</span> de ce secteur d'activité pour les relancer.
                     </p>
                  </div>
               ))}
