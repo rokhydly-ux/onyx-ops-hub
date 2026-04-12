@@ -389,13 +389,13 @@ export default function LeadsKanbanPage() {
               const text = result.data.text;
               setOcrText(text);
 
-              const phoneMatch = text.match(/(?:\+221|221)?\s*(7[05678]\s*\d{3}\s*\d{2}\s*\d{2}|7[05678]\d{7})/);
-              const budgetMatch = text.match(/(\d[\d\s,.]*)\s*(F\b|FCFA|CFA|Francs)/i);
+              const phoneMatch = text.match(/(\+?221\s?)?(7[05678]\s?\d{3}\s?\d{2}\s?\d{2})/);
+              const budgetMatch = text.match(/\b\d{1,3}(?:[.,\s]\d{3})*\s*(F|CFA|FCFA)\b/i);
 
               setCaptureForm(prev => ({
                   ...prev,
                   phone: phoneMatch ? phoneMatch[0].replace(/\s+/g, '') : prev.phone,
-                  budget: budgetMatch ? budgetMatch[1].replace(/\s+/g, '') : prev.budget,
+                  budget: budgetMatch ? budgetMatch[0].replace(/[^\d]/g, '') : prev.budget,
               }));
               alert("Analyse de la capture terminée ! Vérifiez les informations extraites.");
           } catch (err) {
@@ -875,6 +875,7 @@ export default function LeadsKanbanPage() {
                   </div>
                   <div className="p-6">
                       {captureTab === 'ocr' && (
+                          <>
                           <div 
                              className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl p-8 mb-6 text-center cursor-pointer hover:border-[#39FF14] transition-colors bg-zinc-50 dark:bg-zinc-900/50 outline-none"
                              onDragOver={e => e.preventDefault()}
@@ -906,6 +907,13 @@ export default function LeadsKanbanPage() {
                                 </>
                              )}
                           </div>
+                         {ocrText && (
+                            <div className="mb-6 animate-in fade-in">
+                               <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Texte Brut Extrait (Debug OCR)</label>
+                               <textarea readOnly value={ocrText} className="w-full p-4 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 min-h-[100px] resize-none outline-none" />
+                            </div>
+                         )}
+                         </>
                       )}
                       <form onSubmit={saveCapturedLead} className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">

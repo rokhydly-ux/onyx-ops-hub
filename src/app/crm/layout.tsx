@@ -59,17 +59,28 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         const { data } = await supabase.from('crm_settings').select('*').eq('tenant_id', tenantId).maybeSingle();
         if (data) {
           setCrmSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+          if (data.theme_mode) {
+             setTheme(data.theme_mode);
+             if (data.theme_mode === 'dark') document.documentElement.classList.add('dark');
+             else document.documentElement.classList.remove('dark');
+          }
         }
       }
     };
     fetchSettings();
   }, []);
 
-  const toggleTheme = () => {
+  const toggleTheme = async () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
     if (newTheme === 'dark') document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        const tenantId = user.user_metadata?.tenant_id || user.id;
+        await supabase.from('crm_settings').upsert({ tenant_id: tenantId, theme_mode: newTheme }, { onConflict: 'tenant_id' });
+    }
   };
 
   const getCurrentPageTitle = () => {

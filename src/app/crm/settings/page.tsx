@@ -64,28 +64,20 @@ function CRMSettingsContent() {
     }
     setIsSaving(true);
     
-    // On vérifie si la ligne existe pour éviter le conflit de clé primaire (crm_settings_pkey)
-    const { data: existing } = await supabase.from('crm_settings').select('tenant_id').eq('tenant_id', userId).maybeSingle();
-    let error;
-    if (existing) {
-        const res = await supabase.from('crm_settings').update(settings).eq('tenant_id', userId);
-        error = res.error;
-    } else {
-        const res = await supabase.from('crm_settings').insert([{ tenant_id: userId, ...settings }]);
-        if (res.error && res.error.code === '23505') { // Code d'erreur pour contrainte unique
-            const retry = await supabase.from('crm_settings').update(settings).eq('tenant_id', userId);
-            error = retry.error;
-        } else {
-            error = res.error;
-        }
-    }
+    const payload = { tenant_id: userId, ...settings };
+    
+    const { data, error } = await supabase
+      .from('crm_settings')
+      .upsert(payload, { onConflict: 'tenant_id' })
+      .select()
+      .single();
     
     setIsSaving(false);
     if (error) {
       alert("Erreur lors de la sauvegarde : " + error.message);
     } else {
-      alert("Paramètres enregistrés avec succès. Veuillez rafraîchir la page pour appliquer les changements globaux.");
-      window.location.reload();
+      if (data) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+      alert("Paramètres enregistrés avec succès.");
     }
   };
 
