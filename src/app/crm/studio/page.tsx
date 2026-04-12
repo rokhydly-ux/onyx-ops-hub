@@ -127,10 +127,14 @@ export default function PDFStudioPage() {
     setIsGenerating(false);
   };
 
-  const filteredProducts = products.filter(p => 
-      (p.name || '').toLowerCase().includes(search.toLowerCase()) || 
-      (p.odoo_id || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const searchTerms = normalize(search).split(' ').filter(Boolean);
+
+  const filteredProducts = products.filter(p => {
+      if (searchTerms.length === 0) return true;
+      const searchableText = normalize(`${p.name || ''} ${p.odoo_id || ''} ${p.category || ''}`);
+      return searchTerms.every(term => searchableText.includes(term));
+  });
 
   const selectedProductsData = products.filter(p => selectedProductIds.includes(p.id));
 
