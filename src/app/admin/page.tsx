@@ -3552,7 +3552,7 @@ export default function AdminDashboard() {
              );
              
              return (
-               <div className="space-y-8 animate-in fade-in slide-in-from-right-6 max-w-[1600px] mx-auto h-full flex flex-col">
+               <div className="space-y-8 animate-in fade-in slide-in-from-right-6 max-w-[1600px] mx-auto flex flex-col pb-10">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0">
                      <div className="flex items-center gap-6">
                         <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-[#00E5FF] shadow-lg shrink-0"><Layers size={24}/></div>
@@ -3595,12 +3595,12 @@ export default function AdminDashboard() {
                   </div>
                   </div>
   
-                  <div className="flex gap-6 overflow-x-auto pb-6 flex-1 items-start custom-scrollbar">
+                  <div className="flex gap-6 overflow-x-auto pb-6 items-start custom-scrollbar">
                      {KANBAN_COLS.map(col => {
                         const colContacts = htContacts.filter(c => (c.status === col) || (col === 'Nouveau Lead' && !KANBAN_COLS.includes(c.status || '')));
                         return (
                            <div key={col} 
-                                className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 w-80 shrink-0 flex flex-col max-h-[70vh]"
+                                className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 w-80 shrink-0 flex flex-col"
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => {
                                     e.preventDefault();
@@ -3612,7 +3612,7 @@ export default function AdminDashboard() {
                                  <h3 className="font-black uppercase text-sm">{col}</h3>
                                  <span className="bg-black dark:bg-zinc-800 text-[#39FF14] text-[10px] font-black px-2 py-1 rounded-lg">{colContacts.length}</span>
                               </div>
-                              <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
+                                 <div className="space-y-3 pr-1">
                                  {colContacts.map(c => {
                                     const isNew = c.created_at && (new Date().getTime() - new Date(c.created_at).getTime() < 24 * 60 * 60 * 1000);
                                     return (

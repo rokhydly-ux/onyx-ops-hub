@@ -21,14 +21,14 @@ function KanbanColumn({ col, leads, onCardClick, onScheduleClick, onMessageClick
   return (
     <div 
       ref={setNodeRef} 
-      className={`bg-zinc-100/50 dark:bg-zinc-900/50 border ${isOver ? 'border-[#39FF14]' : 'border-zinc-200 dark:border-zinc-800'} rounded-[2rem] p-4 w-[320px] shrink-0 flex flex-col max-h-[75vh] transition-colors`}
+      className={`bg-zinc-100/50 dark:bg-zinc-900/50 border ${isOver ? 'border-[#39FF14]' : 'border-zinc-200 dark:border-zinc-800'} rounded-[2rem] p-4 w-[320px] shrink-0 flex flex-col transition-colors`}
     >
       <div className="flex justify-between items-center mb-4 px-2">
         <h3 className="font-black uppercase text-sm tracking-tight">{col}</h3>
         <span className="bg-black dark:bg-white text-[#39FF14] dark:text-black text-[10px] font-black px-2.5 py-1 rounded-lg">{leads.length}</span>
       </div>
       
-      <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
+      <div className="space-y-3 pr-1">
         {leads.map(lead => (
           <KanbanCard key={lead.id} lead={lead} onClick={() => onCardClick(lead)} onScheduleClick={() => onScheduleClick(lead)} onMessageClick={() => onMessageClick(lead)} />
         ))}
@@ -542,7 +542,7 @@ export default function LeadsKanbanPage() {
   const activePipelineValue = leads.filter(l => ['En Cours', 'Audit en cours', 'Nouveaux Leads'].includes(l.status)).reduce((acc, l) => acc + (Number(l.budget || l.amount || 0)), 0);
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-500">
+    <div className="flex flex-col animate-in fade-in duration-500 pb-10">
       
       {/* --- HEADER DES ACTIONS --- */}
       <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4 mb-8">
@@ -614,7 +614,7 @@ export default function LeadsKanbanPage() {
 
       {/* --- KANBAN BOARD (dnd-kit) --- */}
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div className="flex-1 flex gap-6 overflow-x-auto pb-6 custom-scrollbar items-start">
+        <div className="flex gap-6 overflow-x-auto pb-6 items-start custom-scrollbar">
           {KANBAN_COLS.map(col => {
             const colLeads = filteredLeads.filter(l => l.status === col || (col === 'Nouveaux Leads' && !l.status));
             return <KanbanColumn 
