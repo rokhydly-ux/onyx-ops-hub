@@ -19,18 +19,11 @@ export default function ClientLogin() {
   // Vérification de session active au chargement
   useEffect(() => {
     const checkSession = async () => {
-      const customSession = localStorage.getItem('onyx_custom_session');
-      if (customSession) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.email !== 'rokhydly@gmail.com') {
         router.replace('/hub');
       } else {
-        // Fallback optionnel au cas où un admin utilise une vraie session Supabase
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && user.email === 'rokhydly@gmail.com') {
-           // Si c'est le super admin, on ne le bloque pas ici
-           setIsChecking(false);
-        } else {
-           setIsChecking(false);
-        }
+        setIsChecking(false);
       }
     };
     checkSession();
@@ -99,9 +92,6 @@ export default function ClientLogin() {
       // Succès ! Le client est trouvé avec le bon mot de passe.
       console.log("Client authentifié :", clientData.full_name);
 
-      // 4. Enregistrement de la session locale pour maintenir l'utilisateur connecté
-      localStorage.setItem('onyx_custom_session', JSON.stringify(clientData));
-      
       // 5. Redirection vers son espace personnel
       router.push('/hub');
       

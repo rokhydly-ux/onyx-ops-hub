@@ -50,54 +50,51 @@ export default function OnyxHubPortal() {
 
   useEffect(() => {
     const verifyAuth = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      let currentUser = authUser;
+      // 1. Récupération stricte de l'utilisateur authentifié
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      console.log('User Auth:', user.id);
+
       let role = 'CLIENT';
       let profileData: any = null;
 
-      if (currentUser) {
-        const { data: userData } = await supabase.from('users').select('*').eq('id', currentUser.id).maybeSingle();
-        if (userData) {
-          role = userData.role;
-          profileData = userData;
-        } else {
-          const { data: clientData } = await supabase.from('clients').select('*').eq('id', currentUser.id).maybeSingle();
-          if (clientData) profileData = clientData;
-        }
-        setUser(profileData ? { ...currentUser, ...(profileData as any), role } : { ...currentUser, role });
+      // 2. Vérification s'il s'agit d'un super administrateur
+      const { data: userData } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+      
+      if (userData) {
+        role = userData.role;
+        profileData = userData;
       } else {
-        const customSession = localStorage.getItem('onyx_custom_session');
-        if (customSession) {
-          try {
-            const parsedSession = JSON.parse(customSession);
-          
-            // Authentification silencieuse pour passer le RLS
-            if (parsedSession.phone) {
-               const authEmail = `${parsedSession.phone}@clients.onyxcrm.com`;
-               const authPassword = parsedSession.password_temp || "central2026";
-               await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
-               
-               const res = await supabase.auth.getUser();
-               currentUser = res.data.user;
-            }
-          
-            const { data } = await supabase.from('clients').select('*').eq('id', parsedSession.id).maybeSingle();
-            if (data) {
-                profileData = data;
-                setUser({ ...data, role: 'CLIENT' });
-                localStorage.setItem('onyx_custom_session', JSON.stringify(data));
-            } else {
-                profileData = parsedSession;
-                setUser({ ...parsedSession, role: parsedSession.role || 'CLIENT' });
-            }
-          } catch(e) {}
+        // Sinon, on cherche dans la table clients via le téléphone ou l'ID
+        const phoneMatch = user.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
+        const userPhone = phoneMatch ? phoneMatch[1] : user.user_metadata?.phone;
+        
+        let query = supabase.from('clients').select('*');
+        if (userPhone) {
+          query = query.eq('phone', userPhone);
         } else {
+          query = query.eq('id', user.id);
+        }
+        
+        const { data: clientProfile, error: profileError } = await query.maybeSingle();
+        
+        if (profileError || !clientProfile) {
+          alert('Profil non trouvé pour ce numéro');
           window.location.href = '/login';
           return;
         }
+        profileData = clientProfile;
       }
 
-      // 2. Déterminer les modules achetés
+      console.log('Client Profile:', profileData);
+      setUser(profileData ? { ...user, ...(profileData as any), role } : { ...user, role });
+
+      // 3. Déterminer les modules achetés
       let achats: string[] = [];
       if (profileData) {
           const activeSaas = profileData.active_saas || [];
@@ -124,14 +121,9 @@ export default function OnyxHubPortal() {
               }
           });
       }
-      const uniquePurchasedModuleIds = Array.from(new Set(achats));
-      setPurchasedModuleIds(uniquePurchasedModuleIds);
-
-      // 3. Debug logs
-      if (currentUser) {
-          console.log("ID du client connecté :", currentUser.id);
-          console.log("Modules achetés trouvés :", uniquePurchasedModuleIds);
-      }
+      const purchasedModuleIds = Array.from(new Set(achats));
+      console.log("Modules achetés trouvés :", purchasedModuleIds);
+      setPurchasedModuleIds(purchasedModuleIds);
 
       setLoading(false);
     };
