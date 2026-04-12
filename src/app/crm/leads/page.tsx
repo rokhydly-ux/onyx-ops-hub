@@ -498,15 +498,8 @@ export default function LeadsKanbanPage() {
   };
 
   const handleMessageClick = (lead: any) => {
-    let text = '';
-    if (lead.status === 'Nouveaux Leads') text = `Bonjour ${lead.full_name}, suite à votre demande, nous aimerions échanger avec vous pour mieux comprendre votre besoin.`;
-    else if (lead.status === 'En Cours') text = `Bonjour ${lead.full_name}, comment avance votre réflexion suite à notre dernier échange ? Avez-vous pu consulter notre proposition ?`;
-    else if (lead.status === 'Converti') text = `Bonjour ${lead.full_name}, ravi de vous compter parmi nos clients ! Je reste à votre entière disposition.`;
-    else if (lead.status === 'Perdu') text = `Bonjour ${lead.full_name}, j'espère que vous allez bien. Avez-vous de nouveaux projets sur lesquels nous pourrions vous accompagner en ce moment ?`;
-    else text = `Bonjour ${lead.full_name},`;
-    
-    const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    const msg = encodeURIComponent("Bonjour " + lead.full_name + ", suite à votre intérêt pour " + (lead.intent || "nos services") + "...");
+    window.open('https://wa.me/' + (lead.phone || '').replace(/\D/g, '') + '?text=' + msg, '_blank');
   };
 
   // --- SUPPRESSION DES LEADS PERDUS ---
@@ -674,6 +667,27 @@ export default function LeadsKanbanPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+              
+              {/* --- UPDATE BUDGET TEMPS RÉEL --- */}
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 mb-2">
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Wallet size={14}/> Budget Estimé</p>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="number" 
+                    value={selectedLead.budget || selectedLead.amount || ''} 
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      setSelectedLead({ ...selectedLead, budget: val, amount: val });
+                      setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, budget: val, amount: val } : l));
+                      if (userId) await supabase.from('crm_leads').update({ budget: val, amount: val }).eq('id', selectedLead.id).eq('tenant_id', userId);
+                    }} 
+                    className="w-full p-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white transition-colors" 
+                    placeholder="Ex: 150000" 
+                  />
+                  <span className="text-xs font-black text-zinc-500">F</span>
+                </div>
+              </div>
+
               {/* --- NOUVEAU: ASSIGNATION INTELLIGENTE --- */}
               {userRole !== 'commercial' && (
                 <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 mb-2">

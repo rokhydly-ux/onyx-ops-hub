@@ -185,7 +185,7 @@ function CRMSettingsContent() {
           if (newLeads.length === 0) return alert("Aucun lead avec un numéro valide n'a été trouvé.");
 
           setIsSubmitting(true);
-          const { data, error } = await supabase.from('clients').insert(newLeads).select();
+          const { data, error } = await supabase.from('crm_leads').upsert(newLeads, { onConflict: 'phone, tenant_id' }).select();
           setIsSubmitting(false);
           
           if (!error && data) {
@@ -391,7 +391,23 @@ function CRMSettingsContent() {
            
            {/* Import IA & CSV Facebook Ads */}
            <div className="p-6 border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-4">
-              <h4 className="font-bold text-sm uppercase flex items-center gap-2"><Database size={16}/> Import IA (CSV Facebook Ads)</h4>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                 <h4 className="font-bold text-sm uppercase flex items-center gap-2"><Database size={16}/> Import IA (CSV Facebook Ads)</h4>
+                 <button 
+                   onClick={async () => {
+                     if (confirm("🚨 DANGER : Voulez-vous vraiment supprimer TOUS vos leads ? Cette action est irréversible !")) {
+                       setIsSubmitting(true);
+                       const { error } = await supabase.from('crm_leads').delete().eq('tenant_id', userId);
+                       setIsSubmitting(false);
+                       if (error) alert("Erreur lors de la purge : " + error.message);
+                       else { alert("Base de leads purgée avec succès !"); window.location.reload(); }
+                     }
+                   }} 
+                   className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-colors shadow-sm"
+                 >
+                   Purger la base de Leads (Danger)
+                 </button>
+              </div>
               <p className="text-xs text-zinc-500">Uploadez votre export Facebook brut. L'IA se chargera de le structurer, le scorer et de calculer le budget prévisionnel.</p>
               <input type="file" accept=".csv" className="hidden" ref={csvFileInputRef} onChange={handleFileUploadCSV} />
               <button onClick={() => csvFileInputRef.current?.click()} disabled={isSubmitting} className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl text-xs font-bold hover:scale-105 transition-all shadow-md flex items-center gap-2 w-max">
