@@ -42,10 +42,10 @@ export default function OnyxFormationPage() {
   // --- MESSAGE DYNAMIQUE POUR LIKA ---
   const getLikaMessage = (courseId: string) => {
     switch(courseId) {
-      case "1": return "Prêt à dompter l'algorithme ? On pose les bases solides ici !";
+      case "1": return "Salut ! Je suis Lika, ta Stratège. Prêt à dompter l'algorithme ? On pose les bases solides ici !";
       case "2": return "Ton hook doit stopper le scroll direct ! Concentre-toi sur les 3 premières secondes.";
       case "3": return "C'est ici qu'on transforme les clics en cash. Optimise tes réponses !";
-      case "4": return "On accélère ! Augmente le budget sans casser ton coût par acquisition.";
+      case "4": return "Ici la Stratège. On accélère ! Augmente le budget sans casser ton coût par acquisition.";
       default: return "Note tes meilleures idées ici, je veille au grain !";
     }
   };
@@ -213,7 +213,7 @@ export default function OnyxFormationPage() {
                   
                   {/* MASCOTTE LIKA */}
                   <div className="flex items-start gap-4 mb-6">
-                    <img src="LIEN_IMGBB_ICI" alt="Lika Coach" className="w-12 h-12 rounded-full border-2 border-[#39FF14] object-cover shrink-0 bg-zinc-900 shadow-[0_0_10px_rgba(57,255,20,0.2)]" />
+                    <img src="https://i.ibb.co/B5HhnTjw/La-mascotte-LIKA-202604121725.jpg" alt="Lika - La Stratège" className="w-12 h-12 rounded-full border-2 border-[#39FF14] object-cover shrink-0 bg-black mix-blend-screen shadow-[0_0_10px_rgba(57,255,20,0.2)]" />
                     <div className="bg-zinc-900 border border-zinc-800 text-zinc-300 p-4 rounded-2xl rounded-tl-none text-sm font-medium shadow-sm relative">
                       <div className="absolute -left-2 top-0 w-4 h-4 bg-zinc-900 border-l border-t border-zinc-800 transform -skew-x-12 z-0"></div>
                       <span className="relative z-10">{getLikaMessage(selectedCourse.id)}</span>

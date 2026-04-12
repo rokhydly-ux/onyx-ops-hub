@@ -79,7 +79,7 @@ const ECOSYSTEM_SAAS = [
   { id: "tiak", name: "Onyx Tiak", desc: "Logistique & Livreurs", price: "13 900 F", link: "/admin/saas/tiak", color: "bg-teal-500" },
   { id: "booking", name: "Onyx Booking", desc: "Rendez-vous", price: "13 900 F", link: "/admin/saas/booking", color: "bg-indigo-500" },
   { id: "tontine", name: "Onyx Tontine", desc: "Finance", price: "6 900 F", link: "/admin/saas/tontine", color: "bg-pink-500" },
-  { id: "formation", name: "Onyx Formation", desc: "Académie", price: "13 900 F", link: "/admin/saas/formation", color: "bg-yellow-500" },
+  { id: "formation", name: "Onyx Formation", desc: "Cours Androméda", price: "9 900 F", link: "/admin/saas/formation", color: "bg-yellow-500" },
   { id: "menu", name: "Onyx Menu", desc: "Resto", price: "13 900 F", link: "/admin/saas/menu", color: "bg-rose-500" },
   { id: "gold", name: "Pack Onyx Gold", desc: "L'Arsenal Complet VIP", price: "59 900 F", link: "/admin/saas/onyx-gold", color: "bg-lime-400" },
   { id: "cmpub", name: "Add-on CM Pub", desc: "Création de contenu", price: "49 900 F", link: "/admin/saas/cm-pub", color: "bg-purple-500" },
@@ -94,6 +94,7 @@ const getSaasPrice = (saasName: string) => {
    if (saasName.includes('Tekki Pro')) return 27900;
    if (saasName.includes('Tekki')) return 22900;
    if (saasName.includes('Tontine')) return 6900;
+   if (saasName.includes('Formation')) return 9900;
    if (saasName.includes('Jaay') || saasName.includes('Solo')) return 13900;
    if (saasName.includes('Menu') || saasName.includes('Booking') || saasName.includes('Staff') || saasName.includes('Stock') || saasName.includes('Tiak')) return 13900;
    if (saasName.includes('Add-on CM Pub')) return 49900;
@@ -357,16 +358,16 @@ export default function AdminDashboard() {
    setIsLoading(true);
    setIsRefreshing(true);
    try {
-     const { data: contactsData } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
-     const { data: leadsData } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+     const { data: contactsData } = await supabase.from('clients').select('*').is('tenant_id', null).order('created_at', { ascending: false });
+     const { data: leadsData } = await supabase.from('leads').select('*').is('tenant_id', null).order('created_at', { ascending: false });
      // CORRECTION ICI : On lit la table "ambassadors" et plus "partners"
      const { data: partnersData } = await supabase.from('ambassadors').select('*').order('created_at', { ascending: false });
      const { data: materialsData } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
      const { data: withdrawalsData } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
-     const { data: commercialsData } = await supabase.from('commercials').select('*').order('created_at', { ascending: false });
+     const { data: commercialsData } = await supabase.from('commercials').select('*').is('tenant_id', null).order('created_at', { ascending: false });
      const { data: hardwareData } = await supabase.from('hardware_stock').select('*').order('name', { ascending: true });
      const { data: adminSettings } = await supabase.from('admin_settings').select('*').eq('id', 1).maybeSingle();
-     const { data: actionsData } = await supabase.from('actions_ia').select('*').order('created_at', { ascending: false });
+     const { data: actionsData } = await supabase.from('actions_ia').select('*').is('tenant_id', null).order('created_at', { ascending: false });
      const { data: articlesData } = await supabase.from('marketing_articles').select('*').order('created_at', { ascending: false });
      
      if (contactsData) setContacts(contactsData);
@@ -476,6 +477,7 @@ export default function AdminDashboard() {
       .channel('realtime-leads-admin')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads' }, (payload) => {
         const newLead = payload.new;
+        if (newLead.tenant_id) return; // Ignore les leads appartenant aux utilisateurs du CRM
         setLeads(prev => {
           if (prev.some(l => l.id === newLead.id)) return prev;
           return [newLead, ...prev];
@@ -1020,15 +1022,16 @@ export default function AdminDashboard() {
        'Pack Onyx CRM': 39900,
        'Pack Onyx Gold': 59900,
        'Add-on CM Pub': 49900,
+       'Onyx Formation': 9900,
        'Onyx Boost': 150000,
        'Onyx Modernize': 300000
     };
     
     const monthly = saasPriceMap[lead.saas] || 13900;
-    const isOneShot = lead.saas === 'Onyx Modernize' || lead.saas === 'Onyx Boost';
+    const isOneShot = lead.saas === 'Onyx Modernize' || lead.saas === 'Onyx Boost' || lead.saas === 'Onyx Formation';
     
     const total = customPrice !== undefined ? customPrice : (isOneShot ? monthly : (monthly * 12));
-    const designation = customDesignation || (isOneShot ? `Prestation Globale - ${lead.saas}` : `Abonnement Annuel (12 mois) - ${lead.saas || 'Offre Onyx'}`);
+    const designation = customDesignation || (isOneShot ? `Accès à vie - ${lead.saas}` : `Abonnement Annuel (12 mois) - ${lead.saas || 'Offre Onyx'}`);
     const totalStr = total.toLocaleString('fr-FR') + ' F CFA';
 
     const invoiceWindow = window.open("", "_blank");
@@ -1131,14 +1134,16 @@ export default function AdminDashboard() {
     const saasPriceMap: any = {
        'Onyx Jaay': 13900, 'Pack Tekki': 22900, 'Pack Tekki Pro': 27900, 'Onyx CRM': 39900,
        'Pack Onyx Gold': 59900, 'Add-on CM Pub': 49900, 'Onyx Boost': 150000, 'Onyx Modernize': 300000,
-       'Onyx Tiak': 13900, 'Onyx Stock': 13900, 'Onyx Menu': 13900, 'Onyx Booking': 13900, 'Onyx Staff': 13900, 'Onyx Tontine': 6900
+       'Onyx Tiak': 13900, 'Onyx Stock': 13900, 'Onyx Menu': 13900, 'Onyx Booking': 13900, 'Onyx Staff': 13900, 'Onyx Tontine': 6900, 'Onyx Formation': 9900
     };
     const activeSaasList = lead.active_saas && lead.active_saas.length > 0 ? lead.active_saas : (lead.saas ? [lead.saas] : []);
     let total = 0;
     const itemsHtml = activeSaasList.map((s: string) => {
        const price = saasPriceMap[s] || 13900;
        total += price;
-       return `<tr><td style="padding: 12px; border-bottom: 1px solid #eee; font-size: 14px;">Abonnement - ${s}</td><td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px;">1</td><td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; font-size: 14px;">${price.toLocaleString('fr-FR')} F CFA</td></tr>`;
+       const isOneShotItem = s === 'Onyx Modernize' || s === 'Onyx Boost' || s === 'Onyx Formation';
+       const designationItem = isOneShotItem ? `Accès à vie - ${s}` : `Abonnement - ${s}`;
+       return `<tr><td style="padding: 12px; border-bottom: 1px solid #eee; font-size: 14px;">${designationItem}</td><td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px;">1</td><td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; font-size: 14px;">${price.toLocaleString('fr-FR')} F CFA</td></tr>`;
     }).join('');
     
     const totalStr = total.toLocaleString('fr-FR') + ' F CFA';
@@ -1593,7 +1598,7 @@ export default function AdminDashboard() {
 
   // SUPPRIMER LE LEAD ASSOCIÉ POUR NETTOYER L'INBOX
   if (phoneClean) {
-    await supabase.from('leads').delete().eq('phone', phoneClean);
+    await supabase.from('leads').delete().eq('phone', phoneClean).is('tenant_id', null);
   }
 
   setShowContactModal(false);
@@ -4709,6 +4714,7 @@ export default function AdminDashboard() {
                          <option value="Onyx Stock">Onyx Stock (13.900 F)</option>
                          <option value="Onyx Tiak">Onyx Tiak (13.900 F)</option>
                          <option value="Onyx Tontine">Onyx Tontine (6.900 F)</option>
+                         <option value="Onyx Formation">Onyx Formation - Androméda (9.900 F)</option>
                       </optgroup>
                       <optgroup label="🚀 HIGH-TICKET">
                          <option value="Onyx Boost">Onyx Boost (150.000 F)</option>

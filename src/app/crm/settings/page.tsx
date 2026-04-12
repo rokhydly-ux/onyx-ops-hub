@@ -389,8 +389,8 @@ function CRMSettingsContent() {
               const productsToUpsert = Array.from(uniqueProductsMap.values());
 
               if (clientsToUpsert.length > 0) {
-                  const { error: clientError } = await supabase.from('clients').upsert(clientsToUpsert, { onConflict: 'phone, tenant_id' });
-                  if (clientError) throw new Error("Erreur Clients: " + clientError.message);
+                  const { error: clientError } = await supabase.from('crm_contacts').upsert(clientsToUpsert, { onConflict: 'phone, tenant_id' });
+                  if (clientError) throw new Error("Erreur Contacts: " + clientError.message);
               }
               if (productsToUpsert.length > 0) {
                   const { error: productError } = await supabase.from('crm_products').upsert(productsToUpsert, { onConflict: 'name, tenant_id' });
