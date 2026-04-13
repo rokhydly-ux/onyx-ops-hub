@@ -178,17 +178,25 @@ export default function CRMDashboard() {
       // --- TABLEAU ROI DES CAMPAGNES ---
       const campMap = new Map();
       filteredLeads.forEach((l: any) => {
-          const cName = l.form_name || l.campaign_name || l.intent || l.source || 'Organique';
+          const cName = l.campaign_name || l.form_name || l.intent || l.source || 'Organique';
           if (!campMap.has(cName)) {
-              campMap.set(cName, { name: cName, total: 0, converted: 0, pipeline: 0, ca: 0 });
+              campMap.set(cName, { name: cName, total: 0, enCours: 0, converted: 0, lost: 0, pipeline: 0, ca: 0 });
           }
           const stats = campMap.get(cName);
           stats.total += 1;
           const budget = Number(l.budget || l.amount || 0);
-          if (l.status === 'Gagné' || l.status === 'Converti' || l.is_client) {
+          
+          const status = l.status || 'Nouveau Lead';
+          const isWon = ['Gagné', 'Signé', 'Converti', 'Clôturé avec succès'].includes(status) || l.is_client;
+          const isLost = ['Perdu', 'Abandonné', 'Rejeté'].includes(status);
+          
+          if (isWon) {
               stats.converted += 1;
               stats.ca += budget;
-          } else if (l.status !== 'Perdu') {
+          } else if (isLost) {
+              stats.lost += 1;
+          } else {
+              stats.enCours += 1;
               stats.pipeline += budget;
           }
       });
@@ -199,7 +207,7 @@ export default function CRMDashboard() {
     return <div className="h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div></div>;
   }
 
-  const handleExportPerformancesPDF = () => {
+  const handleExportPerformancesPDF = async () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.text("Rapport de Conversion & Performances", 14, 22);
@@ -221,22 +229,54 @@ export default function CRMDashboard() {
     });
 
     // Section 2: Performances par Campagne
-    const finalY = (doc as any).lastAutoTable.finalY || 54;
+    const finalY1 = (doc as any).lastAutoTable.finalY || 54;
     doc.setFontSize(14);
-    doc.text("Performances par Campagne", 14, finalY + 15);
+    doc.text("Performances par Campagne", 14, finalY1 + 15);
 
     const campaignsExportData = campaignsData.map(c => [
       c.name,
       c.total.toString(),
+      c.enCours.toString(),
+      c.lost.toString(),
       c.converted.toString(),
       c.total > 0 ? ((c.converted / c.total) * 100).toFixed(1) + '%' : '0%',
       c.ca.toLocaleString('fr-FR') + ' F'
     ]);
 
     autoTable(doc, {
-      startY: finalY + 21,
-      head: [["Campagne", "Leads Générés", "Convertis", "Taux Conv.", "CA Généré"]],
+      startY: finalY1 + 21,
+      head: [["Campagne", "Total Leads", "En Cours", "Perdus", "Gagnés", "Taux Conv.", "CA Généré"]],
       body: campaignsExportData,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+    });
+
+    // Section 3: Objectifs et Réalisations des Commerciaux
+    const finalY2 = (doc as any).lastAutoTable.finalY || finalY1 + 21;
+    doc.setFontSize(14);
+    doc.text("Objectifs et Réalisations des Commerciaux", 14, finalY2 + 15);
+
+    const { data: team } = await supabase.from('commercials').select('*').eq('tenant_id', session.id);
+    
+    const objectivesData = (team || []).map((c: any) => {
+       const commLeads = allLeads.filter((l: any) => l.assigned_to === c.full_name && (l.status === 'Gagné' || l.status === 'Converti' || l.is_client));
+       const realizedSales = commLeads.length;
+       const realizedCA = commLeads.reduce((sum: number, l: any) => sum + Number(l.amount || l.budget || 0), 0);
+
+       return [
+          c.full_name,
+          `${c.objective || 0} ventes / ${c.objective_period || 'Mois'}`,
+          realizedSales.toString(),
+          `${realizedCA.toLocaleString('fr-FR')} F`
+       ];
+    });
+
+    if (objectivesData.length === 0) objectivesData.push(["Aucun commercial", "-", "-", "-"]);
+
+    autoTable(doc, {
+      startY: finalY2 + 21,
+      head: [["Commercial", "Objectif (Ventes)", "Ventes Conclues", "CA Généré"]],
+      body: objectivesData,
       theme: 'grid',
       headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
     });
@@ -407,10 +447,11 @@ export default function CRMDashboard() {
                  <thead className="bg-zinc-50 dark:bg-zinc-900/50">
                      <tr>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom de la Campagne</th>
-                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Leads Générés</th>
-                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Convertis</th>
+                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Total Leads</th>
+                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">En Cours</th>
+                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Perdus</th>
+                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Gagnés (Convertis)</th>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Taux Conv.</th>
-                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Valeur Pipeline</th>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">CA Généré</th>
                      </tr>
                  </thead>
@@ -422,13 +463,18 @@ export default function CRMDashboard() {
                              <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors">
                                  <td className="p-5 font-bold text-sm text-black dark:text-white uppercase">{c.name}</td>
                                  <td className="p-5 text-center font-black text-lg">{c.total}</td>
+                                 <td className="p-5 text-center">
+                                    <span className="bg-blue-500/10 text-blue-500 border border-blue-500/30 px-3 py-1 rounded-lg text-xs font-black">{c.enCours}</span>
+                                 </td>
+                                 <td className="p-5 text-center">
+                                    <span className="bg-red-500/10 text-red-500 border border-red-500/30 px-3 py-1 rounded-lg text-xs font-black">{c.lost}</span>
+                                 </td>
                                  <td className="p-5 text-center font-black text-lg text-[#39FF14]">{c.converted}</td>
                                  <td className="p-5 text-center">
                                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm ${badgeColor}`}>
                                          {rate.toFixed(1)}%
                                      </span>
                                  </td>
-                                 <td className="p-5 text-right font-black text-zinc-500">{c.pipeline.toLocaleString('fr-FR')} F</td>
                                  <td className="p-5 text-right font-black text-[#39FF14] text-lg">{c.ca.toLocaleString('fr-FR')} F</td>
                              </tr>
                          );

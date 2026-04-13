@@ -401,12 +401,12 @@ export default function LeadsKanbanPage() {
           const newLeads = results.data.map((row: any) => {
              // Normalisation des clés en minuscules
              const r: any = {};
-             Object.keys(row).forEach(k => r[k.toLowerCase()] = row[k]);
+             Object.keys(row).forEach(k => r[k.toLowerCase().trim()] = row[k]);
              
              const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
              const phone = r['whatsapp_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
-             const campaign = r['campaign_name'] || r['campagne'] || '';
-             const form = r['form_name'] || r['formulaire'] || '';
+             const campaign = r['campaign_name'] || r['campagne'] || r['campaign'] || r['adset_name'] || 'Organique';
+             const form = r['form_name'] || r['formulaire'] || r['form'] || '';
              
              // --- PRÉCISION DES DATES (Facebook created_time) ---
              const dateKey = Object.keys(r).find(k => k.includes('created_time') || k.includes('date') || k.includes('time'));
@@ -452,7 +452,7 @@ export default function LeadsKanbanPage() {
                 amount: budget,
                 status: 'Nouveaux Leads',
                 source: 'Facebook Ads',
-                intent: form || campaign || 'Campagne FB',
+                intent: form || campaign || 'Organique',
                 created_at: createdAt
              };
           }).filter(l => l.phone); // Exclut les lignes sans numéro
