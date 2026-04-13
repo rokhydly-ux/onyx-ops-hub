@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock, Target } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock, Target, X, PieChart as PieChartIcon, Activity as ActivityIcon } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 
 export default function CRMDashboard() {
   const router = useRouter();
@@ -19,6 +19,9 @@ export default function CRMDashboard() {
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState({ label: 'Ce Mois', start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(), end: new Date().toISOString() });
   const [campaignsData, setCampaignsData] = useState<any[]>([]);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [analysisCampaign, setAnalysisCampaign] = useState("Toutes");
+  const [analysisPeriod, setAnalysisPeriod] = useState("30j");
 
   useEffect(() => {
     let mounted = true;
@@ -331,8 +334,14 @@ export default function CRMDashboard() {
 
       {/* --- TABLEAU ROI DES CAMPAGNES --- */}
       <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm mt-8 overflow-hidden">
-         <div className="p-6 md:p-8 border-b border-zinc-200 dark:border-zinc-800">
-             <h3 className="font-black uppercase text-lg text-black dark:text-white flex items-center gap-2"><Target size={20} className="text-[#39FF14]"/> Performances par Campagne</h3>
+         <div className="p-6 md:p-8 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center cursor-pointer group" onClick={() => setIsAnalysisModalOpen(true)}>
+             <div>
+                 <h3 className="font-black uppercase text-lg text-black dark:text-white flex items-center gap-2"><Target size={20} className="text-[#39FF14]"/> Performances par Campagne</h3>
+                 <p className="text-xs text-zinc-500 mt-1">Cliquez pour ouvrir l'analyse détaillée de la direction commerciale.</p>
+             </div>
+             <span className="hidden sm:flex bg-black text-[#39FF14] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest group-hover:scale-105 transition-transform border border-[#39FF14]/30 items-center gap-2">
+               <PieChartIcon size={14} /> Analyser
+             </span>
          </div>
          <div className="overflow-x-auto custom-scrollbar">
              <table className="w-full text-left min-w-[800px]">
@@ -370,6 +379,134 @@ export default function CRMDashboard() {
              </table>
          </div>
       </div>
+
+      {/* --- MODALE ANALYSE DE CAMPAGNE (DIRECTION COMMERCIALE) --- */}
+      {isAnalysisModalOpen && (() => {
+        const periodMs = analysisPeriod === '7j' ? 7*24*3600*1000 : analysisPeriod === '30j' ? 30*24*3600*1000 : Infinity;
+        const limitDate = new Date(Date.now() - periodMs);
+        
+        const campLeads = allLeads.filter((l: any) => {
+           const campName = l.campaign_name || l.intent || l.source;
+           const matchCamp = analysisCampaign === 'Toutes' || campName === analysisCampaign;
+           const matchDate = new Date(l.created_at || 0) >= limitDate;
+           return matchCamp && matchDate;
+        });
+
+        const total = campLeads.length;
+        const enCours = campLeads.filter((l: any) => l.status === 'En Cours').length;
+        const convertis = campLeads.filter((l: any) => l.status === 'Converti').length;
+        const gagnes = campLeads.filter((l: any) => l.status === 'Gagné').length;
+        const perdus = campLeads.filter((l: any) => l.status === 'Perdu').length;
+        const nonTraites = total - enCours - convertis - gagnes - perdus; 
+        
+        const ca = campLeads.filter((l: any) => l.status === 'Gagné' || l.status === 'Converti' || l.is_client).reduce((sum: number, l: any) => sum + Number(l.amount || l.budget || 0), 0);
+        const txConv = total > 0 ? (((convertis + gagnes) / total) * 100).toFixed(1) : '0';
+        const cpl = total > 0 ? (50000 / total).toFixed(0) : '0'; // Simulation de budget global 50k
+
+        let insight = "Données insuffisantes pour générer une recommandation.";
+        if (total > 0) {
+           if (Number(txConv) < 10) {
+              insight = "⚠️ Volume élevé mais faible conversion : Affinez le ciblage publicitaire ou revoyez le script d'appel de l'équipe de vente.";
+           } else if (perdus > total * 0.4) {
+              insight = `🔄 La campagne sélectionnée génère trop de leads froids (${perdus} perdus). Envisagez d'ajouter une question qualifiante pour filtrer.`;
+           } else if (Number(txConv) >= 20) {
+              insight = "🔥 Excellente conversion ! Envisagez d'augmenter le budget publicitaire (Scaling) sur cette campagne spécifique.";
+           } else {
+              insight = "✅ Campagne saine. Continuez l'optimisation des relances WhatsApp pour gratter quelques pourcents de conversion.";
+           }
+        }
+
+        const funnelData = [
+           { name: 'Total Leads', count: total, fill: '#6b7280' },
+           { name: 'Contactés', count: total - nonTraites, fill: '#3b82f6' },
+           { name: 'Devis (Convertis)', count: convertis, fill: '#eab308' },
+           { name: 'Ventes Conclues', count: gagnes, fill: '#22c55e' }
+        ];
+
+        const uniqueCampaigns = Array.from(new Set(allLeads.map((l: any) => l.campaign_name || l.intent || l.source).filter(Boolean)));
+
+        return (
+           <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsAnalysisModalOpen(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
+              <div className="bg-white dark:bg-zinc-950 rounded-[2.5rem] w-full max-w-4xl shadow-2xl relative animate-in zoom-in-95 border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[95vh]">
+                 <button onClick={() => setIsAnalysisModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition z-20"><X size={20}/></button>
+                 
+                 <div className="p-8 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+                    <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3 text-black dark:text-white mb-6">
+                       <Target className="text-[#39FF14]"/> Analyse de Campagne
+                    </h2>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                       <div className="flex-1">
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Choisir la Campagne / Formulaire</label>
+                          <select value={analysisCampaign} onChange={e => setAnalysisCampaign(e.target.value)} className="w-full p-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer appearance-none text-black dark:text-white">
+                             <option value="Toutes">Toutes les campagnes confondues</option>
+                             {uniqueCampaigns.map((c: any) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                       </div>
+                       <div className="w-full sm:w-48">
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Période d'analyse</label>
+                          <select value={analysisPeriod} onChange={e => setAnalysisPeriod(e.target.value)} className="w-full p-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer appearance-none text-black dark:text-white">
+                             <option value="7j">7 derniers jours</option>
+                             <option value="30j">30 derniers jours</option>
+                             <option value="Tout">Depuis le début</option>
+                          </select>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                       <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl flex flex-col items-center text-center shadow-sm">
+                          <PieChartIcon className="text-zinc-500 mb-3" size={24}/>
+                          <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">CPL Estimé</p>
+                          <p className="text-2xl font-black text-black dark:text-white">{cpl} F</p>
+                       </div>
+                       <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl flex flex-col items-center text-center shadow-sm">
+                          <ActivityIcon className="text-blue-500 mb-3" size={24}/>
+                          <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">Taux de Conversion</p>
+                          <p className="text-2xl font-black text-blue-500">{txConv} %</p>
+                       </div>
+                       <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 p-6 rounded-2xl flex flex-col items-center text-center shadow-sm">
+                          <TrendingUp className="text-[#39FF14] mb-3" size={24}/>
+                          <p className="text-[10px] font-black uppercase text-green-800 dark:text-[#39FF14] tracking-widest mb-1">CA Généré</p>
+                          <p className="text-2xl font-black text-green-700 dark:text-[#39FF14]">{ca.toLocaleString()} F</p>
+                       </div>
+                    </div>
+
+                    <div className="mb-8">
+                       <h3 className="font-black uppercase text-sm mb-6 text-zinc-800 dark:text-zinc-200">Entonnoir de Conversion</h3>
+                       <div className="h-64 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                             <BarChart layout="vertical" data={funnelData} margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e4e4e7" opacity={0.5} />
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 11, fontWeight: 'bold' }} width={120} />
+                                <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '1rem', border: '1px solid #e4e4e7', backgroundColor: '#18181b', color: '#fff', fontWeight: 'bold' }} />
+                                <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={32}>
+                                   {funnelData.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                                   ))}
+                                </Bar>
+                             </BarChart>
+                          </ResponsiveContainer>
+                       </div>
+                       <div className="flex justify-center gap-6 mt-4 text-[10px] font-bold text-zinc-500">
+                          <span>Non Traités: <b className="text-zinc-400">{nonTraites}</b></span>
+                          <span>Perdus: <b className="text-red-500">{perdus}</b></span>
+                       </div>
+                    </div>
+
+                    <div className="bg-black text-white dark:bg-white dark:text-black p-6 rounded-2xl flex items-start gap-4 shadow-xl">
+                       <Zap size={24} className="text-[#39FF14] shrink-0 mt-1"/>
+                       <div>
+                          <h4 className="font-black uppercase text-sm mb-2">Actions Stratégiques (IA)</h4>
+                          <p className="text-sm font-medium opacity-90 leading-relaxed">{insight}</p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        );
+      })()}
     </div>
   );
 }

@@ -94,9 +94,6 @@ function KanbanCard({ lead, isSelected, onToggleSelect, onClick, onScheduleClick
         <div className="min-w-0 flex-1">
           <p className="font-black text-sm uppercase truncate pr-2">{lead.full_name}</p>
           <p className="text-[#39FF14] font-black text-xs mt-1">{lead.phone}</p>
-          <p className="text-[10px] text-zinc-500 font-bold mt-1.5 flex items-center gap-1">
-            <Clock size={10}/> {lead.created_at ? new Date(lead.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Date inconnue'}
-          </p>
         </div>
         <div onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} className="shrink-0 pt-1">
             <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(lead.id)} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer" />
@@ -137,6 +134,7 @@ export default function LeadsKanbanPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [productFilter, setProductFilter] = useState("Tous");
   const [sourceFilter, setSourceFilter] = useState("Toutes");
+  const [dateFilter, setDateFilter] = useState("Toutes");
   const [userId, setUserId] = useState<string | null>(null);
   const [commercialId, setCommercialId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('admin');
@@ -212,53 +210,44 @@ export default function LeadsKanbanPage() {
   }, [selectedLead]);
 
   useEffect(() => {
-    let isMounted = true;
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
     setIsLoading(true);
 
-    const fetchData = async () => {
-      try {
-        // 1. Vérification stricte de la session AU MONTAGE
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session?.user?.id) {
-          console.error("Pas de session active");
-          if (isMounted) setIsLoading(false);
-          return; // Ou rediriger vers /login
-        }
-
-        // 2. Le Fetch des données
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user && mounted) {
         const role = session.user.user_metadata?.role || 'admin';
         const name = session.user.user_metadata?.full_name || '';
         const tenantId = session.user.user_metadata?.tenant_id || session.user.id;
         
-        if (isMounted) {
-          setUserId(tenantId);
-          setCommercialId(session.user.id);
-          setUserRole(role);
-          setUserName(name);
-        }
+        setUserId(tenantId);
+        setCommercialId(session.user.id);
+        setUserRole(role);
+        setUserName(name);
 
         if (role === 'commercial') {
            const { data: comm } = await supabase.from('commercials').select('*').eq('id', session.user.id).single();
-           if (comm && isMounted) setCommercialData(comm);
+           if (comm && mounted) setCommercialData(comm);
         }
 
         await fetchLeads(tenantId, role, name);
-      } catch (err) {
-        console.error("Erreur de fetch:", err);
-      } finally {
-        if (isMounted) setIsLoading(false);
+      } else if (!session && mounted) {
+        setIsLoading(false);
       }
-    };
+    });
 
-    fetchData();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session && isMounted) fetchData();
+    // Forcer une vérification initiale immédiate
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session && mounted) setIsLoading(false);
     });
 
     return () => {
-      isMounted = false;
+      mounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);
@@ -281,6 +270,7 @@ export default function LeadsKanbanPage() {
   }, [userId, userRole, userName]);
 
   const fetchLeads = async (uid: string, role: string, name: string) => {
+    setIsLoading(true);
     
     let query = supabase
       .from('crm_leads')
@@ -304,6 +294,7 @@ export default function LeadsKanbanPage() {
        });
        setLeads(sortedData);
     }
+    setIsLoading(false);
   };
 
   // --- GESTION DE LA SÉLECTION MULTIPLE ---
@@ -661,12 +652,20 @@ export default function LeadsKanbanPage() {
     document.body.removeChild(link);
   };
 
-  const filteredLeads = leads.filter(l => 
-    ((l.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (l.phone || '').includes(searchTerm)) &&
-    (productFilter === "Tous" || l.intent === productFilter) &&
-    (sourceFilter === "Toutes" || l.source === sourceFilter)
-  );
+  const filteredLeads = leads.filter(l => {
+    const matchSearch = ((l.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (l.phone || '').includes(searchTerm));
+    const matchProduct = productFilter === "Tous" || l.intent === productFilter;
+    const matchSource = sourceFilter === "Toutes" || l.source === sourceFilter;
+    let matchDate = true;
+    if (dateFilter === "Aujourd'hui") {
+       matchDate = new Date(l.created_at).toDateString() === new Date().toDateString();
+    } else if (dateFilter === "7 derniers jours") {
+       matchDate = new Date(l.created_at) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    } else if (dateFilter === "30 derniers jours") {
+       matchDate = new Date(l.created_at) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    }
+    return matchSearch && matchProduct && matchSource && matchDate;
+  });
 
   const stagnantLeads = leads.filter(l => (l.status === 'Nouveaux Leads' || !l.status) && l.created_at && new Date(l.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const activePipelineValue = leads.filter(l => ['En Cours', 'Audit en cours', 'Nouveaux Leads'].includes(l.status)).reduce((acc, l) => acc + (Number(l.budget || l.amount || 0)), 0);
@@ -728,6 +727,16 @@ export default function LeadsKanbanPage() {
             {Array.from(new Set(leads.map(l => l.source).filter(Boolean))).map(source => (
               <option key={source as string} value={source as string}>{source as string}</option>
             ))}
+          </select>
+          <select
+            value={dateFilter}
+            onChange={e => setDateFilter(e.target.value)}
+            className="px-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] transition-colors appearance-none cursor-pointer"
+          >
+            <option value="Toutes">Toutes les dates</option>
+            <option value="Aujourd'hui">Aujourd'hui</option>
+            <option value="7 derniers jours">7 derniers jours</option>
+            <option value="30 derniers jours">30 derniers jours</option>
           </select>
           <button onClick={handleExportCSV} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition-colors shadow-sm">
             <Download size={16}/> Exporter CSV
