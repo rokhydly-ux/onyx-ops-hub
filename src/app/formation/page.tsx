@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { 
   PlayCircle, BookOpen, FileText, ChevronRight, 
-  LogOut, Shield, Download, CheckCircle, Star, X, Save, Edit3, ArrowLeft 
+  LogOut, Shield, Download, CheckCircle, Star, X, Save, Edit3, ArrowLeft, Maximize, Minimize, Lock
 } from "lucide-react";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -40,11 +40,15 @@ export default function OnyxFormationPage() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editProfileForm, setEditProfileForm] = useState({ full_name: "", phone: "", avatar_url: "" });
 
+  // UX enhancements states
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // --- MESSAGE DYNAMIQUE POUR LIKA ---
   const getLikaMessage = (courseId: string) => {
     switch(courseId) {
-      case "1": return "Salut ! Je suis Lika, ta Stratège. Prêt à dompter l'algorithme ? On pose les bases solides ici !";
-      case "2": return "Ton hook doit stopper le scroll direct ! Concentre-toi sur les 3 premières secondes.";
+      case "1": return "Prêt à dompter l'algorithme ? On pose les bases solides ici !";
+      case "2": return "N'oublie pas, le Hook fait 80% du travail ! Concentre-toi sur les 3 premières secondes.";
       case "3": return "C'est ici qu'on transforme les clics en cash. Optimise tes réponses !";
       case "4": return "Ici la Stratège. On accélère ! Augmente le budget sans casser ton coût par acquisition.";
       default: return "Note tes meilleures idées ici, je veille au grain !";
@@ -174,49 +178,59 @@ export default function OnyxFormationPage() {
       </header>
 
       <main className="max-w-7xl mx-auto p-6 lg:p-12">
-        {/* SECTION CERTIFICAT SI 100% */}
-        {totalProgress === 100 && (
-          <div className="mb-12 p-8 bg-zinc-900 border border-[#39FF14]/30 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(57,255,20,0.1)] animate-in slide-in-from-top-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/10 blur-3xl rounded-full pointer-events-none"></div>
-            <div className="flex items-center gap-6 relative z-10">
-               <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center border border-[#39FF14]/50"><Shield className="text-[#39FF14]" size={32}/></div>
-               <div>
-                  <h3 className="text-2xl font-black uppercase italic text-white">Félicitations !</h3>
-                  <p className="text-sm text-zinc-400 font-bold uppercase tracking-widest">Vous avez validé l'ensemble de vos modules.</p>
-               </div>
-            </div>
-            <button onClick={() => setShowCertificate(true)} className="px-8 py-4 bg-[#39FF14] text-black rounded-2xl font-black uppercase text-xs flex items-center gap-3 hover:scale-105 transition-all shadow-xl relative z-10">
-              <Download size={18}/> Télécharger mon Certificat
-            </button>
-          </div>
-        )}
-
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className={`grid ${isFocusMode ? 'grid-cols-1' : 'lg:grid-cols-3'} gap-8`}>
           {/* COLONNE GAUCHE : LISTE DES MODULES */}
-          <div className="lg:col-span-1 space-y-4">
-            <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-4 pl-4">Programme de la formation</h3>
-            {DEFAULT_COURSES.map((c) => (
-              <div key={c.id} onClick={() => setSelectedCourse(c)} className={`p-6 rounded-[2rem] border-2 cursor-pointer transition-all ${selectedCourse?.id === c.id ? "bg-black border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.15)] scale-[1.02]" : "bg-zinc-950 border-zinc-800 hover:border-zinc-700"}`}>
-                <div className="flex items-start justify-between">
-                   <div>
-                      <p className={`text-[10px] font-black uppercase mb-1 ${progress[c.id] === 100 ? "text-green-500" : "text-[#39FF14]"}`}>
-                        {progress[c.id] === 100 ? "✓ Terminé" : `Module 0${c.order}`}
-                      </p>
-                      <h4 className="font-black text-sm uppercase leading-tight text-white">{c.title}</h4>
-                      <p className="text-[10px] text-zinc-500 font-bold mt-2 uppercase">{c.duration}</p>
-                   </div>
-                   {progress[c.id] === 100 && <CheckCircle className="text-green-500 flex-shrink-0" size={18}/>}
+          {!isFocusMode && (
+            <div className="lg:col-span-1 space-y-4">
+              <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-4 pl-4">Programme de la formation</h3>
+              {DEFAULT_COURSES.map((c) => (
+                <div key={c.id} onClick={() => setSelectedCourse(c)} className={`p-6 rounded-[2rem] border-2 cursor-pointer transition-all ${selectedCourse?.id === c.id ? "bg-black border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.15)] scale-[1.02]" : "bg-zinc-950 border-zinc-800 hover:border-zinc-700"}`}>
+                  <div className="flex items-start justify-between">
+                     <div>
+                        <p className={`text-[10px] font-black uppercase mb-1 ${progress[c.id] === 100 ? "text-green-500" : "text-[#39FF14]"}`}>
+                          {progress[c.id] === 100 ? "✓ Terminé" : `Module 0${c.order}`}
+                        </p>
+                        <h4 className="font-black text-sm uppercase leading-tight text-white">{c.title}</h4>
+                        <p className="text-[10px] text-zinc-500 font-bold mt-2 uppercase">{c.duration}</p>
+                     </div>
+                     {progress[c.id] === 100 && <CheckCircle className="text-green-500 flex-shrink-0" size={18}/>}
+                  </div>
                 </div>
+              ))}
+              
+              <div className="mt-8">
+                {totalProgress === 100 ? (
+                  <div className="p-6 bg-zinc-900 border border-[#39FF14]/30 rounded-[2rem] text-center shadow-[0_0_20px_rgba(57,255,20,0.1)] relative overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform" onClick={() => setShowCertificate(true)}>
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 blur-2xl rounded-full pointer-events-none"></div>
+                     <Shield className="mx-auto mb-3 text-[#39FF14]" size={28}/>
+                     <h4 className="text-sm font-black uppercase text-white mb-1">Certificat Obtenu</h4>
+                     <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-4">Cliquez pour télécharger</p>
+                     <button className="w-full py-3 bg-[#39FF14] text-black rounded-xl font-black uppercase text-[10px] flex items-center justify-center gap-2">
+                        <Download size={14}/> Télécharger
+                     </button>
+                  </div>
+                ) : (
+                  <div className="p-6 bg-zinc-950 border border-zinc-800 rounded-[2rem] text-center opacity-50 cursor-not-allowed">
+                     <Lock className="mx-auto mb-3 text-zinc-600" size={24}/>
+                     <h4 className="text-xs font-black uppercase text-zinc-500 mb-1">Certificat Onyx Academy</h4>
+                     <p className="text-[10px] font-bold text-zinc-600 mt-2">Complétez tous les modules pour déverrouiller</p>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
 
           {/* COLONNE DROITE : LECTEUR VIDEO ET NOTES */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
+          <div className={`${isFocusMode ? 'col-span-1' : 'lg:col-span-2'} flex flex-col gap-6`}>
             {selectedCourse && (
               <>
                 <div className="bg-zinc-950 rounded-[3rem] border border-zinc-800 overflow-hidden shadow-sm animate-in fade-in">
                   <div className="aspect-video bg-black relative border-b border-zinc-800">
+                    <div className="absolute top-4 right-4 z-10">
+                       <button onClick={() => setIsFocusMode(!isFocusMode)} className="flex items-center gap-2 bg-black/80 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black uppercase text-white hover:text-[#39FF14] transition-colors border border-zinc-800 hover:border-[#39FF14] shadow-lg">
+                          {isFocusMode ? <Minimize size={14}/> : <Maximize size={14}/>} {isFocusMode ? 'Vue Classique' : 'Mode Focus'}
+                       </button>
+                    </div>
                     <iframe src={selectedCourse.video_url} className="absolute inset-0 w-full h-full" allowFullScreen title={selectedCourse.title} />
                   </div>
                   <div className="p-10">
@@ -239,23 +253,21 @@ export default function OnyxFormationPage() {
                      <h3 className="font-black uppercase tracking-tighter text-lg text-white">Mes Notes Personnelles</h3>
                   </div>
                   
-                  {/* MASCOTTE LIKA */}
-                  <div className="flex items-start gap-4 mb-6">
-                    <img src="https://i.ibb.co/B5HhnTjw/La-mascotte-LIKA-202604121725.jpg" alt="Lika - La Stratège" className="w-12 h-12 rounded-full border-2 border-[#39FF14] object-cover shrink-0 bg-black mix-blend-screen shadow-[0_0_10px_rgba(57,255,20,0.2)]" />
-                    <div className="bg-zinc-900 border border-zinc-800 text-zinc-300 p-4 rounded-2xl rounded-tl-none text-sm font-medium shadow-sm relative">
-                      <div className="absolute -left-2 top-0 w-4 h-4 bg-zinc-900 border-l border-t border-zinc-800 transform -skew-x-12 z-0"></div>
-                      <span className="relative z-10">{getLikaMessage(selectedCourse.id)}</span>
-                    </div>
-                  </div>
-                  
                   <div className="relative">
-                     <p className="text-[10px] font-bold text-zinc-500 mb-3 uppercase tracking-widest absolute right-4 top-4">Sauvegarde auto</p>
                      <textarea 
                        value={courseNotes[selectedCourse.id] || ""} 
                        onChange={saveNote}
                        placeholder="Notez ici les idées clés, stratégies à appliquer, outils mentionnés..." 
-                       className="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 pt-10 font-medium text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14] transition-all resize-none placeholder:text-zinc-600"
+                       className="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 font-medium text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14] transition-all resize-none placeholder:text-zinc-600"
                      />
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                     <button onClick={() => {
+                         setToastMessage("Notes sauvegardées avec succès !");
+                         setTimeout(() => setToastMessage(null), 3000);
+                     }} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs flex items-center gap-2 hover:scale-105 transition-transform shadow-lg">
+                        <Save size={16} /> Enregistrer mes notes
+                     </button>
                   </div>
                 </div>
               </>
@@ -272,6 +284,24 @@ export default function OnyxFormationPage() {
             © 2026 Onyx Ops Terminal v2.4
          </p>
       </footer>
+
+      {/* FLOATING LIKA MASCOT */}
+      {selectedCourse && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end animate-in slide-in-from-right-8 pointer-events-none">
+           <div className="bg-white text-black p-4 rounded-2xl rounded-br-none shadow-2xl mb-4 max-w-xs relative border-2 border-[#39FF14]">
+              <p className="text-xs font-black leading-relaxed">{getLikaMessage(selectedCourse.id)}</p>
+              <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-b-2 border-r-2 border-[#39FF14] transform rotate-45"></div>
+           </div>
+           <img src="/lika-avatar.png" alt="Lika" onError={(e: any) => e.target.src = 'https://i.ibb.co/B5HhnTjw/La-mascotte-LIKA-202604121725.jpg'} className="w-16 h-16 rounded-full border-2 border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.3)] object-cover pointer-events-auto" />
+        </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] border border-[#39FF14]/30 px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[300] animate-in slide-in-from-bottom-5">
+             <CheckCircle size={16}/> {toastMessage}
+         </div>
+      )}
 
       {/* MODALE CERTIFICAT IMPRIMABLE */}
       {showCertificate && (
