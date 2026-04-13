@@ -93,11 +93,14 @@ function CRMSettingsContent() {
     
     const payload = { tenant_id: userId, ...settings };
     
-    const { data, error } = await supabase
-      .from('crm_settings')
-      .upsert(payload, { onConflict: 'tenant_id' })
-      .select()
-      .single();
+    const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', userId).maybeSingle();
+    let res;
+    if (existing?.id) {
+      res = await supabase.from('crm_settings').update(payload).eq('id', existing.id).select().single();
+    } else {
+      res = await supabase.from('crm_settings').insert([payload]).select().single();
+    }
+    const { data, error } = res;
     
     setIsSaving(false);
     if (error) {

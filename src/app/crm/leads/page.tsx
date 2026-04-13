@@ -94,6 +94,9 @@ function KanbanCard({ lead, isSelected, onToggleSelect, onClick, onScheduleClick
         <div className="min-w-0 flex-1">
           <p className="font-black text-sm uppercase truncate pr-2">{lead.full_name}</p>
           <p className="text-[#39FF14] font-black text-xs mt-1">{lead.phone}</p>
+          <p className="text-[10px] text-zinc-500 font-bold mt-1.5 flex items-center gap-1">
+            <Clock size={10}/> {lead.created_at ? new Date(lead.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Date inconnue'}
+          </p>
         </div>
         <div onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} className="shrink-0 pt-1">
             <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(lead.id)} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer" />
