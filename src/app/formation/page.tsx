@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { 
   PlayCircle, BookOpen, FileText, ChevronRight, 
-  LogOut, Shield, Download, CheckCircle, Star, X, Save, Edit3, ArrowLeft, Maximize, Minimize, Lock
+  LogOut, Shield, Download, CheckCircle, Star, X, Save, Edit3, ArrowLeft, Maximize, Minimize, Lock, Send, MessageSquare, Trophy
 } from "lucide-react";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -13,7 +13,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // --- TYPES ---
-type Course = { id: string; title: string; description: string; video_url: string; duration: string; order: number; };
+type Course = { id: string; title: string; description: string; video_url: string; duration: string; order: number; pdf_url?: string; };
 
 const DEFAULT_COURSES: Course[] = [
   { id: "1", title: "Le Protocole Andromeda (Structure)", description: "Les bases du marketing en Afrique. Comprendre son audience et structurer son offre.", video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: "18 min", order: 1 },
@@ -22,6 +22,33 @@ const DEFAULT_COURSES: Course[] = [
   { id: "4", title: "Scaling : Multiplier le budget sans crash", description: "Maîtriser l'augmentation du budget publicitaire de façon sereine.", video_url: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: "20 min", order: 4 },
 ];
 
+const QUIZ_DATA: Record<string, { question: string; options: string[]; correctAnswer: number; explanation: string }[]> = {
+  "1": [
+    { question: "Quelle est la première étape cruciale avant de lancer une publicité ?", options: ["Augmenter le budget", "Comprendre son audience cible et son besoin profond", "Copier les concurrents", "Créer un logo"], correctAnswer: 1, explanation: "Sans comprendre les frustrations de votre audience, aucune publicité ne fonctionnera." },
+    { question: "Pourquoi l'offre est-elle plus importante que le budget publicitaire ?", options: ["Une excellente offre se vend même avec un petit budget", "C'est faux, seul le budget compte", "L'algorithme préfère les belles offres", "Pour payer moins de taxes"], correctAnswer: 0, explanation: "Une offre irrésistible convertit naturellement, le budget ne fait qu'amplifier ce qui marche." },
+    { question: "Quel élément compose le 'Protocole Andromeda' ?", options: ["La structuration d'une offre irrésistible", "Un logiciel de montage", "Un hack secret Facebook", "Une technique de comptabilité"], correctAnswer: 0, explanation: "Le protocole Andromeda consiste à créer une offre tellement forte qu'elle devient stupide à refuser." },
+    { question: "Sur quel canal de vente l'audience africaine est-elle la plus réactive ?", options: ["Les sites web classiques", "L'emailing", "WhatsApp", "Les SMS"], correctAnswer: 2, explanation: "WhatsApp est le canal de communication numéro 1, il permet de créer de la confiance et une discussion instantanée." }
+  ],
+  "2": [
+    { question: "Quel est le rôle principal du 'Hook' dans une vidéo ?", options: ["Faire rire", "Capter l'attention dans les 3 premières secondes", "Montrer le logo de la marque", "Demander un abonnement"], correctAnswer: 1, explanation: "Si vous ne captez pas l'attention dans les 3 premières secondes, l'utilisateur continuera à scroller." },
+    { question: "Pourquoi dit-on que 'la créa est le nouveau ciblage' ?", options: ["Les options de ciblage classiques ne marchent plus", "L'algorithme se sert du contenu visuel et textuel pour trouver la bonne audience", "Facebook a supprimé les ciblages", "C'est une métaphore sans fondement"], correctAnswer: 1, explanation: "L'IA analyse le contenu de votre vidéo pour la montrer aux personnes les plus susceptibles d'interagir." },
+    { question: "Quelle erreur faut-il éviter lors de la création d'une publicité ?", options: ["Parler uniquement des caractéristiques du produit au lieu des bénéfices", "Utiliser du texte sur la vidéo", "Montrer des visages", "Mettre une musique de fond"], correctAnswer: 0, explanation: "Les clients achètent une transformation ou un bénéfice, pas juste des caractéristiques techniques." },
+    { question: "Comment filtrer les 'curieux' via votre publicité ?", options: ["En ne mettant pas de lien", "En annonçant clairement le prix ou la cible directement dans la vidéo", "En bloquant les commentaires", "En réduisant le budget"], correctAnswer: 1, explanation: "Annoncer le prix d'entrée de jeu permet d'éviter les messages de personnes qui n'ont pas le budget." }
+  ],
+  "3": [
+    { question: "Quel est le but principal de l'automatisation WhatsApp ?", options: ["Paraître plus professionnel", "Répondre instantanément et filtrer les prospects pour gagner du temps", "Envoyer du spam", "Remplacer totalement les humains"], correctAnswer: 1, explanation: "L'automatisation traite le volume et filtre les prospects chauds, avant que l'humain ne conclut la vente." },
+    { question: "Qu'est-ce qui augmente drastiquement le taux de conversion en DM ?", options: ["La réactivité et la personnalisation de l'échange", "L'envoi de longs pavés de texte", "Mettre 2 jours à répondre pour créer la rareté", "Envoyer 10 photos d'un coup"], correctAnswer: 0, explanation: "Plus vous répondez vite de manière pertinente, plus le client est en confiance pour acheter." },
+    { question: "Comment gérer efficacement les objections de prix sur WhatsApp ?", options: ["Ignorer le client", "Baisser le prix immédiatement", "En justifiant la valeur de l'offre avant de donner le prix", "S'énerver"], correctAnswer: 2, explanation: "La perception du prix dépend de la valeur perçue. Montez la valeur avant d'annoncer le montant." },
+    { question: "Pourquoi intégrer un Bot de qualification ?", options: ["Pour faire moderne", "Pour récolter les informations de base du client (besoin, ville) avant que l'humain n'intervienne", "Pour bloquer les clients", "Pour envoyer des vidéos YouTube"], correctAnswer: 1, explanation: "Le bot fait le travail ingrat : il pose les questions répétitives pour que vous ne parliez qu'aux gens qualifiés." }
+  ],
+  "4": [
+    { question: "Qu'est-ce que le 'Scaling' en publicité ?", options: ["Réduire son budget", "Augmenter le budget publicitaire tout en maintenant la rentabilité", "Changer de plateforme", "Supprimer ses campagnes"], correctAnswer: 1, explanation: "Le vrai challenge du scaling est de dépenser plus tout en gardant un coût par acquisition (CPA) rentable." },
+    { question: "Quelle est la meilleure approche pour scaler sans crasher les résultats ?", options: ["Multiplier le budget par 10 d'un coup", "Augmenter le budget progressivement (15-20%) tous les 2-3 jours", "Dupliquer la campagne 50 fois", "Changer la vidéo tous les jours"], correctAnswer: 1, explanation: "Les augmentations brutales perturbent l'algorithme d'apprentissage. Allez-y par paliers." },
+    { question: "Quand faut-il absolument couper ou modifier une campagne ?", options: ["Au bout de 2 heures", "Quand elle n'a pas de likes", "Quand le coût par acquisition dépasse la marge bénéficiaire tolérée", "Quand un concurrent fait mieux"], correctAnswer: 2, explanation: "La seule vraie métrique (KPI) qui compte est votre rentabilité (ROAS/CPA)." },
+    { question: "Quelle métrique est la plus importante lors du scaling ?", options: ["Le Coût Par Clic (CPC)", "Le Taux de clic (CTR)", "Le Retour sur Investissement Publicitaire (ROAS) / CPA", "Les partages"], correctAnswer: 2, explanation: "Vous pouvez avoir des clics chers, mais si le ROAS est excellent, la campagne est gagnante." }
+  ]
+};
+
 export default function OnyxFormationPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -29,6 +56,7 @@ export default function OnyxFormationPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Dashboard states
+  const [coursesList, setCoursesList] = useState<Course[]>(DEFAULT_COURSES);
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(DEFAULT_COURSES[0]);
   const [showCertificate, setShowCertificate] = useState(false);
@@ -44,6 +72,29 @@ export default function OnyxFormationPage() {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [videoProgress, setVideoProgress] = useState(0);
+  const playerRef = useRef<any>(null);
+  const intervalRef = useRef<any>(null);
+
+  // Quiz states
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [currentQuizQuestion, setCurrentQuizQuestion] = useState(0);
+  const [quizScore, setQuizScore] = useState(0);
+  const [quizFinished, setQuizFinished] = useState(false);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [xp, setXp] = useState(0);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+
+  // Lika Chat states
+  const [isLikaChatOpen, setIsLikaChatOpen] = useState(false);
+  const [userReply, setUserReply] = useState("");
+  const [likaMessages, setLikaMessages] = useState<{sender: 'bot'|'client', text: string}[]>([
+    { sender: 'bot', text: "Salut ! Je suis Lika, ta Stratège. Pose-moi tes questions sur ce module, je suis là pour t'aider !" }
+  ]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
   // --- MESSAGE DYNAMIQUE POUR LIKA ---
   const getLikaMessage = (courseId: string) => {
     switch(courseId) {
@@ -55,7 +106,165 @@ export default function OnyxFormationPage() {
     }
   };
 
+  // --- YOUTUBE API & AUTO-PROGRESSION ---
   useEffect(() => {
+    if (!selectedCourse) return;
+    setVideoProgress(0);
+
+    const handleVideoEnded = () => {
+      setShowQuiz(true);
+    };
+
+    const initPlayer = () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+      
+      playerRef.current = new (window as any).YT.Player("yt-player", {
+        events: {
+          onStateChange: (event: any) => {
+            if (event.data === (window as any).YT.PlayerState.PLAYING) {
+              // Tracking des vues pour les statistiques Admin
+              const views = JSON.parse(localStorage.getItem('onyx_video_views') || '{}');
+              views[selectedCourse.id] = (views[selectedCourse.id] || 0) + 1;
+              localStorage.setItem('onyx_video_views', JSON.stringify(views));
+              
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              intervalRef.current = setInterval(() => {
+                if (playerRef.current?.getCurrentTime && playerRef.current?.getDuration) {
+                  const current = playerRef.current.getCurrentTime();
+                  const total = playerRef.current.getDuration();
+                  if (total > 0) setVideoProgress((current / total) * 100);
+                }
+              }, 1000);
+            } else {
+              if (intervalRef.current) clearInterval(intervalRef.current);
+            }
+
+            if (event.data === (window as any).YT.PlayerState.ENDED) {
+              handleVideoEnded();
+            }
+          }
+        }
+      });
+    };
+
+    if (!(window as any).YT) {
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      document.body.appendChild(script);
+      (window as any).onYouTubeIframeAPIReady = initPlayer;
+    } else {
+      // Délai pour s'assurer que le nouvel iframe est monté dans le DOM
+      setTimeout(initPlayer, 500);
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [selectedCourse]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [likaMessages, isLikaChatOpen]);
+
+  const handleLikaSend = () => {
+    if (!userReply.trim()) return;
+    setLikaMessages(prev => [...prev, { sender: 'client', text: userReply }]);
+    const currentReply = userReply;
+    setUserReply("");
+    
+    setTimeout(() => {
+       let botResponse = "C'est une excellente question ! Dans ce module, concentre-toi sur l'application pratique de la méthode. N'hésite pas à revoir la vidéo si un concept t'échappe.";
+       const lowerReply = currentReply.toLowerCase();
+       if (lowerReply.includes('hook') || lowerReply.includes('attention')) botResponse = "Le Hook fait 80% du travail ! Assure-toi que les 3 premières secondes de ta vidéo posent une question ou montrent un résultat choquant.";
+       else if (lowerReply.includes('budget') || lowerReply.includes('scaling')) botResponse = "La règle d'or du scaling : n'augmente jamais ton budget de plus de 20% par jour pour ne pas casser l'algorithme de Facebook/TikTok !";
+       else if (lowerReply.includes('bot') || lowerReply.includes('whatsapp')) botResponse = "Automatiser WhatsApp te permet de filtrer les curieux. Demande toujours le besoin et le budget avant qu'un humain ne prenne le relais !";
+       
+       setLikaMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
+    }, 1000);
+  };
+
+  const handleCompleteModule = () => {
+    if (!selectedCourse) return;
+    setShowQuiz(false);
+    setQuizFinished(false);
+    setSelectedAnswer(null);
+    setCurrentQuizQuestion(0);
+    
+    // Attribution de points d'expérience (XP) pour gamifier la plateforme
+    const earnedXp = 500 + (quizScore * 100);
+    const newXp = xp + earnedXp;
+    setXp(newXp);
+    localStorage.setItem("onyx_course_xp", newXp.toString());
+    
+    setQuizScore(0);
+
+    setProgress(prev => {
+      const newProgress = { ...prev, [selectedCourse.id]: 100 };
+      localStorage.setItem("onyx_course_progress", JSON.stringify(newProgress));
+      return newProgress;
+    });
+
+    const currentIndex = DEFAULT_COURSES.findIndex(c => c.id === selectedCourse.id);
+    if (currentIndex !== -1 && currentIndex < DEFAULT_COURSES.length - 1) {
+      const nextCourse = DEFAULT_COURSES[currentIndex + 1];
+      setSelectedCourse(nextCourse);
+      setToastMessage(`Module complété ! Passage automatique à : ${nextCourse.title}`);
+      setTimeout(() => setToastMessage(null), 4000);
+    } else {
+      handleCourseCompletion();
+    }
+  };
+
+  const handleCourseCompletion = async () => {
+      setToastMessage("Félicitations, vous avez terminé la formation !");
+      setShowCertificate(true);
+      setShowConfetti(true);
+      
+      // Effet sonore ludique
+      try {
+          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+          audio.volume = 0.5;
+          audio.play().catch(()=>{});
+      } catch(e) {}
+      
+      setTimeout(() => { setShowConfetti(false); setToastMessage(null); }, 8000);
+
+      // 1. Envoi de l'email automatique avec le certificat PDF
+      try {
+          await fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  to: user?.email,
+                  subject: `🎓 Félicitations ${user?.full_name} ! Votre certificat Onyx Academy`,
+                  text: `Bravo ! Vous avez terminé la formation avec succès. Connectez-vous à votre espace pour télécharger votre certificat officiel.`,
+                  html: `<h2>Félicitations ${user?.full_name} !</h2><p>Vous venez de valider 100% de la formation Onyx Academy. Vous pouvez dès à présent télécharger votre certificat de réussite depuis votre espace personnel.</p>`
+              })
+          });
+      } catch (err) { console.error("Erreur email", err); }
+
+      // 2. Notification WhatsApp interactive
+      if (user?.phone) {
+          const waMsg = `Félicitations ${user?.full_name} ! 🎉\n\nVous venez de terminer brillamment la formation Onyx Academy. Votre certificat vous a été envoyé par email et est disponible dans votre espace.\n\nPrêt(e) à mettre en pratique vos nouvelles compétences ? 🚀`;
+          window.open(`https://wa.me/${user.phone.replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`, '_blank');
+      }
+  };
+
+  useEffect(() => {
+    const storedFormations = localStorage.getItem('onyx_formations');
+    if (storedFormations) {
+      const parsed = JSON.parse(storedFormations);
+      if (parsed.length > 0 && parsed[0].modules) {
+        const sortedModules = parsed[0].modules.sort((a: any, b: any) => a.order - b.order);
+        setCoursesList(sortedModules);
+        if (!selectedCourse) setSelectedCourse(sortedModules[0]);
+      }
+    } else {
+      if (!selectedCourse) setSelectedCourse(DEFAULT_COURSES[0]);
+    }
     const verifyAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -95,7 +304,26 @@ export default function OnyxFormationPage() {
     
     const savedNotes = localStorage.getItem("onyx_course_notes");
     if (savedNotes) setCourseNotes(JSON.parse(savedNotes));
+
+    const savedXp = localStorage.getItem("onyx_course_xp");
+    if (savedXp) setXp(parseInt(savedXp));
   }, [user]);
+
+  const fetchLeaderboard = async () => {
+    const { data } = await supabase.from('clients').select('id, full_name, avatar_url').limit(10);
+    let mockData = (data || []).map((c, i) => ({...c, xp: 5000 - (i * 450) + Math.floor(Math.random() * 200)}));
+    if (user) {
+       mockData = mockData.filter((c: any) => c.id !== user.id);
+       mockData.push({ id: user.id, full_name: user.full_name || 'Élève', avatar_url: user.avatar_url, xp: xp });
+    }
+    mockData.sort((a: any, b: any) => b.xp - a.xp);
+    setLeaderboardData(mockData);
+  };
+
+  const openLeaderboard = () => {
+    fetchLeaderboard();
+    setShowLeaderboard(true);
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +366,7 @@ export default function OnyxFormationPage() {
     localStorage.setItem("onyx_course_notes", JSON.stringify(newNotes));
   };
 
-  const totalProgress = Math.round(DEFAULT_COURSES.reduce((acc, c) => acc + (progress[c.id] || 0), 0) / DEFAULT_COURSES.length);
+  const totalProgress = Math.round(coursesList.reduce((acc, c) => acc + (progress[c.id] || 0), 0) / coursesList.length);
 
   if (loading || !isAuthenticated) {
     return <div className="min-h-screen flex items-center justify-center bg-black"><div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_#39FF14]" /></div>;
@@ -147,6 +375,26 @@ export default function OnyxFormationPage() {
   // --- VUE DASHBOARD ---
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans">
+      {/* ANIMATION LUDIQUE DE CONFETTIS */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-[500] pointer-events-none overflow-hidden">
+          {[...Array(60)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animation: `fall-${i % 2 === 0 ? 'left' : 'right'} ${2 + Math.random() * 3}s ease-in forwards`,
+                animationDelay: `${Math.random() * 0.5}s`,
+              }}
+            >
+              {['🎓', '🎉', '🏆', '⭐'][i % 4]}
+            </div>
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `@keyframes fall-left { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg) translateX(-50px); opacity: 0; } } @keyframes fall-right { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(-360deg) translateX(50px); opacity: 0; } }`}} />
+        </div>
+      )}
+
       <header className="bg-zinc-950 border-b border-zinc-800 px-8 py-6 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-6">
           <button onClick={() => router.push('/hub')} className="flex items-center gap-2 text-zinc-400 hover:text-[#39FF14] transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
@@ -156,6 +404,10 @@ export default function OnyxFormationPage() {
         </div>
         
         <div className="flex items-center gap-6">
+          <button onClick={openLeaderboard} className="hidden lg:flex items-center gap-2 bg-black border border-[#39FF14]/30 px-4 py-2 rounded-full shadow-[0_0_15px_rgba(57,255,20,0.2)] hover:scale-105 transition-transform cursor-pointer">
+             <Trophy className="text-yellow-400" size={16}/>
+             <span className="font-black text-[#39FF14] text-xs">{xp} XP</span>
+          </button>
           <div className="text-right hidden sm:block">
             <p className="text-[10px] font-black uppercase text-zinc-500">Progression</p>
             <div className="flex items-center gap-2">
@@ -166,6 +418,80 @@ export default function OnyxFormationPage() {
             </div>
           </div>
 
+      {/* MODALE LEADERBOARD */}
+      {showLeaderboard && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowLeaderboard(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-zinc-950 p-8 rounded-[3rem] max-w-2xl w-full relative shadow-[0_0_50px_rgba(57,255,20,0.15)] border-t-[8px] border-yellow-400 animate-in zoom-in-95 my-auto max-h-[90vh] flex flex-col overflow-hidden">
+            {/* EFFET D'ÉBLOUISSEMENT (FLASH SUCCESS) */}
+            <div className="absolute inset-0 bg-yellow-400/30 mix-blend-overlay pointer-events-none animate-out fade-out zoom-out-110 duration-1000 z-50"></div>
+            
+            <button onClick={() => setShowLeaderboard(false)} className="absolute top-6 right-6 p-3 bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all text-zinc-400 z-[60]">
+              <X size={20} />
+            </button>
+            <div className="text-center mb-8 shrink-0">
+               <Trophy className="mx-auto mb-3 text-yellow-400" size={40} />
+               <h3 className="text-3xl font-black uppercase text-white tracking-tighter">Leaderboard Elite</h3>
+               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Les meilleurs stratèges de l'Academy</p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+               {/* PODIUM TOP 3 */}
+               <div className="flex items-end justify-center gap-4 mb-10 pt-4">
+                  {leaderboardData.length > 1 && (
+                     <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-100">
+                        <div className="w-12 h-12 rounded-full border-2 border-zinc-400 overflow-hidden mb-2 relative">
+                           <img src={leaderboardData[1].avatar_url || `https://ui-avatars.com/api/?name=${leaderboardData[1].full_name}&background=random`} alt="Avatar" className="w-full h-full object-cover"/>
+                           <div className="absolute -bottom-1 -right-1 bg-zinc-400 text-black text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">2</div>
+                        </div>
+                        <div className="bg-zinc-800 w-20 h-24 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-zinc-400">
+                           <span className="text-[10px] font-bold mt-1 text-zinc-300">{leaderboardData[1].xp} XP</span>
+                        </div>
+                        <p className="text-[10px] font-black uppercase mt-2 text-zinc-400 truncate max-w-[70px]">{leaderboardData[1].full_name.split(' ')[0]}</p>
+                     </div>
+                  )}
+                  {leaderboardData.length > 0 && (
+                     <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700">
+                        <div className="w-16 h-16 rounded-full border-4 border-yellow-400 overflow-hidden mb-2 relative shadow-[0_0_20px_rgba(250,204,21,0.5)]">
+                           <img src={leaderboardData[0].avatar_url || `https://ui-avatars.com/api/?name=${leaderboardData[0].full_name}&background=random`} alt="Avatar" className="w-full h-full object-cover"/>
+                           <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-black text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">1</div>
+                        </div>
+                        <div className="bg-gradient-to-t from-yellow-500/10 to-yellow-500/30 w-24 h-32 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-yellow-400">
+                           <span className="text-xs font-black mt-1 text-yellow-500">{leaderboardData[0].xp} XP</span>
+                        </div>
+                        <p className="text-[11px] font-black uppercase mt-2 text-yellow-500 truncate max-w-[80px]">{leaderboardData[0].full_name.split(' ')[0]}</p>
+                     </div>
+                  )}
+                  {leaderboardData.length > 2 && (
+                     <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
+                        <div className="w-12 h-12 rounded-full border-2 border-orange-500 overflow-hidden mb-2 relative">
+                           <img src={leaderboardData[2].avatar_url || `https://ui-avatars.com/api/?name=${leaderboardData[2].full_name}&background=random`} alt="Avatar" className="w-full h-full object-cover"/>
+                           <div className="absolute -bottom-1 -right-1 bg-orange-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">3</div>
+                        </div>
+                        <div className="bg-orange-900/30 w-20 h-20 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-orange-500">
+                           <span className="text-[10px] font-bold mt-1 text-orange-400">{leaderboardData[2].xp} XP</span>
+                        </div>
+                        <p className="text-[10px] font-black uppercase mt-2 text-orange-500 truncate max-w-[70px]">{leaderboardData[2].full_name.split(' ')[0]}</p>
+                     </div>
+                  )}
+               </div>
+
+               {/* LISTE DES AUTRES */}
+               <div className="space-y-2">
+                  {leaderboardData.slice(3).map((student, idx) => (
+                     <div key={student.id} className={`flex items-center justify-between p-3 rounded-xl border ${student.id === user?.id ? 'bg-[#39FF14]/10 border-[#39FF14]/30' : 'bg-zinc-900 border-zinc-800'}`}>
+                        <div className="flex items-center gap-3">
+                           <span className="font-black text-zinc-600 w-4 text-xs">{idx + 4}</span>
+                           <img src={student.avatar_url || `https://ui-avatars.com/api/?name=${student.full_name}&background=random`} alt="Avatar" className="w-8 h-8 rounded-full border border-zinc-700 object-cover" />
+                           <p className={`font-bold text-sm ${student.id === user?.id ? 'text-[#39FF14]' : 'text-white'}`}>{student.full_name} {student.id === user?.id ? '(Vous)' : ''}</p>
+                        </div>
+                        <span className="font-black text-zinc-300 text-xs">{student.xp} XP</span>
+                     </div>
+                  ))}
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
           <div className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowProfileModal(true)}>
             <img src={user?.avatar_url || 'https://via.placeholder.com/150'} className="w-10 h-10 rounded-full object-cover border-2 border-[#39FF14] shadow-[0_0_10px_rgba(57,255,20,0.3)] bg-zinc-800" alt="Profil" />
             <span className="font-black uppercase text-xs hidden md:block text-white">{user?.full_name}</span>
@@ -183,7 +509,7 @@ export default function OnyxFormationPage() {
           {!isFocusMode && (
             <div className="lg:col-span-1 space-y-4">
               <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-4 pl-4">Programme de la formation</h3>
-              {DEFAULT_COURSES.map((c) => (
+              {coursesList.map((c) => (
                 <div key={c.id} onClick={() => setSelectedCourse(c)} className={`p-6 rounded-[2rem] border-2 cursor-pointer transition-all ${selectedCourse?.id === c.id ? "bg-black border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.15)] scale-[1.02]" : "bg-zinc-950 border-zinc-800 hover:border-zinc-700"}`}>
                   <div className="flex items-start justify-between">
                      <div>
@@ -231,20 +557,46 @@ export default function OnyxFormationPage() {
                           {isFocusMode ? <Minimize size={14}/> : <Maximize size={14}/>} {isFocusMode ? 'Vue Classique' : 'Mode Focus'}
                        </button>
                     </div>
-                    <iframe src={selectedCourse.video_url} className="absolute inset-0 w-full h-full" allowFullScreen title={selectedCourse.title} />
+                    <iframe 
+                      key={selectedCourse.id}
+                      id="yt-player"
+                      src={`${selectedCourse.video_url}${selectedCourse.video_url.includes('?') ? '&' : '?'}enablejsapi=1&rel=0`} 
+                      className="absolute inset-0 w-full h-full" 
+                      allowFullScreen 
+                      title={selectedCourse.title} 
+                    />
+                    <div className="absolute bottom-0 left-0 w-full h-1.5 bg-zinc-900 z-20">
+                       <div className="h-full bg-[#39FF14] transition-all duration-1000 ease-linear shadow-[0_0_10px_#39FF14]" style={{ width: `${videoProgress}%` }}></div>
+                    </div>
                   </div>
                   <div className="p-10">
                     <h2 className="text-3xl font-black uppercase tracking-tighter text-white">{selectedCourse.title}</h2>
                     <p className="text-zinc-400 mt-4 leading-relaxed font-medium">{selectedCourse.description}</p>
                     
                     <div className="mt-10 flex flex-col sm:flex-row items-center gap-4 border-t border-zinc-800 pt-8">
-                      <button onClick={() => toggleComplete(selectedCourse.id)} className={`w-full sm:w-auto px-10 py-5 rounded-2xl font-black uppercase text-xs transition-all flex items-center justify-center gap-2 ${progress[selectedCourse.id] === 100 ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 border border-green-500/30" : "bg-[#39FF14] text-black hover:bg-white shadow-[0_0_15px_rgba(57,255,20,0.3)]"}`}>
+                      <button onClick={() => progress[selectedCourse.id] === 100 ? toggleComplete(selectedCourse.id) : setShowQuiz(true)} className={`w-full sm:w-auto px-10 py-5 rounded-2xl font-black uppercase text-xs transition-all flex items-center justify-center gap-2 ${progress[selectedCourse.id] === 100 ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 border border-green-500/30" : "bg-[#39FF14] text-black hover:bg-white hover:scale-105 shadow-[0_0_25px_#39FF14] border-2 border-[#39FF14] animate-pulse"}`}>
                         <CheckCircle size={16} /> 
-                        {progress[selectedCourse.id] === 100 ? "Marqué comme terminé (Annuler)" : "Valider ce module"}
+                        {progress[selectedCourse.id] === 100 ? "Marqué comme terminé (Annuler)" : "Passer le Quizz pour valider"}
                       </button>
                     </div>
                   </div>
                 </div>
+
+                {/* SUPPORT DE COURS PDF */}
+                {selectedCourse.pdf_url && (
+                  <div className="bg-zinc-950 rounded-[3rem] border border-zinc-800 p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm mt-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-4 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20"><FileText size={28}/></div>
+                      <div>
+                        <h3 className="font-black uppercase tracking-tighter text-lg text-white">Support de Cours</h3>
+                        <p className="text-xs font-bold text-zinc-500 mt-1">Téléchargez le PDF pour suivre la leçon.</p>
+                      </div>
+                    </div>
+                    <a href={selectedCourse.pdf_url} target="_blank" rel="noreferrer" className="w-full sm:w-auto bg-white text-black px-8 py-4 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-[#39FF14] hover:scale-105 transition-all shadow-lg">
+                      <Download size={16} /> Télécharger
+                    </a>
+                  </div>
+                )}
 
                 {/* BLOC NOTES INTÉGRÉ */}
                 <div className="bg-zinc-950 rounded-[3rem] border border-zinc-800 p-8 shadow-sm">
@@ -285,14 +637,157 @@ export default function OnyxFormationPage() {
          </p>
       </footer>
 
+      {/* MODALE QUIZ */}
+      {showQuiz && selectedCourse && (
+       <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-[2.5rem] p-6 sm:p-10 max-w-2xl w-full shadow-[0_0_50px_rgba(57,255,20,0.15)] relative">
+             <button onClick={() => setShowQuiz(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white"><X size={20}/></button>
+
+             {!quizFinished ? (
+                <>
+                  <div className="mb-8 text-center">
+                     <div className="inline-flex items-center gap-2 bg-[#39FF14]/10 text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-[#39FF14]/20">
+                        Question {currentQuizQuestion + 1} / 4
+                     </div>
+                     <h3 className="text-xl sm:text-2xl font-black text-white">{QUIZ_DATA[selectedCourse.id][currentQuizQuestion].question}</h3>
+                  </div>
+
+                  <div className="space-y-3 mb-8">
+                     {QUIZ_DATA[selectedCourse.id][currentQuizQuestion].options.map((opt, index) => {
+                        const isSelected = selectedAnswer === index;
+                        const isCorrect = index === QUIZ_DATA[selectedCourse.id][currentQuizQuestion].correctAnswer;
+                        const isSubmitted = selectedAnswer !== null;
+
+                        let btnClass = "bg-zinc-900 border-zinc-800 hover:border-[#39FF14] text-zinc-300 hover:text-white";
+                        if (isSubmitted) {
+                           if (isCorrect) btnClass = "bg-green-500/20 border-green-500 text-green-400";
+                           else if (isSelected && !isCorrect) btnClass = "bg-red-500/20 border-red-500 text-red-400";
+                           else btnClass = "bg-zinc-900 border-zinc-800 text-zinc-600 opacity-50";
+                        }
+
+                        return (
+                           <button 
+                             key={index} 
+                             disabled={isSubmitted}
+                             onClick={() => {
+                                setSelectedAnswer(index);
+                                if (index === QUIZ_DATA[selectedCourse.id][currentQuizQuestion].correctAnswer) setQuizScore(prev => prev + 1);
+                             }}
+                             className={`w-full p-4 rounded-xl border-2 text-left font-bold text-sm transition-all ${btnClass}`}
+                           >
+                              {opt}
+                           </button>
+                        );
+                     })}
+                  </div>
+
+                  {selectedAnswer !== null && (
+                     <div className="animate-in fade-in slide-in-from-bottom-2">
+                        <div className={`p-5 rounded-xl mb-6 text-sm font-medium ${selectedAnswer === QUIZ_DATA[selectedCourse.id][currentQuizQuestion].correctAnswer ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                           <span className="font-black uppercase tracking-widest text-[10px] block mb-2">
+                              {selectedAnswer === QUIZ_DATA[selectedCourse.id][currentQuizQuestion].correctAnswer ? '✅ Bonne réponse' : '❌ Mauvaise réponse'}
+                           </span>
+                           {QUIZ_DATA[selectedCourse.id][currentQuizQuestion].explanation}
+                        </div>
+                        <button onClick={() => {
+                              if (currentQuizQuestion < 3) { setCurrentQuizQuestion(prev => prev + 1); setSelectedAnswer(null); } 
+                              else { setQuizFinished(true); }
+                           }} 
+                           className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-[1.02] transition-transform shadow-[0_0_20px_rgba(57,255,20,0.2)]"
+                        >
+                           {currentQuizQuestion < 3 ? 'Question suivante' : 'Voir les résultats'}
+                        </button>
+                     </div>
+                  )}
+                </>
+             ) : (
+                <div className="text-center animate-in zoom-in">
+                   <div className="w-24 h-24 mx-auto bg-black border-4 border-[#39FF14] rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(57,255,20,0.3)]">
+                      <span className="text-4xl font-black text-[#39FF14]">{quizScore}/4</span>
+                   </div>
+                   <h3 className="text-3xl font-black uppercase text-white mb-2">
+                      {quizScore === 4 ? 'Parfait !' : quizScore >= 3 ? 'Très bien !' : 'Module à revoir'}
+                   </h3>
+                   <p className="text-zinc-400 font-medium mb-8">
+                      {quizScore >= 3 
+                         ? "Vous avez validé les acquis de ce module avec brio. Vous pouvez passer à l'étape suivante." 
+                         : "Il semblerait que certains concepts ne soient pas encore clairs. Nous vous conseillons de revoir la vidéo avant de valider le module."}
+                   </p>
+                   
+                   <div className="flex gap-4">
+                      {quizScore < 3 && (
+                         <button onClick={() => { setShowQuiz(false); setQuizFinished(false); setCurrentQuizQuestion(0); setQuizScore(0); setSelectedAnswer(null); }} className="flex-1 bg-zinc-900 text-white py-4 rounded-xl font-black uppercase text-xs border border-zinc-800 hover:bg-zinc-800 transition-colors">
+                            Revoir la vidéo
+                         </button>
+                      )}
+                      <button onClick={handleCompleteModule} className="flex-1 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg">
+                         {quizScore >= 3 ? 'Valider et Continuer' : 'Forcer la validation'}
+                      </button>
+                   </div>
+                </div>
+             )}
+          </div>
+       </div>
+      )}
+
       {/* FLOATING LIKA MASCOT */}
       {selectedCourse && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end animate-in slide-in-from-right-8 pointer-events-none">
-           <div className="bg-white text-black p-4 rounded-2xl rounded-br-none shadow-2xl mb-4 max-w-xs relative border-2 border-[#39FF14]">
-              <p className="text-xs font-black leading-relaxed">{getLikaMessage(selectedCourse.id)}</p>
-              <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-b-2 border-r-2 border-[#39FF14] transform rotate-45"></div>
-           </div>
-           <img src="/lika-avatar.png" alt="Lika" onError={(e: any) => e.target.src = 'https://i.ibb.co/B5HhnTjw/La-mascotte-LIKA-202604121725.jpg'} className="w-16 h-16 rounded-full border-2 border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.3)] object-cover pointer-events-auto" />
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end animate-in slide-in-from-right-8">
+           <style dangerouslySetInnerHTML={{__html: `
+              @keyframes float-lika {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-12px); }
+                100% { transform: translateY(0px); }
+              }
+              .lika-float {
+                animation: float-lika 3.5s ease-in-out infinite;
+              }
+           `}} />
+           
+           {isLikaChatOpen ? (
+              <div className="bg-zinc-950 rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[340px] h-[450px] flex flex-col animate-in zoom-in duration-300 overflow-hidden pointer-events-auto">
+                 <div className="bg-black p-4 flex justify-between items-center border-b border-zinc-800">
+                    <div className="flex items-center gap-3">
+                       <div className="relative">
+                          <img src="/lika-avatar.png" alt="Lika" onError={(e: any) => e.target.src = 'https://i.ibb.co/B5HhnTjw/La-mascotte-LIKA-202604121725.jpg'} className="w-10 h-10 rounded-full object-cover border border-[#39FF14]" />
+                          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
+                       </div>
+                       <div><p className="text-[#39FF14] font-black uppercase text-xs">Lika - Stratège</p></div>
+                    </div>
+                    <button onClick={() => setIsLikaChatOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
+                 </div>
+                 
+                 <div className="flex-1 bg-zinc-900/50 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar">
+                    {likaMessages.map((msg, i) => (
+                       <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
+                          <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? 'bg-zinc-800 text-white border border-zinc-700 rounded-tl-none shadow-sm' : 'bg-[#39FF14] text-black rounded-tr-none shadow-md'}`}>
+                             {msg.text}
+                          </div>
+                       </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                 </div>
+
+                 <div className="p-3 bg-black border-t border-zinc-800 flex gap-2">
+                    <input type="text" value={userReply} onChange={e => setUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLikaSend()} placeholder="Poser une question..." className="flex-1 bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 outline-none text-sm font-bold focus:border-[#39FF14] transition-colors" />
+                    <button onClick={handleLikaSend} className="bg-[#39FF14] p-3 rounded-xl text-black hover:scale-105 transition"><Send size={18}/></button>
+                 </div>
+              </div>
+           ) : (
+              <div className="bg-white text-black p-4 rounded-2xl rounded-br-none shadow-2xl mb-4 max-w-xs relative border-2 border-[#39FF14] pointer-events-none">
+                 <p className="text-xs font-black leading-relaxed">{getLikaMessage(selectedCourse.id)}</p>
+                 <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-b-2 border-r-2 border-[#39FF14] transform rotate-45"></div>
+              </div>
+           )}
+           
+           {!isLikaChatOpen && (
+             <button onClick={() => setIsLikaChatOpen(true)} className="lika-float relative group pointer-events-auto cursor-pointer focus:outline-none">
+               <img src="/lika-avatar.png" alt="Lika" onError={(e: any) => e.target.src = 'https://i.ibb.co/B5HhnTjw/La-mascotte-LIKA-202604121725.jpg'} className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-[#39FF14] shadow-[0_0_25px_rgba(57,255,20,0.5)] object-cover group-hover:scale-110 transition-transform" />
+               <div className="absolute top-1 right-1 bg-red-500 w-5 h-5 rounded-full border-2 border-white animate-pulse shadow-md flex items-center justify-center">
+                  <MessageSquare size={10} className="text-white" />
+               </div>
+             </button>
+           )}
         </div>
       )}
 
