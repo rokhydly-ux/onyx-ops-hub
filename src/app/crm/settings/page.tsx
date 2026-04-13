@@ -737,26 +737,41 @@ function CRMSettingsContent() {
                payload.phone = cleanPhone;
 
                if (editingCommercial) {
-                   const { error } = await supabase.from('commercials').update({
-                       full_name: payload.full_name,
-                       phone: payload.phone,
-                       objective: payload.objective,
-                       objective_period: payload.objective_period,
-                       status: payload.status,
-                       password_temp: payload.password_temp === '••••' ? editingCommercial.password_temp : payload.password_temp
-                   }).eq('id', editingCommercial.id).eq('tenant_id', userId);
-                   if (error) throw error;
+                   const res = await fetch('/api/crm/commercials', {
+                       method: 'PUT',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({
+                           id: editingCommercial.id,
+                           full_name: payload.full_name,
+                           phone: payload.phone,
+                           objective: payload.objective,
+                           status: payload.status,
+                           password_temp: payload.password_temp === '••••' ? editingCommercial.password_temp : payload.password_temp,
+                           tenant_id: userId
+                       })
+                   });
+                   if (!res.ok) {
+                       const errorData = await res.json();
+                       throw new Error(errorData.error || 'Erreur lors de la mise à jour');
+                   }
                } else {
-                   const { error } = await supabase.from('commercials').insert([{
-                       full_name: payload.full_name,
-                       phone: payload.phone,
-                       objective: payload.objective,
-                       objective_period: payload.objective_period,
-                       status: payload.status || 'Actif',
-                       password_temp: payload.password_temp === '••••' || !payload.password_temp ? '0000' : payload.password_temp,
-                       tenant_id: userId
-                   }]);
-                   if (error) throw error;
+                   const res = await fetch('/api/crm/commercials', {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({
+                           full_name: payload.full_name,
+                           phone: payload.phone,
+                           objective: payload.objective,
+                           objective_period: payload.objective_period,
+                           status: payload.status || 'Actif',
+                           password_temp: payload.password_temp === '••••' || !payload.password_temp ? '0000' : payload.password_temp,
+                           tenant_id: userId
+                       })
+                   });
+                   if (!res.ok) {
+                       const errorData = await res.json();
+                       throw new Error(errorData.error || 'Erreur lors de la création');
+                   }
                }
 
                const { data } = await supabase.from('commercials').select('*').eq('tenant_id', userId);

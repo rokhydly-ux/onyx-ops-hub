@@ -54,8 +54,7 @@ export default function CRMCatalogPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  useEffect(() => {
-    let isMounted = true;
+  useEffect(() => {    let isMounted = true;
     setIsLoading(true);
 
     const fetchData = async () => {
@@ -429,12 +428,23 @@ export default function CRMCatalogPage() {
       });
       
       if (tenantId) {
-          const updatePromises = updates.map(p => 
-              supabase.from('crm_products').update({ category: p.category }).eq('id', p.id).eq('tenant_id', tenantId)
-          );
+          const updatePromises = updates.map(async (p) => {
+              const { error } = await supabase
+                 .from('crm_products')
+                 .update({ category: p.category })
+                 .eq('id', p.id)
+                 .eq('tenant_id', tenantId);
+              if (error) {
+                  console.log('Erreur Update:', error);
+              }
+          });
           await Promise.all(updatePromises);
+          
+          const { data } = await supabase.from('crm_products').select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false });
+          if (data) setProducts(data);
+      } else {
+          setProducts(updates);
       }
-      setProducts(updates);
       setIsLoading(false);
       alert("Catégorisation IA terminée et sauvegardée dans la base !");
   };
