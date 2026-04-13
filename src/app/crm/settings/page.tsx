@@ -40,27 +40,48 @@ function CRMSettingsContent() {
   };
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-      
-      const tId = user.user_metadata?.tenant_id || user.id;
+    let isMounted = true;
+    setIsLoading(true);
 
-        setUserId(tId);
+    const fetchSettings = async (user: any) => {
+      try {
+        const tId = user.user_metadata?.tenant_id || user.id;
+        
+        if (isMounted) setUserId(tId);
         const { data } = await supabase.from('crm_settings').select('*').eq('tenant_id', tId).maybeSingle();
-        if (data) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+        if (data && isMounted) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
         
         const { data: comms } = await supabase.from('commercials').select('*').eq('tenant_id', tId);
-        if (comms) setCommercials(comms);
+        if (comms && isMounted) setCommercials(comms);
         
         const { data: leads } = await supabase.from('crm_leads').select('status, assigned_to').eq('tenant_id', tId);
-        if (leads) setAllLeads(leads);
-      setIsLoading(false);
+        if (leads && isMounted) setAllLeads(leads);
+      } catch (err) {
+        console.error("Erreur de fetch settings:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
     };
-    fetchSettings();
+
+    const checkSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (session?.user && isMounted) {
+        await fetchSettings(session.user);
+      } else if (isMounted) {
+        setIsLoading(false);
+      }
+    };
+
+    checkSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user && isMounted) fetchSettings(session.user);
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -120,9 +141,9 @@ function CRMSettingsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert("Utilisateur non authentifié.");
-    const tenantId = user.user_metadata?.tenant_id || user.id;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return alert("Utilisateur non authentifié.");
+    const tenantId = session.user.user_metadata?.tenant_id || session.user.id;
 
     Papa.parse(file, {
        header: true,
@@ -327,8 +348,8 @@ function CRMSettingsContent() {
       setProgressText('Démarrage du traitement...');
       try {
           // 1. Fetch de l'utilisateur EN TEMPS RÉEL (pas de state externe)
-          const { data: authData, error: authError } = await supabase.auth.getUser();
-          const userId = authData?.user?.user_metadata?.tenant_id || authData?.user?.id;
+          const { data: { session }, error: authError } = await supabase.auth.getSession();
+          const userId = session?.user?.user_metadata?.tenant_id || session?.user?.id;
 
           if (authError || !userId) {
               console.error("Erreur d'authentification complète:", authError);

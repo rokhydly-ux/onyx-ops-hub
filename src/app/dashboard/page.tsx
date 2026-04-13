@@ -42,49 +42,68 @@ export default function Dashboard() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const getUserProfile = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-          const user = session.user;
-          const { data: clientData } = await supabase.from("clients").select("*").eq("id", user.id).maybeSingle();
-          if (clientData) {
-            setProfile(clientData);
-            return;
-          }
-          const { data: leadData } = await supabase.from("leads").select("*").eq("id", user.id).maybeSingle();
-          if (leadData) {
-            setProfile(leadData);
-            return;
-          }
-          const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-          if (profileData) {
-            setProfile(profileData);
-            return;
-          }
-      } else {
-          // Vérification de la session personnalisée CRM
+    let isMounted = true;
+
+    const fetchUserProfile = async (session: any) => {
+      try {
+        if (!session?.user?.id) {
+          console.error("Pas de session active");
+          // Fallback to custom session
           const customSession = localStorage.getItem('onyx_custom_session');
-          if (customSession) {
-              try {
-                  const parsedSession = JSON.parse(customSession);
-                  const { data } = await supabase.from('clients').select('*').eq('id', parsedSession.id).maybeSingle();
-                  if (data) {
-                      setProfile(data);
-                      localStorage.setItem('onyx_custom_session', JSON.stringify(data));
-                  } else {
-                      setProfile(parsedSession);
-                  }
-                  return;
-              } catch (e) {}
+          if (customSession && isMounted) {
+            try {
+              const parsedSession = JSON.parse(customSession);
+              setProfile(parsedSession);
+            } catch (e) { window.location.href = '/login'; }
+          } else {
+            window.location.href = '/login';
           }
-          
-          window.location.href = '/login';
+          return;
+        }
+
+        const user = session.user;
+        const { data: clientData } = await supabase.from("clients").select("*").eq("id", user.id).maybeSingle();
+        if (clientData) {
+          if (isMounted) setProfile(clientData);
+          return;
+        }
+        const { data: leadData } = await supabase.from("leads").select("*").eq("id", user.id).maybeSingle();
+        if (leadData) {
+          if (isMounted) setProfile(leadData);
+          return;
+        }
+        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+        if (profileData) {
+          if (isMounted) setProfile(profileData);
+          return;
+        }
+      } catch (err) {
+        console.error("Erreur de fetch:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
-    getUserProfile();
+
+    const checkInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      await fetchUserProfile(session);
+    };
+
+    checkInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted) {
+        fetchUserProfile(session);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -206,7 +225,7 @@ export default function Dashboard() {
     window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  if (!profile) return <div className="p-20 text-center font-bold">Chargement de votre empire...</div>;
+  if (isLoading || !profile) return <div className="p-20 text-center font-bold">Chargement de votre empire...</div>;
 
   const onyxJaayActive = isModuleActive("onyxjaay") || isModuleActive("jaay");
   const onyxTiakActive = isModuleActive("onyxtiak") || isModuleActive("tiak");

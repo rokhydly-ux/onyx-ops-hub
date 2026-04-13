@@ -55,46 +55,58 @@ export default function CRMCatalogPage() {
   const itemsPerPage = 12;
 
   useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsLoading(false);
-        return;
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.user) {
+          console.error("Pas de session active");
+          if (isMounted) setIsLoading(false);
+          return; // Ou rediriger
+        }
+        const user = session.user;
+        const tId = user.user_metadata?.tenant_id || user.id;
+        if (isMounted) setTenantId(tId);
+
+        const { data, error } = await supabase
+          .from('crm_products')
+          .select('*')
+          .eq('tenant_id', tId)
+          .order('created_at', { ascending: false });
+
+        if (data && !error && isMounted) {
+          setProducts(data);
+        }
+
+        const { data: clientsData } = await supabase.from('clients').select('*').eq('tenant_id', tId);
+        if (clientsData && isMounted) setClients(clientsData);
+
+        const { data: catsData } = await supabase.from('crm_categories').select('*').eq('tenant_id', tId);
+        if (catsData && isMounted) setCategories(catsData);
+
+        const { data: settingsData } = await supabase.from('crm_settings').select('category_covers').eq('tenant_id', tId).maybeSingle();
+        if (settingsData && settingsData.category_covers && isMounted) {
+          setCategoryCovers(settingsData.category_covers);
+        }
+      } catch (err) {
+        console.error("Erreur de fetch:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-      const tId = user.user_metadata?.tenant_id || user.id;
-      setTenantId(tId);
-
-      const { data, error } = await supabase
-        .from('crm_products')
-        .select('*')
-        .eq('tenant_id', tId)
-        .order('created_at', { ascending: false });
-
-      if (data && !error) {
-        console.log("Total produits récupérés :", data.length);
-        setProducts(data);
-      }
-
-      const { data: clientsData } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('tenant_id', tId);
-      if (clientsData) setClients(clientsData);
-
-      const { data: catsData } = await supabase
-        .from('crm_categories')
-        .select('*')
-        .eq('tenant_id', tId);
-      if (catsData) setCategories(catsData);
-
-      const { data: settingsData } = await supabase.from('crm_settings').select('category_covers').eq('tenant_id', tId).maybeSingle();
-      if (settingsData && settingsData.category_covers) {
-        setCategoryCovers(settingsData.category_covers);
-      }
-
-      setIsLoading(false);
     };
+
     fetchData();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && isMounted) fetchData();
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleCategoryChange = async (productId: number, newCategory: string) => {

@@ -209,44 +209,53 @@ export default function LeadsKanbanPage() {
   }, [selectedLead]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
+    let isMounted = true;
     setIsLoading(true);
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user && mounted) {
+    const fetchData = async () => {
+      try {
+        // 1. Vérification stricte de la session AU MONTAGE
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session?.user?.id) {
+          console.error("Pas de session active");
+          if (isMounted) setIsLoading(false);
+          return; // Ou rediriger vers /login
+        }
+
+        // 2. Le Fetch des données
         const role = session.user.user_metadata?.role || 'admin';
         const name = session.user.user_metadata?.full_name || '';
         const tenantId = session.user.user_metadata?.tenant_id || session.user.id;
         
-        setUserId(tenantId);
-        setCommercialId(session.user.id);
-        setUserRole(role);
-        setUserName(name);
+        if (isMounted) {
+          setUserId(tenantId);
+          setCommercialId(session.user.id);
+          setUserRole(role);
+          setUserName(name);
+        }
 
         if (role === 'commercial') {
            const { data: comm } = await supabase.from('commercials').select('*').eq('id', session.user.id).single();
-           if (comm && mounted) setCommercialData(comm);
+           if (comm && isMounted) setCommercialData(comm);
         }
 
         await fetchLeads(tenantId, role, name);
-      } else if (!session && mounted) {
-        setIsLoading(false);
+      } catch (err) {
+        console.error("Erreur de fetch:", err);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-    });
+    };
 
-    // Forcer une vérification initiale immédiate
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session && mounted) setIsLoading(false);
+    fetchData();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && isMounted) fetchData();
     });
 
     return () => {
-      mounted = false;
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);
@@ -269,7 +278,6 @@ export default function LeadsKanbanPage() {
   }, [userId, userRole, userName]);
 
   const fetchLeads = async (uid: string, role: string, name: string) => {
-    setIsLoading(true);
     
     let query = supabase
       .from('crm_leads')
@@ -293,7 +301,6 @@ export default function LeadsKanbanPage() {
        });
        setLeads(sortedData);
     }
-    setIsLoading(false);
   };
 
   // --- GESTION DE LA SÉLECTION MULTIPLE ---
