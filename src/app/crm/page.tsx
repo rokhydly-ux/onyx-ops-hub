@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock, Target, X, PieChart as PieChartIcon, Activity as ActivityIcon } from 'lucide-react';
+import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock, Target, X, PieChart as PieChartIcon, Activity as ActivityIcon, Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function CRMDashboard() {
   const router = useRouter();
@@ -52,11 +54,7 @@ export default function CRMDashboard() {
       if (currentUser && mounted) {
           const role = currentUser.user_metadata?.role || 'admin';
           const tenantId = currentUser.user_metadata?.tenant_id || currentUser.id;
-          if (role === 'commercial') {
-              router.replace('/crm/leads');
-              return;
-          }
-          setSession({ id: tenantId });
+          setSession({ id: tenantId, role: role, full_name: currentUser.user_metadata?.full_name });
           setIsAuthorized(true);
       }
     });
@@ -77,12 +75,16 @@ export default function CRMDashboard() {
     const fetchRealData = async () => {
       if (!session?.id) return;
 
-      const { data: leads } = await supabase
+      let query = supabase
         .from('crm_leads')
         .select('*')
-        .eq('tenant_id', session.id)
-        .order('created_at', { ascending: false });
+        .eq('tenant_id', session.id);
+        
+      if (session.role === 'commercial') {
+          query = query.eq('assigned_to', session.full_name);
+      }
 
+      const { data: leads } = await query.order('created_at', { ascending: false });
       const safeLeads = [...(leads || [])].sort((a,b) => {
           const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
           const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -91,14 +93,17 @@ export default function CRMDashboard() {
       setAllLeads(safeLeads);
 
       // Récupération des 5 prochains RDV de l'Agenda
-      const { data: appts } = await supabase
+      let apptQuery = supabase
         .from('booking_appointments')
         .select('*')
         .eq('tenant_id', session.id)
-        .gte('date_time', new Date(new Date().setHours(0,0,0,0)).toISOString())
-        .order('date_time', { ascending: true })
-        .limit(5);
-      if (appts) setAppointments(appts);
+        .gte('date_time', new Date(new Date().setHours(0,0,0,0)).toISOString());
+        
+      if (session.role === 'commercial') {
+         // Filtrer l'agenda du commercial si nécessaire
+      }
+      const { data: appts } = await apptQuery.order('date_time', { ascending: true }).limit(5);
+      if (appts) setAppointments(appts || []);
     };
 
     if (isAuthorized) fetchRealData();
@@ -194,6 +199,51 @@ export default function CRMDashboard() {
     return <div className="h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div></div>;
   }
 
+  const handleExportPerformancesPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Rapport de Conversion & Performances", 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Période : ${dateRange.label}`, 14, 30);
+    doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 36);
+
+    // Section 1: Top Performers (Commerciaux)
+    doc.setFontSize(14);
+    doc.text("Performances des Commerciaux (Leads Actifs)", 14, 48);
+    
+    const performersData = realPerformers.map(p => [p.name, p.leads.toString()]);
+    autoTable(doc, {
+      startY: 54,
+      head: [["Commercial", "Leads Actifs Gérés"]],
+      body: performersData,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+    });
+
+    // Section 2: Performances par Campagne
+    const finalY = (doc as any).lastAutoTable.finalY || 54;
+    doc.setFontSize(14);
+    doc.text("Performances par Campagne", 14, finalY + 15);
+
+    const campaignsExportData = campaignsData.map(c => [
+      c.name,
+      c.total.toString(),
+      c.converted.toString(),
+      c.total > 0 ? ((c.converted / c.total) * 100).toFixed(1) + '%' : '0%',
+      c.ca.toLocaleString('fr-FR') + ' F'
+    ]);
+
+    autoTable(doc, {
+      startY: finalY + 21,
+      head: [["Campagne", "Leads Générés", "Convertis", "Taux Conv.", "CA Généré"]],
+      body: campaignsExportData,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+    });
+
+    doc.save(`Rapport_Performances_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const kpis = [
     { title: "Nouveaux Leads (24h)", value: realKpis.newLeads.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
     { title: "Taux de Conversion", value: realKpis.conversionRate, icon: TrendingUp, color: "text-[#39FF14]", bg: "bg-[#39FF14]/10", valueColor: "text-[#39FF14]" },
@@ -237,9 +287,16 @@ export default function CRMDashboard() {
                 <option value="Ce Mois">Ce Mois</option>
                 <option value="Ce Trimestre">Ce Trimestre</option>
             </select>
-            <button onClick={() => router.push('/crm/settings?tab=team')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-black hover:text-[#39FF14] transition-all flex items-center gap-2 shrink-0">
-               <UserPlus size={16} /> Ajouter membre équipe
-            </button>
+            {session?.role !== 'commercial' && (
+              <>
+                <button onClick={handleExportPerformancesPDF} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white px-4 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-sm hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-all flex items-center gap-2 shrink-0">
+                   <Download size={16} /> Rapport PDF
+                </button>
+                <button onClick={() => router.push('/crm/settings?tab=team')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-black hover:text-[#39FF14] transition-all flex items-center gap-2 shrink-0">
+                   <UserPlus size={16} /> Ajouter membre équipe
+                </button>
+              </>
+            )}
         </div>
       </div>
 
@@ -259,24 +316,26 @@ export default function CRMDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm">
-           <h3 className="font-black uppercase text-lg mb-6 text-black dark:text-white">Top Performers (Leads gérés)</h3>
-           <div className="space-y-4">
-             {realPerformers.length > 0 ? realPerformers.map(rep => (
-                <div key={rep.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                   <div className="flex items-center gap-3">
-                      <span className={`w-3 h-3 rounded-full ${rep.dot} shadow-sm`}></span>
-                      <span className="font-bold text-sm uppercase text-black dark:text-white">{rep.name}</span>
-                   </div>
-                   <div className="text-right">
-                      <p className="font-black text-lg text-black dark:text-white">{rep.leads}</p>
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Leads Actifs</p>
-                   </div>
-                </div>
-             )) : <p className="text-zinc-500 text-sm font-medium italic">Aucun lead assigné pour le moment.</p>}
-           </div>
-        </div>
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${session?.role !== 'commercial' ? 'lg:grid-cols-3' : ''} gap-8`}>
+        {session?.role !== 'commercial' && (
+          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm">
+             <h3 className="font-black uppercase text-lg mb-6 text-black dark:text-white">Top Performers (Leads gérés)</h3>
+             <div className="space-y-4">
+               {realPerformers.length > 0 ? realPerformers.map(rep => (
+                  <div key={rep.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                     <div className="flex items-center gap-3">
+                        <span className={`w-3 h-3 rounded-full ${rep.dot} shadow-sm`}></span>
+                        <span className="font-bold text-sm uppercase text-black dark:text-white">{rep.name}</span>
+                     </div>
+                     <div className="text-right">
+                        <p className="font-black text-lg text-black dark:text-white">{rep.leads}</p>
+                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Leads Actifs</p>
+                     </div>
+                  </div>
+               )) : <p className="text-zinc-500 text-sm font-medium italic">Aucun lead assigné pour le moment.</p>}
+             </div>
+          </div>
+        )}
 
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm">
            <div className="flex justify-between items-center mb-6">
