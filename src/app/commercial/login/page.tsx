@@ -21,8 +21,10 @@ export default function CommercialLogin() {
 
     try {
       // Nettoyage et formatage du numéro de téléphone
-      let cleanPhone = phone.replace(/\s+/g, '');
-      if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
+      let cleanPhone = phone.replace(/\s|-/g, '');
+      if (cleanPhone.startsWith('00221')) {
+        cleanPhone = '+221' + cleanPhone.substring(5);
+      } else if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
         cleanPhone = `+221${cleanPhone}`;
       } else if (!cleanPhone.startsWith('+')) {
         cleanPhone = `+${cleanPhone}`;

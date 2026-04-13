@@ -49,6 +49,7 @@ export default function CRMCatalogPage() {
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [productSort, setProductSort] = useState<'recent' | 'az' | 'popular'>('recent');
   const [hideZeroPrice, setHideZeroPrice] = useState(false);
+  const [categoryCovers, setCategoryCovers] = useState<Record<string, string>>({});
   
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -85,6 +86,11 @@ export default function CRMCatalogPage() {
         .select('*')
         .eq('tenant_id', tId);
       if (catsData) setCategories(catsData);
+
+      const { data: settingsData } = await supabase.from('crm_settings').select('category_covers').eq('tenant_id', tId).maybeSingle();
+      if (settingsData && settingsData.category_covers) {
+        setCategoryCovers(settingsData.category_covers);
+      }
 
       setIsLoading(false);
     };
@@ -409,16 +415,16 @@ export default function CRMCatalogPage() {
           else if (!newCat || newCat === 'Autre' || !CATEGORY_COVERS[newCat]) newCat = "📦 Nouveaux Arrivages (À trier)";
           return { ...p, category: newCat };
       });
-      setProducts(updates);
+      
       if (tenantId) {
-          for (const p of updates) {
-              await supabase.from('crm_products').update({ category: p.category }).eq('id', p.id).eq('tenant_id', tenantId);
-          }
+          const updatePromises = updates.map(p => 
+              supabase.from('crm_products').update({ category: p.category }).eq('id', p.id).eq('tenant_id', tenantId)
+          );
+          await Promise.all(updatePromises);
       }
-      // Ajout en local des nouvelles catégories créées
-      const newCats = Array.from(new Set(updates.map(p => p.category).filter(Boolean)));
+      setProducts(updates);
       setIsLoading(false);
-      alert("Catégorisation IA terminée !");
+      alert("Catégorisation IA terminée et sauvegardée dans la base !");
   };
 
   const filteredProducts = React.useMemo(() => {
@@ -533,17 +539,37 @@ export default function CRMCatalogPage() {
           {/* INTERFACE GRID */}
           {categoryFilter === 'Toutes' && !search ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {Object.entries(CATEGORY_COVERS).map(([cat, img]) => {
+                  {Object.entries(CATEGORY_COVERS).map(([cat, defaultImg]) => {
                       const count = products.filter(p => {
                           if (cat === "📦 Nouveaux Arrivages (À trier)") {
                               return !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !CATEGORY_COVERS[p.category];
                           }
                           return p.category === cat;
                       }).length;
+                      
+                      const img = categoryCovers[cat] || defaultImg;
+
                       return (
                       <div key={cat} onClick={() => setCategoryFilter(cat)} className="relative h-64 rounded-[2rem] overflow-hidden group cursor-pointer shadow-sm hover:shadow-xl transition-all border border-zinc-200 dark:border-zinc-800 bg-black">
                           <img src={img} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/60 transition-colors flex flex-col justify-end p-6">
+                          
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const newUrl = prompt(`Entrez l'URL de la nouvelle image pour la catégorie "${cat}" :`, img);
+                              if (newUrl !== null && newUrl.trim() !== "") {
+                                const newCovers = { ...categoryCovers, [cat]: newUrl.trim() };
+                                setCategoryCovers(newCovers);
+                                if (tenantId) await supabase.from('crm_settings').upsert({ tenant_id: tenantId, category_covers: newCovers }, { onConflict: 'tenant_id' });
+                              }
+                            }}
+                            className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-[#39FF14] hover:text-black transition-colors z-20 opacity-0 group-hover:opacity-100 shadow-md"
+                            title="Personnaliser l'image de couverture"
+                          >
+                            <Edit size={16} />
+                          </button>
+
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/60 transition-colors flex flex-col justify-end p-6 pointer-events-none">
                               <h3 className="text-xl font-black uppercase text-white tracking-tighter drop-shadow-lg leading-tight mb-1">{cat}</h3>
                               <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest">{count} Produits</p>
                           </div>

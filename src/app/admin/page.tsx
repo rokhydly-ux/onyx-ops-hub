@@ -146,7 +146,6 @@ export default function AdminDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
-  const [commercials, setCommercials] = useState<any[]>([]);
   const [stats, setStats] = useState({ revenue: 0, activeClients: 0, pendingLeads: 0, newPartners: 0, currentMonthRevenue: 0, prevMonthRevenue: 0, isRevenueDown: false });
 
   // --- 6. ÉTATS DES MODALES ---
@@ -247,23 +246,10 @@ export default function AdminDashboard() {
   const [leadFilter, setLeadFilter] = useState("Tous");
   const [partnerSearch, setPartnerSearch] = useState("");
   const [partnerActivityFilter, setPartnerActivityFilter] = useState("Tous");
-  const [showAddCommercialModal, setShowAddCommercialModal] = useState(false);
-  const [showEditCommercialModal, setShowEditCommercialModal] = useState(false);
-  const [editCommercialForm, setEditCommercialForm] = useState<any>({});
-  const [newCommercialForm, setNewCommercialForm] = useState({ full_name: '', phone: '', objective: 20 });
-  const [viewCommercialClients, setViewCommercialClients] = useState<any>(null);
-  const [commercialHistoryFilter, setCommercialHistoryFilter] = useState('all');
-  const [isCreatingUser, setIsCreatingUser] = useState(false);
-  const [commissionModal, setCommissionModal] = useState<any>(null);
-  const [commissionAmount, setCommissionAmount] = useState<string>('');
   const [viewingAvatarUrl, setViewingAvatarUrl] = useState<string | null>(null);
 
   const activeSalesTeam = [
-      { name: 'Admin Onyx', avatar: 'https://ui-avatars.com/api/?name=AO&background=000&color=39FF14' },
-      ...commercials.map(c => ({
-          name: c.full_name,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.full_name)}&background=random`
-      }))
+      { name: 'Admin Onyx', avatar: 'https://ui-avatars.com/api/?name=AO&background=000&color=39FF14' }
   ];
 
   const [globalSearch, setGlobalSearch] = useState("");
@@ -366,7 +352,6 @@ export default function AdminDashboard() {
      const { data: partnersData } = await supabase.from('ambassadors').select('*').order('created_at', { ascending: false });
      const { data: materialsData } = await supabase.from('marketing_materials').select('*').order('created_at', { ascending: false });
      const { data: withdrawalsData } = await supabase.from('withdrawals').select('*').order('created_at', { ascending: false });
-     const { data: commercialsData } = await supabase.from('commercials').select('*').is('tenant_id', null).order('created_at', { ascending: false });
      const { data: hardwareData } = await supabase.from('hardware_stock').select('*').order('name', { ascending: true });
      const { data: adminSettings } = await supabase.from('admin_settings').select('*').eq('id', 1).maybeSingle();
      const { data: actionsData } = await supabase.from('actions_ia').select('*').is('tenant_id', null).order('created_at', { ascending: false });
@@ -386,7 +371,6 @@ export default function AdminDashboard() {
      if (partnersData) setPartners(partnersData);
      if (materialsData) setMarketingMaterials(materialsData);
      if (withdrawalsData) setWithdrawals(withdrawalsData);
-     if (commercialsData) setCommercials(commercialsData);
      if (hardwareData && hardwareData.length > 0) setHardwareStock(hardwareData);
      if (adminSettings) {
        setMrrGoal(adminSettings.mrr_goal || 500000);
@@ -1373,48 +1357,6 @@ export default function AdminDashboard() {
     doc.save(`Onyx_CRM_Membres_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  // --- EXPORTS ÉQUIPE COMMERCIALE ---
-  const handleExportCommercialsPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text("Performances Équipe Commerciale - OnyxOps", 14, 22);
-    doc.setFontSize(11);
-    doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
-
-    const tableColumn = ["Commercial", "Contact", "Clics", "Ventes", "Taux Conv.", "CA Généré", "Dernière Vente", "Statut"];
-    const tableRows = commercials.map(comm => {
-        const commClients = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client');
-        const repSales = commClients.length;
-        const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
-        const lastSaleDate = repSales > 0 ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR') : '-';
-        const convRate = (comm.clicks || 0) > 0 ? ((repSales / comm.clicks) * 100).toFixed(1) + '%' : '0%';
-        return [comm.full_name, comm.phone, (comm.clicks || 0).toString(), repSales.toString(), convRate, `${caTotal.toLocaleString('fr-FR')} F`, lastSaleDate, comm.status || 'Actif'];
-    });
-
-    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 40, theme: 'grid', headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] } });
-    doc.save(`Onyx_Commerciaux_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
-  const handleExportCommercialsExcel = () => {
-    if (commercials.length === 0) return alert("Aucun commercial à exporter.");
-    const exportData = commercials.map(comm => {
-        const commClients = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client');
-        const repSales = commClients.length;
-        const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
-        const lastSaleDate = repSales > 0 ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR') : '-';
-        const convRate = (comm.clicks || 0) > 0 ? ((repSales / comm.clicks) * 100).toFixed(1) + '%' : '0%';
-        return { 
-            'Nom Complet': comm.full_name, 'Téléphone': comm.phone, 'Objectif (Ventes)': comm.objective || 20, 
-            'Clics Générés': comm.clicks || 0,
-            'Ventes Validées': repSales, 'Taux de Conversion': convRate, 'CA Généré (F CFA)': caTotal, 'Dernière Vente': lastSaleDate, 'Statut': comm.status || 'Actif' 
-        };
-    });
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Équipe Commerciale");
-    XLSX.writeFile(workbook, `Onyx_Commerciaux_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
   const updateLeadAssignee = async (id: string, assignee: string) => {
     const { error } = await supabase.from('clients').update({ assigned_to: assignee }).eq('id', id);
     if (error) {
@@ -1661,92 +1603,6 @@ export default function AdminDashboard() {
       console.error("Erreur validation:", error);
       alert("Erreur lors de la validation.");
     }
-  };
-
-  const handleAddCommercial = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!newCommercialForm.full_name || !newCommercialForm.phone) return;
-      setIsCreatingUser(true);
-      try {
-          let cleanPhone = newCommercialForm.phone.replace(/\s+/g, '');
-          if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
-              cleanPhone = `+221${cleanPhone}`;
-          } else if (!cleanPhone.startsWith('+')) {
-              cleanPhone = `+${cleanPhone}`;
-          }
-
-          const { error } = await supabase.from('commercials').insert([{
-              full_name: newCommercialForm.full_name,
-              phone: cleanPhone,
-              status: 'Actif',
-              password_temp: 'central2026',
-              objective: newCommercialForm.objective || 20
-          }]);
-
-          if (error) throw error;
-          
-          alert(`Commercial ${newCommercialForm.full_name} créé ! Il peut se connecter avec le PIN 0000.`);
-          setShowAddCommercialModal(false);
-          setNewCommercialForm({ full_name: '', phone: '', objective: 20 });
-          fetchSupabaseData();
-      } catch (err: any) {
-          alert(err.message);
-      } finally {
-          setIsCreatingUser(false);
-      }
-  };
-
-  const handleUpdateCommercial = async (e: React.FormEvent) => {
-      e.preventDefault();
-      try {
-          let cleanPhone = editCommercialForm.phone.replace(/\s+/g, '');
-          if (cleanPhone.length === 9 && /^(7[05678]\d{7})$/.test(cleanPhone)) {
-              cleanPhone = `+221${cleanPhone}`;
-          } else if (!cleanPhone.startsWith('+')) {
-              cleanPhone = `+${cleanPhone}`;
-          }
-
-          const { error } = await supabase.from('commercials').update({
-              full_name: editCommercialForm.full_name,
-              phone: cleanPhone,
-              status: editCommercialForm.status,
-              password_temp: editCommercialForm.password_temp,
-              objective: editCommercialForm.objective || 20
-          }).eq('id', editCommercialForm.id);
-
-          if (error) throw error;
-          
-          alert("Commercial mis à jour avec succès !");
-          setShowEditCommercialModal(false);
-          fetchSupabaseData();
-      } catch (err: any) {
-          alert("Erreur : " + err.message);
-      }
-  };
-
-  const handleAddManualCommission = async (e: React.FormEvent) => {
-      e.preventDefault();
-      try {
-          const amount = parseInt(commissionAmount);
-          if (isNaN(amount) || amount <= 0) throw new Error("Veuillez entrer un montant valide.");
-          
-          const currentCommission = commissionModal.manual_commission || 0;
-          const { error } = await supabase.from('commercials').update({ manual_commission: currentCommission + amount }).eq('id', commissionModal.id);
-          
-          if (error) throw error;
-          
-          alert(`Prime de ${amount.toLocaleString('fr-FR')} F attribuée avec succès à ${commissionModal.full_name} !`);
-          setCommissionModal(null);
-          setCommissionAmount('');
-          fetchSupabaseData();
-      } catch (err: any) {
-          alert("Erreur : " + err.message);
-      }
-  };
-
-  const handleResetCommercialPin = () => {
-      setEditCommercialForm({ ...editCommercialForm, password_temp: 'central2026' });
-      alert("Le PIN a été réinitialisé à 0000 (central2026). Cliquez sur Enregistrer pour valider.");
   };
 
   const handleConvertPartnerToClient = async () => {
@@ -2438,7 +2294,6 @@ export default function AdminDashboard() {
                 { id: 'logistics', icon: Truck, label: 'Logistique & Stock' },
                 { id: 'finance', icon: Wallet, label: 'Finances' },
                 { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
-                { id: 'team', icon: Briefcase, label: 'Équipe Commerciale' },
                 { id: 'withdrawals', icon: DollarSign, label: 'Retraits Partenaires' },
                 { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
                 { id: 'statistiques', icon: BarChartIcon, label: 'Statistiques' },
@@ -2516,7 +2371,6 @@ export default function AdminDashboard() {
                         { id: 'logistics', icon: Truck, label: 'Logistique & Stock' },
                         { id: 'finance', icon: Wallet, label: 'Finances' },
                         { id: 'partners', icon: Handshake, label: 'Ambassadeurs' },
-                        { id: 'team', icon: Briefcase, label: 'Équipe Commerciale' },
                         { id: 'withdrawals', icon: DollarSign, label: 'Retraits Partenaires' },
                         { id: 'planning-marketing', icon: Megaphone, label: 'Planning Marketing' },
                         { id: 'statistiques', icon: BarChartIcon, label: 'Statistiques' },
@@ -2658,12 +2512,12 @@ export default function AdminDashboard() {
                   <button onClick={(e) => { e.stopPropagation(); setShowPrevisionnelModal(true); }} className="absolute bottom-4 right-4 text-[#39FF14] text-[10px] font-black uppercase hover:underline z-20">Prévisionnel 12 mois</button>
                 </div>
 
-                <div onClick={() => setActiveView('team')} className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] cursor-pointer hover:border-[#00E5FF]/50 transition-all group relative overflow-hidden flex flex-col justify-between">
+                <div onClick={() => setActiveView('crm')} className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] cursor-pointer hover:border-[#00E5FF]/50 transition-all group relative overflow-hidden flex flex-col justify-between">
                   <div className="absolute -bottom-6 -right-6 p-6 opacity-[0.05] group-hover:scale-125 group-hover:-rotate-12 transition-all duration-700 text-[#00E5FF]"><Users size={120}/></div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4 relative z-10">Acquisition Terrain</p>
                   <div className="relative z-10">
                      <p className={`font-sans text-3xl lg:text-4xl font-black text-[#00E5FF] tracking-tighter`}>{contacts.filter(c => c.source?.includes('Commercial') || c.commercial_id).length}</p>
-                     <p className="text-xs font-bold text-zinc-500 mt-1 uppercase tracking-widest">Comptes Créés</p>
+                     <p className="text-xs font-bold text-zinc-500 mt-1 uppercase tracking-widest">Leads Qualifiés</p>
                   </div>
                 </div>
 
@@ -2845,12 +2699,12 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div onClick={() => setActiveView('team')} className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] cursor-pointer hover:border-[#00E5FF]/50 transition-all group relative overflow-hidden flex flex-col justify-between">
+                <div onClick={() => setActiveView('crm')} className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] cursor-pointer hover:border-[#00E5FF]/50 transition-all group relative overflow-hidden flex flex-col justify-between">
                   <div className="absolute -bottom-6 -right-6 p-6 opacity-[0.05] group-hover:scale-125 group-hover:-rotate-12 transition-all duration-700 text-[#00E5FF]"><Users size={120}/></div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4 relative z-10">Acquisition Terrain</p>
                   <div className="relative z-10">
                      <p className={`font-sans text-3xl lg:text-4xl font-black text-[#00E5FF] tracking-tighter`}>{contacts.filter(c => c.source?.includes('Commercial') || c.commercial_id).length}</p>
-                     <p className="text-xs font-bold text-zinc-500 mt-1 uppercase tracking-widest">Comptes Créés</p>
+                     <p className="text-xs font-bold text-zinc-500 mt-1 uppercase tracking-widest">Leads Qualifiés</p>
                   </div>
                 </div>
               </div>
@@ -4279,171 +4133,6 @@ export default function AdminDashboard() {
              </div>
           )}
 
-      {/* ================= VUE ÉQUIPE COMMERCIALE ================= */}
-      {activeView === 'team' && (
-         <div className="space-y-6 animate-in fade-in max-w-[1200px] mx-auto">
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white dark:bg-zinc-900 p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
-               <div className="flex items-center gap-6 lg:gap-5 relative z-10">
-                  <div className="w-12 lg:w-16 h-12 lg:h-16 bg-black rounded-xl lg:rounded-2xl flex items-center justify-center text-[#39FF14] shadow-2xl shrink-0"><Briefcase size={24} className="lg:w-[28px] lg:h-[28px]"/></div>
-                  <div>
-                     <h2 className={`font-sans text-xl lg:text-2xl font-black uppercase tracking-tighter`}>Équipe Commerciale</h2>
-                     <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Agents Onyx Hub</p>
-                  </div>
-               </div>
-               <div className="flex flex-wrap items-center justify-end gap-3 relative z-10 w-full md:w-auto mt-4 md:mt-0">
-                  <button onClick={handleExportCommercialsExcel} className="flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-black dark:text-white px-4 py-2 rounded-lg font-black uppercase text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-95 shrink-0">
-                     <Download size={14}/> Excel
-                  </button>
-                  <button onClick={handleExportCommercialsPDF} className="flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-black dark:text-white px-4 py-2 rounded-lg font-black uppercase text-xs hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm active:scale-95 shrink-0">
-                     <FileText size={14}/> PDF
-                  </button>
-                  <button onClick={() => setShowAddCommercialModal(true)} className="flex items-center justify-center gap-2 bg-black text-[#39FF14] px-4 py-2 rounded-lg font-black uppercase text-[10px] hover:scale-105 transition-all shadow-xl active:scale-95 shrink-0">
-                     <UserPlus size={16}/> Nouveau Commercial
-                  </button>
-               </div>
-            </div>
-
-            {/* PODIUM GAMIFICATION */}
-            {(() => {
-                const sortedComms = [...commercials].map(c => {
-                    const commClients = contacts.filter(cont => ((cont.commercial_id && String(cont.commercial_id) === String(c.id)) || cont.assigned_to === c.full_name) && cont.type?.trim().toLowerCase() === 'client');
-                    const sales = commClients.length;
-                    const caTotal = commClients.reduce((acc, cont) => acc + getSaasPrice(cont.saas || ''), 0);
-                    return { ...c, sales, caTotal };
-                }).sort((a, b) => b.sales - a.sales);
-                
-                if (sortedComms.length === 0) return null;
-                
-                return (
-                    <div className="flex items-end justify-center gap-4 mb-6 mt-4 px-2">
-                        {sortedComms.length > 1 && (
-                            <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-100">
-                                <div className="w-12 h-12 rounded-full bg-zinc-300 flex items-center justify-center font-black text-xl mb-2">{sortedComms[1].full_name.charAt(0)}</div>
-                                <div className="bg-zinc-200 dark:bg-zinc-800 w-24 sm:w-32 h-32 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-zinc-400">
-                                    <span className="text-2xl font-black text-zinc-500">2</span>
-                                    <span className="text-xs font-bold mt-2">{sortedComms[1].sales} ventes</span>
-                                    <span className="text-[9px] font-black text-zinc-500 mt-1">{sortedComms[1].caTotal.toLocaleString()} F</span>
-                                </div>
-                                <p className="text-xs font-black uppercase mt-3">{sortedComms[1].full_name.split(' ')[0]}</p>
-                            </div>
-                        )}
-                        <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700">
-                            <div className="w-16 h-16 rounded-full bg-yellow-400 flex items-center justify-center font-black text-2xl mb-2 border-4 border-yellow-200 shadow-[0_0_30px_rgba(250,204,21,0.4)]">{sortedComms[0].full_name.charAt(0)}</div>
-                            <div className="bg-gradient-to-t from-yellow-500/20 to-yellow-400 w-28 sm:w-36 h-40 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-yellow-300 shadow-2xl">
-                                <span className="text-3xl font-black text-yellow-900">1</span>
-                                <span className="text-sm font-black mt-2 text-yellow-800">{sortedComms[0].sales} ventes</span>
-                                <span className="text-[10px] font-black text-yellow-700 mt-1">{sortedComms[0].caTotal.toLocaleString()} F</span>
-                            </div>
-                            <p className="text-sm font-black uppercase mt-3 text-yellow-500">{sortedComms[0].full_name.split(' ')[0]}</p>
-                        </div>
-                        {sortedComms.length > 2 && (
-                            <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
-                                <div className="w-12 h-12 rounded-full bg-orange-400 flex items-center justify-center font-black text-xl mb-2">{sortedComms[2].full_name.charAt(0)}</div>
-                                <div className="bg-orange-100 dark:bg-orange-900/50 w-24 sm:w-32 h-24 rounded-t-2xl flex flex-col items-center justify-start pt-4 border-t-4 border-orange-500">
-                                    <span className="text-2xl font-black text-orange-600">3</span>
-                                    <span className="text-xs font-bold mt-2 text-orange-500">{sortedComms[2].sales} ventes</span>
-                                    <span className="text-[9px] font-black text-orange-500 mt-1">{sortedComms[2].caTotal.toLocaleString()} F</span>
-                                </div>
-                                <p className="text-xs font-black uppercase mt-3">{sortedComms[2].full_name.split(' ')[0]}</p>
-                            </div>
-                        )}
-                    </div>
-                );
-            })()}
-
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] lg:rounded-2xl overflow-hidden shadow-sm overflow-x-auto mt-4">
-                <table className="w-full text-left min-w-[800px]">
-                    <thead className="bg-zinc-50/50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800">
-                        <tr>
-                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Commercial</th>
-                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Contact</th>
-                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Clics</th>
-                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Ventes Validées</th>
-                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Taux Conv.</th>
-                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">CA Généré</th>
-                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Dernière Vente</th>
-                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-center">Statut</th>
-                            <th className="p-3 lg:p-4 text-[9px] lg:text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
-                        {commercials.map(comm => {
-                            const commClients = contacts.filter(c => ((c.commercial_id && String(c.commercial_id) === String(comm.id)) || c.assigned_to === comm.full_name) && c.type?.trim().toLowerCase() === 'client');
-                            const repSales = commClients.length;
-                            const caTotal = commClients.reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
-                            const rawConvRate = (comm.clicks || 0) > 0 ? (repSales / comm.clicks) * 100 : 0;
-                            const convRate = rawConvRate > 0 ? rawConvRate.toFixed(1) + '%' : '0%';
-                            const lastSaleDate = repSales > 0 
-                               ? new Date(Math.max(...commClients.map(c => new Date(c.created_at || 0).getTime()))).toLocaleDateString('fr-FR')
-                               : '-';
-                            return (
-                                <tr key={comm.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                                    <td className="p-3 lg:p-4 flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-zinc-800 shadow-sm shrink-0">
-                                            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(comm.full_name)}&background=random`} alt={comm.full_name} className="w-full h-full object-cover" />
-                                        </div>
-                                        <p className="font-black text-sm uppercase text-black dark:text-white">{comm.full_name}</p>
-                                    </td>
-                                    <td className="p-3 lg:p-4">
-                                        <p className="text-xs font-bold text-zinc-500">{comm.phone}</p>
-                                    </td>
-                                    <td className="p-3 lg:p-4 text-center">
-                                        <span className="text-sm font-black text-zinc-500 dark:text-zinc-400">{comm.clicks || 0}</span>
-                                    </td>
-                                    <td className="p-3 lg:p-4 text-center">
-                                        <span className="text-xl font-black text-[#39FF14]">{repSales}</span>
-                                    </td>
-                                    <td className="p-3 lg:p-4 text-center">
-                                        <span className={`text-sm font-black ${rawConvRate >= 15 ? 'bg-[#39FF14]/10 text-[#39FF14] px-3 py-1.5 rounded-lg border border-[#39FF14]/30 shadow-sm' : 'text-zinc-500 dark:text-zinc-400'}`}>{convRate}</span>
-                                    </td>
-                                    <td className="p-3 lg:p-4 text-center">
-                                        <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest">{caTotal.toLocaleString('fr-FR')} F</span>
-                                    </td>
-                                    <td className="p-3 lg:p-4 text-center">
-                                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{lastSaleDate}</span>
-                                    </td>
-                                    <td className="p-3 lg:p-4 text-center">
-                                        <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${comm.status === 'Actif' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>{comm.status}</span>
-                                    </td>
-                                    <td className="p-3 lg:p-4 text-right space-x-2">
-                                        <button onClick={() => { setCommissionModal(comm); setCommissionAmount(''); }} className="p-2 bg-green-50 dark:bg-green-900/30 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-colors" title="Attribuer Prime Manuelle">
-                                            <DollarSign size={16}/>
-                                        </button>
-                                        <button onClick={() => { setViewCommercialClients(comm); setCommercialHistoryFilter('all'); }} className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-500 hover:bg-purple-500 hover:text-white rounded-lg transition-colors" title="Historique d'Acquisition">
-                                            <Users size={16}/>
-                                        </button>
-                                        <button onClick={() => {
-                                            setEditCommercialForm({
-                                                id: comm.id,
-                                                full_name: comm.full_name,
-                                                phone: comm.phone,
-                                                status: comm.status || 'Actif',
-                                                password_temp: comm.password_temp || 'central2026',
-                                                objective: comm.objective || 20
-                                            });
-                                            setShowEditCommercialModal(true);
-                                        }} className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors" title="Modifier">
-                                            <Edit3 size={16}/>
-                                        </button>
-                                        <button onClick={() => handleDeleteItem('commercials', comm.id)} className="p-2 bg-red-50 dark:bg-red-900/30 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors" title="Supprimer">
-                                            <Trash2 size={16}/>
-                                        </button>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                        {commercials.length === 0 && (
-                            <tr>
-                                <td colSpan={5} className="p-8 text-center text-zinc-500 font-bold uppercase text-xs tracking-widest italic opacity-50">Aucun commercial trouvé</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-         </div>
-      )}
-
-          {/* ================= VUE MARKETING ================= */}
           {activeView === 'marketing' && (
              <div className="space-y-12 animate-in fade-in slide-in-from-right-6 max-w-[1200px] mx-auto">
                 <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 shadow-sm relative overflow-hidden group gap-4">
@@ -5330,180 +5019,6 @@ export default function AdminDashboard() {
            </div>
          </div>
       )}
-
-  {/* --- MODALE HISTORIQUE CLIENTS DU COMMERCIAL --- */}
-  {viewCommercialClients && (
-    <div id="modal-overlay" onClick={handleOutsideClick(setViewCommercialClients, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-      <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#00E5FF] my-auto">
-         <button onClick={() => setViewCommercialClients(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
-         <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white`}>Historique d'Acquisition</h2>
-         
-         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Commercial : {viewCommercialClients.full_name}</p>
-            <select 
-                value={commercialHistoryFilter} 
-                onChange={(e) => setCommercialHistoryFilter(e.target.value)} 
-                className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none cursor-pointer"
-            >
-                <option value="all">Tout le temps</option>
-                <option value="month">Ce mois-ci</option>
-                <option value="year">Cette année</option>
-            </select>
-         </div>
-
-         <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar space-y-3">
-            {(() => {
-               const commClients = contacts
-                   .filter(c => (c.commercial_id && String(c.commercial_id) === String(viewCommercialClients.id)) || c.assigned_to === viewCommercialClients.full_name)
-                   .filter(c => {
-                       if (commercialHistoryFilter === 'all') return true;
-                       const d = new Date(c.created_at || 0);
-                       const now = new Date();
-                       if (commercialHistoryFilter === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-                       if (commercialHistoryFilter === 'year') return d.getFullYear() === now.getFullYear();
-                       return true;
-                   })
-                   .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-               if (commClients.length === 0) return <p className="text-zinc-500 text-sm italic text-center py-10">Aucun compte créé par ce commercial pour le moment.</p>;
-               
-               const totalSales = commClients.filter(c => c.type?.trim().toLowerCase() === 'client').length;
-               const totalRevenue = commClients.filter(c => c.type?.trim().toLowerCase() === 'client').reduce((acc, c) => acc + getSaasPrice(c.saas || ''), 0);
-               const totalCommissions = totalSales * 5000;
-
-               return (
-                   <>
-                   <div className="flex justify-between bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 mb-4 shadow-sm">
-                      <div className="text-center"><p className="text-[10px] font-black uppercase text-zinc-400">Total Ventes</p><p className="text-lg font-black text-black dark:text-white">{totalSales}</p></div>
-                      <div className="text-center"><p className="text-[10px] font-black uppercase text-zinc-400">CA Généré</p><p className="text-lg font-black text-[#00E5FF]">{totalRevenue.toLocaleString()} F</p></div>
-                      <div className="text-center"><p className="text-[10px] font-black uppercase text-zinc-400">Commissions</p><p className="text-lg font-black text-[#39FF14]">{totalCommissions.toLocaleString()} F</p></div>
-                   </div>
-                   {commClients.map(c => {
-                       const price = getSaasPrice(c.saas || '');
-                       const commission = c.type?.trim().toLowerCase() === 'client' ? 5000 : 0;
-                       return (
-                       <div key={c.id} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex justify-between items-center hover:border-[#00E5FF]/50 transition-colors">
-                           <div>
-                              <p className="font-bold text-sm text-black dark:text-white">{c.full_name}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs text-zinc-500">{c.phone}</span>
-                                  <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 px-2 py-0.5 rounded text-black dark:text-white font-bold">{c.saas || 'Aucun produit'}</span>
-                              </div>
-                              <p className="text-[10px] font-bold text-zinc-400 mt-1.5">{new Date(c.created_at).toLocaleDateString('fr-FR')} à {new Date(c.created_at).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</p>
-                           </div>
-                           <div className="text-right flex flex-col items-end">
-                              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg mb-1.5 ${c.type?.trim().toLowerCase() === 'client' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'bg-orange-500/10 text-orange-500'}`}>{c.type}</span>
-                              <p className="text-xs font-black text-black dark:text-white">{price.toLocaleString()} F</p>
-                              {commission > 0 && <p className="text-[10px] font-black text-[#39FF14] mt-0.5">+ {commission.toLocaleString()} F comm.</p>}
-                           </div>
-                       </div>
-                       );
-                   })}
-                   </>
-               );
-            })()}
-         </div>
-      </div>
-    </div>
-  )}
-
-  {/* --- MODALE COMMISSION MANUELLE --- */}
-  {commissionModal && (
-     <div id="modal-overlay" onClick={handleOutsideClick(setCommissionModal, null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-green-500 my-auto">
-         <button onClick={() => setCommissionModal(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
-         <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-2 text-black dark:text-white`}>Attribuer Prime</h2>
-         <p className="text-xs font-bold text-zinc-500 mb-8 uppercase tracking-widest">Commercial : {commissionModal.full_name}</p>
-         
-         <form onSubmit={handleAddManualCommission} className="space-y-4">
-           <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Montant de la prime (F CFA)</label>
-              <input type="number" required value={commissionAmount} onChange={e => setCommissionAmount(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-lg outline-none focus:border-green-500" placeholder="Ex: 15000" />
-           </div>
-           
-           <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/50 p-4 rounded-2xl mt-4">
-              <p className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest mb-1">Primes cumulées</p>
-              <p className="text-lg font-black text-green-700 dark:text-green-300">{(commissionModal.manual_commission || 0).toLocaleString('fr-FR')} F</p>
-           </div>
-
-           <button type="submit" className="w-full bg-green-500 text-white py-4 rounded-[1.5rem] font-black uppercase text-xs mt-4 shadow-xl hover:scale-[1.02] transition-all flex justify-center items-center gap-2">
-             <CheckCircle size={18}/> Confirmer l'attribution
-           </button>
-         </form>
-       </div>
-     </div>
-  )}
-
-  {/* --- MODALE AJOUT COMMERCIAL MANUEL --- */}
-  {showAddCommercialModal && (
-     <div id="modal-overlay" onClick={handleOutsideClick(setShowAddCommercialModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto">
-         <button onClick={() => setShowAddCommercialModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
-         <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-8 text-black dark:text-white`}>Nouveau Commercial</h2>
-         
-         <form onSubmit={handleAddCommercial} className="space-y-4">
-           <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Nom Complet</label>
-              <input type="text" required value={newCommercialForm.full_name} onChange={e => setNewCommercialForm({...newCommercialForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="Ex: Moussa Diop" />
-           </div>
-           <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Téléphone</label>
-              <input type="tel" required value={newCommercialForm.phone} onChange={e => setNewCommercialForm({...newCommercialForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="77 000 00 00" />
-           </div>
-           <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Objectif (Ventes/Mois)</label>
-              <input type="number" required value={newCommercialForm.objective} onChange={e => setNewCommercialForm({...newCommercialForm, objective: Number(e.target.value)})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="20" />
-           </div>
-
-           <button type="submit" disabled={isCreatingUser} className="w-full bg-[#39FF14] text-black py-4 rounded-[1.5rem] font-black uppercase text-xs mt-6 shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 flex justify-center items-center gap-2">
-             {isCreatingUser ? 'Création en cours...' : <><UserPlus size={18}/> Créer l'accès</>}
-           </button>
-           <p className="text-[10px] text-zinc-500 font-bold text-center mt-4">Le code PIN "0000" sera attribué par défaut.</p>
-         </form>
-       </div>
-     </div>
-  )}
-
-  {/* --- MODALE ÉDITION COMMERCIAL MANUEL --- */}
-  {showEditCommercialModal && (
-     <div id="modal-overlay" onClick={handleOutsideClick(setShowEditCommercialModal, false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
-       <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] my-auto">
-         <button onClick={() => setShowEditCommercialModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
-         <h2 className={`font-sans text-2xl font-black uppercase tracking-tighter mb-8 text-black dark:text-white`}>Modifier Commercial</h2>
-         
-         <form onSubmit={handleUpdateCommercial} className="space-y-4">
-           <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Nom Complet</label>
-              <input type="text" required value={editCommercialForm.full_name} onChange={e => setEditCommercialForm({...editCommercialForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="Ex: Moussa Diop" />
-           </div>
-           <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Objectif (Ventes/Mois)</label>
-              <input type="number" required value={editCommercialForm.objective || 20} onChange={e => setEditCommercialForm({...editCommercialForm, objective: Number(e.target.value)})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="20" />
-           </div>
-           <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Téléphone</label>
-              <input type="tel" required value={editCommercialForm.phone} onChange={e => setEditCommercialForm({...editCommercialForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="77 000 00 00" />
-           </div>
-           <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-zinc-400 ml-4 tracking-widest">Statut</label>
-              <select value={editCommercialForm.status} onChange={e => setEditCommercialForm({...editCommercialForm, status: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.25rem] font-bold text-sm outline-none focus:border-[#39FF14]">
-                  <option value="Actif">Actif</option>
-                  <option value="Suspendu">Suspendu</option>
-              </select>
-           </div>
-           
-           <div className="pt-4 mt-2 border-t border-zinc-100 dark:border-zinc-800">
-              <button type="button" onClick={handleResetCommercialPin} className="w-full bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 py-3 rounded-xl font-black uppercase text-[10px] hover:bg-orange-100 dark:hover:bg-orange-500/20 transition-all flex justify-center items-center gap-2 border border-orange-200 dark:border-orange-500/20">
-                  <RefreshCcw size={14}/> Réinitialiser PIN (0000)
-              </button>
-           </div>
-
-           <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-[1.5rem] font-black uppercase text-xs mt-4 shadow-xl hover:scale-[1.02] transition-all flex justify-center items-center gap-2">
-             <CheckCircle size={18}/> Enregistrer
-           </button>
-         </form>
-       </div>
-     </div>
-  )}
 
   {/* --- MODALE AFFICHAGE AVATAR GRAND FORMAT --- */}
   {viewingAvatarUrl && (

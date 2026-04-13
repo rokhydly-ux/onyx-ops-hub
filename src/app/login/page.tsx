@@ -21,7 +21,11 @@ export default function ClientLogin() {
     const checkSession = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user && user.email !== 'rokhydly@gmail.com') {
-        router.replace('/hub');
+        if (user.user_metadata?.role === 'commercial') {
+          router.replace('/crm/leads');
+        } else {
+          router.replace('/hub');
+        }
       } else {
         setIsChecking(false);
       }
@@ -47,16 +51,31 @@ export default function ClientLogin() {
       // 2. Formatage du PIN selon ta règle personnalisée
       const pinCode = pin === "0000" ? "central2026" : (pin.length === 4 ? pin + "00" : pin);
 
-      // 3. LA VRAIE LOGIQUE : On cherche directement le client dans la base de données
-      const { data: clientData, error: dbError } = await supabase
+      // 3. LA VRAIE LOGIQUE : On cherche directement le client ou le commercial
+      let { data: userData, error: dbError } = await supabase
         .from('clients')
         .select('*')
         .eq('phone', cleanPhone)
         .eq('password_temp', pinCode)
-        .single(); // .single() exige qu'une seule ligne corresponde exactement
+        .maybeSingle();
         
-      if (dbError || !clientData) {
-        console.error("Erreur de connexion client :", dbError?.message || "Client non trouvé");
+      let isCommercial = false;
+
+      if (!userData) {
+        const { data: commData } = await supabase
+          .from('commercials')
+          .select('*')
+          .eq('phone', cleanPhone)
+          .eq('password_temp', pinCode)
+          .maybeSingle();
+          
+        if (commData) {
+           userData = commData;
+           isCommercial = true;
+        }
+      }
+        
+      if (!userData) {
         throw new Error("Identifiants incorrects. Veuillez vérifier votre numéro et votre code PIN.");
       }
       
@@ -68,16 +87,16 @@ export default function ClientLogin() {
       });
 
       if (authError || !authData?.user) {
-        // Créer l'utilisateur s'il n'existe pas dans Auth mais existe dans clients
+        // Créer l'utilisateur s'il n'existe pas dans Auth mais existe dans la base
         await supabase.auth.signUp({
           email: authEmail,
           password: pinCode,
           options: {
             data: {
-              full_name: clientData.full_name,
-              phone: clientData.phone,
-              role: clientData.type || 'Client',
-              tenant_id: clientData.id
+              full_name: userData.full_name,
+              phone: userData.phone,
+              role: isCommercial ? 'commercial' : (userData.type || 'Client'),
+              tenant_id: isCommercial ? userData.tenant_id : userData.id
             }
           }
         });
@@ -89,11 +108,15 @@ export default function ClientLogin() {
         });
       }
 
-      // Succès ! Le client est trouvé avec le bon mot de passe.
-      console.log("Client authentifié :", clientData.full_name);
+      // Succès !
+      console.log("Utilisateur authentifié :", userData.full_name);
 
-      // 5. Redirection vers son espace personnel
-      router.push('/hub');
+      // 5. Redirection vers son espace personnel ou CRM
+      if (isCommercial) {
+         router.push('/crm/leads');
+      } else {
+         router.push('/hub');
+      }
       
     } catch (err: any) {
       setError(err.message);

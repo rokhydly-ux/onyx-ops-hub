@@ -215,29 +215,40 @@ export default function LeadsKanbanPage() {
   }, []);
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const role = user.user_metadata?.role || 'admin';
-        const name = user.user_metadata?.full_name || '';
-        const tenantId = user.user_metadata?.tenant_id || user.id;
+    let mounted = true;
+    setIsLoading(true);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user && mounted) {
+        const role = session.user.user_metadata?.role || 'admin';
+        const name = session.user.user_metadata?.full_name || '';
+        const tenantId = session.user.user_metadata?.tenant_id || session.user.id;
         
         setUserId(tenantId);
-        setCommercialId(user.id);
+        setCommercialId(session.user.id);
         setUserRole(role);
         setUserName(name);
 
         if (role === 'commercial') {
-           const { data: comm } = await supabase.from('commercials').select('*').eq('id', user.id).single();
-           if (comm) setCommercialData(comm);
+           const { data: comm } = await supabase.from('commercials').select('*').eq('id', session.user.id).single();
+           if (comm && mounted) setCommercialData(comm);
         }
 
-        fetchLeads(tenantId, role, name);
-      } else {
+        await fetchLeads(tenantId, role, name);
+      } else if (!session && mounted) {
         setIsLoading(false);
       }
+    });
+
+    // Forcer une vérification initiale immédiate
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session && mounted) setIsLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      authListener.subscription.unsubscribe();
     };
-    init();
   }, []);
 
   // --- NOTIFICATIONS PUSH TEMPS RÉEL ---

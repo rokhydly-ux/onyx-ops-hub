@@ -21,33 +21,53 @@ export default function CRMDashboard() {
   const [campaignsData, setCampaignsData] = useState<any[]>([]);
 
   useEffect(() => {
-    const checkAccess = async () => {
-      let { data: { user } } = await supabase.auth.getUser();
+    let mounted = true;
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, sessionAuth) => {
+      let currentUser = sessionAuth?.user;
       
-      if (!user) {
-          const customSession = localStorage.getItem('onyx_custom_session');
-          if (customSession) {
-              try {
-                  const parsed = JSON.parse(customSession);
-                  if (parsed.phone) {
-                      const authEmail = `${parsed.phone}@clients.onyxcrm.com`;
-                      const authPassword = parsed.password_temp || "central2026";
-                      await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
-                      const res = await supabase.auth.getUser();
-                      user = res.data.user;
-                  }
-              } catch(e) {}
-          }
+      if (!currentUser && mounted) {
+        const customSession = localStorage.getItem('onyx_custom_session');
+        if (customSession) {
+            try {
+                const parsed = JSON.parse(customSession);
+                if (parsed.phone) {
+                    const authEmail = `${parsed.phone}@clients.onyxcrm.com`;
+                    const authPassword = parsed.password_temp || "central2026";
+                    await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+                    return; // L'événement sera relancé par le succès du signIn
+                }
+            } catch(e) {}
+        }
       }
-      
-      if (!user) return router.replace('/login');
-      const role = user.user_metadata?.role || 'admin';
-      const tenantId = user.user_metadata?.tenant_id || user.id;
-      if (role === 'commercial') return router.replace('/crm/leads');
-      setSession({ id: tenantId });
-      setIsAuthorized(true);
+
+      if (!currentUser && mounted) {
+          router.replace('/login');
+          return;
+      }
+
+      if (currentUser && mounted) {
+          const role = currentUser.user_metadata?.role || 'admin';
+          const tenantId = currentUser.user_metadata?.tenant_id || currentUser.id;
+          if (role === 'commercial') {
+              router.replace('/crm/leads');
+              return;
+          }
+          setSession({ id: tenantId });
+          setIsAuthorized(true);
+      }
+    });
+
+    supabase.auth.getSession().then(({ data: { session: initSession } }) => {
+       if (!initSession && mounted && !localStorage.getItem('onyx_custom_session')) {
+          router.replace('/login');
+       }
+    });
+
+    return () => {
+       mounted = false;
+       authListener.subscription.unsubscribe();
     };
-    checkAccess();
   }, [router]);
 
   useEffect(() => {
