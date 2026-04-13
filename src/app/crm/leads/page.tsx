@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   Plus, Search, Phone, MessageSquare, Mail, 
   UploadCloud, Facebook, Activity, CheckCircle, Wallet, AlertTriangle,
-  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan, Eye, Download
+  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan, Eye, Download, Clock, Lock
 } from 'lucide-react';
 import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
 import { formatDistanceToNow } from 'date-fns';
@@ -16,7 +16,7 @@ import Tesseract from 'tesseract.js';
 const KANBAN_COLS = ['Nouveaux Leads', 'En Cours', 'Converti', 'Perdu'];
 
 // --- COMPOSANTS DND-KIT (KANBAN) ---
-function KanbanColumn({ col, leads, visibleCount, onLoadMore, onCardClick, onScheduleClick, onMessageClick }: { col: string, leads: any[], visibleCount: number, onLoadMore: () => void, onCardClick: (lead: any) => void, onScheduleClick: (lead: any) => void, onMessageClick: (lead: any) => void }) {
+function KanbanColumn({ col, leads, visibleCount, selectedLeadIds, toggleLeadSelection, onLoadMore, onCardClick, onScheduleClick, onMessageClick }: { col: string, leads: any[], visibleCount: number, selectedLeadIds: Set<string>, toggleLeadSelection: (id: string) => void, onLoadMore: () => void, onCardClick: (lead: any) => void, onScheduleClick: (lead: any) => void, onMessageClick: (lead: any) => void }) {
   const { isOver, setNodeRef } = useDroppable({ id: col });
   const visibleLeads = leads.slice(0, visibleCount);
 
@@ -32,7 +32,7 @@ function KanbanColumn({ col, leads, visibleCount, onLoadMore, onCardClick, onSch
       
       <div className="space-y-3 pr-1">
         {visibleLeads.map(lead => (
-          <KanbanCard key={lead.id} lead={lead} onClick={() => onCardClick(lead)} onScheduleClick={() => onScheduleClick(lead)} onMessageClick={() => onMessageClick(lead)} />
+          <KanbanCard key={lead.id} lead={lead} isSelected={selectedLeadIds.has(lead.id)} onToggleSelect={toggleLeadSelection} onClick={() => onCardClick(lead)} onScheduleClick={() => onScheduleClick(lead)} onMessageClick={() => onMessageClick(lead)} />
         ))}
         
         {leads.length > visibleCount && (
@@ -49,7 +49,7 @@ function KanbanColumn({ col, leads, visibleCount, onLoadMore, onCardClick, onSch
   );
 }
 
-function KanbanCard({ lead, onClick, onScheduleClick, onMessageClick }: { lead: any, onClick: () => void, onScheduleClick: () => void, onMessageClick: () => void }) {
+function KanbanCard({ lead, isSelected, onToggleSelect, onClick, onScheduleClick, onMessageClick }: { lead: any, isSelected: boolean, onToggleSelect: (id: string) => void, onClick: () => void, onScheduleClick: () => void, onMessageClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
     data: { status: lead.status || 'Nouveaux Leads' }
@@ -70,7 +70,7 @@ function KanbanCard({ lead, onClick, onScheduleClick, onMessageClick }: { lead: 
       {...listeners}
       {...attributes}
       onPointerUp={onClick}
-      className={`bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border ${isStagnant ? 'border-red-500 hover:border-red-600 shadow-red-500/10' : 'border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-zinc-500'} transition-colors cursor-grab active:cursor-grabbing group relative`}
+      className={`bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border ${isStagnant ? 'border-red-500 hover:border-red-600 shadow-red-500/10' : 'border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-zinc-500'} transition-colors cursor-grab active:cursor-grabbing group relative ${isSelected ? 'ring-2 ring-[#39FF14]' : ''}`}
     >
       {lead.is_client && (
         <div className="absolute -top-2 -right-2 bg-[#39FF14] text-black text-[9px] font-black px-2 py-1 rounded-lg shadow-md flex items-center gap-1 z-10">
@@ -90,8 +90,15 @@ function KanbanCard({ lead, onClick, onScheduleClick, onMessageClick }: { lead: 
         </div>
       )}
 
-      <p className="font-black text-sm uppercase truncate pr-4">{lead.full_name}</p>
-      <p className="text-[#39FF14] font-black text-xs mt-1">{lead.phone}</p>
+      <div className="flex justify-between items-start">
+        <div className="min-w-0 flex-1">
+          <p className="font-black text-sm uppercase truncate pr-2">{lead.full_name}</p>
+          <p className="text-[#39FF14] font-black text-xs mt-1">{lead.phone}</p>
+        </div>
+        <div onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} className="shrink-0 pt-1">
+            <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(lead.id)} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer" />
+        </div>
+      </div>
       
       <div className="flex items-center justify-between mt-4">
         <div className="flex items-center gap-2">
@@ -133,6 +140,9 @@ export default function LeadsKanbanPage() {
   const [userName, setUserName] = useState<string>('');
   const [commercialData, setCommercialData] = useState<any>(null);
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({ 'Nouveaux Leads': 20, 'En Cours': 20, 'Converti': 20, 'Perdu': 20 });
+  const [leadSortOrder, setLeadSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<string>('');
 
   // Modal "Quick Entry"
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -273,6 +283,31 @@ export default function LeadsKanbanPage() {
        setLeads(sortedData);
     }
     setIsLoading(false);
+  };
+
+  // --- GESTION DE LA SÉLECTION MULTIPLE ---
+  const toggleLeadSelection = (id: string) => {
+      const newSet = new Set(selectedLeadIds);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      setSelectedLeadIds(newSet);
+  };
+
+  const handleBulkStatusChange = async () => {
+      if (!bulkStatus || selectedLeadIds.size === 0 || !userId) return;
+      if (!confirm(`Passer ${selectedLeadIds.size} lead(s) sélectionné(s) en "${bulkStatus}" ?`)) return;
+
+      const idsArray = Array.from(selectedLeadIds);
+      
+      const { error } = await supabase.from('crm_leads').update({ status: bulkStatus }).in('id', idsArray).eq('tenant_id', userId);
+      if (error) {
+          alert("Erreur lors de la mise à jour: " + error.message);
+          return;
+      }
+
+      setLeads(prev => prev.map(l => idsArray.includes(l.id) ? { ...l, status: bulkStatus } : l));
+      setSelectedLeadIds(new Set());
+      setBulkStatus('');
   };
 
   // --- GESTION DU DRAG & DROP (dnd-kit) ---
@@ -702,6 +737,9 @@ export default function LeadsKanbanPage() {
           <button onClick={handleClearLostLeads} className="flex items-center gap-2 bg-red-500/10 text-red-500 border border-red-500/30 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-colors shadow-sm">
             <Trash2 size={16}/> Vider Perdus
           </button>
+          <button onClick={() => setLeadSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] transition-colors shadow-sm">
+            <Clock size={16}/> {leadSortOrder === 'desc' ? "Plus récents d'abord" : "Plus anciens d'abord"}
+          </button>
         </div>
       </div>
 
@@ -748,13 +786,15 @@ export default function LeadsKanbanPage() {
                .sort((a,b) => {
                    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
                    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-                   return dateB - dateA;
+                   return leadSortOrder === 'desc' ? dateB - dateA : dateA - dateB;
                }); // Tri Absolu
             return <KanbanColumn 
                       key={col} 
                       col={col} 
                       leads={colLeads} 
                       visibleCount={visibleCounts[col] || 20}
+                      selectedLeadIds={selectedLeadIds}
+                      toggleLeadSelection={toggleLeadSelection}
                       onLoadMore={() => setVisibleCounts(prev => ({...prev, [col]: (prev[col] || 20) + 20}))}
                       onCardClick={setSelectedLead} 
                       onScheduleClick={(l) => { setScheduleLead(l); setScheduleModalOpen(true); }} 
@@ -983,6 +1023,23 @@ export default function LeadsKanbanPage() {
               <button onClick={confirmMove} disabled={!observation.trim()} className="flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest text-black bg-[#39FF14] hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg disabled:opacity-50">Enregistrer</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* --- BARRE FLOTTANTE POUR SÉLECTION MULTIPLE --- */}
+      {selectedLeadIds.size > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-white dark:text-black px-6 py-4 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 z-50 animate-in slide-in-from-bottom-8 border border-zinc-800 dark:border-zinc-200">
+          <div className="flex items-center gap-2 font-black uppercase tracking-widest text-xs">
+            <span className="bg-[#39FF14] text-black w-6 h-6 rounded-full flex items-center justify-center">{selectedLeadIds.size}</span> Sélectionnés
+          </div>
+          <div className="w-px h-6 bg-zinc-800 dark:bg-zinc-200"></div>
+          <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black border border-zinc-700 dark:border-zinc-300 rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer appearance-none">
+             <option value="">-- Nouveau Statut --</option>
+             {KANBAN_COLS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <button onClick={handleBulkStatusChange} disabled={!bulkStatus} className="bg-[#39FF14] text-black px-4 py-2 rounded-xl text-xs font-black uppercase hover:scale-105 transition-transform disabled:opacity-50">
+            Appliquer
+          </button>
         </div>
       )}
 

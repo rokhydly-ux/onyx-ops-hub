@@ -6,6 +6,17 @@ import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, Al
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+const CATEGORY_COVERS: Record<string, string> = {
+  "Cuisine pro préparation": "https://images.unsplash.com/photo-1556910110-a5a63dfd393c?auto=format&fit=crop&w=800&q=80",
+  "Boulangerie/Pâtisserie": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80",
+  "Bars et Buffet": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=800&q=80",
+  "Transformation agricole": "https://images.unsplash.com/photo-1595853035070-59a39f6072ce?auto=format&fit=crop&w=800&q=80",
+  "Jetables et emballages": "https://images.unsplash.com/photo-1605600659873-d808a1d14f50?auto=format&fit=crop&w=800&q=80",
+  "Art de table": "https://images.unsplash.com/photo-1603017556942-0f56a65576bd?auto=format&fit=crop&w=800&q=80",
+  "Hygiène": "https://images.unsplash.com/photo-1584820927498-cafe2c15923f?auto=format&fit=crop&w=800&q=80",
+  "📦 Nouveaux Arrivages (À trier)": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80"
+};
+
 export default function CRMCatalogPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,7 +37,7 @@ export default function CRMCatalogPage() {
   const [aiCampaigns, setAiCampaigns] = useState<any[]>([]);
   
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: '', unit_price: 0, image_url: '' });
+  const [editForm, setEditForm] = useState({ name: '', category: '', unit_price: 0, image_url: '', description: '' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -36,6 +47,8 @@ export default function CRMCatalogPage() {
   const [categoryForm, setCategoryForm] = useState({ name: '', parent_id: '', cover_url: '' });
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [productSort, setProductSort] = useState<'recent' | 'az' | 'popular'>('recent');
+  const [hideZeroPrice, setHideZeroPrice] = useState(false);
   
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -56,7 +69,10 @@ export default function CRMCatalogPage() {
         .eq('tenant_id', tId)
         .order('created_at', { ascending: false });
 
-      if (data && !error) setProducts(data);
+      if (data && !error) {
+        console.log("Total produits récupérés :", data.length);
+        setProducts(data);
+      }
 
       const { data: clientsData } = await supabase
         .from('clients')
@@ -113,14 +129,14 @@ export default function CRMCatalogPage() {
 
   const handleOpenAdd = () => {
       setEditingProduct(null);
-      setEditForm({ name: '', category: '', unit_price: 0, image_url: '' });
+      setEditForm({ name: '', category: '', unit_price: 0, image_url: '', description: '' });
       setIsAddingProduct(true);
   };
 
   const handleOpenEdit = (p: any) => {
       setEditingProduct(p);
       setIsAddingProduct(false);
-      setEditForm({ name: p.name || '', category: p.category || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '' });
+      setEditForm({ name: p.name || '', category: p.category || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '' });
   };
 
   const generateTechnicalSheet = async (p: any, bulkDoc?: jsPDF) => {
@@ -200,7 +216,7 @@ export default function CRMCatalogPage() {
       if (!editForm.name) return alert("Le nom du produit est requis.");
       setIsSavingEdit(true);
       try {
-          const payload = { name: editForm.name, category: editForm.category, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url };
+          const payload = { name: editForm.name, category: editForm.category, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description };
           if (isAddingProduct) {
               const { data, error } = await supabase.from('crm_products').insert([{ ...payload, tenant_id: tenantId, last_sold_date: new Date().toISOString() }]).select().single();
               if (error) throw error;
@@ -378,16 +394,57 @@ export default function CRMCatalogPage() {
       }
   };
 
+  const handleAutoCategorize = async () => {
+      setIsLoading(true);
+      const updates = products.map(p => {
+          const name = (p.name || '').toLowerCase();
+          let newCat = p.category;
+          if (/(fourneau|friteuse|marmite|hachoir|mixeur|plancha|grill|sauteuse)/.test(name)) newCat = "Cuisine pro préparation";
+          else if (/(pétrin|four|façonneuse|batteur|laminoir|diviseuse)/.test(name)) newCat = "Boulangerie/Pâtisserie";
+          else if (/(machine à glace|vitrine|jus|café|bain marie|percolateur)/.test(name)) newCat = "Bars et Buffet";
+          else if (/(moulin|décortiqueuse|presse|râpeuse)/.test(name)) newCat = "Transformation agricole";
+          else if (/(barquette|gobelet|sachet|carton|aluminium|film)/.test(name)) newCat = "Jetables et emballages";
+          else if (/(assiette|couvert|cuillère|fourchette|verre|couteau|carafe)/.test(name)) newCat = "Art de table";
+          else if (/(lave-vaisselle|poubelle|plonge|savon|chariot|bac)/.test(name)) newCat = "Hygiène";
+          else if (!newCat || newCat === 'Autre' || !CATEGORY_COVERS[newCat]) newCat = "📦 Nouveaux Arrivages (À trier)";
+          return { ...p, category: newCat };
+      });
+      setProducts(updates);
+      if (tenantId) {
+          for (const p of updates) {
+              await supabase.from('crm_products').update({ category: p.category }).eq('id', p.id).eq('tenant_id', tenantId);
+          }
+      }
+      // Ajout en local des nouvelles catégories créées
+      const newCats = Array.from(new Set(updates.map(p => p.category).filter(Boolean)));
+      setIsLoading(false);
+      alert("Catégorisation IA terminée !");
+  };
+
   const filteredProducts = React.useMemo(() => {
     return products.filter(p => {
       const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) || (p.category || '').toLowerCase().includes(search.toLowerCase());
-      const matchCat = categoryFilter === 'Toutes' || p.category === categoryFilter || (p.category || '').startsWith(categoryFilter + ' /');
+      
+      let matchCat = false;
+      if (categoryFilter === 'Toutes') {
+          matchCat = true;
+      } else if (categoryFilter === "📦 Nouveaux Arrivages (À trier)") {
+          matchCat = !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !CATEGORY_COVERS[p.category];
+      } else {
+          matchCat = p.category === categoryFilter || (p.category || '').startsWith(categoryFilter + ' /');
+      }
+
       const price = p.unit_price || p.price_ttc || 0;
+      if (hideZeroPrice && price === 0) return false;
       const matchMin = minPrice === '' || price >= Number(minPrice);
       const matchMax = maxPrice === '' || price <= Number(maxPrice);
       return matchSearch && matchCat && matchMin && matchMax;
+    }).sort((a, b) => {
+        if (productSort === 'az') return (a.name || '').localeCompare(b.name || '');
+        if (productSort === 'popular') return (b.unit_price || 0) - (a.unit_price || 0);
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
-  }, [products, search, categoryFilter, minPrice, maxPrice]);
+  }, [products, search, categoryFilter, minPrice, maxPrice, productSort, hideZeroPrice]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -397,6 +454,8 @@ export default function CRMCatalogPage() {
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+
+  const zeroPriceCount = products.filter(p => (p.unit_price || p.price_ttc || 0) === 0).length;
 
   if (isLoading) return <div className="h-full flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#39FF14]" /></div>;
 
@@ -409,6 +468,21 @@ export default function CRMCatalogPage() {
         </div>
       </div>
 
+      {zeroPriceCount > 0 && (
+        <div className="mb-6 bg-orange-50 dark:bg-orange-500/10 border-l-4 border-orange-500 p-4 rounded-r-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in slide-in-from-top-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="text-orange-500 shrink-0" size={24} />
+            <div>
+              <p className="font-black text-orange-700 dark:text-orange-400 uppercase text-sm tracking-tight">Produits sans prix détectés</p>
+              <p className="text-xs text-orange-600 dark:text-orange-500 font-bold mt-0.5">{zeroPriceCount} produit(s) ont un prix à 0 F CFA.</p>
+            </div>
+          </div>
+          <button onClick={() => setHideZeroPrice(!hideZeroPrice)} className="bg-orange-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-orange-600 transition-colors shrink-0 shadow-sm">
+             {hideZeroPrice ? 'Afficher' : 'Masquer'} les produits à 0 F
+          </button>
+        </div>
+      )}
+
       <div className="animate-in fade-in space-y-6">
           <div className="flex flex-col gap-4 bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -419,6 +493,7 @@ export default function CRMCatalogPage() {
               <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                 <button onClick={handleOpenAdd} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform"><Plus size={16}/> Nouveau</button>
                 <button onClick={() => setIsCategoryModalOpen(true)} className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-sm flex items-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors border border-zinc-200 dark:border-zinc-800"><FolderOpen size={16}/> Gérer Catégories</button>
+                <button onClick={handleAutoCategorize} className="bg-black dark:bg-zinc-800 text-[#39FF14] px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform border border-[#39FF14]/30"><Bot size={16}/> Organiser via IA</button>
                 <button onClick={handleOpenAiCampaign} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform"><Sparkles size={16}/> IA : Déstockage</button>
               </div>
             </div>
@@ -456,8 +531,65 @@ export default function CRMCatalogPage() {
           </div>
 
           {/* INTERFACE GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {paginatedProducts.map(product => {
+          {categoryFilter === 'Toutes' && !search ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {Object.entries(CATEGORY_COVERS).map(([cat, img]) => {
+                      const count = products.filter(p => {
+                          if (cat === "📦 Nouveaux Arrivages (À trier)") {
+                              return !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !CATEGORY_COVERS[p.category];
+                          }
+                          return p.category === cat;
+                      }).length;
+                      return (
+                      <div key={cat} onClick={() => setCategoryFilter(cat)} className="relative h-64 rounded-[2rem] overflow-hidden group cursor-pointer shadow-sm hover:shadow-xl transition-all border border-zinc-200 dark:border-zinc-800 bg-black">
+                          <img src={img} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/60 transition-colors flex flex-col justify-end p-6">
+                              <h3 className="text-xl font-black uppercase text-white tracking-tighter drop-shadow-lg leading-tight mb-1">{cat}</h3>
+                              <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest">{count} Produits</p>
+                          </div>
+                      </div>
+                  )})}
+              </div>
+          ) : (
+            <>
+              {categoryFilter !== 'Toutes' && !search && (
+                  <div className="mb-10">
+                      <div className="flex justify-between items-center mb-6">
+                          <h3 className="font-black uppercase text-xl flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> Les Nouveautés</h3>
+                          <button onClick={() => setCategoryFilter('Toutes')} className="text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-1 transition-colors"><ChevronLeft size={14}/> Retour aux familles</button>
+                      </div>
+                      <div className="flex gap-4 overflow-x-auto pb-6 custom-scrollbar snap-x">
+                         {products.filter(p => {
+                             if (categoryFilter === "📦 Nouveaux Arrivages (À trier)") {
+                                 return !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !CATEGORY_COVERS[p.category];
+                             }
+                             return p.category === categoryFilter;
+                         }).sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 8).map(p => (
+                             <div key={p.id} className="snap-start shrink-0 w-64 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-sm flex flex-col group cursor-pointer hover:border-[#39FF14] transition-all" onClick={() => handleOpenEdit(p)}>
+                                 <div className="h-48 bg-zinc-100 dark:bg-zinc-900 relative overflow-hidden">
+                                    <img src={p.image_url || 'https://placehold.co/400x400/1a1a1a/39FF14?text=PRD'} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    <span className="absolute top-3 right-3 bg-black text-[#39FF14] text-[9px] font-black uppercase px-2.5 py-1 rounded-lg shadow-lg border border-[#39FF14]/30">Nouveau</span>
+                                 </div>
+                                 <div className="p-5 flex flex-col gap-1">
+                                    <p className="font-bold text-sm truncate">{p.name}</p>
+                                    <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest truncate">{p.category}</p>
+                                    <p className="text-[#39FF14] font-black mt-2 text-lg">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
+                                 </div>
+                             </div>
+                         ))}
+                      </div>
+                  </div>
+              )}
+              <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-black uppercase text-lg">Tous les produits {categoryFilter !== 'Toutes' ? `(${categoryFilter})` : ''}</h3>
+                  <select value={productSort} onChange={e => setProductSort(e.target.value as any)} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2 rounded-xl text-xs font-bold outline-none cursor-pointer appearance-none">
+                      <option value="recent">Du plus récent au plus ancien</option>
+                      <option value="az">De A à Z</option>
+                      <option value="popular">Plus populaires</option>
+                  </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {paginatedProducts.map(product => {
                const status = getStockStatus(product.last_sold_date, product.created_at);
                return (
                  <div key={product.id} className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden flex flex-col hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-all shadow-sm group h-[320px]">
@@ -493,7 +625,9 @@ export default function CRMCatalogPage() {
             {filteredProducts.length === 0 && (
                <div className="col-span-full p-10 text-center text-zinc-500 font-bold uppercase text-xs tracking-widest italic bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl">Aucun produit trouvé.</div>
             )}
-          </div>
+              </div>
+            </>
+          )}
 
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-4 mt-8 pb-4">
@@ -652,8 +786,8 @@ export default function CRMCatalogPage() {
       {(editingProduct || isAddingProduct) && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && (setEditingProduct(null), setIsAddingProduct(false))} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white dark:bg-zinc-950 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95">
-            <button onClick={() => { setEditingProduct(null); setIsAddingProduct(false); }} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
-            <h2 className="text-xl font-black uppercase tracking-tighter mb-6 text-black dark:text-white">{isAddingProduct ? 'Nouveau Produit' : 'Éditer Produit'}</h2>
+            <button onClick={() => { setEditingProduct(null); setIsAddingProduct(false); }} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-red-500 hover:text-white transition-colors z-20"><X size={16}/></button>
+            <h2 className="text-xl font-black uppercase tracking-tighter mb-6 text-black dark:text-white pr-8">{isAddingProduct ? 'Nouveau Produit' : 'Éditer Produit'}</h2>
             
             <div className="space-y-4 mb-8">
                 <div>
@@ -669,15 +803,46 @@ export default function CRMCatalogPage() {
                     <input type="number" value={editForm.unit_price} onChange={e => setEditForm({...editForm, unit_price: Number(e.target.value)})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
                 </div>
                 <div>
-                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block flex items-center gap-1"><ImageIcon size={14}/> URL de l'image de couverture</label>
-                    <input type="url" value={editForm.image_url} onChange={e => setEditForm({...editForm, image_url: e.target.value})} placeholder="https://..." className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block flex items-center gap-1"><ImageIcon size={14}/> Image du produit (URL)</label>
+                    <div className="flex items-center gap-4">
+                       {editForm.image_url ? (
+                          <img src={editForm.image_url} alt="Aperçu" className="w-16 h-16 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 shrink-0" />
+                       ) : (
+                          <div className="w-16 h-16 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0"><ImageIcon size={20} className="text-zinc-400"/></div>
+                       )}
+                       <input type="url" value={editForm.image_url} onChange={e => setEditForm({...editForm, image_url: e.target.value})} placeholder="https://..." className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                    </div>
+                </div>
+                <div>
+                    <div className="flex justify-between items-end mb-2">
+                       <label className="text-xs font-bold text-zinc-500 uppercase block">Description / Pitch</label>
+                       <button type="button" onClick={async () => {
+                           setIsSavingEdit(true);
+                           setTimeout(() => {
+                               setEditForm(prev => ({ ...prev, description: `✨ **${editForm.name || 'Produit'}**\n\nDécouvrez la solution parfaite pour les professionnels exigeants. Alliant robustesse et performance, ce produit est conçu pour optimiser votre quotidien.\n\n✅ Qualité premium\n✅ Fiabilité éprouvée\n✅ Design ergonomique\n\nN'attendez plus pour transformer votre activité !` }));
+                               setIsSavingEdit(false);
+                           }, 1500);
+                       }} className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-3 py-1.5 rounded-lg flex items-center gap-1 hover:scale-105 transition-transform"><Bot size={12}/> Réécriture IA</button>
+                    </div>
+                    <textarea value={editForm.description || ''} onChange={e => setEditForm({...editForm, description: e.target.value})} placeholder="Description du produit..." className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14] text-black dark:text-white min-h-[120px] resize-none" />
                 </div>
             </div>
             
-            <button onClick={handleSaveProduct} disabled={isSavingEdit} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
-                {isSavingEdit ? <Loader2 size={16} className="animate-spin" /> : (isAddingProduct ? <Plus size={16} /> : <Edit size={16} />)}
-                Enregistrer
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8">
+               <button onClick={handleSaveProduct} disabled={isSavingEdit} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
+                   {isSavingEdit ? <Loader2 size={16} className="animate-spin" /> : (isAddingProduct ? <Plus size={16} /> : <Save size={16} />)}
+                   Enregistrer
+               </button>
+               {!isAddingProduct && editingProduct && (
+                  <button onClick={() => {
+                      setSelectedIds(new Set([editingProduct.id]));
+                      setIsQuoteModalOpen(true);
+                      setEditingProduct(null);
+                  }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-xs hover:border-black dark:hover:border-white transition-colors flex justify-center items-center gap-2 shadow-sm">
+                      <FileText size={16}/> Créer un devis
+                  </button>
+               )}
+            </div>
           </div>
         </div>
       )}

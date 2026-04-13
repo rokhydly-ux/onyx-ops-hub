@@ -150,7 +150,7 @@ export default function CRMDashboard() {
       // --- TABLEAU ROI DES CAMPAGNES ---
       const campMap = new Map();
       filteredLeads.forEach((l: any) => {
-          const cName = l.campaign_name || l.source || 'Organique';
+          const cName = l.form_name || l.campaign_name || l.intent || l.source || 'Organique';
           if (!campMap.has(cName)) {
               campMap.set(cName, { name: cName, total: 0, converted: 0, pipeline: 0, ca: 0 });
           }
@@ -321,20 +321,30 @@ export default function CRMDashboard() {
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom de la Campagne</th>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Leads Générés</th>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Convertis</th>
+                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Taux Conv.</th>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Valeur Pipeline</th>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">CA Généré</th>
                      </tr>
                  </thead>
                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
-                     {campaignsData.map((c, i) => (
-                         <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors">
-                             <td className="p-5 font-bold text-sm text-black dark:text-white uppercase">{c.name}</td>
-                             <td className="p-5 text-center font-black text-lg">{c.total}</td>
-                             <td className="p-5 text-center font-black text-lg text-[#39FF14]">{c.converted}</td>
-                             <td className="p-5 text-right font-black text-zinc-500">{c.pipeline.toLocaleString('fr-FR')} F</td>
-                             <td className="p-5 text-right font-black text-[#39FF14] text-lg">{c.ca.toLocaleString('fr-FR')} F</td>
-                         </tr>
-                     ))}
+                     {campaignsData.map((c, i) => {
+                         const rate = c.total > 0 ? (c.converted / c.total) * 100 : 0;
+                         const badgeColor = rate >= 15 ? 'bg-[#39FF14]/10 text-[#39FF14] border-[#39FF14]/30' : rate >= 5 ? 'bg-orange-500/10 text-orange-500 border-orange-500/30' : 'bg-red-500/10 text-red-500 border-red-500/30';
+                         return (
+                             <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors">
+                                 <td className="p-5 font-bold text-sm text-black dark:text-white uppercase">{c.name}</td>
+                                 <td className="p-5 text-center font-black text-lg">{c.total}</td>
+                                 <td className="p-5 text-center font-black text-lg text-[#39FF14]">{c.converted}</td>
+                                 <td className="p-5 text-center">
+                                     <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm ${badgeColor}`}>
+                                         {rate.toFixed(1)}%
+                                     </span>
+                                 </td>
+                                 <td className="p-5 text-right font-black text-zinc-500">{c.pipeline.toLocaleString('fr-FR')} F</td>
+                                 <td className="p-5 text-right font-black text-[#39FF14] text-lg">{c.ca.toLocaleString('fr-FR')} F</td>
+                             </tr>
+                         );
+                     })}
                      {campaignsData.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-500 italic font-bold">Aucune donnée disponible pour cette période.</td></tr>}
                  </tbody>
              </table>
