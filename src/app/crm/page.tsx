@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock, Target, X, PieChart as PieChartIcon, Activity as ActivityIcon, Download } from 'lucide-react';
+import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock, Target, X, PieChart as PieChartIcon, Activity as ActivityIcon, Download, Bot, Wand2, Star, AlertTriangle, MessageSquare, ChevronRight, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -24,6 +24,13 @@ export default function CRMDashboard() {
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [analysisCampaign, setAnalysisCampaign] = useState("Toutes");
   const [analysisPeriod, setAnalysisPeriod] = useState("30j");
+  
+  // --- ÉTATS INTELLIGENCE LIKA ---
+  const [products, setProducts] = useState<any[]>([]);
+  const [kpiDetailsModal, setKpiDetailsModal] = useState<string | null>(null);
+  const [isLikaBrainOpen, setIsLikaBrainOpen] = useState(false);
+  const [likaActionModal, setLikaActionModal] = useState<{title: string, msg: string} | null>(null);
+  const [kpiSearch, setKpiSearch] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -91,6 +98,10 @@ export default function CRMDashboard() {
           return dateB - dateA;
       });
       setAllLeads(safeLeads);
+
+      // Récupération du catalogue pour Lika
+      const { data: prods } = await supabase.from('crm_products').select('*').eq('tenant_id', session.id);
+      if (prods) setProducts(prods);
 
       // Récupération des 5 prochains RDV de l'Agenda
       let apptQuery = supabase
@@ -204,6 +215,32 @@ export default function CRMDashboard() {
       setCampaignsData(Object.values(campaignStats).sort((a: any, b: any) => b.ca - a.ca));
   }, [allLeads, dateRange]);
 
+  // --- CALCULS LIKA STRATEGY (TOP & FLOPS) ---
+  const topClients = useMemo(() => {
+      const clientsMap = new Map();
+      allLeads.filter(l => ['Gagné', 'Converti'].includes(l.status) || l.is_client).forEach(l => {
+          const key = l.phone || l.full_name;
+          const current = clientsMap.get(key) || { name: l.full_name, ca: 0, phone: l.phone };
+          clientsMap.set(key, { ...current, ca: current.ca + Number(l.amount || l.budget || 0) });
+      });
+      return Array.from(clientsMap.values()).sort((a: any, b: any) => b.ca - a.ca).slice(0, 5);
+  }, [allLeads]);
+
+  const { topProducts, flopProducts } = useMemo(() => {
+      const sorted = [...products].sort((a, b) => (a.stock || 0) - (b.stock || 0));
+      return { topProducts: sorted.slice(0, 5), flopProducts: [...sorted].reverse().slice(0, 5) };
+  }, [products]);
+
+  const handleLikaAction = (type: string, data: any) => {
+      let title = `Suggestion pour ${data.name}`;
+      let msg = "";
+      if (type === 'client') msg = `Lika vous conseille de générer un message WhatsApp pour remercier ${data.name} de sa fidélité (CA total: ${data.ca.toLocaleString()} F) et lui proposer une offre exclusive ou un produit complémentaire VIP.`;
+      else if (type === 'top_product') msg = `Attention, le stock de ${data.name} est critique (${data.stock} restants). Lika suggère de lancer immédiatement une commande de réassort auprès de votre fournisseur pour éviter la rupture de ce best-seller.`;
+      else if (type === 'flop_product') msg = `Le produit ${data.name} dort en stock (${data.stock} unités). Lika suggère de créer un catalogue Promo Flash sur WhatsApp (par ex: -30%) et de l'envoyer à votre liste de diffusion pour écouler ce stock.`;
+      
+      setLikaActionModal({ title, msg });
+  };
+
   if (!isAuthorized) {
     return <div className="h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div></div>;
   }
@@ -311,9 +348,9 @@ export default function CRMDashboard() {
   };
 
   const kpis = [
-    { title: "Total Leads (Période)", value: realKpis.newLeads.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { title: "Taux de Conversion", value: realKpis.conversionRate, icon: TrendingUp, color: "text-[#39FF14]", bg: "bg-[#39FF14]/10", valueColor: "text-[#39FF14]" },
-    { title: "CA Potentiel Pipeline", value: `${realKpis.potentialCA.toLocaleString('fr-FR')} F`, icon: Wallet, color: "text-purple-500", bg: "bg-purple-500/10" }
+    { id: 'newLeads', title: "Total Leads (Période)", value: realKpis.newLeads.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { id: 'conversionRate', title: "Taux de Conversion", value: realKpis.conversionRate, icon: TrendingUp, color: "text-[#39FF14]", bg: "bg-[#39FF14]/10", valueColor: "text-[#39FF14]" },
+    { id: 'potentialCA', title: "CA Potentiel Pipeline", value: `${realKpis.potentialCA.toLocaleString('fr-FR')} F`, icon: Wallet, color: "text-purple-500", bg: "bg-purple-500/10" }
   ];
 
   return (
@@ -368,7 +405,7 @@ export default function CRMDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {kpis.map((kpi, index) => (
-          <div key={index} className="bg-white dark:bg-zinc-950 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between hover:border-[#39FF14] transition-colors group">
+          <div key={index} onClick={() => setKpiDetailsModal(kpi.id)} className="bg-white dark:bg-zinc-950 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between hover:border-[#39FF14] hover:shadow-[0_0_20px_rgba(57,255,20,0.1)] cursor-pointer transition-all group relative overflow-hidden">
             <div className="flex justify-between items-start mb-4">
               <div className={`p-3 rounded-xl ${kpi.bg} ${kpi.color}`}>
                 <kpi.icon size={20} />
@@ -378,8 +415,82 @@ export default function CRMDashboard() {
               <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{kpi.title}</p>
               <p className={`text-3xl font-black tracking-tighter ${kpi.valueColor || 'text-black dark:text-white'}`}>{kpi.value}</p>
             </div>
+            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-black uppercase text-zinc-500">
+               Détails <ChevronRight size={14}/>
+            </div>
           </div>
         ))}
+      </div>
+
+      {/* --- NOUVEAU : INTELLIGENCE STRATÉGIQUE LIKA --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8 mb-8">
+         {/* TOP CLIENTS */}
+         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm flex flex-col">
+            <div className="flex items-center gap-3 mb-6">
+               <Star className="text-yellow-400 fill-yellow-400" size={24}/>
+               <h3 className="font-black uppercase text-lg text-black dark:text-white">Top 5 Clients</h3>
+            </div>
+            <div className="space-y-4 flex-1">
+               {topClients.length > 0 ? topClients.map((client: any, i: number) => (
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 group hover:border-yellow-400/50 transition-colors">
+                     <div>
+                        <p className="font-black text-sm uppercase text-black dark:text-white">{client.name}</p>
+                        <p className="text-xs font-bold text-yellow-500">{client.ca.toLocaleString()} F CA</p>
+                     </div>
+                     <button onClick={() => handleLikaAction('client', client)} className="shrink-0 bg-black dark:bg-white text-[#39FF14] dark:text-black px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:scale-105 transition-transform shadow-md opacity-100 lg:opacity-0 group-hover:opacity-100">
+                        <Wand2 size={12}/> Action Lika
+                     </button>
+                  </div>
+               )) : <p className="text-sm text-zinc-500 italic">Aucun client converti pour le moment.</p>}
+            </div>
+         </div>
+
+         {/* BEST SELLERS */}
+         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm flex flex-col">
+            <div className="flex items-center gap-3 mb-6">
+               <TrendingUp className="text-[#39FF14]" size={24}/>
+               <h3 className="font-black uppercase text-lg text-black dark:text-white">Produits Populaires</h3>
+            </div>
+            <div className="space-y-4 flex-1">
+               {topProducts.length > 0 ? topProducts.map((prod: any, i: number) => (
+                  <div key={i} className="flex flex-col gap-2 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 group hover:border-[#39FF14]/50 transition-colors">
+                     <div className="flex justify-between items-start">
+                        <p className="font-black text-sm text-black dark:text-white truncate pr-2">{prod.name}</p>
+                        <button onClick={() => handleLikaAction('top_product', prod)} className="shrink-0 bg-black dark:bg-white text-[#39FF14] dark:text-black px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1 hover:scale-105 transition-transform shadow-md opacity-100 lg:opacity-0 group-hover:opacity-100">
+                           <Wand2 size={10}/> Lika
+                        </button>
+                     </div>
+                     <div className="flex items-center gap-3">
+                        <div className="flex-1 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                           <div className={`h-full ${prod.stock < 5 ? 'bg-red-500' : 'bg-[#39FF14]'}`} style={{ width: `${Math.min(100, Math.max(5, (prod.stock/50)*100))}%` }}></div>
+                        </div>
+                        <span className="text-[10px] font-bold text-zinc-500">{prod.stock} en stock</span>
+                     </div>
+                  </div>
+               )) : <p className="text-sm text-zinc-500 italic">Aucun produit dans le catalogue.</p>}
+            </div>
+         </div>
+
+         {/* FLOP PRODUITS (DORMANTS) */}
+         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm flex flex-col">
+            <div className="flex items-center gap-3 mb-6">
+               <AlertTriangle className="text-orange-500" size={24}/>
+               <h3 className="font-black uppercase text-lg text-black dark:text-white">Stocks Dormants</h3>
+            </div>
+            <div className="space-y-4 flex-1">
+               {flopProducts.length > 0 ? flopProducts.map((prod: any, i: number) => (
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-orange-50/50 dark:bg-orange-500/10 rounded-2xl border border-orange-100 dark:border-orange-500/20 group hover:border-orange-500 transition-colors">
+                     <div className="min-w-0">
+                        <p className="font-black text-sm text-black dark:text-white truncate">{prod.name}</p>
+                        <p className="text-[10px] font-bold text-orange-600 dark:text-orange-400 mt-0.5">{prod.stock} unités bloquées</p>
+                     </div>
+                     <button onClick={() => handleLikaAction('flop_product', prod)} className="shrink-0 bg-orange-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:scale-105 transition-transform shadow-md opacity-100 lg:opacity-0 group-hover:opacity-100">
+                        <Wand2 size={12}/> Promo Flash
+                     </button>
+                  </div>
+               )) : <p className="text-sm text-zinc-500 italic">Aucun stock dormant détecté.</p>}
+            </div>
+         </div>
       </div>
 
       <div className={`grid grid-cols-1 md:grid-cols-2 ${session?.role !== 'commercial' ? 'lg:grid-cols-3' : ''} gap-8`}>
@@ -645,6 +756,135 @@ export default function CRMDashboard() {
            </div>
         );
       })()}
+
+      {/* --- MODALE : KPI DETAILS SLIDE-OVER --- */}
+      {kpiDetailsModal && (() => {
+          let filteredList: any[] = [];
+          let modalTitle = "";
+          if (kpiDetailsModal === 'newLeads') {
+              modalTitle = "Total Leads (Période sélectionnée)";
+              filteredList = allLeads.filter((l: any) => {
+                  if (!dateRange.start || !dateRange.end) return true;
+                  const d = new Date(l.created_at);
+                  const start = new Date(dateRange.start); start.setHours(0,0,0,0);
+                  const end = new Date(dateRange.end); end.setHours(23,59,59,999);
+                  return d >= start && d <= end;
+              });
+          } else if (kpiDetailsModal === 'conversionRate') {
+              modalTitle = "Leads Convertis (Gagnés)";
+              filteredList = allLeads.filter(l => ['Gagné', 'Converti'].includes(l.status) || l.is_client);
+          } else if (kpiDetailsModal === 'potentialCA') {
+              modalTitle = "Pipeline En Cours (CA Potentiel)";
+              filteredList = allLeads.filter(l => !['Gagné', 'Converti', 'Perdu'].includes(l.status));
+          }
+
+          const searchedList = filteredList.filter(l => l.full_name?.toLowerCase().includes(kpiSearch.toLowerCase()) || l.phone?.includes(kpiSearch));
+
+          return (
+            <div className="fixed inset-0 z-[250] flex justify-end">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => { setKpiDetailsModal(null); setKpiSearch(''); }}></div>
+                <div className="relative w-full max-w-md bg-white dark:bg-zinc-950 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-zinc-200 dark:border-zinc-800">
+                    <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/50">
+                        <h2 className="text-lg font-black uppercase tracking-tighter text-black dark:text-white">{modalTitle}</h2>
+                        <button onClick={() => { setKpiDetailsModal(null); setKpiSearch(''); }} className="p-2 bg-zinc-200 dark:bg-zinc-800 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors"><X size={16}/></button>
+                    </div>
+                    <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
+                       <input type="text" placeholder="Rechercher dans cette liste..." value={kpiSearch} onChange={(e) => setKpiSearch(e.target.value)} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:border-[#39FF14] transition-colors" />
+                    </div>
+                    <div className="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-3">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">{searchedList.length} résultats</p>
+                        {searchedList.map(l => (
+                            <div key={l.id} className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-200 dark:border-zinc-800 hover:border-[#39FF14] transition-colors cursor-pointer group">
+                                <div className="flex justify-between items-start mb-2">
+                                   <p className="font-black uppercase text-sm text-black dark:text-white truncate pr-2 group-hover:text-[#39FF14] transition-colors">{l.full_name}</p>
+                                   <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest whitespace-nowrap">{l.status || 'Nouveau'}</span>
+                                </div>
+                                <p className="text-xs font-bold text-zinc-500 mb-2">{l.phone}</p>
+                                <p className="text-sm font-black text-black dark:text-white text-right">{Number(l.budget || l.amount || 0).toLocaleString()} F</p>
+                            </div>
+                        ))}
+                        {searchedList.length === 0 && <p className="text-center text-sm font-bold text-zinc-500 py-10">Aucun lead trouvé.</p>}
+                    </div>
+                </div>
+            </div>
+          );
+      })()}
+
+      {/* --- LIKA TO-DO LIST (MODAL) --- */}
+      {isLikaBrainOpen && (
+        <div id="lika-brain-overlay" onClick={(e: any) => e.target.id === 'lika-brain-overlay' && setIsLikaBrainOpen(false)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 rounded-[2.5rem] w-full max-w-2xl shadow-2xl relative animate-in zoom-in-95 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 flex flex-col max-h-[90vh]">
+                <button onClick={() => setIsLikaBrainOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black dark:hover:text-white transition z-20"><X size={20}/></button>
+                
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.4)] animate-pulse shrink-0">
+                        <Bot size={32} />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-black dark:text-white">Lika Stratégie</h2>
+                        <p className="text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Votre To-Do List intelligente du Jour</p>
+                    </div>
+                </div>
+
+                <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
+                    {allLeads.filter(l => l.status === 'En Cours').slice(0, 2).map((l, i) => (
+                        <div key={`todo1-${i}`} className="bg-blue-50 dark:bg-blue-500/10 p-5 rounded-2xl border border-blue-100 dark:border-blue-500/20 flex flex-col sm:flex-row gap-4">
+                            <div className="bg-blue-500/20 text-blue-600 dark:text-blue-400 p-3 rounded-xl shrink-0 h-max w-max"><MessageSquare size={20}/></div>
+                            <div>
+                                <h4 className="font-black text-sm uppercase mb-2 text-black dark:text-white">Relance Chaude : {l.full_name}</h4>
+                                <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">Ce prospect est "En Cours" et représente un CA potentiel de {Number(l.amount||l.budget||0).toLocaleString()} F. Relancez-le aujourd'hui pour closer l'affaire.</p>
+                                <button onClick={() => window.open(`https://wa.me/${(l.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${l.full_name}, suite à notre dernier échange...`)}`, '_blank')} className="bg-blue-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Générer Message WhatsApp</button>
+                            </div>
+                        </div>
+                    ))}
+                    {flopProducts.slice(0, 1).map((p, i) => (
+                        <div key={`todo2-${i}`} className="bg-orange-50 dark:bg-orange-500/10 p-5 rounded-2xl border border-orange-100 dark:border-orange-500/20 flex flex-col sm:flex-row gap-4">
+                            <div className="bg-orange-500/20 text-orange-600 dark:text-orange-400 p-3 rounded-xl shrink-0 h-max w-max"><Zap size={20}/></div>
+                            <div>
+                                <h4 className="font-black text-sm uppercase mb-2 text-black dark:text-white">Action Stock : {p.name}</h4>
+                                <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">Ce produit dort en stock ({p.stock} pièces). Créez une campagne Flash Promo à -20% pour votre liste de diffusion pour faire tourner le cash.</p>
+                                <button onClick={() => { setIsLikaBrainOpen(false); router.push('/crm/products'); }} className="bg-orange-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Créer Promo Flash</button>
+                            </div>
+                        </div>
+                    ))}
+                    {topClients.slice(0, 1).map((c, i) => (
+                        <div key={`todo3-${i}`} className="bg-green-50 dark:bg-[#39FF14]/10 p-5 rounded-2xl border border-green-100 dark:border-[#39FF14]/20 flex flex-col sm:flex-row gap-4">
+                            <div className="bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] p-3 rounded-xl shrink-0 h-max w-max"><Star size={20}/></div>
+                            <div>
+                                <h4 className="font-black text-sm uppercase mb-2 text-black dark:text-white">Fidélisation VIP : {c.name}</h4>
+                                <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">Client Top 5 (CA: {c.ca.toLocaleString()} F). Proposez-lui une offre exclusive VIP ou un produit complémentaire pour le remercier de sa fidélité.</p>
+                                <button onClick={() => window.open(`https://wa.me/${(c.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${c.name}, pour vous remercier de votre fidélité chez nous...`)}`, '_blank')} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Contacter le VIP</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* --- LIKA ACTION MODAL (Mini-popup pour suggestion spécifique) --- */}
+      {likaActionModal && (
+        <div id="lika-action-overlay" onClick={(e: any) => e.target.id === 'lika-action-overlay' && setLikaActionModal(null)} className="fixed inset-0 z-[350] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 p-8 rounded-[2rem] max-w-sm w-full shadow-2xl relative border-t-4 border-[#39FF14] animate-in zoom-in-95">
+                <button onClick={() => setLikaActionModal(null)} className="absolute top-4 right-4 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="bg-black p-2 rounded-xl"><Wand2 className="text-[#39FF14]" size={20}/></div>
+                    <h3 className="font-black uppercase text-lg leading-tight">{likaActionModal.title}</h3>
+                </div>
+                <p className="text-sm font-bold text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
+                    {likaActionModal.msg}
+                </p>
+                <button onClick={() => setLikaActionModal(null)} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2"><CheckCircle size={16}/> Compris</button>
+            </div>
+        </div>
+      )}
+
+      {/* --- BOUTON FLOTTANT LIKA (FAB) --- */}
+      <button onClick={() => setIsLikaBrainOpen(true)} className="fixed bottom-6 right-6 bg-black dark:bg-white text-[#39FF14] dark:text-black p-4 rounded-full shadow-[0_10px_30px_rgba(57,255,20,0.4)] hover:scale-110 transition-transform z-50 flex items-center gap-3 border-2 border-[#39FF14]">
+          <Bot size={28} className="animate-pulse" />
+          <span className="font-black uppercase tracking-widest text-xs pr-2 hidden md:block">Demander à Lika</span>
+      </button>
+
     </div>
   );
 }
