@@ -415,27 +415,40 @@ export default function CRMCatalogPage() {
       setIsLoading(true);
       try {
           const produitsNonClasses = products.filter(p => !p.category || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)");
-          console.log('1. Envoi à l\'API:', produitsNonClasses);
+          console.log("1. Envoi à l'API:", produitsNonClasses);
 
-          const updates = products.map(p => {
-              const name = (p.name || '').toLowerCase();
-              let newCat = p.category;
-              if (/(fourneau|friteuse|marmite|hachoir|mixeur|plancha|grill|sauteuse)/.test(name)) newCat = "Cuisine pro préparation";
-              else if (/(pétrin|four|façonneuse|batteur|laminoir|diviseuse)/.test(name)) newCat = "Boulangerie/Pâtisserie";
-              else if (/(machine à glace|vitrine|jus|café|bain marie|percolateur)/.test(name)) newCat = "Bars et Buffet";
-              else if (/(moulin|décortiqueuse|presse|râpeuse)/.test(name)) newCat = "Transformation agricole";
-              else if (/(barquette|gobelet|sachet|carton|aluminium|film)/.test(name)) newCat = "Jetables et emballages";
-              else if (/(assiette|couvert|cuillère|fourchette|verre|couteau|carafe)/.test(name)) newCat = "Art de table";
-              else if (/(lave-vaisselle|poubelle|plonge|savon|chariot|bac)/.test(name)) newCat = "Hygiène";
-              else if (!newCat || newCat === 'Autre' || !CATEGORY_COVERS[newCat]) newCat = "📦 Nouveaux Arrivages (À trier)";
-              return { ...p, category: newCat };
-          });
+          // --- SÉCURISATION JSON ---
+          const fakeAiResponseJson = JSON.stringify(
+              produitsNonClasses.map(p => {
+                  const name = (p.name || '').toLowerCase();
+                  let newCat = p.category;
+                  let newSubCat = p.subcategory || 'Autre';
+                  if (/(fourneau|friteuse|marmite|hachoir|mixeur|plancha|grill|sauteuse)/.test(name)) { newCat = "Cuisine pro préparation"; newSubCat = "Cuisson & Préparation"; }
+                  else if (/(pétrin|four|façonneuse|batteur|laminoir|diviseuse)/.test(name)) { newCat = "Boulangerie/Pâtisserie"; newSubCat = "Équipement Lourd"; }
+                  else if (/(machine à glace|vitrine|jus|café|bain marie|percolateur)/.test(name)) { newCat = "Bars et Buffet"; newSubCat = "Boissons & Froid"; }
+                  else if (/(moulin|décortiqueuse|presse|râpeuse)/.test(name)) { newCat = "Transformation agricole"; newSubCat = "Machines motorisées"; }
+                  else if (/(barquette|gobelet|sachet|carton|aluminium|film)/.test(name)) { newCat = "Jetables et emballages"; newSubCat = "Consommables"; }
+                  else if (/(assiette|couvert|cuillère|fourchette|verre|couteau|carafe)/.test(name)) { newCat = "Art de table"; newSubCat = "Vaisselle"; }
+                  else if (/(lave-vaisselle|poubelle|plonge|savon|chariot|bac)/.test(name)) { newCat = "Hygiène"; newSubCat = "Entretien"; }
+                  else if (!newCat || newCat === 'Autre' || !CATEGORY_COVERS[newCat]) { newCat = "📦 Nouveaux Arrivages (À trier)"; newSubCat = "Non classé"; }
+                  return { id: p.id, category: newCat, subcategory: newSubCat };
+              })
+          );
           
-          console.log('2. Réponse brute IA:', updates);
+          let reponseIA;
+          try {
+              reponseIA = JSON.parse(fakeAiResponseJson);
+              console.log('2. Réponse brute IA:', reponseIA);
+          } catch (parseError) {
+              console.error("Erreur de parsing JSON:", parseError);
+              throw new Error("Le format JSON renvoyé par l'IA est invalide.");
+          }
           
-          if (tenantId) {
-              const updatePromises = updates.map(async (p) => {
-                  const { error } = await supabase.from('crm_products').update({ category: p.category }).eq('id', p.id).eq('tenant_id', tenantId);
+          if (tenantId && reponseIA.length > 0) {
+              const updatePromises = reponseIA.map(async (product: any) => {
+                  const cat = product.category;
+                  const subcat = product.subcategory;
+                  const { error } = await supabase.from('crm_products').update({ category: cat, subcategory: subcat }).eq('id', product.id).eq('tenant_id', tenantId);
                   if (error) {
                       console.log('3. Erreur Update Supabase:', error);
                       throw error; // Arrête le processus en cas d'échec
@@ -444,11 +457,11 @@ export default function CRMCatalogPage() {
               
               await Promise.all(updatePromises);
               
-              // Rechargement forcé UNIQUEMENT si les requêtes ont réussi
+              // Rechargement forcé UNIQUEMENT quand toutes les mises à jour sont terminées avec succès
               const { data } = await supabase.from('crm_products').select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false });
               if (data) setProducts(data);
-          } else {
-              setProducts(updates);
+          } else if (reponseIA.length === 0) {
+              console.log("Aucun produit à catégoriser.");
           }
           alert("Catégorisation IA terminée et sauvegardée dans la base !");
       } catch (erreur) {

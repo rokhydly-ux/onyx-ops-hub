@@ -405,7 +405,8 @@ export default function LeadsKanbanPage() {
              
              const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
              const phone = r['whatsapp_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
-             const campaign = r['campaign_name'] || r['campagne'] || r['campaign'] || r['adset_name'] || 'Organique';
+             // Mapping DYNAMIQUE de la campagne par ligne pour éviter la fusion erronée
+             const campaign = r['campaign_name'] || r['campaign name'] || r['campagne'] || r['adset_name'] || r['campaign'] || 'Organique';
              const form = r['form_name'] || r['formulaire'] || r['form'] || '';
              
              // --- PRÉCISION DES DATES (Facebook created_time) ---

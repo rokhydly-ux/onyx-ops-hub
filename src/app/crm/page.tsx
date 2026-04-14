@@ -178,7 +178,8 @@ export default function CRMDashboard() {
       // --- TABLEAU ROI DES CAMPAGNES ---
       const campMap = new Map();
       filteredLeads.forEach((l: any) => {
-          const cName = l.campaign_name || l.form_name || l.intent || l.source || 'Organique';
+          // Regroupement strict basé prioritairement sur campaign_name
+          const cName = l.campaign_name || 'Organique';
           if (!campMap.has(cName)) {
               campMap.set(cName, { name: cName, total: 0, enCours: 0, converted: 0, lost: 0, pipeline: 0, ca: 0 });
           }
@@ -187,15 +188,17 @@ export default function CRMDashboard() {
           const budget = Number(l.budget || l.amount || 0);
           
           const status = l.status || 'Nouveau Lead';
-          const isWon = ['Gagné', 'Signé', 'Converti', 'Clôturé avec succès'].includes(status) || l.is_client;
-          const isLost = ['Perdu', 'Abandonné', 'Rejeté'].includes(status);
+          // Refactoring : Le Vrai Pipeline Commercial
+          const isWon = ['Gagné', 'Signé', 'Converti', 'Clôturé avec succès'].includes(status);
+          const isLost = ['Perdu', 'Abandonné'].includes(status);
+          const isEnCours = ['Nouveaux Leads', 'Nouveau', 'Contacté', 'En négociation', 'Devis envoyé', 'En Cours'].includes(status);
           
           if (isWon) {
               stats.converted += 1;
               stats.ca += budget;
           } else if (isLost) {
               stats.lost += 1;
-          } else {
+          } else if (isEnCours || (!isWon && !isLost)) {
               stats.enCours += 1;
               stats.pipeline += budget;
           }
@@ -469,7 +472,9 @@ export default function CRMDashboard() {
                                  <td className="p-5 text-center">
                                     <span className="bg-red-500/10 text-red-500 border border-red-500/30 px-3 py-1 rounded-lg text-xs font-black">{c.lost}</span>
                                  </td>
-                                 <td className="p-5 text-center font-black text-lg text-[#39FF14]">{c.converted}</td>
+                                 <td className="p-5 text-center">
+                                    <span className="bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 px-3 py-1 rounded-lg text-xs font-black">{c.converted}</span>
+                                 </td>
                                  <td className="p-5 text-center">
                                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm ${badgeColor}`}>
                                          {rate.toFixed(1)}%
