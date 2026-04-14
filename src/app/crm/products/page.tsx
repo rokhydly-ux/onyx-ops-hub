@@ -240,8 +240,9 @@ export default function CRMCatalogPage() {
               setProducts(prev => [data, ...prev]);
               setIsAddingProduct(false);
           } else if (editingProduct) {
-              const { error } = await supabase.from('crm_products').update(payload).eq('id', editingProduct.id).eq('tenant_id', tenantId);
+              const { data, error } = await supabase.from('crm_products').update(payload).eq('id', editingProduct.id).eq('tenant_id', tenantId).select();
               if (error) throw error;
+              if (!data || data.length === 0) throw new Error("Modification bloquée (RLS). Activez l'UPDATE sur la table crm_products dans Supabase.");
               setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...payload } : p));
               setEditingProduct(null);
           }
@@ -258,8 +259,9 @@ export default function CRMCatalogPage() {
       try {
           const payload = { tenant_id: tenantId, name: categoryForm.name, parent_id: categoryForm.parent_id || null, cover_url: categoryForm.cover_url };
           if (editingCategory) {
-              const { error } = await supabase.from('crm_categories').update(payload).eq('id', editingCategory.id).eq('tenant_id', tenantId);
+              const { data, error } = await supabase.from('crm_categories').update(payload).eq('id', editingCategory.id).eq('tenant_id', tenantId).select();
               if (error) throw error;
+              if (!data || data.length === 0) throw new Error("Modification bloquée (RLS). Activez l'UPDATE sur crm_categories dans Supabase.");
               setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...payload } : c));
           } else {
               const { data, error } = await supabase.from('crm_categories').insert([payload]).select().single();
@@ -606,10 +608,13 @@ export default function CRMCatalogPage() {
                                 if (tenantId) {
                                     const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', tenantId).maybeSingle();
                                     if (existing?.id) {
-                                        await supabase.from('crm_settings').update({ category_covers: newCovers }).eq('id', existing.id);
+                                        const { data, error } = await supabase.from('crm_settings').update({ category_covers: newCovers }).eq('id', existing.id).select();
+                                        if (error) alert("Erreur : " + error.message);
+                                        else if (!data || data.length === 0) alert("Modification bloquée (RLS). Activez l'UPDATE sur crm_settings.");
                                     } else {
-                                        const { error } = await supabase.from('crm_settings').insert([{ tenant_id: tenantId, category_covers: newCovers, crm_name: 'ONYX CRM' }]);
-                                        if (error) console.error("Erreur de sauvegarde de l'image :", error.message);
+                                        const { data, error } = await supabase.from('crm_settings').insert([{ tenant_id: tenantId, category_covers: newCovers, crm_name: 'ONYX CRM' }]).select();
+                                        if (error) alert("Erreur d'insertion : " + error.message);
+                                        else if (!data || data.length === 0) alert("Insertion bloquée (RLS). Activez l'INSERT sur crm_settings.");
                                     }
                                 }
                               }
