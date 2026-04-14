@@ -215,11 +215,14 @@ function CRMSettingsContent() {
              };
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
-          if (newLeads.length === 0) return alert("Aucun lead avec un numéro valide n'a été trouvé.");
+          // Dédoublonnage par téléphone pour éviter l'erreur PostgreSQL "ON CONFLICT DO UPDATE"
+          const deduplicatedLeads = Array.from(new Map(newLeads.map(l => [l.phone, l])).values());
+          
+          if (deduplicatedLeads.length === 0) return alert("Aucun lead avec un numéro valide n'a été trouvé.");
 
           setIsSubmitting(true);
           
-          const chunks = chunkArray(newLeads, 300);
+          const chunks = chunkArray(deduplicatedLeads, 300);
           let totalImported = 0;
           for (const chunk of chunks) {
               const { data, error } = await supabase.from('crm_leads').upsert(chunk, { onConflict: 'phone, tenant_id' }).select('id');

@@ -456,18 +456,22 @@ export default function LeadsKanbanPage() {
                 intent: form || campaign || 'Organique',
                 created_at: createdAt
              };
+          
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
+          // Dédoublonnage par téléphone pour éviter l'erreur PostgreSQL "ON CONFLICT DO UPDATE"
+          const deduplicatedLeads = Array.from(new Map(newLeads.map(l => [l.phone, l])).values());
+
           // UTILISATION DE BATCHING POUR ÉVITER LES ERREURS API (LIMITE: 300)
           const chunkArray = <T,>(arr: T[], size: number): T[][] => 
               Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
           
-          if (newLeads.length === 0) return alert("Aucun lead valide trouvé.");
+          if (deduplicatedLeads.length === 0) return alert("Aucun lead valide trouvé.");
           setIsImporting(true);
           setImportProgress(0);
           setImportProgressText('Démarrage de l\'importation...');
 
-          const chunks = chunkArray(newLeads, 300);
+          const chunks = chunkArray(deduplicatedLeads, 300);
           let allData: any[] = [];
           let hasError = false;
           let processed = 0;
@@ -480,9 +484,9 @@ export default function LeadsKanbanPage() {
               
               processed += chunk.length;
               const elapsed = Date.now() - startTime;
-              const remainingSecs = Math.max(0, Math.round(((elapsed / processed) * newLeads.length - elapsed) / 1000));
-              setImportProgress(Math.round((processed / newLeads.length) * 100));
-              setImportProgressText(`Traitement de la ligne ${processed} sur ${newLeads.length}... (${remainingSecs}s restantes)`);
+              const remainingSecs = Math.max(0, Math.round(((elapsed / processed) * deduplicatedLeads.length - elapsed) / 1000));
+              setImportProgress(Math.round((processed / deduplicatedLeads.length) * 100));
+              setImportProgressText(`Traitement de la ligne ${processed} sur ${deduplicatedLeads.length}... (${remainingSecs}s restantes)`);
           }
 
           if (!hasError && allData.length > 0) {
