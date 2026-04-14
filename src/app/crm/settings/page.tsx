@@ -566,7 +566,7 @@ function CRMSettingsContent() {
                           }} className="p-2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"><Edit size={16}/></button>
                           <button onClick={async () => {
                              if (confirm('Supprimer ce commercial ?')) {
-                                const res = await fetch('/crm/commercial', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: member.id, tenant_id: userId }) });
+                                const res = await fetch('/api/crm/commercials', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: member.id, tenant_id: userId }) });
                                 console.log('Delete response:', res);
                                 if (!res.ok) {
                                     const text = await res.text();
@@ -744,7 +744,7 @@ function CRMSettingsContent() {
                payload.phone = cleanPhone;
 
                if (editingCommercial) {
-                   const res = await fetch('/crm/commercial', {
+                   const res = await fetch('/api/crm/commercials', {
                        method: 'PUT',
                        headers: { 'Content-Type': 'application/json' },
                        body: JSON.stringify({
@@ -766,7 +766,7 @@ function CRMSettingsContent() {
                        throw new Error(errorData?.error || 'Erreur lors de la mise à jour');
                    }
                } else {
-                   const res = await fetch('/crm/commercial', {
+                   const res = await fetch('/api/crm/commercials', {
                        method: 'POST',
                        headers: { 'Content-Type': 'application/json' },
                        body: JSON.stringify({
