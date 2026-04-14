@@ -287,6 +287,31 @@ export default function CRMDashboard() {
     doc.save(`Rapport_Performances_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const handleExportCampaignsCSV = () => {
+    if (campaignsData.length === 0) return alert("Aucune donnée de campagne à exporter.");
+    
+    const headers = ['Nom de la Campagne', 'Total Leads', 'En Cours', 'Perdus', 'Gagnés (Convertis)', 'Taux Conv. (%)', 'CA Généré (FCFA)'];
+    const csvRows = campaignsData.map(c => [
+      `"${c.name}"`,
+      c.total,
+      c.enCours,
+      c.lost,
+      c.converted,
+      c.total > 0 ? ((c.converted / c.total) * 100).toFixed(1) : '0',
+      c.ca
+    ].join(','));
+    
+    const csvContent = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Performances_Campagnes_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const kpis = [
     { title: "Nouveaux Leads (24h)", value: realKpis.newLeads.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
     { title: "Taux de Conversion", value: realKpis.conversionRate, icon: TrendingUp, color: "text-[#39FF14]", bg: "bg-[#39FF14]/10", valueColor: "text-[#39FF14]" },
@@ -436,14 +461,19 @@ export default function CRMDashboard() {
 
       {/* --- TABLEAU ROI DES CAMPAGNES --- */}
       <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm mt-8 overflow-hidden">
-         <div className="p-6 md:p-8 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center cursor-pointer group" onClick={() => setIsAnalysisModalOpen(true)}>
-             <div>
+         <div className="p-6 md:p-8 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center group">
+             <div className="cursor-pointer" onClick={() => setIsAnalysisModalOpen(true)}>
                  <h3 className="font-black uppercase text-lg text-black dark:text-white flex items-center gap-2"><Target size={20} className="text-[#39FF14]"/> Performances par Campagne</h3>
                  <p className="text-xs text-zinc-500 mt-1">Cliquez pour ouvrir l'analyse détaillée de la direction commerciale.</p>
              </div>
-             <span className="hidden sm:flex bg-black text-[#39FF14] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest group-hover:scale-105 transition-transform border border-[#39FF14]/30 items-center gap-2">
-               <PieChartIcon size={14} /> Analyser
-             </span>
+             <div className="flex items-center gap-3">
+                 <button onClick={(e) => { e.stopPropagation(); handleExportCampaignsCSV(); }} className="hidden sm:flex bg-white dark:bg-zinc-900 text-black dark:text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors border border-zinc-200 dark:border-zinc-800 items-center gap-2 shadow-sm">
+                   <Download size={14} /> CSV
+                 </button>
+                 <button onClick={() => setIsAnalysisModalOpen(true)} className="hidden sm:flex bg-black text-[#39FF14] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform border border-[#39FF14]/30 items-center gap-2">
+                   <PieChartIcon size={14} /> Analyser
+                 </button>
+             </div>
          </div>
          <div className="overflow-x-auto custom-scrollbar">
              <table className="w-full text-left min-w-[800px]">

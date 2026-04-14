@@ -679,7 +679,10 @@ export default function CRMCatalogPage() {
                    </div>
                    <div className="p-4 flex-1 flex flex-col">
                      <p className="font-bold text-sm text-black dark:text-white line-clamp-2 mb-1">{product.name}</p>
-                     <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest truncate">{product.category || 'Non catégorisé'}</p>
+                     <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest truncate">
+                       {product.category || 'Non catégorisé'}
+                       {product.subcategory && <span className="text-zinc-400 opacity-70"> • {product.subcategory}</span>}
+                     </p>
                      
                      <div className="mt-auto pt-3 flex items-end justify-between border-t border-zinc-100 dark:border-zinc-800/50">
                        <p className="font-black text-lg text-[#39FF14]">{(product.unit_price || product.price_ttc || 0).toLocaleString('fr-FR')} <span className="text-xs text-black dark:text-white">F</span></p>
@@ -748,7 +751,12 @@ export default function CRMCatalogPage() {
             </div>
             
             <div className="w-full md:w-1/2 flex flex-col">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-3 py-1 rounded-full w-max mb-2 border border-[#39FF14]/30">{viewingProduct.category || 'Non catégorisé'}</span>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] bg-black px-3 py-1 rounded-full w-max border border-[#39FF14]/30">{viewingProduct.category || 'Non catégorisé'}</span>
+                {viewingProduct.subcategory && (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-3 py-1 rounded-full w-max border border-zinc-200 dark:border-zinc-800">{viewingProduct.subcategory}</span>
+                )}
+              </div>
               <h2 className="text-2xl font-black uppercase tracking-tighter text-black dark:text-white mb-2 leading-tight">{viewingProduct.name}</h2>
               <p className="text-3xl font-black text-black dark:text-white mb-4">{(viewingProduct.unit_price || viewingProduct.price_ttc || 0).toLocaleString('fr-FR')} <span className="text-sm text-zinc-500">FCFA</span></p>
               
