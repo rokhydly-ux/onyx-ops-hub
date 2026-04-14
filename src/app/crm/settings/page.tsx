@@ -566,12 +566,9 @@ function CRMSettingsContent() {
                           }} className="p-2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"><Edit size={16}/></button>
                           <button onClick={async () => {
                              if (confirm('Supprimer ce commercial ?')) {
-                                const res = await fetch('/api/crm/commercials', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: member.id, tenant_id: userId }) });
-                                console.log('Delete response:', res);
-                                if (!res.ok) {
-                                    const text = await res.text();
-                                    console.error('Delete brut response:', text);
-                                    alert("Erreur de suppression");
+                                const { error } = await supabase.from('commercials').delete().eq('id', member.id).eq('tenant_id', userId);
+                                if (error) {
+                                    alert("Erreur de suppression: " + error.message);
                                 } else {
                                     setCommercials(prev => prev.filter(c => c.id !== member.id));
                                 }
@@ -744,49 +741,45 @@ function CRMSettingsContent() {
                payload.phone = cleanPhone;
 
                if (editingCommercial) {
-                   const res = await fetch('/api/crm/commercials', {
-                       method: 'PUT',
-                       headers: { 'Content-Type': 'application/json' },
-                       body: JSON.stringify({
-                           id: editingCommercial.id,
-                           full_name: payload.full_name,
-                           phone: payload.phone,
-                           objective: payload.objective,
-                           status: payload.status,
-                           password_temp: payload.password_temp === '••••' ? editingCommercial.password_temp : payload.password_temp,
-                           tenant_id: userId
-                       })
-                   });
-                   console.log('PUT response:', res);
-                   if (!res.ok) {
-                       const errorText = await res.text();
-                       console.error('PUT erreur brute:', errorText);
-                       let errorData;
-                       try { errorData = JSON.parse(errorText); } catch(e) { throw new Error(`Erreur Serveur ${res.status}: Le backend a planté ou la route n'existe pas.`); }
-                       throw new Error(errorData?.error || 'Erreur lors de la mise à jour');
-                   }
+                   // Mise à jour classique depuis le frontend
+                   const { error } = await supabase.from('commercials').update({
+                       full_name: payload.full_name,
+                       phone: payload.phone,
+                       objective: payload.objective,
+                       status: payload.status,
+                       password_temp: payload.password_temp === '••••' ? editingCommercial.password_temp : payload.password_temp
+                   }).eq('id', editingCommercial.id).eq('tenant_id', userId);
+                   if (error) throw error;
                } else {
-                   const res = await fetch('/api/crm/commercials', {
+                   const authPassword = payload.password_temp === '••••' || !payload.password_temp ? '0000' : payload.password_temp;
+                   const phantomEmail = `${cleanPhone}@clients.onyxcrm.com`;
+                   
+                   // 1. Appel exclusif pour la création Auth
+                   const res = await fetch('/api/crm/create-user', {
                        method: 'POST',
                        headers: { 'Content-Type': 'application/json' },
-                       body: JSON.stringify({
-                           full_name: payload.full_name,
-                           phone: payload.phone,
-                           objective: payload.objective,
-                           objective_period: payload.objective_period,
-                           status: payload.status || 'Actif',
-                           password_temp: payload.password_temp === '••••' || !payload.password_temp ? '0000' : payload.password_temp,
-                           tenant_id: userId
-                       })
+                       body: JSON.stringify({ email: phantomEmail, password: authPassword, fullName: payload.full_name })
                    });
-                   console.log('POST response:', res);
+                   
                    if (!res.ok) {
-                       const errorText = await res.text();
-                       console.error('POST erreur brute:', errorText);
-                       let errorData;
-                       try { errorData = JSON.parse(errorText); } catch(e) { throw new Error(`Erreur Serveur ${res.status}: Le backend a planté ou la route n'existe pas.`); }
-                       throw new Error(errorData?.error || 'Erreur lors de la création');
+                       const errorData = await res.json().catch(() => null);
+                       throw new Error(errorData?.error || "Erreur API lors de la création Auth.");
                    }
+                   
+                   const { user } = await res.json();
+                   
+                   // 2. Insertion de la ligne dans la table
+                   const { error } = await supabase.from('commercials').insert([{
+                       id: user.id,
+                       full_name: payload.full_name,
+                       phone: cleanPhone,
+                       objective: payload.objective,
+                       objective_period: payload.objective_period,
+                       status: payload.status || 'Actif',
+                       password_temp: authPassword,
+                       tenant_id: userId
+                   }]);
+                   if (error) throw error;
                }
 
                const { data } = await supabase.from('commercials').select('*').eq('tenant_id', userId);
