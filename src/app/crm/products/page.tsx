@@ -607,15 +607,13 @@ export default function CRMCatalogPage() {
                                 setCategoryCovers(newCovers);
                                 if (tenantId) {
                                     const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', tenantId).maybeSingle();
-                                    if (existing?.id) {
-                                        const { data, error } = await supabase.from('crm_settings').update({ category_covers: newCovers }).eq('id', existing.id).select();
-                                        if (error) alert("Erreur : " + error.message);
-                                        else if (!data || data.length === 0) alert("Modification bloquée (RLS). Activez l'UPDATE sur crm_settings.");
-                                    } else {
-                                        const { data, error } = await supabase.from('crm_settings').insert([{ tenant_id: tenantId, category_covers: newCovers, crm_name: 'ONYX CRM' }]).select();
-                                        if (error) alert("Erreur d'insertion : " + error.message);
-                                        else if (!data || data.length === 0) alert("Insertion bloquée (RLS). Activez l'INSERT sur crm_settings.");
-                                    }
+                                    
+                                    const payload: any = { tenant_id: tenantId, category_covers: newCovers, crm_name: 'ONYX CRM' };
+                                    if (existing?.id) payload.id = existing.id; // Si l'entrée existe, on passe son ID pour déclencher l'Update
+                                    
+                                    const { data, error } = await supabase.from('crm_settings').upsert(payload).select();
+                                    if (error) alert("Erreur de sauvegarde : " + error.message);
+                                    else if (!data || data.length === 0) alert("Sauvegarde bloquée (RLS). Vérifiez vos politiques d'accès sur crm_settings.");
                                 }
                               }
                             }}
