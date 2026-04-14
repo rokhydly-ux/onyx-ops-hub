@@ -173,8 +173,8 @@ export default function CRMDashboard() {
       
       // --- TABLEAU ROI DES CAMPAGNES ---
       const campaignStats = filteredLeads.reduce((acc: any, l: any) => {
-          // Groupement STRICT par campaign_name
-          const rawName = l.campaign_name || 'Organique';
+          // Groupement STRICT par campaign_name (avec fallback intelligent)
+          const rawName = l.campaign_name || l.form_name || l.intent || 'Organique';
           const cName = String(rawName).trim().toUpperCase();
           
           if (!acc[cName]) {
