@@ -398,6 +398,10 @@ export default function LeadsKanbanPage() {
        header: true,
        skipEmptyLines: true,
        complete: async (results) => {
+          // Fetch existing leads to preserve their status upon updates
+          const { data: existingLeads } = await supabase.from('crm_leads').select('id, phone, status, created_at').eq('tenant_id', userId);
+          const existingMap = new Map((existingLeads || []).map((l: any) => [l.phone, l]));
+
           const newLeads = results.data.map((row: any) => {
              // Normalisation des clés en minuscules
              const r: any = {};
@@ -420,6 +424,7 @@ export default function LeadsKanbanPage() {
                  const parsedDate = new Date(r[dateKey]);
                  if (!isNaN(parsedDate.getTime())) createdAt = parsedDate.toISOString();
              }
+             const existingLead = existingMap.get(phone);
 
              // SCORING IA AUTOMATIQUE
              let score = 'Tiède'; // Statut par défaut plus optimiste
@@ -455,10 +460,10 @@ export default function LeadsKanbanPage() {
                 timeframe: timeframe,
                 budget: budget,
                 amount: budget,
-                status: 'Nouveaux Leads', // Force dynamique du statut initial
+                status: existingLead ? existingLead.status : 'Nouveau Lead', // Force statut ou préserve l'existant
                 source: 'Facebook Ads',
                 intent: form || campaign || 'Organique',
-                created_at: createdAt
+                created_at: existingLead ? existingLead.created_at : createdAt
              };
           
           }).filter(l => l.phone); // Exclut les lignes sans numéro

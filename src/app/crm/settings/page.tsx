@@ -152,6 +152,9 @@ function CRMSettingsContent() {
        header: true,
        skipEmptyLines: true,
        complete: async (results) => {
+          const { data: existingLeads } = await supabase.from('crm_leads').select('id, phone, status, created_at').eq('tenant_id', tenantId);
+          const existingMap = new Map((existingLeads || []).map((l: any) => [l.phone, l]));
+
           const newLeads = results.data.map((row: any) => {
              const r: any = {};
              Object.keys(row).forEach(k => r[k.toLowerCase()] = row[k]);
@@ -177,6 +180,8 @@ function CRMSettingsContent() {
                  const parsedDate = new Date(r[dateKey]);
                  if (!isNaN(parsedDate.getTime())) createdAt = parsedDate.toISOString();
              }
+             
+             const existingLead = existingMap.get(phone);
 
              let score = 'Tiède';
              let timeframe = 'Se renseigne';
@@ -212,10 +217,10 @@ function CRMSettingsContent() {
                 budget_estime: Number(budget),
                 amount: Number(budget),
                 type: 'Prospect',
-                status: 'Nouveaux Leads', // Force dynamique
+                status: existingLead ? existingLead.status : 'Nouveau Lead', // Force statut ou préserve
                 source: 'Facebook Ads',
                 intent: campaign || 'Campagne FB',
-                created_at: createdAt
+                created_at: existingLead ? existingLead.created_at : createdAt
              };
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
@@ -688,7 +693,7 @@ function CRMSettingsContent() {
               <input type="file" accept=".csv" className="hidden" ref={csvFileInputRef} onChange={handleFileUploadCSV} />
               <button onClick={() => csvFileInputRef.current?.click()} disabled={isSubmitting} className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl text-xs font-bold hover:scale-105 transition-all shadow-md flex items-center gap-2 w-max">
                   {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Database size={16} />} 
-                  {isSubmitting ? 'Traitement en cours...' : 'Uploader un fichier CSV'}
+                  {isSubmitting ? 'Traitement en cours...' : 'Uploader ou Mettre à jour (CSV)'}
               </button>
            </div>
 

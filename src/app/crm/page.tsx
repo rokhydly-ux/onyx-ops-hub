@@ -121,10 +121,6 @@ export default function CRMDashboard() {
           return d >= start && d <= end;
       });
 
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const newLeadsCount = filteredLeads.filter((l: any) => new Date(l.created_at) > yesterday).length;
-
       const wonLeads = filteredLeads.filter((l: any) => l.status === 'Gagné' || l.status === 'Converti').length;
       const convRate = filteredLeads.length > 0 ? Math.round((wonLeads / filteredLeads.length) * 100) : 0;
 
@@ -132,7 +128,7 @@ export default function CRMDashboard() {
         .filter((l: any) => !['Gagné', 'Converti', 'Perdu'].includes(l.status))
         .reduce((acc: number, l: any) => acc + (Number(l.budget || l.amount || 0)), 0);
 
-      setRealKpis({ newLeads: newLeadsCount, conversionRate: `${convRate}%`, potentialCA: caPotentiel });
+      setRealKpis({ newLeads: filteredLeads.length, conversionRate: `${convRate}%`, potentialCA: caPotentiel });
 
       const perfMap: Record<string, number> = {};
       filteredLeads.forEach((l: any) => {
@@ -177,8 +173,8 @@ export default function CRMDashboard() {
       
       // --- TABLEAU ROI DES CAMPAGNES ---
       const campaignStats = filteredLeads.reduce((acc: any, l: any) => {
-          const rawName = l.intent || l.campaign_name || l.form_name || l.source || 'Organique';
-          // Normalisation stricte pour éviter la duplication des lignes
+          // Groupement STRICT par campaign_name
+          const rawName = l.campaign_name || 'Organique';
           const cName = String(rawName).trim().toUpperCase();
           
           if (!acc[cName]) {
@@ -315,7 +311,7 @@ export default function CRMDashboard() {
   };
 
   const kpis = [
-    { title: "Nouveaux Leads (24h)", value: realKpis.newLeads.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { title: "Total Leads (Période)", value: realKpis.newLeads.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
     { title: "Taux de Conversion", value: realKpis.conversionRate, icon: TrendingUp, color: "text-[#39FF14]", bg: "bg-[#39FF14]/10", valueColor: "text-[#39FF14]" },
     { title: "CA Potentiel Pipeline", value: `${realKpis.potentialCA.toLocaleString('fr-FR')} F`, icon: Wallet, color: "text-purple-500", bg: "bg-purple-500/10" }
   ];

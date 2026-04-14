@@ -608,7 +608,8 @@ export default function CRMCatalogPage() {
                                     if (existing?.id) {
                                         await supabase.from('crm_settings').update({ category_covers: newCovers }).eq('id', existing.id);
                                     } else {
-                                        await supabase.from('crm_settings').insert([{ tenant_id: tenantId, category_covers: newCovers }]);
+                                        const { error } = await supabase.from('crm_settings').insert([{ tenant_id: tenantId, category_covers: newCovers, crm_name: 'ONYX CRM' }]);
+                                        if (error) console.error("Erreur de sauvegarde de l'image :", error.message);
                                     }
                                 }
                               }
