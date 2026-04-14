@@ -176,34 +176,36 @@ export default function CRMDashboard() {
       setConversionData(Array.from(conversionMap.values()));
       
       // --- TABLEAU ROI DES CAMPAGNES ---
-      const campMap = new Map();
-      filteredLeads.forEach((l: any) => {
-          // Regroupement strict basé sur l'intent, le form_name ou le campaign_name pour bien séparer les fichiers
-          const cName = l.intent || l.campaign_name || l.form_name || l.source || 'Organique';
-          if (!campMap.has(cName)) {
-              campMap.set(cName, { name: cName, total: 0, enCours: 0, converted: 0, lost: 0, pipeline: 0, ca: 0 });
+      const campaignStats = filteredLeads.reduce((acc: any, l: any) => {
+          const rawName = l.intent || l.campaign_name || l.form_name || l.source || 'Organique';
+          // Normalisation stricte pour éviter la duplication des lignes
+          const cName = String(rawName).trim().toUpperCase();
+          
+          if (!acc[cName]) {
+              acc[cName] = { name: String(rawName).trim(), total: 0, enCours: 0, converted: 0, lost: 0, pipeline: 0, ca: 0 };
           }
-          const stats = campMap.get(cName);
+          
+          const stats = acc[cName];
           stats.total += 1;
           const budget = Number(l.budget || l.amount || 0);
           
           const status = l.status || 'Nouveau Lead';
-          // Refactoring : Le Vrai Pipeline Commercial
           const isWon = ['Gagné', 'Signé', 'Converti', 'Clôturé avec succès'].includes(status);
           const isLost = ['Perdu', 'Abandonné'].includes(status);
-          const isEnCours = ['Nouveaux Leads', 'Nouveau', 'Contacté', 'En négociation', 'Devis envoyé', 'En Cours'].includes(status);
           
           if (isWon) {
               stats.converted += 1;
               stats.ca += budget;
           } else if (isLost) {
               stats.lost += 1;
-          } else if (isEnCours || (!isWon && !isLost)) {
+          } else {
               stats.enCours += 1;
               stats.pipeline += budget;
           }
-      });
-      setCampaignsData(Array.from(campMap.values()).sort((a,b) => b.ca - a.ca));
+          
+          return acc;
+      }, {});
+      setCampaignsData(Object.values(campaignStats).sort((a: any, b: any) => b.ca - a.ca));
   }, [allLeads, dateRange]);
 
   if (!isAuthorized) {

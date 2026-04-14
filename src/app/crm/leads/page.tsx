@@ -403,6 +403,10 @@ export default function LeadsKanbanPage() {
              const r: any = {};
              Object.keys(row).forEach(k => r[k.toLowerCase().trim()] = row[k]);
              
+             // Ignorer les statuts Facebook natifs (ex: 'CREATED') pour ne pas casser le Kanban
+             delete r['lead_status'];
+             delete r['status'];
+
              const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
              const phone = r['whatsapp_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
              // Mapping DYNAMIQUE de la campagne par ligne pour éviter la fusion erronée
@@ -418,10 +422,10 @@ export default function LeadsKanbanPage() {
              }
 
              // SCORING IA AUTOMATIQUE
-             let score = 'Froid';
+             let score = 'Tiède'; // Statut par défaut plus optimiste
              let timeframe = 'Se renseigne';
              let budget = 0;
-             const stateKey = Object.keys(r).find(k => k.includes('projet') || k.includes('état') || k.includes('etat'));
+             const stateKey = Object.keys(r).find(k => k.includes('projet') || (k.includes('état') && !k.includes('état du prospect')) || (k.includes('etat') && !k.includes('lead_status')));
              
              if (stateKey) {
                 const val = String(r[stateKey]).toLowerCase();
@@ -429,7 +433,7 @@ export default function LeadsKanbanPage() {
                    score = 'Chaud'; timeframe = 'Immédiat'; budget = 150000;
                 } else if (val.includes('mois')) {
                    score = 'Tiède'; timeframe = '0-3 mois'; budget = 50000;
-                } else if (val.includes('renseigne') || val.includes('curiosité')) {
+                } else if (val.includes('renseigne') || val.includes('curiosité') || val.includes('froid')) {
                    score = 'Froid'; timeframe = 'Se renseigne'; budget = 0;
                 }
              }
@@ -451,7 +455,7 @@ export default function LeadsKanbanPage() {
                 timeframe: timeframe,
                 budget: budget,
                 amount: budget,
-                status: 'Nouveaux Leads',
+                status: 'Nouveaux Leads', // Force dynamique du statut initial
                 source: 'Facebook Ads',
                 intent: form || campaign || 'Organique',
                 created_at: createdAt

@@ -603,7 +603,14 @@ export default function CRMCatalogPage() {
                               if (newUrl !== null && newUrl.trim() !== "") {
                                 const newCovers = { ...categoryCovers, [cat]: newUrl.trim() };
                                 setCategoryCovers(newCovers);
-                                if (tenantId) await supabase.from('crm_settings').upsert({ tenant_id: tenantId, category_covers: newCovers }, { onConflict: 'tenant_id' });
+                                if (tenantId) {
+                                    const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', tenantId).maybeSingle();
+                                    if (existing?.id) {
+                                        await supabase.from('crm_settings').update({ category_covers: newCovers }).eq('id', existing.id);
+                                    } else {
+                                        await supabase.from('crm_settings').insert([{ tenant_id: tenantId, category_covers: newCovers }]);
+                                    }
+                                }
                               }
                             }}
                             className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-[#39FF14] hover:text-black transition-colors z-20 opacity-0 group-hover:opacity-100 shadow-md"

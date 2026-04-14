@@ -156,6 +156,10 @@ function CRMSettingsContent() {
              const r: any = {};
              Object.keys(row).forEach(k => r[k.toLowerCase()] = row[k]);
              
+             // Ignorer les statuts Facebook natifs
+             delete r['lead_status'];
+             delete r['status'];
+
              const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
              let phoneRaw = r['whatsapp_number'] || r['phone_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
              let phone = String(phoneRaw).replace(/\s+/g, '');
@@ -174,10 +178,10 @@ function CRMSettingsContent() {
                  if (!isNaN(parsedDate.getTime())) createdAt = parsedDate.toISOString();
              }
 
-             let score = 'Froid';
+             let score = 'Tiède';
              let timeframe = 'Se renseigne';
              let budget = 0;
-             const stateKey = Object.keys(r).find(k => k.includes('projet') || k.includes('état') || k.includes('etat'));
+             const stateKey = Object.keys(r).find(k => k.includes('projet') || (k.includes('état') && !k.includes('état du prospect')) || (k.includes('etat') && !k.includes('lead_status')));
              
              if (stateKey) {
                 const val = String(r[stateKey]).toLowerCase();
@@ -208,7 +212,7 @@ function CRMSettingsContent() {
                 budget_estime: Number(budget),
                 amount: Number(budget),
                 type: 'Prospect',
-                status: 'Nouveaux Leads',
+                status: 'Nouveaux Leads', // Force dynamique
                 source: 'Facebook Ads',
                 intent: campaign || 'Campagne FB',
                 created_at: createdAt
