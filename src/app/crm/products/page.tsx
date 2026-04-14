@@ -876,39 +876,56 @@ export default function CRMCatalogPage() {
       {/* MODALE ÉDITION / AJOUT RAPIDE PRODUIT */}
       {(editingProduct || isAddingProduct) && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && (setEditingProduct(null), setIsAddingProduct(false))} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-zinc-950 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95">
-            <button onClick={() => { setEditingProduct(null); setIsAddingProduct(false); }} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-red-500 hover:text-white transition-colors z-20"><X size={16}/></button>
-            <h2 className="text-xl font-black uppercase tracking-tighter mb-6 text-black dark:text-white pr-8">{isAddingProduct ? 'Nouveau Produit' : 'Éditer Produit'}</h2>
+          <div className="w-full max-w-4xl max-h-[90vh] flex flex-col bg-white dark:bg-zinc-950 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 border border-zinc-200 dark:border-zinc-800">
             
-            <div className="space-y-4 mb-8">
-                <div>
-                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Nom du Produit</label>
-                    <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+            {/* HEADER */}
+            <div className="p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-800 shrink-0 flex justify-between items-center bg-white dark:bg-zinc-950">
+              <h2 className="text-xl font-black uppercase tracking-tighter text-black dark:text-white">{isAddingProduct ? 'Nouveau Produit' : 'Éditer Produit'}</h2>
+              <button onClick={() => { setEditingProduct(null); setIsAddingProduct(false); }} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-red-500 hover:text-white transition-colors text-zinc-500"><X size={16}/></button>
+            </div>
+            
+            {/* CONTENT (SCROLLABLE) */}
+            <div className="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar bg-zinc-50 dark:bg-zinc-900">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Colonne Gauche */}
+                <div className="space-y-4">
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Nom du Produit</label>
+                      <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                      <div>
+                          <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Catégorie</label>
+                          <input type="text" value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} placeholder="Ex: Équipements" className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                      </div>
+                      <div>
+                          <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Sous-catégorie</label>
+                          <input type="text" value={editForm.subcategory || ''} onChange={e => setEditForm({...editForm, subcategory: e.target.value})} placeholder="Ex: Cuisson" className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                      </div>
+                  </div>
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Prix Unitaire (F CFA)</label>
+                      <input type="number" value={editForm.unit_price} onChange={e => setEditForm({...editForm, unit_price: Number(e.target.value)})} className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                  </div>
                 </div>
-                <div>
-                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Catégorie</label>
-                    <input type="text" value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} placeholder="Ex: Équipements" className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                
+                {/* Colonne Droite */}
+                <div className="space-y-4">
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-2 flex items-center gap-1"><ImageIcon size={14}/> Image du produit (URL)</label>
+                      <div className="flex flex-col gap-4">
+                         <input type="url" value={editForm.image_url} onChange={e => setEditForm({...editForm, image_url: e.target.value})} placeholder="https://..." className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                         {editForm.image_url ? (
+                            <img src={editForm.image_url} alt="Aperçu" className="w-full h-32 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 shrink-0 shadow-sm" />
+                         ) : (
+                            <div className="w-full h-32 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0"><ImageIcon size={32} className="text-zinc-400"/></div>
+                         )}
+                      </div>
+                  </div>
                 </div>
-                    <div>
-                        <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Sous-catégorie</label>
-                        <input type="text" value={editForm.subcategory || ''} onChange={e => setEditForm({...editForm, subcategory: e.target.value})} placeholder="Ex: Cuisson & Préparation" className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
-                    </div>
-                <div>
-                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Prix Unitaire (F CFA)</label>
-                    <input type="number" value={editForm.unit_price} onChange={e => setEditForm({...editForm, unit_price: Number(e.target.value)})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
-                </div>
-                <div>
-                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block flex items-center gap-1"><ImageIcon size={14}/> Image du produit (URL)</label>
-                    <div className="flex items-center gap-4">
-                       {editForm.image_url ? (
-                          <img src={editForm.image_url} alt="Aperçu" className="w-16 h-16 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 shrink-0" />
-                       ) : (
-                          <div className="w-16 h-16 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0"><ImageIcon size={20} className="text-zinc-400"/></div>
-                       )}
-                       <input type="url" value={editForm.image_url} onChange={e => setEditForm({...editForm, image_url: e.target.value})} placeholder="https://..." className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
-                    </div>
-                </div>
-                <div>
+                
+                {/* Description (Pleine largeur) */}
+                <div className="col-span-1 md:col-span-2">
                     <div className="flex justify-between items-end mb-2">
                        <label className="text-xs font-bold text-zinc-500 uppercase block">Description / Pitch</label>
                        <button type="button" onClick={async () => {
@@ -917,26 +934,31 @@ export default function CRMCatalogPage() {
                                setEditForm(prev => ({ ...prev, description: `✨ **${editForm.name || 'Produit'}**\n\nDécouvrez la solution parfaite pour les professionnels exigeants. Alliant robustesse et performance, ce produit est conçu pour optimiser votre quotidien.\n\n✅ Qualité premium\n✅ Fiabilité éprouvée\n✅ Design ergonomique\n\nN'attendez plus pour transformer votre activité !` }));
                                setIsSavingEdit(false);
                            }, 1500);
-                       }} className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-3 py-1.5 rounded-lg flex items-center gap-1 hover:scale-105 transition-transform"><Bot size={12}/> Réécriture IA</button>
+                       }} className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-3 py-1.5 rounded-lg flex items-center gap-1 hover:scale-105 transition-transform shadow-md"><Bot size={12}/> Réécriture IA</button>
                     </div>
-                    <textarea value={editForm.description || ''} onChange={e => setEditForm({...editForm, description: e.target.value})} placeholder="Description du produit..." className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14] text-black dark:text-white min-h-[120px] resize-none" />
+                    <textarea value={editForm.description || ''} onChange={e => setEditForm({...editForm, description: e.target.value})} placeholder="Description détaillée du produit..." className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14] text-black dark:text-white min-h-[120px] resize-none custom-scrollbar" />
                 </div>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8">
-               <button onClick={handleSaveProduct} disabled={isSavingEdit} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
-                   {isSavingEdit ? <Loader2 size={16} className="animate-spin" /> : (isAddingProduct ? <Plus size={16} /> : <Save size={16} />)}
-                   Enregistrer
-               </button>
+            {/* FOOTER */}
+            <div className="p-4 md:p-6 border-t border-zinc-200 dark:border-zinc-800 shrink-0 flex flex-wrap justify-end items-center gap-3 bg-white dark:bg-zinc-950">
                {!isAddingProduct && editingProduct && (
                   <button onClick={() => {
                       setSelectedIds(new Set([editingProduct.id]));
                       setIsQuoteModalOpen(true);
                       setEditingProduct(null);
-                  }} className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-xs hover:border-black dark:hover:border-white transition-colors flex justify-center items-center gap-2 shadow-sm">
+                  }} className="px-6 py-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white rounded-lg font-bold text-sm hover:border-black dark:hover:border-white transition-colors flex items-center gap-2 shadow-sm mr-auto">
                       <FileText size={16}/> Créer un devis
                   </button>
                )}
+               <button onClick={() => { setEditingProduct(null); setIsAddingProduct(false); }} className="px-6 py-3 rounded-lg font-bold text-sm bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-black dark:text-white transition-colors">
+                  Annuler
+               </button>
+               <button onClick={handleSaveProduct} disabled={isSavingEdit} className="px-6 py-3 rounded-lg font-black uppercase text-sm bg-[#39FF14] text-black hover:bg-black hover:text-[#39FF14] transition-all shadow-lg flex items-center gap-2 disabled:opacity-50">
+                   {isSavingEdit ? <Loader2 size={16} className="animate-spin" /> : (isAddingProduct ? <Plus size={16} /> : <Save size={16} />)}
+                   Enregistrer
+               </button>
             </div>
           </div>
         </div>

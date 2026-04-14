@@ -53,6 +53,7 @@ export default function PDFStudioPage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [crmSettings, setCrmSettings] = useState({ crm_name: 'ONYX CRM', logo_url: '', theme_color: '#39FF14' });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -218,6 +219,8 @@ export default function PDFStudioPage() {
         doc.save(fileName); // On le télécharge aussi pour pouvoir l'envoyer manuellement
         const msg = `Bonjour ${prospectName},\n\nVoici notre catalogue personnalisé "${catalogName}" que nous avons préparé pour vous.\nN'hésitez pas à me faire un retour sur la sélection !`;
         window.open(`https://wa.me/${prospectPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+        setToastMessage("✅ Catalogue envoyé avec succès sur WhatsApp !");
+        setTimeout(() => setToastMessage(null), 4000);
     }
     
     setIsGenerating(false);
@@ -527,6 +530,13 @@ export default function PDFStudioPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] border border-[#39FF14]/30 px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[300] animate-in slide-in-from-bottom-5">
+             <CheckCircle size={16}/> {toastMessage}
+         </div>
       )}
 
     </div>

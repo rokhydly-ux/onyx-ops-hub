@@ -95,6 +95,11 @@ function KanbanCard({ lead, isSelected, onToggleSelect, onClick, onScheduleClick
         <div className="min-w-0 flex-1">
           <p className="font-black text-sm uppercase truncate pr-2">{lead.full_name}</p>
           <p className="text-[#39FF14] font-black text-xs mt-1">{lead.phone}</p>
+          {(lead.ad_name || lead.campaign_name) && (
+            <span className="inline-block mt-1 text-[8px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-500 px-1.5 py-0.5 rounded border border-purple-500/20">
+              🎯 {lead.ad_name || lead.campaign_name}
+            </span>
+          )}
           <p className="text-[10px] text-zinc-500 font-bold mt-1.5 flex items-center gap-1">
             <Clock size={10}/> {lead.created_at ? new Date(lead.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Date inconnue'}
           </p>
@@ -138,6 +143,7 @@ export default function LeadsKanbanPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [productFilter, setProductFilter] = useState("Tous");
   const [sourceFilter, setSourceFilter] = useState("Toutes");
+  const [campaignFilter, setCampaignFilter] = useState("Toutes");
   const [dateFilter, setDateFilter] = useState("Toutes");
   const [commercialFilter, setCommercialFilter] = useState("Tous");
   const [userId, setUserId] = useState<string | null>(null);
@@ -689,10 +695,12 @@ export default function LeadsKanbanPage() {
 
   const filteredLeads = leads.filter(l => 
     {
+      const mappedStatus = l.status === 'CREATED' ? 'Nouveaux Leads' : (l.status || 'Nouveaux Leads');
       const matchSearch = ((l.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (l.phone || '').includes(searchTerm));
       const matchProduct = productFilter === "Tous" || l.intent === productFilter;
       const matchSource = sourceFilter === "Toutes" || l.source === sourceFilter;
       const matchCommercial = commercialFilter === "Tous" || l.assigned_to === commercialFilter;
+      const matchCampaign = campaignFilter === "Toutes" || l.ad_name === campaignFilter || l.campaign_name === campaignFilter;
       let matchDate = true;
       if (dateFilter === "Aujourd'hui") {
          matchDate = new Date(l.created_at).toDateString() === new Date().toDateString();
@@ -701,9 +709,9 @@ export default function LeadsKanbanPage() {
       } else if (dateFilter === "30 derniers jours") {
          matchDate = new Date(l.created_at) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       }
-      return matchSearch && matchProduct && matchSource && matchCommercial && matchDate;
+      return matchSearch && matchProduct && matchSource && matchCommercial && matchDate && matchCampaign;
     }
-  );
+  ).map(l => ({ ...l, status: l.status === 'CREATED' ? 'Nouveaux Leads' : l.status }));
 
   const stagnantLeads = leads.filter(l => (l.status === 'Nouveaux Leads' || !l.status) && l.created_at && new Date(l.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const activePipelineValue = leads.filter(l => ['En Cours', 'Audit en cours', 'Nouveaux Leads'].includes(l.status)).reduce((acc, l) => acc + (Number(l.budget || l.amount || 0)), 0);
@@ -764,6 +772,16 @@ export default function LeadsKanbanPage() {
             <option value="Toutes">Toutes les sources</option>
             {Array.from(new Set(leads.map(l => l.source).filter(Boolean))).map(source => (
               <option key={source as string} value={source as string}>{source as string}</option>
+            ))}
+          </select>
+          <select
+            value={campaignFilter}
+            onChange={e => setCampaignFilter(e.target.value)}
+            className="px-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] transition-colors appearance-none cursor-pointer"
+          >
+            <option value="Toutes">Toutes les campagnes</option>
+            {Array.from(new Set(leads.map(l => l.ad_name || l.campaign_name).filter(Boolean))).map(camp => (
+              <option key={camp as string} value={camp as string}>{camp as string}</option>
             ))}
           </select>
           <select
@@ -865,7 +883,7 @@ export default function LeadsKanbanPage() {
         <div className="flex gap-6 overflow-x-auto pb-6 items-start custom-scrollbar">
           {KANBAN_COLS.map(col => {
             const colLeads = filteredLeads
-               .filter(l => l.status === col || (col === 'Nouveaux Leads' && !l.status))
+               .filter(l => (l.status || 'Nouveaux Leads') === col)
                .sort((a,b) => {
                    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
                    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
