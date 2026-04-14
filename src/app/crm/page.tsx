@@ -178,8 +178,8 @@ export default function CRMDashboard() {
       // --- TABLEAU ROI DES CAMPAGNES ---
       const campMap = new Map();
       filteredLeads.forEach((l: any) => {
-          // Regroupement strict basé prioritairement sur campaign_name
-          const cName = l.campaign_name || 'Organique';
+          // Regroupement strict basé sur l'intent, le form_name ou le campaign_name pour bien séparer les fichiers
+          const cName = l.intent || l.campaign_name || l.form_name || l.source || 'Organique';
           if (!campMap.has(cName)) {
               campMap.set(cName, { name: cName, total: 0, enCours: 0, converted: 0, lost: 0, pipeline: 0, ca: 0 });
           }

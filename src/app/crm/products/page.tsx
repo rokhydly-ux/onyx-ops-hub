@@ -37,7 +37,7 @@ export default function CRMCatalogPage() {
   const [aiCampaigns, setAiCampaigns] = useState<any[]>([]);
   
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: '', unit_price: 0, image_url: '', description: '' });
+  const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -146,14 +146,14 @@ export default function CRMCatalogPage() {
 
   const handleOpenAdd = () => {
       setEditingProduct(null);
-      setEditForm({ name: '', category: '', unit_price: 0, image_url: '', description: '' });
+      setEditForm({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '' });
       setIsAddingProduct(true);
   };
 
   const handleOpenEdit = (p: any) => {
       setEditingProduct(p);
       setIsAddingProduct(false);
-      setEditForm({ name: p.name || '', category: p.category || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '' });
+      setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '' });
   };
 
   const generateTechnicalSheet = async (p: any, bulkDoc?: jsPDF) => {
@@ -172,7 +172,7 @@ export default function CRMCatalogPage() {
       
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
-      doc.text(`Catégorie : ${p.category || 'Non catégorisé'}`, 14, 75);
+      doc.text(`Catégorie : ${p.category || 'Non catégorisé'} ${p.subcategory ? ' - ' + p.subcategory : ''}`, 14, 75);
       doc.text(`Prix de vente : ${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA`, 14, 85);
       
       const status = getStockStatus(p.last_sold_date, p.created_at);
@@ -233,7 +233,7 @@ export default function CRMCatalogPage() {
       if (!editForm.name) return alert("Le nom du produit est requis.");
       setIsSavingEdit(true);
       try {
-          const payload = { name: editForm.name, category: editForm.category, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description };
+          const payload = { name: editForm.name, category: editForm.category, subcategory: editForm.subcategory, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description };
           if (isAddingProduct) {
               const { data, error } = await supabase.from('crm_products').insert([{ ...payload, tenant_id: tenantId, last_sold_date: new Date().toISOString() }]).select().single();
               if (error) throw error;
@@ -643,7 +643,10 @@ export default function CRMCatalogPage() {
                                  </div>
                                  <div className="p-5 flex flex-col gap-1">
                                     <p className="font-bold text-sm truncate">{p.name}</p>
-                                    <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest truncate">{p.category}</p>
+                                    <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest truncate">
+                                      {p.category}
+                                      {p.subcategory && <span className="text-zinc-400 opacity-70"> • {p.subcategory}</span>}
+                                    </p>
                                     <p className="text-[#39FF14] font-black mt-2 text-lg">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
                                  </div>
                              </div>
@@ -877,6 +880,10 @@ export default function CRMCatalogPage() {
                     <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Catégorie</label>
                     <input type="text" value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} placeholder="Ex: Équipements" className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
                 </div>
+                    <div>
+                        <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Sous-catégorie</label>
+                        <input type="text" value={editForm.subcategory || ''} onChange={e => setEditForm({...editForm, subcategory: e.target.value})} placeholder="Ex: Cuisson & Préparation" className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                    </div>
                 <div>
                     <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Prix Unitaire (F CFA)</label>
                     <input type="number" value={editForm.unit_price} onChange={e => setEditForm({...editForm, unit_price: Number(e.target.value)})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
