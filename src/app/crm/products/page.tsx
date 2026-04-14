@@ -445,7 +445,7 @@ export default function CRMCatalogPage() {
           }
           
           if (tenantId && reponseIA.length > 0) {
-              const updatePromises = reponseIA.map(async (product: any) => {
+              for (const product of reponseIA) {
                   const cat = product.category;
                   const subcat = product.subcategory;
                   const { error } = await supabase.from('crm_products').update({ category: cat, subcategory: subcat }).eq('id', product.id).eq('tenant_id', tenantId);
@@ -453,9 +453,7 @@ export default function CRMCatalogPage() {
                       console.log('3. Erreur Update Supabase:', error);
                       throw error; // Arrête le processus en cas d'échec
                   }
-              });
-              
-              await Promise.all(updatePromises);
+              }
               
               // Rechargement forcé UNIQUEMENT quand toutes les mises à jour sont terminées avec succès
               const { data } = await supabase.from('crm_products').select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false });
@@ -464,9 +462,9 @@ export default function CRMCatalogPage() {
               console.log("Aucun produit à catégoriser.");
           }
           alert("Catégorisation IA terminée et sauvegardée dans la base !");
-      } catch (erreur) {
+      } catch (erreur: any) {
           console.log('3. Erreur Update Supabase:', erreur);
-          alert("Une erreur est survenue lors de la catégorisation.");
+          alert("Une erreur est survenue lors de la catégorisation.\n\nDétails : " + (erreur.message || JSON.stringify(erreur)) + "\n\nAstuce : Si l'erreur indique que la colonne 'subcategory' est introuvable, n'oubliez pas de la créer dans votre tableau 'crm_products' sur Supabase !");
       } finally {
           setIsLoading(false);
       }
