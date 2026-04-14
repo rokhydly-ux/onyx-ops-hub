@@ -762,7 +762,7 @@ function CRMSettingsContent() {
                        const errorText = await res.text();
                        console.error('PUT erreur brute:', errorText);
                        let errorData;
-                       try { errorData = JSON.parse(errorText); } catch(e) { throw new Error('Endpoint introuvable (HTML reçu). Vérifiez l\'URL de l\'API.'); }
+                       try { errorData = JSON.parse(errorText); } catch(e) { throw new Error(`Erreur Serveur ${res.status}: Le backend a planté ou la route n'existe pas.`); }
                        throw new Error(errorData?.error || 'Erreur lors de la mise à jour');
                    }
                } else {
@@ -784,7 +784,7 @@ function CRMSettingsContent() {
                        const errorText = await res.text();
                        console.error('POST erreur brute:', errorText);
                        let errorData;
-                       try { errorData = JSON.parse(errorText); } catch(e) { throw new Error('Endpoint introuvable (HTML reçu). Vérifiez l\'URL de l\'API.'); }
+                       try { errorData = JSON.parse(errorText); } catch(e) { throw new Error(`Erreur Serveur ${res.status}: Le backend a planté ou la route n'existe pas.`); }
                        throw new Error(errorData?.error || 'Erreur lors de la création');
                    }
                }
