@@ -566,8 +566,15 @@ function CRMSettingsContent() {
                           }} className="p-2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"><Edit size={16}/></button>
                           <button onClick={async () => {
                              if (confirm('Supprimer ce commercial ?')) {
-                                await fetch('/api/crm/commercials', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: member.id, tenant_id: userId }) });
-                                setCommercials(prev => prev.filter(c => c.id !== member.id));
+                                const res = await fetch('/crm/commercial', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: member.id, tenant_id: userId }) });
+                                console.log('Delete response:', res);
+                                if (!res.ok) {
+                                    const text = await res.text();
+                                    console.error('Delete brut response:', text);
+                                    alert("Erreur de suppression");
+                                } else {
+                                    setCommercials(prev => prev.filter(c => c.id !== member.id));
+                                }
                              }
                           }} className="p-2 text-zinc-400 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
                        </td>
@@ -737,7 +744,7 @@ function CRMSettingsContent() {
                payload.phone = cleanPhone;
 
                if (editingCommercial) {
-                   const res = await fetch('/api/crm/commercials', {
+                   const res = await fetch('/crm/commercial', {
                        method: 'PUT',
                        headers: { 'Content-Type': 'application/json' },
                        body: JSON.stringify({
@@ -750,12 +757,16 @@ function CRMSettingsContent() {
                            tenant_id: userId
                        })
                    });
+                   console.log('PUT response:', res);
                    if (!res.ok) {
-                       const errorData = await res.json();
-                       throw new Error(errorData.error || 'Erreur lors de la mise à jour');
+                       const errorText = await res.text();
+                       console.error('PUT erreur brute:', errorText);
+                       let errorData;
+                       try { errorData = JSON.parse(errorText); } catch(e) { throw new Error('Endpoint introuvable (HTML reçu). Vérifiez l\'URL de l\'API.'); }
+                       throw new Error(errorData?.error || 'Erreur lors de la mise à jour');
                    }
                } else {
-                   const res = await fetch('/api/crm/commercials', {
+                   const res = await fetch('/crm/commercial', {
                        method: 'POST',
                        headers: { 'Content-Type': 'application/json' },
                        body: JSON.stringify({
@@ -768,9 +779,13 @@ function CRMSettingsContent() {
                            tenant_id: userId
                        })
                    });
+                   console.log('POST response:', res);
                    if (!res.ok) {
-                       const errorData = await res.json();
-                       throw new Error(errorData.error || 'Erreur lors de la création');
+                       const errorText = await res.text();
+                       console.error('POST erreur brute:', errorText);
+                       let errorData;
+                       try { errorData = JSON.parse(errorText); } catch(e) { throw new Error('Endpoint introuvable (HTML reçu). Vérifiez l\'URL de l\'API.'); }
+                       throw new Error(errorData?.error || 'Erreur lors de la création');
                    }
                }
 
