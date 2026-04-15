@@ -17,6 +17,17 @@ const CATEGORY_COVERS: Record<string, string> = {
   "📦 Nouveaux Arrivages (À trier)": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80"
 };
 
+const SUB_CATEGORIES: Record<string, string[]> = {
+  "Cuisine pro préparation": ["Cuisson & Préparation", "Froid & Conservation", "Ustensiles & Découpe"],
+  "Boulangerie/Pâtisserie": ["Équipement Lourd", "Pétrins & Batteurs", "Cuisson", "Présentation"],
+  "Bars et Buffet": ["Boissons & Froid", "Présentation Buffet", "Machine à Café / Glace", "Accessoires Bar"],
+  "Transformation agricole": ["Machines motorisées", "Presses & Moulins", "Manuelles"],
+  "Jetables et emballages": ["Consommables", "Barquettes & Boîtes", "Sachets & Films", "Éco-responsable"],
+  "Art de table": ["Vaisselle", "Couverts", "Verrerie", "Présentation"],
+  "Hygiène": ["Entretien", "Poubelles & Collecte", "Laverie & Plonge", "Savons & Distributeurs"],
+  "📦 Nouveaux Arrivages (À trier)": ["Non classé"]
+};
+
 export default function CRMCatalogPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -898,7 +909,7 @@ export default function CRMCatalogPage() {
                           <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Catégorie</label>
                           <select 
                             value={editForm.category} 
-                            onChange={e => setEditForm({...editForm, category: e.target.value})} 
+                            onChange={e => setEditForm({...editForm, category: e.target.value, subcategory: ''})} 
                             className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer"
                           >
                              <option value="" disabled>Sélectionner une catégorie</option>
@@ -907,7 +918,19 @@ export default function CRMCatalogPage() {
                       </div>
                       <div>
                           <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Sous-catégorie</label>
-                          <input type="text" value={editForm.subcategory || ''} onChange={e => setEditForm({...editForm, subcategory: e.target.value})} placeholder="Ex: Cuisson" className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                          <select 
+                            value={editForm.subcategory || ''} 
+                            onChange={e => setEditForm({...editForm, subcategory: e.target.value})} 
+                            className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer"
+                            disabled={!editForm.category || !SUB_CATEGORIES[editForm.category]}
+                          >
+                             <option value="" disabled>Sélectionner une sous-catégorie</option>
+                             {(editForm.category && SUB_CATEGORIES[editForm.category]) ? (
+                               SUB_CATEGORIES[editForm.category].map(sub => <option key={sub} value={sub}>{sub}</option>)
+                             ) : (
+                               <option value="Non classé">Non classé</option>
+                             )}
+                          </select>
                       </div>
                   </div>
                   <div>
