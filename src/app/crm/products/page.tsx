@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -53,11 +53,10 @@ export default function CRMCatalogPage() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Catégories
-  const [categories, setCategories] = useState<any[]>([]);
+  const [advancedCategories, setAdvancedCategories] = useState<{id: string, name: string, subcategories: string[], color?: string}[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [categoryForm, setCategoryForm] = useState({ name: '', parent_id: '', cover_url: '' });
-  const [editingCategory, setEditingCategory] = useState<any>(null);
-  const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newSubCatNames, setNewSubCatNames] = useState<Record<string, string>>({});
   const [productSort, setProductSort] = useState<'recent' | 'az' | 'popular'>('recent');
   const [hideZeroPrice, setHideZeroPrice] = useState(false);
   const [categoryCovers, setCategoryCovers] = useState<Record<string, string>>({});
@@ -93,12 +92,10 @@ export default function CRMCatalogPage() {
         const { data: clientsData } = await supabase.from('clients').select('*').eq('tenant_id', tId);
         if (clientsData && isMounted) setClients(clientsData);
 
-        const { data: catsData } = await supabase.from('crm_categories').select('*').eq('tenant_id', tId);
-        if (catsData && isMounted) setCategories(catsData);
-
-        const { data: settingsData } = await supabase.from('crm_settings').select('category_covers').eq('tenant_id', tId).maybeSingle();
-        if (settingsData && settingsData.category_covers && isMounted) {
-          setCategoryCovers(settingsData.category_covers);
+        const { data: settingsData } = await supabase.from('crm_settings').select('categories, category_covers').eq('tenant_id', tId).maybeSingle();
+        if (settingsData && isMounted) {
+          if (settingsData.category_covers) setCategoryCovers(settingsData.category_covers);
+          if (settingsData.categories) setAdvancedCategories(settingsData.categories);
         }
       } catch (err) {
         console.error("Erreur de fetch:", err);
@@ -264,35 +261,82 @@ export default function CRMCatalogPage() {
       }
   };
 
-  const handleSaveCategory = async () => {
-      if (!categoryForm.name) return alert("Le nom de la catégorie est requis.");
-      setIsSavingCategory(true);
-      try {
-          const payload = { tenant_id: tenantId, name: categoryForm.name, parent_id: categoryForm.parent_id || null, cover_url: categoryForm.cover_url };
-          if (editingCategory) {
-              const { data, error } = await supabase.from('crm_categories').update(payload).eq('id', editingCategory.id).eq('tenant_id', tenantId).select();
-              if (error) throw error;
-              if (!data || data.length === 0) throw new Error("Modification bloquée (RLS). Activez l'UPDATE sur crm_categories dans Supabase.");
-              setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...payload } : c));
-          } else {
-              const { data, error } = await supabase.from('crm_categories').insert([payload]).select().single();
-              if (error) throw error;
-              setCategories(prev => [...prev, data]);
-          }
-          setCategoryForm({ name: '', parent_id: '', cover_url: '' });
-          setEditingCategory(null);
-      } catch(err: any) {
-          alert("Erreur lors de l'enregistrement de la catégorie : " + err.message);
-      } finally {
-          setIsSavingCategory(false);
+  const saveCategoriesToSettings = async (cats: any[]) => {
+      if (!tenantId) return;
+      const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', tenantId).maybeSingle();
+      const payload = { tenant_id: tenantId, categories: cats };
+      if (existing?.id) {
+          await supabase.from('crm_settings').update(payload).eq('id', existing.id);
+      } else {
+          await supabase.from('crm_settings').insert([payload]);
       }
+      setAdvancedCategories(cats);
   };
 
-  const handleDeleteCategory = async (id: number) => {
-      if (!confirm("Voulez-vous vraiment supprimer cette catégorie ?")) return;
-      const { error } = await supabase.from('crm_categories').delete().eq('id', id).eq('tenant_id', tenantId);
-      if (error) alert("Erreur : " + error.message);
-      else setCategories(prev => prev.filter(c => c.id !== id));
+  const handleAddAdvancedCategory = () => {
+      if (!newCatName.trim()) return;
+      const newCat = { id: crypto.randomUUID(), name: newCatName.trim(), subcategories: [], color: '#39FF14' };
+      const newCats = [...advancedCategories, newCat];
+      saveCategoriesToSettings(newCats);
+      setNewCatName('');
+  };
+
+  const handleUpdateCategoryColor = (catId: string, color: string) => {
+      const newCats = advancedCategories.map(c => 
+          c.id === catId ? { ...c, color } : c
+      );
+      saveCategoriesToSettings(newCats);
+  };
+
+  const handleMoveSubCategory = (catId: string, subIndex: number, direction: 'up' | 'down') => {
+      const newCats = advancedCategories.map(c => {
+          if (c.id === catId) {
+              const newSubs = [...c.subcategories];
+              if (direction === 'up' && subIndex > 0) {
+                  [newSubs[subIndex - 1], newSubs[subIndex]] = [newSubs[subIndex], newSubs[subIndex - 1]];
+              } else if (direction === 'down' && subIndex < newSubs.length - 1) {
+                  [newSubs[subIndex + 1], newSubs[subIndex]] = [newSubs[subIndex], newSubs[subIndex + 1]];
+              }
+              return { ...c, subcategories: newSubs };
+          }
+          return c;
+      });
+      saveCategoriesToSettings(newCats);
+  };
+
+  const handleAddSubCategory = (catId: string) => {
+      const subName = newSubCatNames[catId];
+      if (!subName || !subName.trim()) return;
+      const newCats = advancedCategories.map(c => 
+          c.id === catId ? { ...c, subcategories: [...(c.subcategories || []), subName.trim()] } : c
+      );
+      saveCategoriesToSettings(newCats);
+      setNewSubCatNames({ ...newSubCatNames, [catId]: '' });
+  };
+
+  const handleRemoveCategory = (catId: string) => {
+      if (!confirm("Voulez-vous vraiment supprimer cette catégorie principale ?")) return;
+      const newCats = advancedCategories.filter(c => c.id !== catId);
+      saveCategoriesToSettings(newCats);
+  };
+
+  const handleMoveCategory = (index: number, direction: 'up' | 'down') => {
+      const newCats = [...advancedCategories];
+      if (direction === 'up' && index > 0) {
+          [newCats[index - 1], newCats[index]] = [newCats[index], newCats[index - 1]];
+      } else if (direction === 'down' && index < newCats.length - 1) {
+          [newCats[index + 1], newCats[index]] = [newCats[index], newCats[index + 1]];
+      } else {
+          return;
+      }
+      saveCategoriesToSettings(newCats);
+  };
+
+  const handleRemoveSubCategory = (catId: string, subIndex: number) => {
+      const newCats = advancedCategories.map(c => 
+          c.id === catId ? { ...c, subcategories: c.subcategories.filter((_: any, i: number) => i !== subIndex) } : c
+      );
+      saveCategoriesToSettings(newCats);
   };
 
   const generateQuote = async () => {
@@ -564,7 +608,7 @@ export default function CRMCatalogPage() {
                 <Filter size={16} className="text-zinc-400 shrink-0" />
                 <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] appearance-none cursor-pointer text-black dark:text-white">
                   <option value="Toutes">Toutes les catégories</option>
-                  {categories.filter(c => c !== 'Toutes' && c !== 'Favoris').map(c => <option key={c} value={c}>{c}</option>)}
+                  {advancedCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
               <div className="flex items-center gap-2 w-full md:w-auto">
@@ -595,18 +639,17 @@ export default function CRMCatalogPage() {
           {/* INTERFACE GRID */}
           {categoryFilter === 'Toutes' && !search ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {Object.entries(CATEGORY_COVERS).map(([cat, defaultImg]) => {
+                  {advancedCategories.map(catData => {
+                      const cat = catData.name;
+                      const defaultImg = `https://placehold.co/800x800/111/39FF14?text=${encodeURIComponent(cat)}`;
                       const count = products.filter(p => {
-                          if (cat === "📦 Nouveaux Arrivages (À trier)") {
-                              return !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !CATEGORY_COVERS[p.category];
-                          }
                           return p.category === cat;
                       }).length;
                       
                       const img = categoryCovers[cat] || defaultImg;
 
                       return (
-                      <div key={cat} onClick={() => setCategoryFilter(cat)} className="relative h-64 rounded-[2rem] overflow-hidden group cursor-pointer shadow-sm hover:shadow-xl transition-all border border-zinc-200 dark:border-zinc-800 bg-black">
+                      <div key={catData.id} onClick={() => setCategoryFilter(cat)} className="relative h-64 rounded-[2rem] overflow-hidden group cursor-pointer shadow-sm hover:shadow-xl transition-all border border-zinc-200 dark:border-zinc-800 bg-black">
                           <img src={img} alt={cat} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" />
                           
                           <button 
@@ -916,7 +959,7 @@ export default function CRMCatalogPage() {
                             className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer"
                           >
                              <option value="" disabled>Sélectionner une catégorie</option>
-                             {Object.keys(CATEGORY_COVERS).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                             {advancedCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                           </select>
                       </div>
                       <div>
@@ -928,11 +971,9 @@ export default function CRMCatalogPage() {
                             disabled={!editForm.category || !SUB_CATEGORIES[editForm.category]}
                           >
                              <option value="" disabled>Sélectionner une sous-catégorie</option>
-                             {(editForm.category && SUB_CATEGORIES[editForm.category]) ? (
-                               SUB_CATEGORIES[editForm.category].map(sub => <option key={sub} value={sub}>{sub}</option>)
-                             ) : (
-                               <option value="Non classé">Non classé</option>
-                             )}
+                             {advancedCategories.find(c => c.name === editForm.category)?.subcategories?.map(sub => (
+                                 <option key={sub} value={sub}>{sub}</option>
+                             ))}
                           </select>
                       </div>
                   </div>
@@ -1020,67 +1061,72 @@ export default function CRMCatalogPage() {
       {/* MODALE GESTION DES CATÉGORIES */}
       {isCategoryModalOpen && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsCategoryModalOpen(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-zinc-950 rounded-[2rem] p-8 max-w-2xl w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 flex flex-col md:flex-row gap-8 max-h-[90vh]">
+          <div className="bg-white dark:bg-zinc-950 rounded-[2.5rem] p-8 max-w-3xl w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 flex flex-col max-h-[90vh]">
             <button onClick={() => setIsCategoryModalOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
             
-            {/* Formulaire Catégorie */}
-            <div className="flex-1 space-y-4">
-              <h2 className="text-xl font-black uppercase tracking-tighter mb-6 text-black dark:text-white flex items-center gap-2"><FolderOpen size={20}/> {editingCategory ? 'Modifier' : 'Créer'} Catégorie</h2>
-              <div>
-                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Nom de la catégorie *</label>
-                  <input type="text" value={categoryForm.name} onChange={e => setCategoryForm({...categoryForm, name: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
-              </div>
-              <div>
-                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Catégorie Parente (Optionnel)</label>
-                  <select value={categoryForm.parent_id} onChange={e => setCategoryForm({...categoryForm, parent_id: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer">
-                     <option value="">-- Aucune (Catégorie Principale) --</option>
-                     {categories.filter(c => !c.parent_id).map(c => (
-                         <option key={c.id} value={c.id}>{c.name}</option>
-                     ))}
-                  </select>
-              </div>
-              <div>
-                  <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Image de Couverture (URL)</label>
-                  <input type="url" value={categoryForm.cover_url} onChange={e => setCategoryForm({...categoryForm, cover_url: e.target.value})} placeholder="https://..." className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
-              </div>
-              {categoryForm.cover_url && (
-                 <div className="w-full h-24 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden mt-2">
-                    <img src={categoryForm.cover_url} alt="Aperçu" className="w-full h-full object-cover" onError={(e: any) => e.target.style.display = 'none'} />
-                 </div>
-              )}
-              <div className="pt-2 flex gap-2">
-                 {editingCategory && <button onClick={() => { setEditingCategory(null); setCategoryForm({ name: '', parent_id: '', cover_url: '' }); }} className="flex-1 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800 transition">Annuler</button>}
-                 <button onClick={handleSaveCategory} disabled={isSavingCategory} className="flex-[2] bg-black dark:bg-white text-[#39FF14] dark:text-black py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
-                     {isSavingCategory ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Enregistrer
-                 </button>
-              </div>
+            <h2 className="text-2xl font-black uppercase tracking-tighter mb-6 text-black dark:text-white flex items-center gap-3">
+               <FolderOpen size={24} className="text-[#39FF14]" /> Gérer les Catégories
+            </h2>
+
+            <div className="flex gap-4 mb-8">
+               <input 
+                   type="text" 
+                   value={newCatName} 
+                   onChange={e => setNewCatName(e.target.value)} 
+                   placeholder="Nouvelle catégorie principale (ex: Froid)" 
+                   className="flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:border-[#39FF14] text-black dark:text-white"
+               />
+               <button onClick={handleAddAdvancedCategory} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex items-center gap-2 shadow-md">
+                   <Plus size={16}/> Ajouter
+               </button>
             </div>
 
-            {/* Liste des Catégories */}
-            <div className="flex-1 flex flex-col md:border-l border-zinc-200 dark:border-zinc-800 md:pl-8">
-              <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-4">Catégories Existantes</h3>
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                 {categories.map(c => (
-                    <div key={c.id} className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800 flex items-center justify-between group hover:border-[#39FF14] transition-colors">
-                       <div className="flex items-center gap-3">
-                          {c.cover_url ? (
-                             <img src={c.cover_url} alt="" className="w-8 h-8 rounded-lg object-cover bg-zinc-200 dark:bg-zinc-800" />
-                          ) : (
-                             <div className="w-8 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400"><FolderOpen size={14}/></div>
-                          )}
-                          <div>
-                             <p className="font-bold text-sm text-black dark:text-white line-clamp-1">{c.name}</p>
-                             {c.parent_id && <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mt-0.5">Sous-catégorie</p>}
-                          </div>
-                       </div>
-                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => { setEditingCategory(c); setCategoryForm({ name: c.name, parent_id: c.parent_id || '', cover_url: c.cover_url || '' }); }} className="p-1.5 text-zinc-400 hover:text-black dark:hover:text-white bg-white dark:bg-zinc-800 rounded-md shadow-sm"><Edit size={12}/></button>
-                          <button onClick={() => handleDeleteCategory(c.id)} className="p-1.5 text-zinc-400 hover:text-red-500 bg-white dark:bg-zinc-800 rounded-md shadow-sm"><Trash2 size={12}/></button>
-                       </div>
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                {advancedCategories.map((cat, index) => (
+                    <div key={cat.id} className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm transition-all" style={{ borderLeftColor: cat.color || '#39FF14', borderLeftWidth: '4px' }}>
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-3">
+                                <input type="color" value={cat.color || '#39FF14'} onChange={(e) => handleUpdateCategoryColor(cat.id, e.target.value)} className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent p-0" title="Changer la couleur" />
+                                <h3 className="font-black text-lg uppercase" style={{ color: cat.color || 'inherit' }}>{cat.name}</h3>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => handleMoveCategory(index, 'up')} disabled={index === 0} className="text-zinc-400 hover:text-black dark:hover:text-white transition-colors p-2 bg-white dark:bg-zinc-800 rounded-lg shadow-sm disabled:opacity-30"><ArrowUp size={16}/></button>
+                                <button onClick={() => handleMoveCategory(index, 'down')} disabled={index === advancedCategories.length - 1} className="text-zinc-400 hover:text-black dark:hover:text-white transition-colors p-2 bg-white dark:bg-zinc-800 rounded-lg shadow-sm disabled:opacity-30"><ArrowDown size={16}/></button>
+                                <button onClick={() => handleRemoveCategory(cat.id)} className="text-zinc-400 hover:text-red-500 transition-colors p-2 bg-white dark:bg-zinc-800 rounded-lg shadow-sm ml-2"><Trash2 size={16}/></button>
+                            </div>
+                        </div>
+                        
+                        <div className="pl-4 border-l-2 border-zinc-200 dark:border-zinc-700 space-y-3">
+                            <div className="flex flex-col gap-2">
+                                {cat.subcategories?.map((sub, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-1.5 rounded-lg shadow-sm w-max min-w-[200px]">
+                                        <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 mr-4">{sub}</span>
+                                        <div className="flex items-center gap-1 ml-2">
+                                           <button onClick={() => handleMoveSubCategory(cat.id, idx, 'up')} disabled={idx === 0} className="text-zinc-400 hover:text-black dark:hover:text-white disabled:opacity-30 p-1"><ArrowUp size={12}/></button>
+                                           <button onClick={() => handleMoveSubCategory(cat.id, idx, 'down')} disabled={idx === cat.subcategories.length - 1} className="text-zinc-400 hover:text-black dark:hover:text-white disabled:opacity-30 p-1"><ArrowDown size={12}/></button>
+                                           <button onClick={() => handleRemoveSubCategory(cat.id, idx)} className="text-zinc-400 hover:text-red-500 ml-1 p-1"><X size={12}/></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex gap-2 mt-2 max-w-sm">
+                               <input 
+                                   type="text" 
+                                   value={newSubCatNames[cat.id] || ''} 
+                                   onChange={e => setNewSubCatNames({...newSubCatNames, [cat.id]: e.target.value})} 
+                                   placeholder="Nouvelle sous-catégorie..." 
+                                   className="flex-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white"
+                               />
+                               <button onClick={() => handleAddSubCategory(cat.id)} className="bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 px-3 py-2 rounded-lg font-black hover:bg-[#39FF14] hover:text-black transition-colors">
+                                   <Plus size={14}/>
+                               </button>
+                            </div>
+                        </div>
                     </div>
                  ))}
-                 {categories.length === 0 && <p className="text-xs text-zinc-400 italic">Aucune catégorie pour le moment.</p>}
-              </div>
+                {advancedCategories.length === 0 && (
+                    <p className="text-center text-zinc-500 font-bold py-10">Aucune catégorie. Créez-en une pour commencer.</p>
+                )}
             </div>
           </div>
         </div>

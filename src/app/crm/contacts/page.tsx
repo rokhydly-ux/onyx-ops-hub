@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles, Upload } from 'lucide-react';
+import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles, Upload, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Mini graphique Sparkline
 const Sparkline = ({ data, color }: { data: number[], color: string }) => {
@@ -41,6 +43,8 @@ export default function CRMContactsPage() {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+  const [ordersPage, setOrdersPage] = useState(1);
+  const ordersPerPage = 5;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
 
@@ -176,6 +180,7 @@ export default function CRMContactsPage() {
       setSelectedContact(contact);
       setEditContactForm(contact);
       setContactTab('historique');
+      setOrdersPage(1);
       
       // Sécurité : Si l'ID du contact est indéfini, on bloque la requête pour éviter d'afficher toute la base.
       if (!contact || !contact.id) {
@@ -186,7 +191,8 @@ export default function CRMContactsPage() {
       // Récupération de l'historique : Filtre sur contact_id, avec rattrapage sur le numéro de téléphone
       let query = supabase.from('crm_orders').select('*').order('created_at', { ascending: false });
       if (contact.phone) {
-          query = query.or(`contact_id.eq.${contact.id},customer_phone.eq.${encodeURIComponent(contact.phone)}`);
+          const safePhone = contact.phone.replace(/\+/g, '%2B'); // PostgREST exige un %2B au lieu de +
+          query = query.or(`contact_id.eq.${contact.id},customer_phone.eq.${safePhone}`);
       } else {
           query = query.eq('contact_id', contact.id);
       }
@@ -200,6 +206,28 @@ export default function CRMContactsPage() {
           // (Correction du bug de l'historique cloné)
           setContactOrders([]);
       }
+  };
+
+  const handleDownloadHistoryPDF = () => {
+      if (!selectedContact || contactOrders.length === 0) return;
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text(`Historique d'Achats - ${selectedContact.full_name}`, 14, 22);
+      doc.setFontSize(11);
+      doc.text(`Téléphone : ${selectedContact.phone || 'N/A'}`, 14, 30);
+      doc.text(`Segment Cible : ${selectedContact.target_segment || 'N/A'}`, 14, 36);
+      
+      const tableColumn = ["Ref.", "Date", "Produits", "Statut", "Total"];
+      const tableRows = contactOrders.map(order => [
+          order.order_ref || order.id,
+          new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR'),
+          Array.isArray(order.items) ? order.items.map((i:any) => `${i.name} (x${i.quantity || 1})`).join(', ') : order.items || 'Articles',
+          order.status || 'Livré',
+          `${(order.total_amount || order.total || 0).toLocaleString('fr-FR')} F`
+      ]);
+
+      autoTable(doc, { head: [tableColumn], body: tableRows, startY: 45, theme: 'grid', headStyles: { fillColor: [0, 0, 0] } });
+      doc.save(`Historique_${selectedContact.full_name.replace(/\s+/g, '_')}.pdf`);
   };
 
   const handleSaveContactEdit = async () => {
@@ -361,17 +389,24 @@ export default function CRMContactsPage() {
              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
                 {contactTab === 'historique' && (
                  <div>
-                   <h3 className="font-black uppercase text-sm mb-4 flex items-center gap-2"><ShoppingBag size={16} className="text-[#39FF14]"/> Historique d'Achats</h3>
+                   <div className="flex items-center justify-between mb-4">
+                     <h3 className="font-black uppercase text-sm flex items-center gap-2"><ShoppingBag size={16} className="text-[#39FF14]"/> Historique d'Achats</h3>
+                     {contactOrders.length > 0 && <button onClick={handleDownloadHistoryPDF} className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-[#39FF14] transition-colors flex items-center gap-1.5"><Download size={14}/> PDF</button>}
+                   </div>
                    <div className="space-y-3">
-                      {contactOrders.map((order, idx) => (
-                         <div key={idx} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 flex justify-between items-center gap-4">
-                            <div>
-                               <p className="font-bold text-sm text-black dark:text-white">
-                                  {Array.isArray(order.items) ? order.items.map((i:any) => `${i.name} (x${i.quantity || 1})`).join(', ') : order.items || 'Articles'}
-                               </p>
-                               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Réf: {order.order_ref || order.id} • {new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR')}</p>
+                      {contactOrders.slice((ordersPage - 1) * ordersPerPage, ordersPage * ordersPerPage).map((order, idx) => (
+                         <div key={idx} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 flex justify-between items-start gap-4">
+                            <div className="flex-1">
+                               <ul className="list-disc list-inside space-y-1">
+                                  {Array.isArray(order.items) ? order.items.map((i:any, itemIdx: number) => (
+                                    <li key={itemIdx} className="font-bold text-sm text-black dark:text-white hover:text-[#39FF14] transition-colors cursor-pointer">
+                                      {i.name} (x{i.quantity || 1})
+                                    </li>
+                                  )) : <li className="font-bold text-sm text-black dark:text-white">{order.items || 'Articles'}</li>}
+                               </ul>
+                               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">Réf: {order.order_ref || order.id} • {new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR')}</p>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right shrink-0">
                                <p className="font-black text-[#39FF14]">{(order.total_amount || order.total || 0).toLocaleString('fr-FR')} F</p>
                                <span className="inline-block mt-1 px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase rounded border border-green-500/20">{order.status || 'Livré'}</span>
                             </div>
@@ -379,6 +414,19 @@ export default function CRMContactsPage() {
                       ))}
                       {contactOrders.length === 0 && <p className="text-xs text-zinc-500 italic">Aucun historique de commande pour le moment.</p>}
                    </div>
+                   {Math.ceil(contactOrders.length / ordersPerPage) > 1 && (
+                     <div className="flex items-center justify-between mt-6 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                       <button onClick={() => setOrdersPage(p => Math.max(1, p - 1))} disabled={ordersPage === 1} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-xl disabled:opacity-50 text-zinc-500 hover:text-black dark:hover:text-white transition-colors shadow-sm">
+                         <ChevronLeft size={16}/>
+                       </button>
+                       <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">
+                         Page {ordersPage} / {Math.ceil(contactOrders.length / ordersPerPage)}
+                       </span>
+                       <button onClick={() => setOrdersPage(p => Math.min(Math.ceil(contactOrders.length / ordersPerPage), p + 1))} disabled={ordersPage === Math.ceil(contactOrders.length / ordersPerPage)} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-xl disabled:opacity-50 text-zinc-500 hover:text-black dark:hover:text-white transition-colors shadow-sm">
+                         <ChevronRight size={16}/>
+                       </button>
+                     </div>
+                   )}
                 </div>
                 )}
 
