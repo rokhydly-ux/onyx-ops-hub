@@ -417,7 +417,7 @@ function CRMSettingsContent() {
                   }
 
                   for (const item of order.items) {
-                      if (item.name && !uniqueProductsMap.has(item.name)) {
+                      if (item.name && item.price > 0 && !uniqueProductsMap.has(item.name)) {
                           uniqueProductsMap.set(item.name, {
                               tenant_id: userId,
                               name: item.name,

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -48,9 +48,21 @@ export default function CRMCatalogPage() {
   const [aiCampaigns, setAiCampaigns] = useState<any[]>([]);
   
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] as string[] });
+  const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] as string[], image_gallery: '', video_gallery: '' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Studio Catalogue
+  const [isCatalogStudioOpen, setIsCatalogStudioOpen] = useState(false);
+  const [studioSelectedCategory, setStudioSelectedCategory] = useState('');
+  const [catalogConfig, setCatalogConfig] = useState({
+      coverTitle: 'Catalogue Produits',
+      showSummary: true,
+      logoX: 65,
+      logoY: 60,
+      logoSize: 80,
+      coverImage: ''
+  });
 
   // Catégories
   const [advancedCategories, setAdvancedCategories] = useState<{id: string, name: string, subcategories: string[], color?: string}[]>([]);
@@ -58,7 +70,6 @@ export default function CRMCatalogPage() {
   const [newCatName, setNewCatName] = useState('');
   const [newSubCatNames, setNewSubCatNames] = useState<Record<string, string>>({});
   const [productSort, setProductSort] = useState<'recent' | 'az' | 'popular'>('recent');
-  const [hideZeroPrice, setHideZeroPrice] = useState(false);
   const [categoryCovers, setCategoryCovers] = useState<Record<string, string>>({});
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -79,12 +90,22 @@ export default function CRMCatalogPage() {
         const tId = user.user_metadata?.tenant_id || user.id;
         if (isMounted) setTenantId(tId);
 
+        // Load Studio Config
+        const savedConfig = localStorage.getItem('onyx_crm_catalog_design');
+        if (savedConfig) {
+            setCatalogConfig(JSON.parse(savedConfig));
+        }
+
         const { data, error } = await supabase
           .from('crm_products')
           .select('*')
           .eq('tenant_id', tId)
+          .or('unit_price.gt.0,price_ttc.gt.0')
           .order('created_at', { ascending: false });
 
+        if (error) {
+            console.error("🚨 ERREUR SQL (fetchProducts) :", error.message);
+        }
         if (data && !error && isMounted) {
           setProducts(data);
         }
@@ -97,8 +118,8 @@ export default function CRMCatalogPage() {
           if (settingsData.category_covers) setCategoryCovers(settingsData.category_covers);
           if (settingsData.categories) setAdvancedCategories(settingsData.categories);
         }
-      } catch (err) {
-        console.error("Erreur de fetch:", err);
+      } catch (err: any) {
+        console.error("🚨 CRASH CRITIQUE (fetchProducts) :", err.message || err);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -154,14 +175,14 @@ export default function CRMCatalogPage() {
 
   const handleOpenAdd = () => {
       setEditingProduct(null);
-      setEditForm({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] });
+      setEditForm({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [], image_gallery: '', video_gallery: '' });
       setIsAddingProduct(true);
   };
 
   const handleOpenEdit = (p: any) => {
       setEditingProduct(p);
       setIsAddingProduct(false);
-      setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '', tags: p.tags || [] });
+      setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '', tags: p.tags || [], image_gallery: p.image_gallery || '', video_gallery: p.video_gallery || '' });
   };
 
   const generateTechnicalSheet = async (p: any, bulkDoc?: jsPDF) => {
@@ -213,6 +234,82 @@ export default function CRMCatalogPage() {
       }
   };
 
+  const handleSaveCatalogConfig = (newConfig: any) => {
+      setCatalogConfig(newConfig);
+      localStorage.setItem('onyx_crm_catalog_design', JSON.stringify(newConfig));
+  };
+
+  const generateStudioCatalog = async () => {
+      setIsGeneratingPdf(true);
+      try {
+          const doc = new jsPDF();
+          const selectedProducts = products.filter(p => selectedIds.has(p.id));
+          
+          doc.setFillColor(0, 0, 0);
+          doc.rect(0, 0, 210, 297, 'F');
+          
+          if (catalogConfig.coverImage) {
+              try {
+                  const img = new Image();
+                  img.crossOrigin = "Anonymous";
+                  img.src = catalogConfig.coverImage;
+                  await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+                  doc.addImage(img, 'JPEG', catalogConfig.logoX, catalogConfig.logoY, catalogConfig.logoSize, catalogConfig.logoSize);
+              } catch(e) { console.warn("Erreur image couverture", e); }
+          }
+          
+          doc.setTextColor(57, 255, 20);
+          doc.setFontSize(36);
+          doc.text(catalogConfig.coverTitle.toUpperCase(), 105, 150, { align: 'center' });
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(14);
+          doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 105, 170, { align: 'center' });
+
+          if (catalogConfig.showSummary) {
+              doc.addPage();
+              doc.setTextColor(0, 0, 0);
+              doc.setFontSize(24);
+              doc.text("SOMMAIRE", 14, 20);
+              let y = 40;
+              
+              const grouped = selectedProducts.reduce((acc, p) => {
+                  const cat = p.category || 'Autres';
+                  if (!acc[cat]) acc[cat] = [];
+                  acc[cat].push(p);
+                  return acc;
+              }, {} as Record<string, any[]>);
+
+              doc.setFontSize(12);
+              for (const [cat, prods] of Object.entries(grouped) as [string, any[]][]) {
+                  if (y > 270) { doc.addPage(); y = 20; }
+                  doc.setFont("helvetica", "bold");
+                  doc.text(cat.toUpperCase(), 14, y);
+                  y += 8;
+                  doc.setFont("helvetica", "normal");
+                  for (const p of prods) {
+                      if (y > 280) { doc.addPage(); y = 20; }
+                      doc.text(`• ${p.name}`, 20, y);
+                      y += 8;
+                  }
+                  y += 5;
+              }
+          }
+
+          for (let i = 0; i < selectedProducts.length; i++) {
+              doc.addPage();
+              await generateTechnicalSheet(selectedProducts[i], doc);
+          }
+          
+          doc.save(`Catalogue_${catalogConfig.coverTitle.replace(/\s+/g, '_')}.pdf`);
+      } catch(e) {
+          console.error(e);
+          alert("Erreur lors de la génération du catalogue PDF.");
+      } finally {
+          setIsGeneratingPdf(false);
+          setIsCatalogStudioOpen(false);
+      }
+  };
+
   const handleDeleteProduct = async (id: number) => {
       if (!confirm("Voulez-vous vraiment supprimer ce produit ?")) return;
       try {
@@ -241,7 +338,7 @@ export default function CRMCatalogPage() {
       if (!editForm.name) return alert("Le nom du produit est requis.");
       setIsSavingEdit(true);
       try {
-          const payload = { name: editForm.name, category: editForm.category, subcategory: editForm.subcategory, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description, tags: editForm.tags };
+          const payload = { name: editForm.name, category: editForm.category, subcategory: editForm.subcategory, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description, tags: editForm.tags, image_gallery: editForm.image_gallery, video_gallery: editForm.video_gallery };
           if (isAddingProduct) {
               const { data, error } = await supabase.from('crm_products').insert([{ ...payload, tenant_id: tenantId, last_sold_date: new Date().toISOString() }]).select().single();
               if (error) throw error;
@@ -281,6 +378,18 @@ export default function CRMCatalogPage() {
       setNewCatName('');
   };
 
+  const handleMoveCategory = (index: number, direction: 'up' | 'down') => {
+      const newCats = [...advancedCategories];
+      if (direction === 'up' && index > 0) {
+          [newCats[index - 1], newCats[index]] = [newCats[index], newCats[index - 1]];
+      } else if (direction === 'down' && index < newCats.length - 1) {
+          [newCats[index + 1], newCats[index]] = [newCats[index], newCats[index + 1]];
+      } else {
+          return;
+      }
+      saveCategoriesToSettings(newCats);
+  };
+
   const handleUpdateCategoryColor = (catId: string, color: string) => {
       const newCats = advancedCategories.map(c => 
           c.id === catId ? { ...c, color } : c
@@ -317,18 +426,6 @@ export default function CRMCatalogPage() {
   const handleRemoveCategory = (catId: string) => {
       if (!confirm("Voulez-vous vraiment supprimer cette catégorie principale ?")) return;
       const newCats = advancedCategories.filter(c => c.id !== catId);
-      saveCategoriesToSettings(newCats);
-  };
-
-  const handleMoveCategory = (index: number, direction: 'up' | 'down') => {
-      const newCats = [...advancedCategories];
-      if (direction === 'up' && index > 0) {
-          [newCats[index - 1], newCats[index]] = [newCats[index], newCats[index - 1]];
-      } else if (direction === 'down' && index < newCats.length - 1) {
-          [newCats[index + 1], newCats[index]] = [newCats[index], newCats[index + 1]];
-      } else {
-          return;
-      }
       saveCategoriesToSettings(newCats);
   };
 
@@ -541,7 +638,6 @@ export default function CRMCatalogPage() {
       }
 
       const price = p.unit_price || p.price_ttc || 0;
-      if (hideZeroPrice && price === 0) return false;
       const matchMin = minPrice === '' || price >= Number(minPrice);
       const matchMax = maxPrice === '' || price <= Number(maxPrice);
       return matchSearch && matchCat && matchMin && matchMax;
@@ -550,7 +646,7 @@ export default function CRMCatalogPage() {
         if (productSort === 'popular') return (b.unit_price || 0) - (a.unit_price || 0);
         return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
-  }, [products, search, categoryFilter, minPrice, maxPrice, productSort, hideZeroPrice]);
+  }, [products, search, categoryFilter, minPrice, maxPrice, productSort]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -560,8 +656,6 @@ export default function CRMCatalogPage() {
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-
-  const zeroPriceCount = products.filter(p => (p.unit_price || p.price_ttc || 0) === 0).length;
 
   if (isLoading) return <div className="h-full flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#39FF14]" /></div>;
 
@@ -573,21 +667,6 @@ export default function CRMCatalogPage() {
           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Gérez vos offres et votre inventaire</p>
         </div>
       </div>
-
-      {zeroPriceCount > 0 && (
-        <div className="mb-6 bg-orange-50 dark:bg-orange-500/10 border-l-4 border-orange-500 p-4 rounded-r-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in slide-in-from-top-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="text-orange-500 shrink-0" size={24} />
-            <div>
-              <p className="font-black text-orange-700 dark:text-orange-400 uppercase text-sm tracking-tight">Produits sans prix détectés</p>
-              <p className="text-xs text-orange-600 dark:text-orange-500 font-bold mt-0.5">{zeroPriceCount} produit(s) ont un prix à 0 F CFA.</p>
-            </div>
-          </div>
-          <button onClick={() => setHideZeroPrice(!hideZeroPrice)} className="bg-orange-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-orange-600 transition-colors shrink-0 shadow-sm">
-             {hideZeroPrice ? 'Afficher' : 'Masquer'} les produits à 0 F
-          </button>
-        </div>
-      )}
 
       <div className="animate-in fade-in space-y-6">
           <div className="flex flex-col gap-4 bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
@@ -601,6 +680,7 @@ export default function CRMCatalogPage() {
                 <button onClick={() => setIsCategoryModalOpen(true)} className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-sm flex items-center gap-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors border border-zinc-200 dark:border-zinc-800"><FolderOpen size={16}/> Gérer Catégories</button>
                 <button onClick={handleAutoCategorize} className="bg-black dark:bg-zinc-800 text-[#39FF14] px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform border border-[#39FF14]/30"><Bot size={16}/> Organiser via IA</button>
                 <button onClick={handleOpenAiCampaign} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform"><Sparkles size={16}/> IA : Déstockage</button>
+                <button onClick={() => setIsCatalogStudioOpen(true)} className="bg-blue-500 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md flex items-center gap-2 hover:scale-105 transition-transform"><FileText size={16}/> Le Studio</button>
               </div>
             </div>
             <div className="flex flex-col md:flex-row items-center gap-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
@@ -728,8 +808,9 @@ export default function CRMCatalogPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {paginatedProducts.map(product => {
                const status = getStockStatus(product.last_sold_date, product.created_at);
+               const catColor = advancedCategories.find(c => c.name === product.category)?.color || '#39FF14';
                return (
-                 <div key={product.id} className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden flex flex-col hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-all shadow-sm group h-[320px]">
+                 <div key={product.id} onMouseEnter={(e) => e.currentTarget.style.borderColor = catColor} onMouseLeave={(e) => e.currentTarget.style.borderColor = ''} className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden flex flex-col transition-all shadow-sm group h-[320px]">
                    <div className="h-40 bg-zinc-100 dark:bg-zinc-900 relative overflow-hidden shrink-0">
                      {product.image_url ? (
                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -748,10 +829,10 @@ export default function CRMCatalogPage() {
                    </div>
                    <div className="p-4 flex-1 flex flex-col">
                      <p className="font-bold text-sm text-black dark:text-white line-clamp-2 mb-1">{product.name}</p>
-                     <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest truncate">
+                     <div className="inline-flex items-center w-max px-2 py-1 rounded-md text-[10px] uppercase font-black tracking-widest truncate border bg-zinc-50 dark:bg-zinc-900" style={{ borderColor: catColor, color: catColor }}>
                        {product.category || 'Non catégorisé'}
                        {product.subcategory && <span className="text-zinc-400 opacity-70"> • {product.subcategory}</span>}
-                     </p>
+                     </div>
                      
                      <div className="mt-auto pt-3 flex items-end justify-between border-t border-zinc-100 dark:border-zinc-800/50">
                        <p className="font-black text-lg text-[#39FF14]">{(product.unit_price || product.price_ttc || 0).toLocaleString('fr-FR')} <span className="text-xs text-black dark:text-white">F</span></p>
@@ -817,6 +898,18 @@ export default function CRMCatalogPage() {
                   <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700"><Box size={64} /></div>
                 )}
               </div>
+              {viewingProduct.image_gallery && (
+                <div className="flex overflow-x-auto gap-2 snap-x mt-2 custom-scrollbar pb-2 w-full">
+                  {String(viewingProduct.image_gallery).split(',').map((img, idx) => (
+                    <img key={idx} src={img.trim()} alt="Gallery" className="snap-start w-20 h-20 object-cover rounded-xl shrink-0 border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900" />
+                  ))}
+                </div>
+              )}
+              {viewingProduct.video_gallery && (
+                <a href={viewingProduct.video_gallery} target="_blank" rel="noopener noreferrer" className="mt-4 text-xs font-bold text-blue-500 hover:underline flex items-center gap-1 self-start">
+                   ▶️ Voir la vidéo démo
+                </a>
+              )}
             </div>
             
             <div className="w-full md:w-1/2 flex flex-col">
@@ -996,6 +1089,14 @@ export default function CRMCatalogPage() {
                          )}
                       </div>
                   </div>
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Galerie Images (URLs séparées par virgule)</label>
+                      <input type="text" value={editForm.image_gallery || ''} onChange={e => setEditForm({...editForm, image_gallery: e.target.value})} placeholder="https://img1.jpg, https://img2.jpg" className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                  </div>
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">URL Vidéo Démo</label>
+                      <input type="text" value={editForm.video_gallery || ''} onChange={e => setEditForm({...editForm, video_gallery: e.target.value})} placeholder="https://youtube.com/..." className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                  </div>
                 </div>
                 
                 {/* Tags Rapides (Pleine largeur) */}
@@ -1025,7 +1126,11 @@ export default function CRMCatalogPage() {
                        <button type="button" onClick={async () => {
                            setIsSavingEdit(true);
                            setTimeout(() => {
-                               setEditForm(prev => ({ ...prev, description: `✨ **${editForm.name || 'Produit'}**\n\nDécouvrez la solution parfaite pour les professionnels exigeants. Alliant robustesse et performance, ce produit est conçu pour optimiser votre quotidien.\n\n✅ Qualité premium\n✅ Fiabilité éprouvée\n✅ Design ergonomique\n\nN'attendez plus pour transformer votre activité !` }));
+                               setEditForm(prev => {
+                                   const price = prev.unit_price || 0;
+                                   const oldPrice = Math.round(price * 1.3);
+                                   return { ...prev, description: `🔥 OFFRE EXCLUSIVE : **${prev.name || 'Produit'}** 🔥\n\nPréparez le rush de la saison avec cet équipement indispensable ! Idéal pour booster votre activité.\n\n💰 Prix Exceptionnel : ${(price).toLocaleString('fr-FR')} F\n❌ ~Prix normal : ${(oldPrice).toLocaleString('fr-FR')} F~\n\n⏳ Attention : Cette offre flash est valable uniquement jusqu'à vendredi ! Premier arrivé, premier servi.\n\n[Lien Vidéo Démo]\n\nÀ très vite,\nMaïmouna - Central Équipements` };
+                               });
                                setIsSavingEdit(false);
                            }, 1500);
                        }} className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-3 py-1.5 rounded-lg flex items-center gap-1 hover:scale-105 transition-transform shadow-md"><Bot size={12}/> Réécriture IA</button>
@@ -1129,6 +1234,115 @@ export default function CRMCatalogPage() {
                 )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* MODALE STUDIO CATALOGUE */}
+      {isCatalogStudioOpen && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsCatalogStudioOpen(false)} className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+           <div className="bg-white dark:bg-zinc-950 rounded-[2.5rem] p-8 max-w-6xl w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+             <button onClick={() => setIsCatalogStudioOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
+             <h2 className="text-2xl font-black uppercase mb-6 flex items-center gap-3 text-black dark:text-white">
+               <FileText className="text-[#39FF14]" size={24}/> Le Studio : Création de Catalogue
+             </h2>
+             
+             <div className="flex flex-col lg:flex-row gap-8 overflow-hidden h-full">
+                {/* Paramètres Design */}
+                <div className="w-full lg:w-1/3 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                   <h3 className="font-bold uppercase text-zinc-500 text-xs tracking-widest mb-4">1. Design & Couverture</h3>
+                   
+                   <div>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Titre Couverture</label>
+                      <input type="text" value={catalogConfig.coverTitle} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverTitle: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
+                   </div>
+                   <div>
+                      <label className="text-[10px] font-bold uppercase text-zinc-500">Image Couverture / Logo (URL)</label>
+                      <input type="url" value={catalogConfig.coverImage} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverImage: e.target.value})} placeholder="https://..." className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
+                   </div>
+                   <div className="grid grid-cols-3 gap-2">
+                      <div>
+                         <label className="text-[10px] font-bold uppercase text-zinc-500">Pos. X</label>
+                         <input type="number" value={catalogConfig.logoX} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoX: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-bold uppercase text-zinc-500">Pos. Y</label>
+                         <input type="number" value={catalogConfig.logoY} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoY: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-bold uppercase text-zinc-500">Taille (Z)</label>
+                         <input type="number" value={catalogConfig.logoSize} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoSize: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
+                      </div>
+                   </div>
+                   <label className="flex items-center gap-2 cursor-pointer mt-2 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                      <input type="checkbox" checked={catalogConfig.showSummary} onChange={e => handleSaveCatalogConfig({...catalogConfig, showSummary: e.target.checked})} className="w-4 h-4 accent-black dark:accent-[#39FF14]"/>
+                      <span className="text-xs font-bold uppercase text-black dark:text-white">Générer un sommaire</span>
+                   </label>
+                </div>
+
+                {/* Sélection Produits */}
+                <div className="w-full lg:w-2/3 flex flex-col h-full lg:border-l border-zinc-200 dark:border-zinc-800 lg:pl-8">
+                   <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-bold uppercase text-zinc-500 text-xs tracking-widest">2. Sélection des produits ({selectedIds.size} cochés)</h3>
+                   </div>
+                   <select value={studioSelectedCategory} onChange={e => setStudioSelectedCategory(e.target.value)} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mb-4 outline-none focus:border-[#39FF14] cursor-pointer text-black dark:text-white">
+                      <option value="">-- Choisir une catégorie d'abord --</option>
+                      {advancedCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                   </select>
+
+                   <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2 min-h-[250px]">
+                      {studioSelectedCategory ? products.filter(p => p.category === studioSelectedCategory).map(p => (
+                         <div key={p.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                            <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelection(p.id)} className="w-5 h-5 accent-black dark:accent-[#39FF14] cursor-pointer shrink-0"/>
+                            
+                            <div className="w-16 h-16 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden relative group shrink-0 bg-white dark:bg-zinc-800 flex items-center justify-center">
+                               {p.image_url ? (
+                                   <img src={p.image_url} className="w-full h-full object-cover"/>
+                               ) : (
+                                   <ImageIcon size={20} className="text-zinc-400"/>
+                               )}
+                               <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={async (e) => {
+                                      e.stopPropagation();
+                                      const newUrl = prompt("URL de la nouvelle image pour ce produit :", p.image_url || "");
+                                      if (newUrl !== null && newUrl.trim() !== "") {
+                                          setProducts(prev => prev.map(prod => prod.id === p.id ? { ...prod, image_url: newUrl.trim() } : prod));
+                                          if (tenantId) await supabase.from('crm_products').update({ image_url: newUrl.trim() }).eq('id', p.id).eq('tenant_id', tenantId);
+                                      }
+                                  }} className="text-white hover:text-[#39FF14] p-1 bg-black/50 rounded-lg"><Edit size={16}/></button>
+                               </div>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                               <p className="font-bold text-sm text-black dark:text-white truncate">{p.name}</p>
+                               <p className="text-xs font-black text-[#39FF14]">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
+                            </div>
+                         </div>
+                      )) : (
+                         <div className="h-full flex flex-col items-center justify-center text-zinc-500 opacity-50 py-10">
+                            <FolderOpen size={48} className="mb-4"/>
+                            <p className="font-bold uppercase text-xs tracking-widest text-center">Sélectionnez une catégorie<br/>pour afficher ses produits</p>
+                         </div>
+                      )}
+                   </div>
+
+                   <div className="pt-4 mt-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0 flex flex-col sm:flex-row gap-3">
+                      <button onClick={() => { setSelectedIds(new Set()); setStudioSelectedCategory(''); }} className="px-6 py-4 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 font-bold uppercase text-xs rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">Réinitialiser</button>
+                      <button onClick={() => {
+                          const ids = Array.from(selectedIds).join(',');
+                          const link = `${window.location.origin}/catalogue?ids=${ids}&t=${tenantId}`;
+                          navigator.clipboard.writeText(link);
+                          alert("✅ Lien web du catalogue copié ! Vous pouvez le coller sur WhatsApp.");
+                      }} disabled={selectedIds.size === 0} className="flex-1 bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-md disabled:opacity-50">
+                         <Link size={16}/> Lien Web
+                      </button>
+                      <button onClick={generateStudioCatalog} disabled={isGeneratingPdf || selectedIds.size === 0} className="flex-1 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
+                         {isGeneratingPdf ? <Loader2 size={16} className="animate-spin"/> : <Download size={16}/>}
+                         PDF ({selectedIds.size})
+                      </button>
+                   </div>
+                </div>
+             </div>
+           </div>
         </div>
       )}
     </div>

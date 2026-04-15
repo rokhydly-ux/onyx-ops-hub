@@ -135,38 +135,46 @@ export default function CRMContactsPage() {
 
   const handleAutoClassify = async () => {
       setIsClassifying(true);
-      
       try {
-          // Vraie logique de croisement : On récupère l'historique
-          const { data: orders } = await supabase.from('crm_orders').select('contact_id, customer_phone, items').eq('tenant_id', tenantId);
+          const { data: orders, error: ordersError } = await supabase.from('crm_orders').select('contact_id, customer_phone, items').eq('tenant_id', tenantId);
+          if (ordersError) throw ordersError;
           
-          const updatedContacts = contacts.map(c => {
-              // On regroupe les achats du client ou on se base sur son activité (fallback)
+          const updatedSegments = contacts.map(c => {
               const clientOrders = orders?.filter(o => o.contact_id === c.id || (o.customer_phone && o.customer_phone === c.phone)) || [];
               const purchasedItems = clientOrders.map(o => {
                   if (Array.isArray(o.items)) return o.items.map((i:any) => i.name).join(' ');
                   return o.items;
               }).join(' ').toLowerCase();
-              const mockItems = c.activity?.toLowerCase() || purchasedItems;
               
               let segment = 'Non défini';
-              const hasBoughtBakery = mockItems.includes('pétrin') || mockItems.includes('four') || mockItems.includes('boulangerie') || mockItems.includes('pâtisserie');
-              const hasBoughtResto = mockItems.includes('friteuse') || mockItems.includes('marmite') || mockItems.includes('restauration') || mockItems.includes('restaurant');
               
-              if (hasBoughtBakery) segment = 'Boulangerie/Pâtisserie';
-              else if (hasBoughtResto) segment = 'Restauration Rapide';
-              else if (mockItems.includes('hôtel')) segment = 'Hôtellerie';
-              else if (mockItems.includes('boutique') || mockItems.includes('prêt')) segment = 'Boutique Prêt-à-porter';
-              else if (Math.random() > 0.5) segment = 'Client Standard'; // Random fallback pour la démo
+              if (!purchasedItems.trim()) {
+                  segment = 'Prospect Froid (Aucun achat)';
+              } else {
+                  const hasBoughtBakery = purchasedItems.includes('pétrin') || purchasedItems.includes('four') || purchasedItems.includes('boulangerie') || purchasedItems.includes('pâtisserie') || purchasedItems.includes('batteur') || purchasedItems.includes('façonneuse');
+                  const hasBoughtResto = purchasedItems.includes('friteuse') || purchasedItems.includes('marmite') || purchasedItems.includes('restauration') || purchasedItems.includes('restaurant') || purchasedItems.includes('plancha');
+                  const hasBoughtHotel = purchasedItems.includes('hôtel') || purchasedItems.includes('chambre') || purchasedItems.includes('réception');
+                  const hasBoughtBoutique = purchasedItems.includes('boutique') || purchasedItems.includes('prêt') || purchasedItems.includes('vêtement');
+                  
+                  if (hasBoughtBakery) segment = 'Boulangerie/Pâtisserie';
+                  else if (hasBoughtResto) segment = 'Restauration Rapide';
+                  else if (hasBoughtHotel) segment = 'Hôtellerie';
+                  else if (hasBoughtBoutique) segment = 'Boutique Prêt-à-porter';
+                  else segment = 'Client Standard';
+              }
               
-              return { ...c, target_segment: segment };
+              return { id: c.id, target_segment: segment };
           });
           
-          setContacts(updatedContacts);
+          if (updatedSegments.length > 0) {
+              const { error } = await supabase.from('crm_contacts').upsert(updatedSegments, { onConflict: 'id' });
+              if (error) throw error;
+          }
           
-          // Mise à jour en base
-          const updates = updatedContacts.map(c => supabase.from('crm_contacts').update({ target_segment: c.target_segment }).eq('id', c.id));
-          await Promise.all(updates);
+          setContacts(prev => prev.map(c => {
+              const update = updatedSegments.find(u => u.id === c.id);
+              return update ? { ...c, target_segment: update.target_segment } : c;
+          }));
 
           alert("✅ Auto-classification IA terminée ! L'algorithme a croisé l'historique d'achats avec le catalogue produits. Les segments cibles ont été mis à jour.");
       } catch (err: any) {
@@ -393,27 +401,19 @@ export default function CRMContactsPage() {
                      <h3 className="font-black uppercase text-sm flex items-center gap-2"><ShoppingBag size={16} className="text-[#39FF14]"/> Historique d'Achats</h3>
                      {contactOrders.length > 0 && <button onClick={handleDownloadHistoryPDF} className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-[#39FF14] transition-colors flex items-center gap-1.5"><Download size={14}/> PDF</button>}
                    </div>
-                   <div className="space-y-3">
+                   <ul className="list-disc pl-5 space-y-2">
                       {contactOrders.slice((ordersPage - 1) * ordersPerPage, ordersPage * ordersPerPage).map((order, idx) => (
-                         <div key={idx} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 flex justify-between items-start gap-4">
-                            <div className="flex-1">
-                               <ul className="list-disc list-inside space-y-1">
-                                  {Array.isArray(order.items) ? order.items.map((i:any, itemIdx: number) => (
-                                    <li key={itemIdx} className="font-bold text-sm text-black dark:text-white hover:text-[#39FF14] transition-colors cursor-pointer">
-                                      {i.name} (x{i.quantity || 1})
-                                    </li>
-                                  )) : <li className="font-bold text-sm text-black dark:text-white">{order.items || 'Articles'}</li>}
-                               </ul>
-                               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">Réf: {order.order_ref || order.id} • {new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR')}</p>
-                            </div>
-                            <div className="text-right shrink-0">
-                               <p className="font-black text-[#39FF14]">{(order.total_amount || order.total || 0).toLocaleString('fr-FR')} F</p>
-                               <span className="inline-block mt-1 px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase rounded border border-green-500/20">{order.status || 'Livré'}</span>
-                            </div>
-                         </div>
+                         <li key={idx} className="text-sm text-zinc-700 dark:text-zinc-300">
+                            <span className="font-bold text-black dark:text-white">
+                               {Array.isArray(order.items) ? order.items.map((i:any) => `${i.name} (x${i.quantity || 1})`).join(', ') : order.items || 'Articles'}
+                            </span>
+                            <span className="text-zinc-500 text-xs ml-2 font-medium">
+                               • {new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR')} • <span className="text-[#39FF14] font-bold">{(order.total_amount || order.total || 0).toLocaleString('fr-FR')} F</span> • {order.status || 'Livré'}
+                            </span>
+                         </li>
                       ))}
                       {contactOrders.length === 0 && <p className="text-xs text-zinc-500 italic">Aucun historique de commande pour le moment.</p>}
-                   </div>
+                   </ul>
                    {Math.ceil(contactOrders.length / ordersPerPage) > 1 && (
                      <div className="flex items-center justify-between mt-6 border-t border-zinc-100 dark:border-zinc-800 pt-4">
                        <button onClick={() => setOrdersPage(p => Math.max(1, p - 1))} disabled={ordersPage === 1} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-xl disabled:opacity-50 text-zinc-500 hover:text-black dark:hover:text-white transition-colors shadow-sm">
