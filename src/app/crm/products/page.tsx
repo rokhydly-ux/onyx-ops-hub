@@ -94,6 +94,67 @@ export default function CRMCatalogPage() {
   const totalClicks = catalogStats.filter(s => s.event_type === 'click_whatsapp').length;
   const conversionRate = totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) : 0;
 
+  const topClickedProducts = React.useMemo(() => {
+      const clickCounts: Record<string, number> = {};
+      catalogStats.forEach(stat => {
+          if (stat.event_type === 'click_whatsapp' && stat.product_id) {
+              clickCounts[stat.product_id] = (clickCounts[stat.product_id] || 0) + 1;
+          }
+      });
+
+      return Object.entries(clickCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([productId, clicks]) => {
+              const product = products.find(p => String(p.id) === String(productId));
+              return product ? { ...product, clicks } : null;
+          })
+          .filter(Boolean);
+  }, [catalogStats, products]);
+
+  const handleDownloadAnalyticsPDF = () => {
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.text("Rapport Analytics - Le Studio", 14, 20);
+      
+      doc.setFontSize(12);
+      doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+      
+      doc.setFontSize(14);
+      doc.text("Vue d'ensemble", 14, 45);
+      
+      autoTable(doc, {
+          startY: 50,
+          head: [['Métrique', 'Valeur']],
+          body: [
+              ['Vues Totales', totalViews.toString()],
+              ['Leads (Clics WhatsApp)', totalClicks.toString()],
+              ['Taux de Conversion', `${conversionRate}%`]
+          ],
+          theme: 'grid',
+          headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+      });
+
+      const finalY = (doc as any).lastAutoTable.finalY || 80;
+      
+      doc.setFontSize(14);
+      doc.text("Top 5 Produits Cliqués", 14, finalY + 15);
+      
+      autoTable(doc, {
+          startY: finalY + 20,
+          head: [['Produit', 'Catégorie', 'Clics']],
+          body: topClickedProducts.length > 0 ? topClickedProducts.map((p: any) => [
+              p.name,
+              p.category || 'N/A',
+              p.clicks.toString()
+          ]) : [['Aucun clic enregistré', '-', '-']],
+          theme: 'grid',
+          headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+      });
+      
+      doc.save(`Analytics_Catalogue_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   // Catégories
   const [advancedCategories, setAdvancedCategories] = useState<{id: string, name: string, subcategories: string[], color?: string}[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -321,7 +382,7 @@ export default function CRMCatalogPage() {
               }, {} as Record<string, any[]>);
 
               doc.setFontSize(12);
-              for (const [cat, prods] of Object.entries(grouped) as [string, any[]]) {
+              for (const [cat, prods] of Object.entries(grouped) as [string, any[]][]) {
                   if (y > 270) { doc.addPage(); y = 20; }
                   doc.setFont("helvetica", "bold");
                   doc.text(cat.toUpperCase(), 14, y);
@@ -1310,9 +1371,16 @@ export default function CRMCatalogPage() {
                  <h2 className="text-2xl font-black uppercase flex items-center gap-3 text-black dark:text-white">
                    <FileText className="text-[#39FF14]" size={24}/> Le Studio : {studioTab === 'build' ? 'Création' : 'Analytics'}
                  </h2>
-                 <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1.5 rounded-2xl">
-                     <button onClick={() => setStudioTab('build')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${studioTab === 'build' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>Création</button>
-                     <button onClick={() => setStudioTab('analytics')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${studioTab === 'analytics' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>📊 Analytics</button>
+                 <div className="flex items-center gap-3">
+                     {studioTab === 'analytics' && (
+                         <button onClick={handleDownloadAnalyticsPDF} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 transition flex items-center gap-2">
+                             <Download size={14} /> Export PDF
+                         </button>
+                     )}
+                     <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1.5 rounded-2xl">
+                         <button onClick={() => setStudioTab('build')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${studioTab === 'build' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>Création</button>
+                         <button onClick={() => setStudioTab('analytics')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${studioTab === 'analytics' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>📊 Analytics</button>
+                     </div>
                  </div>
              </div>
              
@@ -1454,19 +1522,41 @@ export default function CRMCatalogPage() {
                        </div>
                     </div>
                     
-                    <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 h-80 shadow-sm flex-1 min-h-[300px]">
-                       <h3 className="font-black uppercase mb-6 text-sm text-zinc-500">Performances sur les 7 derniers jours</h3>
-                       <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={analyticsData}>
-                             <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" vertical={false} />
-                             <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-                             <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-                             <Tooltip cursor={{fill: 'rgba(57, 255, 20, 0.05)'}} contentStyle={{backgroundColor: '#000', borderColor: '#333', borderRadius: '8px', color: '#fff'}} />
-                             <Legend wrapperStyle={{fontSize: '10px', paddingTop: '10px'}}/>
-                             <Bar dataKey="views" name="Ouverture du Lien" fill="#71717a" radius={[4, 4, 0, 0]} />
-                             <Bar dataKey="clicks" name="Contact sur WhatsApp" fill="#39FF14" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                       </ResponsiveContainer>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-[300px]">
+                       <div className="lg:col-span-2 bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 h-80 shadow-sm flex flex-col">
+                          <h3 className="font-black uppercase mb-6 text-sm text-zinc-500">Performances sur les 7 derniers jours</h3>
+                          <div className="flex-1">
+                             <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={analyticsData}>
+                                   <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" vertical={false} />
+                                   <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
+                                   <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
+                                   <Tooltip cursor={{fill: 'rgba(57, 255, 20, 0.05)'}} contentStyle={{backgroundColor: '#000', borderColor: '#333', borderRadius: '8px', color: '#fff'}} />
+                                   <Legend wrapperStyle={{fontSize: '10px', paddingTop: '10px'}}/>
+                                   <Bar dataKey="views" name="Ouverture du Lien" fill="#71717a" radius={[4, 4, 0, 0]} />
+                                   <Bar dataKey="clicks" name="Contact sur WhatsApp" fill="#39FF14" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                             </ResponsiveContainer>
+                          </div>
+                       </div>
+
+                       <div className="lg:col-span-1 bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col max-h-[320px]">
+                          <h3 className="font-black uppercase mb-6 text-sm text-zinc-500">Top 5 Produits Cliqués</h3>
+                          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+                             {topClickedProducts.length > 0 ? topClickedProducts.map((p: any, idx: number) => (
+                                <div key={p.id} className="flex items-center gap-3">
+                                   <div className="w-5 font-black text-zinc-400 text-xs">#{idx + 1}</div>
+                                   <img src={p.image_url || 'https://placehold.co/100x100/1a1a1a/39FF14?text=PRD'} alt={p.name} className="w-10 h-10 rounded-lg object-cover bg-zinc-100 dark:bg-zinc-800 shrink-0 shadow-sm" />
+                                   <div className="flex-1 min-w-0">
+                                      <p className="font-bold text-xs text-black dark:text-white truncate">{p.name}</p>
+                                      <p className="text-[10px] text-[#39FF14] font-black mt-0.5">{p.clicks} {p.clicks > 1 ? 'clics' : 'clic'}</p>
+                                   </div>
+                                </div>
+                             )) : (
+                                <p className="text-zinc-500 text-xs italic text-center py-10">Aucun clic enregistré pour l'instant.</p>
+                             )}
+                          </div>
+                       </div>
                     </div>
                  </div>
              )}
