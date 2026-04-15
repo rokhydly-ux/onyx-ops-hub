@@ -896,7 +896,14 @@ export default function CRMCatalogPage() {
                   <div className="grid grid-cols-2 gap-4">
                       <div>
                           <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Catégorie</label>
-                          <input type="text" value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} placeholder="Ex: Équipements" className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                          <select 
+                            value={editForm.category} 
+                            onChange={e => setEditForm({...editForm, category: e.target.value})} 
+                            className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer"
+                          >
+                             <option value="" disabled>Sélectionner une catégorie</option>
+                             {Object.keys(CATEGORY_COVERS).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                          </select>
                       </div>
                       <div>
                           <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Sous-catégorie</label>

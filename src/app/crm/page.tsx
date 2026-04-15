@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock, Target, X, PieChart as PieChartIcon, Activity as ActivityIcon, Download, Bot, Wand2, Star, AlertTriangle, MessageSquare, ChevronRight, CheckCircle } from 'lucide-react';
+import { Users, TrendingUp, Wallet, Zap, UserPlus, Calendar as CalendarIcon, Clock, Target, X, PieChart as PieChartIcon, Activity as ActivityIcon, Download, Bot, Wand2, Star, AlertTriangle, MessageSquare, ChevronRight, CheckCircle, Send } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -231,6 +231,15 @@ export default function CRMDashboard() {
       return { topProducts: sorted.slice(0, 5), flopProducts: [...sorted].reverse().slice(0, 5) };
   }, [products]);
 
+  const coldLeads = useMemo(() => {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      return allLeads.filter(l => 
+          !['Gagné', 'Converti', 'Perdu'].includes(l.status) && 
+          l.created_at && new Date(l.created_at) < sevenDaysAgo
+      );
+  }, [allLeads]);
+
   const handleLikaAction = (type: string, data: any) => {
       let title = `Suggestion pour ${data.name}`;
       let msg = "";
@@ -256,6 +265,17 @@ export default function CRMDashboard() {
           msg = `Le produit ${data.name} dort en stock (${data.stock} unités). Lika suggère de créer un catalogue Promo Flash sur WhatsApp (par ex: -30%) et de l'envoyer à votre liste de diffusion pour écouler ce stock.`;
           actionLabel = "Créer Promo Flash";
           onAction = () => { router.push('/crm/studio'); setLikaActionModal(null); };
+      }
+      else if (type === 'cold_lead') {
+          title = `Relance suggérée pour ${data.full_name}`;
+          msg = `Le prospect ${data.full_name} est inactif depuis plus de 7 jours. Lika suggère de le relancer avec un message de réactivation pour ne pas perdre cette opportunité estimée à ${Number(data.budget || data.amount || 0).toLocaleString()} F.`;
+          actionLabel = "Relancer sur WhatsApp";
+          onAction = () => {
+              const intentText = data.intent ? ` concernant votre intérêt pour ${data.intent}` : '';
+              const waMsg = `Bonjour ${data.full_name}, nous n'avons plus de vos nouvelles ! Avez-vous pu avancer sur votre projet${intentText} ? Notre équipe est disponible pour vous accompagner si vous avez des questions.`;
+              window.open(`https://wa.me/${(data.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waMsg)}`, '_blank');
+              setLikaActionModal(null);
+          };
       }
       
       setLikaActionModal({ title, msg, actionLabel, onAction });
@@ -874,6 +894,16 @@ export default function CRMDashboard() {
                                 <h4 className="font-black text-sm uppercase mb-2 text-black dark:text-white">Fidélisation VIP : {c.name}</h4>
                                 <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">Client Top 5 (CA: {c.ca.toLocaleString()} F). Proposez-lui une offre exclusive VIP ou un produit complémentaire pour le remercier de sa fidélité.</p>
                                 <button onClick={() => window.open(`https://wa.me/${(c.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${c.name}, pour vous remercier de votre fidélité chez nous...`)}`, '_blank')} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Contacter le VIP</button>
+                            </div>
+                        </div>
+                    ))}
+                    {coldLeads.slice(0, 2).map((l, i) => (
+                        <div key={`todo-cold-${i}`} className="bg-purple-50 dark:bg-purple-500/10 p-5 rounded-2xl border border-purple-100 dark:border-purple-500/20 flex flex-col sm:flex-row gap-4">
+                            <div className="bg-purple-500/20 text-purple-600 dark:text-purple-400 p-3 rounded-xl shrink-0 h-max w-max"><Clock size={20}/></div>
+                            <div>
+                                <h4 className="font-black text-sm uppercase mb-2 text-black dark:text-white">Relance Froid : {l.full_name}</h4>
+                                <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">Ce prospect n'a pas donné de nouvelles depuis plus de 7 jours (CA potentiel: {Number(l.amount||l.budget||0).toLocaleString()} F). Lika a préparé un message pour le réactiver.</p>
+                                <button onClick={() => handleLikaAction('cold_lead', l)} className="bg-purple-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Voir l'action Lika</button>
                             </div>
                         </div>
                     ))}
