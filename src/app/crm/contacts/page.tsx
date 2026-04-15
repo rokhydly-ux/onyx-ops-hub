@@ -76,11 +76,11 @@ export default function CRMContactsPage() {
       
       try {
           // Vraie logique de croisement : On récupère l'historique
-          const { data: orders } = await supabase.from('crm_orders').select('client_id, items').eq('tenant_id', tenantId);
+          const { data: orders } = await supabase.from('crm_orders').select('contact_id, items').eq('tenant_id', tenantId);
           
           const updatedContacts = contacts.map(c => {
               // On regroupe les achats du client ou on se base sur son activité (fallback)
-              const clientOrders = orders?.filter(o => o.client_id === c.id) || [];
+              const clientOrders = orders?.filter(o => o.contact_id === c.id) || [];
               const purchasedItems = clientOrders.map(o => o.items).join(' ').toLowerCase();
               const mockItems = c.activity?.toLowerCase() || purchasedItems;
               
@@ -120,7 +120,7 @@ export default function CRMContactsPage() {
       const { data: orders, error } = await supabase
           .from('crm_orders')
           .select('*')
-          .eq('client_id', contact.id)
+          .eq('contact_id', contact.id)
           .order('created_at', { ascending: false });
 
       if (orders && orders.length > 0) {

@@ -184,8 +184,8 @@ export default function CRMDashboard() {
       
       // --- TABLEAU ROI DES CAMPAGNES ---
       const campaignStats = filteredLeads.reduce((acc: any, l: any) => {
-          // Groupement STRICT par campaign_name (avec fallback intelligent)
-          const rawName = l.campaign_name || l.form_name || l.intent || 'Organique';
+          // Groupement STRICT par ad_name
+          const rawName = l.ad_name || 'Publicité Inconnue';
           const cName = String(rawName).trim().toUpperCase();
           
           if (!acc[cName]) {
@@ -365,7 +365,7 @@ export default function CRMDashboard() {
   const handleExportCampaignsCSV = () => {
     if (campaignsData.length === 0) return alert("Aucune donnée de campagne à exporter.");
     
-    const headers = ['Nom de la Campagne', 'Total Leads', 'En Cours', 'Perdus', 'Gagnés (Convertis)', 'Taux Conv. (%)', 'CA Généré (FCFA)'];
+    const headers = ['Nom de la Publicité (Ad Name)', 'Total Leads', 'En Cours', 'Perdus', 'Gagnés (Convertis)', 'Taux Conv. (%)', 'CA Généré (FCFA)'];
     const csvRows = campaignsData.map(c => [
       `"${c.name}"`,
       c.total,
@@ -628,7 +628,7 @@ export default function CRMDashboard() {
              <table className="w-full text-left min-w-[800px]">
                  <thead className="bg-zinc-50 dark:bg-zinc-900/50">
                      <tr>
-                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom de la Campagne</th>
+                         <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom de la Publicité (Ad Name)</th>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Total Leads</th>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">En Cours</th>
                          <th className="p-5 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-center">Perdus</th>
@@ -675,7 +675,7 @@ export default function CRMDashboard() {
         const limitDate = new Date(Date.now() - periodMs);
         
         const campLeads = allLeads.filter((l: any) => {
-           const campName = l.campaign_name || l.intent || l.source;
+           const campName = l.ad_name || 'Publicité Inconnue';
            const matchCamp = analysisCampaign === 'Toutes' || campName === analysisCampaign;
            const matchDate = new Date(l.created_at || 0) >= limitDate;
            return matchCamp && matchDate;
@@ -712,7 +712,7 @@ export default function CRMDashboard() {
            { name: 'Ventes Conclues', count: gagnes, fill: '#22c55e' }
         ];
 
-        const uniqueCampaigns = Array.from(new Set(allLeads.map((l: any) => l.campaign_name || l.intent || l.source).filter(Boolean)));
+        const uniqueCampaigns = Array.from(new Set(allLeads.map((l: any) => l.ad_name || 'Publicité Inconnue')));
 
         return (
            <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsAnalysisModalOpen(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
@@ -725,9 +725,9 @@ export default function CRMDashboard() {
                     </h2>
                     <div className="flex flex-col sm:flex-row gap-4">
                        <div className="flex-1">
-                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Choisir la Campagne / Formulaire</label>
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Choisir l'Ad Name</label>
                           <select value={analysisCampaign} onChange={e => setAnalysisCampaign(e.target.value)} className="w-full p-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer appearance-none text-black dark:text-white">
-                             <option value="Toutes">Toutes les campagnes confondues</option>
+                             <option value="Toutes">Toutes les publicités confondues</option>
                              {uniqueCampaigns.map((c: any) => <option key={c} value={c}>{c}</option>)}
                           </select>
                        </div>

@@ -33,13 +33,7 @@ export default function LeadDetailPage() {
   const [localNotes, setLocalNotes] = useState<any[]>([]);
 
   // --- FAUSSES DONNÉES POUR LA TIMELINE (À connecter plus tard à une vraie table d'historique) ---
-  const MOCK_TIMELINE = [
-    { id: 1, type: 'status', title: 'Statut passé en Négociation par l\'agent', date: "Aujourd'hui, 10:30", icon: Activity, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { id: 2, type: 'whatsapp', title: 'Catalogue des offres envoyé via WhatsApp', date: 'Hier, 15:45', icon: MessageSquare, color: 'text-[#39FF14]', bg: 'bg-[#39FF14]/10' },
-    { id: 3, type: 'call', title: 'Appel de qualification (5 min) - Très intéressé', date: 'Hier, 11:20', icon: PhoneCall, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { id: 4, type: 'note', title: 'Note : "Prévoir un budget de 1.5M, rappeler vendredi"', date: 'Il y a 3 jours', icon: FileText, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-    { id: 5, type: 'creation', title: 'Nouveau Lead importé dans le pipeline', date: 'Il y a 4 jours', icon: Zap, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  ];
+  const MOCK_TIMELINE: any[] = [];
 
   useEffect(() => {
     const fetchLead = async () => {
@@ -376,6 +370,11 @@ export default function LeadDetailPage() {
                     </div>
                  </div>
               ))}
+               {fullTimeline.length === 0 && (
+                  <div className="bg-zinc-50 dark:bg-zinc-900 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 text-center -ml-6">
+                     <p className="text-zinc-500 font-bold text-sm uppercase tracking-widest">Aucune activité enregistrée</p>
+                  </div>
+               )}
            </div>
         </div>
 

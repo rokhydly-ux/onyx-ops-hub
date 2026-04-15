@@ -95,11 +95,9 @@ function KanbanCard({ lead, isSelected, onToggleSelect, onClick, onScheduleClick
         <div className="min-w-0 flex-1">
           <p className="font-black text-sm uppercase truncate pr-2">{lead.full_name}</p>
           <p className="text-[#39FF14] font-black text-xs mt-1">{lead.phone}</p>
-          {(lead.ad_name || lead.campaign_name) && (
-            <span className="inline-block mt-1 text-[8px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-500 px-1.5 py-0.5 rounded border border-purple-500/20">
-              🎯 {lead.ad_name || lead.campaign_name}
-            </span>
-          )}
+          <span className="inline-block mt-1 text-[8px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-500 px-1.5 py-0.5 rounded border border-purple-500/20">
+            🎯 {lead.ad_name || 'Publicité Inconnue'}
+          </span>
           <p className="text-[10px] text-zinc-500 font-bold mt-1.5 flex items-center gap-1">
             <Clock size={10}/> {lead.created_at ? new Date(lead.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Date inconnue'}
           </p>
@@ -426,6 +424,7 @@ export default function LeadsKanbanPage() {
              // Mapping DYNAMIQUE de la campagne par ligne pour éviter la fusion erronée
              const campaign = r['campaign_name'] || r['campaign name'] || r['campagne'] || r['adset_name'] || r['campaign'] || 'Organique';
              const form = r['form_name'] || r['formulaire'] || r['form'] || '';
+             const adName = r['ad_name'] || r['ad name'] || r['ad'] || 'Publicité Inconnue';
              
              // --- PRÉCISION DES DATES (Facebook created_time) ---
              const dateKey = Object.keys(r).find(k => k.includes('created_time') || k.includes('date') || k.includes('time'));
@@ -465,6 +464,7 @@ export default function LeadsKanbanPage() {
                 full_name: name,
                 phone: phone,
                 campaign_name: campaign,
+                ad_name: adName,
                 form_name: form,
                 lead_score: score,
                 timeframe: timeframe,
@@ -489,6 +489,16 @@ export default function LeadsKanbanPage() {
           setIsImporting(true);
           setImportProgress(0);
           setImportProgressText('Démarrage de l\'importation...');
+
+          // UPSERT DYNAMIQUE DES CAMPAGNES (ad_name)
+          const uniqueAdNames = Array.from(new Set(deduplicatedLeads.map(l => l.ad_name).filter(Boolean)));
+          if (uniqueAdNames.length > 0) {
+              const campaignsPayload = uniqueAdNames.map(ad => ({
+                  tenant_id: userId,
+                  name: ad
+              }));
+              await supabase.from('crm_campaigns').upsert(campaignsPayload, { onConflict: 'name, tenant_id' });
+          }
 
           const chunks = chunkArray(deduplicatedLeads, 300);
           let allData: any[] = [];
@@ -676,6 +686,7 @@ export default function LeadsKanbanPage() {
       'Nom Complet': l.full_name,
       'Téléphone': l.phone,
       'Statut Kanban': l.status || 'Nouveaux Leads',
+      'Ad Name (Publicité)': l.ad_name || 'Publicité Inconnue',
       'Produit / Intention': l.intent || 'N/A',
       'Score (IA)': l.lead_score || 'N/A',
       'Budget Estimé (FCFA)': l.budget || l.amount || 0,
@@ -700,7 +711,7 @@ export default function LeadsKanbanPage() {
       const matchProduct = productFilter === "Tous" || l.intent === productFilter;
       const matchSource = sourceFilter === "Toutes" || l.source === sourceFilter;
       const matchCommercial = commercialFilter === "Tous" || l.assigned_to === commercialFilter;
-      const matchCampaign = campaignFilter === "Toutes" || l.ad_name === campaignFilter || l.campaign_name === campaignFilter;
+      const matchCampaign = campaignFilter === "Toutes" || (l.ad_name || 'Publicité Inconnue') === campaignFilter;
       let matchDate = true;
       if (dateFilter === "Aujourd'hui") {
          matchDate = new Date(l.created_at).toDateString() === new Date().toDateString();
@@ -779,8 +790,8 @@ export default function LeadsKanbanPage() {
             onChange={e => setCampaignFilter(e.target.value)}
             className="px-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] transition-colors appearance-none cursor-pointer"
           >
-            <option value="Toutes">Toutes les campagnes</option>
-            {Array.from(new Set(leads.map(l => l.ad_name || l.campaign_name).filter(Boolean))).map(camp => (
+            <option value="Toutes">Toutes les publicités (Ads)</option>
+            {Array.from(new Set(leads.map(l => l.ad_name || 'Publicité Inconnue'))).map(camp => (
               <option key={camp as string} value={camp as string}>{camp as string}</option>
             ))}
           </select>
@@ -1095,9 +1106,9 @@ export default function LeadsKanbanPage() {
               </div>
             </div>
             
-            <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-between shrink-0">
-               <button onClick={() => { window.location.href = `/crm/leads/${selectedLead.id}`; }} className="text-[10px] font-black uppercase text-zinc-500 hover:text-black dark:hover:text-white transition-colors flex items-center gap-1">
-                 <Activity size={14}/> Voir Dossier Complet
+            <div className="mt-6 shrink-0">
+               <button onClick={() => { window.location.href = `/crm/leads/${selectedLead.id}`; }} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-xl flex items-center justify-center gap-2">
+                 <Activity size={16}/> Ouvrir le Dossier Complet
                </button>
             </div>
           </div>
@@ -1280,7 +1291,8 @@ export default function LeadsKanbanPage() {
          const limitDate = new Date(Date.now() - periodMs);
          
          const campLeads = leads.filter(l => {
-            const matchCamp = analysisCampaign === 'Toutes' || l.intent === analysisCampaign || l.campaign_name === analysisCampaign;
+            const campName = l.ad_name || 'Publicité Inconnue';
+            const matchCamp = analysisCampaign === 'Toutes' || campName === analysisCampaign;
             const matchDate = new Date(l.created_at) >= limitDate;
             return matchCamp && matchDate;
          });
@@ -1315,7 +1327,7 @@ export default function LeadsKanbanPage() {
             { name: 'Ventes Conclues', count: gagnes, fill: '#22c55e' }
          ];
 
-         const uniqueCampaigns = Array.from(new Set(leads.map(l => l.campaign_name || l.intent).filter(Boolean)));
+         const uniqueCampaigns = Array.from(new Set(leads.map(l => l.ad_name || 'Publicité Inconnue')));
 
          return (
             <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsAnalysisModalOpen(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
@@ -1328,9 +1340,9 @@ export default function LeadsKanbanPage() {
                      </h2>
                      <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
-                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Choisir la Campagne / Formulaire</label>
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 block">Choisir l'Ad Name</label>
                            <select value={analysisCampaign} onChange={e => setAnalysisCampaign(e.target.value)} className="w-full p-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer appearance-none">
-                              <option value="Toutes">Toutes les campagnes confondues</option>
+                              <option value="Toutes">Toutes les publicités confondues</option>
                               {uniqueCampaigns.map((c: any) => <option key={c} value={c}>{c}</option>)}
                            </select>
                         </div>
