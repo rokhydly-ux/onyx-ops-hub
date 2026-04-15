@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles } from 'lucide-react';
+import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles, Upload } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 // Mini graphique Sparkline
 const Sparkline = ({ data, color }: { data: number[], color: string }) => {
@@ -40,6 +41,63 @@ export default function CRMContactsPage() {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setIsImporting(true);
+      
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+          try {
+              const bstr = evt.target?.result;
+              const wb = XLSX.read(bstr, { type: 'binary' });
+              const wsname = wb.SheetNames[0];
+              const data = XLSX.utils.sheet_to_json(wb.Sheets[wsname]);
+
+              // 1. Récupérer les contacts pour faire le lien
+              const { data: allContacts } = await supabase.from('crm_contacts').select('id, phone').eq('tenant_id', tenantId);
+              const contactMap = new Map();
+              allContacts?.forEach(c => {
+                  if (c.phone) contactMap.set(c.phone.replace(/\s+/g, ''), c.id);
+              });
+
+              // 2. Préparer les commandes avec la bonne clé étrangère
+              const newOrders = data.map((row: any) => {
+                  let phone = String(row.telephone || row.Telephone || row.phone || row.Phone || '').replace(/\s+/g, '');
+                  const contactId = contactMap.get(phone);
+                  
+                  if (!contactId) return null; // On ignore si le contact n'est pas dans le CRM
+
+                  return {
+                      id: row.id || row.Order_ID || `CSV-${Math.floor(Math.random() * 100000)}`,
+                      contact_id: contactId,
+                      tenant_id: tenantId,
+                      total: parseFloat(row.total || row.Total || row.Montant || 0),
+                      date: row.date || row.Date || new Date().toISOString(),
+                      status: row.status || row.Status || 'Livré',
+                      items: row.items || row.Items || row.Produits || 'Import CSV Odoo'
+                  };
+              }).filter(Boolean); // Retire les éléments nuls
+
+              if (newOrders.length === 0) throw new Error("Aucune commande correspondante à un contact existant n'a été trouvée dans le CSV.");
+
+              // 3. Insérer les données liées dans Supabase
+              const { error } = await supabase.from('crm_orders').upsert(newOrders, { onConflict: 'id' });
+              if (error) throw error;
+
+              alert(`✅ ${newOrders.length} commandes Odoo importées et liées avec succès !`);
+          } catch (err: any) {
+              alert("Erreur lors de l'import : " + err.message);
+          } finally {
+              setIsImporting(false);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+          }
+      };
+      reader.readAsBinaryString(file);
+  };
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -76,12 +134,15 @@ export default function CRMContactsPage() {
       
       try {
           // Vraie logique de croisement : On récupère l'historique
-          const { data: orders } = await supabase.from('crm_orders').select('contact_id, items').eq('tenant_id', tenantId);
+          const { data: orders } = await supabase.from('crm_orders').select('contact_id, customer_phone, items').eq('tenant_id', tenantId);
           
           const updatedContacts = contacts.map(c => {
               // On regroupe les achats du client ou on se base sur son activité (fallback)
-              const clientOrders = orders?.filter(o => o.contact_id === c.id) || [];
-              const purchasedItems = clientOrders.map(o => o.items).join(' ').toLowerCase();
+              const clientOrders = orders?.filter(o => o.contact_id === c.id || (o.customer_phone && o.customer_phone === c.phone)) || [];
+              const purchasedItems = clientOrders.map(o => {
+                  if (Array.isArray(o.items)) return o.items.map((i:any) => i.name).join(' ');
+                  return o.items;
+              }).join(' ').toLowerCase();
               const mockItems = c.activity?.toLowerCase() || purchasedItems;
               
               let segment = 'Non défini';
@@ -116,22 +177,28 @@ export default function CRMContactsPage() {
       setEditContactForm(contact);
       setContactTab('historique');
       
-      // Récupération réelle de l'historique depuis crm_orders
-      const { data: orders, error } = await supabase
-          .from('crm_orders')
-          .select('*')
-          .eq('contact_id', contact.id)
-          .order('created_at', { ascending: false });
+      // Sécurité : Si l'ID du contact est indéfini, on bloque la requête pour éviter d'afficher toute la base.
+      if (!contact || !contact.id) {
+          setContactOrders([]);
+          return;
+      }
+
+      // Récupération de l'historique : Filtre sur contact_id, avec rattrapage sur le numéro de téléphone
+      let query = supabase.from('crm_orders').select('*').order('created_at', { ascending: false });
+      if (contact.phone) {
+          query = query.or(`contact_id.eq.${contact.id},customer_phone.eq.${encodeURIComponent(contact.phone)}`);
+      } else {
+          query = query.eq('contact_id', contact.id);
+      }
+
+      const { data: orders, error } = await query;
 
       if (orders && orders.length > 0) {
           setContactOrders(orders);
       } else {
-          // Fallback simulation si la table est vide pour la démo
-          const mockOrders = [
-              { id: 'ORD-001', date: '2026-03-10', total: 450000, status: 'Livré', items: 'Pétrin 20L, Batteur' },
-              { id: 'ORD-002', date: '2026-01-15', total: 120000, status: 'Livré', items: 'Plaques de cuisson, Moules' }
-          ];
-          setContactOrders(mockOrders);
+          // Si aucune commande n'est trouvée pour ce contact précis, on retourne un tableau vide
+          // (Correction du bug de l'historique cloné)
+          setContactOrders([]);
       }
   };
 
@@ -179,6 +246,17 @@ export default function CRMContactsPage() {
            {isClassifying ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
            Auto-Classifier (IA)
         </button>
+        <div className="flex items-center gap-3">
+          <input type="file" accept=".csv, .xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+          <button onClick={() => fileInputRef.current?.click()} disabled={isImporting} className="bg-white text-black border border-zinc-200 px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-50 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
+             {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+             Importer CSV Odoo
+          </button>
+          <button onClick={handleAutoClassify} disabled={isClassifying} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
+             {isClassifying ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
+             Auto-Classifier (IA)
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6 shrink-0 bg-white dark:bg-zinc-950 p-4 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
@@ -288,12 +366,14 @@ export default function CRMContactsPage() {
                       {contactOrders.map((order, idx) => (
                          <div key={idx} className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 flex justify-between items-center gap-4">
                             <div>
-                               <p className="font-bold text-sm text-black dark:text-white">{order.items}</p>
-                               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Réf: {order.id} • {order.date}</p>
+                               <p className="font-bold text-sm text-black dark:text-white">
+                                  {Array.isArray(order.items) ? order.items.map((i:any) => `${i.name} (x${i.quantity || 1})`).join(', ') : order.items || 'Articles'}
+                               </p>
+                               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Réf: {order.order_ref || order.id} • {new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR')}</p>
                             </div>
                             <div className="text-right">
-                               <p className="font-black text-[#39FF14]">{order.total.toLocaleString('fr-FR')} F</p>
-                               <span className="inline-block mt-1 px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase rounded border border-green-500/20">{order.status}</span>
+                               <p className="font-black text-[#39FF14]">{(order.total_amount || order.total || 0).toLocaleString('fr-FR')} F</p>
+                               <span className="inline-block mt-1 px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase rounded border border-green-500/20">{order.status || 'Livré'}</span>
                             </div>
                          </div>
                       ))}

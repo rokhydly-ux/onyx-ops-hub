@@ -394,6 +394,7 @@ function CRMSettingsContent() {
               const uniquePhones = new Set<string>();
               const uniqueProductsMap = new Map<string, any>();
 
+              // 1. Préparation des clients et produits
               for (const order of chunk) {
                   let cleanPhone = String(order.customerPhone || '').replace(/\s+/g, '');
                   if (cleanPhone && !cleanPhone.startsWith('+') && cleanPhone.length > 0) {
@@ -403,10 +404,12 @@ function CRMSettingsContent() {
                        else cleanPhone = `+${cleanPhone}`;
                   }
                   
+                  order.cleanPhone = cleanPhone; // Stocké pour l'insertion de commande plus tard
+
                   if (cleanPhone && !uniquePhones.has(cleanPhone)) {
                       uniquePhones.add(cleanPhone);
                       clientsToUpsert.push({
-                          tenant_id: userId, // Injection de l'ID vérifié
+                          tenant_id: userId,
                           phone: cleanPhone,
                           full_name: order.customerName || 'Client Odoo',
                           type: 'Client',
@@ -416,7 +419,7 @@ function CRMSettingsContent() {
                   for (const item of order.items) {
                       if (item.name && !uniqueProductsMap.has(item.name)) {
                           uniqueProductsMap.set(item.name, {
-                              tenant_id: userId, // Injection de l'ID vérifié
+                              tenant_id: userId,
                               name: item.name,
                               unit_price: item.price,
                               price_ttc: item.price,
@@ -424,32 +427,53 @@ function CRMSettingsContent() {
                           });
                       }
                   }
+              }
 
+              if (clientsToUpsert.length > 0) {
+                  const { error: clientError } = await supabase
+                      .from('crm_contacts')
+                      .upsert(clientsToUpsert, { onConflict: 'phone, tenant_id' });
+                  
+                  if (clientError) throw new Error("Erreur Contacts: " + clientError.message);
+              }
+
+              // 2.bis Récupération SÉCURISÉE des IDs (Même pour les contacts non modifiés par l'upsert)
+              const contactIdMap = new Map<string, string>();
+              const phonesArray = Array.from(uniquePhones);
+              if (phonesArray.length > 0) {
+                  const { data: allContacts, error: fetchError } = await supabase
+                      .from('crm_contacts')
+                      .select('id, phone')
+                      .in('phone', phonesArray)
+                      .eq('tenant_id', userId);
+                  if (fetchError) throw new Error("Erreur Fetch Contacts: " + fetchError.message);
+                  if (allContacts) {
+                      allContacts.forEach(c => contactIdMap.set(c.phone, c.id));
+                  }
+              }
+
+              // 3. Upsert Produits
+              const productsToUpsert = Array.from(uniqueProductsMap.values());
+              if (productsToUpsert.length > 0) {
+                  const { error: productError } = await supabase.from('crm_products').upsert(productsToUpsert, { onConflict: 'name, tenant_id' });
+                  if (productError) throw new Error("Erreur Produits: " + productError.message);
+              }
+
+              // 4. Préparation des Commandes (Avec le bon contact_id mappé !)
+              for (const order of chunk) {
                   ordersToInsert.push({
-                      tenant_id: userId, // Injection de l'ID vérifié
+                      tenant_id: userId,
                       order_ref: order.ref,
+                      contact_id: contactIdMap.get(order.cleanPhone) || null, // Clé étrangère correcte
                       customer_name: order.customerName,
-                      customer_phone: cleanPhone,
+                      customer_phone: order.cleanPhone,
                       order_date: order.date ? new Date(order.date).toISOString() : new Date().toISOString(),
                       total_amount: order.total,
                       items: order.items
                   });
               }
 
-              const productsToUpsert = Array.from(uniqueProductsMap.values());
-
-              console.log("🔍 VÉRIFICATION DU PAYLOAD CONTACTS :", clientsToUpsert[0]);
-              console.log("🔍 VÉRIFICATION DU PAYLOAD PRODUITS :", productsToUpsert[0]);
-              console.log("🔍 VÉRIFICATION DU PAYLOAD COMMANDES :", ordersToInsert[0]);
-
-              if (clientsToUpsert.length > 0) {
-                  const { error: clientError } = await supabase.from('crm_contacts').upsert(clientsToUpsert, { onConflict: 'phone, tenant_id' });
-                  if (clientError) throw new Error("Erreur Contacts: " + clientError.message);
-              }
-              if (productsToUpsert.length > 0) {
-                  const { error: productError } = await supabase.from('crm_products').upsert(productsToUpsert, { onConflict: 'name, tenant_id' });
-                  if (productError) throw new Error("Erreur Produits: " + productError.message);
-              }
+              // 5. Upsert Commandes
               if (ordersToInsert.length > 0) {
                   const { error: orderError } = await supabase.from('crm_orders').upsert(ordersToInsert, { onConflict: 'order_ref, tenant_id' });
                   if (orderError) throw new Error("Erreur Commandes: " + orderError.message);
