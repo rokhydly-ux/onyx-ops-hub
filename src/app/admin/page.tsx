@@ -4197,6 +4197,7 @@ export default function AdminDashboard() {
                                     <p className="font-bold text-sm uppercase text-black dark:text-white">{s.title}</p>
                                     <p className="text-xs text-zinc-500 mt-1">{s.description}</p>
                                 </div>
+                            <div className="flex gap-2">
                                 <button onClick={async () => {
                                     const newAction: IAAction = {
                                         id: s.id, module: 'Marketing', title: s.title, desc: s.description, date: todayStr, status: 'En attente', phone: s.clientPhone, msg: s.msg, contactId: s.contactId
@@ -4204,9 +4205,16 @@ export default function AdminDashboard() {
                                     await supabase.from('actions_ia').insert([newAction]);
                                     setActionsIA(prev => [newAction, ...prev]);
                                     setIaSuggestions(prev => prev.filter(item => item.id !== s.id));
-                                }} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition shadow-md whitespace-nowrap">
+                                }} className="bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white px-4 py-3 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition shadow-sm whitespace-nowrap">
                                     Planifier
                                 </button>
+                                <button onClick={() => {
+                                    window.open(`https://wa.me/${(s.clientPhone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(s.msg||'')}`, '_blank');
+                                    setIaSuggestions(prev => prev.filter(item => item.id !== s.id));
+                                }} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition shadow-md whitespace-nowrap flex items-center gap-2">
+                                    <Send size={14}/> Exécuter WA
+                                </button>
+                            </div>
                             </div>
                         ))}
                         {iaSuggestions.length === 0 && (

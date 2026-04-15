@@ -29,7 +29,7 @@ export default function CRMDashboard() {
   const [products, setProducts] = useState<any[]>([]);
   const [kpiDetailsModal, setKpiDetailsModal] = useState<string | null>(null);
   const [isLikaBrainOpen, setIsLikaBrainOpen] = useState(false);
-  const [likaActionModal, setLikaActionModal] = useState<{title: string, msg: string} | null>(null);
+  const [likaActionModal, setLikaActionModal] = useState<{title: string, msg: string, actionLabel?: string, onAction?: () => void} | null>(null);
   const [kpiSearch, setKpiSearch] = useState("");
 
   useEffect(() => {
@@ -234,11 +234,31 @@ export default function CRMDashboard() {
   const handleLikaAction = (type: string, data: any) => {
       let title = `Suggestion pour ${data.name}`;
       let msg = "";
-      if (type === 'client') msg = `Lika vous conseille de générer un message WhatsApp pour remercier ${data.name} de sa fidélité (CA total: ${data.ca.toLocaleString()} F) et lui proposer une offre exclusive ou un produit complémentaire VIP.`;
-      else if (type === 'top_product') msg = `Attention, le stock de ${data.name} est critique (${data.stock} restants). Lika suggère de lancer immédiatement une commande de réassort auprès de votre fournisseur pour éviter la rupture de ce best-seller.`;
-      else if (type === 'flop_product') msg = `Le produit ${data.name} dort en stock (${data.stock} unités). Lika suggère de créer un catalogue Promo Flash sur WhatsApp (par ex: -30%) et de l'envoyer à votre liste de diffusion pour écouler ce stock.`;
       
-      setLikaActionModal({ title, msg });
+      let actionLabel = "";
+      let onAction = () => {};
+
+      if (type === 'client') {
+          msg = `Lika vous conseille de générer un message WhatsApp pour remercier ${data.name} de sa fidélité (CA total: ${data.ca.toLocaleString()} F) et lui proposer une offre exclusive ou un produit complémentaire VIP.`;
+          actionLabel = "Message WhatsApp";
+          onAction = () => {
+              const waMsg = `Bonjour ${data.name}, pour vous remercier de votre fidélité chez nous, nous avons une offre exclusive à vous proposer !`;
+              window.open(`https://wa.me/${(data.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waMsg)}`, '_blank');
+              setLikaActionModal(null);
+          };
+      }
+      else if (type === 'top_product') {
+          msg = `Attention, le stock de ${data.name} est critique (${data.stock} restants). Lika suggère de lancer immédiatement une commande de réassort auprès de votre fournisseur pour éviter la rupture de ce best-seller.`;
+          actionLabel = "Gérer le Stock";
+          onAction = () => { router.push('/crm/products'); setLikaActionModal(null); };
+      }
+      else if (type === 'flop_product') {
+          msg = `Le produit ${data.name} dort en stock (${data.stock} unités). Lika suggère de créer un catalogue Promo Flash sur WhatsApp (par ex: -30%) et de l'envoyer à votre liste de diffusion pour écouler ce stock.`;
+          actionLabel = "Créer Promo Flash";
+          onAction = () => { router.push('/crm/studio'); setLikaActionModal(null); };
+      }
+      
+      setLikaActionModal({ title, msg, actionLabel, onAction });
   };
 
   if (!isAuthorized) {
@@ -874,7 +894,14 @@ export default function CRMDashboard() {
                 <p className="text-sm font-bold text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
                     {likaActionModal.msg}
                 </p>
-                <button onClick={() => setLikaActionModal(null)} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2"><CheckCircle size={16}/> Compris</button>
+            <div className="flex gap-3">
+                <button onClick={() => setLikaActionModal(null)} className="flex-1 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white py-4 rounded-xl font-black uppercase text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700 transition">Fermer</button>
+                {likaActionModal.actionLabel && (
+                    <button onClick={likaActionModal.onAction} className="flex-[2] bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2">
+                        <Send size={16}/> {likaActionModal.actionLabel}
+                    </button>
+                )}
+            </div>
             </div>
         </div>
       )}
