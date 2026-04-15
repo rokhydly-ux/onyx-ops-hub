@@ -48,7 +48,7 @@ export default function CRMCatalogPage() {
   const [aiCampaigns, setAiCampaigns] = useState<any[]>([]);
   
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '' });
+  const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] as string[] });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -157,14 +157,14 @@ export default function CRMCatalogPage() {
 
   const handleOpenAdd = () => {
       setEditingProduct(null);
-      setEditForm({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '' });
+      setEditForm({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] });
       setIsAddingProduct(true);
   };
 
   const handleOpenEdit = (p: any) => {
       setEditingProduct(p);
       setIsAddingProduct(false);
-      setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '' });
+      setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '', tags: p.tags || [] });
   };
 
   const generateTechnicalSheet = async (p: any, bulkDoc?: jsPDF) => {
@@ -244,7 +244,7 @@ export default function CRMCatalogPage() {
       if (!editForm.name) return alert("Le nom du produit est requis.");
       setIsSavingEdit(true);
       try {
-          const payload = { name: editForm.name, category: editForm.category, subcategory: editForm.subcategory, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description };
+          const payload = { name: editForm.name, category: editForm.category, subcategory: editForm.subcategory, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description, tags: editForm.tags };
           if (isAddingProduct) {
               const { data, error } = await supabase.from('crm_products').insert([{ ...payload, tenant_id: tenantId, last_sold_date: new Date().toISOString() }]).select().single();
               if (error) throw error;
@@ -699,6 +699,9 @@ export default function CRMCatalogPage() {
                      <div className="absolute top-3 right-3">
                         <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md ${status.color}`}>{status.label}</span>
                      </div>
+                     {product.tags && product.tags.map((tag: string, i: number) => (
+                        <span key={i} className={`absolute bottom-3 ${i === 0 ? 'left-3' : 'left-24'} px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest bg-black/80 text-[#39FF14] backdrop-blur-md border border-[#39FF14]/30 shadow-lg`}>{tag}</span>
+                     ))}
                    </div>
                    <div className="p-4 flex-1 flex flex-col">
                      <p className="font-bold text-sm text-black dark:text-white line-clamp-2 mb-1">{product.name}</p>
@@ -954,6 +957,26 @@ export default function CRMCatalogPage() {
                   </div>
                 </div>
                 
+                {/* Tags Rapides (Pleine largeur) */}
+                <div className="col-span-1 md:col-span-2">
+                    <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Tags & Badges Rapides</label>
+                    <div className="flex flex-wrap gap-2">
+                        {['En Promo', 'Nouveau', 'Best-Seller', 'Liquidation', 'Exclusivité'].map(tag => (
+                            <button
+                                key={tag}
+                                type="button"
+                                onClick={() => {
+                                    const newTags = editForm.tags.includes(tag) ? editForm.tags.filter(t => t !== tag) : [...editForm.tags, tag];
+                                    setEditForm({ ...editForm, tags: newTags });
+                                }}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-colors shadow-sm ${editForm.tags.includes(tag) ? 'bg-black dark:bg-white text-[#39FF14] dark:text-black border border-[#39FF14] dark:border-white' : 'bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-black dark:hover:border-white'}`}
+                            >
+                                {tag}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Description (Pleine largeur) */}
                 <div className="col-span-1 md:col-span-2">
                     <div className="flex justify-between items-end mb-2">

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag } from 'lucide-react';
+import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles } from 'lucide-react';
 
 // Mini graphique Sparkline
 const Sparkline = ({ data, color }: { data: number[], color: string }) => {
@@ -34,6 +34,8 @@ export default function CRMContactsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isClassifying, setIsClassifying] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [editContactForm, setEditContactForm] = useState<any>({});
+  const [contactTab, setContactTab] = useState<'historique' | 'edit' | 'lika'>('historique');
   const [contactOrders, setContactOrders] = useState<any[]>([]);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -111,6 +113,8 @@ export default function CRMContactsPage() {
 
   const handleContactClick = async (contact: any) => {
       setSelectedContact(contact);
+      setEditContactForm(contact);
+      setContactTab('historique');
       
       // Récupération réelle de l'historique depuis crm_orders
       const { data: orders, error } = await supabase
@@ -129,6 +133,22 @@ export default function CRMContactsPage() {
           ];
           setContactOrders(mockOrders);
       }
+  };
+
+  const handleSaveContactEdit = async () => {
+      try {
+          const { error } = await supabase.from('crm_contacts').update({
+              full_name: editContactForm.full_name,
+              phone: editContactForm.phone,
+              activity: editContactForm.activity,
+              type: editContactForm.type
+          }).eq('id', selectedContact.id).eq('tenant_id', tenantId);
+          if (error) throw error;
+          
+          setContacts(prev => prev.map(c => c.id === selectedContact.id ? { ...c, ...editContactForm } : c));
+          setSelectedContact({ ...selectedContact, ...editContactForm });
+          alert("✅ Fiche contact mise à jour avec succès !");
+      } catch(e: any) { alert("Erreur : " + e.message); }
   };
 
   const filteredContacts = React.useMemo(() => {
@@ -254,8 +274,15 @@ export default function CRMContactsPage() {
                 </div>
              </div>
 
+             <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1.5 rounded-2xl mb-6 shrink-0 shadow-inner">
+                <button onClick={() => setContactTab('historique')} className={`flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all ${contactTab === 'historique' ? 'bg-white dark:bg-zinc-800 shadow-md text-black dark:text-white' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>Historique</button>
+                <button onClick={() => setContactTab('edit')} className={`flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all ${contactTab === 'edit' ? 'bg-white dark:bg-zinc-800 shadow-md text-black dark:text-white' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>Édition Fiche</button>
+                <button onClick={() => setContactTab('lika')} className={`flex-1 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all flex items-center justify-center gap-1.5 ${contactTab === 'lika' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><Bot size={14}/> Lika (IA)</button>
+             </div>
+
              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
-                <div>
+                {contactTab === 'historique' && (
+                 <div>
                    <h3 className="font-black uppercase text-sm mb-4 flex items-center gap-2"><ShoppingBag size={16} className="text-[#39FF14]"/> Historique d'Achats</h3>
                    <div className="space-y-3">
                       {contactOrders.map((order, idx) => (
@@ -273,6 +300,57 @@ export default function CRMContactsPage() {
                       {contactOrders.length === 0 && <p className="text-xs text-zinc-500 italic">Aucun historique de commande pour le moment.</p>}
                    </div>
                 </div>
+                )}
+
+                {contactTab === 'edit' && (
+                 <div className="space-y-4 animate-in fade-in">
+                    <div>
+                       <label className="text-[10px] font-black uppercase text-zinc-500 mb-1 block">Nom Complet</label>
+                       <input type="text" value={editContactForm.full_name || ''} onChange={e => setEditContactForm({...editContactForm, full_name: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl font-bold text-sm outline-none focus:border-[#39FF14]" />
+                    </div>
+                    <div>
+                       <label className="text-[10px] font-black uppercase text-zinc-500 mb-1 block">Numéro WhatsApp</label>
+                       <input type="tel" value={editContactForm.phone || ''} onChange={e => setEditContactForm({...editContactForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl font-bold text-sm outline-none focus:border-[#39FF14]" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div>
+                          <label className="text-[10px] font-black uppercase text-zinc-500 mb-1 block">Secteur d'Activité</label>
+                          <input type="text" value={editContactForm.activity || ''} onChange={e => setEditContactForm({...editContactForm, activity: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl font-bold text-sm outline-none focus:border-[#39FF14]" placeholder="Ex: Restauration" />
+                       </div>
+                       <div>
+                          <label className="text-[10px] font-black uppercase text-zinc-500 mb-1 block">Type (Prospect/Client)</label>
+                          <select value={editContactForm.type || 'Prospect'} onChange={e => setEditContactForm({...editContactForm, type: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl font-bold text-sm outline-none focus:border-[#39FF14] appearance-none cursor-pointer">
+                             <option value="Client">Client</option>
+                             <option value="Prospect">Prospect</option>
+                          </select>
+                       </div>
+                    </div>
+                    <button onClick={handleSaveContactEdit} className="w-full mt-4 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2">
+                       <CheckCircle size={16}/> Sauvegarder les modifications
+                    </button>
+                 </div>
+                )}
+
+                {contactTab === 'lika' && (
+                 <div className="space-y-4 animate-in fade-in">
+                    <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 p-5 rounded-2xl flex flex-col sm:flex-row items-start gap-4">
+                        <div className="bg-purple-500/20 p-3 rounded-xl text-purple-600 dark:text-purple-400 shrink-0"><Sparkles size={24}/></div>
+                        <div>
+                            <h4 className="font-black text-sm uppercase mb-1 text-black dark:text-white">Offre Ultra-Alléchante (Sur-mesure)</h4>
+                            <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium mb-4 leading-relaxed">Lika a analysé ce profil (Segment : <strong className="text-black dark:text-white">{selectedContact.target_segment || 'Client Standard'}</strong>). Proposez un bundle exclusif pour maximiser la LTV.</p>
+                            <button onClick={() => window.open(`https://wa.me/${selectedContact.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour ${selectedContact.full_name}, nous avons une offre exclusive rien que pour vous aujourd'hui...`)}`, '_blank')} className="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Faire l'offre WhatsApp</button>
+                        </div>
+                    </div>
+                    <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 p-5 rounded-2xl flex flex-col sm:flex-row items-start gap-4">
+                        <div className="bg-orange-500/20 p-3 rounded-xl text-orange-600 dark:text-orange-400 shrink-0"><Clock size={24}/></div>
+                        <div>
+                            <h4 className="font-black text-sm uppercase mb-1 text-black dark:text-white">Reconquête (Client Froid)</h4>
+                            <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium mb-4 leading-relaxed">Ce contact n'a pas commandé ou interagi récemment. Envoyez une relance douce accompagnée d'un cadeau (ex: livraison gratuite).</p>
+                            <button onClick={() => window.open(`https://wa.me/${selectedContact.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour ${selectedContact.full_name}, vous nous manquez ! Voici un petit cadeau pour votre prochain achat chez nous...`)}`, '_blank')} className="bg-orange-500 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Relancer maintenant</button>
+                        </div>
+                    </div>
+                 </div>
+                )}
              </div>
              
              <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-4 flex gap-3 shrink-0">
