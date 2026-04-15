@@ -42,6 +42,15 @@ export default function PublicCataloguePage() {
           
         if (prods) setProducts(prods);
 
+        // Tracking : Nouvelle vue enregistrée !
+        if (idsParam && tenantId) {
+            supabase.from('catalog_analytics').insert([{
+                tenant_id: tenantId,
+                event_type: 'view',
+                catalog_ids: idsParam
+            }]).then();
+        }
+
       } catch (err) {
         console.error(err);
       } finally {
@@ -51,6 +60,19 @@ export default function PublicCataloguePage() {
 
     loadCatalogue();
   }, [idsParam, tenantId]);
+
+  // Fonction de tracking des Clics WhatsApp
+  const trackAndOpenWa = (msg: string, productId?: string) => {
+      if (tenantId) {
+          supabase.from('catalog_analytics').insert([{
+              tenant_id: tenantId,
+              event_type: 'click_whatsapp',
+              catalog_ids: idsParam,
+              product_id: productId || null
+          }]).then();
+      }
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Loader2 className="w-8 h-8 animate-spin text-black" /></div>;
 
@@ -74,7 +96,7 @@ export default function PublicCataloguePage() {
              </div>
          </div>
          <div className="flex items-center gap-2 flex-wrap">
-             <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Découvrez notre sélection de produits exclusifs : ${window.location.href}`)}`, '_blank')} className="bg-[#25D366] text-white p-2.5 sm:px-4 sm:py-2.5 rounded-full text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md" title="Partager sur WhatsApp">
+             <button onClick={() => trackAndOpenWa(`Découvrez notre sélection de produits exclusifs : ${window.location.href}`)} className="bg-[#25D366] text-white p-2.5 sm:px-4 sm:py-2.5 rounded-full text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md" title="Partager sur WhatsApp">
                 <Share2 size={14}/> <span className="hidden sm:inline">WhatsApp</span>
              </button>
              <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank')} className="bg-[#1877F2] text-white p-2.5 rounded-full text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md" title="Partager sur Facebook">
@@ -84,7 +106,7 @@ export default function PublicCataloguePage() {
                 <Link size={14}/>
              </button>
              <div className="w-px h-6 bg-zinc-200 mx-1 hidden sm:block"></div>
-             <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Bonjour, je suis intéressé(e) par votre catalogue : ${window.location.href}`)}`, '_blank')} className="bg-black text-[#39FF14] px-5 py-2.5 rounded-full text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md">
+             <button onClick={() => trackAndOpenWa(`Bonjour, je suis intéressé(e) par votre catalogue : ${window.location.href}`)} className="bg-black text-[#39FF14] px-5 py-2.5 rounded-full text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform shadow-md">
                 <MessageSquare size={14}/> Contacter
              </button>
          </div>
@@ -103,7 +125,7 @@ export default function PublicCataloguePage() {
                           <p className="text-zinc-500 text-xs font-medium line-clamp-3 mb-6 flex-1">{p.description}</p>
                           <div className="flex items-center justify-between pt-4 border-t border-zinc-100 mt-auto">
                               <p className="font-black text-2xl tracking-tighter">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} <span className="text-sm font-bold text-zinc-500">FCFA</span></p>
-                              <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Bonjour, je souhaite commander le produit : ${p.name} à ${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA.`)}`, '_blank')} className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center hover:bg-black hover:text-[#39FF14] transition-colors">
+                              <button onClick={() => trackAndOpenWa(`Bonjour, je souhaite commander le produit : ${p.name} à ${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA.`, p.id)} className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center hover:bg-black hover:text-[#39FF14] transition-colors">
                                  <ChevronRight size={20}/>
                               </button>
                           </div>

@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link } from 'lucide-react';
+import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link, ChevronDown, ChevronUp, ImagePlus, Palette } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const CATEGORY_COVERS: Record<string, string> = {
   "Cuisine pro préparation": "https://images.unsplash.com/photo-1556910110-a5a63dfd393c?auto=format&fit=crop&w=800&q=80",
@@ -54,15 +55,44 @@ export default function CRMCatalogPage() {
 
   // Studio Catalogue
   const [isCatalogStudioOpen, setIsCatalogStudioOpen] = useState(false);
+  const [isStudioDesignOpen, setIsStudioDesignOpen] = useState(true);
+  const [studioTab, setStudioTab] = useState<'build' | 'analytics'>('build');
+  const [catalogStats, setCatalogStats] = useState<any[]>([]);
   const [studioSelectedCategory, setStudioSelectedCategory] = useState('');
+  const [studioSelectedSubCategory, setStudioSelectedSubCategory] = useState('');
+  const [pdfProgress, setPdfProgress] = useState(0);
   const [catalogConfig, setCatalogConfig] = useState({
       coverTitle: 'Catalogue Produits',
       showSummary: true,
       logoX: 65,
       logoY: 60,
       logoSize: 80,
-      coverImage: ''
+      coverImage: '',
+      backCoverImage: '',
+      logoUrl: ''
   });
+
+  useEffect(() => {
+      if (isCatalogStudioOpen && studioTab === 'analytics' && tenantId) {
+          supabase.from('catalog_analytics').select('*').eq('tenant_id', tenantId)
+          .then(({data}) => { if (data) setCatalogStats(data); });
+      }
+  }, [isCatalogStudioOpen, studioTab, tenantId]);
+
+  const analyticsData = React.useMemo(() => {
+      const grouped: Record<string, { date: string, views: number, clicks: number }> = {};
+      catalogStats.forEach(stat => {
+          const date = new Date(stat.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+          if (!grouped[date]) grouped[date] = { date, views: 0, clicks: 0 };
+          if (stat.event_type === 'view') grouped[date].views += 1;
+          if (stat.event_type === 'click_whatsapp') grouped[date].clicks += 1;
+      });
+      return Object.values(grouped).slice(-7); // Affiche les 7 derniers jours d'activité
+  }, [catalogStats]);
+  
+  const totalViews = catalogStats.filter(s => s.event_type === 'view').length;
+  const totalClicks = catalogStats.filter(s => s.event_type === 'click_whatsapp').length;
+  const conversionRate = totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) : 0;
 
   // Catégories
   const [advancedCategories, setAdvancedCategories] = useState<{id: string, name: string, subcategories: string[], color?: string}[]>([]);
@@ -241,6 +271,7 @@ export default function CRMCatalogPage() {
 
   const generateStudioCatalog = async () => {
       setIsGeneratingPdf(true);
+      setPdfProgress(0);
       try {
           const doc = new jsPDF();
           const selectedProducts = products.filter(p => selectedIds.has(p.id));
@@ -254,8 +285,18 @@ export default function CRMCatalogPage() {
                   img.crossOrigin = "Anonymous";
                   img.src = catalogConfig.coverImage;
                   await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
-                  doc.addImage(img, 'JPEG', catalogConfig.logoX, catalogConfig.logoY, catalogConfig.logoSize, catalogConfig.logoSize);
+                  doc.addImage(img, 'JPEG', 0, 0, 210, 297); // Couverture pleine page
               } catch(e) { console.warn("Erreur image couverture", e); }
+          }
+
+          if (catalogConfig.logoUrl) {
+              try {
+                  const img = new Image();
+                  img.crossOrigin = "Anonymous";
+                  img.src = catalogConfig.logoUrl;
+                  await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+                  doc.addImage(img, 'PNG', catalogConfig.logoX, catalogConfig.logoY, catalogConfig.logoSize, catalogConfig.logoSize);
+              } catch(e) { console.warn("Erreur logo", e); }
           }
           
           doc.setTextColor(57, 255, 20);
@@ -280,7 +321,7 @@ export default function CRMCatalogPage() {
               }, {} as Record<string, any[]>);
 
               doc.setFontSize(12);
-              for (const [cat, prods] of Object.entries(grouped) as [string, any[]][]) {
+              for (const [cat, prods] of Object.entries(grouped) as [string, any[]]) {
                   if (y > 270) { doc.addPage(); y = 20; }
                   doc.setFont("helvetica", "bold");
                   doc.text(cat.toUpperCase(), 14, y);
@@ -298,6 +339,18 @@ export default function CRMCatalogPage() {
           for (let i = 0; i < selectedProducts.length; i++) {
               doc.addPage();
               await generateTechnicalSheet(selectedProducts[i], doc);
+              setPdfProgress(Math.round(((i + 1) / selectedProducts.length) * 100));
+          }
+
+          if (catalogConfig.backCoverImage) {
+              doc.addPage();
+              try {
+                  const img = new Image();
+                  img.crossOrigin = "Anonymous";
+                  img.src = catalogConfig.backCoverImage;
+                  await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+                  doc.addImage(img, 'JPEG', 0, 0, 210, 297); // Dos plein page
+              } catch(e) { console.warn("Erreur image dos", e); }
           }
           
           doc.save(`Catalogue_${catalogConfig.coverTitle.replace(/\s+/g, '_')}.pdf`);
@@ -306,7 +359,18 @@ export default function CRMCatalogPage() {
           alert("Erreur lors de la génération du catalogue PDF.");
       } finally {
           setIsGeneratingPdf(false);
-          setIsCatalogStudioOpen(false);
+          setPdfProgress(0);
+          // Ne pas fermer le studio automatiquement pour permettre de voir le téléchargement se terminer
+      }
+  };
+
+  const handleQuickImageAdd = async (pId: number) => {
+      const url = prompt("Collez l'URL de l'image (format JPG/PNG) :");
+      if (url && url.trim() !== "") {
+          setProducts(prev => prev.map(p => p.id === pId ? { ...p, image_url: url.trim() } : p));
+          if (tenantId) {
+              await supabase.from('crm_products').update({ image_url: url.trim() }).eq('id', pId).eq('tenant_id', tenantId);
+          }
       }
   };
 
@@ -1242,90 +1306,118 @@ export default function CRMCatalogPage() {
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsCatalogStudioOpen(false)} className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
            <div className="bg-white dark:bg-zinc-950 rounded-[2.5rem] p-8 max-w-6xl w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 flex flex-col max-h-[90vh]">
              <button onClick={() => setIsCatalogStudioOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
-             <h2 className="text-2xl font-black uppercase mb-6 flex items-center gap-3 text-black dark:text-white">
-               <FileText className="text-[#39FF14]" size={24}/> Le Studio : Création de Catalogue
-             </h2>
+             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 pr-10">
+                 <h2 className="text-2xl font-black uppercase flex items-center gap-3 text-black dark:text-white">
+                   <FileText className="text-[#39FF14]" size={24}/> Le Studio : {studioTab === 'build' ? 'Création' : 'Analytics'}
+                 </h2>
+                 <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1.5 rounded-2xl">
+                     <button onClick={() => setStudioTab('build')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${studioTab === 'build' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>Création</button>
+                     <button onClick={() => setStudioTab('analytics')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${studioTab === 'analytics' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>📊 Analytics</button>
+                 </div>
+             </div>
              
-             <div className="flex flex-col lg:flex-row gap-8 overflow-hidden h-full">
-                {/* Paramètres Design */}
-                <div className="w-full lg:w-1/3 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                   <h3 className="font-bold uppercase text-zinc-500 text-xs tracking-widest mb-4">1. Design & Couverture</h3>
-                   
-                   <div>
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Titre Couverture</label>
-                      <input type="text" value={catalogConfig.coverTitle} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverTitle: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
-                   </div>
-                   <div>
-                      <label className="text-[10px] font-bold uppercase text-zinc-500">Image Couverture / Logo (URL)</label>
-                      <input type="url" value={catalogConfig.coverImage} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverImage: e.target.value})} placeholder="https://..." className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
-                   </div>
-                   <div className="grid grid-cols-3 gap-2">
-                      <div>
-                         <label className="text-[10px] font-bold uppercase text-zinc-500">Pos. X</label>
-                         <input type="number" value={catalogConfig.logoX} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoX: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
+             {studioTab === 'build' ? (
+             <div className="flex flex-col gap-4 overflow-hidden h-full">
+                {/* ACCORDION DESIGN */}
+                <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shrink-0 transition-all shadow-sm">
+                   <button onClick={() => setIsStudioDesignOpen(!isStudioDesignOpen)} className="w-full bg-zinc-50 dark:bg-zinc-900 p-4 flex justify-between items-center font-black uppercase text-xs tracking-widest hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                      <span className="flex items-center gap-2 text-black dark:text-white"><Palette size={16} className="text-[#39FF14]"/> Design du Catalogue (Optionnel)</span>
+                      {isStudioDesignOpen ? <ChevronUp size={16} className="text-zinc-500"/> : <ChevronDown size={16} className="text-zinc-500"/>}
+                   </button>
+                   {isStudioDesignOpen && (
+                      <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-white dark:bg-zinc-950">
+                         <div>
+                            <label className="text-[10px] font-bold uppercase text-zinc-500">Titre Couverture</label>
+                            <input type="text" value={catalogConfig.coverTitle} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverTitle: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="Catalogue 2026"/>
+                         </div>
+                         <div>
+                            <label className="text-[10px] font-bold uppercase text-zinc-500">URL Couverture (1ère page)</label>
+                            <input type="url" value={catalogConfig.coverImage} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverImage: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="https://... (Optionnel)"/>
+                         </div>
+                         <div>
+                            <label className="text-[10px] font-bold uppercase text-zinc-500">URL Dos (Dernière page)</label>
+                            <input type="url" value={catalogConfig.backCoverImage || ''} onChange={e => handleSaveCatalogConfig({...catalogConfig, backCoverImage: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="https://... (Optionnel)"/>
+                         </div>
+                         <div>
+                            <label className="text-[10px] font-bold uppercase text-zinc-500">URL Logo (Filigrane)</label>
+                            <input type="url" value={catalogConfig.logoUrl || ''} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoUrl: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="https://... (PNG transparent)"/>
+                         </div>
+                         <div className="lg:col-span-4 flex flex-wrap gap-4 items-end">
+                            <div className="flex-1 min-w-[80px]">
+                               <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Pos. X</label>
+                               <input type="number" value={catalogConfig.logoX} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoX: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]"/>
+                            </div>
+                            <div className="flex-1 min-w-[80px]">
+                               <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Pos. Y</label>
+                               <input type="number" value={catalogConfig.logoY} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoY: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]"/>
+                            </div>
+                            <div className="flex-1 min-w-[80px]">
+                               <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Taille</label>
+                               <input type="number" value={catalogConfig.logoSize} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoSize: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]"/>
+                            </div>
+                            <label className="flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-zinc-900 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shrink-0 h-[42px] mt-1">
+                               <input type="checkbox" checked={catalogConfig.showSummary} onChange={e => handleSaveCatalogConfig({...catalogConfig, showSummary: e.target.checked})} className="w-4 h-4 accent-black dark:accent-[#39FF14]"/>
+                               <span className="text-xs font-bold uppercase text-black dark:text-white">Générer Sommaire</span>
+                            </label>
+                         </div>
                       </div>
-                      <div>
-                         <label className="text-[10px] font-bold uppercase text-zinc-500">Pos. Y</label>
-                         <input type="number" value={catalogConfig.logoY} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoY: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
-                      </div>
-                      <div>
-                         <label className="text-[10px] font-bold uppercase text-zinc-500">Taille (Z)</label>
-                         <input type="number" value={catalogConfig.logoSize} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoSize: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
-                      </div>
-                   </div>
-                   <label className="flex items-center gap-2 cursor-pointer mt-2 bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                      <input type="checkbox" checked={catalogConfig.showSummary} onChange={e => handleSaveCatalogConfig({...catalogConfig, showSummary: e.target.checked})} className="w-4 h-4 accent-black dark:accent-[#39FF14]"/>
-                      <span className="text-xs font-bold uppercase text-black dark:text-white">Générer un sommaire</span>
-                   </label>
+                   )}
                 </div>
 
                 {/* Sélection Produits */}
-                <div className="w-full lg:w-2/3 flex flex-col h-full lg:border-l border-zinc-200 dark:border-zinc-800 lg:pl-8">
-                   <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-bold uppercase text-zinc-500 text-xs tracking-widest">2. Sélection des produits ({selectedIds.size} cochés)</h3>
+                <div className="flex flex-col h-full overflow-hidden">
+                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4 shrink-0">
+                      <h3 className="font-bold uppercase text-zinc-500 text-xs tracking-widest flex items-center gap-2"><Box size={16}/> Sélection des produits ({selectedIds.size} cochés)</h3>
+                      <div className="flex gap-2 w-full sm:w-auto">
+                          <select value={studioSelectedCategory} onChange={e => { setStudioSelectedCategory(e.target.value); setStudioSelectedSubCategory(''); }} className="w-full sm:w-48 p-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer text-black dark:text-white">
+                              <option value="">Toutes les catégories</option>
+                              {advancedCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                          </select>
+                          <select value={studioSelectedSubCategory} onChange={e => setStudioSelectedSubCategory(e.target.value)} disabled={!studioSelectedCategory} className="w-full sm:w-48 p-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer text-black dark:text-white disabled:opacity-50">
+                              <option value="">Toutes les sous-catégories</option>
+                              {advancedCategories.find(c => c.name === studioSelectedCategory)?.subcategories?.map(sub => (
+                                  <option key={sub} value={sub}>{sub}</option>
+                              ))}
+                          </select>
+                      </div>
                    </div>
-                   <select value={studioSelectedCategory} onChange={e => setStudioSelectedCategory(e.target.value)} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-bold mb-4 outline-none focus:border-[#39FF14] cursor-pointer text-black dark:text-white">
-                      <option value="">-- Choisir une catégorie d'abord --</option>
-                      {advancedCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                   </select>
 
-                   <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2 min-h-[250px]">
-                      {studioSelectedCategory ? products.filter(p => p.category === studioSelectedCategory).map(p => (
-                         <div key={p.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                            <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelection(p.id)} className="w-5 h-5 accent-black dark:accent-[#39FF14] cursor-pointer shrink-0"/>
+                   <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[250px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {products.filter(p => {
+                          const matchCat = !studioSelectedCategory || p.category === studioSelectedCategory;
+                          const matchSub = !studioSelectedSubCategory || p.subcategory === studioSelectedSubCategory;
+                          return matchCat && matchSub;
+                      }).map(p => (
+                         <div key={p.id} className={`flex flex-col bg-white dark:bg-zinc-900/50 p-3 rounded-2xl border ${selectedIds.has(p.id) ? 'border-[#39FF14] shadow-sm' : 'border-zinc-200 dark:border-zinc-800'} transition-all relative group cursor-pointer`} onClick={() => toggleSelection(p.id)}>
+                            <div className="absolute top-2 left-2 z-10">
+                               <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => {}} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer shadow-md border-2 border-white"/>
+                            </div>
                             
-                            <div className="w-16 h-16 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden relative group shrink-0 bg-white dark:bg-zinc-800 flex items-center justify-center">
+                            <div className="w-full aspect-square rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden relative bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
                                {p.image_url ? (
                                    <img src={p.image_url} className="w-full h-full object-cover"/>
                                ) : (
-                                   <ImageIcon size={20} className="text-zinc-400"/>
+                                   <button onClick={(e) => { e.stopPropagation(); handleQuickImageAdd(p.id); }} className="w-full h-full flex flex-col items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                                       <ImagePlus size={24}/>
+                                       <span className="text-[10px] font-bold mt-2 uppercase tracking-widest">Ajouter Image</span>
+                                   </button>
                                )}
-                               <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={async (e) => {
-                                      e.stopPropagation();
-                                      const newUrl = prompt("URL de la nouvelle image pour ce produit :", p.image_url || "");
-                                      if (newUrl !== null && newUrl.trim() !== "") {
-                                          setProducts(prev => prev.map(prod => prod.id === p.id ? { ...prod, image_url: newUrl.trim() } : prod));
-                                          if (tenantId) await supabase.from('crm_products').update({ image_url: newUrl.trim() }).eq('id', p.id).eq('tenant_id', tenantId);
-                                      }
-                                  }} className="text-white hover:text-[#39FF14] p-1 bg-black/50 rounded-lg"><Edit size={16}/></button>
-                               </div>
+                               {p.image_url && (
+                                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button onClick={(e) => { e.stopPropagation(); handleQuickImageAdd(p.id); }} className="text-white hover:text-[#39FF14] p-2 bg-black/50 rounded-full backdrop-blur-sm"><Edit size={16}/></button>
+                                   </div>
+                               )}
                             </div>
 
                             <div className="flex-1 min-w-0">
-                               <p className="font-bold text-sm text-black dark:text-white truncate">{p.name}</p>
+                               <p className="font-bold text-xs text-black dark:text-white line-clamp-2 leading-tight mb-1">{p.name}</p>
                                <p className="text-xs font-black text-[#39FF14]">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
                             </div>
                          </div>
-                      )) : (
-                         <div className="h-full flex flex-col items-center justify-center text-zinc-500 opacity-50 py-10">
-                            <FolderOpen size={48} className="mb-4"/>
-                            <p className="font-bold uppercase text-xs tracking-widest text-center">Sélectionnez une catégorie<br/>pour afficher ses produits</p>
-                         </div>
-                      )}
+                      ))}
                    </div>
 
-                   <div className="pt-4 mt-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0 flex flex-col sm:flex-row gap-3">
+                   <div className="pt-4 mt-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0 flex flex-col sm:flex-row gap-3 relative z-10 bg-white dark:bg-zinc-950">
                       <button onClick={() => { setSelectedIds(new Set()); setStudioSelectedCategory(''); }} className="px-6 py-4 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 font-bold uppercase text-xs rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">Réinitialiser</button>
                       <button onClick={() => {
                           const ids = Array.from(selectedIds).join(',');
@@ -1335,13 +1427,49 @@ export default function CRMCatalogPage() {
                       }} disabled={selectedIds.size === 0} className="flex-1 bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-md disabled:opacity-50">
                          <Link size={16}/> Lien Web
                       </button>
-                      <button onClick={generateStudioCatalog} disabled={isGeneratingPdf || selectedIds.size === 0} className="flex-1 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
-                         {isGeneratingPdf ? <Loader2 size={16} className="animate-spin"/> : <Download size={16}/>}
-                         PDF ({selectedIds.size})
+                      <button onClick={generateStudioCatalog} disabled={isGeneratingPdf || selectedIds.size === 0} className="relative overflow-hidden flex-1 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
+                         {isGeneratingPdf && <div className="absolute inset-y-0 left-0 bg-black/20 transition-all duration-300" style={{ width: `${pdfProgress}%` }} />}
+                         <span className="relative z-10 flex items-center gap-2">
+                            {isGeneratingPdf ? <Loader2 size={16} className="animate-spin"/> : <Download size={16}/>}
+                            {isGeneratingPdf ? `Génération... ${pdfProgress}%` : `PDF (${selectedIds.size})`}
+                         </span>
                       </button>
                    </div>
                 </div>
              </div>
+             ) : (
+                 <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                       <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                          <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Vues Totales</p>
+                          <p className="text-4xl font-black text-black dark:text-white">{totalViews}</p>
+                       </div>
+                       <div className="bg-zinc-50 dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                          <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Leads (Clics WhatsApp)</p>
+                          <p className="text-4xl font-black text-[#39FF14]">{totalClicks}</p>
+                       </div>
+                       <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-200 dark:border-blue-900/30">
+                          <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Taux de Conversion</p>
+                          <p className="text-4xl font-black text-blue-600 dark:text-blue-500">{conversionRate}%</p>
+                       </div>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 h-80 shadow-sm flex-1 min-h-[300px]">
+                       <h3 className="font-black uppercase mb-6 text-sm text-zinc-500">Performances sur les 7 derniers jours</h3>
+                       <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={analyticsData}>
+                             <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" vertical={false} />
+                             <XAxis dataKey="date" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
+                             <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
+                             <Tooltip cursor={{fill: 'rgba(57, 255, 20, 0.05)'}} contentStyle={{backgroundColor: '#000', borderColor: '#333', borderRadius: '8px', color: '#fff'}} />
+                             <Legend wrapperStyle={{fontSize: '10px', paddingTop: '10px'}}/>
+                             <Bar dataKey="views" name="Ouverture du Lien" fill="#71717a" radius={[4, 4, 0, 0]} />
+                             <Bar dataKey="clicks" name="Contact sur WhatsApp" fill="#39FF14" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                       </ResponsiveContainer>
+                    </div>
+                 </div>
+             )}
            </div>
         </div>
       )}

@@ -146,21 +146,26 @@ export default function CRMContactsPage() {
                   return o.items;
               }).join(' ').toLowerCase();
               
-              let segment = 'Non défini';
+              if (clientOrders.length === 0) {
+                  return { id: c.id, target_segment: 'Prospect Froid (Aucun achat)' };
+              }
+
+              const sectorMap: Record<string, string[]> = {
+                  'Boulangerie / Pâtisserie': ['four', 'pétrin', 'façonneuse', 'batteur', 'diviseuse', 'laminoir', 'boulangerie', 'pâtisserie'],
+                  'Restauration Rapide / Fast Food': ['friteuse', 'grill', 'panini', 'marmite', 'restauration', 'restaurant', 'plancha', 'sauteuse', 'fourneau'],
+                  'Froid & Conservation': ['vitrine', 'armoire', 'congélateur', 'chambre froide', 'glace', 'froid'],
+                  'Hôtellerie & Réception': ['hôtel', 'chambre', 'réception', 'buffet'],
+                  'Boutique Prêt-à-porter': ['boutique', 'prêt', 'vêtement', 'textile'],
+                  'Café & Bar': ['machine à café', 'percolateur', 'jus', 'boisson', 'bar'],
+                  'Transformation Agricole': ['moulin', 'presse', 'décortiqueuse', 'râpeuse']
+              };
               
-              if (!purchasedItems.trim()) {
-                  segment = 'Prospect Froid (Aucun achat)';
-              } else {
-                  const hasBoughtBakery = purchasedItems.includes('pétrin') || purchasedItems.includes('four') || purchasedItems.includes('boulangerie') || purchasedItems.includes('pâtisserie') || purchasedItems.includes('batteur') || purchasedItems.includes('façonneuse');
-                  const hasBoughtResto = purchasedItems.includes('friteuse') || purchasedItems.includes('marmite') || purchasedItems.includes('restauration') || purchasedItems.includes('restaurant') || purchasedItems.includes('plancha');
-                  const hasBoughtHotel = purchasedItems.includes('hôtel') || purchasedItems.includes('chambre') || purchasedItems.includes('réception');
-                  const hasBoughtBoutique = purchasedItems.includes('boutique') || purchasedItems.includes('prêt') || purchasedItems.includes('vêtement');
-                  
-                  if (hasBoughtBakery) segment = 'Boulangerie/Pâtisserie';
-                  else if (hasBoughtResto) segment = 'Restauration Rapide';
-                  else if (hasBoughtHotel) segment = 'Hôtellerie';
-                  else if (hasBoughtBoutique) segment = 'Boutique Prêt-à-porter';
-                  else segment = 'Client Standard';
+              let segment = 'Client Standard';
+              for (const [sector, keywords] of Object.entries(sectorMap)) {
+                  if (keywords.some(kw => purchasedItems.includes(kw))) {
+                      segment = sector;
+                      break;
+                  }
               }
               
               return { id: c.id, target_segment: segment };
@@ -278,10 +283,6 @@ export default function CRMContactsPage() {
           <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-black dark:text-white">Contacts & Cibleur IA</h1>
           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Gérez et auto-classifiez vos clients</p>
         </div>
-        <button onClick={handleAutoClassify} disabled={isClassifying} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
-           {isClassifying ? <Loader2 size={16} className="animate-spin" /> : <Bot size={16} />}
-           Auto-Classifier (IA)
-        </button>
         <div className="flex items-center gap-3">
           <input type="file" accept=".csv, .xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
           <button onClick={() => fileInputRef.current?.click()} disabled={isImporting} className="bg-white text-black border border-zinc-200 px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-50 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
