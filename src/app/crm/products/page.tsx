@@ -71,6 +71,7 @@ export default function CRMCatalogPage() {
       backCoverImage: '',
       logoUrl: ''
   });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
       if (isCatalogStudioOpen && studioTab === 'analytics' && tenantId) {
@@ -78,6 +79,38 @@ export default function CRMCatalogPage() {
           .then(({data}) => { if (data) setCatalogStats(data); });
       }
   }, [isCatalogStudioOpen, studioTab, tenantId]);
+
+  // Notifications Push en Temps Réel pour l'Admin
+  useEffect(() => {
+      if (!tenantId) return;
+      
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+      }
+
+      const channel = supabase
+          .channel('realtime-catalog-views')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'catalog_analytics', filter: `tenant_id=eq.${tenantId}` }, (payload) => {
+              const event = payload.new;
+              let msg = "";
+              if (event.event_type === 'view') {
+                  msg = "👁️ Quelqu'un consulte actuellement votre catalogue !";
+              } else if (event.event_type === 'click_whatsapp') {
+                  msg = "💬 Un client s'apprête à vous contacter sur WhatsApp !";
+              }
+              
+              if (msg) {
+                  setToastMessage(msg);
+                  setTimeout(() => setToastMessage(null), 5000);
+                  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                      new Notification("Onyx Studio", { body: msg, icon: '/favicon.ico' });
+                  }
+              }
+          })
+          .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+  }, [tenantId]);
 
   const analyticsData = React.useMemo(() => {
       const grouped: Record<string, { date: string, views: number, clicks: number }> = {};
@@ -191,14 +224,14 @@ export default function CRMCatalogPage() {
           .from('crm_products')
           .select('*')
           .eq('tenant_id', tId)
-          .or('unit_price.gt.0,price_ttc.gt.0')
           .order('created_at', { ascending: false });
 
         if (error) {
             console.error("🚨 ERREUR SQL (fetchProducts) :", error.message);
         }
         if (data && !error && isMounted) {
-          setProducts(data);
+          const validProducts = data.filter((p: any) => Number(p.unit_price || p.price_ttc || 0) > 0);
+          setProducts(validProducts);
         }
 
         const { data: clientsData } = await supabase.from('clients').select('*').eq('tenant_id', tId);
@@ -1563,6 +1596,13 @@ export default function CRMCatalogPage() {
            </div>
         </div>
       )}
+
+       {/* TOAST NOTIFICATION TEMPS RÉEL */}
+       {toastMessage && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-[#39FF14] dark:text-black px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[300] animate-in slide-in-from-bottom-5">
+              <Sparkles size={16}/> {toastMessage}
+          </div>
+       )}
     </div>
   );
 }
