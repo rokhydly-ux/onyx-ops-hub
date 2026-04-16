@@ -136,36 +136,49 @@ export default function CRMContactsPage() {
   const handleAutoClassify = async () => {
       setIsClassifying(true);
       try {
-          const { data: orders, error: ordersError } = await supabase.from('crm_orders').select('contact_id, customer_phone, items').eq('tenant_id', tenantId);
           if (ordersError) throw ordersError;
           
           const updatedSegments = contacts.map(c => {
               const clientOrders = orders?.filter(o => o.contact_id === c.id || (o.customer_phone && o.customer_phone === c.phone)) || [];
-              const purchasedItems = clientOrders.map(o => {
-                  if (Array.isArray(o.items)) return o.items.map((i:any) => i.name).join(' ');
-                  return o.items;
-              }).join(' ').toLowerCase();
               
               if (clientOrders.length === 0) {
                   return { id: c.id, target_segment: 'PROSPECT FROID' };
               }
 
-              const sectorMap: Record<string, string[]> = {
-                  'CLIENT BOULANGERIE': ['pétrin', 'four à sole', 'façonneuse', 'diviseuse'],
-                  'CLIENT CUISSON': ['friteuse', 'panini', 'grillade', 'four mixte'],
-                  'CLIENT FROID INDUSTRIEL': ['glace', 'réfrigérée', 'chambre froide', 'congélateur'],
-                  'CLIENT B2C': ['assiette', 'verre', 'poêle', 'ustensile']
+              const clientSectorMap: Record<string, string[]> = {
+                  'CLIENT BOULANGERIE': ['pétrin', 'four à sole', 'façonneuse', 'diviseuse', 'batteur', 'laminoir'],
+                  'CLIENT CUISSON': ['four mixte', 'grillade', 'feux vifs', 'sauteuse', 'piano de cuisson', 'friteuse'],
+                  'CLIENT FAST FOOD': ['chawarma', 'panini', 'hamburger', 'gaufrier', 'blender', 'presse-agrume'],
+                  'CLIENT TRAITEUR': ['marmite', 'bain marie', 'chafing dish', 'faitout', 'conteneur isotherme'],
+                  'CLIENT FROID INDUSTRIEL': ['glace', 'réfrigérée', 'chambre froide', 'congélateur', 'saladette'],
+                  'CLIENT TRANSFORMATION AGRICOLE': ['moulin', 'farine', 'décortiqueuse', 'broyeur'],
+                  'CLIENT PACKAGING': ['ensacheuse', 'remplisseuse', 'scelleuse', 'dateur', 'operculeuse'],
+                  'CLIENT B2C': ['assiette', 'verre', 'poêle', 'ustensile', 'cuillère', 'vaisselle', 'petit électroménager', 'accessoire de table']
               };
               
-              let segment = 'CLIENT ACTIF';
-              for (const [sector, keywords] of Object.entries(sectorMap)) {
-                  if (keywords.some(kw => purchasedItems.includes(kw))) {
-                      segment = sector;
-                      break;
+              const sectorSpending: Record<string, number> = {};
+              clientOrders.forEach(order => {
+                  const orderItems = order.items || [];
+                  if (Array.isArray(orderItems)) {
+                      orderItems.forEach((item: any) => {
+                          const itemName = (item.name || '').toLowerCase();
+                          const itemValue = (item.price || 0) * (item.quantity || 1);
+                          for (const [sector, keywords] of Object.entries(clientSectorMap)) {
+                              if (keywords.some(kw => itemName.includes(kw))) {
+                                  sectorSpending[sector] = (sectorSpending[sector] || 0) + itemValue;
+                                  break; 
+                              }
+                          }
+                      });
                   }
+              });
+              const spendingEntries = Object.entries(sectorSpending);
+              if (spendingEntries.length === 0) {
+                  return { id: c.id, target_segment: 'CLIENT ACTIF NON SEGMENTÉ' };
               }
+              const [topSector] = spendingEntries.sort((a, b) => b[1] - a[1])[0];
               
-              return { id: c.id, target_segment: segment };
+              return { id: c.id, target_segment: topSector };
           });
           
           if (updatedSegments.length > 0) {
