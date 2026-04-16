@@ -990,20 +990,25 @@ export default function LeadsKanbanPage() {
                   <select 
                     value={selectedLead.assigned_to || ""}
                     onChange={async (e) => {
-                      const newAssignee = e.target.value;
-                      await supabase.from('crm_leads').update({ assigned_to: newAssignee }).eq('id', selectedLead.id).eq('tenant_id', userId);
-                      setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, assigned_to: newAssignee } : l));
-                      setSelectedLead({ ...selectedLead, assigned_to: newAssignee });
-                      
-                      if (newAssignee) {
-                          const commercial = commercials.find(c => c.full_name === newAssignee);
-                          if (commercial && commercial.phone) {
-                              if (confirm(`Voulez-vous notifier ${commercial.full_name} par WhatsApp de cette nouvelle assignation ?`)) {
-                                  const msg = `Salut ${commercial.full_name}, un nouveau prospect vient de t'être assigné dans le CRM OnyxOps !\n\n👤 Prospect : ${selectedLead.full_name}\n📞 Contact : ${selectedLead.phone}\n🎯 Intérêt : ${selectedLead.intent || 'Non spécifié'}\n\nConnecte-toi sur ton espace pour le traiter au plus vite.`;
-                                  window.open(`https://wa.me/${commercial.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                              }
-                          }
-                      }
+                        const newAssignee = e.target.value;
+                        const { error } = await supabase.from('crm_leads').update({ assigned_to: newAssignee }).eq('id', selectedLead.id).eq('tenant_id', userId);
+                        
+                        if (error) {
+                            alert("Erreur lors de l'assignation : " + error.message);
+                        } else {
+                            setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, assigned_to: newAssignee } : l));
+                            setSelectedLead({ ...selectedLead, assigned_to: newAssignee });
+                            
+                            if (newAssignee) {
+                                const commercial = commercials.find(c => c.full_name === newAssignee);
+                                if (commercial && commercial.phone) {
+                                    if (confirm(`Voulez-vous notifier ${commercial.full_name} par WhatsApp de cette nouvelle assignation ?`)) {
+                                        const msg = `Salut ${commercial.full_name}, un nouveau prospect vient de t'être assigné dans le CRM OnyxOps !\n\n👤 Prospect : ${selectedLead.full_name}\n📞 Contact : ${selectedLead.phone}\n🎯 Intérêt : ${selectedLead.intent || 'Non spécifié'}\n\nConnecte-toi sur ton espace pour le traiter au plus vite.`;
+                                        window.open(`https://wa.me/${commercial.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                                    }
+                                }
+                            }
+                        }
                     }}
                     className="w-full p-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer appearance-none"
                   >

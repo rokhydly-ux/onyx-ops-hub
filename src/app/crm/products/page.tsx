@@ -811,14 +811,30 @@ export default function CRMCatalogPage() {
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const uniqueCategories = React.useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))), [products]);
-
+  
   const displayCategories = React.useMemo(() => {
-    if (advancedCategories.length > 0) {
-      return advancedCategories;
-    }
-    // Fallback to categories from products if not configured in settings
-    return uniqueCategories.map(cat => ({ id: cat, name: cat, subcategories: [] }));
+    const categoryMap = new Map<string, {id: string, name: string, subcategories: string[], color?: string}>();
+
+    // Add categories from products first as a base
+    uniqueCategories.forEach(catName => {
+        if (catName) {
+            categoryMap.set(catName, { id: catName, name: catName, subcategories: [] });
+        }
+    });
+
+    // Then, overwrite/add with advanced settings for more details (like subcategories and color)
+    advancedCategories.forEach(advCat => {
+        categoryMap.set(advCat.name, advCat);
+    });
+
+    return Array.from(categoryMap.values());
   }, [advancedCategories, uniqueCategories]);
+
+  const allCategoryNames = displayCategories.map(c => c.name);
+  const subcategoriesForForm = React.useMemo(() => {
+      const selectedCat = displayCategories.find(c => c.name === editForm.category);
+      return selectedCat?.subcategories || [];
+  }, [displayCategories, editForm.category]);
 
   if (isLoading) return <div className="h-full flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#39FF14]" /></div>;
 
@@ -931,7 +947,7 @@ export default function CRMCatalogPage() {
             <>
               {categoryFilter !== 'Toutes' && !search && (() => {
                   const selectedCategoryData = advancedCategories.find(c => c.name === categoryFilter);
-                  // Si des sous-catégories sont définiees dans les paramètres, on les utilise.
+                  // Si des sous-catégories sont définies dans les paramètres, on les utilise.
                   // Sinon, on les génère dynamiquement à partir des produits de la catégorie sélectionnée.
                   const subcategories = (selectedCategoryData?.subcategories?.length ?? 0) > 0 
                       ? selectedCategoryData!.subcategories 
@@ -1269,7 +1285,9 @@ export default function CRMCatalogPage() {
                             className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer"
                           >
                              <option value="" disabled>Sélectionner une catégorie</option>
-                             {advancedCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                             {allCategoryNames.map(catName => (
+                                <option key={catName} value={catName}>{catName}</option>
+                             ))}
                           </select>
                       </div>
                       <div>
@@ -1280,7 +1298,9 @@ export default function CRMCatalogPage() {
                             className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer"
                           >
                              <option value="" disabled>Sélectionner une sous-catégorie</option>
-                             {advancedCategories.find(c => c.name === editForm.category)?.subcategories?.map(sub => (<option key={sub} value={sub}>{sub}</option>))}
+                             {subcategoriesForForm.map(sub => (
+                                <option key={sub} value={sub}>{sub}</option>
+                             ))}
                           </select>
                       </div>
                   </div>
@@ -1474,14 +1494,14 @@ export default function CRMCatalogPage() {
              </div>
              
              {studioTab === 'build' ? (
-             <div className="flex flex-col gap-4 overflow-hidden h-full">
+             <div className="flex flex-col gap-4 flex-1 min-h-0">
                 {/* ACCORDION DESIGN */}
                 <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shrink-0 transition-all shadow-sm">
                    <button onClick={() => setIsStudioDesignOpen(!isStudioDesignOpen)} className="w-full bg-zinc-50 dark:bg-zinc-900 p-4 flex justify-between items-center font-black uppercase text-xs tracking-widest hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                       <span className="flex items-center gap-2 text-black dark:text-white"><Palette size={16} className="text-[#39FF14]"/> Design du Catalogue (Optionnel)</span>
                       {isStudioDesignOpen ? <ChevronUp size={16} className="text-zinc-500"/> : <ChevronDown size={16} className="text-zinc-500"/>}
                    </button>
-                   {isStudioDesignOpen && (
+                   {isStudioDesignOpen && ( // NOTE: This section was correct, just providing context for the change below
                       <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-white dark:bg-zinc-950">
                          <div>
                             <label className="text-[10px] font-bold uppercase text-zinc-500">Titre Couverture</label>
@@ -1522,7 +1542,7 @@ export default function CRMCatalogPage() {
                 </div>
 
                 {/* Sélection Produits */}
-                <div className="flex flex-col h-full overflow-hidden">
+                <div className="flex flex-col flex-1 min-h-0">
                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4 shrink-0">
                       <h3 className="font-bold uppercase text-zinc-500 text-xs tracking-widest flex items-center gap-2"><Box size={16}/> Sélection des produits ({selectedIds.size} cochés)</h3>
                       <div className="flex gap-2 w-full sm:w-auto">
