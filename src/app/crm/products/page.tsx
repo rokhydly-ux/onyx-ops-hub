@@ -931,7 +931,7 @@ export default function CRMCatalogPage() {
             <>
               {categoryFilter !== 'Toutes' && !search && (() => {
                   const selectedCategoryData = advancedCategories.find(c => c.name === categoryFilter);
-                  // Si des sous-catégories sont définies dans les paramètres, on les utilise.
+                  // Si des sous-catégories sont définiees dans les paramètres, on les utilise.
                   // Sinon, on les génère dynamiquement à partir des produits de la catégorie sélectionnée.
                   const subcategories = (selectedCategoryData?.subcategories?.length ?? 0) > 0 
                       ? selectedCategoryData!.subcategories 
