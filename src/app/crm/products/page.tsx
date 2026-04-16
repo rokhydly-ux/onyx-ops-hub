@@ -780,9 +780,10 @@ export default function CRMCatalogPage() {
   };
 
   const filteredProducts = React.useMemo(() => {
+    const searchLower = search.toLowerCase().trim();
     return products.filter(p => {
-      const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase()) || (p.category || '').toLowerCase().includes(search.toLowerCase());
-      
+      const matchSearch = searchLower === '' || (p.name || '').toLowerCase().includes(searchLower) || (p.category || '').toLowerCase().includes(searchLower) || (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => t.toLowerCase().includes(searchLower)));
+
       let matchCat = false;
       if (categoryFilter === 'Toutes') {
           matchCat = true;
@@ -809,7 +810,15 @@ export default function CRMCatalogPage() {
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  const uniqueCategories = React.useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))), [products]);
+
+  const displayCategories = React.useMemo(() => {
+    if (advancedCategories.length > 0) {
+      return advancedCategories;
+    }
+    // Fallback to categories from products if not configured in settings
+    return uniqueCategories.map(cat => ({ id: cat, name: cat, subcategories: [] }));
+  }, [advancedCategories, uniqueCategories]);
 
   if (isLoading) return <div className="h-full flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#39FF14]" /></div>;
 
@@ -871,9 +880,9 @@ export default function CRMCatalogPage() {
           </div>
 
           {/* INTERFACE GRID */}
-          {categoryFilter === 'Toutes' && !search && advancedCategories.length > 0 ? (
+          {categoryFilter === 'Toutes' && !search && displayCategories.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {advancedCategories.map(catData => {
+                  {displayCategories.map(catData => {
                       const cat = catData.name;
                       const defaultImg = `https://placehold.co/800x800/111/39FF14?text=${encodeURIComponent(cat)}`;
                       const count = products.filter(p => {
@@ -920,37 +929,89 @@ export default function CRMCatalogPage() {
               </div>
           ) : (
             <>
-              {categoryFilter !== 'Toutes' && !search && (
-                  <div className="mb-10">
-                      <div className="flex justify-between items-center mb-6">
-                          <h3 className="font-black uppercase text-xl flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> Les Nouveautés</h3>
-                          <button onClick={() => setCategoryFilter('Toutes')} className="text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-1 transition-colors"><ChevronLeft size={14}/> Retour aux familles</button>
-                      </div>
-                      <div className="flex gap-4 overflow-x-auto pb-6 custom-scrollbar snap-x">
-                         {products.filter(p => {
-                             if (categoryFilter === "📦 Nouveaux Arrivages (À trier)") {
-                                 return !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !categoryCovers[p.category];
-                             }
-                             return p.category === categoryFilter;
-                         }).sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 8).map(p => (
-                             <div key={p.id} className="snap-start shrink-0 w-64 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-sm flex flex-col group cursor-pointer hover:border-[#39FF14] transition-all" onClick={() => handleOpenEdit(p)}>
-                                 <div className="h-48 bg-zinc-100 dark:bg-zinc-900 relative overflow-hidden">
-                                    <img src={p.image_url || 'https://placehold.co/400x400/1a1a1a/39FF14?text=PRD'} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                    <span className="absolute top-3 right-3 bg-black text-[#39FF14] text-[9px] font-black uppercase px-2.5 py-1 rounded-lg shadow-lg border border-[#39FF14]/30">Nouveau</span>
+              {categoryFilter !== 'Toutes' && !search && (() => {
+                  const selectedCategoryData = advancedCategories.find(c => c.name === categoryFilter);
+                  // Si des sous-catégories sont définies dans les paramètres, on les utilise.
+                  // Sinon, on les génère dynamiquement à partir des produits de la catégorie sélectionnée.
+                  const subcategories = (selectedCategoryData?.subcategories?.length ?? 0) > 0 
+                      ? selectedCategoryData!.subcategories 
+                      : Array.from(new Set(products.filter(p => p.category === categoryFilter && p.subcategory).map(p => p.subcategory as string)));
+
+                  if (subcategories.length > 0) {
+                      return (
+                          <div className="space-y-12">
+                              <div className="flex justify-end">
+                                  <button onClick={() => setCategoryFilter('Toutes')} className="text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-1 transition-colors"><ChevronLeft size={14}/> Retour aux familles</button>
+                              </div>
+                              {subcategories.map(subCat => {
+                                  const subCatProducts = products
+                                      .filter(p => p.category === categoryFilter && p.subcategory === subCat)
+                                      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+                                      .slice(0, 7);
+                                  
+                                  if (subCatProducts.length === 0) return null;
+
+                                  return (
+                                      <div key={subCat} className="mb-10">
+                                          <h3 className="font-black uppercase text-xl flex items-center gap-2 mb-6"><Sparkles className="text-[#39FF14]"/> {subCat}</h3>
+                                          <div className="flex gap-4 overflow-x-auto pb-6 custom-scrollbar snap-x">
+                                              {subCatProducts.map(p => (
+                                                  <div key={p.id} className="snap-start shrink-0 w-64 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-sm flex flex-col group cursor-pointer hover:border-[#39FF14] transition-all" onClick={() => handleOpenEdit(p)}>
+                                                      <div className="h-48 bg-zinc-100 dark:bg-zinc-900 relative overflow-hidden">
+                                                          <img src={p.image_url || 'https://placehold.co/400x400/1a1a1a/39FF14?text=PRD'} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                          <span className="absolute top-3 right-3 bg-black text-[#39FF14] text-[9px] font-black uppercase px-2.5 py-1 rounded-lg shadow-lg border border-[#39FF14]/30">Nouveau</span>
+                                                      </div>
+                                                      <div className="p-5 flex flex-col gap-1">
+                                                          <p className="font-bold text-sm truncate">{p.name}</p>
+                                                          <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest truncate">
+                                                              {p.category}
+                                                              {p.subcategory && <span className="text-zinc-400 opacity-70"> • {p.subcategory}</span>}
+                                                          </p>
+                                                          <p className="text-[#39FF14] font-black mt-2 text-lg">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
+                                                      </div>
+                                                  </div>
+                                              ))}
+                                          </div>
+                                      </div>
+                                  );
+                              })}
+                          </div>
+                      );
+                  }
+
+                  // Fallback to original "Nouveautés" slider if no subcategories
+                  return (
+                      <div className="mb-10">
+                          <div className="flex justify-between items-center mb-6">
+                              <h3 className="font-black uppercase text-xl flex items-center gap-2"><Sparkles className="text-[#39FF14]"/> Les Nouveautés</h3>
+                              <button onClick={() => setCategoryFilter('Toutes')} className="text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-1 transition-colors"><ChevronLeft size={14}/> Retour aux familles</button>
+                          </div>
+                          <div className="flex gap-4 overflow-x-auto pb-6 custom-scrollbar snap-x">
+                             {products.filter(p => {
+                                 if (categoryFilter === "📦 Nouveaux Arrivages (À trier)") {
+                                     return !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !categoryCovers[p.category];
+                                 }
+                                 return p.category === categoryFilter;
+                             }).sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 8).map(p => (
+                                 <div key={p.id} className="snap-start shrink-0 w-64 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-sm flex flex-col group cursor-pointer hover:border-[#39FF14] transition-all" onClick={() => handleOpenEdit(p)}>
+                                     <div className="h-48 bg-zinc-100 dark:bg-zinc-900 relative overflow-hidden">
+                                        <img src={p.image_url || 'https://placehold.co/400x400/1a1a1a/39FF14?text=PRD'} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <span className="absolute top-3 right-3 bg-black text-[#39FF14] text-[9px] font-black uppercase px-2.5 py-1 rounded-lg shadow-lg border border-[#39FF14]/30">Nouveau</span>
+                                     </div>
+                                     <div className="p-5 flex flex-col gap-1">
+                                        <p className="font-bold text-sm truncate">{p.name}</p>
+                                        <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest truncate">
+                                          {p.category}
+                                          {p.subcategory && <span className="text-zinc-400 opacity-70"> • {p.subcategory}</span>}
+                                        </p>
+                                        <p className="text-[#39FF14] font-black mt-2 text-lg">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
+                                     </div>
                                  </div>
-                                 <div className="p-5 flex flex-col gap-1">
-                                    <p className="font-bold text-sm truncate">{p.name}</p>
-                                    <p className="text-zinc-500 text-[10px] uppercase font-black tracking-widest truncate">
-                                      {p.category}
-                                      {p.subcategory && <span className="text-zinc-400 opacity-70"> • {p.subcategory}</span>}
-                                    </p>
-                                    <p className="text-[#39FF14] font-black mt-2 text-lg">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
-                                 </div>
-                             </div>
-                         ))}
+                             ))}
+                          </div>
                       </div>
-                  </div>
-              )}
+                  );
+              })()}
               <div className="flex justify-between items-center mb-6">
                   <h3 className="font-black uppercase text-lg">Tous les produits {categoryFilter !== 'Toutes' ? `(${categoryFilter})` : ''}</h3>
                   <select value={productSort} onChange={e => setProductSort(e.target.value as any)} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2 rounded-xl text-xs font-bold outline-none cursor-pointer appearance-none">
