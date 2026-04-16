@@ -147,20 +147,17 @@ export default function CRMContactsPage() {
               }).join(' ').toLowerCase();
               
               if (clientOrders.length === 0) {
-                  return { id: c.id, target_segment: 'Prospect Froid (Aucun achat)' };
+                  return { id: c.id, target_segment: 'PROSPECT FROID' };
               }
 
               const sectorMap: Record<string, string[]> = {
-                  'Boulangerie / Pâtisserie': ['four', 'pétrin', 'façonneuse', 'batteur', 'diviseuse', 'laminoir', 'boulangerie', 'pâtisserie'],
-                  'Restauration Rapide / Fast Food': ['friteuse', 'grill', 'panini', 'marmite', 'restauration', 'restaurant', 'plancha', 'sauteuse', 'fourneau'],
-                  'Froid & Conservation': ['vitrine', 'armoire', 'congélateur', 'chambre froide', 'glace', 'froid'],
-                  'Hôtellerie & Réception': ['hôtel', 'chambre', 'réception', 'buffet'],
-                  'Boutique Prêt-à-porter': ['boutique', 'prêt', 'vêtement', 'textile'],
-                  'Café & Bar': ['machine à café', 'percolateur', 'jus', 'boisson', 'bar'],
-                  'Transformation Agricole': ['moulin', 'presse', 'décortiqueuse', 'râpeuse']
+                  'CLIENT BOULANGERIE': ['pétrin', 'four à sole', 'façonneuse', 'diviseuse'],
+                  'CLIENT CUISSON': ['friteuse', 'panini', 'grillade', 'four mixte'],
+                  'CLIENT FROID INDUSTRIEL': ['glace', 'réfrigérée', 'chambre froide', 'congélateur'],
+                  'CLIENT B2C': ['assiette', 'verre', 'poêle', 'ustensile']
               };
               
-              let segment = 'Client Standard';
+              let segment = 'CLIENT ACTIF';
               for (const [sector, keywords] of Object.entries(sectorMap)) {
                   if (keywords.some(kw => purchasedItems.includes(kw))) {
                       segment = sector;
