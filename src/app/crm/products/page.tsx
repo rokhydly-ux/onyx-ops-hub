@@ -230,7 +230,12 @@ export default function CRMCatalogPage() {
             console.error("🚨 ERREUR SQL (fetchProducts) :", error.message);
         }
         if (data && !error && isMounted) {
-          const validProducts = data.filter((p: any) => Number(p.unit_price || p.price_ttc || 0) > 0);
+            // Filtrage hyper-sécurisé pour gérer les prix venant d'Odoo au format texte (ex: "15 000 FCFA")
+            const validProducts = data.filter((p: any) => {
+                const rawPrice = p.unit_price || p.price_ttc || p.price || 0;
+                const cleanPrice = typeof rawPrice === 'string' ? Number(String(rawPrice).replace(/[^0-9.-]+/g, '')) : Number(rawPrice);
+                return !isNaN(cleanPrice) && cleanPrice > 0;
+            });
           setProducts(validProducts);
         }
 
@@ -795,7 +800,8 @@ export default function CRMCatalogPage() {
           matchCat = p.category === categoryFilter || (p.category || '').startsWith(categoryFilter + ' /');
       }
 
-      const price = p.unit_price || p.price_ttc || 0;
+          const rawPrice = p.unit_price || p.price_ttc || p.price || 0;
+          const price = typeof rawPrice === 'string' ? Number(String(rawPrice).replace(/[^0-9.-]+/g, '')) : Number(rawPrice);
       const matchMin = minPrice === '' || price >= Number(minPrice);
       const matchMax = maxPrice === '' || price <= Number(maxPrice);
       return matchSearch && matchCat && matchMin && matchMax;
@@ -875,7 +881,7 @@ export default function CRMCatalogPage() {
           </div>
 
           {/* INTERFACE GRID */}
-          {categoryFilter === 'Toutes' && !search ? (
+          {categoryFilter === 'Toutes' && !search && advancedCategories.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {advancedCategories.map(catData => {
                       const cat = catData.name;
@@ -967,6 +973,8 @@ export default function CRMCatalogPage() {
                 {paginatedProducts.map(product => {
                const status = getStockStatus(product.last_sold_date, product.created_at);
                const catColor = advancedCategories.find(c => c.name === product.category)?.color || '#39FF14';
+               const rawDisplayPrice = product.unit_price || product.price_ttc || product.price || 0;
+               const cleanDisplayPrice = typeof rawDisplayPrice === 'string' ? Number(String(rawDisplayPrice).replace(/[^0-9.-]+/g, '')) : Number(rawDisplayPrice);
                return (
                  <div key={product.id} onMouseEnter={(e) => e.currentTarget.style.borderColor = catColor} onMouseLeave={(e) => e.currentTarget.style.borderColor = ''} className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden flex flex-col transition-all shadow-sm group h-[320px]">
                    <div className="h-40 bg-zinc-100 dark:bg-zinc-900 relative overflow-hidden shrink-0">
@@ -993,7 +1001,7 @@ export default function CRMCatalogPage() {
                      </div>
                      
                      <div className="mt-auto pt-3 flex items-end justify-between border-t border-zinc-100 dark:border-zinc-800/50">
-                       <p className="font-black text-lg text-[#39FF14]">{(product.unit_price || product.price_ttc || 0).toLocaleString('fr-FR')} <span className="text-xs text-black dark:text-white">F</span></p>
+                       <p className="font-black text-lg text-[#39FF14]">{(isNaN(cleanDisplayPrice) ? 0 : cleanDisplayPrice).toLocaleString('fr-FR')} <span className="text-xs text-black dark:text-white">F</span></p>
                        <div className="flex gap-1.5">
                          <button onClick={() => setViewingProduct(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors shadow-sm" title="Voir Fiche Technique"><Eye size={14}/></button>
                          <button onClick={() => handleOpenEdit(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors shadow-sm"><Edit size={14}/></button>
