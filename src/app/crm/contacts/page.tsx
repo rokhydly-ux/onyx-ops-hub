@@ -136,47 +136,50 @@ export default function CRMContactsPage() {
   const handleAutoClassify = async () => {
       setIsClassifying(true);
       try {
+          // Fetch de l'historique d'achat complet
+          const { data: orders, error: ordersError } = await supabase.from('crm_orders').select('contact_id, customer_phone, items').eq('tenant_id', tenantId);
           if (ordersError) throw ordersError;
           
           const updatedSegments = contacts.map(c => {
               const clientOrders = orders?.filter(o => o.contact_id === c.id || (o.customer_phone && o.customer_phone === c.phone)) || [];
               
+              // Étape 4: Fallback Prospect
               if (clientOrders.length === 0) {
                   return { id: c.id, target_segment: 'PROSPECT FROID' };
               }
 
-              const clientSectorMap: Record<string, string[]> = {
-                  'CLIENT BOULANGERIE': ['pétrin', 'four à sole', 'façonneuse', 'diviseuse', 'batteur', 'laminoir'],
-                  'CLIENT CUISSON': ['four mixte', 'grillade', 'feux vifs', 'sauteuse', 'piano de cuisson', 'friteuse'],
-                  'CLIENT FAST FOOD': ['chawarma', 'panini', 'hamburger', 'gaufrier', 'blender', 'presse-agrume'],
-                  'CLIENT TRAITEUR': ['marmite', 'bain marie', 'chafing dish', 'faitout', 'conteneur isotherme'],
-                  'CLIENT FROID INDUSTRIEL': ['glace', 'réfrigérée', 'chambre froide', 'congélateur', 'saladette'],
-                  'CLIENT TRANSFORMATION AGRICOLE': ['moulin', 'farine', 'décortiqueuse', 'broyeur'],
-                  'CLIENT PACKAGING': ['ensacheuse', 'remplisseuse', 'scelleuse', 'dateur', 'operculeuse'],
-                  'CLIENT B2C': ['assiette', 'verre', 'poêle', 'ustensile', 'cuillère', 'vaisselle', 'petit électroménager', 'accessoire de table']
+              // Étape 1: Dictionnaire de mots-clés
+              const sectorMap: Record<string, string[]> = {
+                  'CLIENT BOULANGERIE': ['pétrin', 'four à sole', 'façonneuse', 'diviseuse'],
+                  'CLIENT CUISSON': ['friteuse', 'panini', 'grillade', 'four mixte'],
+                  'CLIENT FROID INDUSTRIEL': ['glace', 'réfrigérée', 'chambre froide', 'congélateur'],
+                  'CLIENT B2C': ['assiette', 'verre', 'poêle', 'ustensile']
               };
               
-              const sectorSpending: Record<string, number> = {};
+              const sectorSpending: Record<string, number> = {}; // Pour suivre les dépenses par secteur
               clientOrders.forEach(order => {
                   const orderItems = order.items || [];
                   if (Array.isArray(orderItems)) {
                       orderItems.forEach((item: any) => {
                           const itemName = (item.name || '').toLowerCase();
-                          const itemValue = (item.price || 0) * (item.quantity || 1);
-                          for (const [sector, keywords] of Object.entries(clientSectorMap)) {
+                          const itemValue = (item.price || 0) * (item.quantity || 1); // Valeur de l'article
+                          for (const [sector, keywords] of Object.entries(sectorMap)) {
                               if (keywords.some(kw => itemName.includes(kw))) {
                                   sectorSpending[sector] = (sectorSpending[sector] || 0) + itemValue;
-                                  break; 
+                                  break; // On attribue l'article au premier secteur correspondant
                               }
                           }
                       });
                   }
               });
+
               const spendingEntries = Object.entries(sectorSpending);
+              // Étape 3: Fallback Client Actif
               if (spendingEntries.length === 0) {
-                  return { id: c.id, target_segment: 'CLIENT ACTIF NON SEGMENTÉ' };
+                  return { id: c.id, target_segment: 'CLIENT ACTIF' };
               }
-              const [topSector] = spendingEntries.sort((a, b) => b[1] - a[1])[0];
+              // Étape 2: Règle de priorité basée sur le montant dépensé
+              const [topSector] = spendingEntries.sort((a, b) => b[1] - a[1])[0]; 
               
               return { id: c.id, target_segment: topSector };
           });

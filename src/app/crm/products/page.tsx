@@ -7,28 +7,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const CATEGORY_COVERS: Record<string, string> = {
-  "Cuisine pro préparation": "https://images.unsplash.com/photo-1556910110-a5a63dfd393c?auto=format&fit=crop&w=800&q=80",
-  "Boulangerie/Pâtisserie": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80",
-  "Bars et Buffet": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=800&q=80",
-  "Transformation agricole": "https://images.unsplash.com/photo-1595853035070-59a39f6072ce?auto=format&fit=crop&w=800&q=80",
-  "Jetables et emballages": "https://images.unsplash.com/photo-1605600659873-d808a1d14f50?auto=format&fit=crop&w=800&q=80",
-  "Art de table": "https://images.unsplash.com/photo-1603017556942-0f56a65576bd?auto=format&fit=crop&w=800&q=80",
-  "Hygiène": "https://images.unsplash.com/photo-1584820927498-cafe2c15923f?auto=format&fit=crop&w=800&q=80",
-  "📦 Nouveaux Arrivages (À trier)": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80"
-};
-
-const SUB_CATEGORIES: Record<string, string[]> = {
-  "Cuisine pro préparation": ["Cuisson & Préparation", "Froid & Conservation", "Ustensiles & Découpe"],
-  "Boulangerie/Pâtisserie": ["Équipement Lourd", "Pétrins & Batteurs", "Cuisson", "Présentation"],
-  "Bars et Buffet": ["Boissons & Froid", "Présentation Buffet", "Machine à Café / Glace", "Accessoires Bar"],
-  "Transformation agricole": ["Machines motorisées", "Presses & Moulins", "Manuelles"],
-  "Jetables et emballages": ["Consommables", "Barquettes & Boîtes", "Sachets & Films", "Éco-responsable"],
-  "Art de table": ["Vaisselle", "Couverts", "Verrerie", "Présentation"],
-  "Hygiène": ["Entretien", "Poubelles & Collecte", "Laverie & Plonge", "Savons & Distributeurs"],
-  "📦 Nouveaux Arrivages (À trier)": ["Non classé"]
-};
-
 export default function CRMCatalogPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -731,57 +709,71 @@ export default function CRMCatalogPage() {
   const handleAutoCategorize = async () => {
       setIsLoading(true);
       try {
-          const produitsNonClasses = products.filter(p => !p.category || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)");
-          console.log("1. Envoi à l'API:", produitsNonClasses);
+        const produitsNonClasses = products.filter(p => !p.category || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)");
+        
+        if (produitsNonClasses.length === 0) {
+            alert("Aucun produit non classé à traiter !");
+            setIsLoading(false);
+            return;
+        }
 
-          // --- SÉCURISATION JSON ---
-          const fakeAiResponseJson = JSON.stringify(
-              produitsNonClasses.map(p => {
-                  const name = (p.name || '').toLowerCase();
-                  let newCat = p.category;
-                  let newSubCat = p.subcategory || 'Autre';
-                  if (/(fourneau|friteuse|marmite|hachoir|mixeur|plancha|grill|sauteuse)/.test(name)) { newCat = "Cuisine pro préparation"; newSubCat = "Cuisson & Préparation"; }
-                  else if (/(pétrin|four|façonneuse|batteur|laminoir|diviseuse)/.test(name)) { newCat = "Boulangerie/Pâtisserie"; newSubCat = "Équipement Lourd"; }
-                  else if (/(machine à glace|vitrine|jus|café|bain marie|percolateur)/.test(name)) { newCat = "Bars et Buffet"; newSubCat = "Boissons & Froid"; }
-                  else if (/(moulin|décortiqueuse|presse|râpeuse)/.test(name)) { newCat = "Transformation agricole"; newSubCat = "Machines motorisées"; }
-                  else if (/(barquette|gobelet|sachet|carton|aluminium|film)/.test(name)) { newCat = "Jetables et emballages"; newSubCat = "Consommables"; }
-                  else if (/(assiette|couvert|cuillère|fourchette|verre|couteau|carafe)/.test(name)) { newCat = "Art de table"; newSubCat = "Vaisselle"; }
-                  else if (/(lave-vaisselle|poubelle|plonge|savon|chariot|bac)/.test(name)) { newCat = "Hygiène"; newSubCat = "Entretien"; }
-                  else if (!newCat || newCat === 'Autre' || !CATEGORY_COVERS[newCat]) { newCat = "📦 Nouveaux Arrivages (À trier)"; newSubCat = "Non classé"; }
-                  return { id: p.id, category: newCat, subcategory: newSubCat };
-              })
-          );
+        const productCategoryMap: Record<string, string[]> = {
+            'BOULANGERIE & PÂTISSERIE': ['pétrin', 'diviseuse', 'four à sole', 'façonneuse', 'batteur', 'laminoir'],
+            'CUISSON PROFESSIONNELLE': ['four mixte', 'friteuse', 'grillade', 'marmite', 'sauteuse', 'feux vifs', 'piano de cuisson'],
+            'FROID INDUSTRIEL': ['chambre froide', 'machine à glaçons', 'armoire réfrigérée', 'congélateur', 'glace', 'réfrigérée'],
+            'PRÉPARATION & SNACKING': ['trancheur', 'hachoir', 'blender', 'machine chawarma', 'panini', 'gaufrier', 'presse-agrume'],
+            'EXPOSITION & VITRINE': ['vitrine chauffante', 'vitrine à pâtisserie', 'saladette', 'présentoir'],
+            'ARTICLES MÉNAGERS (B2C)': ['vaisselle', 'petit électroménager', 'ustensile', 'accessoire de table', 'assiette', 'verre', 'poêle', 'cuillère'],
+            'TRAITEUR & CATERING': ['bain marie', 'chafing dish', 'faitout', 'conteneur isotherme'],
+            'TRANSFORMATION AGRICOLE': ['moulin', 'farine', 'décortiqueuse', 'broyeur'],
+            'EMBALLAGE & PACKAGING': ['ensacheuse', 'remplisseuse', 'scelleuse', 'dateur', 'operculeuse']
+        };
+
+        const updates = produitsNonClasses.map(p => {
+            const name = (p.name || '').toLowerCase();
+            let newCat = "📦 Nouveaux Arrivages (À trier)";
+            let newSubCat = "Non classé";
+            let found = false;
+
+            for (const [category, keywords] of Object.entries(productCategoryMap)) {
+                for (const keyword of keywords) {
+                    if (name.includes(keyword)) {
+                        newCat = category;
+                        newSubCat = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+            return { id: p.id, category: newCat, subcategory: newSubCat };
+        });
           
-          let reponseIA;
-          try {
-              reponseIA = JSON.parse(fakeAiResponseJson);
-              console.log('2. Réponse brute IA:', reponseIA);
-          } catch (parseError) {
-              console.error("Erreur de parsing JSON:", parseError);
-              throw new Error("Le format JSON renvoyé par l'IA est invalide.");
-          }
-          
-          if (tenantId && reponseIA.length > 0) {
-              for (const product of reponseIA) {
-                  const cat = product.category;
-                  const subcat = product.subcategory;
-                  const { error } = await supabase.from('crm_products').update({ category: cat, subcategory: subcat }).eq('id', product.id).eq('tenant_id', tenantId);
-                  if (error) {
-                      console.log('3. Erreur Update Supabase:', error);
-                      throw error; // Arrête le processus en cas d'échec
-                  }
-              }
+          if (tenantId && updates.length > 0) {
+            const updatePromises = updates.map(productUpdate => 
+                supabase.from('crm_products').update({ category: productUpdate.category, subcategory: productUpdate.subcategory }).eq('id', productUpdate.id).eq('tenant_id', tenantId)
+            );
+            const results = await Promise.all(updatePromises);
+            const errors = results.filter(res => res.error);
+            if (errors.length > 0) {
+                console.error('Erreurs de mise à jour Supabase:', errors);
+                throw new Error(`Échec de la mise à jour de ${errors.length} produit(s).`);
+            }
               
-              // Rechargement forcé UNIQUEMENT quand toutes les mises à jour sont terminées avec succès
-              const { data } = await supabase.from('crm_products').select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false });
-              if (data) setProducts(data);
-          } else if (reponseIA.length === 0) {
-              console.log("Aucun produit à catégoriser.");
-          }
-          alert("Catégorisation IA terminée et sauvegardée dans la base !");
+            const { data } = await supabase.from('crm_products').select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false });
+            if (data) {
+                const validProducts = data.filter((p: any) => {
+                    const rawPrice = p.unit_price || p.price_ttc || p.price || 0;
+                    const cleanPrice = typeof rawPrice === 'string' ? Number(String(rawPrice).replace(/[^0-9.-]+/g, '')) : Number(rawPrice);
+                    return !isNaN(cleanPrice) && cleanPrice > 0;
+                });
+                setProducts(validProducts);
+            }
+        }
+        
+        alert(`Catégorisation IA terminée ! ${updates.length} produits ont été analysés et mis à jour.`);
       } catch (erreur: any) {
-          console.log('3. Erreur Update Supabase:', erreur);
-          alert("Une erreur est survenue lors de la catégorisation.\n\nDétails : " + (erreur.message || JSON.stringify(erreur)) + "\n\nAstuce : Si l'erreur indique que la colonne 'subcategory' est introuvable, n'oubliez pas de la créer dans votre tableau 'crm_products' sur Supabase !");
+          alert("Une erreur est survenue lors de la catégorisation : " + (erreur.message || JSON.stringify(erreur)));
       } finally {
           setIsLoading(false);
       }
@@ -794,8 +786,6 @@ export default function CRMCatalogPage() {
       let matchCat = false;
       if (categoryFilter === 'Toutes') {
           matchCat = true;
-      } else if (categoryFilter === "📦 Nouveaux Arrivages (À trier)") {
-          matchCat = !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !CATEGORY_COVERS[p.category];
       } else {
           matchCat = p.category === categoryFilter || (p.category || '').startsWith(categoryFilter + ' /');
       }
@@ -939,7 +929,7 @@ export default function CRMCatalogPage() {
                       <div className="flex gap-4 overflow-x-auto pb-6 custom-scrollbar snap-x">
                          {products.filter(p => {
                              if (categoryFilter === "📦 Nouveaux Arrivages (À trier)") {
-                                 return !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !CATEGORY_COVERS[p.category];
+                                 return !p.category || p.category === '' || p.category === 'Autre' || p.category === "📦 Nouveaux Arrivages (À trier)" || !categoryCovers[p.category];
                              }
                              return p.category === categoryFilter;
                          }).sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 8).map(p => (
@@ -1227,12 +1217,9 @@ export default function CRMCatalogPage() {
                             value={editForm.subcategory || ''} 
                             onChange={e => setEditForm({...editForm, subcategory: e.target.value})} 
                             className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer"
-                            disabled={!editForm.category || !SUB_CATEGORIES[editForm.category]}
                           >
                              <option value="" disabled>Sélectionner une sous-catégorie</option>
-                             {advancedCategories.find(c => c.name === editForm.category)?.subcategories?.map(sub => (
-                                 <option key={sub} value={sub}>{sub}</option>
-                             ))}
+                             {advancedCategories.find(c => c.name === editForm.category)?.subcategories?.map(sub => (<option key={sub} value={sub}>{sub}</option>))}
                           </select>
                       </div>
                   </div>
