@@ -19,8 +19,11 @@ import {
   Loader2,
   Trophy,
   Send,
-  UserCheck
+  UserCheck,
+  Download
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function LeadDetailPage() {
   const params = useParams();
@@ -34,6 +37,7 @@ export default function LeadDetailPage() {
   const [localNotes, setLocalNotes] = useState<any[]>([]);
   const [commercials, setCommercials] = useState<any[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   useEffect(() => {
     const fetchLeadAndNotes = async () => {
@@ -205,6 +209,97 @@ export default function LeadDetailPage() {
           content: n.note
       };
   });
+
+  const handleExportTimelinePDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text(`Dossier Prospect : ${lead.full_name}`, 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Contact : ${lead.phone}`, 14, 30);
+    doc.text(`Statut : ${lead.status}`, 14, 36);
+    doc.text(`Score IA : ${lead.lead_score || 'Non défini'}`, 14, 42);
+    doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 48);
+
+    doc.setFontSize(14);
+    doc.text("Historique d'Activité", 14, 60);
+
+    const tableRows = fullTimeline.map(item => [
+      item.date,
+      item.title,
+      item.content || "Détail capturé lors de l'échange."
+    ]);
+
+    autoTable(doc, {
+      head: [['Date', 'Action', 'Détails']],
+      body: tableRows,
+      startY: 65,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+    });
+
+    doc.save(`Historique_${lead.full_name.replace(/\s+/g, '_')}.pdf`);
+  };
+
+  const handleEmailTimelinePDF = async () => {
+    const email = prompt("Veuillez entrer l'adresse e-mail du destinataire :");
+    if (!email) return;
+
+    setIsSendingEmail(true);
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text(`Dossier Prospect : ${lead.full_name}`, 14, 22);
+      doc.setFontSize(11);
+      doc.text(`Contact : ${lead.phone}`, 14, 30);
+      doc.text(`Statut : ${lead.status}`, 14, 36);
+      doc.text(`Score IA : ${lead.lead_score || 'Non défini'}`, 14, 42);
+      doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 48);
+
+      doc.setFontSize(14);
+      doc.text("Historique d'Activité", 14, 60);
+
+      const tableRows = fullTimeline.map((item: any) => [
+        item.date,
+        item.title,
+        item.content || "Détail capturé lors de l'échange."
+      ]);
+
+      autoTable(doc, {
+        head: [['Date', 'Action', 'Détails']],
+        body: tableRows,
+        startY: 65,
+        theme: 'grid',
+        headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+      });
+
+      const pdfBlob = doc.output('blob');
+      const fileName = `timeline_${lead.id}_${Date.now()}.pdf`;
+      
+      const { error: uploadError } = await supabase.storage.from('tontines').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('tontines').getPublicUrl(fileName);
+      const fileUrl = urlData.publicUrl;
+
+      const response = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              to: email,
+              subject: `Historique du prospect : ${lead.full_name}`,
+              text: `Bonjour, veuillez trouver ci-joint l'historique du prospect ${lead.full_name}. Lien: ${fileUrl}`,
+              html: `<p>Bonjour,</p><p>Voici l'historique et la timeline d'activités pour le prospect <b>${lead.full_name}</b>.</p><p><a href="${fileUrl}" target="_blank"><b>Cliquez ici pour consulter le document PDF</b></a></p>`
+          })
+      });
+
+      if (response.ok) alert("E-mail envoyé avec succès !");
+      else alert("Erreur lors de l'envoi via l'API.");
+    } catch (error: any) {
+      alert("Erreur : " + error.message);
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
 
   return (
     <div className="max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
@@ -392,9 +487,17 @@ export default function LeadDetailPage() {
         <div className="flex-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 md:p-10 shadow-sm w-full relative min-h-[600px]">
            <div className="flex items-center justify-between mb-8">
               <h3 className="font-black text-xl md:text-2xl uppercase tracking-tighter">Historique d'Activité</h3>
-              <button className="text-[10px] font-black uppercase text-zinc-500 hover:text-black dark:hover:text-white transition flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                 <Calendar size={12}/> {fullTimeline.length} Actions
-              </button>
+              <div className="flex items-center gap-3">
+                 <button className="text-[10px] font-black uppercase text-zinc-500 hover:text-black dark:hover:text-white transition flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    <Calendar size={12}/> {fullTimeline.length} Actions
+                 </button>
+                 <button onClick={handleExportTimelinePDF} className="text-[10px] font-black uppercase text-black bg-[#39FF14] hover:scale-105 transition-transform flex items-center gap-1.5 px-4 py-2 rounded-lg shadow-md border border-[#39FF14]/50">
+                    <Download size={14}/> Exporter PDF
+                 </button>
+                 <button onClick={handleEmailTimelinePDF} disabled={isSendingEmail} className="text-[10px] font-black uppercase text-white bg-blue-500 hover:scale-105 transition-transform flex items-center gap-1.5 px-4 py-2 rounded-lg shadow-md border border-blue-500/50 disabled:opacity-50">
+                    {isSendingEmail ? <Loader2 size={14} className="animate-spin"/> : <Mail size={14}/>} Envoyer E-mail
+                 </button>
+              </div>
            </div>
 
            {/* ENCART AJOUT DE NOTE */}
