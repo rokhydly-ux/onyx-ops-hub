@@ -40,6 +40,7 @@ export default function CRMCatalogPage() {
   const [studioSelectedCategory, setStudioSelectedCategory] = useState('');
   const [studioSelectedSubCategory, setStudioSelectedSubCategory] = useState('');
   const [pdfProgress, setPdfProgress] = useState(0);
+  const [crmSettings, setCrmSettings] = useState({ logo_url: '', crm_name: '' });
   const [catalogConfig, setCatalogConfig] = useState({
       coverTitle: 'Catalogue Produits',
       showSummary: true,
@@ -180,31 +181,7 @@ export default function CRMCatalogPage() {
           const items = selectedProducts.map(p => ({ ...p, qty: quoteQuantities[p.id] || 1 }));
           const totalAmount = items.reduce((acc, p) => acc + ((p.unit_price || p.price_ttc || 0) * p.qty), 0);
 
-          const doc = new jsPDF();
-          doc.setFontSize(22);
-          doc.text("DEVIS COMMERCIAL", 14, 20);
-          doc.setFontSize(12);
-          doc.text(`Client : ${client.full_name}`, 14, 30);
-          doc.text(`Téléphone : ${client.phone}`, 14, 36);
-          doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')}`, 14, 42);
-          
-          autoTable(doc, {
-              startY: 50,
-              head: [['Désignation Produit', 'Prix Unitaire', 'Quantité', 'Total']],
-              body: items.map(item => [
-                  item.name,
-                  `${(item.unit_price || item.price_ttc || 0).toLocaleString('fr-FR')} F`,
-                  item.qty,
-                  `${((item.unit_price || item.price_ttc || 0) * item.qty).toLocaleString('fr-FR')} F`
-              ]),
-              theme: 'grid',
-              headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
-          });
-
-          const finalY = (doc as any).lastAutoTable.finalY || 50;
-          doc.setFontSize(14);
-          doc.setFont("helvetica", "bold");
-          doc.text(`TOTAL NET : ${totalAmount.toLocaleString('fr-FR')} F CFA`, 14, finalY + 15);
+          const doc = await buildQuotePdf(client, items, totalAmount);
 
           const pdfBlob = doc.output('blob');
           const fileName = `Devis_${client.full_name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
@@ -290,9 +267,11 @@ export default function CRMCatalogPage() {
         if (clientsData && isMounted) setClients(clientsData);
 
         const { data: settingsData } = await supabase.from('crm_settings').select('categories, category_covers').eq('tenant_id', tId).maybeSingle();
-        if (settingsData && isMounted) {
-          if (settingsData.category_covers) setCategoryCovers(settingsData.category_covers);
-          if (settingsData.categories) setAdvancedCategories(settingsData.categories);
+        const { data: fullSettings } = await supabase.from('crm_settings').select('categories, category_covers, logo_url, crm_name').eq('tenant_id', tId).maybeSingle();
+        if (fullSettings && isMounted) {
+          if (fullSettings.category_covers) setCategoryCovers(fullSettings.category_covers);
+          if (fullSettings.categories) setAdvancedCategories(fullSettings.categories);
+          setCrmSettings({ logo_url: fullSettings.logo_url || '', crm_name: fullSettings.crm_name || 'ONYX CRM' });
         }
       } catch (err: any) {
         console.error("🚨 CRASH CRITIQUE (fetchProducts) :", err.message || err);
@@ -646,6 +625,62 @@ export default function CRMCatalogPage() {
       saveCategoriesToSettings(newCats);
   };
 
+  // --- HELPER DE GÉNÉRATION DU DEVIS ---
+  const buildQuotePdf = async (client: any, items: any[], totalAmount: number) => {
+      const doc = new jsPDF();
+      let startY = 50;
+
+      // Ajout du logo si disponible
+      if (crmSettings.logo_url) {
+          try {
+              const img = new Image();
+              img.crossOrigin = "Anonymous";
+              img.src = crmSettings.logo_url;
+              await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+              doc.addImage(img, 'PNG', 14, 10, 30, 30);
+              doc.setFontSize(22);
+              doc.text("DEVIS COMMERCIAL", 50, 25);
+          } catch(e) {
+              doc.setFontSize(22);
+              doc.text("DEVIS COMMERCIAL", 14, 20);
+          }
+      } else {
+          doc.setFontSize(22);
+          doc.text("DEVIS COMMERCIAL", 14, 20);
+      }
+
+      doc.setFontSize(12);
+      doc.text(`Client : ${client.full_name}`, 14, 30);
+      doc.text(`Téléphone : ${client.phone}`, 14, 36);
+      doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')}`, 14, 42);
+      
+      autoTable(doc, {
+          startY: startY,
+          head: [['Désignation Produit', 'Prix Unitaire', 'Quantité', 'Total']],
+          body: items.map(item => [
+              item.name,
+              `${(item.unit_price || item.price_ttc || 0).toLocaleString('fr-FR')} F`,
+              item.qty,
+              `${((item.unit_price || item.price_ttc || 0) * item.qty).toLocaleString('fr-FR')} F`
+          ]),
+          theme: 'grid',
+          headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
+      });
+
+      const finalY = (doc as any).lastAutoTable.finalY || startY;
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`TOTAL NET : ${totalAmount.toLocaleString('fr-FR')} F CFA`, 14, finalY + 15);
+
+      // Lien de Paiement Cliquable
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 255);
+      doc.textWithLink("👉 Cliquez ici pour payer ce devis en ligne", 14, finalY + 30, { url: "https://pay.onyxlinks.com/paiement" });
+      doc.setTextColor(0, 0, 0); // Reset color
+      
+      return doc;
+  };
+
   const generateQuote = async () => {
       const client = clients.find(c => String(c.id) === String(selectedClientId));
       if (!client) return alert("Veuillez sélectionner un client pour le devis !");
@@ -663,31 +698,7 @@ export default function CRMCatalogPage() {
           }]);
       } catch(e) { console.error("Erreur d'enregistrement devis", e); }
 
-      const doc = new jsPDF();
-      doc.setFontSize(22);
-      doc.text("DEVIS COMMERCIAL", 14, 20);
-      doc.setFontSize(12);
-      doc.text(`Client : ${client.full_name}`, 14, 30);
-      doc.text(`Téléphone : ${client.phone}`, 14, 36);
-      doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')}`, 14, 42);
-      
-      autoTable(doc, {
-          startY: 50,
-          head: [['Désignation Produit', 'Prix Unitaire', 'Quantité', 'Total']],
-          body: items.map(item => [
-              item.name,
-              `${(item.unit_price || item.price_ttc || 0).toLocaleString('fr-FR')} F`,
-              item.qty,
-              `${((item.unit_price || item.price_ttc || 0) * item.qty).toLocaleString('fr-FR')} F`
-          ]),
-          theme: 'grid',
-          headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
-      });
-
-      const finalY = (doc as any).lastAutoTable.finalY || 50;
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text(`TOTAL NET : ${totalAmount.toLocaleString('fr-FR')} F CFA`, 14, finalY + 15);
+      const doc = await buildQuotePdf(client, items, totalAmount);
 
       doc.save(`Devis_${client.full_name.replace(/\s+/g, '_')}.pdf`);
 

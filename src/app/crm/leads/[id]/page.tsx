@@ -148,17 +148,21 @@ export default function LeadDetailPage() {
   const handleAddNote = async () => {
     if (!noteText.trim() || !tenantId) return;
     
+    // On s'assure d'utiliser le bon ID utilisateur pour la base de données
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { data, error } = await supabase.from('lead_notes').insert([{
         lead_id: leadId,
-        user_id: tenantId,
+        user_id: user?.id || tenantId,
         note: noteText.trim()
-    }]).select().single();
+    }]).select();
 
-    if (!error && data) {
-        setLocalNotes([data, ...localNotes]);
+    // On récupère le premier élément du tableau renvoyé
+    if (!error && data && data.length > 0) {
+        setLocalNotes([data[0], ...localNotes]);
         setNoteText("");
     } else {
-        alert("Erreur lors de l'ajout de la note.");
+        alert("Erreur lors de l'ajout de la note : " + (error?.message || "Vérifiez vos droits."));
     }
   };
 
