@@ -219,6 +219,19 @@ export default function LeadsKanbanPage() {
   const [analysisCampaign, setAnalysisCampaign] = useState("Toutes");
   const [analysisPeriod, setAnalysisPeriod] = useState("30j");
 
+  // Win effect (Confetti + Sound)
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  const triggerWinEffect = () => {
+      try {
+          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+          audio.volume = 0.6;
+          audio.play().catch(() => {});
+      } catch(e) {}
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 4000);
+  };
+
   // Fetch notes when a lead is selected
   useEffect(() => {
     if (selectedLead) {
@@ -362,6 +375,12 @@ export default function LeadsKanbanPage() {
       }
 
       setLeads(prev => prev.map(l => idsArray.includes(l.id) ? { ...l, status: bulkStatus } : l));
+    
+    // Effet sonore et confettis si l'action groupée convertit des leads
+    if (bulkStatus === 'Converti') {
+        triggerWinEffect();
+    }
+
       setSelectedLeadIds(new Set());
       setBulkStatus('');
   };
@@ -390,6 +409,11 @@ export default function LeadsKanbanPage() {
     await supabase.from('crm_leads').update({ status: newStatus }).eq('id', leadId).eq('tenant_id', userId);
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
     
+    // Effet sonore et confettis si le lead est converti
+    if (newStatus === 'Converti') {
+        triggerWinEffect();
+    }
+
     setPendingMove(null);
     setObservation("");
   };
@@ -633,6 +657,11 @@ export default function LeadsKanbanPage() {
     
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, status: nextStatus } : l));
     
+    // Effet sonore et confettis si le lead est converti
+    if (nextStatus === 'Converti') {
+      triggerWinEffect();
+    }
+
     // Exécution de l'action réelle
     if (actionType === 'whatsapp') {
       const msg = encodeURIComponent(`Bonjour ${selectedLead.full_name || ""}, suite à votre intérêt pour ${selectedLead.intent || "nos services"}...`);
@@ -753,6 +782,26 @@ export default function LeadsKanbanPage() {
   return (
     <div className="flex flex-col animate-in fade-in duration-500 pb-10">
       
+      {/* ANIMATION LUDIQUE DE CONFETTIS */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-[500] pointer-events-none overflow-hidden">
+          {[...Array(60)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animation: `fall-${i % 2 === 0 ? 'left' : 'right'} ${2 + Math.random() * 3}s ease-in forwards`,
+                animationDelay: `${Math.random() * 0.5}s`,
+              }}
+            >
+              {['🎉', '💰', '🔥', '✨'][i % 4]}
+            </div>
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `@keyframes fall-left { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg) translateX(-50px); opacity: 0; } } @keyframes fall-right { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(-360deg) translateX(50px); opacity: 0; } }`}} />
+        </div>
+      )}
+
       {/* --- HEADER DES ACTIONS --- */}
       <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-4 mb-8">
         <div>
