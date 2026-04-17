@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link, ChevronDown, ChevronUp, ImagePlus, Palette } from 'lucide-react';
+import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link, ChevronDown, ChevronUp, ImagePlus, Palette, Mail } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -19,6 +19,7 @@ export default function CRMCatalogPage() {
   const [viewingProduct, setViewingProduct] = useState<any>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [isEmailingQuote, setIsEmailingQuote] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [quoteQuantities, setQuoteQuantities] = useState<Record<number, number>>({});
@@ -164,6 +165,74 @@ export default function CRMCatalogPage() {
       });
       
       doc.save(`Analytics_Catalogue_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const emailQuote = async () => {
+      const client = clients.find(c => String(c.id) === String(selectedClientId));
+      if (!client) return alert("Veuillez sélectionner un client pour le devis !");
+      
+      const email = prompt("Veuillez entrer l'adresse e-mail du destinataire :");
+      if (!email) return;
+
+      setIsEmailingQuote(true);
+      try {
+          const selectedProducts = products.filter(p => selectedIds.has(p.id));
+          const items = selectedProducts.map(p => ({ ...p, qty: quoteQuantities[p.id] || 1 }));
+          const totalAmount = items.reduce((acc, p) => acc + ((p.unit_price || p.price_ttc || 0) * p.qty), 0);
+
+          const doc = new jsPDF();
+          doc.setFontSize(22);
+          doc.text("DEVIS COMMERCIAL", 14, 20);
+          doc.setFontSize(12);
+          doc.text(`Client : ${client.full_name}`, 14, 30);
+          doc.text(`Téléphone : ${client.phone}`, 14, 36);
+          doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')}`, 14, 42);
+          
+          autoTable(doc, {
+              startY: 50,
+              head: [['Désignation Produit', 'Prix Unitaire', 'Quantité', 'Total']],
+              body: items.map(item => [
+                  item.name,
+                  `${(item.unit_price || item.price_ttc || 0).toLocaleString('fr-FR')} F`,
+                  item.qty,
+                  `${((item.unit_price || item.price_ttc || 0) * item.qty).toLocaleString('fr-FR')} F`
+              ]),
+              theme: 'grid',
+              headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
+          });
+
+          const finalY = (doc as any).lastAutoTable.finalY || 50;
+          doc.setFontSize(14);
+          doc.setFont("helvetica", "bold");
+          doc.text(`TOTAL NET : ${totalAmount.toLocaleString('fr-FR')} F CFA`, 14, finalY + 15);
+
+          const pdfBlob = doc.output('blob');
+          const fileName = `Devis_${client.full_name.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+          
+          const { error: uploadError } = await supabase.storage.from('tontines').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage.from('tontines').getPublicUrl(fileName);
+          const fileUrl = urlData.publicUrl;
+
+          const response = await fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  to: email,
+                  subject: `Votre devis - ${client.full_name}`,
+                  text: `Bonjour, veuillez trouver ci-joint votre devis. Lien: ${fileUrl}`,
+                  html: `<p>Bonjour,</p><p>Veuillez trouver ci-joint le devis demandé pour <b>${client.full_name}</b>.</p><p><a href="${fileUrl}" target="_blank"><b>Cliquez ici pour consulter le devis (PDF)</b></a></p>`
+              })
+          });
+
+          if (response.ok) alert("Devis envoyé par e-mail avec succès !");
+          else alert("Erreur lors de l'envoi via l'API.");
+      } catch (error: any) {
+          alert("Erreur : " + error.message);
+      } finally {
+          setIsEmailingQuote(false);
+      }
   };
 
   // Catégories
@@ -1217,8 +1286,11 @@ export default function CRMCatalogPage() {
             
             <div className="flex flex-col sm:flex-row gap-3 shrink-0">
               <button onClick={() => setIsQuoteModalOpen(false)} className="flex-1 py-4 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 font-black uppercase text-xs rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition">Fermer</button>
-              <button onClick={generateQuote} className="flex-[2] py-4 bg-black dark:bg-white text-[#39FF14] dark:text-black font-black uppercase text-xs rounded-xl hover:scale-105 transition flex justify-center items-center gap-2 shadow-lg">
-                <Download size={16}/> Générer PDF & Envoyer
+              <button onClick={generateQuote} className="flex-[1.5] py-4 bg-black dark:bg-white text-[#39FF14] dark:text-black font-black uppercase text-xs rounded-xl hover:scale-105 transition flex justify-center items-center gap-2 shadow-lg">
+                <Download size={16}/> WhatsApp
+              </button>
+              <button onClick={emailQuote} disabled={isEmailingQuote} className="flex-[1.5] py-4 bg-blue-500 text-white font-black uppercase text-xs rounded-xl hover:scale-105 transition flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
+                {isEmailingQuote ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />} E-mail
               </button>
             </div>
           </div>
