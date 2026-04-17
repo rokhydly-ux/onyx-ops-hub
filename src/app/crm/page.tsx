@@ -432,6 +432,9 @@ export default function CRMDashboard() {
             </select>
             {session?.role !== 'commercial' && (
               <>
+                <button onClick={() => router.push('/crm/performances')} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-all flex items-center gap-2 shrink-0 border border-[#39FF14]/30">
+                   <TrendingUp size={16} /> Stats Équipe
+                </button>
                 <button onClick={handleExportPerformancesPDF} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white px-4 py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-sm hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-all flex items-center gap-2 shrink-0">
                    <Download size={16} /> Rapport PDF
                 </button>
@@ -536,7 +539,10 @@ export default function CRMDashboard() {
       <div className={`grid grid-cols-1 md:grid-cols-2 ${session?.role !== 'commercial' ? 'lg:grid-cols-3' : ''} gap-8`}>
         {session?.role !== 'commercial' && (
           <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 rounded-[2.5rem] shadow-sm">
-             <h3 className="font-black uppercase text-lg mb-6 text-black dark:text-white">Top Performers (Leads gérés)</h3>
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="font-black uppercase text-lg text-black dark:text-white">Top Performers</h3>
+                <button onClick={() => router.push('/crm/performances')} className="text-[10px] font-black uppercase text-[#39FF14] bg-black px-3 py-1.5 rounded-lg border border-[#39FF14]/30 shadow-sm hover:scale-105 transition-transform flex items-center gap-1"><TrendingUp size={12}/> Voir tout</button>
+             </div>
              <div className="space-y-4">
                {realPerformers.length > 0 ? realPerformers.map(rep => (
                   <div key={rep.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
