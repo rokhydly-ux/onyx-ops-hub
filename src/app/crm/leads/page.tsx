@@ -391,8 +391,9 @@ export default function LeadsKanbanPage() {
     if (!over) return;
     const leadId = active.id as string;
     const newStatus = over.id as string;
-    const draggedLead = leads.find(l => l.id === leadId);
-    const oldStatus = draggedLead?.status || 'Nouveaux Leads';
+    
+    // Utilisation des données directement attachées à la carte Kanban (Fiabilité 100%)
+    const oldStatus = (active.data.current?.status as string) || 'Nouveaux Leads';
 
     if (oldStatus !== newStatus) {
       setPendingMove({ leadId, newStatus, oldStatus });

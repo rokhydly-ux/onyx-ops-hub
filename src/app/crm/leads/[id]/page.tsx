@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function LeadDetailPage() {
   const params = useParams();
@@ -157,12 +159,22 @@ export default function LeadDetailPage() {
         note: noteText.trim()
     }]).select();
 
-    // On récupère le premier élément du tableau renvoyé
-    if (!error && data && data.length > 0) {
-        setLocalNotes([data[0], ...localNotes]);
-        setNoteText("");
+    if (error) {
+        alert("Erreur lors de l'ajout de la note : " + error.message);
     } else {
-        alert("Erreur lors de l'ajout de la note : " + (error?.message || "Vérifiez vos droits."));
+        // Si Supabase renvoie la donnée, on l'utilise
+        if (data && data.length > 0) {
+            setLocalNotes([data[0], ...localNotes]);
+        } else {
+            // Si RLS bloque le .select(), on simule l'ajout localement pour la fluidité
+            setLocalNotes([{
+                id: crypto.randomUUID(),
+                lead_id: leadId,
+                note: noteText.trim(),
+                created_at: new Date().toISOString()
+            }, ...localNotes]);
+        }
+        setNoteText("");
     }
   };
 
@@ -207,6 +219,7 @@ export default function LeadDetailPage() {
           type: 'note',
           title: isAssign ? 'Assignation' : isMove ? 'Changement de statut' : `Note par ${lead.assigned_to || 'Agent'}`,
           date: new Date(n.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          displayDate: formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: fr }),
           icon: isAssign ? UserCheck : isMove ? Activity : FileText,
           color: isAssign ? 'text-blue-500 dark:text-blue-400' : isMove ? 'text-[#39FF14]' : 'text-yellow-500',
           bg: isAssign ? 'bg-blue-500/10' : isMove ? 'bg-[#39FF14]/10' : 'bg-yellow-500/10',
@@ -531,7 +544,7 @@ export default function LeadDetailPage() {
                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                           <p className="font-bold text-sm text-black dark:text-white leading-snug">{item.title}</p>
                           <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-2.5 py-1 rounded-md whitespace-nowrap shadow-sm">
-                            {item.date}
+                            {item.displayDate}
                           </span>
                        </div>
                        {(item.type === 'note' && item.content) ? (
