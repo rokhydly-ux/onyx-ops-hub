@@ -17,7 +17,7 @@ import Tesseract from 'tesseract.js';
 const KANBAN_COLS = ['Nouveaux Leads', 'En Cours', 'Converti', 'Perdu'];
 
 // --- COMPOSANTS DND-KIT (KANBAN) ---
-function KanbanColumn({ col, leads, visibleCount, selectedLeadIds, toggleLeadSelection, onLoadMore, onCardClick, onScheduleClick, onMessageClick }: { col: string, leads: any[], visibleCount: number, selectedLeadIds: Set<string>, toggleLeadSelection: (id: string) => void, onLoadMore: () => void, onCardClick: (lead: any) => void, onScheduleClick: (lead: any) => void, onMessageClick: (lead: any) => void }) {
+function KanbanColumn({ col, leads, commercials, commercialData, visibleCount, selectedLeadIds, toggleLeadSelection, onLoadMore, onCardClick, onScheduleClick, onMessageClick, onCommercialClick }: { col: string, leads: any[], commercials: any[], commercialData: any, visibleCount: number, selectedLeadIds: Set<string>, toggleLeadSelection: (id: string) => void, onLoadMore: () => void, onCardClick: (lead: any) => void, onScheduleClick: (lead: any) => void, onMessageClick: (lead: any) => void, onCommercialClick?: (name: string) => void }) {
   const { isOver, setNodeRef } = useDroppable({ id: col });
   const visibleLeads = leads.slice(0, visibleCount);
 
@@ -33,7 +33,7 @@ function KanbanColumn({ col, leads, visibleCount, selectedLeadIds, toggleLeadSel
       
       <div className="space-y-3 pr-1">
         {visibleLeads.map(lead => (
-          <KanbanCard key={lead.id} lead={lead} isSelected={selectedLeadIds.has(lead.id)} onToggleSelect={toggleLeadSelection} onClick={() => onCardClick(lead)} onScheduleClick={() => onScheduleClick(lead)} onMessageClick={() => onMessageClick(lead)} />
+          <KanbanCard key={lead.id} lead={lead} commercials={commercials} commercialData={commercialData} isSelected={selectedLeadIds.has(lead.id)} onToggleSelect={toggleLeadSelection} onClick={() => onCardClick(lead)} onScheduleClick={() => onScheduleClick(lead)} onMessageClick={() => onMessageClick(lead)} onCommercialClick={onCommercialClick} />
         ))}
         
         {leads.length > visibleCount && (
@@ -50,7 +50,7 @@ function KanbanColumn({ col, leads, visibleCount, selectedLeadIds, toggleLeadSel
   );
 }
 
-function KanbanCard({ lead, isSelected, onToggleSelect, onClick, onScheduleClick, onMessageClick }: { lead: any, isSelected: boolean, onToggleSelect: (id: string) => void, onClick: () => void, onScheduleClick: () => void, onMessageClick: () => void }) {
+function KanbanCard({ lead, commercials, commercialData, isSelected, onToggleSelect, onClick, onScheduleClick, onMessageClick, onCommercialClick }: { lead: any, commercials: any[], commercialData: any, isSelected: boolean, onToggleSelect: (id: string) => void, onClick: () => void, onScheduleClick: () => void, onMessageClick: () => void, onCommercialClick?: (name: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
     data: { status: lead.status || 'Nouveaux Leads' }
@@ -58,6 +58,9 @@ function KanbanCard({ lead, isSelected, onToggleSelect, onClick, onScheduleClick
   
   const isStagnant = (lead.status === 'Nouveaux Leads' || !lead.status) && lead.created_at && new Date(lead.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   
+  const assignedCommercial = commercials?.find(c => c.full_name === lead.assigned_to) || (commercialData?.full_name === lead.assigned_to ? commercialData : null);
+  const avatarUrl = assignedCommercial?.avatar_url;
+
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     zIndex: isDragging ? 50 : 1,
@@ -120,9 +123,29 @@ function KanbanCard({ lead, isSelected, onToggleSelect, onClick, onScheduleClick
             </span>
           )}
           {lead.assigned_to && (
-            <span className="text-[9px] font-black text-black dark:text-white bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md truncate max-w-[75px]" title={`Assigné à ${lead.assigned_to}`}>
-              👤 {lead.assigned_to.split(' ')[0]}
-            </span>
+            <div 
+              className={`flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-1 rounded-md ${onCommercialClick ? 'cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors' : ''}`} 
+              title={`Assigné à ${lead.assigned_to}${onCommercialClick ? ' (Cliquer pour filtrer)' : ''}`}
+              onPointerDown={e => { if (onCommercialClick) e.stopPropagation(); }}
+              onPointerUp={e => { if (onCommercialClick) e.stopPropagation(); }}
+              onClick={(e) => { 
+                if (onCommercialClick) {
+                  e.stopPropagation();
+                  onCommercialClick(lead.assigned_to);
+                }
+              }}
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={lead.assigned_to} className="w-4 h-4 rounded-full object-cover border border-zinc-200 dark:border-zinc-700" />
+              ) : (
+                <span className="w-4 h-4 rounded-full bg-black text-[#39FF14] flex items-center justify-center text-[8px] font-black shadow-sm">
+                  {lead.assigned_to.charAt(0)}
+                </span>
+              )}
+              <span className="text-[9px] font-black text-black dark:text-white truncate max-w-[60px]">
+                {lead.assigned_to.split(' ')[0]}
+              </span>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -904,13 +927,16 @@ export default function LeadsKanbanPage() {
                       key={col} 
                       col={col} 
                       leads={colLeads} 
+                      commercials={commercials}
+                      commercialData={commercialData}
                       visibleCount={visibleCounts[col] || 20}
                       selectedLeadIds={selectedLeadIds}
                       toggleLeadSelection={toggleLeadSelection}
                       onLoadMore={() => setVisibleCounts(prev => ({...prev, [col]: (prev[col] || 20) + 20}))}
                       onCardClick={setSelectedLead} 
                       onScheduleClick={(l) => { setScheduleLead(l); setScheduleModalOpen(true); }} 
-                      onMessageClick={handleMessageClick} 
+                              onMessageClick={handleMessageClick}
+                              onCommercialClick={(name) => setCommercialFilter(prev => prev === name ? "Tous" : name)}
                    />;
           })}
         </div>
