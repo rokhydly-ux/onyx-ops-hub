@@ -21,7 +21,7 @@ function CRMSettingsContent() {
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [isCommercialModalOpen, setIsCommercialModalOpen] = useState(false);
   const [editingCommercial, setEditingCommercial] = useState<any>(null);
-  const [commercialForm, setCommercialForm] = useState({ full_name: '', phone: '', objective: 20, objective_period: 'Mois', status: 'Actif', password_temp: '0000' });
+  const [commercialForm, setCommercialForm] = useState({ full_name: '', phone: '', objective: 20, objective_period: 'Mois', status: 'Actif', password_temp: '0000', avatar_url: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
   
@@ -561,7 +561,7 @@ function CRMSettingsContent() {
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm animate-in fade-in overflow-hidden">
            <div className="p-8 flex justify-between items-center border-b border-zinc-200 dark:border-zinc-800">
               <h3 className="font-black text-xl uppercase">Gestion de l'Équipe</h3>
-              <button onClick={() => { setEditingCommercial(null); setCommercialForm({ full_name: '', phone: '', objective: 20, objective_period: 'Mois', status: 'Actif', password_temp: '0000' }); setIsCommercialModalOpen(true); }} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all"><Plus size={16}/> Ajouter Commercial</button>
+              <button onClick={() => { setEditingCommercial(null); setCommercialForm({ full_name: '', phone: '', objective: 20, objective_period: 'Mois', status: 'Actif', password_temp: '0000', avatar_url: '' }); setIsCommercialModalOpen(true); }} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all"><Plus size={16}/> Ajouter Commercial</button>
            </div>
            <table className="w-full text-left">
               <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
@@ -581,8 +581,13 @@ function CRMSettingsContent() {
                     return (
                     <tr key={member.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-colors">
                        <td className="p-5">
-                          <p className="font-black text-sm uppercase">{member.full_name}</p>
-                          <p className="text-[10px] text-zinc-500 font-bold tracking-widest mt-1"><Phone size={10} className="inline mr-1"/> {member.phone}</p>
+                          <div className="flex items-center gap-3">
+                            <img src={member.avatar_url || `https://ui-avatars.com/api/?name=${member.full_name}&background=random`} alt={member.full_name} className="w-8 h-8 rounded-full object-cover border border-zinc-200 dark:border-zinc-800" />
+                            <div>
+                               <p className="font-black text-sm uppercase">{member.full_name}</p>
+                               <p className="text-[10px] text-zinc-500 font-bold tracking-widest mt-1"><Phone size={10} className="inline mr-1"/> {member.phone}</p>
+                            </div>
+                          </div>
                        </td>
                        <td className="p-5 text-center">
                           <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${workloadColor}`}>{activeLeadsCount} Leads</span>
@@ -597,7 +602,7 @@ function CRMSettingsContent() {
                        <td className="p-5 text-right">
                           <button onClick={() => {
                              setEditingCommercial(member);
-                             setCommercialForm({ full_name: member.full_name, phone: member.phone, objective: member.objective || 20, objective_period: member.objective_period || 'Mois', status: member.status || 'Actif', password_temp: member.password_temp || '••••' });
+                             setCommercialForm({ full_name: member.full_name, phone: member.phone, objective: member.objective || 20, objective_period: member.objective_period || 'Mois', status: member.status || 'Actif', password_temp: member.password_temp || '••••', avatar_url: member.avatar_url || '' });
                              setIsCommercialModalOpen(true);
                           }} className="p-2 text-zinc-400 hover:text-black dark:hover:text-white transition-colors"><Edit size={16}/></button>
                           <button onClick={async () => {
@@ -783,6 +788,7 @@ function CRMSettingsContent() {
                        phone: payload.phone,
                        objective: payload.objective,
                        status: payload.status,
+                       avatar_url: payload.avatar_url,
                        password_temp: payload.password_temp === '••••' ? editingCommercial.password_temp : payload.password_temp
                    }).eq('id', editingCommercial.id).eq('tenant_id', userId);
                    if (error) throw error;
@@ -812,6 +818,7 @@ function CRMSettingsContent() {
                        objective: payload.objective,
                        objective_period: payload.objective_period,
                        status: payload.status || 'Actif',
+                       avatar_url: payload.avatar_url,
                        password_temp: authPassword,
                        tenant_id: userId
                    }]);
@@ -834,6 +841,10 @@ function CRMSettingsContent() {
               <div>
                 <label className="text-xs font-bold text-zinc-500 uppercase">Téléphone</label>
                 <input type="tel" required value={commercialForm.phone} onChange={e => setCommercialForm({...commercialForm, phone: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-zinc-500 uppercase">Photo de profil (URL)</label>
+                <input type="url" value={commercialForm.avatar_url} onChange={e => setCommercialForm({...commercialForm, avatar_url: e.target.value})} className="w-full mt-1 p-3 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none focus:border-[#39FF14] text-sm font-bold text-black dark:text-white placeholder:text-zinc-500" placeholder="https://..." />
               </div>
               <div>
                 <label className="text-xs font-bold text-zinc-500 uppercase">Code PIN</label>
