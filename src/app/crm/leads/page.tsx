@@ -403,7 +403,7 @@ export default function LeadsKanbanPage() {
     const { leadId, newStatus } = pendingMove;
 
     // 1. Sauvegarde de la note d'observation obligatoire
-    await supabase.from('lead_notes').insert([{ lead_id: leadId, user_id: userId, note: observation.trim() }]);
+    await supabase.from('lead_notes').insert([{ lead_id: leadId, user_id: userId, note: `Déplacé de [${pendingMove.oldStatus}] vers [${newStatus}]. Observation : ${observation.trim()}` }]);
 
     // 2. Mise à jour de l'état Kanban dans la DB et localement
     await supabase.from('crm_leads').update({ status: newStatus }).eq('id', leadId).eq('tenant_id', userId);
@@ -1064,27 +1064,7 @@ export default function LeadsKanbanPage() {
                   
                   <select 
                     value={selectedLead.assigned_to || ""}
-                    onChange={async (e) => {
-                        const newAssignee = e.target.value;
-                        const { error } = await supabase.from('crm_leads').update({ assigned_to: newAssignee }).eq('id', selectedLead.id).eq('tenant_id', userId);
-                        
-                        if (error) {
-                            alert("Erreur lors de l'assignation : " + error.message);
-                        } else {
-                            setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, assigned_to: newAssignee } : l));
-                            setSelectedLead({ ...selectedLead, assigned_to: newAssignee });
-                            
-                            if (newAssignee) {
-                                const commercial = commercials.find(c => c.full_name === newAssignee);
-                                if (commercial && commercial.phone) {
-                                    if (confirm(`Voulez-vous notifier ${commercial.full_name} par WhatsApp de cette nouvelle assignation ?`)) {
-                                        const msg = `Salut ${commercial.full_name}, un nouveau prospect vient de t'être assigné dans le CRM OnyxOps !\n\n👤 Prospect : ${selectedLead.full_name}\n📞 Contact : ${selectedLead.phone}\n🎯 Intérêt : ${selectedLead.intent || 'Non spécifié'}\n\nConnecte-toi sur ton espace pour le traiter au plus vite.`;
-                                        window.open(`https://wa.me/${commercial.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                                    }
-                                }
-                            }
-                        }
-                    }}
+                    onChange={(e) => setSelectedLead({ ...selectedLead, assigned_to: e.target.value })}
                     className="w-full p-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer appearance-none"
                   >
                     <option value="">-- Non assigné --</option>
@@ -1107,21 +1087,36 @@ export default function LeadsKanbanPage() {
                       return (
                         <div className="mt-3 flex items-center gap-2">
                           <span className="text-[10px] text-zinc-500 font-bold">Suggestion :</span>
-                          <button onClick={async () => { 
-                             await supabase.from('crm_leads').update({ assigned_to: best.full_name }).eq('id', selectedLead.id).eq('tenant_id', userId); 
-                             setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, assigned_to: best.full_name } : l)); 
-                             setSelectedLead({ ...selectedLead, assigned_to: best.full_name }); 
-                             if (best && best.phone) {
-                                 if (confirm(`Voulez-vous notifier ${best.full_name} par WhatsApp de cette nouvelle assignation ?`)) {
-                                     const msg = `Salut ${best.full_name}, un nouveau prospect vient de t'être assigné dans le CRM OnyxOps !\n\n👤 Prospect : ${selectedLead.full_name}\n📞 Contact : ${selectedLead.phone}\n🎯 Intérêt : ${selectedLead.intent || 'Non spécifié'}\n\nConnecte-toi sur ton espace pour le traiter au plus vite.`;
-                                     window.open(`https://wa.me/${best.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                                 }
-                             }
-                          }} className="bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm flex items-center gap-1"><Zap size={12}/> Assigner à {best.full_name}</button>
+                      <button onClick={() => setSelectedLead({ ...selectedLead, assigned_to: best.full_name })} className="bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm flex items-center gap-1"><Zap size={12}/> Assigner à {best.full_name}</button>
                         </div>
                       );
                     } else return <div className="mt-3 text-[10px] text-red-500 font-bold bg-red-500/10 px-3 py-1.5 rounded-lg">⚠️ L'équipe est saturée (+15 leads chacun).</div>;
                   })()}
+
+              <button onClick={async () => {
+                    const newAssignee = selectedLead.assigned_to;
+                    const { error } = await supabase.from('crm_leads').update({ assigned_to: newAssignee }).eq('id', selectedLead.id).eq('tenant_id', userId);
+                    
+                    if (error) {
+                        alert("Erreur lors de l'assignation : " + error.message);
+                    } else {
+                        setLeads(prev => prev.map(l => l.id === selectedLead.id ? { ...l, assigned_to: newAssignee } : l));
+                        await supabase.from('lead_notes').insert([{ lead_id: selectedLead.id, user_id: userId, note: `Lead assigné à ${newAssignee || 'Personne'}` }]);
+                        alert("Assignation enregistrée avec succès !");
+                        
+                        if (newAssignee) {
+                            const commercial = commercials.find(c => c.full_name === newAssignee);
+                            if (commercial && commercial.phone) {
+                                if (confirm(`Voulez-vous notifier ${commercial.full_name} par WhatsApp de cette nouvelle assignation ?`)) {
+                                    const msg = `Salut ${commercial.full_name}, un nouveau prospect vient de t'être assigné dans le CRM OnyxOps !\n\n👤 Prospect : ${selectedLead.full_name}\n📞 Contact : ${selectedLead.phone}\n🎯 Intérêt : ${selectedLead.intent || 'Non spécifié'}\n\nConnecte-toi sur ton espace pour le traiter au plus vite.`;
+                                    window.open(`https://wa.me/${commercial.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                                }
+                            }
+                        }
+                    }
+              }} className="mt-4 w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
+                 <UserCheck size={14}/> Enregistrer l'assignation
+              </button>
                 </div>
               )}
 

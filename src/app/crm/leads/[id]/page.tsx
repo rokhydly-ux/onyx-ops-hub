@@ -18,7 +18,8 @@ import {
   Calendar,
   Loader2,
   Trophy,
-  Send
+  Send,
+  UserCheck
 } from 'lucide-react';
 
 export default function LeadDetailPage() {
@@ -31,12 +32,11 @@ export default function LeadDetailPage() {
   const [noteText, setNoteText] = useState("");
   const [tenantId, setTenantId] = useState<string>("");
   const [localNotes, setLocalNotes] = useState<any[]>([]);
-
-  // --- FAUSSES DONNÉES POUR LA TIMELINE (À connecter plus tard à une vraie table d'historique) ---
-  const MOCK_TIMELINE: any[] = [];
+  const [commercials, setCommercials] = useState<any[]>([]);
+  const [selectedAssignee, setSelectedAssignee] = useState<string>("");
 
   useEffect(() => {
-    const fetchLead = async () => {
+    const fetchLeadAndNotes = async () => {
       if (!leadId) return;
       setIsLoading(true);
       
@@ -49,20 +49,41 @@ export default function LeadDetailPage() {
       const tId = user.user_metadata?.tenant_id || user.id;
       setTenantId(tId);
 
-      const { data, error } = await supabase
+      const { data: leadData, error: leadError } = await supabase
         .from('crm_leads')
         .select('*')
         .eq('id', leadId)
         .eq('tenant_id', tId)
         .single();
         
-      if (data && !error) {
-        setLead(data);
+      if (leadData && !leadError) {
+        setLead(leadData);
+        setSelectedAssignee(leadData.assigned_to || "");
       }
+
+      const { data: notesData } = await supabase
+        .from('lead_notes')
+        .select('*')
+        .eq('lead_id', leadId)
+        .order('created_at', { ascending: false });
+
+      if (notesData) {
+        setLocalNotes(notesData);
+      }
+
+      const { data: commsData } = await supabase
+        .from('commercials')
+        .select('*')
+        .eq('tenant_id', tId)
+        .eq('status', 'Actif');
+      if (commsData) {
+        setCommercials(commsData);
+      }
+
       setIsLoading(false);
     };
 
-    fetchLead();
+    fetchLeadAndNotes();
   }, [leadId]);
 
   // --- CONVERSION EN CLIENT (GAGNÉ) ---
@@ -121,22 +142,20 @@ export default function LeadDetailPage() {
 
   // --- GESTION DES NOTES MANUELLES ---
   const handleAddNote = async () => {
-    if (!noteText.trim()) return;
+    if (!noteText.trim() || !tenantId) return;
     
-    const newNote = {
-      id: Date.now(),
-      type: 'note',
-      title: `Note ajoutée par ${lead.assigned_to || 'Agent'}`,
-      date: "À l'instant",
-      icon: FileText,
-      color: 'text-yellow-500',
-      bg: 'bg-yellow-500/10',
-      content: noteText
-    };
-    
-    // Simulation d'ajout (À remplacer par un vrai insert dans 'lead_notes' si nécessaire)
-    setLocalNotes([newNote, ...localNotes]);
-    setNoteText("");
+    const { data, error } = await supabase.from('lead_notes').insert([{
+        lead_id: leadId,
+        user_id: tenantId,
+        note: noteText.trim()
+    }]).select().single();
+
+    if (!error && data) {
+        setLocalNotes([data, ...localNotes]);
+        setNoteText("");
+    } else {
+        alert("Erreur lors de l'ajout de la note.");
+    }
   };
 
   const handleWaAction = (msg: string) => {
@@ -172,7 +191,20 @@ export default function LeadDetailPage() {
 
   const avatarColor = getAvatarColor(lead.assigned_to || lead.full_name);
 
-  const fullTimeline = [...localNotes, ...MOCK_TIMELINE];
+  const fullTimeline = localNotes.map((n: any) => {
+      const isAssign = n.note.includes('assigné à');
+      const isMove = n.note.includes('Déplacé de');
+      return {
+          id: n.id,
+          type: 'note',
+          title: isAssign ? 'Assignation' : isMove ? 'Changement de statut' : `Note par ${lead.assigned_to || 'Agent'}`,
+          date: new Date(n.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          icon: isAssign ? UserCheck : isMove ? Activity : FileText,
+          color: isAssign ? 'text-blue-500 dark:text-blue-400' : isMove ? 'text-[#39FF14]' : 'text-yellow-500',
+          bg: isAssign ? 'bg-blue-500/10' : isMove ? 'bg-[#39FF14]/10' : 'bg-yellow-500/10',
+          content: n.note
+      };
+  });
 
   return (
     <div className="max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
@@ -254,6 +286,39 @@ export default function LeadDetailPage() {
                )}
             </div>
           </div>
+
+        {/* ASSIGNATION LEAD */}
+        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm mt-6">
+           <h3 className="font-black text-lg uppercase tracking-tighter mb-4 flex items-center gap-2">
+              <UserCheck size={18} className="text-[#39FF14]"/> Assignation
+           </h3>
+           <div className="space-y-3">
+              <select 
+                value={selectedAssignee}
+                onChange={(e) => setSelectedAssignee(e.target.value)}
+                className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl font-medium text-sm outline-none focus:border-[#39FF14] transition-colors cursor-pointer appearance-none"
+              >
+                 <option value="">-- Non assigné --</option>
+                 {commercials.map(c => <option key={c.id} value={c.full_name}>{c.full_name}</option>)}
+              </select>
+              <button onClick={async () => {
+                  if (tenantId) {
+                      const { error } = await supabase.from('crm_leads').update({ assigned_to: selectedAssignee }).eq('id', leadId).eq('tenant_id', tenantId);
+                      if (error) {
+                          alert("Erreur de sauvegarde: " + error.message);
+                      } else {
+                          await supabase.from('lead_notes').insert([{ lead_id: leadId, user_id: tenantId, note: `Lead assigné à ${selectedAssignee || 'Personne'}` }]);
+                          const { data: newNotes } = await supabase.from('lead_notes').select('*').eq('lead_id', leadId).order('created_at', { ascending: false });
+                          if (newNotes) setLocalNotes(newNotes);
+                          setLead(prev => ({...prev, assigned_to: selectedAssignee}));
+                          alert("Assignation enregistrée avec succès !");
+                      }
+                  }
+              }} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black uppercase text-xs tracking-widest shadow-md hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
+                 <CheckCircle size={16}/> Enregistrer l'assignation
+              </button>
+           </div>
+        </div>
 
           {/* DOSSIER & INTELLIGENCE */}
           <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm">
