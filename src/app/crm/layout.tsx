@@ -14,7 +14,8 @@ import {
   Settings,
   Calendar,
   Menu,
-  X
+  X,
+  TrendingUp
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useTheme } from 'next-themes';
@@ -26,6 +27,7 @@ const NAV_LINKS = [
   { name: 'Studio PDF', href: '/crm/studio', icon: FileText },
   { name: 'Catalogue', href: '/crm/products', icon: Package },
   { name: 'Contacts', href: '/crm/contacts', icon: Users },
+  { name: 'Performances', href: '/crm/performances', icon: TrendingUp },
   { name: 'Paramètres', href: '/crm/settings', icon: Settings },
 ];
 
@@ -77,7 +79,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   if (!mounted) return null;
 
   const visibleLinks = NAV_LINKS.filter(link => {
-    if (userRole === 'commercial' && (link.name === 'Dashboard' || link.name === 'Paramètres')) return false;
+    if (userRole === 'commercial' && (link.name === 'Dashboard' || link.name === 'Paramètres' || link.name === 'Performances')) return false;
     return true;
   });
 
