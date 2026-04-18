@@ -543,7 +543,8 @@ export default function LeadsKanbanPage() {
     setImportProgress(0);
     setImportProgressText('Lecture et préparation des données...');
 
-    const BATCH_SIZE = 50; // Réduit pour éviter l'erreur Out of memory (HTTP 500) sur Supabase
+    const BATCH_SIZE = 25; // PRUDENCE : Réduit pour éviter le "Out of Memory" sur Supabase.
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms)); // Helper de délai
     const uniqueAdNames = new Set<string>();
 
     Papa.parse(file, {
@@ -642,12 +643,13 @@ export default function LeadsKanbanPage() {
           let processed = 0;
           
           // ENVOI STRICTEMENT SÉQUENTIEL DES LOTS
-          for (let batchToProcess of chunks) {
+          for (const [index, batchToProcess] of chunks.entries()) {
               try {
                   const { data, error } = await supabase.from('crm_leads').upsert(batchToProcess, { onConflict: 'phone, tenant_id' }).select();
                   if (error) { 
-                      console.error("Erreur sur un lot : ", error.message); 
+                      console.error(`Erreur sur le lot #${index + 1} : `, error.message); 
                       hasError = true; 
+                      throw new Error(`Le lot #${index + 1} a échoué. Raison : ${error.message}`);
                       break; // FAIL-FAST : On stoppe l'importation de force
                   } else if (data) {
                       allData = [...allData, ...data];
@@ -655,10 +657,10 @@ export default function LeadsKanbanPage() {
                   processed += batchToProcess.length;
                   setImportProgress(Math.round((processed / deduplicatedLeads.length) * 100));
                   setImportProgressText(`Traitement en cours... (${processed}/${deduplicatedLeads.length} leads)`);
-                  
-                  batchToProcess = []; // Nettoyage du lot pour libérer la RAM
-              } catch (e) {
-                  console.error("Crash lors de l'insertion du lot", e);
+                  await delay(250); // PAUSE DE SÉCURITÉ : 250ms entre chaque lot pour soulager le serveur.
+              } catch (e: any) {
+                  console.error(`Crash lors de l'insertion du lot #${index + 1}`, e);
+                  alert(`L'importation a échoué sur le lot ${index + 1}/${chunks.length}. Erreur : ${e.message}. Veuillez vérifier votre fichier ou contacter le support.`);
                   hasError = true;
                   break; // FAIL-FAST
               }
@@ -679,12 +681,12 @@ export default function LeadsKanbanPage() {
                  return merged.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
              });
              if (hasError) {
-                 alert(`Importation partielle : ${allData.length} leads insérés, mais des erreurs sont survenues sur certains lots.`);
+                 alert(`Importation partielle : ${allData.length} leads insérés, mais des erreurs sont survenues. L'importation a été stoppée.`);
              } else {
                  alert(`${allData.length} leads importés et mis à jour par l'IA avec succès !`);
              }
           } else {
-             if (hasError) alert("L'importation a échoué.");
+             if (hasError) alert("L'importation a échoué. Aucun lead n'a été importé.");
              else alert("Aucune nouvelle donnée valide à importer.");
           }
           

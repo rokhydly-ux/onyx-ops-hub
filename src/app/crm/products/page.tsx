@@ -1077,7 +1077,7 @@ export default function CRMCatalogPage() {
       if (categoryFilter === 'Toutes') {
           matchCat = true;
       } else {
-          matchCat = p.category === categoryFilter || (p.category || '').startsWith(categoryFilter + ' /');
+          matchCat = p.category && p.category.split(', ').some((cat: string) => cat === categoryFilter || cat.startsWith(categoryFilter + ' / '));
       }
               
               let matchSubcat = false;
@@ -1597,17 +1597,30 @@ export default function CRMCatalogPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                       <div>
-                          <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Catégorie</label>
-                          <select 
-                            value={editForm.category} 
-                            onChange={e => setEditForm({...editForm, category: e.target.value, subcategory: ''})} 
-                            className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer"
-                          >
-                             <option value="" disabled>Sélectionner une catégorie</option>
-                             {allCategoryNames.map(catName => (
-                                <option key={catName} value={catName}>{catName}</option>
-                             ))}
-                          </select>
+                          <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Catégorie(s)</label>
+                          <div className="w-full p-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl max-h-32 overflow-y-auto custom-scrollbar space-y-2">
+                             {allCategoryNames.map(catName => {
+                                 const isChecked = editForm.category ? editForm.category.split(', ').includes(catName) : false;
+                                 return (
+                                     <label key={catName} className="flex items-center gap-3 cursor-pointer py-1 hover:opacity-80 transition-opacity">
+                                         <input 
+                                             type="checkbox" 
+                                             checked={isChecked}
+                                             onChange={(e) => {
+                                                 const currentCats = editForm.category ? editForm.category.split(', ').filter(Boolean) : [];
+                                                 if (e.target.checked) {
+                                                     setEditForm({...editForm, category: [...currentCats, catName].join(', ')});
+                                                 } else {
+                                                     setEditForm({...editForm, category: currentCats.filter(c => c !== catName).join(', ')});
+                                                 }
+                                             }}
+                                             className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer"
+                                         />
+                                         <span className="text-sm font-bold text-black dark:text-white">{catName}</span>
+                                     </label>
+                                 );
+                             })}
+                          </div>
                       </div>
                       <div>
                           <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Sous-catégorie</label>

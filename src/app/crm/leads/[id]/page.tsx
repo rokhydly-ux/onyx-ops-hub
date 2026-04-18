@@ -22,7 +22,8 @@ import {
   UserCheck,
   Download,
   Upload,
-  X
+  X,
+  ShoppingCart
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -242,15 +243,16 @@ export default function LeadDetailPage() {
   const fullTimeline = localNotes.map((n: any) => {
       const isAssign = n.note.includes('assigné à');
       const isMove = n.note.includes('Déplacé de');
+      const isCatalogue = n.note?.includes('Produits demandés :');
       return {
           id: n.id,
           type: 'note',
-          title: isAssign ? 'Assignation' : isMove ? 'Changement de statut' : `Note par ${lead.assigned_to || 'Agent'}`,
+          title: isAssign ? 'Assignation' : isMove ? 'Changement de statut' : isCatalogue ? 'Demande depuis le Catalogue' : `Note par ${lead.assigned_to || 'Agent'}`,
           date: new Date(n.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
           displayDate: formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: fr }),
-          icon: isAssign ? UserCheck : isMove ? Activity : FileText,
-          color: isAssign ? 'text-blue-500 dark:text-blue-400' : isMove ? 'text-[#39FF14]' : 'text-yellow-500',
-          bg: isAssign ? 'bg-blue-500/10' : isMove ? 'bg-[#39FF14]/10' : 'bg-yellow-500/10',
+          icon: isAssign ? UserCheck : isMove ? Activity : isCatalogue ? ShoppingCart : FileText,
+          color: isAssign ? 'text-blue-500 dark:text-blue-400' : isMove ? 'text-[#39FF14]' : isCatalogue ? 'text-purple-500 dark:text-purple-400' : 'text-yellow-500',
+          bg: isAssign ? 'bg-blue-500/10' : isMove ? 'bg-[#39FF14]/10' : isCatalogue ? 'bg-purple-500/10' : 'bg-yellow-500/10',
           content: n.note,
           attachedFileUrl: n.attached_file_url
       };
@@ -592,7 +594,7 @@ export default function LeadDetailPage() {
                        </div>
                        {(item.type === 'note' && item.content) ? (
                       <div className="mt-2 border-l-2 border-yellow-500/50 pl-3">
-                        <p className="text-sm text-black dark:text-zinc-300 font-medium">{item.content}</p>
+                        <p className="text-sm text-black dark:text-zinc-300 font-medium whitespace-pre-wrap">{item.content}</p>
                         {item.attachedFileUrl && (
                             <a href={item.attachedFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-2 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-lg text-[10px] font-bold text-blue-500 hover:text-blue-600 transition-colors border border-zinc-200 dark:border-zinc-700">
                                 <FileText size={12}/> Voir la pièce jointe

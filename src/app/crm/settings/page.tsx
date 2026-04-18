@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Settings, Save, Image as ImageIcon, Loader2, Palette, Type, Users, Bot, Plug, Plus, MessageSquare, Database, Activity, Phone, Edit, Trash2, X, CheckCircle } from 'lucide-react';
+import { Settings, Save, Image as ImageIcon, Loader2, Palette, Type, Users, Bot, Plug, Plus, MessageSquare, Database, Activity, Phone, Edit, Trash2, X, CheckCircle, Search } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import Papa from 'papaparse';
 
@@ -19,11 +19,17 @@ function CRMSettingsContent() {
 
   const [commercials, setCommercials] = useState<any[]>([]);
   const [allLeads, setAllLeads] = useState<any[]>([]);
+  const [importsHistory, setImportsHistory] = useState<any[]>([]);
   const [isCommercialModalOpen, setIsCommercialModalOpen] = useState(false);
   const [editingCommercial, setEditingCommercial] = useState<any>(null);
   const [commercialForm, setCommercialForm] = useState({ full_name: '', phone: '', objective: 20, objective_period: 'Mois', status: 'Actif', password_temp: '0000', avatar_url: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
+  const [importSearch, setImportSearch] = useState('');
+  
+  const [csvProgress, setCsvProgress] = useState(0);
+  const [csvProgressText, setCsvProgressText] = useState('');
+  const abortCsvImportRef = useRef(false);
   
   const [isSubmittingOdoo, setIsSubmittingOdoo] = useState(false);
   const odooFileInputRef = useRef<HTMLInputElement>(null);
@@ -56,6 +62,9 @@ function CRMSettingsContent() {
         
         const { data: leads } = await supabase.from('crm_leads').select('status, assigned_to').eq('tenant_id', tId);
         if (leads && isMounted) setAllLeads(leads);
+
+        const { data: imports } = await supabase.from('crm_odoo_imports').select('*').eq('tenant_id', tId).order('created_at', { ascending: false });
+        if (imports && isMounted) setImportsHistory(imports);
       } catch (err) {
         console.error("Erreur de fetch settings:", err);
       } finally {
@@ -230,17 +239,38 @@ function CRMSettingsContent() {
           if (deduplicatedLeads.length === 0) return alert("Aucun lead avec un numéro valide n'a été trouvé.");
 
           setIsSubmitting(true);
+          setCsvProgress(0);
+          setCsvProgressText('Préparation des données...');
+          abortCsvImportRef.current = false;
           
-          const chunks = chunkArray(deduplicatedLeads, 300);
+          const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+          const BATCH_SIZE = 25; // PRUDENCE : Lot réduit pour éviter le crash "Out Of Memory" Supabase
+          const chunks = chunkArray(deduplicatedLeads, BATCH_SIZE);
           let totalImported = 0;
-          for (const chunk of chunks) {
+          let hasError = false;
+          
+          for (const [index, chunk] of chunks.entries()) {
+              if (abortCsvImportRef.current) {
+                  alert("Importation annulée par l'utilisateur.");
+                  break;
+              }
               const { data, error } = await supabase.from('crm_leads').upsert(chunk, { onConflict: 'phone, tenant_id' }).select('id');
-              if (error) { alert("Erreur d'import : " + error.message); break; }
+              if (error) { 
+                  console.error("Erreur d'import : " + error.message); 
+                  alert(`Erreur sur le lot ${index + 1}: ${error.message}`);
+                  hasError = true;
+                  break; 
+              }
               if (data) totalImported += data.length;
+              
+              setCsvProgress(Math.round((totalImported / deduplicatedLeads.length) * 100));
+              setCsvProgressText(`Traitement en cours... (${totalImported}/${deduplicatedLeads.length} leads)`);
+              await delay(250); // Pause de sécurité entre les requêtes
           }
           setIsSubmitting(false);
+          setCsvProgressText('');
           
-          alert(`${totalImported} leads importés et scorés par l'IA avec succès !`);
+          if (!abortCsvImportRef.current && !hasError) alert(`${totalImported} leads importés et scorés par l'IA avec succès !`);
           if (csvFileInputRef.current) csvFileInputRef.current.value = '';
           window.location.reload();
        }
@@ -506,14 +536,18 @@ function CRMSettingsContent() {
               }
 
               // --- ENREGISTREMENT HISTORIQUE IMPORT ODOO ---
-              await supabase.from('crm_odoo_imports').insert([{
+              const { data: newImport } = await supabase.from('crm_odoo_imports').insert([{
                   tenant_id: userId,
                   filename: pendingOdooFile.filename,
                   orders_count: pendingOdooFile.ordersCount,
                   clients_count: pendingOdooFile.clientsCount,
                   products_count: pendingOdooFile.productsCount,
                   status: 'Succès'
-              }]);
+              }]).select();
+              
+              if (newImport && newImport.length > 0) {
+                  setImportsHistory(prev => [newImport[0], ...prev]);
+              }
 
               setProgress(Math.round((processed / totalRows) * 100));
           }
@@ -541,6 +575,21 @@ function CRMSettingsContent() {
           setProgressText('');
       }
   };
+
+  const handleDeleteImport = async (id: string) => {
+      if (!confirm("Voulez-vous vraiment supprimer cet historique d'import ?")) return;
+      try {
+          const { error } = await supabase.from('crm_odoo_imports').delete().eq('id', id);
+          if (error) throw error;
+          setImportsHistory(prev => prev.filter(item => item.id !== id));
+      } catch (err: any) {
+          alert("Erreur lors de la suppression : " + err.message);
+      }
+  };
+
+  const filteredImports = importsHistory.filter(item => 
+      (item.filename || '').toLowerCase().includes(importSearch.toLowerCase())
+  );
 
   if (isLoading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-zinc-500" /></div>;
 
@@ -808,7 +857,58 @@ function CRMSettingsContent() {
                     <input type="date" className="w-full p-3 mt-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs outline-none focus:border-[#39FF14] cursor-pointer" />
                  </div>
               </div>
-              <button className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest w-full hover:scale-[1.02] transition-transform">Forcer la Synchro</button>
+              <button type="button" onClick={() => alert("Fonctionnalité de synchronisation Google Sheets en cours de développement.")} className="bg-black dark:bg-white text-[#39FF14] dark:text-black px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest w-full hover:scale-[1.02] transition-transform">Forcer la Synchro</button>
+           </div>
+
+           {/* --- HISTORIQUE DES IMPORTS --- */}
+           <div className="pt-8 mt-8 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                  <h4 className="font-black text-lg uppercase flex items-center gap-2"><Database size={20} className="text-[#39FF14]" /> Historique des Imports Odoo</h4>
+                  <div className="relative w-full sm:w-64">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <input 
+                          type="text" 
+                          placeholder="Rechercher un fichier..." 
+                          value={importSearch}
+                          onChange={e => setImportSearch(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white"
+                      />
+                  </div>
+              </div>
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+                 <table className="w-full text-left min-w-[600px]">
+                    <thead className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+                       <tr>
+                          <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500">Date</th>
+                          <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500">Fichier</th>
+                          <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">Commandes</th>
+                          <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">Clients</th>
+                          <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">Produits</th>
+                          <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-500 text-right">Statut / Action</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+                       {filteredImports.map((item, idx) => (
+                          <tr key={item.id || idx} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                             <td className="p-4 text-xs font-bold text-black dark:text-white">{new Date(item.created_at).toLocaleDateString('fr-FR')} {new Date(item.created_at).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</td>
+                             <td className="p-4 text-xs font-bold text-zinc-500">{item.filename}</td>
+                             <td className="p-4 text-xs font-black text-center text-black dark:text-white">{item.orders_count}</td>
+                             <td className="p-4 text-xs font-black text-center text-black dark:text-white">{item.clients_count}</td>
+                             <td className="p-4 text-xs font-black text-[#39FF14] text-center">{item.products_count}</td>
+                             <td className="p-4 text-right flex items-center justify-end gap-3">
+                                <span className="bg-[#39FF14]/10 text-[#39FF14] px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-[#39FF14]/20">{item.status}</span>
+                                <button onClick={() => handleDeleteImport(item.id)} className="text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors" title="Supprimer">
+                                    <Trash2 size={14}/>
+                                </button>
+                             </td>
+                          </tr>
+                       ))}
+                       {filteredImports.length === 0 && (
+                          <tr><td colSpan={6} className="p-8 text-center text-zinc-500 font-bold text-xs uppercase tracking-widest italic">Aucun import trouvé.</td></tr>
+                       )}
+                    </tbody>
+                 </table>
+              </div>
            </div>
         </div>
       )}
@@ -961,6 +1061,33 @@ function CRMSettingsContent() {
                   {isSubmittingOdoo ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>} {isSubmittingOdoo ? 'Import...' : 'Valider'}
                </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE PROGRESSION IMPORT CSV FACEBOOK */}
+      {csvProgressText !== '' && (
+        <div id="csv-modal-overlay" className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center border border-zinc-200 dark:border-zinc-800">
+            <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <Database size={24}/>
+            </div>
+            <h3 className="text-xl font-black uppercase mb-2 text-black dark:text-white">Importation des Leads</h3>
+            <div className="mb-6 w-full text-left">
+                <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-3 overflow-hidden shadow-inner">
+                   <div className="bg-[#39FF14] h-3 rounded-full transition-all duration-300" style={{ width: `${csvProgress}%` }}></div>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                    <p className="text-xs font-bold text-zinc-500 tracking-widest uppercase">{csvProgressText}</p>
+                    <p className="text-xs font-black text-black dark:text-white">{csvProgress}%</p>
+                </div>
+            </div>
+            <button 
+                onClick={() => abortCsvImportRef.current = true} 
+                className="w-full py-3 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-black uppercase text-xs transition-colors"
+            >
+                Annuler l'importation
+            </button>
           </div>
         </div>
       )}

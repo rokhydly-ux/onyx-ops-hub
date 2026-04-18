@@ -260,15 +260,24 @@ function CatalogueViewer() {
         phone: cleanPhone,
         source: 'Catalogue Studio',
         intent: 'Demande de Devis',
-        status: 'Nouveau Lead',
+        status: 'Nouveaux Leads',
         budget: totalAmount,
-        amount: totalAmount,
-        message: fullMessage.substring(0, 3000) // Sécurité anti-débordement mémoire (Out of Memory)
+        amount: totalAmount
       };
       
-      const { error } = await supabase.from('crm_leads').insert([payload]);
+      const { data: newLeadData, error } = await supabase.from('crm_leads').insert([payload]).select();
       if (error) throw error;
       
+      if (newLeadData && newLeadData.length > 0) {
+          try {
+              await supabase.from('lead_notes').insert([{
+                  lead_id: newLeadData[0].id,
+                  user_id: tenantId,
+                  note: fullMessage.substring(0, 3000)
+              }]);
+          } catch(e) { console.error(e); }
+      }
+
       // Optimisation Anti-OOM : on nettoie les objets produits avant de les insérer en JSONB pour éviter un excès de taille
       const cleanCartItems = cart.map(item => ({
           id: item.product.id,
