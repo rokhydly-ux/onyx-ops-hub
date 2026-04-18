@@ -439,6 +439,27 @@ export default function CRMCatalogPage() {
       localStorage.setItem('onyx_crm_catalog_design', JSON.stringify(newConfig));
   };
 
+  const saveStudioCatalog = async () => {
+      try {
+          const payload = {
+              tenant_id: tenantId,
+              name: catalogConfig.coverTitle || 'Catalogue Produits',
+              product_ids: Array.from(selectedIds),
+              design_config: catalogConfig,
+              template: 'Studio'
+          };
+          const { data, error } = await supabase.from('crm_catalogs').insert([payload]).select();
+          if (error) throw error;
+          if (data && data.length > 0) {
+              setCatalogsHistory(prev => [data[0], ...prev]);
+              setStudioTab('journal');
+          }
+          alert("Catalogue enregistré avec succès dans le journal !");
+      } catch (err: any) {
+          alert("Erreur lors de l'enregistrement : " + err.message);
+      }
+  };
+
   const generateStudioCatalog = async () => {
       setIsGeneratingPdf(true);
       setPdfProgress(0);
@@ -506,11 +527,86 @@ export default function CRMCatalogPage() {
               }
           }
 
-          for (let i = 0; i < selectedProducts.length; i++) {
+          // --- NOUVEAU LAYOUT CATALOGUE (Grille de produits) ---
+          const productsPerPage = 6;
+          for (let i = 0; i < selectedProducts.length; i += productsPerPage) {
               doc.addPage();
-              await generateTechnicalSheet(selectedProducts[i], doc);
-              setPdfProgress(Math.round(((i + 1) / selectedProducts.length) * 100));
+              doc.setFillColor(255, 255, 255);
+              doc.rect(0, 0, 210, 297, 'F');
+              
+              // Header de la page
+              doc.setFillColor(0, 0, 0);
+              doc.rect(0, 0, 210, 25, 'F');
+              
+              if (catalogConfig.logoUrl) {
+                 try {
+                     const img = new Image();
+                     img.crossOrigin = "Anonymous";
+                     img.src = catalogConfig.logoUrl;
+                     await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+                     doc.addImage(img, 'PNG', 14, 2, 20, 20); // Small logo in header
+                 } catch(e) {}
+              }
+              
+              doc.setTextColor(255, 255, 255);
+              doc.setFontSize(16);
+              doc.text(catalogConfig.coverTitle.toUpperCase(), 40, 16);
+
+              const pageProducts = selectedProducts.slice(i, i + productsPerPage);
+              let startY = 35;
+              let startX = 14;
+              const colWidth = 85;
+              const rowHeight = 85;
+              
+              for (let j = 0; j < pageProducts.length; j++) {
+                  const p = pageProducts[j];
+                  const col = j % 2;
+                  const row = Math.floor(j / 2);
+                  const x = startX + col * (colWidth + 10);
+                  const y = startY + row * rowHeight;
+                  
+                  // Product Image
+                  if (p.image_url) {
+                      try {
+                          const img = new Image();
+                          img.crossOrigin = "Anonymous";
+                          img.src = p.image_url;
+                          await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+                          doc.addImage(img, 'JPEG', x, y, colWidth, 45);
+                      } catch(e) {
+                          doc.setFillColor(240, 240, 240);
+                          doc.rect(x, y, colWidth, 45, 'F');
+                      }
+                  } else {
+                      doc.setFillColor(240, 240, 240);
+                      doc.rect(x, y, colWidth, 45, 'F');
+                  }
+                  
+                  doc.setTextColor(0, 0, 0);
+                  doc.setFontSize(11);
+                  doc.setFont("helvetica", "bold");
+                  const titleLines = doc.splitTextToSize(p.name || 'Produit', colWidth);
+                  doc.text(titleLines.slice(0, 2), x, y + 52);
+                  
+                  doc.setFontSize(9);
+                  doc.setFont("helvetica", "normal");
+                  doc.setTextColor(100, 100, 100);
+                  doc.text(`${p.category || ''} ${p.subcategory ? ' - ' + p.subcategory : ''}`, x, y + 60);
+                  
+                  if (p.description) {
+                      doc.setFontSize(8);
+                      const descLines = doc.splitTextToSize(p.description, colWidth);
+                      doc.text(descLines.slice(0, 3), x, y + 66);
+                  }
+
+                  doc.setFontSize(12);
+                  doc.setFont("helvetica", "bold");
+                  doc.setTextColor(0, 0, 0); 
+                  doc.text(`${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F CFA`, x, y + 78);
+              }
+              setPdfProgress(Math.round(((i + productsPerPage) / selectedProducts.length) * 100));
           }
+          // --- FIN NOUVEAU LAYOUT ---
 
           if (catalogConfig.backCoverImage) {
               doc.addPage();
@@ -522,15 +618,6 @@ export default function CRMCatalogPage() {
                   doc.addImage(img, 'JPEG', 0, 0, 210, 297); // Dos plein page
               } catch(e) { console.warn("Erreur image dos", e); }
           }
-          
-          const payload = {
-              tenant_id: tenantId,
-              name: catalogConfig.coverTitle || 'Catalogue Produits',
-              product_ids: Array.from(selectedIds),
-              design_config: catalogConfig,
-              template: 'Studio'
-          };
-          await supabase.from('crm_catalogs').insert([payload]);
 
           doc.save(`Catalogue_${catalogConfig.coverTitle.replace(/\s+/g, '_')}.pdf`);
       } catch(e) {
@@ -1860,6 +1947,9 @@ export default function CRMCatalogPage() {
 
                    <div className="pt-4 mt-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0 flex flex-col sm:flex-row gap-3 relative z-10 bg-white dark:bg-zinc-950">
                       <button onClick={() => { setSelectedIds(new Set()); setStudioSelectedCategory(''); }} className="px-6 py-4 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 font-bold uppercase text-xs rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">Réinitialiser</button>
+                      <button onClick={saveStudioCatalog} disabled={selectedIds.size === 0} className="px-6 py-4 bg-zinc-800 text-white font-bold uppercase text-xs rounded-xl hover:bg-black transition-colors disabled:opacity-50">
+                          Enregistrer
+                      </button>
                       <button onClick={() => {
                           const ids = Array.from(selectedIds).join(',');
                           const link = `${window.location.origin}/catalogue?ids=${ids}&t=${tenantId}`;

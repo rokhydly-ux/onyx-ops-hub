@@ -9,8 +9,7 @@ export default function BookingModulePage() {
   const [leads, setLeads] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
-  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+  const [currentWeekDate, setCurrentWeekDate] = useState(new Date());
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formState, setFormState] = useState({
@@ -115,11 +114,28 @@ export default function BookingModulePage() {
       setIsModalOpen(true);
   };
 
+  // --- LOGIQUE DU CALENDRIER (SEMAINE) ---
+  const getWeekDays = (date: Date) => {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      const days: Date[] = [];
+      for (let i = 0; i < 7; i++) {
+          const nextDay = new Date(monday);
+          nextDay.setDate(monday.getDate() + i);
+          days.push(nextDay);
+      }
+      return days;
+  };
+  const weekDays = getWeekDays(currentWeekDate);
+  const hours = Array.from({ length: 13 }, (_, i) => i + 8); // de 8h à 20h
+
   const handleDragStart = (e: React.DragEvent, id: string) => {
       e.dataTransfer.setData('text/plain', id);
   };
 
-  const handleDrop = async (e: React.DragEvent, dateStr: string) => {
+  const handleDrop = async (e: React.DragEvent, dateStr: string, hourStr?: string) => {
       e.preventDefault();
       const id = e.dataTransfer.getData('text/plain');
       if (!id) return;
@@ -128,7 +144,7 @@ export default function BookingModulePage() {
       if (!appt) return;
 
       const oldDateTime = new Date(appt.date_time);
-      const timeString = `${String(oldDateTime.getHours()).padStart(2, '0')}:${String(oldDateTime.getMinutes()).padStart(2, '0')}:00`;
+      const timeString = hourStr ? `${hourStr}:00:00` : `${String(oldDateTime.getHours()).padStart(2, '0')}:${String(oldDateTime.getMinutes()).padStart(2, '0')}:00`;
       const newDateTime = `${dateStr}T${timeString}`;
 
       setAppointments(prev => prev.map(a => a.id === id ? { ...a, date_time: newDateTime } : a));
@@ -196,6 +212,7 @@ export default function BookingModulePage() {
                <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1">
                   <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><LayoutList size={16}/></button>
                   <button onClick={() => setViewMode('calendar')} className={`p-1.5 rounded-md transition-all ${viewMode === 'calendar' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><CalendarDays size={16}/></button>
+                  <button onClick={() => setViewMode('week')} className={`p-1.5 rounded-md transition-all ${viewMode === 'week' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><Clock size={16}/></button>
                </div>
              </div>
              <div className="flex items-center gap-3">
@@ -204,6 +221,13 @@ export default function BookingModulePage() {
                     <button onClick={handlePrevMonth} className="p-1 hover:text-[#39FF14] transition-colors"><ChevronLeft size={16}/></button>
                     <span className="font-black uppercase text-xs w-24 text-center">{monthNames[month]} {year}</span>
                     <button onClick={handleNextMonth} className="p-1 hover:text-[#39FF14] transition-colors"><ChevronRight size={16}/></button>
+                 </div>
+               )}
+               {viewMode === 'week' && (
+                 <div className="flex items-center gap-2 mr-2 bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <button onClick={() => { const d = new Date(currentWeekDate); d.setDate(d.getDate() - 7); setCurrentWeekDate(d); }} className="p-1 hover:text-[#39FF14] transition-colors"><ChevronLeft size={16}/></button>
+                    <span className="font-black uppercase text-[10px] w-32 text-center truncate">Semaine du {weekDays[0].getDate()} {monthNames[weekDays[0].getMonth()].substring(0,3)}</span>
+                    <button onClick={() => { const d = new Date(currentWeekDate); d.setDate(d.getDate() + 7); setCurrentWeekDate(d); }} className="p-1 hover:text-[#39FF14] transition-colors"><ChevronRight size={16}/></button>
                  </div>
                )}
                <button onClick={() => setIsModalOpen(true)} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md hover:scale-105 transition-transform flex items-center gap-2">
@@ -251,7 +275,7 @@ export default function BookingModulePage() {
                 ))
              )}
            </div>
-           ) : (
+           ) : viewMode === 'calendar' ? (
              <div className="animate-in fade-in flex flex-col h-[60vh] min-h-[500px]">
                 {/* Jours de la semaine */}
                 <div className="grid grid-cols-7 gap-2 mb-2">
@@ -302,6 +326,53 @@ export default function BookingModulePage() {
                        </div>
                      );
                   })}
+                </div>
+             </div>
+           ) : (
+             <div className="animate-in fade-in flex flex-col h-[60vh] min-h-[500px] overflow-y-auto custom-scrollbar relative">
+                <div className="grid grid-cols-8 gap-1 mb-2 sticky top-0 bg-white dark:bg-zinc-950 z-10 border-b border-zinc-200 dark:border-zinc-800 pb-2">
+                   <div className="text-center text-[10px] font-black uppercase text-zinc-400">Heures</div>
+                   {weekDays.map(day => {
+                      const isToday = todayStart.toDateString() === day.toDateString();
+                      return (
+                         <div key={day.toISOString()} className={`text-center text-[10px] font-black uppercase tracking-widest ${isToday ? 'text-[#39FF14]' : 'text-zinc-500'}`}>
+                            {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][day.getDay() === 0 ? 6 : day.getDay() - 1]} {day.getDate()}
+                         </div>
+                      );
+                   })}
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                   {hours.map(hour => (
+                      <div key={hour} className="grid grid-cols-8 gap-1 min-h-[60px]">
+                         <div className="text-right pr-2 text-[10px] font-black text-zinc-400 border-r border-zinc-100 dark:border-zinc-800 flex items-center justify-end">{hour}h00</div>
+                         {weekDays.map(day => {
+                            const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                            const hourStr = String(hour).padStart(2, '0');
+                            
+                            const slotAppts = appointments.filter(a => {
+                               const aDate = new Date(a.date_time);
+                               return aDate.toDateString() === day.toDateString() && aDate.getHours() === hour;
+                            });
+
+                            return (
+                               <div 
+                                 key={`${dateStr}-${hourStr}`} 
+                                 onDragOver={(e) => e.preventDefault()}
+                                 onDrop={(e) => { e.stopPropagation(); handleDrop(e, dateStr, hourStr); }}
+                                 onClick={() => { setFormState({ ...formState, date: dateStr, time: `${hourStr}:00` }); setIsModalOpen(true); }}
+                                 className="border border-dashed border-zinc-200 dark:border-zinc-800/50 rounded-lg p-1 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors cursor-pointer flex flex-col gap-1"
+                               >
+                                  {slotAppts.map(a => (
+                                     <div key={a.id} draggable onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, a.id); }} className={`cursor-move text-[9px] font-bold px-1.5 py-1 rounded shadow-sm truncate ${a.status === 'Effectué' ? 'bg-green-100 text-green-700' : 'bg-black text-[#39FF14] dark:bg-white dark:text-black'}`}>
+                                        {a.title || a.lead_name}
+                                     </div>
+                                  ))}
+                               </div>
+                            );
+                         })}
+                      </div>
+                   ))}
                 </div>
              </div>
            )}

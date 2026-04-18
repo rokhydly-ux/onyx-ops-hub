@@ -543,7 +543,7 @@ export default function LeadsKanbanPage() {
     setImportProgress(0);
     setImportProgressText('Lecture et préparation des données...');
 
-    const BATCH_SIZE = 500;
+    const BATCH_SIZE = 50; // Réduit pour éviter l'erreur Out of memory (HTTP 500) sur Supabase
     const uniqueAdNames = new Set<string>();
 
     Papa.parse(file, {
