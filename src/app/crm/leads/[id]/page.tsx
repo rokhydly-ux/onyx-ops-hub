@@ -20,7 +20,9 @@ import {
   Trophy,
   Send,
   UserCheck,
-  Download
+  Download,
+  Upload,
+  X
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -40,6 +42,9 @@ export default function LeadDetailPage() {
   const [commercials, setCommercials] = useState<any[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [attachedFileUrl, setAttachedFileUrl] = useState<string>("");
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const fileAttachmentRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchLeadAndNotes = async () => {
@@ -147,8 +152,27 @@ export default function LeadDetailPage() {
   };
 
   // --- GESTION DES NOTES MANUELLES ---
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingAttachment(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `note-attachment-${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage.from('tontines').upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('tontines').getPublicUrl(fileName);
+      setAttachedFileUrl(data.publicUrl);
+    } catch (err: any) {
+      alert("Erreur d'upload : " + err.message);
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
   const handleAddNote = async () => {
-    if (!noteText.trim() || !tenantId) return;
+    if (!noteText.trim() && !attachedFileUrl) return;
+    if (!tenantId) return;
     
     // On s'assure d'utiliser le bon ID utilisateur pour la base de données
     const { data: { user } } = await supabase.auth.getUser();
@@ -156,7 +180,8 @@ export default function LeadDetailPage() {
     const { data, error } = await supabase.from('lead_notes').insert([{
         lead_id: leadId,
         user_id: user?.id || tenantId,
-        note: noteText.trim()
+        note: noteText.trim() || "Pièce jointe ajoutée",
+        attached_file_url: attachedFileUrl
     }]).select();
 
     if (error) {
@@ -170,11 +195,14 @@ export default function LeadDetailPage() {
             setLocalNotes([{
                 id: crypto.randomUUID(),
                 lead_id: leadId,
-                note: noteText.trim(),
+                note: noteText.trim() || "Pièce jointe ajoutée",
+                attached_file_url: attachedFileUrl,
                 created_at: new Date().toISOString()
             }, ...localNotes]);
         }
         setNoteText("");
+        setAttachedFileUrl("");
+        if (fileAttachmentRef.current) fileAttachmentRef.current.value = '';
     }
   };
 
@@ -223,7 +251,8 @@ export default function LeadDetailPage() {
           icon: isAssign ? UserCheck : isMove ? Activity : FileText,
           color: isAssign ? 'text-blue-500 dark:text-blue-400' : isMove ? 'text-[#39FF14]' : 'text-yellow-500',
           bg: isAssign ? 'bg-blue-500/10' : isMove ? 'bg-[#39FF14]/10' : 'bg-yellow-500/10',
-          content: n.note
+          content: n.note,
+          attachedFileUrl: n.attached_file_url
       };
   });
 
@@ -525,8 +554,22 @@ export default function LeadDetailPage() {
                 placeholder="Consignez un appel, un détail ou une information importante sur ce lead..."
                 className="w-full bg-transparent border-none outline-none resize-none text-sm font-medium text-black dark:text-white placeholder:text-zinc-400 min-h-[60px]"
               />
-              <div className="flex justify-end border-t border-zinc-200 dark:border-zinc-800 pt-3">
-                 <button onClick={handleAddNote} disabled={!noteText.trim()} className="bg-black text-white dark:bg-white dark:text-black px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black dark:hover:bg-[#39FF14] dark:hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+          {attachedFileUrl && (
+              <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 p-2 rounded-lg w-max border border-blue-100 dark:border-blue-500/20">
+                  <FileText size={14} className="text-blue-500" />
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Fichier joint</span>
+                  <button onClick={() => setAttachedFileUrl("")} className="text-red-500 ml-2"><X size={12}/></button>
+              </div>
+          )}
+          <div className="flex justify-between items-center border-t border-zinc-200 dark:border-zinc-800 pt-3">
+             <div className="flex gap-2">
+                <input type="file" ref={fileAttachmentRef} onChange={handleFileUpload} className="hidden" />
+                <button onClick={() => fileAttachmentRef.current?.click()} disabled={isUploadingAttachment} className="text-zinc-500 hover:text-black dark:hover:text-white p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+                   {isUploadingAttachment ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} 
+                   Joindre un fichier
+                </button>
+             </div>
+             <button onClick={handleAddNote} disabled={(!noteText.trim() && !attachedFileUrl) || isUploadingAttachment} className="bg-black text-white dark:bg-white dark:text-black px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black dark:hover:bg-[#39FF14] dark:hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                    <Send size={14} /> Enregistrer Note
                  </button>
               </div>
@@ -548,7 +591,14 @@ export default function LeadDetailPage() {
                           </span>
                        </div>
                        {(item.type === 'note' && item.content) ? (
-                         <p className="text-sm text-black dark:text-zinc-300 font-medium mt-2 border-l-2 border-yellow-500/50 pl-3">{item.content}</p>
+                      <div className="mt-2 border-l-2 border-yellow-500/50 pl-3">
+                        <p className="text-sm text-black dark:text-zinc-300 font-medium">{item.content}</p>
+                        {item.attachedFileUrl && (
+                            <a href={item.attachedFileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-2 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-lg text-[10px] font-bold text-blue-500 hover:text-blue-600 transition-colors border border-zinc-200 dark:border-zinc-700">
+                                <FileText size={12}/> Voir la pièce jointe
+                            </a>
+                        )}
+                      </div>
                        ) : item.type === 'note' && (
                          <p className="text-xs text-zinc-500 font-medium italic mt-2 border-l-2 border-yellow-500/30 pl-3">Détail capturé lors de l'échange.</p>
                        )}

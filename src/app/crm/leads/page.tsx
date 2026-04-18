@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   Plus, Search, Phone, MessageSquare, Mail, 
   UploadCloud, Facebook, Activity, CheckCircle, Wallet, AlertTriangle, PieChart,
-  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan, Eye, Download, Clock, Lock, Target, TrendingUp
+  X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan, Eye, Download, Clock, Lock, Target, TrendingUp,
+  FileText, Send, Loader2
 } from 'lucide-react';
 import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -219,6 +220,17 @@ export default function LeadsKanbanPage() {
   const [analysisCampaign, setAnalysisCampaign] = useState("Toutes");
   const [analysisPeriod, setAnalysisPeriod] = useState("30j");
 
+  // New Note State
+  const [newNoteText, setNewNoteText] = useState("");
+  const [attachedFileUrl, setAttachedFileUrl] = useState("");
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const fileAttachmentRef = useRef<HTMLInputElement>(null);
+
+  // Obs Note State (Pour joindre Devis/Facture lors du déplacement)
+  const [obsAttachedFileUrl, setObsAttachedFileUrl] = useState("");
+  const [isUploadingObsAttachment, setIsUploadingObsAttachment] = useState(false);
+  const fileObsAttachmentRef = useRef<HTMLInputElement>(null);
+
   // Win effect (Confetti + Sound)
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -417,7 +429,12 @@ export default function LeadsKanbanPage() {
     const { leadId, newStatus } = pendingMove;
 
     // 1. Sauvegarde de la note d'observation obligatoire
-    await supabase.from('lead_notes').insert([{ lead_id: leadId, user_id: userId, note: `Déplacé de [${pendingMove.oldStatus}] vers [${newStatus}]. Observation : ${observation.trim()}` }]);
+    await supabase.from('lead_notes').insert([{ 
+        lead_id: leadId, 
+        user_id: userId, 
+        note: `Déplacé de [${pendingMove.oldStatus}] vers [${newStatus}]. Observation : ${observation.trim()}`,
+        attached_file_url: obsAttachedFileUrl || null
+    }]);
 
     // 2. Mise à jour de l'état Kanban dans la DB et localement
     await supabase.from('crm_leads').update({ status: newStatus }).eq('id', leadId).eq('tenant_id', userId);
@@ -430,6 +447,63 @@ export default function LeadsKanbanPage() {
 
     setPendingMove(null);
     setObservation("");
+    setObsAttachedFileUrl("");
+  };
+
+  // --- GESTION DES FICHIERS ET DES NOTES ---
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingAttachment(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `note-attachment-${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage.from('tontines').upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('tontines').getPublicUrl(fileName);
+      setAttachedFileUrl(data.publicUrl);
+    } catch (err: any) {
+      alert("Erreur d'upload : " + err.message);
+    } finally {
+      setIsUploadingAttachment(false);
+    }
+  };
+
+  const handleObsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingObsAttachment(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `obs-attachment-${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage.from('tontines').upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('tontines').getPublicUrl(fileName);
+      setObsAttachedFileUrl(data.publicUrl);
+    } catch (err: any) {
+      alert("Erreur d'upload : " + err.message);
+    } finally {
+      setIsUploadingObsAttachment(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!newNoteText.trim() && !attachedFileUrl) return;
+    if (!userId || !selectedLead) return;
+    
+    const payload = { lead_id: selectedLead.id, user_id: userId, note: newNoteText.trim() || "Pièce jointe ajoutée", attached_file_url: attachedFileUrl || null };
+    const { data, error } = await supabase.from('lead_notes').insert([payload]).select();
+    
+    if (error) {
+        alert("Erreur lors de l'ajout de la note : " + error.message);
+    } else {
+        if (data && data.length > 0) setLeadNotes([data[0], ...leadNotes]);
+        else setLeadNotes([{ id: crypto.randomUUID(), ...payload, created_at: new Date().toISOString() }, ...leadNotes]);
+        
+        setNewNoteText("");
+        setAttachedFileUrl("");
+        if (fileAttachmentRef.current) fileAttachmentRef.current.value = '';
+    }
   };
 
   // --- GESTION DES NOTES ---
@@ -561,7 +635,7 @@ export default function LeadsKanbanPage() {
               await supabase.from('crm_campaigns').upsert(campaignsPayload, { onConflict: 'name, tenant_id' });
           }
 
-          const chunks = chunkArray(deduplicatedLeads, 300);
+          const chunks = chunkArray(deduplicatedLeads, 50); // Réduit à 50 pour éviter l'erreur Out Of Memory de PostgreSQL
           let allData: any[] = [];
           let hasError = false;
           let processed = 0;
@@ -632,29 +706,6 @@ export default function LeadsKanbanPage() {
       } else {
           alert("Erreur : " + error?.message);
       }
-  };
-
-  // --- WEBHOOK FACEBOOK (SIMULATION PRIVYR) ---
-  const simulateFBWebhook = async () => {
-    if (!userId) return;
-    const newLead = {
-      tenant_id: userId,
-      full_name: "Nouveau Lead FB " + Math.floor(Math.random() * 1000),
-      phone: "+22170" + Math.floor(1000000 + Math.random() * 9000000),
-      status: "Nouveaux Leads",
-      source: "Facebook Ads",
-      intent: "Campagne Promo",
-      is_client: false
-    };
-
-    const { data } = await supabase.from('crm_leads').insert([newLead]).select().single();
-    if (data) {
-      setLeads(prev => [data, ...prev]);
-      // Petit effet sonore ou alerte pour mimer l'instantanéité
-      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
-      audio.volume = 0.5;
-      audio.play().catch(()=>{});
-    }
   };
 
   // --- ACTIONS QUICK ENTRY ---
@@ -918,9 +969,6 @@ export default function LeadsKanbanPage() {
               <button onClick={() => setIsCaptureModalOpen(true)} className="flex items-center gap-2 bg-black text-[#39FF14] px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors shadow-xl">
                 <Camera size={16} /> Omni-Capture
               </button>
-              <button onClick={simulateFBWebhook} className="flex items-center gap-2 bg-[#1877F2]/10 text-[#1877F2] border border-[#1877F2]/30 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#1877F2] hover:text-white transition-colors shadow-sm">
-                <Facebook size={16}/> Simuler Lead FB
-              </button>
             </>
           )}
           {userRole !== 'commercial' && (
@@ -1160,6 +1208,36 @@ export default function LeadsKanbanPage() {
               
               <div>
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Activity size={12}/> Historique & Notes</p>
+                
+                {/* ADD NOTE FORM */}
+                <div className="mb-4 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2">
+                  <textarea 
+                    value={newNoteText}
+                    onChange={(e) => setNewNoteText(e.target.value)}
+                    placeholder="Saisir une nouvelle note..."
+                    className="w-full bg-transparent border-none outline-none resize-none text-xs font-medium text-black dark:text-white placeholder:text-zinc-400 min-h-[50px] custom-scrollbar"
+                  />
+                  {attachedFileUrl && (
+                    <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 p-2 rounded-lg w-max border border-blue-100 dark:border-blue-500/20">
+                      <FileText size={12} className="text-blue-500" />
+                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Pièce jointe</span>
+                      <button onClick={() => setAttachedFileUrl("")} className="text-red-500 ml-2"><X size={10}/></button>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center border-t border-zinc-200 dark:border-zinc-800 pt-2">
+                    <div className="flex gap-2">
+                      <input type="file" ref={fileAttachmentRef} onChange={handleFileUpload} className="hidden" />
+                      <button onClick={() => fileAttachmentRef.current?.click()} disabled={isUploadingAttachment} className="text-zinc-500 hover:text-black dark:hover:text-white p-1.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest">
+                        {isUploadingAttachment ? <Loader2 size={12} className="animate-spin" /> : <UploadCloud size={12} />} 
+                        Joindre
+                      </button>
+                    </div>
+                    <button onClick={handleAddNote} disabled={(!newNoteText.trim() && !attachedFileUrl) || isUploadingAttachment} className="bg-black text-[#39FF14] dark:bg-white dark:text-black px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-1.5">
+                      <Send size={12} /> Valider
+                    </button>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   {leadNotes.length > 0 ? leadNotes.map((note) => (
                     <div key={note.id} className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 text-left group">
@@ -1178,6 +1256,11 @@ export default function LeadsKanbanPage() {
                       ) : (
                         <>
                           <p className="text-xs font-medium text-black dark:text-white leading-snug">{note.note}</p>
+                          {note.attached_file_url && (
+                             <a href={note.attached_file_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-blue-500 hover:underline">
+                                <FileText size={10}/> Pièce jointe
+                             </a>
+                          )}
                           <div className="flex items-center justify-between mt-1.5">
                             <p className="text-[9px] font-bold text-zinc-400 uppercase">{formatDistanceToNow(new Date(note.created_at), { addSuffix: true, locale: fr })}</p>
                             {userRole !== 'commercial' && (
@@ -1216,12 +1299,26 @@ export default function LeadsKanbanPage() {
               value={observation}
               onChange={(e) => setObservation(e.target.value)}
               placeholder="Observation, compte-rendu d'appel ou raison du déplacement..."
-              className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14] min-h-[120px] mb-6 custom-scrollbar resize-none"
+              className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium outline-none focus:border-[#39FF14] min-h-[120px] mb-4 custom-scrollbar resize-none"
               autoFocus
             />
+            {obsAttachedFileUrl && (
+              <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-500/10 p-2 rounded-lg w-max border border-blue-100 dark:border-blue-500/20 mb-4">
+                <FileText size={12} className="text-blue-500" />
+                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Fichier joint</span>
+                <button onClick={() => setObsAttachedFileUrl("")} className="text-red-500 ml-2"><X size={10}/></button>
+              </div>
+            )}
+            <div className="flex justify-between items-center mb-6">
+               <input type="file" ref={fileObsAttachmentRef} onChange={handleObsFileUpload} className="hidden" />
+               <button onClick={() => fileObsAttachmentRef.current?.click()} disabled={isUploadingObsAttachment} className="text-zinc-500 hover:text-black dark:hover:text-white p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+                  {isUploadingObsAttachment ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />} 
+                  Joindre Devis/Facture
+               </button>
+            </div>
             <div className="flex gap-4">
-              <button onClick={() => { setPendingMove(null); setObservation(""); }} className="flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors">Annuler</button>
-              <button onClick={confirmMove} disabled={!observation.trim()} className="flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest text-black bg-[#39FF14] hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg disabled:opacity-50">Enregistrer</button>
+              <button onClick={() => { setPendingMove(null); setObservation(""); setObsAttachedFileUrl(""); }} className="flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest text-zinc-500 bg-zinc-100 dark:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors">Annuler</button>
+              <button onClick={confirmMove} disabled={!observation.trim() || isUploadingObsAttachment} className="flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest text-black bg-[#39FF14] hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg disabled:opacity-50">Enregistrer</button>
             </div>
           </div>
         </div>
