@@ -244,7 +244,7 @@ function CRMSettingsContent() {
           abortCsvImportRef.current = false;
           
           const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-          const BATCH_SIZE = 25; // PRUDENCE : Lot réduit pour éviter le crash "Out Of Memory" Supabase
+          const BATCH_SIZE = 10; // PRUDENCE MAXIMALE : Lot de 10 (Anti-OOM)
           const chunks = chunkArray(deduplicatedLeads, BATCH_SIZE);
           let totalImported = 0;
           let hasError = false;
@@ -254,14 +254,15 @@ function CRMSettingsContent() {
                   alert("Importation annulée par l'utilisateur.");
                   break;
               }
-              const { data, error } = await supabase.from('crm_leads').upsert(chunk, { onConflict: 'phone, tenant_id' }).select('id');
+              // Suppression du .select() pour économiser la mémoire serveur (PostgREST)
+              const { error } = await supabase.from('crm_leads').upsert(chunk, { onConflict: 'phone, tenant_id' });
               if (error) { 
                   console.error("Erreur d'import : " + error.message); 
                   alert(`Erreur sur le lot ${index + 1}: ${error.message}`);
                   hasError = true;
                   break; 
               }
-              if (data) totalImported += data.length;
+              totalImported += chunk.length;
               
               setCsvProgress(Math.round((totalImported / deduplicatedLeads.length) * 100));
               setCsvProgressText(`Traitement en cours... (${totalImported}/${deduplicatedLeads.length} leads)`);

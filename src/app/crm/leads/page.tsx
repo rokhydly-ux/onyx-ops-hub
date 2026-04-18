@@ -543,7 +543,7 @@ export default function LeadsKanbanPage() {
     setImportProgress(0);
     setImportProgressText('Lecture et préparation des données...');
 
-    const BATCH_SIZE = 25; // PRUDENCE : Réduit pour éviter le "Out of Memory" sur Supabase.
+    const BATCH_SIZE = 10; // PRUDENCE MAXIMALE : 10 leads par lot (Anti-OOM)
     const delay = (ms: number) => new Promise(res => setTimeout(res, ms)); // Helper de délai
     const uniqueAdNames = new Set<string>();
 
@@ -638,21 +638,19 @@ export default function LeadsKanbanPage() {
               Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
           
           const chunks = chunkArray(deduplicatedLeads, BATCH_SIZE);
-          let allData: any[] = [];
           let hasError = false;
           let processed = 0;
           
           // ENVOI STRICTEMENT SÉQUENTIEL DES LOTS
           for (const [index, batchToProcess] of chunks.entries()) {
               try {
-                  const { data, error } = await supabase.from('crm_leads').upsert(batchToProcess, { onConflict: 'phone, tenant_id' }).select();
+                  // Retrait de .select() pour éviter les crash "Out of memory" serveur
+                  const { error } = await supabase.from('crm_leads').upsert(batchToProcess, { onConflict: 'phone, tenant_id' });
                   if (error) { 
                       console.error(`Erreur sur le lot #${index + 1} : `, error.message); 
                       hasError = true; 
                       throw new Error(`Le lot #${index + 1} a échoué. Raison : ${error.message}`);
                       break; // FAIL-FAST : On stoppe l'importation de force
-                  } else if (data) {
-                      allData = [...allData, ...data];
                   }
                   processed += batchToProcess.length;
                   setImportProgress(Math.round((processed / deduplicatedLeads.length) * 100));
@@ -675,16 +673,13 @@ export default function LeadsKanbanPage() {
               await supabase.from('crm_campaigns').upsert(campaignsPayload, { onConflict: 'name, tenant_id' });
           }
 
-          if (allData.length > 0) {
-             setLeads(prev => {
-                 const merged = [...allData, ...prev.filter(p => !allData.find((d: any) => d.id === p.id))];
-                 return merged.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-             });
+          if (processed > 0) {
              if (hasError) {
-                 alert(`Importation partielle : ${allData.length} leads insérés, mais des erreurs sont survenues. L'importation a été stoppée.`);
+                 alert(`Importation partielle : ${processed} leads traités, mais des erreurs sont survenues. L'importation a été stoppée.`);
              } else {
-                 alert(`${allData.length} leads importés et mis à jour par l'IA avec succès !`);
+                 alert(`${processed} leads importés et mis à jour par l'IA avec succès !`);
              }
+             window.location.reload(); // Recharge pour récupérer les données fraîches depuis le serveur
           } else {
              if (hasError) alert("L'importation a échoué. Aucun lead n'a été importé.");
              else alert("Aucune nouvelle donnée valide à importer.");
