@@ -535,15 +535,11 @@ export default function LeadsKanbanPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Fetch existing leads to preserve their status upon updates
-    const { data: existingLeads } = await supabase.from('crm_leads').select('id, phone, status, created_at').eq('tenant_id', userId);
-    const existingMap = new Map((existingLeads || []).map((l: any) => [l.phone, l]));
-
     setIsImporting(true);
     setImportProgress(0);
     setImportProgressText('Lecture et préparation des données...');
 
-    const BATCH_SIZE = 10; // PRUDENCE MAXIMALE : 10 leads par lot (Anti-OOM)
+    const BATCH_SIZE = 5; // SÉCURITÉ ABSOLUE : 5 leads par lot (Anti-OOM)
     const delay = (ms: number) => new Promise(res => setTimeout(res, ms)); // Helper de délai
     const uniqueAdNames = new Set<string>();
 
@@ -562,7 +558,7 @@ export default function LeadsKanbanPage() {
 
              const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
              let rawPhone = r['whatsapp_number'] || r['phone_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
-             let phone = String(rawPhone).replace(/\s+/g, '');
+             let phone = String(rawPhone).replace(/[^0-9+]/g, ''); // FIX: Supprime l'apostrophe Excel
              if (phone && !phone.startsWith('+')) {
                  phone = phone.startsWith('221') ? `+${phone}` : `+221${phone}`;
              }
@@ -579,8 +575,6 @@ export default function LeadsKanbanPage() {
                  const parsedDate = new Date(r[dateKey]);
                  if (!isNaN(parsedDate.getTime())) createdAt = parsedDate.toISOString();
              }
-             const existingLead = existingMap.get(phone);
-
              // SCORING IA AUTOMATIQUE
              let score = 'Tiède'; // Statut par défaut plus optimiste
              let timeframe = 'Se renseigne';
@@ -607,19 +601,15 @@ export default function LeadsKanbanPage() {
              
              return {
                 tenant_id: userId,
-                full_name: name,
-                phone: phone,
-                campaign_name: campaign,
-                ad_name: adName,
-                form_name: form,
+                full_name: String(name || 'Lead FB').substring(0, 100),
+                phone: String(phone).substring(0, 20),
+                campaign_name: String(campaign || 'Organique').substring(0, 150),
+                ad_name: String(adName || 'Publicité').substring(0, 150),
                 lead_score: score,
-                timeframe: timeframe,
-                budget: budget,
-                amount: budget,
-                status: existingLead ? existingLead.status : 'Nouveau Lead', // Force statut ou préserve l'existant
+                budget: budget || 0,
+                amount: budget || 0,
                 source: 'Facebook Ads',
-                intent: form || campaign || 'Organique',
-                created_at: existingLead ? existingLead.created_at : createdAt
+                intent: String(form || campaign || 'Organique').substring(0, 150)
              };
           
           }).filter(l => l.phone); // Exclut les lignes sans numéro
@@ -655,7 +645,7 @@ export default function LeadsKanbanPage() {
                   processed += batchToProcess.length;
                   setImportProgress(Math.round((processed / deduplicatedLeads.length) * 100));
                   setImportProgressText(`Traitement en cours... (${processed}/${deduplicatedLeads.length} leads)`);
-                  await delay(250); // PAUSE DE SÉCURITÉ : 250ms entre chaque lot pour soulager le serveur.
+                  await delay(400); // PAUSE PLUS LONGUE POUR SOULAGER LA RAM DU SERVEUR
               } catch (e: any) {
                   console.error(`Crash lors de l'insertion du lot #${index + 1}`, e);
                   alert(`L'importation a échoué sur le lot ${index + 1}/${chunks.length}. Erreur : ${e.message}. Veuillez vérifier votre fichier ou contacter le support.`);
@@ -668,9 +658,12 @@ export default function LeadsKanbanPage() {
           if (uniqueAdNames.size > 0) {
               const campaignsPayload = Array.from(uniqueAdNames).map(ad => ({
                   tenant_id: userId,
-                  name: ad
+                  name: String(ad).substring(0, 150)
               }));
-              await supabase.from('crm_campaigns').upsert(campaignsPayload, { onConflict: 'name, tenant_id' });
+              const campChunks = chunkArray(campaignsPayload, 10);
+              for (const campChunk of campChunks) {
+                  await supabase.from('crm_campaigns').upsert(campChunk, { onConflict: 'name, tenant_id' });
+              }
           }
 
           if (processed > 0) {
@@ -758,7 +751,7 @@ export default function LeadsKanbanPage() {
 
     // Exécution de l'action réelle
     if (actionType === 'whatsapp') {
-      const msg = encodeURIComponent(`Bonjour ${selectedLead.full_name || ""}, suite à votre intérêt pour ${selectedLead.intent || "nos services"}...`);
+      const msg = encodeURIComponent(`Bonjour ${selectedLead.full_name || ""}, ici Maïmouna de Central Équipements !\n\nSuite à votre intérêt pour ${selectedLead.intent || "nos équipements"}, préparez le rush de la saison avec notre offre spéciale.\n\n💰 Profitez d'un Déstockage VIP à -30% (Ex: ❌ ~Ancien Prix~ 👉 Prix VIP).\n\n⏳ Attention : valable uniquement 48h (jusqu'à vendredi).\n\n[Lien Image ou Vidéo]\n\nÀ très vite !`);
       window.open(`https://wa.me/${(selectedLead.phone || '').replace(/[^0-9]/g, '')}?text=${msg}`, '_blank');
     } else if (actionType === 'call') {
       window.open(`tel:${selectedLead.phone}`, '_self');

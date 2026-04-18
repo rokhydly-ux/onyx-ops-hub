@@ -564,7 +564,7 @@ export default function AdminDashboard() {
                 type: 'vip',
                 title: `Action VIP pour ${contact.full_name}`,
                 description: 'Client fidèle. Proposer une offre exclusive ou un accès anticipé.',
-                msg: `⭐ Bonjour ${contact.full_name}, en tant que client VIP, nous vous offrons un accès anticipé à notre nouvelle collection ! Soyez le premier à la découvrir.`
+                msg: `Bonjour ${contact.full_name}, ici Maïmouna de Central Équipements !\n\nPour vous remercier de votre fidélité, je vous ai réservé un accès VIP à notre Vente Flash.\n\n🎁 Remise exceptionnelle de -30% (valable 48h jusqu'à vendredi).\n\n[Lien Image]\n\nÀ très vite !`
             });
         } else if (lastOrder && lastOrder < thirtyDaysAgo) {
             suggestions.push({
@@ -575,7 +575,7 @@ export default function AdminDashboard() {
                 type: 'inactive',
                 title: `Réactivation de ${contact.full_name}`,
                 description: 'Client inactif depuis plus de 30 jours.',
-                msg: `😢 Bonjour ${contact.full_name}, vous nous manquez ! Profitez d'un bon d'achat de 5000F sur votre prochaine commande. Offre limitée !`
+                msg: `Bonjour ${contact.full_name}, ici Maïmouna de Central Équipements !\n\nPréparez le rush de la saison avec ce réassort idéal pour votre projet.\n\n💰 Nous faisons un Déstockage VIP exceptionnel à -25% !\n\n⏳ Attention : valable uniquement 48h (jusqu'à vendredi).\n\n[Lien Vidéo Démo]\n\nÀ très vite !`
             });
         }
         
@@ -588,7 +588,7 @@ export default function AdminDashboard() {
                 type: 'upsell',
                 title: `Upsell Pack Tekki : ${contact.full_name}`,
                 description: 'Le client utilise Onyx Jaay. Proposez le Pack Tekki pour la gestion de stock et livreurs.',
-                msg: `Bonjour ${contact.full_name}, votre boutique tourne bien avec Onyx Jaay ! Saviez-vous qu'avec le Pack Tekki, vous pouvez aussi gérer votre stock et vos livreurs automatiquement ?`
+                msg: `Bonjour ${contact.full_name}, ici Maïmouna !\n\nVotre boutique tourne bien, mais préparez le rush de la saison avec une gestion de stock automatisée.\n\n💰 Profitez d'une offre VIP à -25% sur l'upgrade (valable 48h jusqu'à vendredi).\n\n[Lien Vidéo Démo]\n\nÀ très vite !`
             });
         } else if (contact.activity?.toLowerCase().includes('resto') && contact.saas !== 'Onyx Menu' && !contact.active_saas?.includes('menu')) {
             suggestions.push({
@@ -599,7 +599,7 @@ export default function AdminDashboard() {
                 type: 'upsell',
                 title: `Proposer Onyx Menu : ${contact.full_name}`,
                 description: 'Client dans la restauration sans le module Onyx Menu.',
-                msg: `Bonjour ${contact.full_name}, pour votre restaurant, découvrez Onyx Menu : un menu QR interactif pour vos clients !`
+                msg: `Bonjour ${contact.full_name}, ici Maïmouna !\n\nPréparez la haute saison avec un Menu QR Digital interactif pour votre restaurant.\n\n🎁 Offre spéciale : -30% sur votre installation (valable 48h jusqu'à vendredi).\n\n[Lien Vidéo Démo]\n\nÀ très vite !`
             });
         } else if (contact.saas === 'Pack Tekki' && !contact.active_saas?.includes('formation')) {
             suggestions.push({
@@ -610,7 +610,7 @@ export default function AdminDashboard() {
                 type: 'upsell',
                 title: `Upsell Tekki Pro : ${contact.full_name}`,
                 description: 'Le client utilise Pack Tekki. Proposez Tekki Pro pour inclure la formation marketing.',
-                msg: `Bonjour ${contact.full_name}, pour passer à la vitesse supérieure, le Pack Tekki Pro inclut notre académie marketing complète !`
+                msg: `Bonjour ${contact.full_name}, ici Maïmouna de Central Équipements !\n\nPréparez la haute saison avec notre académie marketing pour booster vos ventes.\n\n🎁 Accès VIP exceptionnel à -30% (valable 48h jusqu'à vendredi).\n\n[Lien Vidéo Démo]\n\nÀ très vite !`
             });
         } else if (contact.activity?.toLowerCase().includes('coiffure') || contact.activity?.toLowerCase().includes('beauté') || contact.activity?.toLowerCase().includes('salon')) {
            if (contact.saas !== 'Onyx Booking' && !contact.active_saas?.includes('booking')) {
@@ -622,7 +622,7 @@ export default function AdminDashboard() {
                   type: 'upsell',
                   title: `Proposer Onyx Booking : ${contact.full_name}`,
                   description: 'Client dans les services sans le module Booking.',
-                  msg: `Bonjour ${contact.full_name}, gagnez du temps en permettant à vos clients de prendre RDV en ligne avec paiement d'acompte grâce à Onyx Booking !`
+                  msg: `Bonjour ${contact.full_name}, ici Maïmouna !\n\nGagnez du temps en permettant à vos clients de prendre RDV en ligne 24h/24.\n\n💰 Nous faisons un lancement exclusif à -25% (valable 48h jusqu'à vendredi).\n\n[Lien Vidéo Démo]\n\nÀ très vite !`
               });
            }
         }

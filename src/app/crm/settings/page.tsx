@@ -37,9 +37,9 @@ function CRMSettingsContent() {
   const [progress, setProgress] = useState(0);
   const [progressText, setProgressText] = useState('');
 
-  const [msgJ0, setMsgJ0] = useState('Bonjour [Nom_Client], voici notre offre détaillée pour le montant de [Montant_Devis].');
-  const [msgJ2, setMsgJ2] = useState('Bonjour [Nom_Client], avez-vous pu consulter notre proposition ?');
-  const [msgJ7, setMsgJ7] = useState('Dernière relance pour votre devis. Cliquez ici : [Lien_Catalogue]');
+  const [msgJ0, setMsgJ0] = useState("Bonjour [Nom_Client], ici Maïmouna de Central Équipements !\n\nVoici notre offre exclusive détaillée pour un montant de [Montant_Devis].\n\n⏳ Attention : Offre valable uniquement 48h (jusqu'à vendredi).\n\n[Lien_Catalogue]\n\nÀ très vite !");
+  const [msgJ2, setMsgJ2] = useState("Bonjour [Nom_Client], ici Maïmouna !\n\nAvez-vous pu consulter notre proposition ?\n\n🎁 Je vous rappelle que votre remise VIP expire très bientôt. Ne laissez pas passer cette opportunité pour préparer la saison !");
+  const [msgJ7, setMsgJ7] = useState("🚨 Bonjour [Nom_Client], c'est Maïmouna !\n\nC'est la dernière relance pour votre devis. Le déstockage VIP se termine aujourd'hui.\n\nCliquez ici pour finaliser : [Lien_Catalogue]");
 
   const handleOutsideClick = (setter: any, val: any = false) => (e: any) => {
     if (e.target.id === "modal-overlay") setter(val);
@@ -161,9 +161,6 @@ function CRMSettingsContent() {
        header: true,
        skipEmptyLines: true,
        complete: async (results) => {
-          const { data: existingLeads } = await supabase.from('crm_leads').select('id, phone, status, created_at').eq('tenant_id', tenantId);
-          const existingMap = new Map((existingLeads || []).map((l: any) => [l.phone, l]));
-
           const newLeads = results.data.map((row: any) => {
              const r: any = {};
              Object.keys(row).forEach(k => r[k.toLowerCase()] = row[k]);
@@ -174,7 +171,7 @@ function CRMSettingsContent() {
 
              const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
              let phoneRaw = r['whatsapp_number'] || r['phone_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
-             let phone = String(phoneRaw).replace(/\s+/g, '');
+             let phone = String(phoneRaw).replace(/[^0-9+]/g, ''); // FIX: Supprime l'apostrophe Excel et espaces
              if (phone && !phone.startsWith('+')) {
                  phone = phone.startsWith('221') ? `+${phone}` : `+221${phone}`;
              }
@@ -190,8 +187,6 @@ function CRMSettingsContent() {
                  if (!isNaN(parsedDate.getTime())) createdAt = parsedDate.toISOString();
              }
              
-             const existingLead = existingMap.get(phone);
-
              let score = 'Tiède';
              let timeframe = 'Se renseigne';
              let budget = 0;
@@ -217,24 +212,21 @@ function CRMSettingsContent() {
              
              return {
                 tenant_id: tenantId,
-                full_name: name,
-                phone: phone,
-                email: email,
-                campaign_name: campaign,
+                full_name: String(name || 'Lead FB').substring(0, 100),
+                phone: String(phone).substring(0, 20),
+                email: String(email).substring(0, 100),
+                campaign_name: String(campaign || 'Organique').substring(0, 150),
                 lead_score: score,
-                timeframe: timeframe,
-                budget_estime: Number(budget),
-                amount: Number(budget),
+                budget_estime: Number(budget) || 0,
+                amount: Number(budget) || 0,
                 type: 'Prospect',
-                status: existingLead ? existingLead.status : 'Nouveau Lead', // Force statut ou préserve
                 source: 'Facebook Ads',
-                intent: campaign || 'Campagne FB',
-                created_at: existingLead ? existingLead.created_at : createdAt
+                intent: String(campaign || 'Campagne FB').substring(0, 150)
              };
-          }).filter(l => l.phone); // Exclut les lignes sans numéro
+          }).filter((l: any) => l.phone); // Exclut les lignes sans numéro
           
           // Dédoublonnage par téléphone pour éviter l'erreur PostgreSQL "ON CONFLICT DO UPDATE"
-          const deduplicatedLeads = Array.from(new Map(newLeads.map(l => [l.phone, l])).values());
+          const deduplicatedLeads = Array.from(new Map(newLeads.map((l: any) => [l.phone, l])).values());
           
           if (deduplicatedLeads.length === 0) return alert("Aucun lead avec un numéro valide n'a été trouvé.");
 
@@ -244,7 +236,7 @@ function CRMSettingsContent() {
           abortCsvImportRef.current = false;
           
           const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-          const BATCH_SIZE = 10; // PRUDENCE MAXIMALE : Lot de 10 (Anti-OOM)
+          const BATCH_SIZE = 5; // SÉCURITÉ ABSOLUE : Lot de 5 (Anti-OOM)
           const chunks = chunkArray(deduplicatedLeads, BATCH_SIZE);
           let totalImported = 0;
           let hasError = false;
@@ -266,7 +258,7 @@ function CRMSettingsContent() {
               
               setCsvProgress(Math.round((totalImported / deduplicatedLeads.length) * 100));
               setCsvProgressText(`Traitement en cours... (${totalImported}/${deduplicatedLeads.length} leads)`);
-              await delay(250); // Pause de sécurité entre les requêtes
+              await delay(400); // Pause de sécurité entre les requêtes
           }
           setIsSubmitting(false);
           setCsvProgressText('');
@@ -361,7 +353,7 @@ function CRMSettingsContent() {
           const uniquePhonesPreview = new Set();
           const uniqueProductsPreview = new Set();
           for (const order of Array.from(ordersMap.values() as Iterable<any>)) {
-             let cleanPhone = String(order.customerPhone || '').replace(/\s+/g, '');
+             let cleanPhone = String(order.customerPhone || '').replace(/[^0-9+]/g, ''); // FIX Odoo
              if (cleanPhone && !cleanPhone.startsWith('+') && cleanPhone.length > 0) {
                  if (cleanPhone.startsWith('00')) cleanPhone = '+' + cleanPhone.substring(2);
                  else if (cleanPhone.length === 9) cleanPhone = `+221${cleanPhone}`;
@@ -436,7 +428,7 @@ function CRMSettingsContent() {
 
               // 1. Préparation des clients et produits
               for (const order of chunk) {
-                  let cleanPhone = String(order.customerPhone || '').replace(/\s+/g, '');
+                  let cleanPhone = String(order.customerPhone || '').replace(/[^0-9+]/g, ''); // FIX Odoo
                   if (cleanPhone && !cleanPhone.startsWith('+') && cleanPhone.length > 0) {
                        if (cleanPhone.startsWith('00')) cleanPhone = '+' + cleanPhone.substring(2);
                        else if (cleanPhone.length === 9) cleanPhone = `+221${cleanPhone}`;

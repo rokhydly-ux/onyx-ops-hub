@@ -258,16 +258,23 @@ export default function CRMContactsPage() {
 
   const handleSaveContactEdit = async () => {
       try {
+          const cleanedPhone = (editContactForm.phone || '').replace(/[^0-9+]/g, '');
           const { error } = await supabase.from('crm_contacts').update({
               full_name: editContactForm.full_name,
-              phone: editContactForm.phone,
+              phone: cleanedPhone,
               activity: editContactForm.activity,
               type: editContactForm.type
           }).eq('id', selectedContact.id).eq('tenant_id', tenantId);
-          if (error) throw error;
           
-          setContacts(prev => prev.map(c => c.id === selectedContact.id ? { ...c, ...editContactForm } : c));
-          setSelectedContact({ ...selectedContact, ...editContactForm });
+          if (error) {
+              if (error.code === '23505' || error.message.includes('tenant_id_key')) {
+                  throw new Error("Ce numéro de téléphone est déjà attribué à un autre contact dans votre base de données !");
+              }
+              throw error;
+          }
+          
+          setContacts(prev => prev.map(c => c.id === selectedContact.id ? { ...c, ...editContactForm, phone: cleanedPhone } : c));
+          setSelectedContact({ ...selectedContact, ...editContactForm, phone: cleanedPhone });
           alert("✅ Fiche contact mise à jour avec succès !");
       } catch(e: any) { alert("Erreur : " + e.message); }
   };

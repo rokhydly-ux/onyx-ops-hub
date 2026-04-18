@@ -484,13 +484,13 @@ export default function LeadDetailPage() {
                       <p className="text-xs font-bold text-black dark:text-white">{lead.next_action}</p>
                       <button onClick={() => {
                           const action = lead.next_action || '';
-                          let waMsg = `Bonjour ${lead.full_name}, suite à votre demande, nous n'avons plus de vos nouvelles ! Avez-vous pu avancer sur votre projet ?`;
+                          let waMsg = `Bonjour ${lead.full_name}, ici Maïmouna de Central Équipements !\n\nSuite à votre demande, je voulais m'assurer que vous aviez tout pour votre projet.\n\n💰 Bonne nouvelle : nous avons un Déstockage VIP à -25% en ce moment !\n\n⏳ Valable uniquement 48h (jusqu'à vendredi).\n\n[Lien Vidéo Démo]\n\nÀ très vite !`;
                           
-                          if (action.includes('Panier abandonné')) waMsg = `Bonjour ${lead.full_name}, ici Maïmouna !\n\nJ'ai remarqué que vous n'aviez pas finalisé votre sélection. Avez-vous rencontré un souci ?\n\n🎁 Pour vous aider, je vous offre un code promo flash de -10% valable 24h !`;
-                          else if (action.includes('RDV')) waMsg = `Bonjour ${lead.full_name},\n\nSuite à nos échanges, seriez-vous disponible cette semaine pour un rendez-vous afin d'avancer sur votre projet ?`;
-                          else if (action.includes('devis')) waMsg = `Bonjour ${lead.full_name},\n\nVotre devis est en cours de préparation et vous sera envoyé très prochainement. Avez-vous d'autres précisions à ajouter ?`;
-                          else if (action.includes('J+7')) waMsg = `Bonjour ${lead.full_name},\n\nJe reviens aux nouvelles concernant votre projet. Avez-vous pu y réfléchir ? Notre équipe reste à votre disposition.`;
-                          else if (action.includes('Nurturing')) waMsg = `Bonjour ${lead.full_name},\n\nNous avons de nouvelles offres exclusives pour votre activité. Seriez-vous ouvert à une brève discussion ?`;
+                          if (action.includes('Panier abandonné')) waMsg = `Bonjour ${lead.full_name}, ici Maïmouna de Central Équipements !\n\nJ'ai vu que vous n'aviez pas finalisé votre sélection. Avez-vous rencontré un souci ?\n\n🎁 Pour vous aider, je vous offre un code promo flash exceptionnel de -35% !\n\n⏳ Attention : valable uniquement 24h.\n\nÀ très vite !`;
+                          else if (action.includes('RDV')) waMsg = `Bonjour ${lead.full_name}, ici Maïmouna !\n\nSuite à nos échanges, seriez-vous disponible cette semaine pour un rendez-vous rapide ?\n\n🎁 J'ai une offre VIP à -30% à vous présenter en exclusivité, valable jusqu'à vendredi.\n\nÀ très vite !`;
+                          else if (action.includes('devis')) waMsg = `Bonjour ${lead.full_name}, ici Maïmouna !\n\nVotre devis est en cours de préparation. \n\n🔥 J'y ai exceptionnellement appliqué une remise VIP de -25% ! (Ex: ❌ ~Prix normal~ 👉 Prix VIP).\n\n⏳ Cette offre sera valable 48h dès réception du devis.\n\nÀ très vite !`;
+                          else if (action.includes('J+7')) waMsg = `Bonjour ${lead.full_name}, ici Maïmouna de Central Équipements !\n\nPréparez le rush de la saison avec l'équipement idéal pour votre projet.\n\n💰 Nous faisons un Déstockage VIP exceptionnel à -30% !\n\n⏳ Attention : valable uniquement 48h (jusqu'à vendredi).\n\n[Lien Vidéo Démo]\n\nÀ très vite !`;
+                          else if (action.includes('Nurturing')) waMsg = `Bonjour ${lead.full_name}, ici Maïmouna !\n\nEn tant que prospect privilégié, je vous donne accès à notre Vente Flash avant tout le monde.\n\n🎁 Profitez de -35% sur nos best-sellers.\n\n⏳ L'offre se termine ce vendredi ! Premier arrivé, premier servi.\n\n[Lien Catalogue]\n\nÀ très vite !`;
                           
                           handleWaAction(waMsg);
                       }} className="bg-[#25D366] text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md flex items-center justify-center gap-2 w-full sm:w-auto self-start">
@@ -510,7 +510,7 @@ export default function LeadDetailPage() {
 
              <div className="space-y-3">
                 <button 
-                  onClick={() => handleWaAction(`Bonjour ${lead.full_name}, suite à votre demande concernant [${lead.intent}], voici notre offre détaillée : `)}
+                  onClick={() => handleWaAction(`Bonjour ${lead.full_name}, ici Maïmouna de Central Équipements !\n\nSuite à votre demande concernant [${lead.intent}], voici notre offre détaillée.\n\n🎁 Profitez de -25% avec notre Vente Flash (valable 48h jusqu'à vendredi) !\n\nÀ très vite !`)}
                   className="w-full bg-[#39FF14]/10 hover:bg-[#39FF14]/20 border border-[#39FF14]/30 text-[#39FF14] p-4 rounded-2xl flex flex-col items-start transition-colors group relative overflow-hidden"
                 >
                    <div className="flex items-center gap-3 w-full">
@@ -523,7 +523,7 @@ export default function LeadDetailPage() {
                 </button>
 
                 <button 
-                  onClick={() => handleWaAction(`Bonjour ${lead.full_name}, je reviens vers vous. Avez-vous pu consulter notre catalogue PDF ? Avez-vous des questions ?`)}
+                  onClick={() => handleWaAction(`Bonjour ${lead.full_name}, ici Maïmouna !\n\nJe reviens vers vous. Avez-vous pu consulter notre catalogue PDF ? \n\n⏳ Attention, le Déstockage VIP se termine très bientôt, ne ratez pas cette occasion pour votre projet !`)}
                   className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-[#39FF14] dark:hover:border-[#39FF14] p-4 rounded-2xl flex flex-col items-start transition-colors group"
                 >
                    <div className="flex items-center gap-3 w-full">
@@ -536,7 +536,7 @@ export default function LeadDetailPage() {
                 </button>
 
                 <button 
-                  onClick={() => handleWaAction(`Bonjour ${lead.full_name}, notre offre expire bientôt. Souhaitez-vous en profiter avec une remise exceptionnelle aujourd'hui ?`)}
+                  onClick={() => handleWaAction(`🚨 Bonjour ${lead.full_name}, ici Maïmouna !\n\nNotre Vente Flash expire aujourd'hui. Souhaitez-vous bloquer votre remise exceptionnelle de -35% avant rupture de stock ?\n\nÀ très vite !`)}
                   className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-[#39FF14] dark:hover:border-[#39FF14] p-4 rounded-2xl flex flex-col items-start transition-colors group"
                 >
                    <div className="flex items-center gap-3 w-full">
