@@ -103,17 +103,22 @@ export default function CRMDashboard() {
       const { data: prods } = await supabase.from('crm_products').select('*').eq('tenant_id', session.id);
       if (prods) setProducts(prods);
 
-      // Récupération des 5 prochains RDV de l'Agenda
+      // Récupération de tous les RDV du mois en cours
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
       let apptQuery = supabase
         .from('booking_appointments')
         .select('*')
         .eq('tenant_id', session.id)
-        .gte('date_time', new Date(new Date().setHours(0,0,0,0)).toISOString());
+        .gte('date_time', startOfMonth)
+        .lte('date_time', endOfMonth);
         
       if (session.role === 'commercial') {
-         // Filtrer l'agenda du commercial si nécessaire
+         apptQuery = apptQuery.eq('commercial_id', session.id);
       }
-      const { data: appts } = await apptQuery.order('date_time', { ascending: true }).limit(5);
+      const { data: appts } = await apptQuery.order('date_time', { ascending: true });
       if (appts) setAppointments(appts || []);
     };
 
@@ -574,7 +579,7 @@ export default function CRMDashboard() {
                       <p className="font-bold text-sm text-black dark:text-white uppercase">{appt.title}</p>
                       <p className="text-xs text-zinc-500 mt-1">Avec : <span className="font-bold text-black dark:text-zinc-300">{appt.lead_name}</span></p>
                   </div>
-              )) : <p className="text-zinc-500 text-sm font-medium italic">Aucun RDV prévu prochainement.</p>}
+              )) : <p className="text-zinc-500 text-sm font-medium italic">Aucun RDV ce mois-ci.</p>}
            </div>
         </div>
 

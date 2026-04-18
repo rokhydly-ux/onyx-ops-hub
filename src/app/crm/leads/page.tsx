@@ -17,7 +17,7 @@ import Tesseract from 'tesseract.js';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const KANBAN_COLS = ['Nouveaux Leads', 'En Cours', 'Converti', 'Perdu'];
+const KANBAN_COLS = ['Nouveaux Leads', 'En Cours', 'Relance Prévue', 'Converti', 'Perdu'];
 
 // --- COMPOSANTS DND-KIT (KANBAN) ---
 function KanbanColumn({ col, leads, commercials, commercialData, visibleCount, selectedLeadIds, toggleLeadSelection, onLoadMore, onCardClick, onScheduleClick, onMessageClick, onCommercialClick }: { col: string, leads: any[], commercials: any[], commercialData: any, visibleCount: number, selectedLeadIds: Set<string>, toggleLeadSelection: (id: string) => void, onLoadMore: () => void, onCardClick: (lead: any) => void, onScheduleClick: (lead: any) => void, onMessageClick: (lead: any) => void, onCommercialClick?: (name: string) => void }) {
@@ -175,7 +175,7 @@ export default function LeadsKanbanPage() {
   const [userRole, setUserRole] = useState<string>('admin');
   const [userName, setUserName] = useState<string>('');
   const [commercialData, setCommercialData] = useState<any>(null);
-  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({ 'Nouveaux Leads': 20, 'En Cours': 20, 'Converti': 20, 'Perdu': 20 });
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({ 'Nouveaux Leads': 20, 'En Cours': 20, 'Relance Prévue': 20, 'Converti': 20, 'Perdu': 20 });
   const [leadSortOrder, setLeadSortOrder] = useState<'desc' | 'asc'>('desc');
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<string>('');
@@ -1053,16 +1053,20 @@ export default function LeadsKanbanPage() {
             <option value="30 derniers jours">30 derniers jours</option>
           </select>
           {userRole !== 'commercial' && commercials.length > 0 && (
-             <select
-               value={commercialFilter}
-               onChange={e => setCommercialFilter(e.target.value)}
-               className="px-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] transition-colors appearance-none cursor-pointer"
-             >
-               <option value="Tous">Tous les commerciaux</option>
-               {commercials.map(c => (
-                 <option key={c.id} value={c.full_name}>{c.full_name}</option>
-               ))}
-             </select>
+             <div className="relative">
+                 <UserCheck size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${commercialFilter !== 'Tous' ? 'text-[#39FF14]' : 'text-zinc-400'}`} />
+                 {commercialFilter !== 'Tous' && <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#39FF14] border-2 border-white dark:border-zinc-950 rounded-full z-10 animate-pulse pointer-events-none"></span>}
+                 <select
+                   value={commercialFilter}
+                   onChange={e => setCommercialFilter(e.target.value)}
+                   className={`pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-950 border ${commercialFilter !== 'Tous' ? 'border-[#39FF14]' : 'border-zinc-200 dark:border-zinc-800'} rounded-xl text-xs font-bold outline-none focus:border-[#39FF14] transition-colors appearance-none cursor-pointer`}
+                 >
+                   <option value="Tous">Tous les commerciaux</option>
+                   {commercials.map(c => (
+                     <option key={c.id} value={c.full_name}>{c.full_name}</option>
+                   ))}
+                 </select>
+             </div>
           )}
           <button onClick={() => setIsAnalysisModalOpen(true)} className="flex items-center gap-2 bg-black text-[#39FF14] px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-xl border border-[#39FF14]/30">
             <PieChart size={16} /> Analyse Campagnes

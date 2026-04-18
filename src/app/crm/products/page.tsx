@@ -41,6 +41,7 @@ export default function CRMCatalogPage() {
   const [catalogsHistory, setCatalogsHistory] = useState<any[]>([]);
   const [studioSelectedCategory, setStudioSelectedCategory] = useState('');
   const [studioSelectedSubCategory, setStudioSelectedSubCategory] = useState('');
+  const [studioPage, setStudioPage] = useState(1);
   const [pdfProgress, setPdfProgress] = useState(0);
   const [crmSettings, setCrmSettings] = useState({ logo_url: '', crm_name: '' });
   const [catalogConfig, setCatalogConfig] = useState({
@@ -627,6 +628,13 @@ export default function CRMCatalogPage() {
           setSelectedIds(new Set());
       } catch (err: any) {
           alert("Erreur lors de la suppression groupée : " + err.message);
+      }
+  };
+
+  const updateProductDescription = async (id: number, newDesc: string) => {
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, description: newDesc } : p));
+      if (tenantId) {
+          await supabase.from('crm_products').update({ description: newDesc }).eq('id', id).eq('tenant_id', tenantId);
       }
   };
 
@@ -1774,11 +1782,11 @@ export default function CRMCatalogPage() {
                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4 shrink-0">
                       <h3 className="font-bold uppercase text-zinc-500 text-xs tracking-widest flex items-center gap-2"><Box size={16}/> Sélection des produits ({selectedIds.size} cochés)</h3>
                       <div className="flex gap-2 w-full sm:w-auto">
-                          <select value={studioSelectedCategory} onChange={e => { setStudioSelectedCategory(e.target.value); setStudioSelectedSubCategory(''); }} className="w-full sm:w-48 p-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer text-black dark:text-white">
+                          <select value={studioSelectedCategory} onChange={e => { setStudioSelectedCategory(e.target.value); setStudioSelectedSubCategory(''); setStudioPage(1); }} className="w-full sm:w-48 p-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer text-black dark:text-white">
                               <option value="">Toutes les catégories</option>
                               {advancedCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                           </select>
-                          <select value={studioSelectedSubCategory} onChange={e => setStudioSelectedSubCategory(e.target.value)} disabled={!studioSelectedCategory} className="w-full sm:w-48 p-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer text-black dark:text-white disabled:opacity-50">
+                          <select value={studioSelectedSubCategory} onChange={e => { setStudioSelectedSubCategory(e.target.value); setStudioPage(1); }} disabled={!studioSelectedCategory} className="w-full sm:w-48 p-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] cursor-pointer text-black dark:text-white disabled:opacity-50">
                               <option value="">Toutes les sous-catégories</option>
                               {advancedCategories.find(c => c.name === studioSelectedCategory)?.subcategories?.map(sub => (
                                   <option key={sub} value={sub}>{sub}</option>
@@ -1787,40 +1795,68 @@ export default function CRMCatalogPage() {
                       </div>
                    </div>
 
-                   <div className="pr-2 min-h-[250px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {products.filter(p => {
-                          const matchCat = !studioSelectedCategory || p.category === studioSelectedCategory;
-                          const matchSub = !studioSelectedSubCategory || p.subcategory === studioSelectedSubCategory;
-                          return matchCat && matchSub;
-                      }).map(p => (
-                         <div key={p.id} className={`flex flex-col bg-white dark:bg-zinc-900/50 p-3 rounded-2xl border ${selectedIds.has(p.id) ? 'border-[#39FF14] shadow-sm' : 'border-zinc-200 dark:border-zinc-800'} transition-all relative group cursor-pointer`} onClick={() => toggleSelection(p.id)}>
-                            <div className="absolute top-2 left-2 z-10">
-                               <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => {}} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer shadow-md border-2 border-white"/>
-                            </div>
-                            
-                            <div className="w-full aspect-square rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden relative bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
-                               {p.image_url ? (
-                                   <img src={p.image_url} className="w-full h-full object-cover"/>
-                               ) : (
-                                   <button onClick={(e) => { e.stopPropagation(); handleQuickImageAdd(p.id); }} className="w-full h-full flex flex-col items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
-                                       <ImagePlus size={24}/>
-                                       <span className="text-[10px] font-bold mt-2 uppercase tracking-widest">Ajouter Image</span>
-                                   </button>
-                               )}
-                               {p.image_url && (
-                                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={(e) => { e.stopPropagation(); handleQuickImageAdd(p.id); }} className="text-white hover:text-[#39FF14] p-2 bg-black/50 rounded-full backdrop-blur-sm"><Edit size={16}/></button>
-                                   </div>
-                               )}
-                            </div>
+              {(() => {
+                 const studioFilteredProducts = products.filter(p => {
+                     const matchCat = !studioSelectedCategory || p.category === studioSelectedCategory;
+                     const matchSub = !studioSelectedSubCategory || p.subcategory === studioSelectedSubCategory;
+                     return matchCat && matchSub;
+                 });
+                 const studioTotalPages = Math.ceil(studioFilteredProducts.length / 12);
+                 const studioPaginatedProducts = studioFilteredProducts.slice((studioPage - 1) * 12, studioPage * 12);
 
-                            <div className="flex-1 min-w-0">
-                               <p className="font-bold text-xs text-black dark:text-white line-clamp-2 leading-tight mb-1">{p.name}</p>
-                               <p className="text-xs font-black text-[#39FF14]">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
-                            </div>
-                         </div>
-                      ))}
-                   </div>
+                 return (
+                   <>
+                     <div className="pr-2 min-h-[250px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {studioPaginatedProducts.map(p => (
+                           <div key={p.id} className={`flex flex-col sm:flex-row bg-white dark:bg-zinc-900/50 p-3 rounded-2xl border ${selectedIds.has(p.id) ? 'border-[#39FF14] shadow-sm' : 'border-zinc-200 dark:border-zinc-800'} transition-all relative group cursor-pointer gap-4`} onClick={() => toggleSelection(p.id)}>
+                              <div className="absolute top-2 left-2 z-10">
+                                 <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => {}} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer shadow-md border-2 border-white"/>
+                              </div>
+                              
+                              <div className="w-full sm:w-28 aspect-square rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden relative bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                                 {p.image_url ? (
+                                     <img src={p.image_url} className="w-full h-full object-cover"/>
+                                 ) : (
+                                     <button onClick={(e) => { e.stopPropagation(); handleQuickImageAdd(p.id); }} className="w-full h-full flex flex-col items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                                         <ImagePlus size={20}/>
+                                         <span className="text-[9px] font-bold mt-2 uppercase tracking-widest text-center">Ajouter</span>
+                                     </button>
+                                 )}
+                                 {p.image_url && (
+                                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={(e) => { e.stopPropagation(); handleQuickImageAdd(p.id); }} className="text-white hover:text-[#39FF14] p-2 bg-black/50 rounded-full backdrop-blur-sm"><Edit size={16}/></button>
+                                     </div>
+                                 )}
+                              </div>
+
+                              <div className="flex-1 min-w-0 flex flex-col">
+                                 <div className="mb-2">
+                                    <p className="font-bold text-xs text-black dark:text-white line-clamp-2 leading-tight mb-1">{p.name}</p>
+                                    <p className="text-xs font-black text-[#39FF14]">{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
+                                 </div>
+                                 <textarea
+                                    value={p.description || ''}
+                                    onClick={e => e.stopPropagation()}
+                                    onChange={e => setProducts(prev => prev.map(prod => prod.id === p.id ? { ...prod, description: e.target.value } : prod))}
+                                    onBlur={e => updateProductDescription(p.id, e.target.value)}
+                                    placeholder="Ajouter une description..."
+                                    className="w-full text-[10px] p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 outline-none focus:border-[#39FF14] resize-none flex-1 min-h-[60px] custom-scrollbar text-black dark:text-white"
+                                 />
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                     
+                     {studioTotalPages > 1 && (
+                        <div className="flex justify-center items-center gap-4 mt-6">
+                           <button disabled={studioPage === 1} onClick={() => setStudioPage(p => p - 1)} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50 text-black dark:text-white transition-colors"><ChevronLeft size={16}/></button>
+                           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Page {studioPage} / {studioTotalPages}</span>
+                           <button disabled={studioPage === studioTotalPages} onClick={() => setStudioPage(p => p + 1)} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50 text-black dark:text-white transition-colors"><ChevronRight size={16}/></button>
+                        </div>
+                     )}
+                   </>
+                 );
+              })()}
 
                    <div className="pt-4 mt-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0 flex flex-col sm:flex-row gap-3 relative z-10 bg-white dark:bg-zinc-950">
                       <button onClick={() => { setSelectedIds(new Set()); setStudioSelectedCategory(''); }} className="px-6 py-4 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 font-bold uppercase text-xs rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">Réinitialiser</button>
