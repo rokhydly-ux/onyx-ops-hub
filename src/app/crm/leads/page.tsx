@@ -14,6 +14,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Papa from 'papaparse';
 import Tesseract from 'tesseract.js';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const KANBAN_COLS = ['Nouveaux Leads', 'En Cours', 'Converti', 'Perdu'];
 
@@ -539,21 +541,15 @@ export default function LeadsKanbanPage() {
 
     setIsImporting(true);
     setImportProgress(0);
-    setImportProgressText('Démarrage de l\'importation en streaming...');
+    setImportProgressText('Lecture et préparation des données...');
 
     const BATCH_SIZE = 500;
-    let chunkBuffer: any[] = [];
-    let allData: any[] = [];
-    let hasError = false;
-    let processed = 0;
     const uniqueAdNames = new Set<string>();
 
     Papa.parse(file, {
        header: true,
        skipEmptyLines: true,
-       chunk: async (results, parser) => {
-          parser.pause(); // Pause pour attendre le traitement de la base de données
-          
+       complete: async (results) => {
           const newLeads = results.data.map((row: any) => {
              // Normalisation des clés en minuscules
              const r: any = {};
@@ -627,12 +623,26 @@ export default function LeadsKanbanPage() {
           
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
-          chunkBuffer.push(...newLeads);
-          // Dédoublonnage local
-          chunkBuffer = Array.from(new Map(chunkBuffer.map(l => [l.phone, l])).values());
-
-          while (chunkBuffer.length >= BATCH_SIZE) {
-              const batchToProcess = chunkBuffer.splice(0, BATCH_SIZE);
+          // Dédoublonnage global sur tout le fichier
+          const deduplicatedLeads = Array.from(new Map(newLeads.map((l: any) => [l.phone, l])).values());
+          
+          if (deduplicatedLeads.length === 0) {
+              alert("Aucun lead valide trouvé.");
+              setIsImporting(false);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+              return;
+          }
+          
+          const chunkArray = <T,>(arr: T[], size: number): T[][] => 
+              Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
+          
+          const chunks = chunkArray(deduplicatedLeads, BATCH_SIZE);
+          let allData: any[] = [];
+          let hasError = false;
+          let processed = 0;
+          
+          // ENVOI STRICTEMENT SÉQUENTIEL DES LOTS
+          for (const batchToProcess of chunks) {
               try {
                   const { data, error } = await supabase.from('crm_leads').upsert(batchToProcess, { onConflict: 'phone, tenant_id' }).select();
                   if (error) { 
@@ -640,32 +650,12 @@ export default function LeadsKanbanPage() {
                       hasError = true; 
                   } else if (data) {
                       allData = [...allData, ...data];
-                      data.forEach((d: any) => existingMap.set(d.phone, d)); // Mise à jour map
                   }
                   processed += batchToProcess.length;
-                  setImportProgressText(`Traitement en cours... (${processed} lignes insérées)`);
+                  setImportProgress(Math.round((processed / deduplicatedLeads.length) * 100));
+                  setImportProgressText(`Traitement en cours... (${processed}/${deduplicatedLeads.length} leads)`);
               } catch (e) {
                   console.error("Crash lors de l'insertion du lot", e);
-                  hasError = true;
-              }
-          }
-          
-          parser.resume(); // Reprendre la lecture
-       },
-       complete: async () => {
-          // Traitement du reste du buffer
-          if (chunkBuffer.length > 0) {
-              try {
-                  const { data, error } = await supabase.from('crm_leads').upsert(chunkBuffer, { onConflict: 'phone, tenant_id' }).select();
-                  if (error) {
-                      console.error("Erreur sur le dernier lot : ", error.message);
-                      hasError = true;
-                  } else if (data) {
-                      allData = [...allData, ...data];
-                  }
-                  processed += chunkBuffer.length;
-              } catch (e) {
-                  console.error("Crash lors du dernier lot", e);
                   hasError = true;
               }
           }
@@ -859,6 +849,60 @@ export default function LeadsKanbanPage() {
     document.body.removeChild(link);
   };
 
+  // --- EXPORT PDF (Prend en compte les filtres) ---
+  const handleExportPDF = () => {
+    if (filteredLeads.length === 0) return alert("Aucun lead à exporter.");
+
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Rapport Kanban - OnyxOps", 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+
+    const summary: Record<string, number> = {};
+    KANBAN_COLS.forEach(col => summary[col] = 0);
+    filteredLeads.forEach(l => {
+       const status = l.status || 'Nouveaux Leads';
+       if (summary[status] !== undefined) summary[status]++;
+       else summary[status] = 1;
+    });
+
+    doc.setFontSize(14);
+    doc.text("Résumé par Statut", 14, 45);
+    
+    const summaryData = KANBAN_COLS.map(col => [col, (summary[col] || 0).toString()]);
+    
+    autoTable(doc, {
+       startY: 50,
+       head: [['Statut', 'Nombre de Leads']],
+       body: summaryData,
+       theme: 'grid',
+       headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY || 80;
+    doc.setFontSize(14);
+    doc.text("Détail des Leads", 14, finalY + 15);
+
+    const leadsData = filteredLeads.map(l => [
+       l.full_name || 'N/A',
+       l.phone || 'N/A',
+       l.status || 'Nouveaux Leads',
+       l.intent || 'N/A',
+       `${(l.budget || l.amount || 0).toLocaleString('fr-FR')} F`
+    ]);
+
+    autoTable(doc, {
+       startY: finalY + 20,
+       head: [['Nom', 'Téléphone', 'Statut', 'Produit/Intention', 'Budget']],
+       body: leadsData,
+       theme: 'grid',
+       headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] }
+    });
+
+    doc.save(`Kanban_Leads_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const filteredLeads = leads.filter(l => 
     {
       const mappedStatus = l.status === 'CREATED' ? 'Nouveaux Leads' : (l.status || 'Nouveaux Leads');
@@ -997,6 +1041,9 @@ export default function LeadsKanbanPage() {
           </button>
           <button onClick={handleExportCSV} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition-colors shadow-sm">
             <Download size={16}/> Exporter CSV
+          </button>
+          <button onClick={handleExportPDF} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition-colors shadow-sm">
+            <FileText size={16}/> Exporter PDF
           </button>
           {userRole !== 'commercial' && (
             <>
