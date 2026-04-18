@@ -9,7 +9,7 @@ import Papa from 'papaparse';
 function CRMSettingsContent() {
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
-  const [settings, setSettings] = useState({ crm_name: 'ONYX CRM', logo_url: '', theme_color: '#39FF14' });
+  const [settings, setSettings] = useState({ crm_name: 'ONYX CRM', logo_url: '', theme_color: '#39FF14', admin_whatsapp: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -49,7 +49,7 @@ function CRMSettingsContent() {
         
         if (isMounted) setUserId(tId);
         const { data } = await supabase.from('crm_settings').select('*').eq('tenant_id', tId).maybeSingle();
-        if (data && isMounted) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+        if (data && isMounted) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14', admin_whatsapp: data.admin_whatsapp || '' });
         
         const { data: comms } = await supabase.from('commercials').select('*').eq('tenant_id', tId);
         if (comms && isMounted) setCommercials(comms);
@@ -106,7 +106,7 @@ function CRMSettingsContent() {
     if (error) {
       alert("Erreur lors de la sauvegarde : " + error.message);
     } else {
-      if (data) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14' });
+      if (data) setSettings({ crm_name: data.crm_name || 'ONYX CRM', logo_url: data.logo_url || '', theme_color: data.theme_color || '#39FF14', admin_whatsapp: data.admin_whatsapp || '' });
       alert("Paramètres enregistrés avec succès.");
     }
   };
@@ -505,6 +505,16 @@ function CRMSettingsContent() {
                   if (leadError) throw new Error("Erreur Leads: " + leadError.message);
               }
 
+              // --- ENREGISTREMENT HISTORIQUE IMPORT ODOO ---
+              await supabase.from('crm_odoo_imports').insert([{
+                  tenant_id: userId,
+                  filename: pendingOdooFile.filename,
+                  orders_count: pendingOdooFile.ordersCount,
+                  clients_count: pendingOdooFile.clientsCount,
+                  products_count: pendingOdooFile.productsCount,
+                  status: 'Succès'
+              }]);
+
               setProgress(Math.round((processed / totalRows) * 100));
           }
 
@@ -513,10 +523,13 @@ function CRMSettingsContent() {
           
           const summaryMsg = `✅ *Rapport d'Importation Odoo - OnyxCRM*\n\nL'importation et la synchronisation de votre fichier de ventes sont terminées avec succès !\n\n📊 *Résumé des opérations :*\n📦 Commandes traitées : ${pendingOdooFile.ordersCount}\n👥 Clients mis à jour : ${pendingOdooFile.clientsCount}\n🛍️ Produits catalogue : ${pendingOdooFile.productsCount}\n\n_Vos indicateurs financiers et tableaux de bord sont désormais à jour._`;
           
-          // Numéro spécifique de l'administrateur (sans le '+', ni espaces)
-          // Exemple pour le Sénégal : 221770000000
-          const adminPhone = "221770000000"; 
-          window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(summaryMsg)}`, '_blank');
+          // Utilisation du numéro administrateur configuré
+          let adminPhone = settings.admin_whatsapp ? String(settings.admin_whatsapp).replace(/[^0-9]/g, '') : '';
+          if (adminPhone) {
+              window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(summaryMsg)}`, '_blank');
+          } else {
+              window.open(`https://wa.me/?text=${encodeURIComponent(summaryMsg)}`, '_blank');
+          }
           
           setPendingOdooFile(null);
       } catch (err: any) {
@@ -564,6 +577,12 @@ function CRMSettingsContent() {
               <input type="color" value={settings.theme_color} onChange={e => setSettings({...settings, theme_color: e.target.value})} className="w-16 h-16 rounded-xl cursor-pointer bg-transparent border-0 p-0" />
               <input type="text" required value={settings.theme_color} onChange={e => setSettings({...settings, theme_color: e.target.value})} className="flex-1 p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl font-bold text-sm outline-none uppercase transition text-black dark:text-white focus:border-[#39FF14]" />
             </div>
+          </div>
+
+          <div className="space-y-2 border-t border-zinc-100 dark:border-zinc-800 pt-8 mt-8">
+            <label className="text-xs font-black uppercase text-zinc-500 tracking-widest flex items-center gap-2"><Phone size={16}/> Numéro WhatsApp Admin (Rapports)</label>
+            <input type="tel" placeholder="Ex: 221770000000" value={settings.admin_whatsapp} onChange={e => setSettings({...settings, admin_whatsapp: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl font-bold text-sm outline-none transition text-black dark:text-white focus:border-[#39FF14]" />
+            <p className="text-[10px] text-zinc-500 font-bold mt-1">Ce numéro sera utilisé pour recevoir automatiquement le résumé de vos imports Odoo et alertes systèmes.</p>
           </div>
 
           <div className="space-y-2 border-t border-zinc-100 dark:border-zinc-800 pt-8">
