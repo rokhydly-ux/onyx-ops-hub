@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, X, Plus, Phone, MessageSquare } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, X, Plus, Phone, MessageSquare, ChevronLeft, ChevronRight, LayoutList, CalendarDays } from 'lucide-react';
 
 export default function BookingModulePage() {
   const [session, setSession] = useState<any>({});
   const [leads, setLeads] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formState, setFormState] = useState({
@@ -96,6 +98,45 @@ export default function BookingModulePage() {
   const rdvDuJour = appointments.filter(a => new Date(a.date_time) >= todayStart && new Date(a.date_time) <= todayEnd && a.status === 'Planifié');
   const rdvManques = appointments.filter(a => new Date(a.date_time) < todayStart && a.status === 'Planifié');
 
+  // --- LOGIQUE DU CALENDRIER (MOIS) ---
+  const year = currentMonthDate.getFullYear();
+  const month = currentMonthDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const startDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1; // Lundi = 0, Dimanche = 6
+  const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+  const handlePrevMonth = () => setCurrentMonthDate(new Date(year, month - 1, 1));
+  const handleNextMonth = () => setCurrentMonthDate(new Date(year, month + 1, 1));
+
+  const openModalForDate = (day: number) => {
+      const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      setFormState({ ...formState, date: formattedDate });
+      setIsModalOpen(true);
+  };
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+      e.dataTransfer.setData('text/plain', id);
+  };
+
+  const handleDrop = async (e: React.DragEvent, dateStr: string) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData('text/plain');
+      if (!id) return;
+      
+      const appt = appointments.find(a => a.id === id);
+      if (!appt) return;
+
+      const oldDateTime = new Date(appt.date_time);
+      const timeString = `${String(oldDateTime.getHours()).padStart(2, '0')}:${String(oldDateTime.getMinutes()).padStart(2, '0')}:00`;
+      const newDateTime = `${dateStr}T${timeString}`;
+
+      setAppointments(prev => prev.map(a => a.id === id ? { ...a, date_time: newDateTime } : a));
+
+      const { error } = await supabase.from('booking_appointments').update({ date_time: newDateTime }).eq('id', id).eq('tenant_id', session.id);
+      if (error) alert("Erreur lors du déplacement : " + error.message);
+  };
+
   return (
     <div className="max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
       {/* EN-TÊTE ET ALERTES */}
@@ -149,13 +190,29 @@ export default function BookingModulePage() {
 
         {/* COLONNE DROITE: AGENDA */}
         <div className="md:col-span-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-5 sm:p-6 shadow-sm">
-           <div className="flex justify-between items-center mb-6 border-b border-zinc-100 dark:border-zinc-800 pb-4">
-             <h3 className="font-black uppercase text-xl text-black dark:text-white">Calendrier des RDV</h3>
-             <button onClick={() => setIsModalOpen(true)} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md hover:scale-105 transition-transform flex items-center gap-2">
-                <Plus size={16}/> Nouveau RDV
-             </button>
+           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 border-b border-zinc-100 dark:border-zinc-800 pb-4 gap-4">
+             <div className="flex items-center gap-4">
+               <h3 className="font-black uppercase text-xl text-black dark:text-white">Calendrier des RDV</h3>
+               <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1">
+                  <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><LayoutList size={16}/></button>
+                  <button onClick={() => setViewMode('calendar')} className={`p-1.5 rounded-md transition-all ${viewMode === 'calendar' ? 'bg-white dark:bg-zinc-700 shadow text-black dark:text-white' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}><CalendarDays size={16}/></button>
+               </div>
+             </div>
+             <div className="flex items-center gap-3">
+               {viewMode === 'calendar' && (
+                 <div className="flex items-center gap-2 mr-2 bg-zinc-50 dark:bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                    <button onClick={handlePrevMonth} className="p-1 hover:text-[#39FF14] transition-colors"><ChevronLeft size={16}/></button>
+                    <span className="font-black uppercase text-xs w-24 text-center">{monthNames[month]} {year}</span>
+                    <button onClick={handleNextMonth} className="p-1 hover:text-[#39FF14] transition-colors"><ChevronRight size={16}/></button>
+                 </div>
+               )}
+               <button onClick={() => setIsModalOpen(true)} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase shadow-md hover:scale-105 transition-transform flex items-center gap-2">
+                  <Plus size={16}/> Nouveau
+               </button>
+             </div>
            </div>
            
+           {viewMode === 'list' ? (
            <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
              {appointments.length === 0 ? (
                 <div className="text-center py-10 text-zinc-400">
@@ -194,6 +251,60 @@ export default function BookingModulePage() {
                 ))
              )}
            </div>
+           ) : (
+             <div className="animate-in fade-in flex flex-col h-[60vh] min-h-[500px]">
+                {/* Jours de la semaine */}
+                <div className="grid grid-cols-7 gap-2 mb-2">
+                  {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
+                    <div key={day} className="text-center text-[10px] font-black uppercase tracking-widest text-zinc-500">{day}</div>
+                  ))}
+                </div>
+                {/* Grille du calendrier */}
+                <div className="grid grid-cols-7 gap-2 flex-1 auto-rows-fr">
+                  {Array.from({ length: startDay }).map((_, i) => (
+                     <div key={`empty-${i}`} className="bg-zinc-50/50 dark:bg-zinc-900/20 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800/50 p-2 opacity-50"></div>
+                  ))}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                     const day = i + 1;
+                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                     
+                     const dayAppts = appointments.filter(a => {
+                        const aDate = new Date(a.date_time);
+                        return aDate.getFullYear() === year && aDate.getMonth() === month && aDate.getDate() === day;
+                     });
+                     
+                     const isToday = todayStart.getFullYear() === year && todayStart.getMonth() === month && todayStart.getDate() === day;
+                     
+                     return (
+                       <div 
+                         key={day} 
+                         onClick={() => openModalForDate(day)}
+                         onDragOver={(e) => e.preventDefault()}
+                         onDrop={(e) => { e.stopPropagation(); handleDrop(e, dateStr); }}
+                         className={`rounded-xl border p-1.5 sm:p-2 flex flex-col gap-1 cursor-pointer hover:border-[#39FF14] transition-colors overflow-hidden ${isToday ? 'bg-[#39FF14]/5 border-[#39FF14]/50' : 'bg-white dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800'}`}
+                       >
+                          <div className={`text-xs font-black w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-[#39FF14] text-black' : 'text-zinc-400'}`}>
+                            {day}
+                          </div>
+                          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
+                            {dayAppts.map(a => (
+                              <div 
+                                key={a.id} 
+                                draggable
+                                onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, a.id); }}
+                                title={`${a.title} - ${a.lead_name}`}
+                                className={`cursor-move text-[9px] font-bold px-1.5 py-0.5 rounded truncate ${a.status === 'Effectué' ? 'bg-green-100 text-green-700' : a.status === 'Manqué' || a.status === 'Annulé' ? 'bg-red-100 text-red-700' : 'bg-black text-[#39FF14] dark:bg-white dark:text-black'}`}
+                              >
+                                {new Date(a.date_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} {a.title || a.lead_name}
+                              </div>
+                            ))}
+                          </div>
+                       </div>
+                     );
+                  })}
+                </div>
+             </div>
+           )}
         </div>
       </div>
 

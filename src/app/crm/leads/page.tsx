@@ -642,21 +642,25 @@ export default function LeadsKanbanPage() {
           let processed = 0;
           
           // ENVOI STRICTEMENT SÉQUENTIEL DES LOTS
-          for (const batchToProcess of chunks) {
+          for (let batchToProcess of chunks) {
               try {
                   const { data, error } = await supabase.from('crm_leads').upsert(batchToProcess, { onConflict: 'phone, tenant_id' }).select();
                   if (error) { 
                       console.error("Erreur sur un lot : ", error.message); 
                       hasError = true; 
+                      break; // FAIL-FAST : On stoppe l'importation de force
                   } else if (data) {
                       allData = [...allData, ...data];
                   }
                   processed += batchToProcess.length;
                   setImportProgress(Math.round((processed / deduplicatedLeads.length) * 100));
                   setImportProgressText(`Traitement en cours... (${processed}/${deduplicatedLeads.length} leads)`);
+                  
+                  batchToProcess = []; // Nettoyage du lot pour libérer la RAM
               } catch (e) {
                   console.error("Crash lors de l'insertion du lot", e);
                   hasError = true;
+                  break; // FAIL-FAST
               }
           }
 
