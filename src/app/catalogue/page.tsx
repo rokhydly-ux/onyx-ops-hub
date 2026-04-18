@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Download, ShoppingCart, X, CheckCircle, ShieldCheck, Loader2, Box, Eye, Send, Minus, Plus, Trash2 } from 'lucide-react';
+import { Download, ShoppingCart, X, CheckCircle, ShieldCheck, Loader2, Box, Eye, Send, Minus, Plus, Trash2, Search, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -24,6 +24,15 @@ function CatalogueViewer() {
   const [cart, setCart] = useState<{product: any, qty: number}[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [viewQty, setViewQty] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("Toutes");
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeCategory, sortOrder]);
 
   const addToCart = (product: any, qty: number) => {
     setCart(prev => {
@@ -269,6 +278,24 @@ function CatalogueViewer() {
     ? products.filter(p => p.id !== viewingProduct.id && p.category === viewingProduct.category).slice(0, 3)
     : [];
 
+  const uniqueCategories = ["Toutes", ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
+
+  const filteredProducts = products.filter(p => {
+    const matchSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        (p.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCat = activeCategory === "Toutes" || p.category === activeCategory;
+    return matchSearch && matchCat;
+  }).sort((a, b) => {
+    const priceA = a.unit_price || a.price_ttc || 0;
+    const priceB = b.unit_price || b.price_ttc || 0;
+    if (sortOrder === 'asc') return priceA - priceB;
+    if (sortOrder === 'desc') return priceB - priceA;
+    return 0;
+  });
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-black dark:text-white font-sans flex flex-col">
       {/* HEADER */}
@@ -300,14 +327,52 @@ function CatalogueViewer() {
            <p className="text-zinc-500 font-bold text-sm md:text-base">Découvrez nos produits et demandez un devis en un clic.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map(p => (
+        <div className="flex flex-col items-center gap-4 max-w-2xl mx-auto mb-8">
+           <div className="relative w-full max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
+              <input 
+                 type="text" 
+                 placeholder="Rechercher un produit ou une catégorie..." 
+                 value={searchTerm} 
+                 onChange={(e) => setSearchTerm(e.target.value)} 
+                 className="w-full pl-12 pr-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] dark:focus:border-[#39FF14] transition-colors shadow-sm"
+              />
+           </div>
+
+           {uniqueCategories.length > 1 && (
+             <div className="flex flex-wrap items-center justify-center gap-2 w-full">
+               {uniqueCategories.map((cat: any) => (
+                 <button 
+                   key={cat} 
+                   onClick={() => setActiveCategory(cat)} 
+                   className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all shadow-sm border ${activeCategory === cat ? 'bg-black dark:bg-white text-[#39FF14] dark:text-black border-black dark:border-white scale-105' : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white'}`}
+                 >
+                   {cat}
+                 </button>
+               ))}
+             </div>
+           )}
+           
+           <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm mt-2">
+              <span className="text-[10px] font-black uppercase text-zinc-400 px-2">Trier par prix :</span>
+              <button onClick={() => setSortOrder(sortOrder === 'asc' ? null : 'asc')} className={`p-2 rounded-lg transition-colors ${sortOrder === 'asc' ? 'bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`} title="Prix croissant"><ArrowUp size={14}/></button>
+              <button onClick={() => setSortOrder(sortOrder === 'desc' ? null : 'desc')} className={`p-2 rounded-lg transition-colors ${sortOrder === 'desc' ? 'bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`} title="Prix décroissant"><ArrowDown size={14}/></button>
+           </div>
+        </div>
+
+        {filteredProducts.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {paginatedProducts.map(p => (
             <div key={p.id} onClick={() => { setViewingProduct(p); setViewQty(1); setLeadSuccess(false); }} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden cursor-pointer group hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full">
               <div className="aspect-square bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden">
                  {p.image_url ? (
                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                  ) : (
                    <div className="w-full h-full flex items-center justify-center text-zinc-300"><Box size={48}/></div>
+                 )}
+                 {Array.isArray(p.tags) && p.tags.includes('En Promo') && (
+                   <span className="absolute top-3 left-3 bg-red-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg">En Promo</span>
                  )}
               </div>
               <div className="p-5 flex flex-col flex-1">
@@ -319,8 +384,21 @@ function CatalogueViewer() {
                  </div>
               </div>
             </div>
-          ))}
-        </div>
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 mt-10">
+                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 disabled:opacity-50 text-black dark:text-white transition-colors shadow-sm"><ChevronLeft size={16}/></button>
+                <span className="text-xs font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-900 px-4 py-2 rounded-xl">Page {currentPage} / {totalPages}</span>
+                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 disabled:opacity-50 text-black dark:text-white transition-colors shadow-sm"><ChevronRight size={16}/></button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-12 text-zinc-500 font-bold text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl">
+             Aucun produit ne correspond à votre sélection.
+          </div>
+        )}
       </main>
 
       {/* FOOTER */}

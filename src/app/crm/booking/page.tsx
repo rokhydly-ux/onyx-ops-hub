@@ -10,6 +10,8 @@ export default function BookingModulePage() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentWeekDate, setCurrentWeekDate] = useState(new Date());
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'week'>('list');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formState, setFormState] = useState({
