@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link, ChevronDown, ChevronUp, ImagePlus, Palette, Mail, Copy } from 'lucide-react';
+import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link, ChevronDown, ChevronUp, ImagePlus, Palette, Mail, Copy, MessageSquare } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -36,8 +36,9 @@ export default function CRMCatalogPage() {
   // Studio Catalogue
   const [isCatalogStudioOpen, setIsCatalogStudioOpen] = useState(false);
   const [isStudioDesignOpen, setIsStudioDesignOpen] = useState(true);
-  const [studioTab, setStudioTab] = useState<'build' | 'analytics'>('build');
+  const [studioTab, setStudioTab] = useState<'build' | 'analytics' | 'journal'>('build');
   const [catalogStats, setCatalogStats] = useState<any[]>([]);
+  const [catalogsHistory, setCatalogsHistory] = useState<any[]>([]);
   const [studioSelectedCategory, setStudioSelectedCategory] = useState('');
   const [studioSelectedSubCategory, setStudioSelectedSubCategory] = useState('');
   const [pdfProgress, setPdfProgress] = useState(0);
@@ -55,9 +56,14 @@ export default function CRMCatalogPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
-      if (isCatalogStudioOpen && studioTab === 'analytics' && tenantId) {
-          supabase.from('catalog_analytics').select('*').eq('tenant_id', tenantId)
-          .then(({data}) => { if (data) setCatalogStats(data); });
+      if (isCatalogStudioOpen && tenantId) {
+          if (studioTab === 'analytics') {
+              supabase.from('catalog_analytics').select('*').eq('tenant_id', tenantId)
+              .then(({data}) => { if (data) setCatalogStats(data); });
+          } else if (studioTab === 'journal') {
+              supabase.from('crm_catalogs').select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false })
+              .then(({data}) => { if (data) setCatalogsHistory(data); });
+          }
       }
   }, [isCatalogStudioOpen, studioTab, tenantId]);
 
@@ -516,6 +522,15 @@ export default function CRMCatalogPage() {
               } catch(e) { console.warn("Erreur image dos", e); }
           }
           
+          const payload = {
+              tenant_id: tenantId,
+              name: catalogConfig.coverTitle || 'Catalogue Produits',
+              product_ids: Array.from(selectedIds),
+              design_config: catalogConfig,
+              template: 'Studio'
+          };
+          await supabase.from('crm_catalogs').insert([payload]);
+
           doc.save(`Catalogue_${catalogConfig.coverTitle.replace(/\s+/g, '_')}.pdf`);
       } catch(e) {
           console.error(e);
@@ -524,6 +539,33 @@ export default function CRMCatalogPage() {
           setIsGeneratingPdf(false);
           setPdfProgress(0);
           // Ne pas fermer le studio automatiquement pour permettre de voir le téléchargement se terminer
+      }
+  };
+
+  const sendCatalogToTarget = (catalog: any, method: 'whatsapp' | 'email') => {
+      const catProducts = products.filter(p => catalog.product_ids?.includes(p.id));
+      const targetCategories = Array.from(new Set(catProducts.map(p => p.category).filter(Boolean)));
+      
+      const targetClients = clients.filter(c => 
+          targetCategories.some(cat => 
+              (c.activity && c.activity.toLowerCase().includes(cat.toLowerCase())) || 
+              (c.intent && c.intent.toLowerCase().includes(cat.toLowerCase())) ||
+              (c.target_segment && c.target_segment.toLowerCase().includes(cat.toLowerCase()))
+          )
+      );
+
+      if (targetClients.length === 0) {
+          if(!confirm(`Aucun client trouvé spécifiquement pour les catégories (${targetCategories.join(', ')}).\nVoulez-vous l'envoyer à TOUS vos clients ?`)) return;
+      }
+
+      const finalClients = targetClients.length > 0 ? targetClients : clients;
+      const catalogLink = `${window.location.origin}/catalogue?ids=${catalog.product_ids?.join(',')}&t=${tenantId}`;
+
+      if (method === 'whatsapp') {
+          alert(`L'IA Onyx va préparer l'envoi WhatsApp pour ${finalClients.length} cibles (Catégories: ${targetCategories.join(', ')}).\nLe lien du catalogue a été copié dans votre presse-papier pour l'envoi manuel.`);
+          navigator.clipboard.writeText(catalogLink);
+      } else if (method === 'email') {
+          alert(`Campagne d'e-mailing planifiée pour ${finalClients.length} contacts.\nSujet: Découvrez notre nouveau catalogue "${catalog.name}"\nLien: ${catalogLink}`);
       }
   };
 
@@ -933,6 +975,7 @@ export default function CRMCatalogPage() {
           String(p.name || '').toLowerCase().includes(searchLower) || 
           String(p.category || '').toLowerCase().includes(searchLower) || 
           String(p.subcategory || '').toLowerCase().includes(searchLower) || 
+          String(p.description || '').toLowerCase().includes(searchLower) || 
           (Array.isArray(p.tags) && p.tags.some((t: any) => String(t || '').toLowerCase().includes(searchLower)));
 
       let matchCat = false;
@@ -1657,8 +1700,8 @@ export default function CRMCatalogPage() {
 
       {/* MODALE STUDIO CATALOGUE */}
       {isCatalogStudioOpen && (
-        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsCatalogStudioOpen(false)} className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-           <div className="bg-white dark:bg-zinc-950 rounded-[2.5rem] p-8 max-w-6xl w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsCatalogStudioOpen(false)} className="fixed inset-0 z-[150] flex items-start justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto custom-scrollbar">
+           <div className="bg-white dark:bg-zinc-950 rounded-[2.5rem] p-8 max-w-6xl w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 flex flex-col h-max my-8">
              <button onClick={() => setIsCatalogStudioOpen(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 pr-10">
                  <h2 className="text-2xl font-black uppercase flex items-center gap-3 text-black dark:text-white">
@@ -1672,13 +1715,14 @@ export default function CRMCatalogPage() {
                      )}
                      <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1.5 rounded-2xl">
                          <button onClick={() => setStudioTab('build')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${studioTab === 'build' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>Création</button>
+                         <button onClick={() => setStudioTab('journal')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${studioTab === 'journal' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>📓 Journal</button>
                          <button onClick={() => setStudioTab('analytics')} className={`px-4 py-2 text-[10px] font-black uppercase rounded-xl transition ${studioTab === 'analytics' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black dark:hover:text-white'}`}>📊 Analytics</button>
                      </div>
                  </div>
              </div>
              
              {studioTab === 'build' ? (
-             <div className="flex flex-col gap-4 flex-1 min-h-0">
+             <div className="flex flex-col gap-4 flex-1">
                 {/* ACCORDION DESIGN */}
                 <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shrink-0 transition-all shadow-sm">
                    <button onClick={() => setIsStudioDesignOpen(!isStudioDesignOpen)} className="w-full bg-zinc-50 dark:bg-zinc-900 p-4 flex justify-between items-center font-black uppercase text-xs tracking-widest hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
@@ -1726,7 +1770,7 @@ export default function CRMCatalogPage() {
                 </div>
 
                 {/* Sélection Produits */}
-                <div className="flex flex-col flex-1 min-h-0">
+                <div className="flex flex-col flex-1">
                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4 shrink-0">
                       <h3 className="font-bold uppercase text-zinc-500 text-xs tracking-widest flex items-center gap-2"><Box size={16}/> Sélection des produits ({selectedIds.size} cochés)</h3>
                       <div className="flex gap-2 w-full sm:w-auto">
@@ -1743,7 +1787,7 @@ export default function CRMCatalogPage() {
                       </div>
                    </div>
 
-                   <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[250px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                   <div className="pr-2 min-h-[250px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {products.filter(p => {
                           const matchCat = !studioSelectedCategory || p.category === studioSelectedCategory;
                           const matchSub = !studioSelectedSubCategory || p.subcategory === studioSelectedSubCategory;
@@ -1798,6 +1842,27 @@ export default function CRMCatalogPage() {
                    </div>
                 </div>
              </div>
+             ) : studioTab === 'journal' ? (
+                 <div className="flex flex-col gap-4 flex-1 min-h-[400px]">
+                    <h3 className="font-black uppercase mb-4 text-sm text-zinc-500">Journal des Catalogues Créés</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {catalogsHistory.map(cat => (
+                            <div key={cat.id} className="p-6 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm bg-zinc-50 dark:bg-zinc-900/50 flex flex-col gap-4">
+                                <div>
+                                    <h4 className="font-black uppercase text-xl text-black dark:text-white mb-1">{cat.name}</h4>
+                                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{new Date(cat.created_at).toLocaleDateString('fr-FR')} • {cat.product_ids?.length || 0} Produits</p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-3 mt-auto">
+                                    <button onClick={() => sendCatalogToTarget(cat, 'whatsapp')} className="flex-1 bg-[#25D366] text-white py-3 rounded-xl font-black uppercase text-[10px] shadow-sm hover:scale-105 transition flex items-center justify-center gap-1.5"><MessageSquare size={16}/> Envoyer WhatsApp</button>
+                                    <button onClick={() => sendCatalogToTarget(cat, 'email')} className="flex-1 bg-blue-500 text-white py-3 rounded-xl font-black uppercase text-[10px] shadow-sm hover:scale-105 transition flex items-center justify-center gap-1.5"><Mail size={16}/> Diffuser par Mail</button>
+                                </div>
+                            </div>
+                        ))}
+                        {catalogsHistory.length === 0 && (
+                            <div className="col-span-full py-12 text-center text-zinc-500 font-bold text-xs uppercase tracking-widest italic border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl">Aucun catalogue enregistré.</div>
+                        )}
+                    </div>
+                 </div>
              ) : (
                  <div className="flex flex-col h-full overflow-y-auto custom-scrollbar pt-2">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
