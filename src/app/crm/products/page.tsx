@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link, ChevronDown, ChevronUp, ImagePlus, Palette, Mail } from 'lucide-react';
+import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link, ChevronDown, ChevronUp, ImagePlus, Palette, Mail, Copy } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -545,6 +545,33 @@ export default function CRMCatalogPage() {
           setProducts(prev => prev.filter(p => p.id !== id));
       } catch (err: any) {
           alert("Erreur lors de la suppression : " + err.message);
+      }
+  };
+
+  const handleDuplicateProduct = async (product: any) => {
+      try {
+          const payload = {
+              tenant_id: tenantId,
+              name: `${product.name} (Copie)`,
+              category: product.category,
+              subcategory: product.subcategory,
+              unit_price: product.unit_price,
+              price_ttc: product.price_ttc,
+              image_url: product.image_url,
+              description: product.description,
+              tags: product.tags,
+              image_gallery: product.image_gallery,
+              video_gallery: product.video_gallery,
+              stock_status: product.stock_status,
+              last_sold_date: new Date().toISOString()
+          };
+          const { data, error } = await supabase.from('crm_products').insert([payload]).select().single();
+          if (error) throw error;
+          setProducts(prev => [data, ...prev]);
+          setToastMessage(`Produit "${product.name}" dupliqué avec succès !`);
+          setTimeout(() => setToastMessage(null), 3000);
+      } catch (err: any) {
+          alert("Erreur lors de la duplication : " + err.message);
       }
   };
 
@@ -1213,6 +1240,7 @@ export default function CRMCatalogPage() {
                        <p className="font-black text-lg text-[#39FF14]">{(isNaN(cleanDisplayPrice) ? 0 : cleanDisplayPrice).toLocaleString('fr-FR')} <span className="text-xs text-black dark:text-white">F</span></p>
                        <div className="flex gap-1.5">
                          <button onClick={() => setViewingProduct(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors shadow-sm" title="Voir Fiche Technique"><Eye size={14}/></button>
+                         <button onClick={() => handleDuplicateProduct(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg transition-colors shadow-sm" title="Dupliquer"><Copy size={14}/></button>
                          <button onClick={() => handleOpenEdit(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors shadow-sm"><Edit size={14}/></button>
                          <button onClick={() => handleDeleteProduct(product.id)} className="p-2 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white rounded-lg transition-colors shadow-sm"><Trash2 size={14}/></button>
                        </div>

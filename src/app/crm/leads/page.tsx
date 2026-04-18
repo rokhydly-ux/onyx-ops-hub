@@ -528,19 +528,32 @@ export default function LeadsKanbanPage() {
   };
 
   // --- IMPORTATION CSV INTELLIGENTE FACEBOOK ---
-  const handleSmartImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSmartImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!userId) return;
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Fetch existing leads to preserve their status upon updates
+    const { data: existingLeads } = await supabase.from('crm_leads').select('id, phone, status, created_at').eq('tenant_id', userId);
+    const existingMap = new Map((existingLeads || []).map((l: any) => [l.phone, l]));
+
+    setIsImporting(true);
+    setImportProgress(0);
+    setImportProgressText('Démarrage de l\'importation en streaming...');
+
+    const BATCH_SIZE = 500;
+    let chunkBuffer: any[] = [];
+    let allData: any[] = [];
+    let hasError = false;
+    let processed = 0;
+    const uniqueAdNames = new Set<string>();
+
     Papa.parse(file, {
        header: true,
        skipEmptyLines: true,
-       complete: async (results) => {
-          // Fetch existing leads to preserve their status upon updates
-          const { data: existingLeads } = await supabase.from('crm_leads').select('id, phone, status, created_at').eq('tenant_id', userId);
-          const existingMap = new Map((existingLeads || []).map((l: any) => [l.phone, l]));
-
+       chunk: async (results, parser) => {
+          parser.pause(); // Pause pour attendre le traitement de la base de données
+          
           const newLeads = results.data.map((row: any) => {
              // Normalisation des clés en minuscules
              const r: any = {};
@@ -560,6 +573,7 @@ export default function LeadsKanbanPage() {
              const campaign = r['campaign_name'] || r['campaign name'] || r['campagne'] || r['adset_name'] || r['campaign'] || 'Organique';
              const form = r['form_name'] || r['formulaire'] || r['form'] || '';
              const adName = r['ad_name'] || r['ad name'] || r['ad'] || 'Publicité Inconnue';
+             if (adName && adName !== 'Publicité Inconnue') uniqueAdNames.add(adName);
              
              // --- PRÉCISION DES DATES (Facebook created_time) ---
              const dateKey = Object.keys(r).find(k => k.includes('created_time') || k.includes('date') || k.includes('time'));
@@ -613,57 +627,81 @@ export default function LeadsKanbanPage() {
           
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
-          // Dédoublonnage par téléphone pour éviter l'erreur PostgreSQL "ON CONFLICT DO UPDATE"
-          const deduplicatedLeads = Array.from(new Map(newLeads.map(l => [l.phone, l])).values());
+          chunkBuffer.push(...newLeads);
+          // Dédoublonnage local
+          chunkBuffer = Array.from(new Map(chunkBuffer.map(l => [l.phone, l])).values());
 
-          // UTILISATION DE BATCHING POUR ÉVITER LES ERREURS API (LIMITE: 300)
-          const chunkArray = <T,>(arr: T[], size: number): T[][] => 
-              Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
+          while (chunkBuffer.length >= BATCH_SIZE) {
+              const batchToProcess = chunkBuffer.splice(0, BATCH_SIZE);
+              try {
+                  const { data, error } = await supabase.from('crm_leads').upsert(batchToProcess, { onConflict: 'phone, tenant_id' }).select();
+                  if (error) { 
+                      console.error("Erreur sur un lot : ", error.message); 
+                      hasError = true; 
+                  } else if (data) {
+                      allData = [...allData, ...data];
+                      data.forEach((d: any) => existingMap.set(d.phone, d)); // Mise à jour map
+                  }
+                  processed += batchToProcess.length;
+                  setImportProgressText(`Traitement en cours... (${processed} lignes insérées)`);
+              } catch (e) {
+                  console.error("Crash lors de l'insertion du lot", e);
+                  hasError = true;
+              }
+          }
           
-          if (deduplicatedLeads.length === 0) return alert("Aucun lead valide trouvé.");
-          setIsImporting(true);
-          setImportProgress(0);
-          setImportProgressText('Démarrage de l\'importation...');
+          parser.resume(); // Reprendre la lecture
+       },
+       complete: async () => {
+          // Traitement du reste du buffer
+          if (chunkBuffer.length > 0) {
+              try {
+                  const { data, error } = await supabase.from('crm_leads').upsert(chunkBuffer, { onConflict: 'phone, tenant_id' }).select();
+                  if (error) {
+                      console.error("Erreur sur le dernier lot : ", error.message);
+                      hasError = true;
+                  } else if (data) {
+                      allData = [...allData, ...data];
+                  }
+                  processed += chunkBuffer.length;
+              } catch (e) {
+                  console.error("Crash lors du dernier lot", e);
+                  hasError = true;
+              }
+          }
 
           // UPSERT DYNAMIQUE DES CAMPAGNES (ad_name)
-          const uniqueAdNames = Array.from(new Set(deduplicatedLeads.map(l => l.ad_name).filter(Boolean)));
-          if (uniqueAdNames.length > 0) {
-              const campaignsPayload = uniqueAdNames.map(ad => ({
+          if (uniqueAdNames.size > 0) {
+              const campaignsPayload = Array.from(uniqueAdNames).map(ad => ({
                   tenant_id: userId,
                   name: ad
               }));
               await supabase.from('crm_campaigns').upsert(campaignsPayload, { onConflict: 'name, tenant_id' });
           }
 
-          const chunks = chunkArray(deduplicatedLeads, 50); // Réduit à 50 pour éviter l'erreur Out Of Memory de PostgreSQL
-          let allData: any[] = [];
-          let hasError = false;
-          let processed = 0;
-          const startTime = Date.now();
-
-          for (const chunk of chunks) {
-              const { data, error } = await supabase.from('crm_leads').upsert(chunk, { onConflict: 'phone, tenant_id' }).select();
-              if (error) { alert("Erreur sur un lot : " + error.message); hasError = true; break; }
-              if (data) allData = [...allData, ...data];
-              
-              processed += chunk.length;
-              const elapsed = Date.now() - startTime;
-              const remainingSecs = Math.max(0, Math.round(((elapsed / processed) * deduplicatedLeads.length - elapsed) / 1000));
-              setImportProgress(Math.round((processed / deduplicatedLeads.length) * 100));
-              setImportProgressText(`Traitement de la ligne ${processed} sur ${deduplicatedLeads.length}... (${remainingSecs}s restantes)`);
-          }
-
-          if (!hasError && allData.length > 0) {
+          if (allData.length > 0) {
              setLeads(prev => {
                  const merged = [...allData, ...prev.filter(p => !allData.find((d: any) => d.id === p.id))];
                  return merged.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
              });
-             alert(`${allData.length} leads importés et mis à jour par l'IA avec succès !`);
+             if (hasError) {
+                 alert(`Importation partielle : ${allData.length} leads insérés, mais des erreurs sont survenues sur certains lots.`);
+             } else {
+                 alert(`${allData.length} leads importés et mis à jour par l'IA avec succès !`);
+             }
           } else {
-             if (!hasError) alert("Aucune nouvelle donnée importée.");
+             if (hasError) alert("L'importation a échoué.");
+             else alert("Aucune nouvelle donnée valide à importer.");
           }
+          
           if (fileInputRef.current) fileInputRef.current.value = '';
           setIsImporting(false);
+       },
+       error: (error) => {
+          console.error("Erreur PapaParse:", error);
+          alert("Erreur lors de la lecture du fichier CSV.");
+          setIsImporting(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
        }
     });
   };
