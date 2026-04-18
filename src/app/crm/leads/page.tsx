@@ -7,7 +7,7 @@ import {
   UploadCloud, Facebook, Activity, CheckCircle, Wallet, AlertTriangle, PieChart,
   X, ShieldCheck, Zap, UserCheck, Edit, Trash2, Calendar, Camera, Scan, Eye, Download, Clock, Lock, Target, TrendingUp
 } from 'lucide-react';
-import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -232,6 +232,13 @@ export default function LeadsKanbanPage() {
       setTimeout(() => setShowConfetti(false), 4000);
   };
 
+  // --- DND-KIT SENSORS (FIX POUR LE GLISSER-DÉPOSER) ---
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 }, // Nécessite un mouvement de 5px, évite les conflits avec les clics
+    })
+  );
+
   // Fetch notes when a lead is selected
   useEffect(() => {
     if (selectedLead) {
@@ -389,11 +396,16 @@ export default function LeadsKanbanPage() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
-    const leadId = active.id as string;
-    const newStatus = over.id as string;
+    const leadId = String(active.id);
+    const newStatus = String(over.id);
     
-    // Utilisation des données directement attachées à la carte Kanban (Fiabilité 100%)
-    const oldStatus = (active.data.current?.status as string) || 'Nouveaux Leads';
+    // Fiabilité maximale : on lit le dnd-kit puis on fallback sur le state React
+    let oldStatus = String(active.data.current?.status || '');
+    if (!oldStatus || oldStatus === 'undefined') {
+        const draggedLead = leads.find(l => String(l.id) === leadId);
+        oldStatus = draggedLead?.status || 'Nouveaux Leads';
+    }
+    if (oldStatus === 'CREATED') oldStatus = 'Nouveaux Leads';
 
     if (oldStatus !== newStatus) {
       setPendingMove({ leadId, newStatus, oldStatus });
@@ -964,7 +976,7 @@ export default function LeadsKanbanPage() {
       )}
 
       {/* --- KANBAN BOARD (dnd-kit) --- */}
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="flex gap-6 overflow-x-auto pb-6 items-start custom-scrollbar">
           {KANBAN_COLS.map(col => {
             const colLeads = filteredLeads
