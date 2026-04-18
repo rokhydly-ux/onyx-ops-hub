@@ -14,6 +14,7 @@ export default function CRMCatalogPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('Toutes');
+  const [subcategoryFilter, setSubcategoryFilter] = useState('Toutes');
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [viewingProduct, setViewingProduct] = useState<any>(null);
@@ -267,11 +268,48 @@ export default function CRMCatalogPage() {
         if (clientsData && isMounted) setClients(clientsData);
 
         const { data: settingsData } = await supabase.from('crm_settings').select('categories, category_covers').eq('tenant_id', tId).maybeSingle();
-        const { data: fullSettings } = await supabase.from('crm_settings').select('categories, category_covers, logo_url, crm_name').eq('tenant_id', tId).maybeSingle();
+        const { data: fullSettings } = await supabase.from('crm_settings').select('id, categories, category_covers, logo_url, crm_name').eq('tenant_id', tId).maybeSingle();
         if (fullSettings && isMounted) {
           if (fullSettings.category_covers) setCategoryCovers(fullSettings.category_covers);
-          if (fullSettings.categories) setAdvancedCategories(fullSettings.categories);
+          
+          let loadedCats = fullSettings.categories || [];
+          let hasChanges = false;
+          const existingNames = new Set(loadedCats.map((c: any) => c.name));
+
+          // Synchronisation automatique des catégories existantes dans les produits
+          if (data) {
+             const uniqueFromProducts = Array.from(new Set(data.map((p: any) => p.category).filter(Boolean)));
+             uniqueFromProducts.forEach(cat => {
+                 if (!existingNames.has(cat)) {
+                     loadedCats.push({ id: crypto.randomUUID(), name: cat as string, subcategories: [], color: '#39FF14' });
+                     existingNames.add(cat);
+                     hasChanges = true;
+                 }
+             });
+          }
+          
+          if (hasChanges) {
+             const payload = { tenant_id: tId, categories: loadedCats };
+             if (fullSettings.id) {
+                 supabase.from('crm_settings').update(payload).eq('id', fullSettings.id).then();
+             } else {
+                 supabase.from('crm_settings').insert([payload]).then();
+             }
+          }
+          
+          setAdvancedCategories(loadedCats);
           setCrmSettings({ logo_url: fullSettings.logo_url || '', crm_name: fullSettings.crm_name || 'ONYX CRM' });
+        } else if (isMounted) {
+          // Si aucun paramètre n'existe, on initialise
+          let loadedCats: any[] = [];
+          if (data) {
+             const uniqueFromProducts = Array.from(new Set(data.map((p: any) => p.category).filter(Boolean)));
+             loadedCats = uniqueFromProducts.map(cat => ({ id: crypto.randomUUID(), name: cat as string, subcategories: [], color: '#39FF14' }));
+          }
+          setAdvancedCategories(loadedCats);
+          if (loadedCats.length > 0) {
+             supabase.from('crm_settings').insert([{ tenant_id: tId, categories: loadedCats }]).then();
+          }
         }
       } catch (err: any) {
         console.error("🚨 CRASH CRITIQUE (fetchProducts) :", err.message || err);
@@ -549,14 +587,16 @@ export default function CRMCatalogPage() {
 
   const saveCategoriesToSettings = async (cats: any[]) => {
       if (!tenantId) return;
+      setAdvancedCategories(cats); // Mise à jour optimiste pour l'UI
       const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', tenantId).maybeSingle();
       const payload = { tenant_id: tenantId, categories: cats };
       if (existing?.id) {
-          await supabase.from('crm_settings').update(payload).eq('id', existing.id);
+          const { error } = await supabase.from('crm_settings').update(payload).eq('id', existing.id);
+          if (error) alert("Erreur lors de la mise à jour des catégories : " + error.message);
       } else {
-          await supabase.from('crm_settings').insert([payload]);
+          const { error } = await supabase.from('crm_settings').insert([payload]);
+          if (error) alert("Erreur lors de l'insertion des catégories : " + error.message);
       }
-      setAdvancedCategories(cats);
   };
 
   const handleAddAdvancedCategory = () => {
@@ -870,22 +910,38 @@ export default function CRMCatalogPage() {
       } else {
           matchCat = p.category === categoryFilter || (p.category || '').startsWith(categoryFilter + ' /');
       }
+              
+              let matchSubcat = false;
+              if (subcategoryFilter === 'Toutes') {
+                  matchSubcat = true;
+              } else {
+                  matchSubcat = p.subcategory === subcategoryFilter;
+              }
 
           const rawPrice = p.unit_price || p.price_ttc || p.price || 0;
           const price = typeof rawPrice === 'string' ? Number(String(rawPrice).replace(/[^0-9.-]+/g, '')) : Number(rawPrice);
       const matchMin = minPrice === '' || price >= Number(minPrice);
       const matchMax = maxPrice === '' || price <= Number(maxPrice);
-      return matchSearch && matchCat && matchMin && matchMax;
+              return matchSearch && matchCat && matchSubcat && matchMin && matchMax;
     }).sort((a, b) => {
         if (productSort === 'az') return (a.name || '').localeCompare(b.name || '');
         if (productSort === 'popular') return (b.unit_price || 0) - (a.unit_price || 0);
         return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
-  }, [products, search, categoryFilter, minPrice, maxPrice, productSort]);
+  }, [products, search, categoryFilter, subcategoryFilter, minPrice, maxPrice, productSort]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, categoryFilter, minPrice, maxPrice]);
+  }, [search, categoryFilter, subcategoryFilter, minPrice, maxPrice]);
+
+  const availableSubcategories = React.useMemo(() => {
+     if (categoryFilter === 'Toutes') return [];
+     const selectedCat = advancedCategories.find(c => c.name === categoryFilter);
+     if (selectedCat && selectedCat.subcategories && selectedCat.subcategories.length > 0) {
+         return selectedCat.subcategories;
+     }
+     return Array.from(new Set(products.filter(p => p.category === categoryFilter && p.subcategory).map(p => p.subcategory as string)));
+  }, [categoryFilter, advancedCategories, products]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -945,10 +1001,16 @@ export default function CRMCatalogPage() {
             <div className="flex flex-col md:flex-row items-center gap-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
               <div className="flex items-center gap-2 w-full md:w-auto">
                 <Filter size={16} className="text-zinc-400 shrink-0" />
-                <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] appearance-none cursor-pointer text-black dark:text-white">
+                <select value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setSubcategoryFilter('Toutes'); }} className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] appearance-none cursor-pointer text-black dark:text-white">
                   <option value="Toutes">Toutes les catégories</option>
                   {advancedCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
+                {categoryFilter !== 'Toutes' && availableSubcategories.length > 0 && (
+                    <select value={subcategoryFilter} onChange={e => setSubcategoryFilter(e.target.value)} className="w-full md:w-auto bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-[#39FF14] appearance-none cursor-pointer text-black dark:text-white">
+                      <option value="Toutes">Toutes les sous-catégories</option>
+                      {availableSubcategories.map((sub: string) => <option key={sub} value={sub}>{sub}</option>)}
+                    </select>
+                )}
               </div>
               <div className="flex items-center gap-2 w-full md:w-auto">
                 <SlidersHorizontal size={16} className="text-zinc-400 shrink-0" />
@@ -1025,7 +1087,7 @@ export default function CRMCatalogPage() {
               </div>
           ) : (
             <>
-              {categoryFilter !== 'Toutes' && !search && (() => {
+              {categoryFilter !== 'Toutes' && !search && subcategoryFilter === 'Toutes' && (() => {
                   const selectedCategoryData = advancedCategories.find(c => c.name === categoryFilter);
                   // Si des sous-catégories sont définies dans les paramètres, on les utilise.
                   // Sinon, on les génère dynamiquement à partir des produits de la catégorie sélectionnée.
@@ -1109,7 +1171,7 @@ export default function CRMCatalogPage() {
                   );
               })()}
               <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-black uppercase text-lg">Tous les produits {categoryFilter !== 'Toutes' ? `(${categoryFilter})` : ''}</h3>
+                  <h3 className="font-black uppercase text-lg">Tous les produits {categoryFilter !== 'Toutes' ? `(${categoryFilter}${subcategoryFilter !== 'Toutes' ? ' - ' + subcategoryFilter : ''})` : ''}</h3>
                   <select value={productSort} onChange={e => setProductSort(e.target.value as any)} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2 rounded-xl text-xs font-bold outline-none cursor-pointer appearance-none">
                       <option value="recent">Du plus récent au plus ancien</option>
                       <option value="az">De A à Z</option>
@@ -1166,7 +1228,7 @@ export default function CRMCatalogPage() {
             </>
           )}
 
-          {totalPages > 1 && (
+          {!(categoryFilter === 'Toutes' && !search && displayCategories.length > 0) && totalPages > 1 && (
             <div className="flex items-center justify-center gap-4 mt-8 pb-4">
               <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 disabled:opacity-50 text-black dark:text-white transition-colors shadow-sm"><ChevronLeft size={16}/></button>
               <span className="text-xs font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-900 px-4 py-2 rounded-xl">Page {currentPage} / {totalPages}</span>
@@ -1375,16 +1437,19 @@ export default function CRMCatalogPage() {
                       </div>
                       <div>
                           <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Sous-catégorie</label>
-                          <select 
+                          <input 
+                            type="text"
+                            list="subcat-options"
                             value={editForm.subcategory || ''} 
                             onChange={e => setEditForm({...editForm, subcategory: e.target.value})} 
-                            className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white appearance-none cursor-pointer"
-                          >
-                             <option value="" disabled>Sélectionner une sous-catégorie</option>
+                            placeholder="Ex: Sneakers (ou choisir)"
+                            className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white"
+                          />
+                          <datalist id="subcat-options">
                              {subcategoriesForForm.map(sub => (
-                                <option key={sub} value={sub}>{sub}</option>
+                                <option key={sub} value={sub} />
                              ))}
-                          </select>
+                          </datalist>
                       </div>
                   </div>
                   <div>
