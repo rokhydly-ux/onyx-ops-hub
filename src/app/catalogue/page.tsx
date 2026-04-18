@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Download, ShoppingCart, X, CheckCircle, ShieldCheck, Loader2, Box, Eye, Send, Minus, Plus, Trash2, Search, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, ShoppingCart, X, CheckCircle, ShieldCheck, Loader2, Box, Eye, Send, Minus, Plus, Trash2, Search, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -27,12 +27,34 @@ function CatalogueViewer() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Toutes");
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [showOnlyPromos, setShowOnlyPromos] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
+  const [recentlyViewed, setRecentlyViewed] = useState<any[]>([]);
+  const [isRecentModalOpen, setIsRecentModalOpen] = useState(false);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, activeCategory, sortOrder]);
+  }, [searchTerm, activeCategory, sortOrder, showOnlyPromos]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('onyx_catalog_recent');
+    if (saved) {
+      try { setRecentlyViewed(JSON.parse(saved)); } catch (e) {}
+    }
+  }, []);
+
+  const handleViewProduct = (p: any) => {
+    setViewingProduct(p);
+    setViewQty(1);
+    setLeadSuccess(false);
+    setRecentlyViewed(prev => {
+      const filtered = prev.filter(item => item.id !== p.id);
+      const updated = [p, ...filtered].slice(0, 10);
+      localStorage.setItem('onyx_catalog_recent', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const addToCart = (product: any, qty: number) => {
     setCart(prev => {
@@ -229,7 +251,8 @@ function CatalogueViewer() {
       else if (!cleanPhone.startsWith('+')) cleanPhone = `+${cleanPhone}`;
 
       const itemsText = cart.map(i => `- ${i.product.name} (x${i.qty})`).join('\n');
-      const totalAmount = cart.reduce((acc, item) => acc + ((item.product.unit_price || item.product.price_ttc || 0) * item.qty), 0);
+      const totalAmount = Math.round(cart.reduce((acc, item) => acc + ((item.product.unit_price || item.product.price_ttc || 0) * item.qty), 0)) || 0;
+      const fullMessage = `${leadForm.message ? leadForm.message + '\n\n' : ''}Produits demandés :\n${itemsText}\nTotal estimé : ${totalAmount.toLocaleString('fr-FR')} F`;
 
       const payload = {
         tenant_id: tenantId,
@@ -240,22 +263,29 @@ function CatalogueViewer() {
         status: 'Nouveau Lead',
         budget: totalAmount,
         amount: totalAmount,
-        message: `${leadForm.message ? leadForm.message + '\n\n' : ''}Produits demandés :\n${itemsText}\nTotal estimé : ${totalAmount.toLocaleString('fr-FR')} F`
+        message: fullMessage.substring(0, 3000) // Sécurité anti-débordement mémoire (Out of Memory)
       };
       
       const { error } = await supabase.from('crm_leads').insert([payload]);
       if (error) throw error;
       
-      for (const item of cart) {
-         try {
-             await supabase.from('crm_quotes').insert([{
-                 tenant_id: tenantId,
-                 client_name: leadForm.name,
-                 items: [item],
-                 total_amount: totalAmount
-             }]);
-         } catch(e) {}
-      }
+      // Optimisation Anti-OOM : on nettoie les objets produits avant de les insérer en JSONB pour éviter un excès de taille
+      const cleanCartItems = cart.map(item => ({
+          id: item.product.id,
+          name: item.product.name,
+          qty: item.qty,
+          unit_price: item.product.unit_price || item.product.price_ttc || 0,
+          image_url: item.product.image_url?.length < 1000 ? item.product.image_url : null
+      }));
+
+      try {
+          await supabase.from('crm_quotes').insert([{
+              tenant_id: tenantId,
+              client_name: leadForm.name,
+              items: cleanCartItems,
+              total_amount: totalAmount
+          }]);
+      } catch(e) { console.error(e); }
 
       setLeadSuccess(true);
       setCart([]);
@@ -284,7 +314,8 @@ function CatalogueViewer() {
     const matchSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                         (p.category || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchCat = activeCategory === "Toutes" || p.category === activeCategory;
-    return matchSearch && matchCat;
+    const matchPromo = showOnlyPromos ? (Array.isArray(p.tags) && p.tags.includes('En Promo')) : true;
+    return matchSearch && matchCat && matchPromo;
   }).sort((a, b) => {
     const priceA = a.unit_price || a.price_ttc || 0;
     const priceB = b.unit_price || b.price_ttc || 0;
@@ -310,6 +341,9 @@ function CatalogueViewer() {
             <h1 className="text-lg font-black uppercase tracking-tighter hidden sm:block">{settings.crm_name}</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
+            <button onClick={() => setIsRecentModalOpen(true)} className="bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white px-3 sm:px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm hover:scale-105 transition flex items-center gap-2" title="Récemment consultés">
+              <Clock size={16}/> <span className="hidden sm:inline">Historique</span>
+            </button>
             <button onClick={sharePDFWhatsApp} disabled={isGeneratingPdf} className="bg-[#25D366] text-white px-3 sm:px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 transition flex items-center gap-2 disabled:opacity-50" title="Partager sur WhatsApp">
               {isGeneratingPdf ? <Loader2 size={16} className="animate-spin"/> : <Send size={16}/>} <span className="hidden sm:inline">Partager WA</span>
             </button>
@@ -353,10 +387,18 @@ function CatalogueViewer() {
              </div>
            )}
            
-           <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm mt-2">
-              <span className="text-[10px] font-black uppercase text-zinc-400 px-2">Trier par prix :</span>
-              <button onClick={() => setSortOrder(sortOrder === 'asc' ? null : 'asc')} className={`p-2 rounded-lg transition-colors ${sortOrder === 'asc' ? 'bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`} title="Prix croissant"><ArrowUp size={14}/></button>
-              <button onClick={() => setSortOrder(sortOrder === 'desc' ? null : 'desc')} className={`p-2 rounded-lg transition-colors ${sortOrder === 'desc' ? 'bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`} title="Prix décroissant"><ArrowDown size={14}/></button>
+           <div className="flex flex-wrap items-center justify-center gap-4 mt-2 w-full">
+               <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                  <span className="text-[10px] font-black uppercase text-zinc-400 px-2">Trier par prix :</span>
+                  <button onClick={() => setSortOrder(sortOrder === 'asc' ? null : 'asc')} className={`p-2 rounded-lg transition-colors ${sortOrder === 'asc' ? 'bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`} title="Prix croissant"><ArrowUp size={14}/></button>
+                  <button onClick={() => setSortOrder(sortOrder === 'desc' ? null : 'desc')} className={`p-2 rounded-lg transition-colors ${sortOrder === 'desc' ? 'bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white' : 'text-zinc-400 hover:text-black dark:hover:text-white'}`} title="Prix décroissant"><ArrowDown size={14}/></button>
+               </div>
+               <button 
+                  onClick={() => setShowOnlyPromos(!showOnlyPromos)} 
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase transition-all shadow-sm border ${showOnlyPromos ? 'bg-red-500 text-white border-red-500 scale-105' : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-red-500 hover:text-red-500'}`}
+               >
+                  🔥 {showOnlyPromos ? 'Toutes les offres' : 'Uniquement les promos'}
+               </button>
            </div>
         </div>
 
@@ -364,7 +406,7 @@ function CatalogueViewer() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {paginatedProducts.map(p => (
-            <div key={p.id} onClick={() => { setViewingProduct(p); setViewQty(1); setLeadSuccess(false); }} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden cursor-pointer group hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full">
+            <div key={p.id} onClick={() => handleViewProduct(p)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden cursor-pointer group hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full">
               <div className="aspect-square bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden">
                  {p.image_url ? (
                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -379,7 +421,14 @@ function CatalogueViewer() {
                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">{p.category || 'Général'}</p>
                  <h3 className="font-bold text-sm leading-tight mb-2 line-clamp-2">{p.name}</h3>
                  <div className="mt-auto pt-3 flex items-center justify-between">
-                    <p className="font-black text-lg" style={{ color: settings.theme_color }}>{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
+                    <div className="flex flex-col items-start">
+                       {Array.isArray(p.tags) && p.tags.includes('En Promo') && (
+                          <p className="text-[10px] font-bold text-zinc-400 line-through mb-0.5">
+                             {Math.round((p.unit_price || p.price_ttc || 0) * 1.3).toLocaleString('fr-FR')} F
+                          </p>
+                       )}
+                       <p className="font-black text-lg" style={{ color: settings.theme_color }}>{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
+                    </div>
                     <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors"><Eye size={14}/></div>
                  </div>
               </div>
@@ -439,7 +488,14 @@ function CatalogueViewer() {
                 <div className="w-full md:w-1/2 flex flex-col">
                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 bg-zinc-100 dark:bg-zinc-900 px-3 py-1 rounded-full w-max mb-4">{viewingProduct.category || 'Produit'}</span>
                   <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-4 leading-tight">{viewingProduct.name}</h2>
-                  <p className="text-3xl font-black mb-6" style={{ color: settings.theme_color }}>{(viewingProduct.unit_price || viewingProduct.price_ttc || 0).toLocaleString('fr-FR')} <span className="text-base text-zinc-500">FCFA</span></p>
+                  <div className="mb-6 flex items-end gap-3">
+                     <p className="text-3xl font-black" style={{ color: settings.theme_color }}>{(viewingProduct.unit_price || viewingProduct.price_ttc || 0).toLocaleString('fr-FR')} <span className="text-base text-zinc-500">FCFA</span></p>
+                     {Array.isArray(viewingProduct.tags) && viewingProduct.tags.includes('En Promo') && (
+                        <p className="text-lg font-bold text-zinc-400 line-through mb-1">
+                           {Math.round((viewingProduct.unit_price || viewingProduct.price_ttc || 0) * 1.3).toLocaleString('fr-FR')} FCFA
+                        </p>
+                     )}
+                  </div>
                   
                   <div className="prose prose-sm dark:prose-invert mb-8 text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed whitespace-pre-wrap flex-1">
                     {viewingProduct.description || "Aucune description détaillée n'est disponible pour ce produit."}
@@ -467,7 +523,7 @@ function CatalogueViewer() {
                   <h3 className="font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2"><ShoppingCart size={16}/> Dans la même catégorie</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                      {similarProducts.map(sp => (
-                        <div key={sp.id} onClick={() => { setViewingProduct(sp); setViewQty(1); setLeadSuccess(false); }} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 flex items-center gap-4 cursor-pointer hover:border-black dark:hover:border-white transition-colors group">
+                        <div key={sp.id} onClick={() => handleViewProduct(sp)} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 flex items-center gap-4 cursor-pointer hover:border-black dark:hover:border-white transition-colors group">
                            <div className="w-16 h-16 rounded-xl bg-white dark:bg-zinc-800 overflow-hidden shrink-0">
                              {sp.image_url ? <img src={sp.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : <Box size={24} className="m-auto mt-4 text-zinc-300"/>}
                            </div>
@@ -480,6 +536,37 @@ function CatalogueViewer() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE RÉCEMMENT CONSULTÉS */}
+      {isRecentModalOpen && (
+        <div id="recent-overlay" onClick={(e: any) => e.target.id === 'recent-overlay' && setIsRecentModalOpen(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-zinc-950 rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col animate-in zoom-in-95 max-h-[80vh]">
+            <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+               <h2 className="text-xl font-black uppercase flex items-center gap-2"><Clock size={20}/> Historique de navigation</h2>
+               <button onClick={() => setIsRecentModalOpen(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-full transition"><X size={16}/></button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+               {recentlyViewed.length === 0 ? (
+                  <p className="text-center text-zinc-500 font-bold py-10">Aucun produit consulté récemment.</p>
+               ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     {recentlyViewed.map(p => (
+                        <div key={p.id} onClick={() => { setIsRecentModalOpen(false); handleViewProduct(p); }} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 flex items-center gap-4 cursor-pointer hover:border-black dark:hover:border-white transition-colors group">
+                           <div className="w-16 h-16 rounded-xl bg-white dark:bg-zinc-800 overflow-hidden shrink-0">
+                             {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : <Box size={24} className="m-auto mt-4 text-zinc-300"/>}
+                           </div>
+                           <div className="min-w-0">
+                             <p className="font-bold text-xs truncate leading-tight text-black dark:text-white">{p.name}</p>
+                             <p className="text-xs font-black mt-1" style={{ color: settings.theme_color }}>{(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F</p>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               )}
             </div>
           </div>
         </div>
@@ -545,9 +632,41 @@ function CatalogueViewer() {
                               <input type="text" required placeholder="Votre Prénom & Nom *" value={leadForm.name} onChange={e => setLeadForm({...leadForm, name: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-black dark:focus:border-white transition" />
                               <input type="tel" required placeholder="Votre Numéro WhatsApp *" value={leadForm.phone} onChange={e => setLeadForm({...leadForm, phone: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-black dark:focus:border-white transition" />
                               <textarea placeholder="Une précision ? (Optionnel)" value={leadForm.message} onChange={e => setLeadForm({...leadForm, message: e.target.value})} className="w-full p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-black dark:focus:border-white transition resize-none h-20"></textarea>
-                              <button type="submit" disabled={isSubmitting} className="w-full py-4 rounded-xl font-black uppercase text-xs shadow-md hover:scale-105 transition-transform disabled:opacity-50 flex items-center justify-center gap-2" style={{ backgroundColor: settings.theme_color, color: '#000' }}>
-                                  {isSubmitting ? <Loader2 size={16} className="animate-spin"/> : <Send size={16}/>} Envoyer la demande
-                              </button>
+                              <div className="flex gap-2 sm:gap-3">
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                      if (confirm("Voulez-vous vraiment vider votre panier sans rien envoyer ?")) {
+                                          setCart([]);
+                                          setLeadForm({ name: '', phone: '', message: '' });
+                                          setIsCartOpen(false);
+                                      }
+                                  }} 
+                                  className="px-3 sm:px-4 py-4 rounded-xl font-black uppercase text-xs shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-red-500"
+                                  title="Vider le panier silencieusement"
+                                >
+                                  <Trash2 size={16}/>
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                      if (confirm("Voulez-vous annuler et prévenir par WhatsApp ?")) {
+                                          const itemsText = cart.map(i => `- ${i.product.name} (x${i.qty})`).join('%0A');
+                                          setCart([]);
+                                          setLeadForm({ name: '', phone: '', message: '' });
+                                          setIsCartOpen(false);
+                                          const msg = `Bonjour, j'ai parcouru votre catalogue et j'avais sélectionné ces articles :%0A${itemsText}%0A%0AMais j'ai décidé d'annuler ma demande de devis pour le moment. J'aurais besoin de plus d'informations.`;
+                                          window.open(`https://wa.me/?text=${msg}`, '_blank');
+                                      }
+                                  }} 
+                                  className="flex-1 py-4 rounded-xl font-black uppercase text-xs shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-red-50 text-red-500 border border-red-200 dark:bg-red-500/10 dark:border-red-500/20"
+                                >
+                                  Annuler WA
+                                </button>
+                                <button type="submit" disabled={isSubmitting} className="flex-[2] py-4 rounded-xl font-black uppercase text-xs shadow-md hover:scale-105 transition-transform disabled:opacity-50 flex items-center justify-center gap-2" style={{ backgroundColor: settings.theme_color, color: '#000' }}>
+                                    {isSubmitting ? <Loader2 size={16} className="animate-spin"/> : <Send size={16}/>} Demander
+                                </button>
+                              </div>
                           </form>
                           )}
                       </div>

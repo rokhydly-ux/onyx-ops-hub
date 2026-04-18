@@ -267,18 +267,20 @@ function CRMSettingsContent() {
           let currentCustomerName = "";
           let currentCustomerPhone = "";
           let currentDate = "";
+          let currentVendor = "";
           const cleanedData: any[] = [];
 
           for (const row of results.data as any[]) {
             const r: any = {};
-            Object.keys(row).forEach(k => r[k.toLowerCase()] = row[k]);
+            Object.keys(row).forEach(k => r[k.toLowerCase().trim()] = row[k]);
 
             const ref = r['référence de la commande'] || r['order reference'] || r['name'] || r['référence'];
             if (ref) {
               currentOrderRef = ref;
               currentCustomerName = r['client/nom'] || r['client'] || r['customer'] || '';
-              currentCustomerPhone = r['téléphone'] || r['client/téléphone'] || r['client/téléphone/mobile'] || r['phone'] || '';
-              currentDate = r['date de la commande'] || r['order date'] || r['date'] || '';
+              currentCustomerPhone = r['client/téléphone/mobile'] || r['client/téléphone'] || r['téléphone'] || r['phone'] || '';
+              currentDate = r['date de la commande'] || r['order date'] || r['date de création'] || r['date'] || '';
+              currentVendor = r['vendeur/nom'] || r['vendeur'] || r['salesperson'] || '';
             }
 
             cleanedData.push({
@@ -286,7 +288,8 @@ function CRMSettingsContent() {
               'référence de la commande': currentOrderRef,
               'client/nom': currentCustomerName,
               'téléphone': currentCustomerPhone,
-              'date de la commande': currentDate
+              'date de la commande': currentDate,
+              'vendeur': currentVendor
             });
           }
 
@@ -295,8 +298,13 @@ function CRMSettingsContent() {
             if (!ref) return; // Ignore les lignes totalement vides
 
             const productName = r['lignes de commande/produit/nom'] || r['produit'] || r['product'] || '';
-            const unitPriceRaw = r['lignes de commande/prix unitaire'] || r['prix unitaire'] || r['unit price'] || r['total'] || '0';
-            const unitPrice = parseFloat(String(unitPriceRaw).replace(/[^0-9.-]+/g, '')) || 0;
+            
+            let unitPriceRaw = r['lignes de commande/prix unitaire'] || r['prix unitaire'] || r['unit price'];
+            let unitPrice = 0;
+            if (unitPriceRaw !== undefined && String(unitPriceRaw).trim() !== '') {
+                unitPrice = parseFloat(String(unitPriceRaw).replace(/[^0-9.-]+/g, '')) || 0;
+            }
+
             const quantityRaw = r['lignes de commande/quantité'] || r['quantité'] || r['quantity'] || '1';
             const quantity = parseFloat(String(quantityRaw).replace(/[^0-9.-]+/g, '')) || 1;
 
@@ -306,6 +314,7 @@ function CRMSettingsContent() {
                 customerName: r['client/nom'],
                 customerPhone: r['téléphone'],
                 date: r['date de la commande'],
+                vendorName: r['vendeur'],
                 items: [],
                 total: 0
               });
@@ -314,7 +323,7 @@ function CRMSettingsContent() {
             const order = ordersMap.get(ref);
             if (productName) {
               order.items.push({ name: productName, price: unitPrice, quantity });
-              order.total += unitPrice * quantity;
+              order.total += (unitPrice * quantity);
             }
           });
 
@@ -408,11 +417,23 @@ function CRMSettingsContent() {
 
                   if (cleanPhone && !uniquePhones.has(cleanPhone)) {
                       uniquePhones.add(cleanPhone);
+                      
+                      let assignedTo = null;
+                      if (order.vendorName) {
+                          const vName = String(order.vendorName).toLowerCase().trim();
+                          const matchedComm = commercials.find((c: any) => {
+                              const cName = String(c.full_name).toLowerCase().trim();
+                              return cName === vName || vName.includes(cName) || cName.includes(vName);
+                          });
+                          assignedTo = matchedComm ? matchedComm.full_name : order.vendorName;
+                      }
+
                       clientsToUpsert.push({
                           tenant_id: userId,
                           phone: cleanPhone,
                           full_name: order.customerName || 'Client Odoo',
                           type: 'Client',
+                          ...(assignedTo ? { assigned_to: assignedTo } : {})
                       });
                   }
 
@@ -489,6 +510,14 @@ function CRMSettingsContent() {
 
           setProgressText('Importation terminée !');
           alert(`Import Odoo réussi ! ${totalRows} commandes synchronisées.`);
+          
+          const summaryMsg = `✅ *Rapport d'Importation Odoo - OnyxCRM*\n\nL'importation et la synchronisation de votre fichier de ventes sont terminées avec succès !\n\n📊 *Résumé des opérations :*\n📦 Commandes traitées : ${pendingOdooFile.ordersCount}\n👥 Clients mis à jour : ${pendingOdooFile.clientsCount}\n🛍️ Produits catalogue : ${pendingOdooFile.productsCount}\n\n_Vos indicateurs financiers et tableaux de bord sont désormais à jour._`;
+          
+          // Numéro spécifique de l'administrateur (sans le '+', ni espaces)
+          // Exemple pour le Sénégal : 221770000000
+          const adminPhone = "221770000000"; 
+          window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(summaryMsg)}`, '_blank');
+          
           setPendingOdooFile(null);
       } catch (err: any) {
           console.error("Erreur d'import Odoo :", err);
