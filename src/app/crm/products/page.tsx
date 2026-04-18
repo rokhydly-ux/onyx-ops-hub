@@ -1696,9 +1696,8 @@ export default function CRMCatalogPage() {
                            setIsSavingEdit(true);
                            setTimeout(() => {
                                setEditForm(prev => {
-                                   const price = prev.unit_price || 0;
-                                   const oldPrice = Math.round(price * 1.3);
-                                   return { ...prev, description: `🔥 OFFRE EXCLUSIVE : **${prev.name || 'Produit'}** 🔥\n\nPréparez le rush de la saison avec cet équipement indispensable ! Idéal pour booster votre activité.\n\n💰 Prix Exceptionnel : ${(price).toLocaleString('fr-FR')} F\n❌ ~Prix normal : ${(oldPrice).toLocaleString('fr-FR')} F~\n\n⏳ Attention : Cette offre flash est valable uniquement jusqu'à vendredi ! Premier arrivé, premier servi.\n\n[Lien Vidéo Démo]\n\nÀ très vite,\nMaïmouna - Central Équipements` };
+                                   const rawText = prev.description ? prev.description : "Équipement professionnel.";
+                                   return { ...prev, description: `⚙️ FICHE TECHNIQUE : ${prev.name ? prev.name.toUpperCase() : 'PRODUIT'}\n\n🔹 Caractéristiques clés :\n- Catégorie : ${prev.category || 'Générale'}\n- Conception robuste et ergonomique\n\n📌 Détails :\n${rawText}\n\n💡 L'essentiel : La solution idéale pour allier performance et durabilité.` };
                                });
                                setIsSavingEdit(false);
                            }, 1500);

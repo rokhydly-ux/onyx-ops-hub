@@ -246,38 +246,39 @@ export default function CRMDashboard() {
   }, [allLeads]);
 
   const handleLikaAction = (type: string, data: any) => {
-      let title = `Suggestion pour ${data.name}`;
+      let title = `Suggestion pour ${data.name || data.full_name}`;
       let msg = "";
       
       let actionLabel = "";
       let onAction = () => {};
 
       if (type === 'client') {
-          msg = `Lika vous conseille de générer un message WhatsApp pour remercier ${data.name} de sa fidélité (CA total: ${data.ca.toLocaleString()} F) et lui proposer une offre exclusive ou un produit complémentaire VIP.`;
+          msg = `Lika a préparé une Vente Flash VIP pour ${data.name} (CA: ${data.ca.toLocaleString()} F) avec la méthode 'Urgence & Maïmouna'.`;
           actionLabel = "Message WhatsApp";
           onAction = () => {
-              const waMsg = `Bonjour ${data.name}, pour vous remercier de votre fidélité chez nous, nous avons une offre exclusive à vous proposer !`;
+              const waMsg = `Bonjour ${data.name}, ici Maïmouna de Central Équipements !\n\nPour vous remercier de votre fidélité, je vous ai réservé un accès VIP à notre Vente Flash.\n\n🎁 Remise exceptionnelle de -30% sur votre prochain équipement (Ex: ❌ ~150 000 F~ 👉 115 000 F).\n\n⏳ Attention : cette offre est valable uniquement 48h (jusqu'à vendredi).\n\n[Lien Image]\n\nÀ très vite !`;
               window.open(`https://wa.me/${(data.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waMsg)}`, '_blank');
               setLikaActionModal(null);
           };
       }
       else if (type === 'top_product') {
-          msg = `Attention, le stock de ${data.name} est critique (${data.stock} restants). Lika suggère de lancer immédiatement une commande de réassort auprès de votre fournisseur pour éviter la rupture de ce best-seller.`;
+          msg = `Attention, le stock de ${data.name} est critique (${data.stock} restants). Lika suggère de relancer le fournisseur avant le rush des fêtes.`;
           actionLabel = "Gérer le Stock";
           onAction = () => { router.push('/crm/products'); setLikaActionModal(null); };
       }
       else if (type === 'flop_product') {
-          msg = `Le produit ${data.name} dort en stock (${data.stock} unités). Lika suggère de créer un catalogue Promo Flash sur WhatsApp (par ex: -30%) et de l'envoyer à votre liste de diffusion pour écouler ce stock.`;
+          title = `Opportunité VIP : ${data.name}`;
+          msg = `Le produit ${data.name} dort en stock (${data.stock} unités). Lika va le packager comme un 'Déstockage VIP' avec la méthode Maïmouna (-35%, urgence 48h).`;
           actionLabel = "Créer Promo Flash";
-          onAction = () => { router.push('/crm/studio'); setLikaActionModal(null); };
+          onAction = () => { router.push('/crm/products'); setLikaActionModal(null); };
       }
       else if (type === 'cold_lead') {
           title = `Relance suggérée pour ${data.full_name}`;
-          msg = `Le prospect ${data.full_name} est inactif depuis plus de 7 jours. Lika suggère de le relancer avec un message de réactivation pour ne pas perdre cette opportunité estimée à ${Number(data.budget || data.amount || 0).toLocaleString()} F.`;
+          msg = `Le prospect ${data.full_name} est inactif. Lika a généré une approche 'Événement Local & FOMO' pour le réactiver (Potentiel: ${Number(data.budget || data.amount || 0).toLocaleString()} F).`;
           actionLabel = "Relancer sur WhatsApp";
           onAction = () => {
-              const intentText = data.intent ? ` concernant votre intérêt pour ${data.intent}` : '';
-              const waMsg = `Bonjour ${data.full_name}, nous n'avons plus de vos nouvelles ! Avez-vous pu avancer sur votre projet${intentText} ? Notre équipe est disponible pour vous accompagner si vous avez des questions.`;
+              const intentText = data.intent ? ` de ${data.intent}` : '';
+              const waMsg = `Bonjour ${data.full_name}, ici Maïmouna de Central Équipements !\n\nPréparez le rush de la saison (Magal/Tabaski) avec l'équipement idéal pour votre projet${intentText}.\n\n💰 Nous faisons un Déstockage VIP exceptionnel à -25% !\n\n⏳ Attention : valable uniquement 48h (jusqu'à vendredi).\n\n[Lien Vidéo Démo]\n\nÀ très vite !`;
               window.open(`https://wa.me/${(data.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waMsg)}`, '_blank');
               setLikaActionModal(null);
           };
@@ -884,7 +885,7 @@ export default function CRMDashboard() {
                             <div>
                                 <h4 className="font-black text-sm uppercase mb-2 text-black dark:text-white">Relance Chaude : {l.full_name}</h4>
                                 <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">Ce prospect est "En Cours" et représente un CA potentiel de {Number(l.amount||l.budget||0).toLocaleString()} F. Relancez-le aujourd'hui pour closer l'affaire.</p>
-                                <button onClick={() => window.open(`https://wa.me/${(l.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${l.full_name}, suite à notre dernier échange...`)}`, '_blank')} className="bg-blue-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Générer Message WhatsApp</button>
+                                <button onClick={() => window.open(`https://wa.me/${(l.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${l.full_name}, ici Maïmouna de Central Équipements !\n\nSuite à notre dernier échange, préparez le rush de la saison avec notre offre spéciale.\n\n⏳ Attention : notre Vente Flash à -25% se termine dans 48h (vendredi) ! Premier arrivé, premier servi.\n\n[Lien Vidéo Démo]\n\nÀ très vite !`)}`, '_blank')} className="bg-blue-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Générer Message WhatsApp</button>
                             </div>
                         </div>
                     ))}
@@ -904,7 +905,7 @@ export default function CRMDashboard() {
                             <div>
                                 <h4 className="font-black text-sm uppercase mb-2 text-black dark:text-white">Fidélisation VIP : {c.name}</h4>
                                 <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">Client Top 5 (CA: {c.ca.toLocaleString()} F). Proposez-lui une offre exclusive VIP ou un produit complémentaire pour le remercier de sa fidélité.</p>
-                                <button onClick={() => window.open(`https://wa.me/${(c.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${c.name}, pour vous remercier de votre fidélité chez nous...`)}`, '_blank')} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Contacter le VIP</button>
+                                <button onClick={() => window.open(`https://wa.me/${(c.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${c.name}, ici Maïmouna de Central Équipements !\n\nEn tant que client VIP, je vous offre un accès anticipé à notre Déstockage Exclusif.\n\n🎁 Profitez de -30% (valable 48h jusqu'à vendredi).\n\n[Lien Image]\n\nÀ très vite !`)}`, '_blank')} className="bg-[#39FF14] text-black px-4 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Contacter le VIP</button>
                             </div>
                         </div>
                     ))}

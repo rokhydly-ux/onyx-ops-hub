@@ -138,9 +138,12 @@ export default function LeadDetailPage() {
   const generateNextAction = () => {
      const obs = (lead.observation || '').toLowerCase();
      const score = lead.lead_score || 'Froid';
+     const isAbandoned = lead.status === 'Panier abandonné' || (lead.intent || '').toLowerCase().includes('partiel');
      let action = "💬 Envoyer un message de relance classique";
 
-     if (score === 'Chaud' && (obs.includes('visite') || obs.includes('rdv') || obs.includes('rencontre') || obs.includes('voir'))) {
+     if (isAbandoned) {
+        action = "🛒 Panier abandonné : Proposer une aide immédiate ou un code promo flash (-10% valable 24h) pour l'inciter à finaliser son achat.";
+     } else if (score === 'Chaud' && (obs.includes('visite') || obs.includes('rdv') || obs.includes('rencontre') || obs.includes('voir'))) {
         action = "📅 Programmer un RDV physique";
      } else if (score === 'Chaud' && obs.includes('devis')) {
         action = "📄 Préparer et envoyer le devis final";
@@ -476,7 +479,25 @@ export default function LeadDetailPage() {
                 <button onClick={generateNextAction} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2">
                    <Zap size={14}/> Générer l'action suivante (IA)
                 </button>
-                {lead.next_action && <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 p-3 rounded-xl text-xs font-bold text-black dark:text-white animate-in fade-in slide-in-from-top-2">{lead.next_action}</div>}
+                {lead.next_action && (
+                   <div className="bg-[#39FF14]/10 border border-[#39FF14]/30 p-3 rounded-xl flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
+                      <p className="text-xs font-bold text-black dark:text-white">{lead.next_action}</p>
+                      <button onClick={() => {
+                          const action = lead.next_action || '';
+                          let waMsg = `Bonjour ${lead.full_name}, suite à votre demande, nous n'avons plus de vos nouvelles ! Avez-vous pu avancer sur votre projet ?`;
+                          
+                          if (action.includes('Panier abandonné')) waMsg = `Bonjour ${lead.full_name}, ici Maïmouna !\n\nJ'ai remarqué que vous n'aviez pas finalisé votre sélection. Avez-vous rencontré un souci ?\n\n🎁 Pour vous aider, je vous offre un code promo flash de -10% valable 24h !`;
+                          else if (action.includes('RDV')) waMsg = `Bonjour ${lead.full_name},\n\nSuite à nos échanges, seriez-vous disponible cette semaine pour un rendez-vous afin d'avancer sur votre projet ?`;
+                          else if (action.includes('devis')) waMsg = `Bonjour ${lead.full_name},\n\nVotre devis est en cours de préparation et vous sera envoyé très prochainement. Avez-vous d'autres précisions à ajouter ?`;
+                          else if (action.includes('J+7')) waMsg = `Bonjour ${lead.full_name},\n\nJe reviens aux nouvelles concernant votre projet. Avez-vous pu y réfléchir ? Notre équipe reste à votre disposition.`;
+                          else if (action.includes('Nurturing')) waMsg = `Bonjour ${lead.full_name},\n\nNous avons de nouvelles offres exclusives pour votre activité. Seriez-vous ouvert à une brève discussion ?`;
+                          
+                          handleWaAction(waMsg);
+                      }} className="bg-[#25D366] text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md flex items-center justify-center gap-2 w-full sm:w-auto self-start">
+                         <Send size={14}/> Envoyer l'approche WhatsApp
+                      </button>
+                   </div>
+                )}
              </div>
           </div>
 
