@@ -849,6 +849,27 @@ export default function LeadsKanbanPage() {
     document.body.removeChild(link);
   };
 
+  // --- PARTAGE WHATSAPP ---
+  const handleShareWhatsApp = () => {
+    if (filteredLeads.length === 0) return alert("Aucun lead à partager.");
+
+    const summary: Record<string, number> = {};
+    KANBAN_COLS.forEach(col => summary[col] = 0);
+    filteredLeads.forEach(l => {
+       const status = l.status || 'Nouveaux Leads';
+       if (summary[status] !== undefined) summary[status]++;
+       else summary[status] = 1;
+    });
+
+    let text = `📊 *RÉSUMÉ KANBAN - ONYXOPS*\nGénéré le : ${new Date().toLocaleDateString('fr-FR')}\n\n*📈 Répartition par statut :*\n`;
+    KANBAN_COLS.forEach(col => { text += `- ${col} : ${summary[col]}\n`; });
+    text += `\n*💰 Pipeline Actif :* ${activePipelineValue.toLocaleString()} F CFA\n`;
+    text += `*🔥 Taux de Conversion :* ${globalConversionRate}%\n`;
+    text += `\n_Généré depuis le CRM OnyxOps_`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
   // --- EXPORT PDF (Prend en compte les filtres) ---
   const handleExportPDF = () => {
     if (filteredLeads.length === 0) return alert("Aucun lead à exporter.");
@@ -925,6 +946,10 @@ export default function LeadsKanbanPage() {
 
   const stagnantLeads = leads.filter(l => (l.status === 'Nouveaux Leads' || !l.status) && l.created_at && new Date(l.created_at) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   const activePipelineValue = leads.filter(l => ['En Cours', 'Audit en cours', 'Nouveaux Leads'].includes(l.status)).reduce((acc, l) => acc + (Number(l.budget || l.amount || 0)), 0);
+  
+  const totalLeadsCount = leads.length;
+  const wonLeadsCount = leads.filter(l => ['Converti', 'Gagné'].includes(l.status)).length;
+  const globalConversionRate = totalLeadsCount > 0 ? ((wonLeadsCount / totalLeadsCount) * 100).toFixed(1) : 0;
 
   return (
     <div className="flex flex-col animate-in fade-in duration-500 pb-10">
@@ -957,6 +982,9 @@ export default function LeadsKanbanPage() {
              <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Gérez vos opportunités</p>
              <span className="bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
                 <Wallet size={12}/> Pipeline Actif : {activePipelineValue.toLocaleString()} F
+             </span>
+             <span className="bg-blue-500/10 text-blue-500 border border-blue-500/30 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                <TrendingUp size={12}/> Taux Conv. : {globalConversionRate}%
              </span>
           </div>
         </div>
@@ -1044,6 +1072,9 @@ export default function LeadsKanbanPage() {
           </button>
           <button onClick={handleExportPDF} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-[#39FF14] hover:text-[#39FF14] transition-colors shadow-sm">
             <FileText size={16}/> Exporter PDF
+          </button>
+          <button onClick={handleShareWhatsApp} className="flex items-center gap-2 bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#25D366] hover:text-white transition-colors shadow-sm">
+            <MessageSquare size={16}/> Partager WA
           </button>
           {userRole !== 'commercial' && (
             <>
