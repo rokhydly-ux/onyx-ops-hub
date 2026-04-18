@@ -929,7 +929,11 @@ export default function CRMCatalogPage() {
   const filteredProducts = React.useMemo(() => {
     const searchLower = search.toLowerCase().trim();
     return products.filter(p => {
-      const matchSearch = searchLower === '' || (p.name || '').toLowerCase().includes(searchLower) || (p.category || '').toLowerCase().includes(searchLower) || (p.tags && Array.isArray(p.tags) && p.tags.some((t: string) => t.toLowerCase().includes(searchLower)));
+      const matchSearch = searchLower === '' || 
+          String(p.name || '').toLowerCase().includes(searchLower) || 
+          String(p.category || '').toLowerCase().includes(searchLower) || 
+          String(p.subcategory || '').toLowerCase().includes(searchLower) || 
+          (Array.isArray(p.tags) && p.tags.some((t: any) => String(t || '').toLowerCase().includes(searchLower)));
 
       let matchCat = false;
       if (categoryFilter === 'Toutes') {
@@ -951,8 +955,12 @@ export default function CRMCatalogPage() {
       const matchMax = maxPrice === '' || price <= Number(maxPrice);
               return matchSearch && matchCat && matchSubcat && matchMin && matchMax;
     }).sort((a, b) => {
-        if (productSort === 'az') return (a.name || '').localeCompare(b.name || '');
-        if (productSort === 'popular') return (b.unit_price || 0) - (a.unit_price || 0);
+        if (productSort === 'az') return String(a.name || '').localeCompare(String(b.name || ''));
+        if (productSort === 'popular') {
+           const priceA = typeof a.unit_price === 'string' ? Number(String(a.unit_price).replace(/[^0-9.-]+/g, '')) : Number(a.unit_price || a.price_ttc || a.price || 0);
+           const priceB = typeof b.unit_price === 'string' ? Number(String(b.unit_price).replace(/[^0-9.-]+/g, '')) : Number(b.unit_price || b.price_ttc || b.price || 0);
+           return priceB - priceA;
+        }
         return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
   }, [products, search, categoryFilter, subcategoryFilter, minPrice, maxPrice, productSort]);
@@ -1225,7 +1233,7 @@ export default function CRMCatalogPage() {
                      <div className="absolute top-3 right-3">
                         <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md ${status.color}`}>{status.label}</span>
                      </div>
-                     {product.tags && product.tags.map((tag: string, i: number) => (
+                     {Array.isArray(product.tags) && product.tags.map((tag: string, i: number) => (
                         <span key={i} className={`absolute bottom-3 ${i === 0 ? 'left-3' : 'left-24'} px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest bg-black/80 text-[#39FF14] backdrop-blur-md border border-[#39FF14]/30 shadow-lg`}>{tag}</span>
                      ))}
                    </div>
