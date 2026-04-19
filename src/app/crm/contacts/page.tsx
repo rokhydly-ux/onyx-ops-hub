@@ -86,6 +86,7 @@ export default function CRMContactsPage() {
               // 2. Préparer les commandes avec la bonne clé étrangère
               const newOrders = data.map((row: any) => {
                   let rawPhone = String(row.telephone || row.Telephone || row.phone || row.Phone || row['client/téléphone/mobile'] || row['client/téléphone'] || '');
+                  rawPhone = rawPhone.replace(/['\s]/g, '').replace(/[^0-9+]/g, '');
                   const contactId = contactMap.get(getBasePhone(rawPhone));
 
                   let rawTotal = row.total || row.Total || row.Montant || row.amount_total || 0;

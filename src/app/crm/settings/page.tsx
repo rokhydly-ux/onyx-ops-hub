@@ -291,6 +291,7 @@ function CRMSettingsContent() {
           let currentCustomerPhone = "";
           let currentDate = "";
           let currentVendor = "";
+          let currentOrderTotal = 0;
           const cleanedData: any[] = [];
 
           for (const row of results.data as any[]) {
@@ -301,9 +302,18 @@ function CRMSettingsContent() {
             if (ref) {
               currentOrderRef = ref;
               currentCustomerName = r['client/nom'] || r['client'] || r['customer'] || '';
-              currentCustomerPhone = r['client/téléphone/mobile'] || r['client/téléphone'] || r['téléphone'] || r['phone'] || '';
+              let rawPhone = r['client/téléphone/mobile'] || r['client/téléphone'] || r['téléphone'] || r['phone'] || '';
+              currentCustomerPhone = String(rawPhone).replace(/['\s]/g, '').replace(/[^0-9+]/g, '');
               currentDate = r['date de la commande'] || r['order date'] || r['date de création'] || r['date'] || '';
               currentVendor = r['vendeur/nom'] || r['vendeur'] || r['salesperson'] || '';
+
+              let orderTotalRaw = r['total'] || r['amount_total'] || r['total ttc'] || r['montant total'];
+              if (orderTotalRaw !== undefined && String(orderTotalRaw).trim() !== '') {
+                  let strTotal = String(orderTotalRaw).replace(/\s/g, '').replace(',', '.');
+                  currentOrderTotal = parseFloat(strTotal.replace(/[^0-9.-]+/g, '')) || 0;
+              } else {
+                  currentOrderTotal = 0;
+              }
             }
 
             cleanedData.push({
@@ -312,7 +322,8 @@ function CRMSettingsContent() {
               'client/nom': currentCustomerName,
               'téléphone': currentCustomerPhone,
               'date de la commande': currentDate,
-              'vendeur': currentVendor
+              'vendeur': currentVendor,
+              'montant_total_assure': currentOrderTotal
             });
           }
 
@@ -336,12 +347,7 @@ function CRMSettingsContent() {
                 quantity = parseFloat(cleanedQty.replace(/[^0-9.-]+/g, '')) || 1;
             }
 
-            let orderTotalRaw = r['total'] || r['amount_total'] || r['total ttc'] || r['montant total'];
-            let orderTotal = 0;
-            if (orderTotalRaw !== undefined && String(orderTotalRaw).trim() !== '') {
-                let strTotal = String(orderTotalRaw).replace(/\s/g, '').replace(',', '.');
-                orderTotal = parseFloat(strTotal.replace(/[^0-9.-]+/g, '')) || 0;
-            }
+            let orderTotal = r['montant_total_assure'] || 0;
 
             let lineSubtotalRaw = r['lignes de commande/sous-total'] || r['sous-total'] || r['lignes de commande/total'] || '';
             let lineSubtotal = 0;
