@@ -90,14 +90,22 @@ export default function CRMContactsPage() {
                   // Règle 1: Nom du client
                   const clientName = row['Client/Nom'] || row['Client'] || row['nom'] || row['client/nom'] || row['customer_name'] || 'Client Odoo';
 
-                  // Règle 2: Nettoyage blindé du téléphone
-                  let phone = String(row['Client/Téléphone'] || row['Téléphone'] || row['client/téléphone'] || row['client/téléphone/mobile'] || row.telephone || row.Telephone || row.phone || row.Phone || '').replace(/['"\s\u00A0]/g, '');
-                  phone = phone.replace(/[^0-9+]/g, '');
+                  // Règle 2: Nettoyage blindé du téléphone (et séparation si plusieurs numéros)
+                  let rawField = String(row['Client/Téléphone'] || row['Téléphone'] || row['client/téléphone'] || row['client/téléphone/mobile'] || row.telephone || row.Telephone || row.phone || row.Phone || '');
+                  let rawPhone = rawField.split(/[/,-]/)[0]; // Sépare s'il y a un slash ou tiret
+                  let phone = rawPhone.replace(/['"\s\u00A0]/g, '').replace(/[^0-9+]/g, '');
+                  
                   // Formatage Sénégal auto
                   if (phone.length === 9 && phone.startsWith('7')) {
                     phone = '+221' + phone;
                   } else if (phone.startsWith('221') && phone.length === 12) {
                     phone = '+' + phone;
+                  } else if (phone.length > 12) {
+                    // Si le numéro est toujours collé (ex: 773100743782702812), on extrait le 1er numéro Sénégalais valide
+                    const possibleSenegal = phone.match(/(?:221)?(7[0-9]\d{7})/);
+                    if (possibleSenegal) {
+                        phone = '+221' + possibleSenegal[1];
+                    }
                   }
 
                   const contactId = contactMap.get(getBasePhone(phone));
@@ -324,29 +332,15 @@ export default function CRMContactsPage() {
   }, [filteredOrders]);
 
   const top5Clients = React.useMemo(() => {
-      const map = new Map<string, { phone: string, name: string, total: number }>();
-      const processedOrders = new Set<string>();
-
-      filteredOrders.forEach(o => {
-          // Dédoublonnage des commandes par ID/Référence pour ne pas fausser le widget
-          if (o.id && processedOrders.has(o.id)) return;
-          if (o.id) processedOrders.add(o.id);
-
-          const phone = o.customer_phone || (o.customer && o.customer.phone) || '';
-          const name = o.customer_name || (o.customer && o.customer.name) || 'Client Odoo';
-          if (!phone) return;
-          
-          const existing = map.get(phone) || { phone, name, total: 0 };
-          existing.total += (Number(o.total_amount) || Number(o.total) || 0); // Math. Sécurisé
-          
-          if (existing.name === 'Client Odoo' && name !== 'Client Odoo') {
-              existing.name = name;
-          }
-          
-          map.set(phone, existing);
-      });
-      return Array.from(map.values()).sort((a,b) => b.total - a.total).slice(0, 5);
-  }, [filteredOrders]);
+      return [...enrichedContacts]
+          .sort((a, b) => (b.totalSpent || 0) - (a.totalSpent || 0))
+          .slice(0, 5)
+          .map(c => ({
+              name: c.full_name || 'Client',
+              phone: c.phone || '',
+              total: c.totalSpent || 0
+          }));
+  }, [enrichedContacts]);
 
   const top5Products = React.useMemo(() => {
       const map = new Map<string, number>();
