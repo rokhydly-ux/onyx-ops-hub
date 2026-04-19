@@ -258,11 +258,7 @@ export default function CRMContactsPage() {
               return baseContactPhone && baseOrderPhone && baseContactPhone === baseOrderPhone;
           });
           
-          const periodSpent = clientOrders.reduce((sum, o) => {
-              const amt1 = parseFloat(o.total_amount);
-              const amt2 = parseFloat(o.total);
-              return sum + (!isNaN(amt1) ? amt1 : (!isNaN(amt2) ? amt2 : 0));
-          }, 0);
+          const periodSpent = clientOrders.reduce((sum, o) => sum + (Number(o.total_amount) || Number(o.total) || 0), 0);
           
           let totalSpent = periodSpent;
           if (dateFilter === 'all' && c.total_spent !== undefined && c.total_spent > 0) {
@@ -272,11 +268,7 @@ export default function CRMContactsPage() {
           let historyData = clientOrders
             .sort((a,b) => new Date(a.date || a.created_at).getTime() - new Date(b.date || b.created_at).getTime())
             .slice(-10)
-            .map(o => {
-                const amt1 = parseFloat(o.total_amount);
-                const amt2 = parseFloat(o.total);
-                return (!isNaN(amt1) ? amt1 : (!isNaN(amt2) ? amt2 : 0));
-            });
+            .map(o => Number(o.total_amount) || Number(o.total) || 0);
 
           if (historyData.length === 0) historyData = [0, 0];
           else if (historyData.length === 1) historyData = [0, historyData[0]];
@@ -286,11 +278,7 @@ export default function CRMContactsPage() {
   }, [contacts, filteredOrders, dateFilter]);
 
   const kpis = React.useMemo(() => {
-      const totalCA = filteredOrders.reduce((sum, o) => {
-          const amt1 = parseFloat(o.total_amount);
-          const amt2 = parseFloat(o.total);
-          return sum + (!isNaN(amt1) ? amt1 : (!isNaN(amt2) ? amt2 : 0));
-      }, 0);
+      const totalCA = filteredOrders.reduce((sum, o) => sum + (Number(o.total_amount) || Number(o.total) || 0), 0);
       const totalOrders = filteredOrders.length;
       const avgBasket = totalOrders > 0 ? totalCA / totalOrders : 0;
       return { totalCA, totalOrders, avgBasket };
@@ -303,9 +291,7 @@ export default function CRMContactsPage() {
           const name = o.customer_name || (o.customer && o.customer.name) || 'Inconnu';
           if (!phone) return;
           const existing = map.get(phone) || { phone, name, total: 0 };
-          const amt1 = parseFloat(o.total_amount);
-          const amt2 = parseFloat(o.total);
-          existing.total += (!isNaN(amt1) ? amt1 : (!isNaN(amt2) ? amt2 : 0));
+          existing.total += (Number(o.total_amount) || Number(o.total) || 0);
           map.set(phone, existing);
       });
       return Array.from(map.values()).sort((a,b) => b.total - a.total).slice(0, 5);
@@ -376,7 +362,7 @@ export default function CRMContactsPage() {
           new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR'),
           Array.isArray(order.items) ? order.items.map((i:any) => `${i.name} (x${i.quantity || 1})`).join(', ') : order.items || 'Articles',
           order.status || 'Livré',
-          `${(order.total_amount ?? order.total ?? 0).toLocaleString('fr-FR')} F`
+          `${(Number(order.total_amount) || Number(order.total) || 0).toLocaleString('fr-FR')} F`
       ]);
 
       autoTable(doc, { head: [tableColumn], body: tableRows, startY: 45, theme: 'grid', headStyles: { fillColor: [0, 0, 0] } });
@@ -678,7 +664,7 @@ export default function CRMContactsPage() {
                                {Array.isArray(order.items) ? order.items.map((i:any) => `${i.name} (x${i.quantity || 1})`).join(', ') : order.items || 'Articles'}
                             </span>
                             <span className="text-zinc-500 text-xs ml-2 font-medium">
-                               • {new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR')} • <span className="text-[#39FF14] font-bold">{(order.total_amount ?? order.total ?? 0).toLocaleString('fr-FR')} F</span> • {order.status || 'Livré'}
+                               • {new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR')} • <span className="text-[#39FF14] font-bold">{(Number(order.total_amount) || Number(order.total) || 0).toLocaleString('fr-FR')} F</span> • {order.status || 'Livré'}
                             </span>
                          </li>
                       ))}
