@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link, ChevronDown, ChevronUp, ImagePlus, Palette, Mail, Copy, MessageSquare } from 'lucide-react';
+import { Loader2, Box, Search, Edit, Plus, CheckSquare, Clock, AlertTriangle, AlertCircle, X, Download, User, Minus, Bot, Sparkles, Send, Trash2, FolderOpen, Image as ImageIcon, Save, FileText, Eye, Filter, SlidersHorizontal, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Link, ChevronDown, ChevronUp, ImagePlus, Palette, Mail, Copy, MessageSquare, PlayCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -18,6 +18,7 @@ export default function CRMCatalogPage() {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [viewingProduct, setViewingProduct] = useState<any>(null);
+  const [mainDisplay, setMainDisplay] = useState<{type: 'image' | 'video', url: string} | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isEmailingQuote, setIsEmailingQuote] = useState(false);
@@ -132,6 +133,14 @@ export default function CRMCatalogPage() {
           })
           .filter(Boolean);
   }, [catalogStats, products]);
+
+  const getEmbedUrl = (url: string) => {
+      if (!url) return '';
+      let videoId = '';
+      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+      if (match && match[1]) { videoId = match[1]; return `https://www.youtube.com/embed/${videoId}`; }
+      return url;
+  };
 
   const handleDownloadAnalyticsPDF = () => {
       const doc = new jsPDF();
@@ -1385,7 +1394,10 @@ export default function CRMCatalogPage() {
                      <div className="mt-auto pt-3 flex items-end justify-between border-t border-zinc-100 dark:border-zinc-800/50">
                        <p className="font-black text-lg text-[#39FF14]">{(isNaN(cleanDisplayPrice) ? 0 : cleanDisplayPrice).toLocaleString('fr-FR')} <span className="text-xs text-black dark:text-white">F</span></p>
                        <div className="flex gap-1.5">
-                         <button onClick={() => setViewingProduct(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors shadow-sm" title="Voir Fiche Technique"><Eye size={14}/></button>
+                         <button onClick={() => {
+                             setViewingProduct(product);
+                             setMainDisplay(product.image_url ? { type: 'image', url: product.image_url } : (product.video_gallery ? { type: 'video', url: product.video_gallery } : null));
+                         }} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors shadow-sm" title="Voir Fiche Technique"><Eye size={14}/></button>
                          <button onClick={() => handleDuplicateProduct(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg transition-colors shadow-sm" title="Dupliquer"><Copy size={14}/></button>
                          <button onClick={() => handleOpenEdit(product)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-black dark:hover:text-white rounded-lg transition-colors shadow-sm"><Edit size={14}/></button>
                          <button onClick={() => handleDeleteProduct(product.id)} className="p-2 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white rounded-lg transition-colors shadow-sm"><Trash2 size={14}/></button>
@@ -1439,25 +1451,50 @@ export default function CRMCatalogPage() {
           <div className="bg-white dark:bg-zinc-950 rounded-[2rem] p-8 max-w-2xl w-full shadow-2xl relative border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 flex flex-col md:flex-row gap-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onClick={() => setViewingProduct(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
             
-            <div className="w-full md:w-1/2 flex flex-col items-center">
-              <div className="w-full aspect-square rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm mb-4">
-                {viewingProduct.image_url ? (
-                  <img src={viewingProduct.image_url} alt={viewingProduct.name} className="w-full h-full object-cover" />
+            <div className="w-full md:w-1/2 flex flex-col items-center min-w-0">
+              <div className="w-full aspect-square rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm mb-4 relative">
+                {mainDisplay?.type === 'video' ? (
+                   <iframe src={getEmbedUrl(mainDisplay.url)} className="w-full h-full border-0" allowFullScreen></iframe>
+                ) : mainDisplay?.type === 'image' ? (
+                   <img src={mainDisplay.url} alt={viewingProduct.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700"><Box size={64} /></div>
+                   <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700"><Box size={64} /></div>
                 )}
               </div>
-              {viewingProduct.image_gallery && (
-                <div className="flex overflow-x-auto gap-2 snap-x mt-2 custom-scrollbar pb-2 w-full">
-                  {String(viewingProduct.image_gallery).split(',').map((img, idx) => (
-                    <img key={idx} src={img.trim()} alt="Gallery" className="snap-start w-20 h-20 object-cover rounded-xl shrink-0 border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900" />
-                  ))}
+              {(viewingProduct.image_url || viewingProduct.image_gallery || viewingProduct.video_gallery) && (
+                <div className="flex flex-nowrap overflow-x-auto gap-3 snap-x mt-2 custom-scrollbar pb-3 w-full">
+                  {viewingProduct.image_url && (
+                     <img 
+                        src={viewingProduct.image_url} 
+                        onClick={() => setMainDisplay({ type: 'image', url: viewingProduct.image_url })}
+                        className={`snap-start w-20 h-20 object-cover rounded-xl shrink-0 cursor-pointer border-2 transition-all ${mainDisplay?.url === viewingProduct.image_url && mainDisplay?.type === 'image' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`} 
+                     />
+                  )}
+                  {viewingProduct.image_gallery && String(viewingProduct.image_gallery).split(',').map((img, idx) => {
+                    const url = img.trim();
+                    if (!url) return null;
+                    return (
+                      <img 
+                         key={idx} 
+                         src={url} 
+                         onClick={() => setMainDisplay({ type: 'image', url })}
+                         alt="Gallery" 
+                         className={`snap-start w-20 h-20 object-cover rounded-xl shrink-0 cursor-pointer border-2 transition-all ${mainDisplay?.url === url && mainDisplay?.type === 'image' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`} 
+                      />
+                    );
+                  })}
+                  {viewingProduct.video_gallery && (
+                     <div 
+                        onClick={() => setMainDisplay({ type: 'video', url: viewingProduct.video_gallery })}
+                        className={`snap-start w-20 h-20 rounded-xl shrink-0 cursor-pointer border-2 transition-all flex items-center justify-center bg-black relative overflow-hidden ${mainDisplay?.type === 'video' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`}
+                     >
+                        <img src={`https://img.youtube.com/vi/${getEmbedUrl(viewingProduct.video_gallery).split('embed/')[1]}/hqdefault.jpg`} className="w-full h-full object-cover opacity-50" onError={(e:any) => e.target.style.display='none'} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                           <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg"><PlayCircle size={16} /></div>
+                        </div>
+                     </div>
+                  )}
                 </div>
-              )}
-              {viewingProduct.video_gallery && (
-                <a href={viewingProduct.video_gallery} target="_blank" rel="noopener noreferrer" className="mt-4 text-xs font-bold text-blue-500 hover:underline flex items-center gap-1 self-start">
-                   ▶️ Voir la vidéo démo
-                </a>
               )}
             </div>
             
