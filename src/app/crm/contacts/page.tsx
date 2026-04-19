@@ -364,6 +364,39 @@ export default function CRMContactsPage() {
       return Array.from(map.entries()).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 5);
   }, [filteredOrders]);
 
+  const handleDownloadStatsPDF = () => {
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text(`Rapport Statistique CRM`, 14, 22);
+      doc.setFontSize(11);
+      doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+      
+      let periodText = 'Tout le temps';
+      if (dateFilter === 'week') periodText = '7 derniers jours';
+      else if (dateFilter === 'month') periodText = '30 derniers jours';
+      else if (dateFilter === 'quarter') periodText = 'Ce trimestre';
+      else if (dateFilter === 'year') periodText = 'Cette année';
+      else if (dateFilter === 'custom') periodText = `Du ${customDate.start || '?'} au ${customDate.end || '?'}`;
+      
+      doc.text(`Période : ${periodText}`, 14, 36);
+
+      doc.setFontSize(14);
+      doc.text("Indicateurs Clés (KPIs)", 14, 50);
+      autoTable(doc, { startY: 55, head: [['Chiffre d\'Affaires', 'Commandes', 'Panier Moyen']], body: [[`${kpis.totalCA.toLocaleString('fr-FR')} F`, kpis.totalOrders.toString(), `${Math.round(kpis.avgBasket).toLocaleString('fr-FR')} F`]], theme: 'grid', headStyles: { fillColor: [0, 0, 0] } });
+
+      let finalY = (doc as any).lastAutoTable.finalY + 15;
+
+      doc.text("Top 5 Clients", 14, finalY);
+      autoTable(doc, { startY: finalY + 5, head: [['Nom du Client', 'Téléphone', 'Total Dépensé']], body: top5Clients.map(c => [c.name, c.phone, `${c.total.toLocaleString('fr-FR')} F`]), theme: 'grid', headStyles: { fillColor: [0, 0, 0] } });
+
+      finalY = (doc as any).lastAutoTable.finalY + 15;
+
+      doc.text("Top 5 Produits vendus", 14, finalY);
+      autoTable(doc, { startY: finalY + 5, head: [['Produit', 'Quantité Vendue']], body: top5Products.map(p => [p.name, p.value.toString()]), theme: 'grid', headStyles: { fillColor: [0, 0, 0] } });
+
+      doc.save(`Statistiques_CRM_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const handleContactClick = async (contact: any) => {
       setSelectedContact(contact);
       setEditContactForm(contact);
@@ -499,7 +532,7 @@ export default function CRMContactsPage() {
 
       {/* --- DASHBOARD INTELLIGENT (FILTRES, KPIs, TOP 5) --- */}
       <div className="mb-8 space-y-6">
-         <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+         <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-2">
                <Calendar size={18} className="text-zinc-500" />
                <select value={dateFilter} onChange={e => setDateFilter(e.target.value)} className="bg-zinc-100 dark:bg-zinc-800 border-none outline-none rounded-lg px-3 py-2 text-sm font-bold text-black dark:text-white cursor-pointer">
@@ -518,6 +551,9 @@ export default function CRMContactsPage() {
                   <input type="date" value={customDate.end} onChange={e => setCustomDate({...customDate, end: e.target.value})} className="bg-zinc-100 dark:bg-zinc-800 border-none outline-none rounded-lg px-3 py-2 text-sm font-bold text-black dark:text-white" />
                </div>
             )}
+            <button onClick={handleDownloadStatsPDF} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform shadow-md ml-auto">
+                <Download size={14}/> Exporter Stats PDF
+            </button>
          </div>
 
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
