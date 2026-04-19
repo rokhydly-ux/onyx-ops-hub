@@ -83,30 +83,58 @@ export default function CRMContactsPage() {
                   if (c.phone) contactMap.set(getBasePhone(c.phone), c.id);
               });
 
-              // 2. Préparer les commandes avec la bonne clé étrangère
-              const newOrders = data.map((row: any) => {
-                  let rawPhone = String(row.telephone || row.Telephone || row.phone || row.Phone || row['client/téléphone/mobile'] || row['client/téléphone'] || '');
-                  rawPhone = rawPhone.replace(/['\s]/g, '').replace(/[^0-9+]/g, '');
-                  const contactId = contactMap.get(getBasePhone(rawPhone));
+              // 2. Préparer les commandes avec la bonne clé étrangère (Avec Dédoublonnage)
+              const ordersMap = new Map();
+              
+              data.forEach((row: any) => {
+                  // Règle 1: Nom du client
+                  const clientName = row['Client/Nom'] || row['Client'] || row['nom'] || row['client/nom'] || row['customer_name'] || 'Client Odoo';
 
-                  let rawTotal = row.total || row.Total || row.Montant || row.amount_total || 0;
+                  // Règle 2: Nettoyage blindé du téléphone
+                  let phone = String(row['Client/Téléphone'] || row['Téléphone'] || row['client/téléphone'] || row['client/téléphone/mobile'] || row.telephone || row.Telephone || row.phone || row.Phone || '').replace(/['"\s\u00A0]/g, '');
+                  phone = phone.replace(/[^0-9+]/g, '');
+                  // Formatage Sénégal auto
+                  if (phone.length === 9 && phone.startsWith('7')) {
+                    phone = '+221' + phone;
+                  } else if (phone.startsWith('221') && phone.length === 12) {
+                    phone = '+' + phone;
+                  }
+
+                  const contactId = contactMap.get(getBasePhone(phone));
+
+                  let rawTotal = row.total || row.Total || row.Montant || row.amount_total || row['Total'] || 0;
                   let parsedTotal = 0;
                   if (rawTotal !== undefined && String(rawTotal).trim() !== '') {
                       let strTotal = String(rawTotal).replace(/\s/g, '').replace(',', '.');
                       parsedTotal = parseFloat(strTotal.replace(/[^0-9.-]+/g, '')) || 0;
                   }
 
-                  return {
-                      id: row.id || row.Order_ID || row.name || row['référence de la commande'] || `CSV-${Math.floor(Math.random() * 100000)}`,
-                      contact_id: contactId || null,
-                      customer_phone: rawPhone,
-                      tenant_id: tenantId,
-                      total_amount: parsedTotal,
-                      order_date: row.date || row.Date || row['date de la commande'] || new Date().toISOString(),
-                      status: row.status || row.Status || 'Livré',
-                      items: row.items || row.Items || row.Produits || row['lignes de commande/produit/nom'] || 'Import CSV Odoo'
-                  };
-              }).filter((o: any) => o.contact_id || getBasePhone(o.customer_phone)); // Retire les éléments nuls sans lien
+                  const orderId = row.id || row.Order_ID || row.name || row['référence de la commande'] || row['Référence de la commande'] || `CSV-${Math.floor(Math.random() * 100000)}`;
+
+                  // Dédoublonnage et agrégation par référence de commande (Règle 3)
+                  if (!ordersMap.has(orderId)) {
+                      ordersMap.set(orderId, {
+                          id: orderId,
+                          contact_id: contactId || null,
+                          customer_phone: phone,
+                          customer_name: clientName,
+                          tenant_id: tenantId,
+                          total_amount: parsedTotal, // On force le nombre sécurisé
+                          order_date: row.date || row.Date || row['date de la commande'] || new Date().toISOString(),
+                          status: row.status || row.Status || 'Livré',
+                          items: row.items || row.Items || row.Produits || row['lignes de commande/produit/nom'] || 'Import CSV Odoo'
+                      });
+                  } else {
+                      const existing = ordersMap.get(orderId);
+                      existing.total_amount = Math.max(existing.total_amount, parsedTotal);
+                      const newItem = row['lignes de commande/produit/nom'] || row.Produits || row.items;
+                      if (newItem && typeof existing.items === 'string' && !existing.items.includes(newItem)) {
+                          existing.items += `, ${newItem}`;
+                      }
+                  }
+              });
+
+              const newOrders = Array.from(ordersMap.values()).filter((o: any) => o.contact_id || getBasePhone(o.customer_phone));
 
               if (newOrders.length === 0) throw new Error("Aucune commande correspondante à un contact existant n'a été trouvée dans le CSV.");
 
@@ -141,7 +169,7 @@ export default function CRMContactsPage() {
       .eq('tenant_id', currentTenantId)
       .order('created_at', { ascending: false });
       
-    const { data: ordersData } = await supabase.from('crm_orders').select('id, contact_id, customer_phone, total_amount, order_date, created_at, items').eq('tenant_id', currentTenantId);
+    const { data: ordersData } = await supabase.from('crm_orders').select('id, contact_id, customer_name, customer_phone, total_amount, order_date, created_at, items').eq('tenant_id', currentTenantId);
     if (ordersData) setAllOrders(ordersData);
 
     if (data && !error) {
@@ -258,14 +286,15 @@ export default function CRMContactsPage() {
               return baseContactPhone && baseOrderPhone && baseContactPhone === baseOrderPhone;
           });
           
-          const periodSpent = clientOrders.reduce((sum, o) => sum + (Number(o.total_amount) || Number(o.total) || 0), 0);
+          const uniqueOrders = Array.from(new Map(clientOrders.map(o => [o.id, o])).values());
+          const periodSpent = uniqueOrders.reduce((sum, o) => sum + (Number(o.total_amount) || Number(o.total) || 0), 0);
           
           let totalSpent = periodSpent;
           if (dateFilter === 'all' && c.total_spent !== undefined && c.total_spent > 0) {
               totalSpent = Math.max(c.total_spent, periodSpent);
           }
           
-          let historyData = clientOrders
+          let historyData = uniqueOrders
             .sort((a,b) => new Date(a.order_date || a.date || a.created_at).getTime() - new Date(b.order_date || b.date || b.created_at).getTime())
             .slice(-10)
             .map(o => Number(o.total_amount) || Number(o.total) || 0);
@@ -273,25 +302,47 @@ export default function CRMContactsPage() {
           if (historyData.length === 0) historyData = [0, 0];
           else if (historyData.length === 1) historyData = [0, historyData[0]];
 
-          return { ...c, historyData, totalSpent, orderCount: clientOrders.length };
+          return { ...c, historyData, totalSpent, orderCount: uniqueOrders.length };
       });
   }, [contacts, filteredOrders, dateFilter]);
 
   const kpis = React.useMemo(() => {
-      const totalCA = filteredOrders.reduce((sum, o) => sum + (Number(o.total_amount) || Number(o.total) || 0), 0);
-      const totalOrders = filteredOrders.length;
+      const processedOrders = new Set<string>();
+      let totalCA = 0;
+      let totalOrders = 0;
+
+      filteredOrders.forEach(o => {
+          if (o.id && processedOrders.has(o.id)) return;
+          if (o.id) processedOrders.add(o.id);
+          
+          totalCA += (Number(o.total_amount) || Number(o.total) || 0);
+          totalOrders++;
+      });
+
       const avgBasket = totalOrders > 0 ? totalCA / totalOrders : 0;
       return { totalCA, totalOrders, avgBasket };
   }, [filteredOrders]);
 
   const top5Clients = React.useMemo(() => {
       const map = new Map<string, { phone: string, name: string, total: number }>();
+      const processedOrders = new Set<string>();
+
       filteredOrders.forEach(o => {
+          // Dédoublonnage des commandes par ID/Référence pour ne pas fausser le widget
+          if (o.id && processedOrders.has(o.id)) return;
+          if (o.id) processedOrders.add(o.id);
+
           const phone = o.customer_phone || (o.customer && o.customer.phone) || '';
-          const name = o.customer_name || (o.customer && o.customer.name) || 'Inconnu';
+          const name = o.customer_name || (o.customer && o.customer.name) || 'Client Odoo';
           if (!phone) return;
+          
           const existing = map.get(phone) || { phone, name, total: 0 };
-          existing.total += (Number(o.total_amount) || Number(o.total) || 0);
+          existing.total += (Number(o.total_amount) || Number(o.total) || 0); // Math. Sécurisé
+          
+          if (existing.name === 'Client Odoo' && name !== 'Client Odoo') {
+              existing.name = name;
+          }
+          
           map.set(phone, existing);
       });
       return Array.from(map.values()).sort((a,b) => b.total - a.total).slice(0, 5);
