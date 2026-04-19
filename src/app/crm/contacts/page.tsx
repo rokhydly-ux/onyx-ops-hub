@@ -100,9 +100,8 @@ export default function CRMContactsPage() {
                       contact_id: contactId || null,
                       customer_phone: rawPhone,
                       tenant_id: tenantId,
-                      total: parsedTotal,
                       total_amount: parsedTotal,
-                      date: row.date || row.Date || row['date de la commande'] || new Date().toISOString(),
+                      order_date: row.date || row.Date || row['date de la commande'] || new Date().toISOString(),
                       status: row.status || row.Status || 'Livré',
                       items: row.items || row.Items || row.Produits || row['lignes de commande/produit/nom'] || 'Import CSV Odoo'
                   };
@@ -141,7 +140,7 @@ export default function CRMContactsPage() {
       .eq('tenant_id', currentTenantId)
       .order('created_at', { ascending: false });
       
-    const { data: ordersData } = await supabase.from('crm_orders').select('id, contact_id, customer_phone, total, total_amount, date, created_at, items').eq('tenant_id', currentTenantId);
+    const { data: ordersData } = await supabase.from('crm_orders').select('id, contact_id, customer_phone, total_amount, order_date, created_at, items').eq('tenant_id', currentTenantId);
     if (ordersData) setAllOrders(ordersData);
 
     if (data && !error) {
@@ -244,7 +243,7 @@ export default function CRMContactsPage() {
           end.setHours(23, 59, 59, 999);
       }
       return allOrders.filter(o => {
-          const od = new Date(o.date || o.created_at);
+          const od = new Date(o.order_date || o.date || o.created_at);
           return od >= start && od <= end;
       });
   }, [allOrders, dateFilter, customDate]);
@@ -266,7 +265,7 @@ export default function CRMContactsPage() {
           }
           
           let historyData = clientOrders
-            .sort((a,b) => new Date(a.date || a.created_at).getTime() - new Date(b.date || b.created_at).getTime())
+            .sort((a,b) => new Date(a.order_date || a.date || a.created_at).getTime() - new Date(b.order_date || b.date || b.created_at).getTime())
             .slice(-10)
             .map(o => Number(o.total_amount) || Number(o.total) || 0);
 
