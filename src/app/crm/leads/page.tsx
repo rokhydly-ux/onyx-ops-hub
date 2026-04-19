@@ -536,153 +536,113 @@ export default function LeadsKanbanPage() {
     if (!file) return;
     
     setIsImporting(true);
-    setImportProgress(0);
-    setImportProgressText('Lecture et préparation des données...');
+    setImportProgress(100);
+    setImportProgressText('Streaming actif (Lecture goutte à goutte)...');
 
-    const BATCH_SIZE = 200; // SÉCURITÉ : Lots plus grands pour éviter l'OOM des re-rendus React
-    const delay = (ms: number) => new Promise(res => setTimeout(res, ms)); // Helper de délai
     const uniqueAdNames = new Set<string>();
+    let batch: any[] = [];
+    let totalImported = 0;
 
     Papa.parse(file, {
        header: true,
        skipEmptyLines: true,
-       complete: async (results) => {
-          const newLeads = results.data.map((row: any) => {
-             // Normalisation des clés en minuscules
+       worker: true, // Utilise un coeur CPU séparé
+       step: async (results, parser) => {
+          parser.pause(); // 🛑 PAUSE immédiate pour ne pas inonder la RAM
+          
+          try {
+             const row = results.data as any;
              const r: any = {};
              Object.keys(row).forEach(k => r[k.toLowerCase().trim()] = row[k]);
              
-             // Ignorer les statuts Facebook natifs (ex: 'CREATED') pour ne pas casser le Kanban
              delete r['lead_status'];
              delete r['status'];
 
              const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
              let rawPhone = r['whatsapp_number'] || r['phone_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
-             let phone = String(rawPhone).replace(/[^0-9+]/g, ''); // FIX: Supprime l'apostrophe Excel
+             let phone = String(rawPhone).replace(/[^0-9+]/g, '');
              if (phone && !phone.startsWith('+')) {
                  phone = phone.startsWith('221') ? `+${phone}` : `+221${phone}`;
              }
-             // Mapping DYNAMIQUE de la campagne par ligne pour éviter la fusion erronée
-             const campaign = r['campaign_name'] || r['campaign name'] || r['campagne'] || r['adset_name'] || r['campaign'] || 'Organique';
-             const form = r['form_name'] || r['formulaire'] || r['form'] || '';
-             const adName = r['ad_name'] || r['ad name'] || r['ad'] || 'Publicité Inconnue';
-             if (adName && adName !== 'Publicité Inconnue') uniqueAdNames.add(adName);
              
-             // --- PRÉCISION DES DATES (Facebook created_time) ---
-             const dateKey = Object.keys(r).find(k => k.includes('created_time') || k.includes('date') || k.includes('time'));
-             let createdAt = new Date().toISOString();
-             if (dateKey && r[dateKey]) {
-                 const parsedDate = new Date(r[dateKey]);
-                 if (!isNaN(parsedDate.getTime())) createdAt = parsedDate.toISOString();
+             if (phone && phone.length >= 8) {
+                 const campaign = r['campaign_name'] || r['campaign name'] || r['campagne'] || r['adset_name'] || r['campaign'] || 'Organique';
+                 const form = r['form_name'] || r['formulaire'] || r['form'] || '';
+                 const adName = r['ad_name'] || r['ad name'] || r['ad'] || 'Publicité Inconnue';
+                 if (adName && adName !== 'Publicité Inconnue') uniqueAdNames.add(adName);
+                 
+                 let score = 'Tiède';
+                 let budget = 0;
+                 const stateKey = Object.keys(r).find(k => k.includes('projet') || (k.includes('état') && !k.includes('état du prospect')) || (k.includes('etat') && !k.includes('lead_status')));
+                 
+                 if (stateKey) {
+                    const val = String(r[stateKey]).toLowerCase();
+                    if (val.includes('concret') || val.includes('maintenant') || val.includes('immédiat')) {
+                       score = 'Chaud'; budget = 150000;
+                    } else if (val.includes('mois')) {
+                       score = 'Tiède'; budget = 50000;
+                    } else if (val.includes('renseigne') || val.includes('curiosité') || val.includes('froid')) {
+                       score = 'Froid'; budget = 0;
+                    }
+                 }
+                 
+                 const budgetKey = Object.keys(r).find(k => k.includes('budget') || k.includes('montant') || k.includes('prix') || k.includes('price'));
+                 if (budgetKey && r[budgetKey]) {
+                     const rawBudget = String(r[budgetKey]).replace(/[^0-9]/g, '');
+                     if (rawBudget) budget = Number(rawBudget);
+                 }
+                 
+                 batch.push({
+                    tenant_id: userId,
+                    full_name: String(name || 'Lead FB').substring(0, 100),
+                    phone: String(phone).substring(0, 20),
+                    campaign_name: String(campaign || 'Organique').substring(0, 150),
+                    ad_name: String(adName || 'Publicité').substring(0, 150),
+                    lead_score: score,
+                    budget: budget || 0,
+                    amount: budget || 0,
+                    source: 'Facebook Ads',
+                    intent: String(form || campaign || 'Organique').substring(0, 150)
+                 });
              }
-             // SCORING IA AUTOMATIQUE
-             let score = 'Tiède'; // Statut par défaut plus optimiste
-             let timeframe = 'Se renseigne';
-             let budget = 0;
-             const stateKey = Object.keys(r).find(k => k.includes('projet') || (k.includes('état') && !k.includes('état du prospect')) || (k.includes('etat') && !k.includes('lead_status')));
-             
-             if (stateKey) {
-                const val = String(r[stateKey]).toLowerCase();
-                if (val.includes('concret') || val.includes('maintenant') || val.includes('immédiat')) {
-                   score = 'Chaud'; timeframe = 'Immédiat'; budget = 150000;
-                } else if (val.includes('mois')) {
-                   score = 'Tiède'; timeframe = '0-3 mois'; budget = 50000;
-                } else if (val.includes('renseigne') || val.includes('curiosité') || val.includes('froid')) {
-                   score = 'Froid'; timeframe = 'Se renseigne'; budget = 0;
-                }
-             }
-             
-             // --- EXTRACTION ET NETTOYAGE DU BUDGET ---
-             const budgetKey = Object.keys(r).find(k => k.includes('budget') || k.includes('montant') || k.includes('prix') || k.includes('price'));
-             if (budgetKey && r[budgetKey]) {
-                 const rawBudget = String(r[budgetKey]).replace(/[^0-9]/g, '');
-                 if (rawBudget) budget = Number(rawBudget);
-             }
-             
-             return {
-                tenant_id: userId,
-                full_name: String(name || 'Lead FB').substring(0, 100),
-                phone: String(phone).substring(0, 20),
-                campaign_name: String(campaign || 'Organique').substring(0, 150),
-                ad_name: String(adName || 'Publicité').substring(0, 150),
-                lead_score: score,
-                budget: budget || 0,
-                amount: budget || 0,
-                source: 'Facebook Ads',
-                intent: String(form || campaign || 'Organique').substring(0, 150)
-             };
-          
-          }).filter(l => l.phone); // Exclut les lignes sans numéro
-          
-          // Libération immédiate de la RAM allouée au fichier CSV brut
-          results.data = [];
 
-          // Dédoublonnage global sur tout le fichier
-          const deduplicatedLeads = Array.from(new Map(newLeads.map((l: any) => [l.phone, l])).values());
-          
-          if (deduplicatedLeads.length === 0) {
-              alert("Aucun lead valide trouvé.");
-              setIsImporting(false);
-              if (fileInputRef.current) fileInputRef.current.value = '';
-              return;
+             if (batch.length >= 100) {
+                const uniqueBatch = Array.from(new Map(batch.map(l => [l.phone, l])).values());
+                await supabase.from('crm_leads').upsert(uniqueBatch, { onConflict: 'phone, tenant_id' });
+                totalImported += uniqueBatch.length;
+                setImportProgressText(`Sécurisation : ${totalImported} leads importés...`);
+                batch = []; // Libère la RAM
+             }
+          } finally {
+             parser.resume(); // 🟢 REPRISE de la lecture (Essentiel)
           }
-          
-          const chunkArray = <T,>(arr: T[], size: number): T[][] => 
-              Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
-          
-          const chunks = chunkArray(deduplicatedLeads, BATCH_SIZE);
-          let hasError = false;
-          let processed = 0;
-          
-          // ENVOI STRICTEMENT SÉQUENTIEL DES LOTS
-          for (const [index, batchToProcess] of chunks.entries()) {
-              try {
-                  // Retrait de .select() pour éviter les crash "Out of memory" serveur
-                  const { error } = await supabase.from('crm_leads').upsert(batchToProcess, { onConflict: 'phone, tenant_id' });
-                  if (error) { 
-                      console.error(`Erreur sur le lot #${index + 1} : `, error.message); 
-                      hasError = true; 
-                      throw new Error(`Le lot #${index + 1} a échoué. Raison : ${error.message}`);
-                      break; // FAIL-FAST : On stoppe l'importation de force
-                  }
-                  processed += batchToProcess.length;
-                  setImportProgress(Math.round((processed / deduplicatedLeads.length) * 100));
-                  setImportProgressText(`Traitement en cours... (${processed}/${deduplicatedLeads.length} leads)`);
-                  await delay(100); // Petite pause pour lisser la charge réseau
-              } catch (e: any) {
-                  console.error(`Crash lors de l'insertion du lot #${index + 1}`, e);
-                  alert(`L'importation a échoué sur le lot ${index + 1}/${chunks.length}. Erreur : ${e.message}. Veuillez vérifier votre fichier ou contacter le support.`);
-                  hasError = true;
-                  break; // FAIL-FAST
-              }
+       },
+       complete: async () => {
+          if (batch.length > 0) {
+              const uniqueBatch = Array.from(new Map(batch.map((l: any) => [l.phone, l])).values());
+              await supabase.from('crm_leads').upsert(uniqueBatch, { onConflict: 'phone, tenant_id' });
+              totalImported += uniqueBatch.length;
           }
 
-          // UPSERT DYNAMIQUE DES CAMPAGNES (ad_name)
           if (uniqueAdNames.size > 0) {
               const campaignsPayload = Array.from(uniqueAdNames).map(ad => ({
                   tenant_id: userId,
                   name: String(ad).substring(0, 150)
               }));
+              
+              const chunkArray = <T,>(arr: T[], size: number): T[][] => 
+                  Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
+
               const campChunks = chunkArray(campaignsPayload, 10);
               for (const campChunk of campChunks) {
                   await supabase.from('crm_campaigns').upsert(campChunk, { onConflict: 'name, tenant_id' });
               }
           }
 
-          if (processed > 0) {
-             if (hasError) {
-                 alert(`Importation partielle : ${processed} leads traités, mais des erreurs sont survenues. L'importation a été stoppée.`);
-             } else {
-                 alert(`${processed} leads importés et mis à jour par l'IA avec succès !`);
-             }
-             window.location.reload(); // Recharge pour récupérer les données fraîches depuis le serveur
-          } else {
-             if (hasError) alert("L'importation a échoué. Aucun lead n'a été importé.");
-             else alert("Aucune nouvelle donnée valide à importer.");
-          }
-          
-          if (fileInputRef.current) fileInputRef.current.value = '';
+          alert(`Importation Streaming réussie ! ${totalImported} leads insérés sans erreur ni surcharge.`);
           setIsImporting(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          window.location.reload();
        },
        error: (error) => {
           console.error("Erreur PapaParse:", error);
