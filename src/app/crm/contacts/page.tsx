@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles, Upload, Download } from 'lucide-react';
+import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles, Upload, Download, Trash2, Calendar, TrendingUp, Send, Wand2, PieChart as PieChartIcon, Star } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // Mini graphique Sparkline
 const Sparkline = ({ data, color }: { data: number[], color: string }) => {
@@ -47,6 +48,11 @@ export default function CRMContactsPage() {
   const ordersPerPage = 5;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+
+  const [allOrders, setAllOrders] = useState<any[]>([]);
+  const [dateFilter, setDateFilter] = useState('all'); // all, week, month, quarter, year, custom
+  const [customDate, setCustomDate] = useState({ start: '', end: '' });
+  const COLORS = ['#39FF14', '#00E5FF', '#F59E0B', '#A855F7', '#EF4444'];
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -128,6 +134,10 @@ export default function CRMContactsPage() {
         }));
         setContacts(enhancedData);
       }
+      
+      const { data: ordersData } = await supabase.from('crm_orders').select('*').eq('tenant_id', tenantId);
+      if (ordersData) setAllOrders(ordersData);
+
       setIsLoading(false);
     };
     fetchContacts();
@@ -201,6 +211,63 @@ export default function CRMContactsPage() {
           setIsClassifying(false);
       }
   };
+
+  // --- CALCULS AVANCÉS POUR LE DASHBOARD ---
+  const filteredOrders = React.useMemo(() => {
+      if (dateFilter === 'all') return allOrders;
+      const now = new Date();
+      let start = new Date();
+      let end = new Date();
+      if (dateFilter === 'week') { start.setDate(now.getDate() - 7); }
+      else if (dateFilter === 'month') { start.setMonth(now.getMonth() - 1); }
+      else if (dateFilter === 'quarter') { start.setMonth(now.getMonth() - 3); }
+      else if (dateFilter === 'year') { start.setFullYear(now.getFullYear() - 1); }
+      else if (dateFilter === 'custom') {
+          start = customDate.start ? new Date(customDate.start) : new Date(0);
+          end = customDate.end ? new Date(customDate.end) : new Date();
+          end.setHours(23, 59, 59, 999);
+      }
+      return allOrders.filter(o => {
+          const od = new Date(o.date || o.created_at);
+          return od >= start && od <= end;
+      });
+  }, [allOrders, dateFilter, customDate]);
+
+  const kpis = React.useMemo(() => {
+      const totalCA = filteredOrders.reduce((sum, o) => sum + (Number(o.total || o.total_amount) || 0), 0);
+      const totalOrders = filteredOrders.length;
+      const avgBasket = totalOrders > 0 ? totalCA / totalOrders : 0;
+      return { totalCA, totalOrders, avgBasket };
+  }, [filteredOrders]);
+
+  const top5Clients = React.useMemo(() => {
+      const map = new Map<string, { phone: string, name: string, total: number }>();
+      filteredOrders.forEach(o => {
+          const phone = o.customer_phone || (o.customer && o.customer.phone) || '';
+          const name = o.customer_name || (o.customer && o.customer.name) || 'Inconnu';
+          if (!phone) return;
+          const existing = map.get(phone) || { phone, name, total: 0 };
+          existing.total += (Number(o.total || o.total_amount) || 0);
+          map.set(phone, existing);
+      });
+      return Array.from(map.values()).sort((a,b) => b.total - a.total).slice(0, 5);
+  }, [filteredOrders]);
+
+  const top5Products = React.useMemo(() => {
+      const map = new Map<string, number>();
+      filteredOrders.forEach(o => {
+          let items = o.items || [];
+          if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
+          if (Array.isArray(items)) {
+              items.forEach(item => {
+                  const itemName = item.name || 'Produit Inconnu';
+                  const qty = Number(item.quantity) || 1;
+                  map.set(itemName, (map.get(itemName) || 0) + qty);
+              });
+          }
+      });
+      return Array.from(map.entries()).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 5);
+  }, [filteredOrders]);
 
   const handleContactClick = async (contact: any) => {
       setSelectedContact(contact);
@@ -279,6 +346,18 @@ export default function CRMContactsPage() {
       } catch(e: any) { alert("Erreur : " + e.message); }
   };
 
+  const handleDeleteContact = async (id: string, e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      if (!confirm("Voulez-vous vraiment supprimer ce contact définitivement ? Cette action est irréversible.")) return;
+      try {
+          const { error } = await supabase.from('crm_contacts').delete().eq('id', id).eq('tenant_id', tenantId);
+          if (error) throw error;
+          setContacts(prev => prev.filter(c => c.id !== id));
+          alert("Contact supprimé avec succès !");
+          if (selectedContact?.id === id) setSelectedContact(null);
+      } catch(e: any) { alert("Erreur lors de la suppression: " + e.message); }
+  };
+
   const filteredContacts = React.useMemo(() => {
       return contacts.filter(c => {
           const matchSearch = (c.full_name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search) || (c.activity || '').toLowerCase().includes(search.toLowerCase());
@@ -314,6 +393,108 @@ export default function CRMContactsPage() {
              Auto-Classifier (IA)
           </button>
         </div>
+      </div>
+
+      {/* --- DASHBOARD INTELLIGENT (FILTRES, KPIs, TOP 5) --- */}
+      <div className="mb-8 space-y-6">
+         <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center gap-2">
+               <Calendar size={18} className="text-zinc-500" />
+               <select value={dateFilter} onChange={e => setDateFilter(e.target.value)} className="bg-zinc-100 dark:bg-zinc-800 border-none outline-none rounded-lg px-3 py-2 text-sm font-bold text-black dark:text-white cursor-pointer">
+                  <option value="all">Tout le temps</option>
+                  <option value="week">7 derniers jours</option>
+                  <option value="month">30 derniers jours</option>
+                  <option value="quarter">Ce trimestre</option>
+                  <option value="year">Cette année</option>
+                  <option value="custom">Date personnalisée</option>
+               </select>
+            </div>
+            {dateFilter === 'custom' && (
+               <div className="flex items-center gap-2 animate-in fade-in">
+                  <input type="date" value={customDate.start} onChange={e => setCustomDate({...customDate, start: e.target.value})} className="bg-zinc-100 dark:bg-zinc-800 border-none outline-none rounded-lg px-3 py-2 text-sm font-bold text-black dark:text-white" />
+                  <span className="text-zinc-500 font-bold">-</span>
+                  <input type="date" value={customDate.end} onChange={e => setCustomDate({...customDate, end: e.target.value})} className="bg-zinc-100 dark:bg-zinc-800 border-none outline-none rounded-lg px-3 py-2 text-sm font-bold text-black dark:text-white" />
+               </div>
+            )}
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm flex items-center gap-4">
+               <div className="w-14 h-14 bg-black text-[#39FF14] rounded-xl flex items-center justify-center"><Activity size={24}/></div>
+               <div><p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Chiffre d'Affaires</p><p className="text-2xl font-black text-black dark:text-white">{kpis.totalCA.toLocaleString('fr-FR')} F</p></div>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm flex items-center gap-4">
+               <div className="w-14 h-14 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center border border-blue-500/20"><ShoppingBag size={24}/></div>
+               <div><p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Commandes</p><p className="text-2xl font-black text-black dark:text-white">{kpis.totalOrders}</p></div>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm flex items-center gap-4">
+               <div className="w-14 h-14 bg-orange-500/10 text-orange-500 rounded-xl flex items-center justify-center border border-orange-500/20"><TrendingUp size={24}/></div>
+               <div><p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Panier Moyen</p><p className="text-2xl font-black text-black dark:text-white">{Math.round(kpis.avgBasket).toLocaleString('fr-FR')} F</p></div>
+            </div>
+         </div>
+
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm">
+               <h3 className="font-black uppercase text-lg mb-6 flex items-center gap-2"><Star size={20} className="text-yellow-500"/> Top 5 Clients</h3>
+               <div className="space-y-4">
+                  {top5Clients.map((client, idx) => (
+                     <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-black text-[#39FF14] rounded-xl flex items-center justify-center font-black text-sm">{client.name.charAt(0)}</div>
+                           <div>
+                              <p className="font-bold text-sm text-black dark:text-white truncate max-w-[150px]">{client.name}</p>
+                              <p className="text-[10px] font-bold text-zinc-500">{client.phone}</p>
+                           </div>
+                        </div>
+                        <div className="text-right flex items-center gap-4">
+                           <p className="font-black text-[#39FF14]">{client.total.toLocaleString('fr-FR')} F</p>
+                           <button onClick={() => {
+                              const msg = `Bonjour ${client.name}, ici Maïmouna !\n\nEn tant que l'un de nos meilleurs clients, je vous offre un accès VIP à notre Vente Flash.\n\n🎁 Profitez de -30% sur votre prochain achat (valable 48h).\n\nÀ très vite !`;
+                              window.open(`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                           }} className="p-2 bg-purple-500/10 text-purple-500 hover:bg-purple-500 hover:text-white rounded-lg transition-colors shadow-sm" title="Action VIP (IA)"><Wand2 size={16}/></button>
+                        </div>
+                     </div>
+                  ))}
+                  {top5Clients.length === 0 && <p className="text-sm text-zinc-500 italic text-center py-6">Aucune donnée sur cette période.</p>}
+               </div>
+            </div>
+            
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm flex flex-col">
+               <h3 className="font-black uppercase text-lg mb-6 flex items-center gap-2"><PieChartIcon size={20} className="text-[#00E5FF]"/> Répartition des Achats</h3>
+               {top5Products.length > 0 ? (
+                  <div className="flex flex-col md:flex-row items-center gap-8 flex-1">
+                     <div className="w-48 h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                           <PieChart>
+                              <Pie data={top5Products} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={5}>
+                                 {top5Products.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                              </Pie>
+                              <RechartsTooltip contentStyle={{ backgroundColor: '#18181b', borderRadius: '1rem', border: 'none', color: '#fff' }} />
+                           </PieChart>
+                        </ResponsiveContainer>
+                     </div>
+                     <div className="flex-1 space-y-3 w-full">
+                        {top5Products.map((p, idx) => (
+                           <div key={idx} className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2">
+                                 <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                                 <span className="font-bold text-black dark:text-white line-clamp-1" title={p.name}>{p.name}</span>
+                              </div>
+                              <div className="flex items-center gap-3 shrink-0">
+                                 <span className="font-black text-zinc-500">{p.value} achats</span>
+                                 <button onClick={() => {
+                                    alert(`💡 Lika vous suggère de créer une campagne marketing VIP sur WhatsApp autour du produit "${p.name}", votre best-seller actuel. Utilisez le bouton "Action VIP" pour l'envoyer à vos Top Clients !`);
+                                 }} className="text-blue-500 hover:text-blue-400"><Wand2 size={14}/></button>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+               ) : (
+                  <p className="text-sm text-zinc-500 italic text-center py-6 flex-1 flex items-center justify-center">Aucune donnée sur cette période.</p>
+               )}
+            </div>
+         </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6 shrink-0 bg-white dark:bg-zinc-950 p-4 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
@@ -370,7 +551,10 @@ export default function CRMContactsPage() {
                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Valeur Générée</p>
                      <p className="font-black text-sm text-black dark:text-white">{c.totalSpent?.toLocaleString('fr-FR')} F</p>
                   </div>
-                  <Sparkline data={c.historyData || []} color="#39FF14" />
+                  <div className="flex items-center gap-3">
+                     <Sparkline data={c.historyData || []} color="#39FF14" />
+                     <button onClick={(e) => handleDeleteContact(c.id, e)} className="p-2 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-colors" title="Supprimer manuellement"><Trash2 size={16}/></button>
+                  </div>
                </div>
             </div>
          ))}
