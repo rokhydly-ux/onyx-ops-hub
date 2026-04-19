@@ -8,6 +8,14 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
+// Global helper for phone numbers
+const getBasePhone = (p: string) => {
+    let num = String(p || '').replace(/[^0-9]/g, '');
+    if (num.startsWith('221')) num = num.slice(3);
+    if (num.startsWith('00221')) num = num.slice(5);
+    return num;
+};
+
 // Mini graphique Sparkline
 const Sparkline = ({ data, color }: { data: number[], color: string }) => {
   const max = Math.max(...data, 1);
@@ -68,13 +76,6 @@ export default function CRMContactsPage() {
               const wsname = wb.SheetNames[0];
               const data = XLSX.utils.sheet_to_json(wb.Sheets[wsname]);
 
-              const getBasePhone = (p: string) => {
-                  let num = String(p || '').replace(/[^0-9]/g, '');
-                  if (num.startsWith('221')) num = num.slice(3);
-                  if (num.startsWith('00221')) num = num.slice(5);
-                  return num;
-              };
-
               // 1. Récupérer les contacts pour faire le lien
               const { data: allContacts } = await supabase.from('crm_contacts').select('id, phone').eq('tenant_id', tenantId);
               const contactMap = new Map();
@@ -100,6 +101,7 @@ export default function CRMContactsPage() {
                       customer_phone: rawPhone,
                       tenant_id: tenantId,
                       total: parsedTotal,
+                      total_amount: parsedTotal,
                       date: row.date || row.Date || row['date de la commande'] || new Date().toISOString(),
                       status: row.status || row.Status || 'Livré',
                       items: row.items || row.Items || row.Produits || row['lignes de commande/produit/nom'] || 'Import CSV Odoo'
@@ -139,43 +141,11 @@ export default function CRMContactsPage() {
       .eq('tenant_id', currentTenantId)
       .order('created_at', { ascending: false });
       
-    const { data: ordersData } = await supabase.from('crm_orders').select('id, contact_id, customer_phone, total, total_amount, date, created_at').eq('tenant_id', currentTenantId);
+    const { data: ordersData } = await supabase.from('crm_orders').select('id, contact_id, customer_phone, total, total_amount, date, created_at, items').eq('tenant_id', currentTenantId);
     if (ordersData) setAllOrders(ordersData);
 
     if (data && !error) {
-      const getBasePhone = (p: string) => {
-          let num = String(p || '').replace(/[^0-9]/g, '');
-          if (num.startsWith('221')) num = num.slice(3);
-          if (num.startsWith('00221')) num = num.slice(5);
-          return num;
-      };
-
-      const enhancedData = data.map(c => {
-          const baseContactPhone = getBasePhone(c.phone);
-          const clientOrders = ordersData?.filter(o => {
-              if (o.contact_id === c.id) return true;
-              const baseOrderPhone = getBasePhone(o.customer_phone);
-              return baseContactPhone && baseOrderPhone && baseContactPhone === baseOrderPhone;
-          }) || [];
-          
-          const calculatedTotal = clientOrders.reduce((sum, o) => sum + (Number(o.total_amount ?? o.total ?? 0)), 0);
-          const totalSpent = c.total_spent !== undefined && c.total_spent > 0 ? c.total_spent : calculatedTotal;
-          
-          let historyData = clientOrders
-            .sort((a,b) => new Date(a.date || a.created_at).getTime() - new Date(b.date || b.created_at).getTime())
-            .slice(-10)
-            .map(o => Number(o.total_amount ?? o.total ?? 0));
-
-          if (historyData.length === 0) historyData = [0, 0];
-          else if (historyData.length === 1) historyData = [0, historyData[0]];
-
-          return {
-              ...c,
-              historyData,
-              totalSpent
-          };
-      });
-      setContacts(enhancedData);
+      setContacts(data);
     }
 
     setIsLoading(false);
@@ -279,8 +249,48 @@ export default function CRMContactsPage() {
       });
   }, [allOrders, dateFilter, customDate]);
 
+  const enrichedContacts = React.useMemo(() => {
+      return contacts.map(c => {
+          const baseContactPhone = getBasePhone(c.phone);
+          const clientOrders = filteredOrders.filter(o => {
+              if (o.contact_id === c.id) return true;
+              const baseOrderPhone = getBasePhone(o.customer_phone);
+              return baseContactPhone && baseOrderPhone && baseContactPhone === baseOrderPhone;
+          });
+          
+          const periodSpent = clientOrders.reduce((sum, o) => {
+              const amt1 = parseFloat(o.total_amount);
+              const amt2 = parseFloat(o.total);
+              return sum + (!isNaN(amt1) ? amt1 : (!isNaN(amt2) ? amt2 : 0));
+          }, 0);
+          
+          let totalSpent = periodSpent;
+          if (dateFilter === 'all' && c.total_spent !== undefined && c.total_spent > 0) {
+              totalSpent = Math.max(c.total_spent, periodSpent);
+          }
+          
+          let historyData = clientOrders
+            .sort((a,b) => new Date(a.date || a.created_at).getTime() - new Date(b.date || b.created_at).getTime())
+            .slice(-10)
+            .map(o => {
+                const amt1 = parseFloat(o.total_amount);
+                const amt2 = parseFloat(o.total);
+                return (!isNaN(amt1) ? amt1 : (!isNaN(amt2) ? amt2 : 0));
+            });
+
+          if (historyData.length === 0) historyData = [0, 0];
+          else if (historyData.length === 1) historyData = [0, historyData[0]];
+
+          return { ...c, historyData, totalSpent, orderCount: clientOrders.length };
+      });
+  }, [contacts, filteredOrders, dateFilter]);
+
   const kpis = React.useMemo(() => {
-      const totalCA = filteredOrders.reduce((sum, o) => sum + (Number(o.total_amount ?? o.total ?? 0)), 0);
+      const totalCA = filteredOrders.reduce((sum, o) => {
+          const amt1 = parseFloat(o.total_amount);
+          const amt2 = parseFloat(o.total);
+          return sum + (!isNaN(amt1) ? amt1 : (!isNaN(amt2) ? amt2 : 0));
+      }, 0);
       const totalOrders = filteredOrders.length;
       const avgBasket = totalOrders > 0 ? totalCA / totalOrders : 0;
       return { totalCA, totalOrders, avgBasket };
@@ -293,7 +303,9 @@ export default function CRMContactsPage() {
           const name = o.customer_name || (o.customer && o.customer.name) || 'Inconnu';
           if (!phone) return;
           const existing = map.get(phone) || { phone, name, total: 0 };
-          existing.total += (Number(o.total_amount ?? o.total ?? 0));
+          const amt1 = parseFloat(o.total_amount);
+          const amt2 = parseFloat(o.total);
+          existing.total += (!isNaN(amt1) ? amt1 : (!isNaN(amt2) ? amt2 : 0));
           map.set(phone, existing);
       });
       return Array.from(map.values()).sort((a,b) => b.total - a.total).slice(0, 5);
@@ -330,12 +342,6 @@ export default function CRMContactsPage() {
       // Récupération de l'historique : Filtre sur contact_id, avec rattrapage sur le numéro de téléphone
       let query = supabase.from('crm_orders').select('*').order('created_at', { ascending: false });
       
-      const getBasePhone = (p: string) => {
-          let num = String(p || '').replace(/[^0-9]/g, '');
-          if (num.startsWith('221')) num = num.slice(3);
-          if (num.startsWith('00221')) num = num.slice(5);
-          return num;
-      };
       const basePhone = getBasePhone(contact.phone);
 
       if (contact.phone) {
@@ -413,12 +419,13 @@ export default function CRMContactsPage() {
   };
 
   const filteredContacts = React.useMemo(() => {
-      return contacts.filter(c => {
+      return enrichedContacts.filter(c => {
           const matchSearch = (c.full_name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search) || (c.activity || '').toLowerCase().includes(search.toLowerCase());
           const matchType = typeFilter === 'Tous' || c.type === typeFilter;
-          return matchSearch && matchType;
+          const matchDate = dateFilter === 'all' ? true : c.orderCount > 0;
+          return matchSearch && matchType && matchDate;
       });
-  }, [contacts, search, typeFilter]);
+  }, [enrichedContacts, search, typeFilter, dateFilter]);
 
   useEffect(() => {
       setCurrentPage(1);
