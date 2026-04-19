@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles, Upload, Download, Trash2, Calendar, TrendingUp, Send, Wand2, PieChart as PieChartIcon, Star } from 'lucide-react';
+import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles, Upload, Download, Trash2, Calendar, TrendingUp, Send, Wand2, PieChart as PieChartIcon, Star, RefreshCcw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -48,6 +48,7 @@ export default function CRMContactsPage() {
   const ordersPerPage = 5;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [allOrders, setAllOrders] = useState<any[]>([]);
   const [dateFilter, setDateFilter] = useState('all'); // all, week, month, quarter, year, custom
@@ -67,19 +68,24 @@ export default function CRMContactsPage() {
               const wsname = wb.SheetNames[0];
               const data = XLSX.utils.sheet_to_json(wb.Sheets[wsname]);
 
+              const getBasePhone = (p: string) => {
+                  let num = String(p || '').replace(/[^0-9]/g, '');
+                  if (num.startsWith('221')) num = num.slice(3);
+                  if (num.startsWith('00221')) num = num.slice(5);
+                  return num;
+              };
+
               // 1. Récupérer les contacts pour faire le lien
               const { data: allContacts } = await supabase.from('crm_contacts').select('id, phone').eq('tenant_id', tenantId);
               const contactMap = new Map();
               allContacts?.forEach(c => {
-                  if (c.phone) contactMap.set(c.phone.replace(/\s+/g, ''), c.id);
+                  if (c.phone) contactMap.set(getBasePhone(c.phone), c.id);
               });
 
               // 2. Préparer les commandes avec la bonne clé étrangère
               const newOrders = data.map((row: any) => {
-                  let phone = String(row.telephone || row.Telephone || row.phone || row.Phone || '').replace(/\s+/g, '');
-                  const contactId = contactMap.get(phone);
-                  
-                  if (!contactId) return null; // On ignore si le contact n'est pas dans le CRM
+                  let rawPhone = String(row.telephone || row.Telephone || row.phone || row.Phone || row['client/téléphone/mobile'] || row['client/téléphone'] || '');
+                  const contactId = contactMap.get(getBasePhone(rawPhone));
 
                   let rawTotal = row.total || row.Total || row.Montant || row.amount_total || 0;
                   let parsedTotal = 0;
@@ -89,15 +95,16 @@ export default function CRMContactsPage() {
                   }
 
                   return {
-                      id: row.id || row.Order_ID || `CSV-${Math.floor(Math.random() * 100000)}`,
-                      contact_id: contactId,
+                      id: row.id || row.Order_ID || row.name || row['référence de la commande'] || `CSV-${Math.floor(Math.random() * 100000)}`,
+                      contact_id: contactId || null,
+                      customer_phone: rawPhone,
                       tenant_id: tenantId,
                       total: parsedTotal,
-                      date: row.date || row.Date || new Date().toISOString(),
+                      date: row.date || row.Date || row['date de la commande'] || new Date().toISOString(),
                       status: row.status || row.Status || 'Livré',
-                      items: row.items || row.Items || row.Produits || 'Import CSV Odoo'
+                      items: row.items || row.Items || row.Produits || row['lignes de commande/produit/nom'] || 'Import CSV Odoo'
                   };
-              }).filter(Boolean); // Retire les éléments nuls
+              }).filter((o: any) => o.contact_id || getBasePhone(o.customer_phone)); // Retire les éléments nuls sans lien
 
               if (newOrders.length === 0) throw new Error("Aucune commande correspondante à un contact existant n'a été trouvée dans le CSV.");
 
@@ -116,49 +123,69 @@ export default function CRMContactsPage() {
       reader.readAsBinaryString(file);
   };
 
-  useEffect(() => {
-    const fetchContacts = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-      const tenantId = user.user_metadata?.tenant_id || user.id;
-      setTenantId(tenantId);
-
-      const { data, error } = await supabase
-        .from('crm_contacts')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
-        
-      const { data: ordersData } = await supabase.from('crm_orders').select('*').eq('tenant_id', tenantId);
-      if (ordersData) setAllOrders(ordersData);
-
-      if (data && !error) {
-        const enhancedData = data.map(c => {
-            const clientOrders = ordersData?.filter(o => o.contact_id === c.id || (o.customer_phone && o.customer_phone === c.phone)) || [];
-            const totalSpent = clientOrders.reduce((sum, o) => sum + (Number(o.total || o.total_amount) || 0), 0);
-            
-            let historyData = clientOrders
-              .sort((a,b) => new Date(a.date || a.created_at).getTime() - new Date(b.date || b.created_at).getTime())
-              .slice(-10)
-              .map(o => Number(o.total || o.total_amount) || 0);
-
-            if (historyData.length === 0) historyData = [0, 0];
-            else if (historyData.length === 1) historyData = [0, historyData[0]];
-
-            return {
-                ...c,
-                historyData,
-                totalSpent
-            };
-        });
-        setContacts(enhancedData);
-      }
-
+  const fetchContacts = async (showToast = false) => {
+    setIsLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       setIsLoading(false);
-    };
+      return;
+    }
+    const currentTenantId = user.user_metadata?.tenant_id || user.id;
+    setTenantId(currentTenantId);
+
+    const { data, error } = await supabase
+      .from('crm_contacts')
+      .select('*')
+      .eq('tenant_id', currentTenantId)
+      .order('created_at', { ascending: false });
+      
+    const { data: ordersData } = await supabase.from('crm_orders').select('id, contact_id, customer_phone, total, total_amount, date, created_at').eq('tenant_id', currentTenantId);
+    if (ordersData) setAllOrders(ordersData);
+
+    if (data && !error) {
+      const getBasePhone = (p: string) => {
+          let num = String(p || '').replace(/[^0-9]/g, '');
+          if (num.startsWith('221')) num = num.slice(3);
+          if (num.startsWith('00221')) num = num.slice(5);
+          return num;
+      };
+
+      const enhancedData = data.map(c => {
+          const baseContactPhone = getBasePhone(c.phone);
+          const clientOrders = ordersData?.filter(o => {
+              if (o.contact_id === c.id) return true;
+              const baseOrderPhone = getBasePhone(o.customer_phone);
+              return baseContactPhone && baseOrderPhone && baseContactPhone === baseOrderPhone;
+          }) || [];
+          
+          const calculatedTotal = clientOrders.reduce((sum, o) => sum + (Number(o.total_amount ?? o.total ?? 0)), 0);
+          const totalSpent = c.total_spent !== undefined && c.total_spent > 0 ? c.total_spent : calculatedTotal;
+          
+          let historyData = clientOrders
+            .sort((a,b) => new Date(a.date || a.created_at).getTime() - new Date(b.date || b.created_at).getTime())
+            .slice(-10)
+            .map(o => Number(o.total_amount ?? o.total ?? 0));
+
+          if (historyData.length === 0) historyData = [0, 0];
+          else if (historyData.length === 1) historyData = [0, historyData[0]];
+
+          return {
+              ...c,
+              historyData,
+              totalSpent
+          };
+      });
+      setContacts(enhancedData);
+    }
+
+    setIsLoading(false);
+    if (showToast) {
+        setToastMessage("Historique et valeurs recalculés avec succès !");
+        setTimeout(() => setToastMessage(null), 3000);
+    }
+  };
+
+  useEffect(() => {
     fetchContacts();
   }, []);
 
@@ -253,7 +280,7 @@ export default function CRMContactsPage() {
   }, [allOrders, dateFilter, customDate]);
 
   const kpis = React.useMemo(() => {
-      const totalCA = filteredOrders.reduce((sum, o) => sum + (Number(o.total || o.total_amount) || 0), 0);
+      const totalCA = filteredOrders.reduce((sum, o) => sum + (Number(o.total_amount ?? o.total ?? 0)), 0);
       const totalOrders = filteredOrders.length;
       const avgBasket = totalOrders > 0 ? totalCA / totalOrders : 0;
       return { totalCA, totalOrders, avgBasket };
@@ -266,7 +293,7 @@ export default function CRMContactsPage() {
           const name = o.customer_name || (o.customer && o.customer.name) || 'Inconnu';
           if (!phone) return;
           const existing = map.get(phone) || { phone, name, total: 0 };
-          existing.total += (Number(o.total || o.total_amount) || 0);
+          existing.total += (Number(o.total_amount ?? o.total ?? 0));
           map.set(phone, existing);
       });
       return Array.from(map.values()).sort((a,b) => b.total - a.total).slice(0, 5);
@@ -302,9 +329,17 @@ export default function CRMContactsPage() {
 
       // Récupération de l'historique : Filtre sur contact_id, avec rattrapage sur le numéro de téléphone
       let query = supabase.from('crm_orders').select('*').order('created_at', { ascending: false });
+      
+      const getBasePhone = (p: string) => {
+          let num = String(p || '').replace(/[^0-9]/g, '');
+          if (num.startsWith('221')) num = num.slice(3);
+          if (num.startsWith('00221')) num = num.slice(5);
+          return num;
+      };
+      const basePhone = getBasePhone(contact.phone);
+
       if (contact.phone) {
-          const safePhone = contact.phone.replace(/\+/g, '%2B'); // PostgREST exige un %2B au lieu de +
-          query = query.or(`contact_id.eq.${contact.id},customer_phone.eq.${safePhone}`);
+          query = query.or(`contact_id.eq.${contact.id},customer_phone.ilike.%${basePhone}%`);
       } else {
           query = query.eq('contact_id', contact.id);
       }
@@ -335,7 +370,7 @@ export default function CRMContactsPage() {
           new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR'),
           Array.isArray(order.items) ? order.items.map((i:any) => `${i.name} (x${i.quantity || 1})`).join(', ') : order.items || 'Articles',
           order.status || 'Livré',
-          `${(order.total_amount || order.total || 0).toLocaleString('fr-FR')} F`
+          `${(order.total_amount ?? order.total ?? 0).toLocaleString('fr-FR')} F`
       ]);
 
       autoTable(doc, { head: [tableColumn], body: tableRows, startY: 45, theme: 'grid', headStyles: { fillColor: [0, 0, 0] } });
@@ -402,6 +437,10 @@ export default function CRMContactsPage() {
           <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Gérez et auto-classifiez vos clients</p>
         </div>
         <div className="flex items-center gap-3">
+          <button onClick={() => fetchContacts(true)} disabled={isLoading} className="bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white border border-zinc-200 dark:border-zinc-800 px-4 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
+             <RefreshCcw size={16} className={isLoading ? 'animate-spin' : ''} />
+             <span className="hidden sm:inline">Recalculer</span>
+          </button>
           <input type="file" accept=".csv, .xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
           <button onClick={() => fileInputRef.current?.click()} disabled={isImporting} className="bg-white text-black border border-zinc-200 px-6 py-3 rounded-xl font-black uppercase text-xs hover:bg-zinc-50 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50">
              {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
@@ -632,7 +671,7 @@ export default function CRMContactsPage() {
                                {Array.isArray(order.items) ? order.items.map((i:any) => `${i.name} (x${i.quantity || 1})`).join(', ') : order.items || 'Articles'}
                             </span>
                             <span className="text-zinc-500 text-xs ml-2 font-medium">
-                               • {new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR')} • <span className="text-[#39FF14] font-bold">{(order.total_amount || order.total || 0).toLocaleString('fr-FR')} F</span> • {order.status || 'Livré'}
+                               • {new Date(order.order_date || order.date || order.created_at).toLocaleDateString('fr-FR')} • <span className="text-[#39FF14] font-bold">{(order.total_amount ?? order.total ?? 0).toLocaleString('fr-FR')} F</span> • {order.status || 'Livré'}
                             </span>
                          </li>
                       ))}
@@ -709,6 +748,12 @@ export default function CRMContactsPage() {
                 <button onClick={() => setSelectedContact(null)} className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white rounded-xl font-black uppercase text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">Fermer</button>
              </div>
            </div>
+         </div>
+      )}
+
+      {toastMessage && (
+         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] border border-[#39FF14]/30 px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[300] animate-in slide-in-from-bottom-5">
+             <CheckCircle size={16}/> {toastMessage}
          </div>
       )}
     </div>
