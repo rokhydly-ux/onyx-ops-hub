@@ -225,6 +225,9 @@ function CRMSettingsContent() {
              };
           }).filter((l: any) => l.phone); // Exclut les lignes sans numéro
           
+          // Libération immédiate de la RAM allouée au fichier CSV brut
+          results.data = [];
+
           // Dédoublonnage par téléphone pour éviter l'erreur PostgreSQL "ON CONFLICT DO UPDATE"
           const deduplicatedLeads = Array.from(new Map(newLeads.map((l: any) => [l.phone, l])).values());
           
@@ -236,7 +239,7 @@ function CRMSettingsContent() {
           abortCsvImportRef.current = false;
           
           const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-          const BATCH_SIZE = 5; // SÉCURITÉ ABSOLUE : Lot de 5 (Anti-OOM)
+          const BATCH_SIZE = 200; // SÉCURITÉ : Lots plus grands pour éviter l'OOM des re-rendus React
           const chunks = chunkArray(deduplicatedLeads, BATCH_SIZE);
           let totalImported = 0;
           let hasError = false;
@@ -258,7 +261,7 @@ function CRMSettingsContent() {
               
               setCsvProgress(Math.round((totalImported / deduplicatedLeads.length) * 100));
               setCsvProgressText(`Traitement en cours... (${totalImported}/${deduplicatedLeads.length} leads)`);
-              await delay(400); // Pause de sécurité entre les requêtes
+              await delay(100); // Petite pause de sécurité entre les requêtes
           }
           setIsSubmitting(false);
           setCsvProgressText('');

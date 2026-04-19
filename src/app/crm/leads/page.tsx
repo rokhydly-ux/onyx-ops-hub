@@ -539,7 +539,7 @@ export default function LeadsKanbanPage() {
     setImportProgress(0);
     setImportProgressText('Lecture et préparation des données...');
 
-    const BATCH_SIZE = 5; // SÉCURITÉ ABSOLUE : 5 leads par lot (Anti-OOM)
+    const BATCH_SIZE = 200; // SÉCURITÉ : Lots plus grands pour éviter l'OOM des re-rendus React
     const delay = (ms: number) => new Promise(res => setTimeout(res, ms)); // Helper de délai
     const uniqueAdNames = new Set<string>();
 
@@ -614,6 +614,9 @@ export default function LeadsKanbanPage() {
           
           }).filter(l => l.phone); // Exclut les lignes sans numéro
           
+          // Libération immédiate de la RAM allouée au fichier CSV brut
+          results.data = [];
+
           // Dédoublonnage global sur tout le fichier
           const deduplicatedLeads = Array.from(new Map(newLeads.map((l: any) => [l.phone, l])).values());
           
@@ -645,7 +648,7 @@ export default function LeadsKanbanPage() {
                   processed += batchToProcess.length;
                   setImportProgress(Math.round((processed / deduplicatedLeads.length) * 100));
                   setImportProgressText(`Traitement en cours... (${processed}/${deduplicatedLeads.length} leads)`);
-                  await delay(400); // PAUSE PLUS LONGUE POUR SOULAGER LA RAM DU SERVEUR
+                  await delay(100); // Petite pause pour lisser la charge réseau
               } catch (e: any) {
                   console.error(`Crash lors de l'insertion du lot #${index + 1}`, e);
                   alert(`L'importation a échoué sur le lot ${index + 1}/${chunks.length}. Erreur : ${e.message}. Veuillez vérifier votre fichier ou contacter le support.`);
