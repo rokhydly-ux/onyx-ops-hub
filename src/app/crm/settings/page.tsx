@@ -168,7 +168,6 @@ function CRMSettingsContent() {
     Papa.parse(file, {
        header: true,
        skipEmptyLines: true,
-       worker: true,
        step: async (results, parser) => {
           parser.pause(); 
           
@@ -178,11 +177,16 @@ function CRMSettingsContent() {
                   return;
               }
               
-              const row = results.data as any;
-              const r: any = {};
-              Object.keys(row).forEach(k => r[k.toLowerCase().trim()] = row[k]);
+              let row = results.data as any;
+              if (Array.isArray(row)) row = row[0];
+              if (!row) return;
 
-              let phoneRaw = r['whatsapp_number'] || r['phone_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
+              const r: any = {};
+              Object.keys(row).forEach(k => {
+                  if (k && typeof k === 'string') r[k.toLowerCase().trim()] = row[k];
+              });
+
+              let phoneRaw = r['whatsapp_number'] || r['phone_number'] || r['phone number'] || r['phone'] || r['téléphone'] || r['numero'] || r['numéro'] || r['mobile'] || r['contact'] || '';
               let phone = String(phoneRaw).replace(/[^0-9+]/g, ''); 
               if (phone && !phone.startsWith('+')) {
                   phone = phone.startsWith('221') ? `+${phone}` : `+221${phone}`;

@@ -546,20 +546,24 @@ export default function LeadsKanbanPage() {
     Papa.parse(file, {
        header: true,
        skipEmptyLines: true,
-       worker: true, // Utilise un coeur CPU séparé
        step: async (results, parser) => {
           parser.pause(); // 🛑 PAUSE immédiate pour ne pas inonder la RAM
           
           try {
-             const row = results.data as any;
+             let row = results.data as any;
+             if (Array.isArray(row)) row = row[0];
+             if (!row) return;
+
              const r: any = {};
-             Object.keys(row).forEach(k => r[k.toLowerCase().trim()] = row[k]);
+             Object.keys(row).forEach(k => {
+                 if (k && typeof k === 'string') r[k.toLowerCase().trim()] = row[k];
+             });
              
              delete r['lead_status'];
              delete r['status'];
 
-             const name = r['full_name'] || r['name'] || r['nom'] || 'Lead Facebook';
-             let rawPhone = r['whatsapp_number'] || r['phone_number'] || r['phone'] || r['téléphone'] || r['numero'] || '';
+             const name = r['full_name'] || r['name'] || r['nom'] || r['nom complet'] || 'Lead Facebook';
+             let rawPhone = r['whatsapp_number'] || r['phone_number'] || r['phone number'] || r['phone'] || r['téléphone'] || r['numero'] || r['numéro'] || r['mobile'] || r['contact'] || '';
              let phone = String(rawPhone).replace(/[^0-9+]/g, '');
              if (phone && !phone.startsWith('+')) {
                  phone = phone.startsWith('221') ? `+${phone}` : `+221${phone}`;
