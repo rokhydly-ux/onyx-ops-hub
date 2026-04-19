@@ -18,6 +18,8 @@ export default function CRMCatalogPage() {
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [viewingProduct, setViewingProduct] = useState<any>(null);
+  const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
+  const [mediaList, setMediaList] = useState<{type: 'image' | 'video', url: string}[]>([]);
   const [mainDisplay, setMainDisplay] = useState<{type: 'image' | 'video', url: string} | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
@@ -56,6 +58,37 @@ export default function CRMCatalogPage() {
       logoUrl: ''
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+      if (viewingProduct) {
+          const list: {type: 'image'|'video', url: string}[] = [];
+          if (viewingProduct.image_url) list.push({type: 'image', url: viewingProduct.image_url});
+          if (viewingProduct.image_gallery) {
+              String(viewingProduct.image_gallery).split(',').map(s=>s.trim()).filter(Boolean).forEach(url => {
+                  list.push({type: 'image', url});
+              });
+          }
+          if (viewingProduct.video_gallery) list.push({type: 'video', url: viewingProduct.video_gallery});
+          setMediaList(list);
+          if (list.length > 0 && !mainDisplay) setMainDisplay(list[0]);
+      } else {
+          setMediaList([]);
+          setFullscreenIndex(null);
+      }
+  }, [viewingProduct]);
+
+  useEffect(() => {
+      let interval: any;
+      if (viewingProduct && mediaList.length > 1 && fullscreenIndex === null) {
+          interval = setInterval(() => {
+              setMainDisplay(prev => {
+                  const currentIndex = mediaList.findIndex(m => m.url === prev?.url);
+                  return mediaList[currentIndex !== -1 ? (currentIndex + 1) % mediaList.length : 0];
+              });
+          }, 4000);
+      }
+      return () => clearInterval(interval);
+  }, [viewingProduct, mediaList, fullscreenIndex]);
 
   useEffect(() => {
       if (isCatalogStudioOpen && tenantId) {
@@ -360,7 +393,14 @@ export default function CRMCatalogPage() {
     setSelectedIds(newSet);
   };
 
-  const getStockStatus = (lastSoldDate: string | null, createdAt: string | null) => {
+  const getStockStatus = (lastSoldDate: string | null, createdAt: string | null, explicitStatus?: string | null) => {
+    if (explicitStatus && explicitStatus !== 'Auto') {
+        if (explicitStatus === 'Actif') return { label: 'Actif', color: 'bg-green-100 text-green-700 border-green-200' };
+        if (explicitStatus === 'Alerte') return { label: 'Alerte', color: 'bg-orange-100 text-orange-700 border-orange-200' };
+        if (explicitStatus === 'En rupture') return { label: 'En rupture', color: 'bg-red-100 text-red-700 border-red-200' };
+        if (explicitStatus === 'Stock Mort') return { label: 'Stock Mort', color: 'bg-red-100 text-red-700 border-red-200' };
+    }
+    
     const dateToUse = lastSoldDate || createdAt || new Date().toISOString();
     if (!dateToUse) return { label: 'Inconnu', color: 'bg-zinc-100 text-zinc-500' };
     
@@ -394,48 +434,169 @@ export default function CRMCatalogPage() {
       setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '', tags: p.tags || [], image_gallery: p.image_gallery || '', video_gallery: p.video_gallery || '' });
   };
 
-  const generateTechnicalSheet = async (p: any, bulkDoc?: jsPDF) => {
+  const generateTechnicalSheet = async (p: any, bulkDoc?: jsPDF, format: 'list' | 'table' = 'list') => {
       const doc = bulkDoc || new jsPDF();
       
-      doc.setFillColor(0, 0, 0);
-      doc.rect(0, 0, 210, 40, 'F');
-      doc.setTextColor(57, 255, 20); // #39FF14
-      doc.setFontSize(22);
-      doc.setFont("helvetica", "bold");
-      doc.text("FICHE TECHNIQUE PRODUIT", 105, 25, { align: 'center' });
+      const themeColor: [number, number, number] = [57, 255, 20];
+      const bgLight: [number, number, number] = [248, 249, 250];
       
+      doc.setFillColor(themeColor[0], themeColor[1], themeColor[2]);
+      doc.rect(0, 0, 210, 4, 'F');
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.setFont("helvetica", "bold");
+      doc.text("FICHE TECHNIQUE PRODUIT", 14, 15);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Réf : ${p.id ? 'SKU-' + String(p.id).padStart(5, '0') : 'N/A'}`, 14, 20);
+      doc.text(`Mise à jour : ${new Date().toLocaleDateString('fr-FR')}`, 196, 15, { align: 'right' });
+      
+      doc.setFontSize(26);
       doc.setTextColor(0, 0, 0);
-      doc.setFontSize(18);
-      doc.text(p.name || 'Produit sans nom', 14, 60);
-      
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Catégorie : ${p.category || 'Non catégorisé'} ${p.subcategory ? ' - ' + p.subcategory : ''}`, 14, 75);
-      doc.text(`Prix de vente : ${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA`, 14, 85);
-      
-      const status = getStockStatus(p.last_sold_date, p.created_at);
-      doc.text(`Statut (Rotation) : ${status.label}`, 14, 95);
-
       doc.setFont("helvetica", "bold");
-      doc.text("Description :", 14, 115);
-      doc.setFont("helvetica", "normal");
-      const splitDesc = doc.splitTextToSize(p.description || "Aucune description détaillée disponible pour ce produit.", 180);
-      doc.text(splitDesc, 14, 125);
-
+      const titleLines = doc.splitTextToSize((p.name || 'Produit Sans Nom').toUpperCase(), 182);
+      doc.text(titleLines, 14, 32);
+      
+      let currentY = 36 + (titleLines.length - 1) * 10;
+      
+      doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
+      doc.roundedRect(14, currentY, 182, 25, 3, 3, 'F');
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(60, 60, 60);
+      const rawDesc = p.description || "Équipement de haute qualité conçu pour optimiser vos opérations. Durabilité et performance garanties.";
+      const abstract = rawDesc.split('\n')[0].substring(0, 140) + (rawDesc.length > 140 ? '...' : '');
+      doc.text(doc.splitTextToSize(`"${abstract}"`, 174), 18, currentY + 8);
+      
+      currentY += 35;
+      
       if (p.image_url) {
           try {
               const img = new Image();
               img.crossOrigin = "Anonymous";
               img.src = p.image_url;
-              await new Promise((resolve, reject) => {
-                  img.onload = resolve;
-                  img.onerror = reject;
-              });
-              doc.addImage(img, 'JPEG', 14, 150, 80, 80);
+              await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+              doc.addImage(img, 'JPEG', 14, currentY, 85, 85);
+              doc.setDrawColor(230, 230, 230);
+              doc.roundedRect(14, currentY, 85, 85, 2, 2, 'S');
           } catch (e) {
-              doc.setTextColor(150, 150, 150);
-              doc.text("(Image non disponible / Erreur de chargement)", 14, 160);
+              doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
+              doc.roundedRect(14, currentY, 85, 85, 2, 2, 'F');
           }
+      } else {
+          doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
+          doc.roundedRect(14, currentY, 85, 85, 2, 2, 'F');
+      }
+      
+      const galleryArray = p.image_gallery ? String(p.image_gallery).split(',').map(s=>s.trim()).filter(Boolean) : [];
+      if (galleryArray.length > 0) {
+          try {
+              const img1 = new Image(); img1.crossOrigin = "Anonymous"; img1.src = galleryArray[0];
+              await new Promise((res, rej) => { img1.onload = res; img1.onerror = rej; });
+              doc.addImage(img1, 'JPEG', 14, currentY + 90, 40, 40);
+              doc.setDrawColor(230, 230, 230); doc.roundedRect(14, currentY + 90, 40, 40, 2, 2, 'S');
+          } catch(e) {}
+      }
+      if (galleryArray.length > 1) {
+          try {
+              const img2 = new Image(); img2.crossOrigin = "Anonymous"; img2.src = galleryArray[1];
+              await new Promise((res, rej) => { img2.onload = res; img2.onerror = rej; });
+              doc.addImage(img2, 'JPEG', 59, currentY + 90, 40, 40);
+              doc.setDrawColor(230, 230, 230); doc.roundedRect(59, currentY + 90, 40, 40, 2, 2, 'S');
+          } catch(e) {}
+      }
+      
+      let rightY = currentY + 5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      
+      doc.setFillColor(0, 0, 0);
+      doc.setTextColor(255, 255, 255);
+      doc.roundedRect(110, rightY - 5, 45, 8, 1, 1, 'F');
+      doc.text(String(p.category || 'Standard').toUpperCase().substring(0, 20), 112, rightY);
+      
+      doc.setFillColor(themeColor[0], themeColor[1], themeColor[2]);
+      doc.setTextColor(0, 0, 0);
+      doc.roundedRect(160, rightY - 5, 36, 8, 1, 1, 'F');
+      doc.text(`${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA`, 162, rightY);
+      
+      rightY += 15;
+      
+      doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
+      doc.roundedRect(110, rightY, 86, 8, 1, 1, 'F');
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("CARACTÉRISTIQUES TECHNIQUES", 114, rightY + 5.5);
+      
+      rightY += 15;
+      if (format === 'table') {
+          const tableRows: any[] = [];
+          rawDesc.split('\n').forEach((line: string) => {
+              const trimmed = line.trim();
+              if (!trimmed) return;
+              if (trimmed.includes(':')) {
+                  const [key, ...rest] = trimmed.split(':');
+                  tableRows.push([key.trim(), rest.join(':').trim()]);
+              } else if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+                  tableRows.push(['Info', trimmed.replace(/^[-•]\s*/, '').trim()]);
+              } else {
+                  tableRows.push([trimmed, '']);
+              }
+          });
+          if (tableRows.length > 0) {
+              autoTable(doc, {
+                  startY: rightY,
+                  margin: { left: 110, right: 14 },
+                  body: tableRows,
+                  theme: 'grid',
+                  styles: { fontSize: 8, textColor: [40, 40, 40], cellPadding: 2 },
+                  columnStyles: { 0: { fontStyle: 'bold', fillColor: bgLight, cellWidth: 30 } }
+              });
+          }
+      } else {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.setTextColor(40, 40, 40);
+          
+          const descLinesRaw = doc.splitTextToSize(rawDesc, 80);
+          descLinesRaw.slice(0, 25).forEach((line: string) => {
+              if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
+                  doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
+                  doc.text("■", 110, rightY);
+                  doc.setTextColor(40, 40, 40);
+                  doc.text(line.replace(/^[-•]\s*/, ''), 114, rightY);
+              } else {
+                  doc.text(line, 110, rightY);
+              }
+              rightY += 6;
+          });
+      }
+      
+      doc.setDrawColor(220, 220, 220);
+      doc.line(14, 260, 196, 260);
+      
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("📍 NOS SHOWROOMS : PIKINE TECHNOPOLE ET KEUR MASSAR", 14, 268);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      doc.text("📞 76 223 74 40", 14, 274);
+      doc.text("✉️ CONTACT@CENTRALEQUIPEMENTS.COM", 14, 279);
+      doc.text("🌐 CENTRALEQUIPEMENTS.COM", 14, 284);
+      
+      if (p.video_gallery) {
+          try {
+              const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(p.video_gallery)}&margin=0`;
+              const qrImg = new Image(); qrImg.crossOrigin = "Anonymous"; qrImg.src = qrUrl;
+              await new Promise((res, rej) => { qrImg.onload = res; qrImg.onerror = rej; });
+              doc.addImage(qrImg, 'PNG', 170, 265, 20, 20);
+              doc.setFontSize(7);
+              doc.text("Scanner pour voir", 168, 288);
+              doc.text("la vidéo démo", 170, 292);
+          } catch(e) {}
       }
       
       if (!bulkDoc) {
@@ -925,7 +1086,7 @@ export default function CRMCatalogPage() {
   };
 
   const handleOpenAiCampaign = () => {
-      const dormantProducts = products.filter(p => getStockStatus(p.last_sold_date, p.created_at).label !== 'Actif');
+      const dormantProducts = products.filter(p => getStockStatus(p.last_sold_date, p.created_at, p.stock_status).label !== 'Actif');
       if (dormantProducts.length === 0) return alert("L'IA n'a détecté aucun produit en 'Alerte' ou 'Stock Mort'.");
 
       // Regroupement intelligent par catégorie
@@ -982,12 +1143,13 @@ export default function CRMCatalogPage() {
   const handleBulkTechnicalSheets = async () => {
       const selectedProducts = products.filter(p => selectedIds.has(p.id));
       if (selectedProducts.length === 0) return;
+      const wantsTable = window.confirm("Générer les caractéristiques sous forme de tableau ? (OK = Tableau, Annuler = Liste)");
       setIsGeneratingPdf(true);
       try {
           const doc = new jsPDF();
           for (let i = 0; i < selectedProducts.length; i++) {
               if (i > 0) doc.addPage();
-              await generateTechnicalSheet(selectedProducts[i], doc);
+              await generateTechnicalSheet(selectedProducts[i], doc, wantsTable ? 'table' : 'list');
           }
           doc.save(`Fiches_Techniques_Multiples.pdf`);
       } catch(e) {
@@ -1362,7 +1524,7 @@ export default function CRMCatalogPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {paginatedProducts.map(product => {
-               const status = getStockStatus(product.last_sold_date, product.created_at);
+               const status = getStockStatus(product.last_sold_date, product.created_at, product.stock_status);
                const catColor = advancedCategories.find(c => c.name === product.category)?.color || '#39FF14';
                const rawDisplayPrice = product.unit_price || product.price_ttc || product.price || 0;
                const cleanDisplayPrice = typeof rawDisplayPrice === 'string' ? Number(String(rawDisplayPrice).replace(/[^0-9.-]+/g, '')) : Number(rawDisplayPrice);
@@ -1377,8 +1539,20 @@ export default function CRMCatalogPage() {
                      <div className="absolute top-3 left-3 bg-white/80 dark:bg-black/60 p-1.5 rounded-lg backdrop-blur-md">
                        <input type="checkbox" checked={selectedIds.has(product.id)} onChange={() => toggleSelection(product.id)} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer" />
                      </div>
-                     <div className="absolute top-3 right-3">
-                        <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md ${status.color}`}>{status.label}</span>
+                     <div className="absolute top-3 right-3 z-10">
+                        <select 
+                            value={product.stock_status || 'Auto'} 
+                            onChange={(e) => handleStatusChange(product.id, e.target.value)} 
+                            onClick={(e) => e.stopPropagation()}
+                            className={`px-2 py-1 pr-6 rounded-md text-[10px] font-black uppercase tracking-widest border bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md cursor-pointer outline-none appearance-none shadow-sm ${status.color}`}
+                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundPosition: `right 4px center`, backgroundRepeat: `no-repeat`, backgroundSize: `10px` }}
+                        >
+                            <option value="Auto" className="bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">Auto</option>
+                            <option value="Actif" className="bg-zinc-100 dark:bg-zinc-900 text-green-700 dark:text-green-400">Actif</option>
+                            <option value="Alerte" className="bg-zinc-100 dark:bg-zinc-900 text-orange-700 dark:text-orange-400">Alerte</option>
+                            <option value="En rupture" className="bg-zinc-100 dark:bg-zinc-900 text-red-700 dark:text-red-400">En rupture</option>
+                            <option value="Stock Mort" className="bg-zinc-100 dark:bg-zinc-900 text-red-700 dark:text-red-400">Stock Mort</option>
+                        </select>
                      </div>
                      {Array.isArray(product.tags) && product.tags.map((tag: string, i: number) => (
                         <span key={i} className={`absolute bottom-3 ${i === 0 ? 'left-3' : 'left-24'} px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest bg-black/80 text-[#39FF14] backdrop-blur-md border border-[#39FF14]/30 shadow-lg`}>{tag}</span>
@@ -1452,10 +1626,13 @@ export default function CRMCatalogPage() {
             <button onClick={() => setViewingProduct(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
             
             <div className="w-full md:w-1/2 flex flex-col items-center min-w-0">
-              <div className="w-full aspect-square rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm mb-4 relative">
+              <div 
+                 className="w-full aspect-square rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm mb-4 relative cursor-pointer group"
+                 onClick={() => setFullscreenIndex(mediaList.findIndex(m => m.url === mainDisplay?.url) || 0)}
+              >
                 {mainDisplay?.type === 'video' ? (
-                   <div className="relative w-full h-full group">
-                       <iframe src={getEmbedUrl(mainDisplay.url)} className="w-full h-full border-0" allowFullScreen></iframe>
+                   <div className="relative w-full h-full">
+                       <iframe src={getEmbedUrl(mainDisplay.url)} className="w-full h-full border-0 pointer-events-none" allowFullScreen></iframe>
                        <a href={mainDisplay.url} target="_blank" rel="noopener noreferrer" className="absolute top-3 right-3 bg-black/60 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg backdrop-blur-md z-10 border border-white/10">
                            <PlayCircle size={14}/> YouTube
                        </a>
@@ -1465,51 +1642,34 @@ export default function CRMCatalogPage() {
                 ) : (
                    <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700"><Box size={64} /></div>
                 )}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                   <div className="bg-black/60 text-white px-4 py-2 rounded-full text-xs font-black uppercase opacity-0 group-hover:opacity-100 backdrop-blur-sm transition-opacity shadow-lg flex items-center gap-2">
+                       Agrandir
+                   </div>
+                </div>
               </div>
-              {(viewingProduct.image_url || viewingProduct.image_gallery || viewingProduct.video_gallery) && (() => {
-                const galleryArray = viewingProduct.image_gallery ? String(viewingProduct.image_gallery).split(',').map(s=>s.trim()).filter(Boolean) : [];
-                const totalMedia = (viewingProduct.image_url ? 1 : 0) + galleryArray.length + (viewingProduct.video_gallery ? 1 : 0);
-                return (
+              {mediaList.length > 0 && (
                   <div className="w-full mt-2">
-                    {totalMedia > 4 && (
-                      <div className="flex justify-end mb-1">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-1 animate-pulse">
-                          Faites défiler pour voir plus ({totalMedia} médias) <ChevronRight size={10} />
-                        </span>
-                      </div>
-                    )}
                     <div className="flex flex-nowrap overflow-x-auto gap-3 snap-x custom-scrollbar pb-3 w-full">
-                      {viewingProduct.image_url && (
-                         <img 
-                            src={viewingProduct.image_url} 
-                            onClick={() => setMainDisplay({ type: 'image', url: viewingProduct.image_url })}
-                            className={`snap-start w-20 h-20 object-cover rounded-xl shrink-0 cursor-pointer border-2 transition-all ${mainDisplay?.url === viewingProduct.image_url && mainDisplay?.type === 'image' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`} 
-                         />
-                      )}
-                      {galleryArray.map((url, idx) => (
-                        <img 
-                           key={idx} 
-                           src={url} 
-                           onClick={() => setMainDisplay({ type: 'image', url })}
-                           alt="Gallery" 
-                           className={`snap-start w-20 h-20 object-cover rounded-xl shrink-0 cursor-pointer border-2 transition-all ${mainDisplay?.url === url && mainDisplay?.type === 'image' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`} 
-                        />
-                      ))}
-                      {viewingProduct.video_gallery && (
+                      {mediaList.map((media, idx) => (
                          <div 
-                            onClick={() => setMainDisplay({ type: 'video', url: viewingProduct.video_gallery })}
-                            className={`snap-start w-20 h-20 rounded-xl shrink-0 cursor-pointer border-2 transition-all flex items-center justify-center bg-black relative overflow-hidden ${mainDisplay?.type === 'video' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`}
+                            key={idx}
+                            onClick={() => setMainDisplay(media)}
+                            className={`snap-start w-20 h-20 rounded-xl shrink-0 cursor-pointer border-2 transition-all relative overflow-hidden bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center ${mainDisplay?.url === media.url ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`}
                          >
-                            <img src={`https://img.youtube.com/vi/${getEmbedUrl(viewingProduct.video_gallery).split('embed/')[1]}/hqdefault.jpg`} className="w-full h-full object-cover opacity-50" onError={(e:any) => e.target.style.display='none'} />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                               <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg"><PlayCircle size={16} /></div>
-                            </div>
+                            {media.type === 'video' ? (
+                                <>
+                                   <img src={`https://img.youtube.com/vi/${getEmbedUrl(media.url).split('embed/')[1]}/hqdefault.jpg`} className="w-full h-full object-cover opacity-50" onError={(e:any) => e.target.style.display='none'} />
+                                   <div className="absolute inset-0 flex items-center justify-center"><div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg"><PlayCircle size={16} /></div></div>
+                                </>
+                            ) : (
+                                <img src={media.url} className="w-full h-full object-cover" />
+                            )}
                          </div>
-                      )}
+                      ))}
                     </div>
                   </div>
-                );
-              })()}
+              )}
             </div>
             
             <div className="w-full md:w-1/2 flex flex-col">
@@ -1527,7 +1687,7 @@ export default function CRMCatalogPage() {
               </p>
               
               <div className="flex flex-col gap-3 mt-auto pt-6 border-t border-zinc-100 dark:border-zinc-800">
-                 <button onClick={async () => { setIsGeneratingPdf(true); await generateTechnicalSheet(viewingProduct); setIsGeneratingPdf(false); }} disabled={isGeneratingPdf} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
+                 <button onClick={async () => { const wantsTable = window.confirm("Afficher les caractéristiques sous forme de tableau ? (OK = Tableau, Annuler = Liste)"); setIsGeneratingPdf(true); await generateTechnicalSheet(viewingProduct, undefined, wantsTable ? 'table' : 'list'); setIsGeneratingPdf(false); }} disabled={isGeneratingPdf} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
                     {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                     Télécharger PDF Fiche
                  </button>
@@ -1541,6 +1701,70 @@ export default function CRMCatalogPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* LIGHTBOX PLEIN ÉCRAN */}
+      {fullscreenIndex !== null && (
+         <div id="lightbox-overlay" onClick={(e: any) => e.target.id === 'lightbox-overlay' && setFullscreenIndex(null)} className="fixed inset-0 z-[500] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+            <button onClick={() => setFullscreenIndex(null)} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-50 p-2"><X size={32}/></button>
+            
+            {viewingProduct && mediaList[fullscreenIndex] && (
+               <div className="absolute top-6 right-20 flex items-center gap-3 z-50">
+                   {mediaList[fullscreenIndex].type === 'video' && (
+                       <>
+                           <button onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(mediaList[fullscreenIndex].url);
+                              alert("Lien de la vidéo copié !");
+                           }} className="bg-zinc-800 text-white px-4 py-2 rounded-full font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg flex items-center gap-2">
+                              <Link size={16} /> Copier
+                           </button>
+                           <button onClick={(e) => {
+                              e.stopPropagation();
+                              const url = mediaList[fullscreenIndex].url;
+                              if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                                   const videoId = getEmbedUrl(url).split('embed/')[1];
+                                   if (videoId) {
+                                       window.open(`https://ssyoutube.com/watch?v=${videoId}`, '_blank');
+                                   } else {
+                                       window.open(url, '_blank');
+                                   }
+                              } else {
+                                   const a = document.createElement('a');
+                                   a.href = url;
+                                   a.download = `Demo_${viewingProduct?.name || 'Video'}.mp4`;
+                                   a.target = '_blank';
+                                   document.body.appendChild(a);
+                                   a.click();
+                                   document.body.removeChild(a);
+                              }
+                           }} className="bg-blue-600 text-white px-4 py-2 rounded-full font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg flex items-center gap-2">
+                              <Download size={16} /> Télécharger
+                           </button>
+                       </>
+                   )}
+                   <button onClick={(e) => {
+                      e.stopPropagation();
+                      const text = `Découvrez ce média de notre produit *${viewingProduct.name}* !\nPrix : ${(viewingProduct.unit_price || viewingProduct.price_ttc || 0).toLocaleString('fr-FR')} FCFA\n\n${mediaList[fullscreenIndex].url}`;
+                      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                   }} className="bg-[#25D366] text-white px-4 py-2 rounded-full font-black uppercase text-xs hover:scale-105 transition-transform shadow-lg flex items-center gap-2">
+                      <Send size={16} /> WhatsApp
+                   </button>
+               </div>
+            )}
+
+            <button onClick={(e) => { e.stopPropagation(); setFullscreenIndex(prev => (prev! - 1 + mediaList.length) % mediaList.length); }} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 z-50 bg-black/50 rounded-full hover:scale-110 transition-all"><ChevronLeft size={40}/></button>
+            
+            <div className="w-full max-w-5xl h-[80vh] flex items-center justify-center relative">
+               {mediaList[fullscreenIndex].type === 'image' ? (
+                  <img src={mediaList[fullscreenIndex].url} alt="Fullscreen" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-300" />
+               ) : (
+                  <iframe src={getEmbedUrl(mediaList[fullscreenIndex].url)} className="w-full h-full border-0 rounded-xl shadow-2xl animate-in zoom-in-95 duration-300" allowFullScreen></iframe>
+               )}
+            </div>
+            
+            <button onClick={(e) => { e.stopPropagation(); setFullscreenIndex(prev => (prev! + 1) % mediaList.length); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 z-50 bg-black/50 rounded-full hover:scale-110 transition-all"><ChevronRight size={40}/></button>
+         </div>
       )}
 
       {/* MODALE APERÇU DEVIS */}
