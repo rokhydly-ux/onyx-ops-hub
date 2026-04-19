@@ -1454,48 +1454,62 @@ export default function CRMCatalogPage() {
             <div className="w-full md:w-1/2 flex flex-col items-center min-w-0">
               <div className="w-full aspect-square rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm mb-4 relative">
                 {mainDisplay?.type === 'video' ? (
-                   <iframe src={getEmbedUrl(mainDisplay.url)} className="w-full h-full border-0" allowFullScreen></iframe>
+                   <div className="relative w-full h-full group">
+                       <iframe src={getEmbedUrl(mainDisplay.url)} className="w-full h-full border-0" allowFullScreen></iframe>
+                       <a href={mainDisplay.url} target="_blank" rel="noopener noreferrer" className="absolute top-3 right-3 bg-black/60 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg backdrop-blur-md z-10 border border-white/10">
+                           <PlayCircle size={14}/> YouTube
+                       </a>
+                   </div>
                 ) : mainDisplay?.type === 'image' ? (
                    <img src={mainDisplay.url} alt={viewingProduct.name} className="w-full h-full object-cover" />
                 ) : (
                    <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700"><Box size={64} /></div>
                 )}
               </div>
-              {(viewingProduct.image_url || viewingProduct.image_gallery || viewingProduct.video_gallery) && (
-                <div className="flex flex-nowrap overflow-x-auto gap-3 snap-x mt-2 custom-scrollbar pb-3 w-full">
-                  {viewingProduct.image_url && (
-                     <img 
-                        src={viewingProduct.image_url} 
-                        onClick={() => setMainDisplay({ type: 'image', url: viewingProduct.image_url })}
-                        className={`snap-start w-20 h-20 object-cover rounded-xl shrink-0 cursor-pointer border-2 transition-all ${mainDisplay?.url === viewingProduct.image_url && mainDisplay?.type === 'image' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`} 
-                     />
-                  )}
-                  {viewingProduct.image_gallery && String(viewingProduct.image_gallery).split(',').map((img, idx) => {
-                    const url = img.trim();
-                    if (!url) return null;
-                    return (
-                      <img 
-                         key={idx} 
-                         src={url} 
-                         onClick={() => setMainDisplay({ type: 'image', url })}
-                         alt="Gallery" 
-                         className={`snap-start w-20 h-20 object-cover rounded-xl shrink-0 cursor-pointer border-2 transition-all ${mainDisplay?.url === url && mainDisplay?.type === 'image' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`} 
-                      />
-                    );
-                  })}
-                  {viewingProduct.video_gallery && (
-                     <div 
-                        onClick={() => setMainDisplay({ type: 'video', url: viewingProduct.video_gallery })}
-                        className={`snap-start w-20 h-20 rounded-xl shrink-0 cursor-pointer border-2 transition-all flex items-center justify-center bg-black relative overflow-hidden ${mainDisplay?.type === 'video' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`}
-                     >
-                        <img src={`https://img.youtube.com/vi/${getEmbedUrl(viewingProduct.video_gallery).split('embed/')[1]}/hqdefault.jpg`} className="w-full h-full object-cover opacity-50" onError={(e:any) => e.target.style.display='none'} />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                           <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg"><PlayCircle size={16} /></div>
-                        </div>
-                     </div>
-                  )}
-                </div>
-              )}
+              {(viewingProduct.image_url || viewingProduct.image_gallery || viewingProduct.video_gallery) && (() => {
+                const galleryArray = viewingProduct.image_gallery ? String(viewingProduct.image_gallery).split(',').map(s=>s.trim()).filter(Boolean) : [];
+                const totalMedia = (viewingProduct.image_url ? 1 : 0) + galleryArray.length + (viewingProduct.video_gallery ? 1 : 0);
+                return (
+                  <div className="w-full mt-2">
+                    {totalMedia > 4 && (
+                      <div className="flex justify-end mb-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 flex items-center gap-1 animate-pulse">
+                          Faites défiler pour voir plus ({totalMedia} médias) <ChevronRight size={10} />
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex flex-nowrap overflow-x-auto gap-3 snap-x custom-scrollbar pb-3 w-full">
+                      {viewingProduct.image_url && (
+                         <img 
+                            src={viewingProduct.image_url} 
+                            onClick={() => setMainDisplay({ type: 'image', url: viewingProduct.image_url })}
+                            className={`snap-start w-20 h-20 object-cover rounded-xl shrink-0 cursor-pointer border-2 transition-all ${mainDisplay?.url === viewingProduct.image_url && mainDisplay?.type === 'image' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`} 
+                         />
+                      )}
+                      {galleryArray.map((url, idx) => (
+                        <img 
+                           key={idx} 
+                           src={url} 
+                           onClick={() => setMainDisplay({ type: 'image', url })}
+                           alt="Gallery" 
+                           className={`snap-start w-20 h-20 object-cover rounded-xl shrink-0 cursor-pointer border-2 transition-all ${mainDisplay?.url === url && mainDisplay?.type === 'image' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`} 
+                        />
+                      ))}
+                      {viewingProduct.video_gallery && (
+                         <div 
+                            onClick={() => setMainDisplay({ type: 'video', url: viewingProduct.video_gallery })}
+                            className={`snap-start w-20 h-20 rounded-xl shrink-0 cursor-pointer border-2 transition-all flex items-center justify-center bg-black relative overflow-hidden ${mainDisplay?.type === 'video' ? 'border-[#39FF14]' : 'border-transparent hover:border-zinc-300 dark:hover:border-zinc-700'}`}
+                         >
+                            <img src={`https://img.youtube.com/vi/${getEmbedUrl(viewingProduct.video_gallery).split('embed/')[1]}/hqdefault.jpg`} className="w-full h-full object-cover opacity-50" onError={(e:any) => e.target.style.display='none'} />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                               <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg"><PlayCircle size={16} /></div>
+                            </div>
+                         </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             
             <div className="w-full md:w-1/2 flex flex-col">
