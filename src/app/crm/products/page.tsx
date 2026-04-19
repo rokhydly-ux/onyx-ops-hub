@@ -27,12 +27,13 @@ export default function CRMCatalogPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [quoteQuantities, setQuoteQuantities] = useState<Record<number, number>>({});
+  const [clientSearch, setClientSearch] = useState('');
   
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiCampaigns, setAiCampaigns] = useState<any[]>([]);
   
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] as string[], image_gallery: '', video_gallery: '' });
+  const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] as string[], image_gallery: '', video_gallery: '', theme_color: '#39FF14' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -424,51 +425,65 @@ export default function CRMCatalogPage() {
 
   const handleOpenAdd = () => {
       setEditingProduct(null);
-      setEditForm({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [], image_gallery: '', video_gallery: '' });
+      setEditForm({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [], image_gallery: '', video_gallery: '', theme_color: '#39FF14' });
       setIsAddingProduct(true);
   };
 
   const handleOpenEdit = (p: any) => {
       setEditingProduct(p);
       setIsAddingProduct(false);
-      setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '', tags: p.tags || [], image_gallery: p.image_gallery || '', video_gallery: p.video_gallery || '' });
+      setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '', tags: p.tags || [], image_gallery: p.image_gallery || '', video_gallery: p.video_gallery || '', theme_color: p.theme_color || '#39FF14' });
   };
 
   const generateTechnicalSheet = async (p: any, bulkDoc?: jsPDF, format: 'list' | 'table' = 'list') => {
       const doc = bulkDoc || new jsPDF();
       
-      const themeColor: [number, number, number] = [57, 255, 20];
+      const hexToRgb = (hex: string): [number, number, number] => {
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+          return result ? [
+            parseInt(result[1], 16),
+            parseInt(result[2], 16),
+            parseInt(result[3], 16)
+          ] : [57, 255, 20];
+      };
+      const themeColor: [number, number, number] = hexToRgb(p.theme_color || '#39FF14');
       const bgLight: [number, number, number] = [248, 249, 250];
+      const borderColor: [number, number, number] = [229, 231, 235];
       
-      doc.setFillColor(themeColor[0], themeColor[1], themeColor[2]);
-      doc.rect(0, 0, 210, 4, 'F');
+      const stripEmojis = (str: string) => str ? str.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim() : '';
       
       doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
+      doc.setTextColor(60, 60, 60);
       doc.setFont("helvetica", "bold");
       doc.text("FICHE TECHNIQUE PRODUIT", 14, 15);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Réf : ${p.id ? 'SKU-' + String(p.id).padStart(5, '0') : 'N/A'}`, 14, 20);
-      doc.text(`Mise à jour : ${new Date().toLocaleDateString('fr-FR')}`, 196, 15, { align: 'right' });
       
-      doc.setFontSize(26);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Mise a jour : ${new Date().toLocaleDateString('fr-FR')}`, 196, 15, { align: 'right' });
+      
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Ref : ${p.id ? 'SKU-' + String(p.id).padStart(5, '0') : 'N/A'}`, 14, 20);
+      
+      doc.setFontSize(24);
       doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
-      const titleLines = doc.splitTextToSize((p.name || 'Produit Sans Nom').toUpperCase(), 182);
+      const cleanName = stripEmojis(p.name || 'Produit Sans Nom').toUpperCase();
+      const titleLines = doc.splitTextToSize(cleanName, 182);
       doc.text(titleLines, 14, 32);
       
       let currentY = 36 + (titleLines.length - 1) * 10;
       
       doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
-      doc.roundedRect(14, currentY, 182, 25, 3, 3, 'F');
+      doc.roundedRect(14, currentY, 182, 20, 2, 2, 'F');
       doc.setFontSize(11);
       doc.setFont("helvetica", "italic");
       doc.setTextColor(60, 60, 60);
-      const rawDesc = p.description || "Équipement de haute qualité conçu pour optimiser vos opérations. Durabilité et performance garanties.";
-      const abstract = rawDesc.split('\n')[0].substring(0, 140) + (rawDesc.length > 140 ? '...' : '');
-      doc.text(doc.splitTextToSize(`"${abstract}"`, 174), 18, currentY + 8);
+      const rawDesc = stripEmojis(p.description || "Equipement de haute qualite concu pour optimiser vos operations.");
+      const abstract = rawDesc.split('\n')[0].substring(0, 150) + (rawDesc.length > 150 ? '...' : '');
+      doc.text(doc.splitTextToSize(`"${abstract}"`, 174), 18, currentY + 7);
       
-      currentY += 35;
+      currentY += 28;
       
       if (p.image_url) {
           try {
@@ -477,7 +492,7 @@ export default function CRMCatalogPage() {
               img.src = p.image_url;
               await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
               doc.addImage(img, 'JPEG', 14, currentY, 85, 85);
-              doc.setDrawColor(230, 230, 230);
+              doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
               doc.roundedRect(14, currentY, 85, 85, 2, 2, 'S');
           } catch (e) {
               doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
@@ -494,7 +509,8 @@ export default function CRMCatalogPage() {
               const img1 = new Image(); img1.crossOrigin = "Anonymous"; img1.src = galleryArray[0];
               await new Promise((res, rej) => { img1.onload = res; img1.onerror = rej; });
               doc.addImage(img1, 'JPEG', 14, currentY + 90, 40, 40);
-              doc.setDrawColor(230, 230, 230); doc.roundedRect(14, currentY + 90, 40, 40, 2, 2, 'S');
+              doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]); 
+              doc.roundedRect(14, currentY + 90, 40, 40, 2, 2, 'S');
           } catch(e) {}
       }
       if (galleryArray.length > 1) {
@@ -502,105 +518,90 @@ export default function CRMCatalogPage() {
               const img2 = new Image(); img2.crossOrigin = "Anonymous"; img2.src = galleryArray[1];
               await new Promise((res, rej) => { img2.onload = res; img2.onerror = rej; });
               doc.addImage(img2, 'JPEG', 59, currentY + 90, 40, 40);
-              doc.setDrawColor(230, 230, 230); doc.roundedRect(59, currentY + 90, 40, 40, 2, 2, 'S');
+              doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]); 
+              doc.roundedRect(59, currentY + 90, 40, 40, 2, 2, 'S');
           } catch(e) {}
       }
       
-      let rightY = currentY + 5;
+      let rightY = currentY;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
       
       doc.setFillColor(0, 0, 0);
       doc.setTextColor(255, 255, 255);
-      doc.roundedRect(110, rightY - 5, 45, 8, 1, 1, 'F');
-      doc.text(String(p.category || 'Standard').toUpperCase().substring(0, 20), 112, rightY);
+      const catText = stripEmojis(String(p.category || 'Standard').toUpperCase()).substring(0, 20);
+      doc.roundedRect(110, rightY, 40, 8, 1, 1, 'F');
+      doc.text(catText, 114, rightY + 5.5);
       
       doc.setFillColor(themeColor[0], themeColor[1], themeColor[2]);
-      doc.setTextColor(0, 0, 0);
-      doc.roundedRect(160, rightY - 5, 36, 8, 1, 1, 'F');
-      doc.text(`${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA`, 162, rightY);
+      doc.setTextColor(255, 255, 255);
+      const priceText = `${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA`;
+      doc.roundedRect(154, rightY, 42, 8, 1, 1, 'F');
+      doc.text(priceText, 158, rightY + 5.5);
       
-      rightY += 15;
+      rightY += 14;
       
-      doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
-      doc.roundedRect(110, rightY, 86, 8, 1, 1, 'F');
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.text("CARACTÉRISTIQUES TECHNIQUES", 114, rightY + 5.5);
+      const tableRows: any[] = [];
+      rawDesc.split('\n').forEach((line: string) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.toLowerCase().startsWith('caracteristiques') || trimmed.toLowerCase() === 'details :') return;
+          let cleanLine = trimmed.replace(/^[-•*]\s*/, '').trim();
+          if (cleanLine.includes(':')) {
+              const [key, ...rest] = cleanLine.split(':');
+              tableRows.push([key.trim(), rest.join(':').trim()]);
+          } else if (cleanLine.length > 2) {
+              tableRows.push(['Info', cleanLine]);
+          }
+      });
       
-      rightY += 15;
-      if (format === 'table') {
-          const tableRows: any[] = [];
-          rawDesc.split('\n').forEach((line: string) => {
-              const trimmed = line.trim();
-              if (!trimmed) return;
-              if (trimmed.includes(':')) {
-                  const [key, ...rest] = trimmed.split(':');
-                  tableRows.push([key.trim(), rest.join(':').trim()]);
-              } else if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
-                  tableRows.push(['Info', trimmed.replace(/^[-•]\s*/, '').trim()]);
-              } else {
-                  tableRows.push([trimmed, '']);
-              }
-          });
-          if (tableRows.length > 0) {
-              autoTable(doc, {
-                  startY: rightY,
-                  margin: { left: 110, right: 14 },
-                  body: tableRows,
-                  theme: 'grid',
-                  styles: { fontSize: 8, textColor: [40, 40, 40], cellPadding: 2 },
-                  columnStyles: { 0: { fontStyle: 'bold', fillColor: bgLight, cellWidth: 30 } }
-              });
+      if (tableRows.length === 0) {
+         tableRows.push(['Description', abstract]);
+      }
+
+      autoTable(doc, {
+          startY: rightY,
+          margin: { left: 110, right: 14 },
+          body: tableRows,
+          theme: 'grid',
+          head: [[{ content: 'CARACTERISTIQUES TECHNIQUES', colSpan: 2, styles: { halign: 'center', fillColor: bgLight, textColor: [0,0,0], fontStyle: 'bold' } }]],
+          styles: { fontSize: 8, textColor: [40, 40, 40], cellPadding: 3, lineColor: borderColor, lineWidth: 0.1 },
+          columnStyles: { 0: { fontStyle: 'bold', cellWidth: 30 } }
+      });
+      
+      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+      doc.line(14, 255, 196, 255);
+      
+      let footerY = 265;
+      if (crmSettings?.logo_url) {
+          try {
+              const img = new Image();
+              img.crossOrigin = "Anonymous";
+              img.src = crmSettings.logo_url;
+              await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+              const aspect = img.width / img.height;
+              const h = 12;
+              const w = h * aspect;
+              doc.addImage(img, 'PNG', 105 - (w / 2), footerY, w, h);
+              footerY += 16;
+          } catch(e) {
+              footerY += 5;
           }
       } else {
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
-          doc.setTextColor(40, 40, 40);
-          
-          const descLinesRaw = doc.splitTextToSize(rawDesc, 80);
-          descLinesRaw.slice(0, 25).forEach((line: string) => {
-              if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
-                  doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
-                  doc.text("■", 110, rightY);
-                  doc.setTextColor(40, 40, 40);
-                  doc.text(line.replace(/^[-•]\s*/, ''), 114, rightY);
-              } else {
-                  doc.text(line, 110, rightY);
-              }
-              rightY += 6;
-          });
+          footerY += 5;
       }
       
-      doc.setDrawColor(220, 220, 220);
-      doc.line(14, 260, 196, 260);
-      
-      doc.setFontSize(8);
+      doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(0, 0, 0);
-      doc.text("📍 NOS SHOWROOMS : PIKINE TECHNOPOLE ET KEUR MASSAR", 14, 268);
+      doc.text("NOS SHOWROOMS : PIKINE TECHNOPOLE ET KEUR MASSAR", 105, footerY, { align: 'center' });
       
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
       doc.setTextColor(80, 80, 80);
-      doc.text("📞 76 223 74 40", 14, 274);
-      doc.text("✉️ CONTACT@CENTRALEQUIPEMENTS.COM", 14, 279);
-      doc.text("🌐 CENTRALEQUIPEMENTS.COM", 14, 284);
-      
-      if (p.video_gallery) {
-          try {
-              const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(p.video_gallery)}&margin=0`;
-              const qrImg = new Image(); qrImg.crossOrigin = "Anonymous"; qrImg.src = qrUrl;
-              await new Promise((res, rej) => { qrImg.onload = res; qrImg.onerror = rej; });
-              doc.addImage(qrImg, 'PNG', 170, 265, 20, 20);
-              doc.setFontSize(7);
-              doc.text("Scanner pour voir", 168, 288);
-              doc.text("la vidéo démo", 170, 292);
-          } catch(e) {}
-      }
+      doc.text("76 223 74 40 | CONTACT@CENTRALEQUIPEMENTS.COM | CENTRALEQUIPEMENTS.COM", 105, footerY + 5, { align: 'center' });
       
       if (!bulkDoc) {
-          doc.save(`Fiche_Technique_${(p.name || 'Produit').replace(/\s+/g, '_')}.pdf`);
+          doc.save(`Fiche_Technique_${(cleanName || 'Produit').replace(/\s+/g, '_')}.pdf`);
       }
   };
 
@@ -862,6 +863,7 @@ export default function CRMCatalogPage() {
               tags: product.tags,
               image_gallery: product.image_gallery,
               video_gallery: product.video_gallery,
+              theme_color: product.theme_color || '#39FF14',
               stock_status: product.stock_status,
               last_sold_date: new Date().toISOString()
           };
@@ -899,7 +901,7 @@ export default function CRMCatalogPage() {
       if (!editForm.name) return alert("Le nom du produit est requis.");
       setIsSavingEdit(true);
       try {
-          const payload = { name: editForm.name, category: editForm.category, subcategory: editForm.subcategory, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description, tags: editForm.tags, image_gallery: editForm.image_gallery, video_gallery: editForm.video_gallery };
+          const payload = { name: editForm.name, category: editForm.category, subcategory: editForm.subcategory, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description, tags: editForm.tags, image_gallery: editForm.image_gallery, video_gallery: editForm.video_gallery, theme_color: editForm.theme_color };
           if (isAddingProduct) {
               const { data, error } = await supabase.from('crm_products').insert([{ ...payload, tenant_id: tenantId, last_sold_date: new Date().toISOString() }]).select().single();
               if (error) throw error;
@@ -1777,9 +1779,13 @@ export default function CRMCatalogPage() {
             
             <div className="mb-6">
                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2 mb-2"><User size={14}/> Sélectionner un Client CRM</label>
-               <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold appearance-none cursor-pointer">
+               <div className="relative mb-2">
+                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                 <input type="text" placeholder="Rechercher un client (Nom, Téléphone)..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+               </div>
+               <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#39FF14] text-sm font-bold appearance-none cursor-pointer text-black dark:text-white">
                    <option value="">-- Choisir un client --</option>
-                   {clients.map(c => <option key={c.id} value={c.id}>{c.full_name} ({c.phone})</option>)}
+                   {clients.filter(c => !clientSearch || (c.full_name && c.full_name.toLowerCase().includes(clientSearch.toLowerCase())) || (c.phone && String(c.phone).includes(clientSearch))).map(c => <option key={c.id} value={c.id}>{c.full_name} ({c.phone})</option>)}
                </select>
             </div>
 
@@ -1794,6 +1800,13 @@ export default function CRMCatalogPage() {
                      <button onClick={() => handleQuantityChange(p.id, -1)} className="p-1 text-zinc-500 hover:text-black dark:hover:text-white transition"><Minus size={14}/></button>
                      <span className="font-black text-sm w-6 text-center">{quoteQuantities[p.id] || 1}</span>
                      <button onClick={() => handleQuantityChange(p.id, 1)} className="p-1 text-zinc-500 hover:text-black dark:hover:text-white transition"><Plus size={14}/></button>
+                  </div>
+                  <div>
+                      <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Couleur Fiche & Badges</label>
+                      <div className="flex items-center gap-3">
+                         <input type="color" value={editForm.theme_color || '#39FF14'} onChange={e => setEditForm({...editForm, theme_color: e.target.value})} className="w-12 h-12 rounded-xl cursor-pointer border-0 bg-transparent p-0" />
+                         <input type="text" value={editForm.theme_color || '#39FF14'} onChange={e => setEditForm({...editForm, theme_color: e.target.value})} className="flex-1 p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white uppercase" />
+                      </div>
                   </div>
                 </div>
               ))}
@@ -2120,10 +2133,12 @@ export default function CRMCatalogPage() {
                          <div>
                             <label className="text-[10px] font-bold uppercase text-zinc-500">URL Couverture (1ère page)</label>
                             <input type="url" value={catalogConfig.coverImage} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverImage: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="https://... (Optionnel)"/>
+                           {catalogConfig.coverImage && <img src={catalogConfig.coverImage} alt="Cover Preview" className="mt-2 w-full h-24 object-cover rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm" onError={(e:any) => e.target.style.display='none'} />}
                          </div>
                          <div>
                             <label className="text-[10px] font-bold uppercase text-zinc-500">URL Dos (Dernière page)</label>
                             <input type="url" value={catalogConfig.backCoverImage || ''} onChange={e => handleSaveCatalogConfig({...catalogConfig, backCoverImage: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="https://... (Optionnel)"/>
+                           {catalogConfig.backCoverImage && <img src={catalogConfig.backCoverImage} alt="Back Cover Preview" className="mt-2 w-full h-24 object-cover rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm" onError={(e:any) => e.target.style.display='none'} />}
                          </div>
                          <div>
                             <label className="text-[10px] font-bold uppercase text-zinc-500">URL Logo (Filigrane)</label>
