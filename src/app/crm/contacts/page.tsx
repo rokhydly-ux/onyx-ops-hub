@@ -81,11 +81,18 @@ export default function CRMContactsPage() {
                   
                   if (!contactId) return null; // On ignore si le contact n'est pas dans le CRM
 
+                  let rawTotal = row.total || row.Total || row.Montant || row.amount_total || 0;
+                  let parsedTotal = 0;
+                  if (rawTotal !== undefined && String(rawTotal).trim() !== '') {
+                      let strTotal = String(rawTotal).replace(/\s/g, '').replace(',', '.');
+                      parsedTotal = parseFloat(strTotal.replace(/[^0-9.-]+/g, '')) || 0;
+                  }
+
                   return {
                       id: row.id || row.Order_ID || `CSV-${Math.floor(Math.random() * 100000)}`,
                       contact_id: contactId,
                       tenant_id: tenantId,
-                      total: parseFloat(row.total || row.Total || row.Montant || 0),
+                      total: parsedTotal,
                       date: row.date || row.Date || new Date().toISOString(),
                       status: row.status || row.Status || 'Livré',
                       items: row.items || row.Items || row.Produits || 'Import CSV Odoo'
@@ -125,18 +132,30 @@ export default function CRMContactsPage() {
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
         
-      if (data && !error) {
-        // Ajout de fausses données Sparkline pour l'historique d'achat (Simulation)
-        const enhancedData = data.map(c => ({
-            ...c,
-            historyData: Array.from({ length: 6 }, () => Math.floor(Math.random() * 500000)),
-            totalSpent: Math.floor(Math.random() * 2000000)
-        }));
-        setContacts(enhancedData);
-      }
-      
       const { data: ordersData } = await supabase.from('crm_orders').select('*').eq('tenant_id', tenantId);
       if (ordersData) setAllOrders(ordersData);
+
+      if (data && !error) {
+        const enhancedData = data.map(c => {
+            const clientOrders = ordersData?.filter(o => o.contact_id === c.id || (o.customer_phone && o.customer_phone === c.phone)) || [];
+            const totalSpent = clientOrders.reduce((sum, o) => sum + (Number(o.total || o.total_amount) || 0), 0);
+            
+            let historyData = clientOrders
+              .sort((a,b) => new Date(a.date || a.created_at).getTime() - new Date(b.date || b.created_at).getTime())
+              .slice(-10)
+              .map(o => Number(o.total || o.total_amount) || 0);
+
+            if (historyData.length === 0) historyData = [0, 0];
+            else if (historyData.length === 1) historyData = [0, historyData[0]];
+
+            return {
+                ...c,
+                historyData,
+                totalSpent
+            };
+        });
+        setContacts(enhancedData);
+      }
 
       setIsLoading(false);
     };

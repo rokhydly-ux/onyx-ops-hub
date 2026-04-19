@@ -325,11 +325,32 @@ function CRMSettingsContent() {
             let unitPriceRaw = r['lignes de commande/prix unitaire'] || r['prix unitaire'] || r['unit price'];
             let unitPrice = 0;
             if (unitPriceRaw !== undefined && String(unitPriceRaw).trim() !== '') {
-                unitPrice = parseFloat(String(unitPriceRaw).replace(/[^0-9.-]+/g, '')) || 0;
+                let cleaned = String(unitPriceRaw).replace(/\s/g, '').replace(',', '.');
+                unitPrice = parseFloat(cleaned.replace(/[^0-9.-]+/g, '')) || 0;
             }
 
             const quantityRaw = r['lignes de commande/quantité'] || r['quantité'] || r['quantity'] || '1';
-            const quantity = parseFloat(String(quantityRaw).replace(/[^0-9.-]+/g, '')) || 1;
+            let quantity = 1;
+            if (quantityRaw !== undefined && String(quantityRaw).trim() !== '') {
+                let cleanedQty = String(quantityRaw).replace(/\s/g, '').replace(',', '.');
+                quantity = parseFloat(cleanedQty.replace(/[^0-9.-]+/g, '')) || 1;
+            }
+
+            let orderTotalRaw = r['total'] || r['amount_total'] || r['total ttc'] || r['montant total'];
+            let orderTotal = 0;
+            if (orderTotalRaw !== undefined && String(orderTotalRaw).trim() !== '') {
+                let strTotal = String(orderTotalRaw).replace(/\s/g, '').replace(',', '.');
+                orderTotal = parseFloat(strTotal.replace(/[^0-9.-]+/g, '')) || 0;
+            }
+
+            let lineSubtotalRaw = r['lignes de commande/sous-total'] || r['sous-total'] || r['lignes de commande/total'] || '';
+            let lineSubtotal = 0;
+            if (lineSubtotalRaw !== undefined && String(lineSubtotalRaw).trim() !== '') {
+                let strSubtotal = String(lineSubtotalRaw).replace(/\s/g, '').replace(',', '.');
+                lineSubtotal = parseFloat(strSubtotal.replace(/[^0-9.-]+/g, '')) || 0;
+            } else {
+                lineSubtotal = unitPrice * quantity;
+            }
 
             if (!ordersMap.has(ref)) {
               ordersMap.set(ref, {
@@ -339,14 +360,19 @@ function CRMSettingsContent() {
                 date: r['date de la commande'],
                 vendorName: r['vendeur'],
                 items: [],
-                total: 0
+                total: orderTotal || 0,
+                hasExplicitTotal: orderTotal > 0
               });
             }
 
             const order = ordersMap.get(ref);
             if (productName) {
               order.items.push({ name: productName, price: unitPrice, quantity });
-              order.total += (unitPrice * quantity);
+              if (!order.hasExplicitTotal) {
+                  order.total += lineSubtotal;
+              } else if (orderTotal > 0) {
+                  order.total = Math.max(order.total, orderTotal);
+              }
             }
           });
 
