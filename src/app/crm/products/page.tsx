@@ -1729,11 +1729,34 @@ export default function CRMCatalogPage() {
                     {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                     Télécharger PDF Fiche
                  </button>
-                 <button onClick={() => {
-                    const text = `Découvrez notre produit : *${viewingProduct.name}*\nPrix : ${(viewingProduct.unit_price || viewingProduct.price_ttc || 0).toLocaleString('fr-FR')} FCFA\n\n${viewingProduct.description || ''}`;
+                 <button onClick={async () => {
+                    const wantsPdf = window.confirm("Voulez-vous générer et joindre un lien vers la Fiche Technique PDF dans le message ?");
+                    let pdfUrl = "";
+                    if (wantsPdf) {
+                        const wantsTable = window.confirm("Afficher les caractéristiques sous forme de tableau dans le PDF ? (OK = Tableau, Annuler = Liste)");
+                        setIsGeneratingPdf(true);
+                        try {
+                            const doc = new jsPDF();
+                            await generateTechnicalSheet(viewingProduct, doc, wantsTable ? 'table' : 'list');
+                            const pdfBlob = doc.output('blob');
+                            const cleanName = viewingProduct.name ? viewingProduct.name.replace(/[^a-zA-Z0-9]/g, '_') : 'Produit';
+                            const fileName = `Fiche_Technique_${cleanName}_${Date.now()}.pdf`;
+                            const { error: uploadError } = await supabase.storage.from('tontines').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
+                            if (!uploadError) {
+                                const { data: urlData } = supabase.storage.from('tontines').getPublicUrl(fileName);
+                                pdfUrl = urlData.publicUrl;
+                            }
+                        } catch(e) {
+                            console.error("Erreur PDF:", e);
+                            alert("Erreur lors de la génération du PDF.");
+                        }
+                        setIsGeneratingPdf(false);
+                    }
+                    const text = `Découvrez notre produit : *${viewingProduct.name}*\nPrix : ${(viewingProduct.unit_price || viewingProduct.price_ttc || 0).toLocaleString('fr-FR')} FCFA\n\n${viewingProduct.description || ''}${pdfUrl ? `\n\n📄 *Fiche Technique détaillée :* ${pdfUrl}` : ''}`;
                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                 }} className="w-full bg-[#25D366] text-white py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg">
-                    <Send size={16} /> Envoyer via WhatsApp
+                 }} disabled={isGeneratingPdf} className="w-full bg-[#25D366] text-white py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
+                    {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} 
+                    {isGeneratingPdf ? "Génération PDF..." : "Envoyer via WhatsApp"}
                  </button>
               </div>
             </div>
