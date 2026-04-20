@@ -36,6 +36,8 @@ export default function CRMCatalogPage() {
   const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] as string[], image_gallery: '', video_gallery: '', theme_color: '#39FF14', bg_image_url: '' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
 
   // Studio Catalogue
   const [isCatalogStudioOpen, setIsCatalogStudioOpen] = useState(false);
@@ -57,7 +59,8 @@ export default function CRMCatalogPage() {
       coverImage: '',
       backCoverImage: '',
       logoUrl: '',
-      themeColor: '#39FF14'
+      themeColor: '#39FF14',
+      fontFamily: 'Helvetica'
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -660,7 +663,7 @@ export default function CRMCatalogPage() {
       }
   };
 
-  const generateStudioCatalog = async () => {
+  const generateStudioCatalog = async (isPreview = false) => {
       setIsGeneratingPdf(true);
       setPdfProgress(0);
       try {
@@ -696,6 +699,43 @@ export default function CRMCatalogPage() {
           };
           const themeRgb = hexToRgb(catalogConfig.themeColor || '#39FF14');
 
+          // Load Custom Font
+          const FONT_URLS: any = {
+              'Poppins': {
+                  normal: 'https://fonts.gstatic.com/s/poppins/v20/pxiEyp8kv8JHgFVrFJA.ttf',
+                  bold: 'https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLCz7Z11lEQ.ttf'
+              },
+              'Roboto': {
+                  normal: 'https://fonts.gstatic.com/s/roboto/v32/KFOmCnqEu92Fr1Me5Q.ttf',
+                  bold: 'https://fonts.gstatic.com/s/roboto/v32/KFOlCnqEu92Fr1MmWUlfBBc9.ttf'
+              },
+              'Playfair Display': {
+                  normal: 'https://fonts.gstatic.com/s/playfairdisplay/v30/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.ttf',
+                  bold: 'https://fonts.gstatic.com/s/playfairdisplay/v30/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKd3vXDXbtM.ttf'
+              }
+          };
+
+          let currentFont = "helvetica";
+          if (catalogConfig.fontFamily && FONT_URLS[catalogConfig.fontFamily]) {
+              try {
+                  const fontName = catalogConfig.fontFamily;
+                  const resNormal = await fetch(FONT_URLS[fontName].normal);
+                  const blobNormal = await resNormal.blob();
+                  const base64Normal = await new Promise<string>((resolve) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string).split(',')[1]); reader.readAsDataURL(blobNormal); });
+                  doc.addFileToVFS(`${fontName}-Regular.ttf`, base64Normal);
+                  doc.addFont(`${fontName}-Regular.ttf`, fontName, 'normal');
+
+                  const resBold = await fetch(FONT_URLS[fontName].bold);
+                  const blobBold = await resBold.blob();
+                  const base64Bold = await new Promise<string>((resolve) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string).split(',')[1]); reader.readAsDataURL(blobBold); });
+                  doc.addFileToVFS(`${fontName}-Bold.ttf`, base64Bold);
+                  doc.addFont(`${fontName}-Bold.ttf`, fontName, 'bold');
+                  
+                  currentFont = fontName;
+              } catch(e) { console.error("Font load error", e); }
+          }
+          doc.setFont(currentFont);
+
           doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
           doc.setFontSize(36);
           doc.text(catalogConfig.coverTitle.toUpperCase(), 105, 150, { align: 'center' });
@@ -720,10 +760,10 @@ export default function CRMCatalogPage() {
               doc.setFontSize(12);
               for (const [cat, prods] of Object.entries(grouped) as [string, any[]][]) {
                   if (y > 270) { doc.addPage(); y = 20; }
-                  doc.setFont("helvetica", "bold");
+                  doc.setFont(currentFont, "bold");
                   doc.text(cat.toUpperCase(), 14, y);
                   y += 8;
-                  doc.setFont("helvetica", "normal");
+                  doc.setFont(currentFont, "normal");
                   for (const p of prods) {
                       if (y > 280) { doc.addPage(); y = 20; }
                       doc.text(`• ${p.name}`, 20, y);
@@ -793,12 +833,12 @@ export default function CRMCatalogPage() {
                   
                   doc.setTextColor(0, 0, 0);
                   doc.setFontSize(11);
-                  doc.setFont("helvetica", "bold");
+                  doc.setFont(currentFont, "bold");
                   const titleLines = doc.splitTextToSize(p.name || 'Produit', colWidth);
                   doc.text(titleLines.slice(0, 2), x, y + 52);
                   
                   doc.setFontSize(9);
-                  doc.setFont("helvetica", "normal");
+                  doc.setFont(currentFont, "normal");
                   doc.setTextColor(100, 100, 100);
                   doc.text(`${p.category || ''} ${p.subcategory ? ' - ' + p.subcategory : ''}`, x, y + 60);
                   
@@ -813,7 +853,7 @@ export default function CRMCatalogPage() {
                   const brightness = Math.round(((themeRgb[0] * 299) + (themeRgb[1] * 587) + (themeRgb[2] * 114)) / 1000);
                   doc.setTextColor(brightness > 125 ? 0 : 255, brightness > 125 ? 0 : 255, brightness > 125 ? 0 : 255);
                   doc.setFontSize(10);
-                  doc.setFont("helvetica", "bold");
+                  doc.setFont(currentFont, "bold");
                   doc.text(`${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA`, x + 3, y + 78.5);
               }
               setPdfProgress(Math.round(((i + productsPerPage) / selectedProducts.length) * 100));
@@ -831,7 +871,14 @@ export default function CRMCatalogPage() {
               } catch(e) { console.warn("Erreur image dos", e); }
           }
 
-          doc.save(`Catalogue_${catalogConfig.coverTitle.replace(/\s+/g, '_')}.pdf`);
+          if (isPreview) {
+              const pdfBlob = doc.output('blob');
+              const url = URL.createObjectURL(pdfBlob);
+              setPreviewPdfUrl(url);
+              setIsPreviewModalOpen(true);
+          } else {
+              doc.save(`Catalogue_${catalogConfig.coverTitle.replace(/\s+/g, '_')}.pdf`);
+          }
       } catch(e) {
           console.error(e);
           alert("Erreur lors de la génération du catalogue PDF.");
@@ -2207,11 +2254,22 @@ export default function CRMCatalogPage() {
                                  <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1 block">Titre Couverture</label>
                                  <input type="text" value={catalogConfig.coverTitle} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverTitle: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" placeholder="Catalogue 2026"/>
                              </div>
-                             <div>
-                                 <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1 block">Couleur Thème Catalogue</label>
-                                 <div className="flex items-center gap-2">
-                                     <input type="color" value={catalogConfig.themeColor || '#39FF14'} onChange={e => handleSaveCatalogConfig({...catalogConfig, themeColor: e.target.value})} className="w-12 h-11 rounded-xl cursor-pointer border-0 p-0 bg-transparent" />
-                                     <input type="text" value={catalogConfig.themeColor || '#39FF14'} onChange={e => handleSaveCatalogConfig({...catalogConfig, themeColor: e.target.value})} className="flex-1 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white uppercase" />
+                             <div className="grid grid-cols-2 gap-2">
+                                 <div>
+                                     <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1 block">Couleur Thème</label>
+                                     <div className="flex items-center gap-2">
+                                         <input type="color" value={catalogConfig.themeColor || '#39FF14'} onChange={e => handleSaveCatalogConfig({...catalogConfig, themeColor: e.target.value})} className="w-12 h-11 rounded-xl cursor-pointer border-0 p-0 bg-transparent" />
+                                         <input type="text" value={catalogConfig.themeColor || '#39FF14'} onChange={e => handleSaveCatalogConfig({...catalogConfig, themeColor: e.target.value})} className="flex-1 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white uppercase" />
+                                     </div>
+                                 </div>
+                                 <div>
+                                     <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1 block">Police (Google Fonts)</label>
+                                     <select value={catalogConfig.fontFamily || 'Helvetica'} onChange={e => handleSaveCatalogConfig({...catalogConfig, fontFamily: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white cursor-pointer">
+                                         <option value="Helvetica">Helvetica (Standard)</option>
+                                         <option value="Poppins">Poppins</option>
+                                         <option value="Roboto">Roboto</option>
+                                         <option value="Playfair Display">Playfair Display</option>
+                                     </select>
                                  </div>
                              </div>
                          </div>
@@ -2397,7 +2455,10 @@ export default function CRMCatalogPage() {
                       }} disabled={selectedIds.size === 0} className="flex-1 bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-md disabled:opacity-50">
                          <Link size={16}/> Lien Web
                       </button>
-                      <button onClick={generateStudioCatalog} disabled={isGeneratingPdf || selectedIds.size === 0} className="relative overflow-hidden flex-1 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
+                      <button onClick={() => generateStudioCatalog(true)} disabled={isGeneratingPdf || selectedIds.size === 0} className="flex-1 bg-blue-500 text-white py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
+                         <Eye size={16}/> Aperçu PDF
+                      </button>
+                      <button onClick={() => generateStudioCatalog(false)} disabled={isGeneratingPdf || selectedIds.size === 0} className="relative overflow-hidden flex-1 bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50">
                          {isGeneratingPdf && <div className="absolute inset-y-0 left-0 bg-black/20 transition-all duration-300" style={{ width: `${pdfProgress}%` }} />}
                          <span className="relative z-10 flex items-center gap-2">
                             {isGeneratingPdf ? <Loader2 size={16} className="animate-spin"/> : <Download size={16}/>}
@@ -2485,6 +2546,28 @@ export default function CRMCatalogPage() {
              )}
            </div>
         </div>
+      )}
+
+      {/* MODALE APERÇU PDF */}
+      {isPreviewModalOpen && previewPdfUrl && (
+          <div id="pdf-preview-overlay" onClick={(e: any) => { if(e.target.id === 'pdf-preview-overlay') { setIsPreviewModalOpen(false); URL.revokeObjectURL(previewPdfUrl); setPreviewPdfUrl(null); } }} className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl overflow-hidden relative">
+                  <div className="p-4 bg-black flex justify-between items-center border-b border-zinc-800">
+                      <h3 className="text-white font-black uppercase tracking-widest text-sm flex items-center gap-2"><Eye size={16}/> Aperçu du Catalogue</h3>
+                      <div className="flex gap-2">
+                          <button onClick={() => { const a = document.createElement('a'); a.href = previewPdfUrl; a.download = `Catalogue_${catalogConfig.coverTitle.replace(/\s+/g, '_')}_Apercu.pdf`; a.click(); }} className="px-4 py-2 bg-[#39FF14] text-black rounded-lg text-xs font-black uppercase hover:bg-white transition-colors flex items-center gap-2">
+                              <Download size={14} /> Télécharger
+                          </button>
+                          <button onClick={() => { setIsPreviewModalOpen(false); URL.revokeObjectURL(previewPdfUrl); setPreviewPdfUrl(null); }} className="p-2 text-zinc-400 hover:text-white transition-colors bg-zinc-800 rounded-lg">
+                              <X size={16} />
+                          </button>
+                      </div>
+                  </div>
+                  <div className="flex-1 w-full bg-zinc-800">
+                      <iframe src={previewPdfUrl} className="w-full h-full border-0" title="Aperçu PDF"></iframe>
+                  </div>
+              </div>
+          </div>
       )}
 
        {/* TOAST NOTIFICATION TEMPS RÉEL */}
