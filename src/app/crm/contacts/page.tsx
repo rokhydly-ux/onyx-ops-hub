@@ -264,6 +264,63 @@ export default function CRMContactsPage() {
       }
   };
 
+  // --- MOTEUR IA LIKA : GÉNÉRATION DYNAMIQUE D'OPPORTUNITÉS ---
+  const getLikaInsights = (contact: any, orders: any[]) => {
+      if (!contact) return [];
+      const insights: any[] = [];
+      const totalSpent = contact.totalSpent || 0;
+      
+      if (orders.length === 0) {
+          insights.push({
+              type: 'prospect', color: 'blue', icon: Sparkles, title: 'Transformation Premier Achat',
+              desc: `Ce contact est un prospect chaud (${contact.target_segment || 'Non segmenté'}). Envoyez-lui un échantillon gratuit ou une offre de bienvenue irrésistible.`,
+              action: `Bonjour ${contact.full_name}, pour vous souhaiter la bienvenue...`
+          });
+          return insights;
+      }
+
+      // 1. Analyse de Récence (Reconquête)
+      const lastOrder = orders.sort((a,b) => new Date(b.order_date || b.created_at).getTime() - new Date(a.order_date || a.created_at).getTime())[0];
+      const daysSinceLastOrder = Math.floor((new Date().getTime() - new Date(lastOrder.order_date || lastOrder.created_at).getTime()) / (1000 * 3600 * 24));
+      
+      if (daysSinceLastOrder > 60) {
+          insights.push({
+              type: 'churn', color: 'orange', icon: Clock, title: 'Risque de Churn (Reconquête)',
+              desc: `Dernier achat il y a ${daysSinceLastOrder} jours. Le client se refroidit. Proposez une remise agressive pour le réactiver.`,
+              action: `Bonjour ${contact.full_name}, vous nous manquez ! Voici -15% sur votre prochaine commande.`
+          });
+      }
+
+      // 2. Analyse de Montant (Upsell VIP)
+      if (totalSpent > 500000) {
+          insights.push({
+              type: 'vip', color: 'purple', icon: Star, title: 'Upsell VIP (Client Haute Valeur)',
+              desc: `Ce client a généré ${totalSpent.toLocaleString('fr-FR')} F de CA. Il est prêt pour vos offres "High-Ticket" ou vos abonnements Premium.`,
+              action: `Bonjour ${contact.full_name}, en tant que client privilégié, j'aimerais vous présenter notre gamme Premium...`
+          });
+      }
+
+      // 3. Cross-sell basé sur les achats (Logique simplifiée)
+      const allItemsString = orders.map(o => typeof o.items === 'string' ? o.items.toLowerCase() : JSON.stringify(o.items).toLowerCase()).join(' ');
+      
+      if (allItemsString.includes('four') && !allItemsString.includes('pétrin')) {
+          insights.push({
+              type: 'cross-sell', color: 'green', icon: ShoppingBag, title: 'Cross-Sell Détecté',
+              desc: `Le client a acheté un équipement de cuisson mais manque de matériel de préparation (ex: Pétrin). Proposez un bundle complémentaire.`,
+              action: `Bonjour ${contact.full_name}, suite à votre achat de four, saviez-vous que notre pétrin industriel augmenterait votre rendement de 30% ?`
+          });
+      }
+
+      if (insights.length === 0) {
+          insights.push({
+              type: 'nurture', color: 'zinc', icon: Wand2, title: 'Nurturing Standard',
+              desc: `Client régulier en bonne santé. Maintenez le contact en lui envoyant votre dernier catalogue.`,
+              action: `Bonjour ${contact.full_name}, découvrez nos dernières nouveautés dans notre nouveau catalogue !`
+          });
+      }
+      return insights;
+  };
+
   // --- CALCULS AVANCÉS POUR LE DASHBOARD ---
   const filteredOrders = React.useMemo(() => {
       if (dateFilter === 'all') return allOrders;
@@ -798,22 +855,26 @@ export default function CRMContactsPage() {
 
                 {contactTab === 'lika' && (
                  <div className="space-y-4 animate-in fade-in">
-                    <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 p-5 rounded-2xl flex flex-col sm:flex-row items-start gap-4">
-                        <div className="bg-purple-500/20 p-3 rounded-xl text-purple-600 dark:text-purple-400 shrink-0"><Sparkles size={24}/></div>
-                        <div>
-                            <h4 className="font-black text-sm uppercase mb-1 text-black dark:text-white">Offre Ultra-Alléchante (Sur-mesure)</h4>
-                            <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium mb-4 leading-relaxed">Lika a analysé ce profil (Segment : <strong className="text-black dark:text-white">{selectedContact.target_segment || 'Client Standard'}</strong>). Proposez un bundle exclusif pour maximiser la LTV.</p>
-                            <button onClick={() => window.open(`https://wa.me/${selectedContact.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour ${selectedContact.full_name}, nous avons une offre exclusive rien que pour vous aujourd'hui...`)}`, '_blank')} className="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Faire l'offre WhatsApp</button>
-                        </div>
-                    </div>
-                    <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 p-5 rounded-2xl flex flex-col sm:flex-row items-start gap-4">
-                        <div className="bg-orange-500/20 p-3 rounded-xl text-orange-600 dark:text-orange-400 shrink-0"><Clock size={24}/></div>
-                        <div>
-                            <h4 className="font-black text-sm uppercase mb-1 text-black dark:text-white">Reconquête (Client Froid)</h4>
-                            <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium mb-4 leading-relaxed">Ce contact n'a pas commandé ou interagi récemment. Envoyez une relance douce accompagnée d'un cadeau (ex: livraison gratuite).</p>
-                            <button onClick={() => window.open(`https://wa.me/${selectedContact.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour ${selectedContact.full_name}, vous nous manquez ! Voici un petit cadeau pour votre prochain achat chez nous...`)}`, '_blank')} className="bg-orange-500 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto">Relancer maintenant</button>
-                        </div>
-                    </div>
+                    {getLikaInsights(selectedContact, contactOrders).map((insight, idx) => {
+                        const Icon = insight.icon;
+                        return (
+                            <div key={idx} className={`bg-${insight.color}-50 dark:bg-${insight.color}-500/10 border border-${insight.color}-200 dark:border-${insight.color}-500/20 p-5 rounded-2xl flex flex-col sm:flex-row items-start gap-4`}>
+                                <div className={`bg-${insight.color}-500/20 p-3 rounded-xl text-${insight.color}-600 dark:text-${insight.color}-400 shrink-0`}>
+                                    <Icon size={24}/>
+                                </div>
+                                <div>
+                                    <h4 className="font-black text-sm uppercase mb-1 text-black dark:text-white">{insight.title}</h4>
+                                    <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium mb-4 leading-relaxed whitespace-pre-wrap">{insight.desc}</p>
+                                    <button 
+                                        onClick={() => window.open(`https://wa.me/${selectedContact.phone.replace(/\D/g, '')}?text=${encodeURIComponent(insight.action)}`, '_blank')} 
+                                        className={`bg-${insight.color === 'zinc' ? 'black' : insight.color + '-600'} text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform shadow-md w-full sm:w-auto`}
+                                    >
+                                        Exécuter la campagne
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
                  </div>
                 )}
              </div>
