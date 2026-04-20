@@ -33,7 +33,7 @@ export default function CRMCatalogPage() {
   const [aiCampaigns, setAiCampaigns] = useState<any[]>([]);
   
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] as string[], image_gallery: '', video_gallery: '', theme_color: '#39FF14' });
+  const [editForm, setEditForm] = useState({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [] as string[], image_gallery: '', video_gallery: '', theme_color: '#39FF14', bg_image_url: '' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -56,9 +56,28 @@ export default function CRMCatalogPage() {
       logoSize: 80,
       coverImage: '',
       backCoverImage: '',
-      logoUrl: ''
+      logoUrl: '',
+      themeColor: '#39FF14'
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const handleStudioImageUpload = async (file: File, field: string) => {
+      setIsUploadingImage(true);
+      try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `studio_${field}_${Date.now()}.${fileExt}`;
+          const { error } = await supabase.storage.from('tontines').upload(fileName, file, { contentType: file.type });
+          if (error) throw error;
+          const { data } = supabase.storage.from('tontines').getPublicUrl(fileName);
+          handleSaveCatalogConfig({ ...catalogConfig, [field]: data.publicUrl });
+      } catch (err: any) {
+          alert("Erreur lors de l'upload : " + err.message);
+      } finally {
+          setIsUploadingImage(false);
+      }
+  };
 
   useEffect(() => {
       if (viewingProduct) {
@@ -425,19 +444,29 @@ export default function CRMCatalogPage() {
 
   const handleOpenAdd = () => {
       setEditingProduct(null);
-      setEditForm({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [], image_gallery: '', video_gallery: '', theme_color: '#39FF14' });
+      setEditForm({ name: '', category: '', subcategory: '', unit_price: 0, image_url: '', description: '', tags: [], image_gallery: '', video_gallery: '', theme_color: '#39FF14', bg_image_url: '' });
       setIsAddingProduct(true);
   };
 
   const handleOpenEdit = (p: any) => {
       setEditingProduct(p);
       setIsAddingProduct(false);
-      setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '', tags: p.tags || [], image_gallery: p.image_gallery || '', video_gallery: p.video_gallery || '', theme_color: p.theme_color || '#39FF14' });
+      setEditForm({ name: p.name || '', category: p.category || '', subcategory: p.subcategory || '', unit_price: p.unit_price || p.price_ttc || 0, image_url: p.image_url || '', description: p.description || '', tags: p.tags || [], image_gallery: p.image_gallery || '', video_gallery: p.video_gallery || '', theme_color: p.theme_color || '#39FF14', bg_image_url: p.bg_image_url || '' });
   };
 
   const generateTechnicalSheet = async (p: any, bulkDoc?: jsPDF, format: 'list' | 'table' = 'list') => {
       const doc = bulkDoc || new jsPDF();
       
+      if (p.bg_image_url) {
+          try {
+              const bgImg = new Image();
+              bgImg.crossOrigin = "Anonymous";
+              bgImg.src = p.bg_image_url;
+              await new Promise((resolve, reject) => { bgImg.onload = resolve; bgImg.onerror = reject; });
+              doc.addImage(bgImg, 'JPEG', 0, 0, 210, 297);
+          } catch(e) { console.warn("Erreur chargement fond", e); }
+      }
+
       const hexToRgb = (hex: string): [number, number, number] => {
           const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
           return result ? [
@@ -661,7 +690,13 @@ export default function CRMCatalogPage() {
               } catch(e) { console.warn("Erreur logo", e); }
           }
           
-          doc.setTextColor(57, 255, 20);
+          const hexToRgb = (hex: string): [number, number, number] => {
+              const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+              return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [57, 255, 20];
+          };
+          const themeRgb = hexToRgb(catalogConfig.themeColor || '#39FF14');
+
+          doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
           doc.setFontSize(36);
           doc.text(catalogConfig.coverTitle.toUpperCase(), 105, 150, { align: 'center' });
           doc.setTextColor(255, 255, 255);
@@ -772,7 +807,7 @@ export default function CRMCatalogPage() {
 
                   doc.setFontSize(12);
                   doc.setFont("helvetica", "bold");
-                  doc.setTextColor(0, 0, 0); 
+                  doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]); 
                   doc.text(`${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F CFA`, x, y + 78);
               }
               setPdfProgress(Math.round(((i + productsPerPage) / selectedProducts.length) * 100));
@@ -864,6 +899,7 @@ export default function CRMCatalogPage() {
               image_gallery: product.image_gallery,
               video_gallery: product.video_gallery,
               theme_color: product.theme_color || '#39FF14',
+              bg_image_url: product.bg_image_url || '',
               stock_status: product.stock_status,
               last_sold_date: new Date().toISOString()
           };
@@ -901,7 +937,7 @@ export default function CRMCatalogPage() {
       if (!editForm.name) return alert("Le nom du produit est requis.");
       setIsSavingEdit(true);
       try {
-          const payload = { name: editForm.name, category: editForm.category, subcategory: editForm.subcategory, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description, tags: editForm.tags, image_gallery: editForm.image_gallery, video_gallery: editForm.video_gallery, theme_color: editForm.theme_color };
+          const payload = { name: editForm.name, category: editForm.category, subcategory: editForm.subcategory, unit_price: editForm.unit_price, price_ttc: editForm.unit_price, image_url: editForm.image_url, description: editForm.description, tags: editForm.tags, image_gallery: editForm.image_gallery, video_gallery: editForm.video_gallery, theme_color: editForm.theme_color, bg_image_url: editForm.bg_image_url };
           if (isAddingProduct) {
               const { data, error } = await supabase.from('crm_products').insert([{ ...payload, tenant_id: tenantId, last_sold_date: new Date().toISOString() }]).select().single();
               if (error) throw error;
@@ -1801,13 +1837,6 @@ export default function CRMCatalogPage() {
                      <span className="font-black text-sm w-6 text-center">{quoteQuantities[p.id] || 1}</span>
                      <button onClick={() => handleQuantityChange(p.id, 1)} className="p-1 text-zinc-500 hover:text-black dark:hover:text-white transition"><Plus size={14}/></button>
                   </div>
-                  <div>
-                      <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Couleur Fiche & Badges</label>
-                      <div className="flex items-center gap-3">
-                         <input type="color" value={editForm.theme_color || '#39FF14'} onChange={e => setEditForm({...editForm, theme_color: e.target.value})} className="w-12 h-12 rounded-xl cursor-pointer border-0 bg-transparent p-0" />
-                         <input type="text" value={editForm.theme_color || '#39FF14'} onChange={e => setEditForm({...editForm, theme_color: e.target.value})} className="flex-1 p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white uppercase" />
-                      </div>
-                  </div>
                 </div>
               ))}
             </div>
@@ -1930,6 +1959,19 @@ export default function CRMCatalogPage() {
                   <div>
                       <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Prix Unitaire (F CFA)</label>
                       <input type="number" value={editForm.unit_price} onChange={e => setEditForm({...editForm, unit_price: Number(e.target.value)})} className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                      <div>
+                          <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Couleur Thème Fiche</label>
+                          <div className="flex items-center gap-3">
+                             <input type="color" value={editForm.theme_color || '#39FF14'} onChange={e => setEditForm({...editForm, theme_color: e.target.value})} className="w-12 h-12 rounded-xl cursor-pointer border-0 bg-transparent p-0" />
+                             <input type="text" value={editForm.theme_color || '#39FF14'} onChange={e => setEditForm({...editForm, theme_color: e.target.value})} className="flex-1 p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white uppercase" />
+                          </div>
+                      </div>
+                      <div>
+                          <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Fond PDF (URL)</label>
+                          <input type="url" value={editForm.bg_image_url || ''} onChange={e => setEditForm({...editForm, bg_image_url: e.target.value})} placeholder="https://..." className="w-full p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" />
+                      </div>
                   </div>
                 </div>
                 
@@ -2125,42 +2167,102 @@ export default function CRMCatalogPage() {
                       {isStudioDesignOpen ? <ChevronUp size={16} className="text-zinc-500"/> : <ChevronDown size={16} className="text-zinc-500"/>}
                    </button>
                    {isStudioDesignOpen && ( // NOTE: This section was correct, just providing context for the change below
-                      <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-white dark:bg-zinc-950">
-                         <div>
-                            <label className="text-[10px] font-bold uppercase text-zinc-500">Titre Couverture</label>
-                            <input type="text" value={catalogConfig.coverTitle} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverTitle: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="Catalogue 2026"/>
+                      <div className="p-6 bg-white dark:bg-zinc-950 flex flex-col gap-6 relative">
+                         {isUploadingImage && (
+                             <div className="absolute inset-0 z-50 bg-white/50 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center rounded-b-2xl">
+                                 <div className="flex flex-col items-center gap-2 text-black dark:text-white font-black uppercase text-xs tracking-widest"><Loader2 size={24} className="animate-spin text-[#39FF14]" /> Upload en cours...</div>
+                             </div>
+                         )}
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div>
+                                 <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1 block">Titre Couverture</label>
+                                 <input type="text" value={catalogConfig.coverTitle} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverTitle: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white" placeholder="Catalogue 2026"/>
+                             </div>
+                             <div>
+                                 <label className="text-[10px] font-bold uppercase text-zinc-500 mb-1 block">Couleur Thème Catalogue</label>
+                                 <div className="flex items-center gap-2">
+                                     <input type="color" value={catalogConfig.themeColor || '#39FF14'} onChange={e => handleSaveCatalogConfig({...catalogConfig, themeColor: e.target.value})} className="w-12 h-11 rounded-xl cursor-pointer border-0 p-0 bg-transparent" />
+                                     <input type="text" value={catalogConfig.themeColor || '#39FF14'} onChange={e => handleSaveCatalogConfig({...catalogConfig, themeColor: e.target.value})} className="flex-1 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold outline-none focus:border-[#39FF14] text-black dark:text-white uppercase" />
+                                 </div>
+                             </div>
                          </div>
-                         <div>
-                            <label className="text-[10px] font-bold uppercase text-zinc-500">URL Couverture (1ère page)</label>
-                            <input type="url" value={catalogConfig.coverImage} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverImage: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="https://... (Optionnel)"/>
-                           {catalogConfig.coverImage && <img src={catalogConfig.coverImage} alt="Cover Preview" className="mt-2 w-full h-24 object-cover rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm" onError={(e:any) => e.target.style.display='none'} />}
+                 
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                             <div 
+                                 onDragOver={(e) => e.preventDefault()} 
+                                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('image/')) handleStudioImageUpload(f, 'coverImage'); }}
+                                 className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors overflow-hidden group h-32"
+                             >
+                                 <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleStudioImageUpload(e.target.files[0], 'coverImage')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
+                                 {catalogConfig.coverImage ? (
+                                     <>
+                                         <img src={catalogConfig.coverImage} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-20 transition-opacity" />
+                                         <span className="relative z-10 text-xs font-bold text-black dark:text-white bg-white/90 dark:bg-black/90 px-3 py-1.5 rounded-lg backdrop-blur-sm shadow-sm">Couverture (Modifier)</span>
+                                     </>
+                                 ) : (
+                                     <>
+                                         <ImagePlus size={24} className="text-zinc-400 mb-2 group-hover:text-[#39FF14] transition-colors" />
+                                         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">Couverture<br/>Glisser ou cliquer</span>
+                                     </>
+                                 )}
+                             </div>
+                 
+                             <div 
+                                 onDragOver={(e) => e.preventDefault()} 
+                                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('image/')) handleStudioImageUpload(f, 'backCoverImage'); }}
+                                 className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors overflow-hidden group h-32"
+                             >
+                                 <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleStudioImageUpload(e.target.files[0], 'backCoverImage')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
+                                 {catalogConfig.backCoverImage ? (
+                                     <>
+                                         <img src={catalogConfig.backCoverImage} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-20 transition-opacity" />
+                                         <span className="relative z-10 text-xs font-bold text-black dark:text-white bg-white/90 dark:bg-black/90 px-3 py-1.5 rounded-lg backdrop-blur-sm shadow-sm">Dos (Modifier)</span>
+                                     </>
+                                 ) : (
+                                     <>
+                                         <ImagePlus size={24} className="text-zinc-400 mb-2 group-hover:text-[#39FF14] transition-colors" />
+                                         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">Dos Catalogue<br/>Glisser ou cliquer</span>
+                                     </>
+                                 )}
+                             </div>
+                 
+                             <div 
+                                 onDragOver={(e) => e.preventDefault()} 
+                                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('image/')) handleStudioImageUpload(f, 'logoUrl'); }}
+                                 className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors overflow-hidden group h-32"
+                             >
+                                 <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleStudioImageUpload(e.target.files[0], 'logoUrl')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
+                                 {catalogConfig.logoUrl ? (
+                                     <>
+                                         <img src={catalogConfig.logoUrl} className="absolute inset-0 w-full h-full object-contain opacity-50 group-hover:opacity-20 transition-opacity p-2" />
+                                         <span className="relative z-10 text-xs font-bold text-black dark:text-white bg-white/90 dark:bg-black/90 px-3 py-1.5 rounded-lg backdrop-blur-sm shadow-sm">Logo (Modifier)</span>
+                                     </>
+                                 ) : (
+                                     <>
+                                         <ImagePlus size={24} className="text-zinc-400 mb-2 group-hover:text-[#39FF14] transition-colors" />
+                                         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">Logo (PNG)<br/>Glisser ou cliquer</span>
+                                     </>
+                                 )}
+                             </div>
                          </div>
-                         <div>
-                            <label className="text-[10px] font-bold uppercase text-zinc-500">URL Dos (Dernière page)</label>
-                            <input type="url" value={catalogConfig.backCoverImage || ''} onChange={e => handleSaveCatalogConfig({...catalogConfig, backCoverImage: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="https://... (Optionnel)"/>
-                           {catalogConfig.backCoverImage && <img src={catalogConfig.backCoverImage} alt="Back Cover Preview" className="mt-2 w-full h-24 object-cover rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm" onError={(e:any) => e.target.style.display='none'} />}
-                         </div>
-                         <div>
-                            <label className="text-[10px] font-bold uppercase text-zinc-500">URL Logo (Filigrane)</label>
-                            <input type="url" value={catalogConfig.logoUrl || ''} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoUrl: e.target.value})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]" placeholder="https://... (PNG transparent)"/>
-                         </div>
-                         <div className="lg:col-span-4 flex flex-wrap gap-4 items-end">
-                            <div className="flex-1 min-w-[80px]">
-                               <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Pos. X</label>
-                               <input type="number" value={catalogConfig.logoX} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoX: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]"/>
-                            </div>
-                            <div className="flex-1 min-w-[80px]">
-                               <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Pos. Y</label>
-                               <input type="number" value={catalogConfig.logoY} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoY: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]"/>
-                            </div>
-                            <div className="flex-1 min-w-[80px]">
-                               <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Taille</label>
-                               <input type="number" value={catalogConfig.logoSize} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoSize: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14]"/>
-                            </div>
-                            <label className="flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-zinc-900 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shrink-0 h-[42px] mt-1">
-                               <input type="checkbox" checked={catalogConfig.showSummary} onChange={e => handleSaveCatalogConfig({...catalogConfig, showSummary: e.target.checked})} className="w-4 h-4 accent-black dark:accent-[#39FF14]"/>
-                               <span className="text-xs font-bold uppercase text-black dark:text-white">Générer Sommaire</span>
-                            </label>
+                 
+                         <div className="flex flex-wrap gap-4 items-end">
+                             <div className="flex-1 min-w-[80px]">
+                                 <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Pos. X</label>
+                                 <input type="number" value={catalogConfig.logoX} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoX: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
+                             </div>
+                             <div className="flex-1 min-w-[80px]">
+                                 <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Pos. Y</label>
+                                 <input type="number" value={catalogConfig.logoY} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoY: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
+                             </div>
+                             <div className="flex-1 min-w-[80px]">
+                                 <label className="text-[10px] font-bold uppercase text-zinc-500">Logo Taille</label>
+                                 <input type="number" value={catalogConfig.logoSize} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoSize: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-bold mt-1 outline-none focus:border-[#39FF14] text-black dark:text-white"/>
+                             </div>
+                             <label className="flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-zinc-900 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shrink-0 h-[42px] mt-1 hover:border-[#39FF14] transition-colors">
+                                 <input type="checkbox" checked={catalogConfig.showSummary} onChange={e => handleSaveCatalogConfig({...catalogConfig, showSummary: e.target.checked})} className="w-4 h-4 accent-black dark:accent-[#39FF14] cursor-pointer"/>
+                                 <span className="text-xs font-bold uppercase text-black dark:text-white">Générer Sommaire</span>
+                             </label>
                          </div>
                       </div>
                    )}
