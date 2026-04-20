@@ -740,9 +740,12 @@ export default function CRMCatalogPage() {
               doc.setFillColor(255, 255, 255);
               doc.rect(0, 0, 210, 297, 'F');
               
-              // Header de la page
-              doc.setFillColor(0, 0, 0);
-              doc.rect(0, 0, 210, 25, 'F');
+              // Header de la page avec la couleur de thème
+              doc.setFillColor(themeRgb[0], themeRgb[1], themeRgb[2]);
+              doc.rect(0, 0, 210, 4, 'F'); // Liseré supérieur
+              
+              doc.setFillColor(248, 249, 250);
+              doc.rect(0, 4, 210, 24, 'F'); // Bande grise
               
               if (catalogConfig.logoUrl) {
                  try {
@@ -750,11 +753,11 @@ export default function CRMCatalogPage() {
                      img.crossOrigin = "Anonymous";
                      img.src = catalogConfig.logoUrl;
                      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
-                     doc.addImage(img, 'PNG', 14, 2, 20, 20); // Small logo in header
+                     doc.addImage(img, 'PNG', 14, 6, 20, 20); // Small logo in header
                  } catch(e) {}
               }
               
-              doc.setTextColor(255, 255, 255);
+              doc.setTextColor(0, 0, 0);
               doc.setFontSize(16);
               doc.text(catalogConfig.coverTitle.toUpperCase(), 40, 16);
 
@@ -805,10 +808,13 @@ export default function CRMCatalogPage() {
                       doc.text(descLines.slice(0, 3), x, y + 66);
                   }
 
-                  doc.setFontSize(12);
+                  doc.setFillColor(themeRgb[0], themeRgb[1], themeRgb[2]); 
+                  doc.roundedRect(x, y + 73, 40, 8, 1, 1, 'F');
+                  const brightness = Math.round(((themeRgb[0] * 299) + (themeRgb[1] * 587) + (themeRgb[2] * 114)) / 1000);
+                  doc.setTextColor(brightness > 125 ? 0 : 255, brightness > 125 ? 0 : 255, brightness > 125 ? 0 : 255);
+                  doc.setFontSize(10);
                   doc.setFont("helvetica", "bold");
-                  doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]); 
-                  doc.text(`${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} F CFA`, x, y + 78);
+                  doc.text(`${(p.unit_price || p.price_ttc || 0).toLocaleString('fr-FR')} FCFA`, x + 3, y + 78.5);
               }
               setPdfProgress(Math.round(((i + productsPerPage) / selectedProducts.length) * 100));
           }
@@ -2211,61 +2217,67 @@ export default function CRMCatalogPage() {
                          </div>
                  
                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                             <div 
-                                 onDragOver={(e) => e.preventDefault()} 
-                                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('image/')) handleStudioImageUpload(f, 'coverImage'); }}
-                                 className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors overflow-hidden group h-32"
-                             >
-                                 <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleStudioImageUpload(e.target.files[0], 'coverImage')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
-                                 {catalogConfig.coverImage ? (
-                                     <>
-                                         <img src={catalogConfig.coverImage} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-20 transition-opacity" />
-                                         <span className="relative z-10 text-xs font-bold text-black dark:text-white bg-white/90 dark:bg-black/90 px-3 py-1.5 rounded-lg backdrop-blur-sm shadow-sm">Couverture (Modifier)</span>
-                                     </>
-                                 ) : (
-                                     <>
-                                         <ImagePlus size={24} className="text-zinc-400 mb-2 group-hover:text-[#39FF14] transition-colors" />
-                                         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">Couverture<br/>Glisser ou cliquer</span>
-                                     </>
-                                 )}
+                             {/* Couverture */}
+                             <div className="flex flex-col gap-2">
+                                 <label className="text-[10px] font-bold uppercase text-zinc-500">Couverture (1ère page)</label>
+                                 <div 
+                                     onDragOver={(e) => e.preventDefault()} 
+                                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('image/')) handleStudioImageUpload(f, 'coverImage'); }}
+                                     className="relative flex flex-col items-center justify-center p-4 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors overflow-hidden group h-24"
+                                 >
+                                     <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleStudioImageUpload(e.target.files[0], 'coverImage')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
+                                     {catalogConfig.coverImage ? (
+                                         <>
+                                             <img src={catalogConfig.coverImage} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-20 transition-opacity" />
+                                             <span className="relative z-10 text-[10px] font-bold text-black dark:text-white bg-white/90 dark:bg-black/90 px-2 py-1 rounded-lg backdrop-blur-sm">Modifier</span>
+                                         </>
+                                     ) : (
+                                         <span className="text-[10px] font-bold uppercase text-zinc-500 text-center"><ImagePlus size={16} className="mx-auto mb-1"/> Glisser Image</span>
+                                     )}
+                                 </div>
+                                 <input type="url" value={catalogConfig.coverImage || ''} onChange={e => handleSaveCatalogConfig({...catalogConfig, coverImage: e.target.value})} className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 text-[10px] font-bold outline-none focus:border-[#39FF14]" placeholder="Ou coller une URL..."/>
                              </div>
                  
-                             <div 
-                                 onDragOver={(e) => e.preventDefault()} 
-                                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('image/')) handleStudioImageUpload(f, 'backCoverImage'); }}
-                                 className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors overflow-hidden group h-32"
-                             >
-                                 <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleStudioImageUpload(e.target.files[0], 'backCoverImage')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
-                                 {catalogConfig.backCoverImage ? (
-                                     <>
-                                         <img src={catalogConfig.backCoverImage} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-20 transition-opacity" />
-                                         <span className="relative z-10 text-xs font-bold text-black dark:text-white bg-white/90 dark:bg-black/90 px-3 py-1.5 rounded-lg backdrop-blur-sm shadow-sm">Dos (Modifier)</span>
-                                     </>
-                                 ) : (
-                                     <>
-                                         <ImagePlus size={24} className="text-zinc-400 mb-2 group-hover:text-[#39FF14] transition-colors" />
-                                         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">Dos Catalogue<br/>Glisser ou cliquer</span>
-                                     </>
-                                 )}
+                             {/* Dos */}
+                             <div className="flex flex-col gap-2">
+                                 <label className="text-[10px] font-bold uppercase text-zinc-500">Dos (Dernière page)</label>
+                                 <div 
+                                     onDragOver={(e) => e.preventDefault()} 
+                                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('image/')) handleStudioImageUpload(f, 'backCoverImage'); }}
+                                     className="relative flex flex-col items-center justify-center p-4 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors overflow-hidden group h-24"
+                                 >
+                                     <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleStudioImageUpload(e.target.files[0], 'backCoverImage')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
+                                     {catalogConfig.backCoverImage ? (
+                                         <>
+                                             <img src={catalogConfig.backCoverImage} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-20 transition-opacity" />
+                                             <span className="relative z-10 text-[10px] font-bold text-black dark:text-white bg-white/90 dark:bg-black/90 px-2 py-1 rounded-lg backdrop-blur-sm">Modifier</span>
+                                         </>
+                                     ) : (
+                                         <span className="text-[10px] font-bold uppercase text-zinc-500 text-center"><ImagePlus size={16} className="mx-auto mb-1"/> Glisser Image</span>
+                                     )}
+                                 </div>
+                                 <input type="url" value={catalogConfig.backCoverImage || ''} onChange={e => handleSaveCatalogConfig({...catalogConfig, backCoverImage: e.target.value})} className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 text-[10px] font-bold outline-none focus:border-[#39FF14]" placeholder="Ou coller une URL..."/>
                              </div>
                  
-                             <div 
-                                 onDragOver={(e) => e.preventDefault()} 
-                                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('image/')) handleStudioImageUpload(f, 'logoUrl'); }}
-                                 className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors overflow-hidden group h-32"
-                             >
-                                 <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleStudioImageUpload(e.target.files[0], 'logoUrl')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
-                                 {catalogConfig.logoUrl ? (
-                                     <>
-                                         <img src={catalogConfig.logoUrl} className="absolute inset-0 w-full h-full object-contain opacity-50 group-hover:opacity-20 transition-opacity p-2" />
-                                         <span className="relative z-10 text-xs font-bold text-black dark:text-white bg-white/90 dark:bg-black/90 px-3 py-1.5 rounded-lg backdrop-blur-sm shadow-sm">Logo (Modifier)</span>
-                                     </>
-                                 ) : (
-                                     <>
-                                         <ImagePlus size={24} className="text-zinc-400 mb-2 group-hover:text-[#39FF14] transition-colors" />
-                                         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 text-center">Logo (PNG)<br/>Glisser ou cliquer</span>
-                                     </>
-                                 )}
+                             {/* Logo */}
+                             <div className="flex flex-col gap-2">
+                                 <label className="text-[10px] font-bold uppercase text-zinc-500">Logo (En-tête/Filigrane)</label>
+                                 <div 
+                                     onDragOver={(e) => e.preventDefault()} 
+                                     onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f && f.type.startsWith('image/')) handleStudioImageUpload(f, 'logoUrl'); }}
+                                     className="relative flex flex-col items-center justify-center p-4 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:border-[#39FF14] dark:hover:border-[#39FF14] transition-colors overflow-hidden group h-24"
+                                 >
+                                     <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && handleStudioImageUpload(e.target.files[0], 'logoUrl')} className="absolute inset-0 opacity-0 cursor-pointer z-20" />
+                                     {catalogConfig.logoUrl ? (
+                                         <>
+                                             <img src={catalogConfig.logoUrl} className="absolute inset-0 w-full h-full object-contain opacity-50 group-hover:opacity-20 transition-opacity p-2" />
+                                             <span className="relative z-10 text-[10px] font-bold text-black dark:text-white bg-white/90 dark:bg-black/90 px-2 py-1 rounded-lg backdrop-blur-sm">Modifier</span>
+                                         </>
+                                     ) : (
+                                         <span className="text-[10px] font-bold uppercase text-zinc-500 text-center"><ImagePlus size={16} className="mx-auto mb-1"/> Glisser PNG</span>
+                                     )}
+                                 </div>
+                                 <input type="url" value={catalogConfig.logoUrl || ''} onChange={e => handleSaveCatalogConfig({...catalogConfig, logoUrl: e.target.value})} className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 text-[10px] font-bold outline-none focus:border-[#39FF14]" placeholder="Ou coller une URL..."/>
                              </div>
                          </div>
                  
