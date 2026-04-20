@@ -6,12 +6,23 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(req: Request) {
+  // 🔒 1. VERROU DE SÉCURITÉ : Vérification du Token dans l'URL
+  const { searchParams } = new URL(req.url);
+  const token = searchParams.get('token');
+
+  if (token !== process.env.WEBHOOK_SECRET) {
+    return NextResponse.json(
+      { success: false, error: 'Accès refusé : Token invalide ou manquant' }, 
+      { status: 401 }
+    );
+  }
+
   try {
+    // 2. Récupération des données envoyées par Make
     const body = await req.json();
-    // 💡 CORRECTION : On extrait bien "assigned_to" du body envoyé par Make
     const { full_name, phone, ad_name, campaign_name, intent, tenant_id, assigned_to } = body;
 
-    // 1. Nettoyage strict du numéro de téléphone
+    // 3. Nettoyage strict du numéro de téléphone
     let cleanedPhone = String(phone || '').replace(/['"\s\u00A0]/g, '').replace(/[^0-9+]/g, '');
     if (cleanedPhone.length === 9 && cleanedPhone.startsWith('7')) {
         cleanedPhone = '+221' + cleanedPhone;
@@ -19,12 +30,12 @@ export async function POST(req: Request) {
         cleanedPhone = '+' + cleanedPhone;
     }
 
-    // 💡 CORRECTION : On utilise l'assignation de Make par défaut
+    // 4. Gestion de l'assignation (Priorité Make > Aléatoire)
     let finalAssignedTo = assigned_to || null; 
     let commercialPhone = null;
 
-    // 2. Si Make n'a envoyé aucun commercial, on fait l'auto-assignation aléatoire
     if (!finalAssignedTo) {
+        // Fallback : Si Make n'envoie pas de commercial, on tire au sort
         const { data: commercials } = await supabase
           .from('commercials')
           .select('full_name, phone')
@@ -38,7 +49,7 @@ export async function POST(req: Request) {
         }
     }
 
-    // 3. Préparation des données du Lead
+    // 5. Préparation de la carte pour le Kanban OnyxCRM
     const payload = {
       tenant_id,
       full_name: full_name || 'Lead Facebook',
@@ -49,10 +60,10 @@ export async function POST(req: Request) {
       source: 'Facebook Ads',
       lead_score: 'Chaud',
       status: 'Nouveaux Leads',
-      assigned_to: finalAssignedTo // Utilise Maty, Awa, etc. provenant de Make !
+      assigned_to: finalAssignedTo
     };
 
-    // 4. Insertion dans la base de données
+    // 6. Insertion dans la base de données (Contourne RLS grâce à la Service Key)
     const { data: newLead, error } = await supabase
       .from('crm_leads')
       .insert([payload])
