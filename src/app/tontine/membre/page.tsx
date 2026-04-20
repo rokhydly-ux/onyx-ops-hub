@@ -97,7 +97,7 @@ function TontineMembreDashboard() {
     return () => clearInterval(interval);
   }, [currentDrawConfig, tontine]);
 
-  // --- CHARGEMENT INITIAL & GESTION DE SESSION ---
+  // --- CHARGEMENT INITIAL & GESTION DESESSION ---
   useEffect(() => {
     const checkSessionAndFetchData = async () => {
       if (!tontineId) {
