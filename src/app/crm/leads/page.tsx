@@ -606,15 +606,23 @@ export default function LeadsKanbanPage() {
                     budget: budget || 0,
                     amount: budget || 0,
                     source: 'Facebook Ads',
-                    intent: String(form || campaign || 'Organique').substring(0, 150)
+                    intent: String(form || campaign || 'Organique').substring(0, 150),
+                    status: 'Nouveaux Leads'
                  });
              }
 
              if (batch.length >= 100) {
                 const uniqueBatch = Array.from(new Map(batch.map(l => [l.phone, l])).values());
-                await supabase.from('crm_leads').upsert(uniqueBatch, { onConflict: 'phone, tenant_id' });
-                totalImported += uniqueBatch.length;
-                setImportProgressText(`Sécurisation : ${totalImported} leads importés...`);
+                const { error } = await supabase.from('crm_leads').upsert(uniqueBatch, { onConflict: 'phone, tenant_id' });
+                if (error) {
+                    // Fallback intelligent si la contrainte composite (phone, tenant_id) n'existe pas en BDD
+                    const { error: fallbackError } = await supabase.from('crm_leads').insert(uniqueBatch);
+                    if (fallbackError) console.error("Erreur d'insertion lot:", fallbackError);
+                    else { totalImported += uniqueBatch.length; setImportProgressText(`Sécurisation : ${totalImported} leads importés...`); }
+                } else {
+                    totalImported += uniqueBatch.length;
+                    setImportProgressText(`Sécurisation : ${totalImported} leads importés...`);
+                }
                 batch = []; // Libère la RAM
              }
           } finally {
@@ -624,8 +632,17 @@ export default function LeadsKanbanPage() {
        complete: async () => {
           if (batch.length > 0) {
               const uniqueBatch = Array.from(new Map(batch.map((l: any) => [l.phone, l])).values());
-              await supabase.from('crm_leads').upsert(uniqueBatch, { onConflict: 'phone, tenant_id' });
-              totalImported += uniqueBatch.length;
+              const { error } = await supabase.from('crm_leads').upsert(uniqueBatch, { onConflict: 'phone, tenant_id' });
+              if (error) {
+                  const { error: fallbackError } = await supabase.from('crm_leads').insert(uniqueBatch);
+                  if (fallbackError) {
+                      alert("Certains leads n'ont pas pu être insérés. Erreur : " + fallbackError.message);
+                  } else {
+                      totalImported += uniqueBatch.length;
+                  }
+              } else {
+                  totalImported += uniqueBatch.length;
+              }
           }
 
           if (uniqueAdNames.size > 0) {
