@@ -218,6 +218,16 @@ function CRMSettingsContent() {
                       if (rawBudget) budget = Number(rawBudget) || 0;
                   }
 
+                  // NOUVEAU: Extraction intelligente de la date de création
+                  const dateKey = Object.keys(r).find(k => k.includes('created') || k.includes('date') || k.includes('time') || k.includes('heure') || k.includes('timestamp'));
+                  let createdAt = new Date().toISOString();
+                  if (dateKey && r[dateKey]) {
+                      const parsedDate = new Date(r[dateKey]);
+                      if (!isNaN(parsedDate.getTime())) {
+                          createdAt = parsedDate.toISOString();
+                      }
+                  }
+
                   batch.push({
                      tenant_id: tenantId,
                      full_name: String(name).substring(0, 100),
@@ -229,7 +239,8 @@ function CRMSettingsContent() {
                      amount: Number(budget) || 0,
                      type: 'Prospect',
                      source: 'Facebook Ads',
-                     intent: String(campaign || 'Campagne FB').substring(0, 150)
+                     intent: String(campaign || 'Campagne FB').substring(0, 150),
+                     created_at: createdAt
                   });
               }
 

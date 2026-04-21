@@ -596,6 +596,16 @@ export default function LeadsKanbanPage() {
                      if (rawBudget) budget = Number(rawBudget);
                  }
                  
+                 // NOUVEAU: Extraction intelligente de la date de création
+                 const dateKey = Object.keys(r).find(k => k.includes('created') || k.includes('date') || k.includes('time') || k.includes('heure') || k.includes('timestamp'));
+                 let createdAt = new Date().toISOString();
+                 if (dateKey && r[dateKey]) {
+                     const parsedDate = new Date(r[dateKey]);
+                     if (!isNaN(parsedDate.getTime())) {
+                         createdAt = parsedDate.toISOString();
+                     }
+                 }
+
                  batch.push({
                     tenant_id: userId,
                     full_name: String(name || 'Lead FB').substring(0, 100),
