@@ -59,6 +59,7 @@ export default function CRMContactsPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [allOrders, setAllOrders] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   const [dateFilter, setDateFilter] = useState('all'); // all, week, month, quarter, year, custom
   const [customDate, setCustomDate] = useState({ start: '', end: '' });
   const COLORS = ['#39FF14', '#00E5FF', '#F59E0B', '#A855F7', '#EF4444'];
@@ -180,6 +181,9 @@ export default function CRMContactsPage() {
     const { data: ordersData } = await supabase.from('crm_orders').select('id, contact_id, customer_name, customer_phone, total_amount, order_date, created_at, items').eq('tenant_id', currentTenantId);
     if (ordersData) setAllOrders(ordersData);
 
+    const { data: productsData } = await supabase.from('crm_products').select('id, name, category, unit_price, price_ttc').eq('tenant_id', currentTenantId);
+    if (productsData) setAllProducts(productsData);
+
     if (data && !error) {
       setContacts(data);
     }
@@ -264,6 +268,24 @@ export default function CRMContactsPage() {
       }
   };
 
+  // --- CALCUL DE POPULARITÉ GLOBALE POUR LE CROSS-SELL ---
+  const globalProductPopularity = React.useMemo(() => {
+      const counts: Record<string, number> = {};
+      allOrders.forEach(o => {
+          let items = o.items;
+          if (typeof items === 'string') {
+              try { items = JSON.parse(items); } catch(e) { items = [{name: items}]; }
+          }
+          if (Array.isArray(items)) {
+              items.forEach(i => {
+                  const name = i.name?.toLowerCase().trim();
+                  if (name) counts[name] = (counts[name] || 0) + (Number(i.quantity) || 1);
+              });
+          }
+      });
+      return counts;
+  }, [allOrders]);
+
   // --- MOTEUR IA LIKA : GÉNÉRATION DYNAMIQUE D'OPPORTUNITÉS ---
   const getLikaInsights = (contact: any, orders: any[]) => {
       if (!contact) return [];
@@ -300,18 +322,43 @@ export default function CRMContactsPage() {
           });
       }
 
-      // 3. Cross-sell basé sur les achats (Logique simplifiée)
-      const allItemsString = orders.map(o => typeof o.items === 'string' ? o.items.toLowerCase() : JSON.stringify(o.items).toLowerCase()).join(' ');
-      
-      if (allItemsString.includes('four') && !allItemsString.includes('pétrin')) {
-          insights.push({
-              type: 'cross-sell', color: 'green', icon: ShoppingBag, title: 'Cross-Sell Détecté',
-              desc: `Le client a acheté un équipement de cuisson mais manque de matériel de préparation (ex: Pétrin). Proposez un bundle complémentaire.`,
-              action: `Bonjour ${contact.full_name}, suite à votre achat de four, saviez-vous que notre pétrin industriel augmenterait votre rendement de 30% ?`
-          });
+      // 3. Moteur de Cross-sell dynamique par catégorie et popularité
+      const boughtItems = new Set<string>();
+      orders.forEach(o => {
+          let items = o.items;
+          if (typeof items === 'string') {
+              try { items = JSON.parse(items); } catch(e) { items = [{name: items}]; }
+          }
+          if (Array.isArray(items)) {
+              items.forEach((i: any) => { if (i.name) boughtItems.add(i.name.toLowerCase().trim()); });
+          }
+      });
+
+      // Trouver les catégories de ces produits achetés
+      const boughtCategories = new Set<string>();
+      boughtItems.forEach(itemName => {
+          const prod = allProducts.find(p => p.name?.toLowerCase().trim() === itemName);
+          if (prod && prod.category) boughtCategories.add(prod.category);
+      });
+
+      let suggestedProduct: any = null;
+      if (boughtCategories.size > 0 && allProducts.length > 0) {
+          // Chercher les produits de la même catégorie non encore achetés
+          const candidates = allProducts.filter(p => p.category && boughtCategories.has(p.category) && p.name && !boughtItems.has(p.name.toLowerCase().trim()));
+          if (candidates.length > 0) {
+              // Trier par popularité globale (les plus vendus en premier)
+              candidates.sort((a, b) => (globalProductPopularity[b.name?.toLowerCase().trim()] || 0) - (globalProductPopularity[a.name?.toLowerCase().trim()] || 0));
+              suggestedProduct = candidates[0];
+          }
       }
 
-      if (insights.length === 0) {
+      if (suggestedProduct) {
+          insights.push({
+              type: 'cross-sell', color: 'green', icon: ShoppingBag, title: 'Opportunité de Cross-Sell',
+              desc: `Le client est un acheteur de la catégorie "${suggestedProduct.category}". Proposez-lui votre best-seller : "${suggestedProduct.name}".`,
+              action: `Bonjour ${contact.full_name}, suite à vos précédents achats, avez-vous pensé à vous équiper de notre ${suggestedProduct.name} pour compléter votre installation ?`
+          });
+      } else if (insights.length === 0) {
           insights.push({
               type: 'nurture', color: 'zinc', icon: Wand2, title: 'Nurturing Standard',
               desc: `Client régulier en bonne santé. Maintenez le contact en lui envoyant votre dernier catalogue.`,
