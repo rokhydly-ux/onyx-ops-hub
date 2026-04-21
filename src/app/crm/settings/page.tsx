@@ -218,11 +218,27 @@ function CRMSettingsContent() {
                       if (rawBudget) budget = Number(rawBudget) || 0;
                   }
 
-                  // NOUVEAU: Extraction intelligente de la date de création
-                  const dateKey = Object.keys(r).find(k => k.includes('created') || k.includes('date') || k.includes('time') || k.includes('heure') || k.includes('timestamp'));
+                  // NOUVEAU: Extraction robuste et réparation du format de date Facebook
                   let createdAt = new Date().toISOString();
+                  
+                  // 1. Trouver la colonne sans se soucier des majuscules ou des espaces
+                  const dateKey = Object.keys(r).find(k => {
+                      const keyLower = String(k).toLowerCase().trim();
+                      return keyLower === 'created_time' || keyLower === 'created_at' || keyLower.includes('date') || keyLower.includes('time') || keyLower.includes('heure') || keyLower.includes('timestamp');
+                  });
+
                   if (dateKey && r[dateKey]) {
-                      const parsedDate = new Date(r[dateKey]);
+                      let rawDate = String(r[dateKey]).trim();
+                      
+                      // 2. Réparer le format "2026-03-26 18:32:45" en "2026-03-26T18:32:45"
+                      if (rawDate.includes(' ') && !rawDate.includes('T')) {
+                          rawDate = rawDate.replace(' ', 'T');
+                      }
+
+                      // 3. Parser la date
+                      const parsedDate = new Date(rawDate);
+                      
+                      // 4. Si la date est valide, on l'applique
                       if (!isNaN(parsedDate.getTime())) {
                           createdAt = parsedDate.toISOString();
                       }
