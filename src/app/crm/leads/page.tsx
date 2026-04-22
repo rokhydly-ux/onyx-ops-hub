@@ -104,8 +104,14 @@ function KanbanCard({ lead, commercials, commercialData, isSelected, onToggleSel
           <span className="inline-block mt-1 text-[8px] font-black uppercase tracking-widest bg-purple-500/10 text-purple-500 px-1.5 py-0.5 rounded border border-purple-500/20">
             🎯 {lead.ad_name || 'Publicité Inconnue'}
           </span>
-          <p className="text-[10px] text-zinc-500 font-bold mt-1.5 flex items-center gap-1">
-            <Clock size={10}/> {lead.created_at ? new Date(lead.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Date inconnue'}
+          <p className="text-[10px] text-zinc-500 font-bold mt-1.5 flex items-center gap-1 flex-wrap">
+            <Clock size={10}/> 
+            {lead.created_at ? (
+                <>
+                  {new Date(lead.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  <span className="text-zinc-400 font-medium italic">({formatDistanceToNow(new Date(lead.created_at), { addSuffix: true, locale: fr })})</span>
+                </>
+            ) : 'Date inconnue'}
           </p>
         </div>
         <div onPointerDown={e => e.stopPropagation()} onPointerUp={e => e.stopPropagation()} className="shrink-0 pt-1">
@@ -540,6 +546,7 @@ export default function LeadsKanbanPage() {
     setImportProgressText('Streaming actif (Lecture goutte à goutte)...');
 
     const uniqueAdNames = new Set<string>();
+    const seenPhones = new Set<string>(); // NOUVEAU: Set global pour filtrer les doublons absolus
     let batch: any[] = [];
     let totalImported = 0;
 
@@ -570,6 +577,10 @@ export default function LeadsKanbanPage() {
              }
              
              if (phone && phone.length >= 8) {
+                 // --- BLOCAGE DES DOUBLONS INTER-LOTS AVANT INSERTION ---
+                 if (seenPhones.has(phone)) return;
+                 seenPhones.add(phone);
+
                  const campaign = r['campaign_name'] || r['campaign name'] || r['campagne'] || r['adset_name'] || r['campaign'] || 'Organique';
                  const form = r['form_name'] || r['formulaire'] || r['form'] || '';
                  const adName = r['ad_name'] || r['ad name'] || r['ad'] || 'Publicité Inconnue';
@@ -640,7 +651,8 @@ export default function LeadsKanbanPage() {
                     amount: budget || 0,
                     source: 'Facebook Ads',
                     intent: String(form || campaign || 'Organique').substring(0, 150),
-                    status: 'Nouveaux Leads'
+                    status: 'Nouveaux Leads',
+                    created_at: createdAt
                  });
              }
 
