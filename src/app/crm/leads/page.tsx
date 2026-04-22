@@ -596,10 +596,9 @@ export default function LeadsKanbanPage() {
                      if (rawBudget) budget = Number(rawBudget);
                  }
                  
-                 // NOUVEAU: Extraction robuste et réparation du format de date Facebook
+                 // NOUVEAU: Extraction BLINDÉE de la date (FB, Excel FR, Excel US)
                  let createdAt = new Date().toISOString();
                  
-                 // 1. Trouver la colonne sans se soucier des majuscules ou des espaces
                  const dateKey = Object.keys(r).find(k => {
                      const keyLower = String(k).toLowerCase().trim();
                      return keyLower === 'created_time' || keyLower === 'created_at' || keyLower.includes('date') || keyLower.includes('time') || keyLower.includes('heure') || keyLower.includes('timestamp');
@@ -607,16 +606,24 @@ export default function LeadsKanbanPage() {
 
                  if (dateKey && r[dateKey]) {
                      let rawDate = String(r[dateKey]).trim();
+                     let parsedDate = new Date(rawDate); 
                      
-                     // 2. Réparer le format "2026-03-26 18:32:45" en "2026-03-26T18:32:45"
-                     if (rawDate.includes(' ') && !rawDate.includes('T')) {
-                         rawDate = rawDate.replace(' ', 'T');
+                     if (isNaN(parsedDate.getTime())) {
+                         parsedDate = new Date(rawDate.replace(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}(:\d{2})?)/, '$1T$2'));
                      }
-
-                     // 3. Parser la date
-                     const parsedDate = new Date(rawDate);
                      
-                     // 4. Si la date est valide, on l'applique
+                     if (isNaN(parsedDate.getTime())) {
+                         const parts = rawDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}:\d{1,2}(:\d{1,2})?))?/);
+                         if (parts) {
+                             const p1 = parts[1].padStart(2, '0');
+                             const p2 = parts[2].padStart(2, '0');
+                             const year = parts[3];
+                             const time = parts[4] || '00:00:00';
+                             if (Number(p1) > 12) parsedDate = new Date(`${year}-${p1}-${p2}T${time}`);
+                             else parsedDate = new Date(`${year}-${p2}-${p1}T${time}`);
+                         }
+                     }
+                     
                      if (!isNaN(parsedDate.getTime())) {
                          createdAt = parsedDate.toISOString();
                      }
