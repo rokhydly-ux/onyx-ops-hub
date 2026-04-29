@@ -152,30 +152,37 @@ export default function OnyxPubLanding() {
 
          {/* 360 BAG & EXPLOSION */}
          <div className="relative w-full max-w-4xl mx-auto h-[400px] md:h-[550px] flex items-center justify-center mt-10 mb-12 perspective-1000">
-            <motion.div 
-               layout
-               animate={{ scale: isGenerated ? 0.6 : 1, y: isGenerated ? (typeof window !== 'undefined' && window.innerWidth < 768 ? -50 : 0) : 0 }}
-               transition={{ type: "spring", bounce: 0.3 }}
-               className="relative z-30 cursor-grab active:cursor-grabbing flex flex-col items-center"
-               onPointerDown={(e: any) => { setIsDragging(true); setStartX(e.clientX); }}
-               onPointerMove={(e: any) => {
-                 if (!isDragging) return;
-                 const deltaX = e.clientX - startX;
-                 if (Math.abs(deltaX) > 40) {
-                   if (deltaX > 0) setActiveImgIndex(p => (p - 1 + imageKeys.length) % imageKeys.length);
-                   else setActiveImgIndex(p => (p + 1) % imageKeys.length);
-                   setStartX(e.clientX);
-                 }
-               }}
-               onPointerUp={() => setIsDragging(false)}
-               onPointerLeave={() => setIsDragging(false)}
+            <motion.div
+               animate={{ y: [-15, 15, -15] }}
+               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+               className="relative z-30 flex flex-col items-center"
             >
-               <img src={images[imageKeys[activeImgIndex]]} alt="Sac 360" className="w-56 h-56 md:w-80 md:h-80 object-contain drop-shadow-2xl pointer-events-none select-none" />
-               {!isGenerated && (
-                 <div className="mt-6 bg-black/90 text-[#39FF14] text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full border border-[#39FF14]/30 shadow-[0_0_20px_rgba(57,255,20,0.3)] pointer-events-none animate-pulse">
-                   Glissez pour tourner 👆
-                 </div>
-               )}
+               <motion.div 
+                  layout
+                  whileHover={{ rotateY: 15, rotateX: -10, scale: isGenerated ? 0.65 : 1.05 }}
+                  animate={{ scale: isGenerated ? 0.5 : 1, y: isGenerated ? (typeof window !== 'undefined' && window.innerWidth < 768 ? -50 : 0) : 0 }}
+                  transition={{ type: "spring", bounce: 0.3 }}
+                  className="cursor-grab active:cursor-grabbing flex flex-col items-center relative"
+                  onPointerDown={(e: any) => { setIsDragging(true); setStartX(e.clientX); }}
+                  onPointerMove={(e: any) => {
+                    if (!isDragging) return;
+                    const deltaX = e.clientX - startX;
+                    if (Math.abs(deltaX) > 40) {
+                      if (deltaX > 0) setActiveImgIndex(p => (p - 1 + imageKeys.length) % imageKeys.length);
+                      else setActiveImgIndex(p => (p + 1) % imageKeys.length);
+                      setStartX(e.clientX);
+                    }
+                  }}
+                  onPointerUp={() => setIsDragging(false)}
+                  onPointerLeave={() => setIsDragging(false)}
+               >
+                  <img src={images[imageKeys[activeImgIndex]]} alt="Sac 360" className="w-64 h-64 md:w-96 md:h-96 object-contain drop-shadow-2xl pointer-events-none select-none" />
+                  {!isGenerated && (
+                    <div className="mt-6 bg-black/90 text-[#39FF14] text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full border border-[#39FF14]/30 shadow-[0_0_20px_rgba(57,255,20,0.3)] pointer-events-none animate-pulse">
+                      Survolez ou Glissez 👆
+                    </div>
+                  )}
+               </motion.div>
             </motion.div>
 
             <AnimatePresence>
@@ -183,57 +190,69 @@ export default function OnyxPubLanding() {
                  <>
                     {/* Variation 1: Top Left */}
                     <motion.div 
-                      initial={{ opacity: 0, scale: 0.5, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
+                      initial={{ opacity: 0, scale: 0, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
                       animate={{ opacity: 1, scale: 1, left: "20%", top: "20%", x: "-50%", y: "-50%" }}
-                      transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
-                      className="absolute z-20 bg-black/90 backdrop-blur-md border border-[#23a9dc]/50 p-2 rounded-2xl shadow-[0_0_30px_rgba(35,169,220,0.3)] flex flex-col items-center w-32 md:w-48"
+                      exit={{ opacity: 0, scale: 0, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
+                      transition={{ duration: 0.6, type: "spring", bounce: 0.5 }}
+                      className="absolute z-20 w-32 md:w-48"
                     >
-                       <img src="https://i.ibb.co/Kx2b19xV/SAC-OUVERT.png" className="w-full aspect-square object-cover rounded-xl" />
-                       <p className="text-[9px] md:text-[10px] font-bold text-center mt-2 text-[#23a9dc] uppercase tracking-widest leading-tight mb-1">Angle Prestige & Détails</p>
+                       <motion.div animate={{ y: [-10, 10, -10] }} transition={{ repeat: Infinity, duration: 3.2, ease: "easeInOut" }} className="bg-black/90 backdrop-blur-md border border-[#23a9dc]/50 p-2 rounded-2xl shadow-[0_0_30px_rgba(35,169,220,0.3)] flex flex-col items-center">
+                          <img src="https://i.ibb.co/Kx2b19xV/SAC-OUVERT.png" className="w-full aspect-square object-cover rounded-xl" />
+                          <p className="text-[9px] md:text-[10px] font-bold text-center mt-2 text-[#23a9dc] uppercase tracking-widest leading-tight mb-1">Angle Prestige & Détails</p>
+                       </motion.div>
                     </motion.div>
 
                     {/* Variation 2: Top Right */}
                     <motion.div 
-                      initial={{ opacity: 0, scale: 0.5, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
+                      initial={{ opacity: 0, scale: 0, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
                       animate={{ opacity: 1, scale: 1, left: "80%", top: "20%", x: "-50%", y: "-50%" }}
-                      transition={{ duration: 0.6, type: "spring", bounce: 0.4, delay: 0.1 }}
-                      className="absolute z-20 bg-black/90 backdrop-blur-md border border-[#39FF14]/50 p-2 rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] flex flex-col items-center w-32 md:w-48"
+                      exit={{ opacity: 0, scale: 0, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
+                      transition={{ duration: 0.6, type: "spring", bounce: 0.5, delay: 0.1 }}
+                      className="absolute z-20 w-32 md:w-48"
                     >
-                       <img src="https://i.ibb.co/hRqbm8vY/DOS-SAC.png" className="w-full aspect-square object-cover rounded-xl" />
-                       <p className="text-[9px] md:text-[10px] font-bold text-center mt-2 text-[#39FF14] uppercase tracking-widest leading-tight mb-1">Angle Lifestyle Local</p>
+                       <motion.div animate={{ y: [-15, 15, -15] }} transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut" }} className="bg-black/90 backdrop-blur-md border border-[#39FF14]/50 p-2 rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] flex flex-col items-center">
+                          <img src="https://i.ibb.co/hRqbm8vY/DOS-SAC.png" className="w-full aspect-square object-cover rounded-xl" />
+                          <p className="text-[9px] md:text-[10px] font-bold text-center mt-2 text-[#39FF14] uppercase tracking-widest leading-tight mb-1">Angle Lifestyle Local</p>
+                       </motion.div>
                     </motion.div>
 
                     {/* Variation 3: Bottom Center */}
                     <motion.div 
-                      initial={{ opacity: 0, scale: 0.5, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
+                      initial={{ opacity: 0, scale: 0, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
                       animate={{ opacity: 1, scale: 1, left: "50%", top: "85%", x: "-50%", y: "-50%" }}
-                      transition={{ duration: 0.6, type: "spring", bounce: 0.4, delay: 0.2 }}
-                      className="absolute z-20 bg-black/90 backdrop-blur-md border border-red-500/50 p-2 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.3)] flex flex-col items-center w-48 md:w-72"
+                      exit={{ opacity: 0, scale: 0, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
+                      transition={{ duration: 0.6, type: "spring", bounce: 0.5, delay: 0.2 }}
+                      className="absolute z-20 w-48 md:w-72"
                     >
-                       <video src="https://res.cloudinary.com/dtr2wtoty/video/upload/v1777478457/DEMO_SAC_MARRON_emxajn.mp4" autoPlay loop muted playsInline className="w-full aspect-video object-cover rounded-xl" />
-                       <p className="text-[9px] md:text-[10px] font-bold text-center mt-2 text-red-500 uppercase tracking-widest leading-tight mb-1">Angle Urgence & Offre</p>
+                       <motion.div animate={{ y: [-8, 8, -8] }} transition={{ repeat: Infinity, duration: 3.8, ease: "easeInOut" }} className="bg-black/90 backdrop-blur-md border border-red-500/50 p-2 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.3)] flex flex-col items-center">
+                          <video src="https://res.cloudinary.com/dtr2wtoty/video/upload/v1777478457/DEMO_SAC_MARRON_emxajn.mp4" autoPlay loop muted playsInline className="w-full aspect-video object-cover rounded-xl" />
+                          <p className="text-[9px] md:text-[10px] font-bold text-center mt-2 text-red-500 uppercase tracking-widest leading-tight mb-1">Angle Urgence & Offre</p>
+                       </motion.div>
                     </motion.div>
                  </>
                )}
             </AnimatePresence>
          </div>
 
-         <div className="relative z-20 mt-8 min-h-[80px]">
-            {!isGenerated ? (
-               <button onClick={() => setIsGenerated(true)} className="text-[#39FF14] text-sm md:text-lg font-black uppercase tracking-widest animate-pulse flex items-center justify-center gap-2 hover:scale-105 transition-transform w-full">
-                  Cliquez ici pour tester la magie 🪄
-               </button>
-            ) : (
-               <motion.button 
-                 initial={{ opacity: 0, y: 20 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 transition={{ delay: 0.8 }}
-                 onClick={() => handleWaClick("OnyxPub")}
-                 className="bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto"
-               >
-                  Je veux ces résultats pour mon business <ArrowRight size={20} />
-               </motion.button>
-            )}
+         <div className="relative z-20 mt-8 min-h-[120px] flex flex-col items-center justify-start gap-4">
+            <button onClick={() => setIsGenerated(!isGenerated)} className={`text-[#39FF14] text-sm md:text-lg font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-transform w-full ${!isGenerated && 'animate-pulse'}`}>
+               {isGenerated ? "Ranger les variations 🪄" : "Cliquez ici pour tester la magie 🪄"}
+            </button>
+            
+            <AnimatePresence>
+               {isGenerated && (
+                  <motion.button 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                    transition={{ delay: 0.2 }}
+                    onClick={() => handleWaClick("OnyxPub")}
+                    className="bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto w-full max-w-lg animate-pulse"
+                  >
+                     Je veux ces résultats pour mon business <ArrowRight size={20} />
+                  </motion.button>
+               )}
+            </AnimatePresence>
          </div>
       </section>
 
@@ -241,38 +260,62 @@ export default function OnyxPubLanding() {
       <section className={`py-24 px-6 border-y relative z-10 transition-colors ${mounted && theme === 'light' ? 'bg-white border-zinc-200' : 'bg-black border-zinc-900'}`}>
          <div className="max-w-4xl mx-auto">
             <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-10 leading-[1.1] ${mounted && theme === 'light' ? 'text-black' : 'text-white'}`}>
-               Le secret que les agences vous cachent : <br className="hidden md:block"/>
+               Le secret des agences ? <br className="hidden md:block"/>
                <span className="text-[#39FF14]">Le ciblage est mort. Place au Volume Créatif.</span>
             </h2>
             
-            <div className={`space-y-6 text-lg md:text-xl font-medium leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
-               <p>La plupart des vendeurs au Sénégal gèrent encore leurs publicités Facebook comme en 2021. Ils s'obsèdent sur les réglages d'audience.</p>
-               <p>Mais l'algorithme a changé. Meta (Facebook/Instagram) n'est plus un outil de ciblage, c'est un moteur de matching créatif. Si vous boostez la même photo toute la semaine, le système s'étouffe. Pour exploser vos ventes, il faut du Volume Créatif.</p>
-               <p>Le problème ? Payer une agence pour produire 20 visuels différents détruit votre marge. Et utiliser des visuels génériques ou des "pubs de toubab" copiées-collées ne fait pas cliquer vos clients ici. C'est là qu'OnyxPub change les règles du jeu.</p>
-            </div>
-
-            <div className="mt-12 space-y-8">
-               <div className="flex items-start gap-4">
-                  <div className="bg-[#39FF14]/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle className="text-[#39FF14]" size={24}/></div>
-                  <p className={`text-lg font-bold leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-800' : 'text-zinc-200'}`}><span className="text-[#39FF14] font-black uppercase">Ancrage 100% Local :</span> Nos créatives sont adaptées aux réalités sénégalaises et africaines. Fini les visuels déconnectés de votre cible.</p>
-               </div>
-               <div className="flex items-start gap-4">
-                  <div className="bg-[#39FF14]/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle className="text-[#39FF14]" size={24}/></div>
-                  <p className={`text-lg font-bold leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-800' : 'text-zinc-200'}`}><span className="text-[#39FF14] font-black uppercase">Variété Infinie :</span> Nous ne faisons pas que du Luxe ou de l'Urgence. Nous générons une infinité d'angles psychologiques (Preuve sociale, Humour local, Rareté, Prestige) pour trouver ce qui fait vraiment vendre.</p>
-               </div>
-               <div className="flex items-start gap-4">
-                  <div className="bg-[#39FF14]/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle className="text-[#39FF14]" size={24}/></div>
-                  <p className={`text-lg font-bold leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-800' : 'text-zinc-200'}`}><span className="text-[#39FF14] font-black uppercase">Volume x10 :</span> Multipliez votre production par 10 sans augmenter vos effectifs ni payer de shooting.</p>
-               </div>
-            </div>
-
-            <p className={`mt-16 text-xl md:text-2xl font-black p-8 bg-[#39FF14]/10 border-l-4 border-[#39FF14] rounded-r-2xl leading-relaxed ${mounted && theme === 'light' ? 'text-black' : 'text-white'}`}>
-               Arrêtez d'affamer vos campagnes publicitaires. Laissez notre technologie gérer l'exécution, pendant que vous encaissez les ventes.
+            <p className={`text-lg md:text-xl font-medium leading-relaxed mb-12 ${mounted && theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
+               L'algorithme Meta a changé : c'est devenu un moteur de matching visuel. Si vous boostez la même photo toute la semaine, vos ventes s'étouffent. La solution ? Le volume. Mais produire 20 visuels par semaine coûte cher, et les IA génériques pondent des "pubs de toubab" qui ne parlent pas à vos clients. OnyxPub change les règles.
             </p>
+
+            <div className="space-y-6">
+               <div className="flex items-start gap-4">
+                  <div className="bg-[#39FF14]/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle className="text-[#39FF14]" size={24}/></div>
+                  <p className={`text-lg font-bold leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-800' : 'text-zinc-200'}`}><span className="text-[#39FF14] font-black uppercase">Ancrage 100% Local :</span> Des créatives adaptées aux réalités africaines. Fini le décalage.</p>
+               </div>
+               <div className="flex items-start gap-4">
+                  <div className="bg-[#39FF14]/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle className="text-[#39FF14]" size={24}/></div>
+                  <p className={`text-lg font-bold leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-800' : 'text-zinc-200'}`}><span className="text-[#39FF14] font-black uppercase">Variété Infinie :</span> Preuve sociale, humour, urgence, prestige... on teste tous les angles.</p>
+               </div>
+               <div className="flex items-start gap-4">
+                  <div className="bg-[#39FF14]/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle className="text-[#39FF14]" size={24}/></div>
+                  <p className={`text-lg font-bold leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-800' : 'text-zinc-200'}`}><span className="text-[#39FF14] font-black uppercase">Volume x10 :</span> Multipliez vos publicités par 10 sans embaucher ni payer de shooting.</p>
+               </div>
+            </div>
          </div>
       </section>
 
-      {/* SECTION 3 : PRICING */}
+      {/* SECTION 3 : LA GALERIE IMMERSIVE */}
+      <section className="w-full overflow-hidden bg-black py-16 relative border-b border-zinc-900 z-10">
+         {/* Overlays */}
+         <div className="pointer-events-none absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-black to-transparent z-20"></div>
+         <div className="pointer-events-none absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-black to-transparent z-20"></div>
+         
+         <div className="mb-10 text-center relative z-20">
+            <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter text-white`}>Nos Visuels qui <span className="text-[#39FF14]">Vendent</span></h2>
+         </div>
+
+         <div className="flex w-max">
+            <motion.div 
+               animate={{ x: ["0%", "-50%"] }} 
+               transition={{ repeat: Infinity, ease: "linear", duration: 30 }} 
+               className="flex"
+            >
+               {/* 16 placeholders (8 x 2 pour loop) */}
+               {[...Array(16)].map((_, i) => (
+                  <div key={i} className="aspect-[9/16] w-64 md:w-80 rounded-2xl bg-zinc-900 border border-zinc-800 flex-shrink-0 mx-4 flex items-center justify-center relative overflow-hidden group shadow-lg">
+                     <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 opacity-50"></div>
+                     <Camera className="text-zinc-700 w-12 h-12 relative z-10 group-hover:scale-110 transition-transform" />
+                     <div className="absolute bottom-6 left-6 right-6 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-zinc-700 w-1/2 rounded-full"></div>
+                     </div>
+                  </div>
+               ))}
+            </motion.div>
+         </div>
+      </section>
+
+      {/* SECTION 4 : PRICING */}
       <section className="py-24 px-6 relative z-10">
         <div className="max-w-5xl mx-auto">
            <div className="text-center mb-16">
@@ -373,7 +416,7 @@ export default function OnyxPubLanding() {
         </div>
       </section>
 
-      {/* SECTION 4 : FAQ */}
+      {/* SECTION 5 : FAQ */}
       <section className="py-24 px-6 bg-black relative z-10 border-t border-zinc-900">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
