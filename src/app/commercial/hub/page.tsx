@@ -170,7 +170,7 @@ export default function CommercialHub() {
 
       if (error) throw error;
 
-      alert(`Succès ! Le Client ${formData.shopName} a bien été enregistré sur votre compte.`);
+      alert(`Succès ! Le Chttps://www.onyxlinks.com/admin/saas/formationlient ${formData.shopName} a bien été enregistré sur votre compte.`);
       
       setFormData({ shopName: '', phone: '', region: '', address: '', product: '' });
       setAddCm(false);

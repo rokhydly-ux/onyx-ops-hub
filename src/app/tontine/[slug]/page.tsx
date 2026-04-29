@@ -238,15 +238,33 @@ function SlugPageContent({ slug }: { slug: string }) {
       clearInterval(spinInterval);
       
       const nbGagnants = tontine?.gagnants_par_mois || 1;
-      const shuffled = [...eligibles].sort(() => 0.5 - Math.random());
-      const selectedWinners = shuffled.slice(0, nbGagnants);
+      let selectedWinners: any[] = [];
+      let forcedIds: string[] = [];
+
+      if (currentDrawConfig?.gagnants_garantis) {
+          const garantisIds = currentDrawConfig.gagnants_garantis.split(',');
+          const garantisMembers = eligibles.filter(m => garantisIds.includes(m.id));
+          selectedWinners = [...garantisMembers];
+          forcedIds = garantisMembers.map((m: any) => m.id);
+      }
+
+      if (selectedWinners.length < nbGagnants) {
+          const remainingEligibles = eligibles.filter(m => !selectedWinners.find(sw => sw.id === m.id));
+          const shuffled = [...remainingEligibles].sort(() => 0.5 - Math.random());
+          selectedWinners = [...selectedWinners, ...shuffled.slice(0, nbGagnants - selectedWinners.length)];
+      }
       const winnerIds = selectedWinners.map(w => w.id);
       
       try {
         const { error } = await supabase.from('tontine_members').update({ a_gagne: true, mois_victoire: currentMonth }).in('id', winnerIds);
         if (error) throw error;
         
-        setMembers(members.map(m => winnerIds.includes(m.id) ? { ...m, a_gagne: true, mois_victoire: currentMonth } : m));
+        if (forcedIds.length > 0) {
+            const { error: forcedErr } = await supabase.from('tontine_members').update({ est_gagnant_force: true }).in('id', forcedIds);
+            if (forcedErr) console.warn("Veuillez ajouter la colonne 'est_gagnant_force' (boolean) dans 'tontine_members'.");
+        }
+        
+        setMembers(members.map(m => winnerIds.includes(m.id) ? { ...m, a_gagne: true, mois_victoire: currentMonth, est_gagnant_force: forcedIds.includes(m.id) } : m));
         setSpinName(selectedWinners.map(w => w.prenom_nom).join(" & "));
         setRevealed(true);
         setShowConfetti(true);
@@ -254,14 +272,14 @@ function SlugPageContent({ slug }: { slug: string }) {
         audio.volume = 0.5;
         audio.play().catch(()=>{});
 
-        const remainingEligibles = members.filter(m => !winnerIds.includes(m.id) && !m.a_gagne);
-        if (remainingEligibles.length > 0) {
-            const nextMember = remainingEligibles[0];
+        const remainingEligiblesAfterDraw = members.filter(m => !winnerIds.includes(m.id) && !m.a_gagne);
+        if (remainingEligiblesAfterDraw.length > 0) {
+            const nextMember = remainingEligiblesAfterDraw[0];
             const nextDate = new Date();
             nextDate.setMonth(nextDate.getMonth() + 1);
             nextDate.setDate(tontine.date_limite_paiement || 5);
             
-            const payload = { tontine_id: tontine.id, membre_id: nextMember.id, date_tirage_prevue: nextDate.toISOString().split('T')[0] };
+            const payload = { tontine_id: tontine.id, membre_id: nextMember.id, date_tirage_prevue: nextDate.toISOString().split('T')[0], gagnants_garantis: null };
             if (currentDrawConfig?.id) await supabase.from('configuration_tirage').update(payload).eq('id', currentDrawConfig.id);
             else await supabase.from('configuration_tirage').insert([payload]);
             
@@ -698,7 +716,7 @@ function SlugPageContent({ slug }: { slug: string }) {
   const winnersHistoryRaw = members.filter(m => m.a_gagne).reduce((acc: any, m: any) => {
     const mois = m.mois_victoire;
     if (!acc[mois]) acc[mois] = [];
-    acc[mois].push({ nom: m.prenom_nom, photo: m.photo_url, is_admin: m.is_admin });
+    acc[mois].push({ nom: m.prenom_nom, photo: m.photo_url, is_admin: m.is_admin, est_gagnant_force: m.est_gagnant_force });
     return acc;
   }, {});
   
@@ -1187,7 +1205,10 @@ function SlugPageContent({ slug }: { slug: string }) {
                                                   {w.photo ? <img src={w.photo} className="w-full h-full object-cover"/> : w.nom?.substring(0,2)}
                                                   </div>
                                                   <div>
-                                                  <p className="font-bold text-sm leading-tight text-black">{w.nom || "Inconnu"}</p>
+                                                  <p className="font-bold text-sm leading-tight text-black flex items-center gap-1">
+                                                      {w.nom || "Inconnu"}
+                                                      {currentUser?.is_admin && w.est_gagnant_force && <span title="Gagnant Forcé (Discret)" className="text-purple-500 ml-1"><Wand2 size={12} /></span>}
+                                                  </p>
                                                       <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{montantParGagnant.toLocaleString()} F CFA</p>
                                                   </div>
                                               </div>

@@ -62,6 +62,7 @@ export default function TontineAdminPage() {
   // --- ÉTATS TOUR DE RÔLE ---
   const [currentDrawConfig, setCurrentDrawConfig] = useState<any>(null);
   const [designatedMemberId, setDesignatedMemberId] = useState<string>('');
+  const [gagnantsGarantis, setGagnantsGarantis] = useState<string[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -224,12 +225,30 @@ export default function TontineAdminPage() {
         .single();
       if (!error && data) {
         setCurrentDrawConfig(data);
+        setGagnantsGarantis(data.gagnants_garantis ? data.gagnants_garantis.split(',') : []);
       } else {
         setCurrentDrawConfig(null);
+        setGagnantsGarantis([]);
       }
     } catch (err) {
       console.error("Erreur fetchDrawConfig:", err);
     }
+  };
+
+  const handleSaveGagnantsGarantis = async () => {
+      if (!currentDrawConfig?.id) return alert("Veuillez d'abord désigner un membre pour le tirage (Maître du jeu).");
+      setIsSaving(true);
+      try {
+          const payload = { gagnants_garantis: gagnantsGarantis.length > 0 ? gagnantsGarantis.join(',') : null };
+          const { error } = await supabase.from('configuration_tirage').update(payload).eq('id', currentDrawConfig.id);
+          if (error) throw error;
+          alert("Gagnants garantis mis à jour discrètement !");
+          fetchDrawConfig();
+      } catch (err: any) {
+          alert("Erreur: " + err.message);
+      } finally {
+          setIsSaving(false);
+      }
   };
 
   // --- CALCULS MEILLEURS PAYEURS ---
@@ -633,7 +652,7 @@ export default function TontineAdminPage() {
       nextDate.setMonth(nextDate.getMonth() + 1);
       nextDate.setDate(tontine.date_limite_paiement || 5);
 
-      const payload = { tontine_id: tontine.id, membre_id: memberId, date_tirage_prevue: nextDate.toISOString().split('T')[0] };
+      const payload = { tontine_id: tontine.id, membre_id: memberId, date_tirage_prevue: nextDate.toISOString().split('T')[0], gagnants_garantis: gagnantsGarantis.length > 0 ? gagnantsGarantis.join(',') : null };
 
       console.log("Payload envoyée (depuis carte):", { tontine_id: tontine.id, membre_id: memberId });
 
@@ -672,7 +691,8 @@ export default function TontineAdminPage() {
       const payload = {
         tontine_id: tontine.id,
         membre_id: designatedMemberId,
-        date_tirage_prevue: nextDate.toISOString().split('T')[0]
+        date_tirage_prevue: nextDate.toISOString().split('T')[0],
+        gagnants_garantis: gagnantsGarantis.length > 0 ? gagnantsGarantis.join(',') : null
       };
 
       console.log("Payload envoyée (depuis select):", { tontine_id: tontine.id, membre_id: designatedMemberId });
@@ -777,8 +797,20 @@ Généré par Onyx Tontine
       const nbGagnants = tontine?.gagnants_par_mois || 1;
       const currentMonthCalc = Math.floor(membres.filter(m => m.a_gagne).length / nbGagnants) + 1;
       
-      const shuffled = [...eligibles].sort(() => 0.5 - Math.random());
-      const selectedWinners = shuffled.slice(0, nbGagnants);
+      let selectedWinners: any[] = [];
+      let forcedIds: string[] = [];
+      if (currentDrawConfig?.gagnants_garantis) {
+          const garantisIds = currentDrawConfig.gagnants_garantis.split(',');
+          const garantisMembers = eligibles.filter(m => garantisIds.includes(m.id));
+          selectedWinners = [...garantisMembers];
+          forcedIds = garantisMembers.map((m: any) => m.id);
+      }
+      
+      if (selectedWinners.length < nbGagnants) {
+          const remainingEligibles = eligibles.filter(m => !selectedWinners.find(sw => sw.id === m.id));
+          const shuffled = [...remainingEligibles].sort(() => 0.5 - Math.random());
+          selectedWinners = [...selectedWinners, ...shuffled.slice(0, nbGagnants - selectedWinners.length)];
+      }
       
       try {
         const winnerIds = selectedWinners.map(w => w.id);
@@ -789,8 +821,13 @@ Généré par Onyx Tontine
 
         if (error) throw error;
 
+        if (forcedIds.length > 0) {
+            const { error: forcedErr } = await supabase.from('tontine_members').update({ est_gagnant_force: true }).in('id', forcedIds);
+            if (forcedErr) console.warn("Veuillez ajouter la colonne 'est_gagnant_force' (boolean) dans 'tontine_members'.");
+        }
+
         setMembres(membres.map(m => 
-          winnerIds.includes(m.id) ? { ...m, a_gagne: true, mois_victoire: currentMonthCalc } : m
+          winnerIds.includes(m.id) ? { ...m, a_gagne: true, mois_victoire: currentMonthCalc, est_gagnant_force: forcedIds.includes(m.id) } : m
         ));
         setRecentWinners(selectedWinners);
         setShowConfetti(true);
@@ -801,9 +838,9 @@ Généré par Onyx Tontine
         audio.play().catch(()=>{});
 
         // --- Automatisation : Désigner le membre suivant ---
-        const remainingEligibles = membres.filter(m => !winnerIds.includes(m.id) && !m.a_gagne);
-        if (remainingEligibles.length > 0) {
-            const nextMember = remainingEligibles[0];
+        const remainingEligiblesAfterDraw = membres.filter(m => !winnerIds.includes(m.id) && !m.a_gagne);
+        if (remainingEligiblesAfterDraw.length > 0) {
+            const nextMember = remainingEligiblesAfterDraw[0];
             const nextDate = new Date();
             nextDate.setMonth(nextDate.getMonth() + 1);
             nextDate.setDate(tontine.date_limite_paiement || 5);
@@ -811,7 +848,8 @@ Généré par Onyx Tontine
             const payload = {
                 tontine_id: tontine.id,
                 membre_id: nextMember.id,
-                date_tirage_prevue: nextDate.toISOString().split('T')[0]
+                date_tirage_prevue: nextDate.toISOString().split('T')[0],
+                gagnants_garantis: null
             };
             
             if (currentDrawConfig?.id) {
@@ -1403,7 +1441,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                 Configuration du Tour de Rôle
             </h3>
             
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-3 gap-8">
                 <div>
                     <p className="text-sm font-bold text-zinc-500 uppercase mb-2">Membre actuellement désigné</p>
                     {currentDrawConfig ? (
@@ -1450,6 +1488,37 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                         >
                             {isSaving ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>}
                             Désigner
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <p className="text-sm font-bold text-zinc-500 uppercase mb-2">Forcer des gagnants (Discret)</p>
+                    <div className="flex flex-col gap-3">
+                        <select 
+                            multiple
+                            value={gagnantsGarantis} 
+                            onChange={(e) => {
+                                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                if (selected.length > (tontine?.gagnants_par_mois || 2)) {
+                                    alert(`Vous ne pouvez sélectionner que ${tontine?.gagnants_par_mois || 2} gagnant(s).`);
+                                    return;
+                                }
+                                setGagnantsGarantis(selected);
+                            }}
+                            className="w-full p-2 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none transition cursor-pointer h-[80px] custom-scrollbar"
+                        >
+                            {membres.filter(m => !m.a_gagne).map(m => (
+                                <option key={m.id} value={m.id}>{m.prenom_nom}</option>
+                            ))}
+                        </select>
+                        <button 
+                            onClick={handleSaveGagnantsGarantis}
+                            disabled={isSaving || !currentDrawConfig?.id}
+                            className="px-6 py-4 rounded-xl font-black uppercase text-xs transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 bg-zinc-900 text-white hover:bg-black"
+                        >
+                            {isSaving ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>}
+                            Sauvegarder discrètement
                         </button>
                     </div>
                 </div>
@@ -1739,7 +1808,10 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                            <div className="bg-zinc-50 p-2 rounded-lg">
                               <p className="font-bold text-zinc-400 uppercase tracking-wider text-[9px]">Tirage</p>
                               {m.a_gagne ? (
-                                 <span className="font-black text-yellow-700">A Gagné</span>
+                                 <div className="flex items-center gap-1.5">
+                                    <span className="font-black text-yellow-700">A Gagné</span>
+                                    {m.est_gagnant_force && <span title="Gagnant Forcé (Discret)" className="text-purple-500"><Wand2 size={12} /></span>}
+                                 </div>
                               ) : m.mois_exclus && m.mois_exclus.split(',').map((s: string) => parseInt(s.trim())).includes(currentMonth) ? (
                                  <span className="font-black text-red-600">Exclu (Mois {currentMonth})</span>
                               ) : (
