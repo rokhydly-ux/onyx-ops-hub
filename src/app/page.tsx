@@ -1065,22 +1065,22 @@ export default function OnyxOpsElite() {
                     <div className="grid lg:grid-cols-2 gap-12 items-center px-4">
                       {/* Colonne Gauche */}
                       <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
-                        <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm border border-[#23a9dc]/30">
-                          <span>🚀 ONYXPUB : LE BOOSTER DE VENTES</span>
+                        <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm border border-[#39FF14]/30">
+                          <span> ONYXPUB : LE BOOSTER DE VENTES</span>
                         </div>
                         
                         <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                           NE CHERCHEZ PLUS DE CLIENTS. <br/>
-                          <span className="text-[#23a9dc] drop-shadow-sm">ON VOUS LES AMÈNE.</span>
+                          <span className="text-[#39FF14] drop-shadow-sm">ON VOUS LES AMÈNE.</span>
                         </h1>
                         
                         <p className={`${inter.className} ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'} text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
-                          Pas de site web ? Pas de problème. Envoyez-nous une simple photo sur WhatsApp. Notre technologie crée des visuels qui vendent, configure le Bot pour répondre à vos clients, et <span className="text-[#39FF14] font-black">on paie même vos premières publicités.</span>
+                          Arrêtez de poster dans le vide. Notre équipe crée pour vous des vidéos et des visuels qui vendent, et on paie même vos premières publicités pour lancer la machine.
                         </p>
       
                         <div className="flex flex-col sm:flex-row gap-4 mb-10">
-                          <button onClick={() => router.push('/solutions/onyxpub/page.tsx')} className="inline-flex justify-center items-center gap-2 bg-[#23a9dc] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-white hover:text-black transition duration-300 shadow-[0_15px_30px_rgba(35,169,220,0.4)] border border-transparent">
-                            Découvrir OnyxPub <ArrowRight size={20}/>
+                          <button onClick={() => router.push('/solutions/onyxpub')} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] hover:border-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent">
+                            Activer le Booster ⚡
                           </button>
                           <button onClick={() => setShowVideoModal(true)} className={`inline-flex justify-center items-center gap-2 border-2 ${theme === 'dark' ? 'border-white text-white hover:bg-white hover:text-black' : 'border-black text-black hover:bg-black hover:text-white'} px-8 py-5 rounded-full font-black text-sm uppercase transition`}>
                             <PlayCircle className="w-5 h-5" /> Voir comment ça marche
@@ -1095,9 +1095,20 @@ export default function OnyxOpsElite() {
                         </div>
                       </div>
       
-                      {/* Colonne Droite : Interactif */}
-                      <div className="relative mx-auto w-full max-w-[320px] lg:max-w-[400px] animate-in slide-in-from-right-8 fade-in duration-1000 mt-10 lg:mt-0 perspective-1000">
-                         <Floating360Product />
+                      {/* Colonne Droite : Visuel Lévitation */}
+                      <div className="relative mx-auto w-full max-w-[320px] lg:max-w-[400px] animate-in slide-in-from-right-8 fade-in duration-1000 mt-10 lg:mt-0 flex flex-col items-center justify-center">
+                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[#39FF14] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
+                         <motion.div
+                           animate={{ y: [0, -20, 0] }}
+                           transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                           className="w-[85%] h-auto z-10 drop-shadow-2xl relative flex items-center justify-center aspect-square"
+                         >
+                           <img 
+                             src="https://i.ibb.co/BVKC5TDN/sac.png"
+                             alt="Sac OnyxPub"
+                             className="max-w-full max-h-full object-contain"
+                           />
+                         </motion.div>
                       </div>
                     </div>
                   </div>
