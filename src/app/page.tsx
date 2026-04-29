@@ -17,6 +17,7 @@ import {
 import InteractiveParticles from "@/components/InteractiveParticles";
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const spaceGrotesk = { className: "font-sans" };
 const inter = { className: "" };
@@ -160,31 +161,78 @@ const CustomNavIcons = {
   )
 };
 
-const TiltImage = () => {
-  const [transform, setTransform] = useState("rotateX(0deg) rotateY(0deg)");
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+const Floating360Product = () => {
+  const [activeImg, setActiveImg] = useState("face");
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+
+  const images = {
+    face: "https://i.ibb.co/BVKC5TDN/sac.png",
+    dos: "https://i.ibb.co/hRqbm8vY/DOS-SAC.png",
+    bas: "https://i.ibb.co/NnjPZzng/BAS-SAC.png",
+    ouvert: "https://i.ibb.co/Kx2b19xV/SAC-OUVERT.png",
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    setStartX(e.clientX);
+  };
+
+  const handlePointerUp = () => setIsDragging(false);
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -20;
-    const rotateY = ((x - centerX) / centerX) * 20;
-    setTransform(`rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`);
+    if (!isDragging) {
+      const y = e.clientY - rect.top;
+      if (y < rect.height * 0.3) {
+        setActiveImg("bas");
+      } else if (y > rect.height * 0.7) {
+        setActiveImg("ouvert");
+      } else if (activeImg === "ouvert" || activeImg === "bas") {
+        setActiveImg("face");
+      }
+      return;
+    }
+    const deltaX = e.clientX - startX;
+    if (deltaX > 40) {
+      setActiveImg("dos");
+    } else if (deltaX < -40) {
+      setActiveImg("face");
+    }
   };
-  const handleMouseLeave = () => {
-    setTransform("rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)");
-  };
+
   return (
     <div 
-      className="relative w-full aspect-square flex flex-col items-center justify-center cursor-grab active:cursor-grabbing group"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ perspective: "1000px" }}
+      className="relative w-full aspect-square flex flex-col items-center justify-center cursor-grab active:cursor-grabbing group touch-none perspective-1000"
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onPointerMove={handlePointerMove}
     >
-       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#39FF14] rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none"></div>
-       <img src="https://i.ibb.co/BVKC5TDN/sac.png" alt="Sac à main OnyxPub" className="w-[85%] h-auto object-contain transition-transform duration-300 ease-out z-10 drop-shadow-2xl" style={{ transform, transformStyle: "preserve-3d" }} />
-       <div className="absolute bottom-4 bg-black/80 backdrop-blur text-[#39FF14] text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-full border border-[#39FF14]/30 z-20 shadow-xl opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none">Glissez pour tourner 👆</div>
+       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#23a9dc] rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none"></div>
+       
+       <motion.div
+         animate={{ y: [0, -15, 0] }}
+         transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+         className="w-[85%] h-auto z-10 drop-shadow-2xl relative flex items-center justify-center aspect-square"
+       >
+         <AnimatePresence mode="wait">
+           <motion.img 
+             key={activeImg}
+             src={images[activeImg as keyof typeof images]}
+             alt={`Sac ${activeImg}`}
+             initial={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
+             animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+             exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
+             transition={{ duration: 0.2 }}
+             className="absolute max-w-full max-h-full object-contain pointer-events-none"
+           />
+         </AnimatePresence>
+       </motion.div>
+
+       <div className="absolute bottom-4 bg-black/80 backdrop-blur text-[#23a9dc] text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-full border border-[#23a9dc]/30 z-20 shadow-xl opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none">
+         Glissez pour tourner 👆
+       </div>
     </div>
   );
 };
@@ -1017,21 +1065,21 @@ export default function OnyxOpsElite() {
                     <div className="grid lg:grid-cols-2 gap-12 items-center px-4">
                       {/* Colonne Gauche */}
                       <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
-                        <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm border border-zinc-800">
+                        <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm border border-[#23a9dc]/30">
                           <span>🚀 ONYXPUB : LE BOOSTER DE VENTES</span>
                         </div>
                         
                         <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                           NE CHERCHEZ PLUS DE CLIENTS. <br/>
-                          ON VOUS LES <span className="text-[#39FF14] drop-shadow-sm bg-black px-2 py-1 rounded-xl">AMÈNE.</span>
+                          <span className="text-[#23a9dc] drop-shadow-sm">ON VOUS LES AMÈNE.</span>
                         </h1>
                         
                         <p className={`${inter.className} ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'} text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
-                          Pas de site web ? Pas de problème. Envoyez-nous une simple photo sur WhatsApp. Notre équipe crée des visuels qui vendent, configure le Bot pour répondre à vos clients, et on paie même vos premières publicités.
+                          Pas de site web ? Pas de problème. Envoyez-nous une simple photo sur WhatsApp. Notre technologie crée des visuels qui vendent, configure le Bot pour répondre à vos clients, et <span className="text-[#39FF14] font-black">on paie même vos premières publicités.</span>
                         </p>
       
                         <div className="flex flex-col sm:flex-row gap-4 mb-10">
-                          <button onClick={() => router.push('/solutions/onyxpub')} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14]">
+                          <button onClick={() => router.push('/solutions/onyxpub/page.tsx')} className="inline-flex justify-center items-center gap-2 bg-[#23a9dc] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-white hover:text-black transition duration-300 shadow-[0_15px_30px_rgba(35,169,220,0.4)] border border-transparent">
                             Découvrir OnyxPub <ArrowRight size={20}/>
                           </button>
                           <button onClick={() => setShowVideoModal(true)} className={`inline-flex justify-center items-center gap-2 border-2 ${theme === 'dark' ? 'border-white text-white hover:bg-white hover:text-black' : 'border-black text-black hover:bg-black hover:text-white'} px-8 py-5 rounded-full font-black text-sm uppercase transition`}>
@@ -1049,7 +1097,7 @@ export default function OnyxOpsElite() {
       
                       {/* Colonne Droite : Interactif */}
                       <div className="relative mx-auto w-full max-w-[320px] lg:max-w-[400px] animate-in slide-in-from-right-8 fade-in duration-1000 mt-10 lg:mt-0 perspective-1000">
-                         <TiltImage />
+                         <Floating360Product />
                       </div>
                     </div>
                   </div>

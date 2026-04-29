@@ -80,6 +80,13 @@ export default function OnyxPubLanding() {
           75% { text-shadow: -2px 0 #ff00ff, 2px 0 #23a9dc; }
           100% { text-shadow: 2px 0 #23a9dc, -2px 0 #ff00ff; }
         }
+        @keyframes neon-pulse {
+          0%, 100% { box-shadow: 0 0 20px rgba(35,169,220,0.2); border-color: rgba(35,169,220,0.4); }
+          50% { box-shadow: 0 0 50px rgba(35,169,220,0.8), inset 0 0 10px rgba(35,169,220,0.3); border-color: #23a9dc; }
+        }
+        .neon-border {
+          animation: neon-pulse 3s ease-in-out infinite;
+        }
       `}} />
 
       {/* NAVBAR */}
@@ -108,6 +115,15 @@ export default function OnyxPubLanding() {
             </span>
          </h1>
          
+         {/* NOUVEAU: MAIN VIDEO DEMO */}
+         <div className="relative mx-auto w-full max-w-4xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(35,169,220,0.3)] mb-12 z-10 border-[4px] border-zinc-800 bg-zinc-900">
+            <video 
+               src="https://res.cloudinary.com/dtr2wtoty/video/upload/v1777478457/DEMO_SAC_MARRON_emxajn.mp4" 
+               autoPlay loop muted playsInline 
+               className="w-full h-full object-cover"
+            ></video>
+         </div>
+         
          <p className="text-zinc-400 text-lg md:text-xl font-medium max-w-3xl mx-auto mb-12 leading-relaxed relative z-10">
             Envoyez-nous les photos brutes de vos produits. Nous générons les visuels, configurons le Bot WhatsApp vendeur, et lançons vos publicités. <span className="text-[#39FF14] font-black drop-shadow-sm">Budget pub inclus.</span>
          </p>
@@ -121,10 +137,10 @@ export default function OnyxPubLanding() {
       <section className="py-24 px-6 bg-black border-y border-zinc-900 relative z-10">
          <div className="max-w-6xl mx-auto text-center">
             <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-16`}>
-               1 Photo Brute. <br className="md:hidden" /><span className="text-[#23a9dc]">Des variations infinies pour l'algorithme.</span>
+               1 Photo Brute. <br className="md:hidden" /><span className="text-[#23a9dc]">Variations infinies pour l'algorithme.</span>
             </h2>
 
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16">
+            <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 mb-12">
                {/* GAUCHE : Photo originale */}
                <div className="flex flex-col items-center w-full lg:w-1/3">
                   <div className="w-full aspect-square bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-3xl p-4 flex items-center justify-center relative shadow-lg">
@@ -136,7 +152,7 @@ export default function OnyxPubLanding() {
                </div>
 
                {/* CENTRE : Flèche/Sparkles */}
-               <div className="flex justify-center items-center">
+               <div className="flex justify-center items-center shrink-0">
                   <div className="w-16 h-16 bg-[#23a9dc]/20 text-[#23a9dc] rounded-full flex items-center justify-center border border-[#23a9dc]/30 shadow-[0_0_30px_rgba(35,169,220,0.4)] animate-pulse">
                      <Sparkles size={32} className="animate-[spin_4s_linear_infinite]" />
                   </div>
@@ -148,28 +164,32 @@ export default function OnyxPubLanding() {
                   <div className="flex-1 flex flex-col items-center">
                      <div className="w-full aspect-square bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden group">
                         <div className="absolute inset-0 bg-[#23a9dc]/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <img src="https://i.ibb.co/pvf9Qvzm/High-end-commercial-photography-aspect-square-202604291434.jpg" alt="Angle Luxe" className="w-full h-full object-cover" />
+                        <img src="https://i.ibb.co/Kx2b19xV/SAC-OUVERT.png" alt="Angle Luxe" className="w-full h-full object-cover" />
                      </div>
-                     <p className="mt-4 text-zinc-300 font-bold text-xs uppercase tracking-wider">Angle Luxe</p>
+                     <p className="mt-4 text-zinc-300 font-bold text-[10px] sm:text-xs text-center uppercase tracking-wider">Angle Luxe (Détail Ouvert)</p>
                   </div>
                   {/* Variation 2 */}
                   <div className="flex-1 flex flex-col items-center">
                      <div className="w-full aspect-square bg-gradient-to-tr from-zinc-800 to-zinc-900 border border-zinc-700 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden group">
                         <div className="absolute inset-0 bg-[#39FF14]/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <img src="https://i.ibb.co/G4b4cYcq/High-end-lifestyle-commercial-photography-aspect-202604291449.jpg" alt="Angle Lifestyle" className="w-full h-full object-cover" />
+                        <img src="https://i.ibb.co/hRqbm8vY/DOS-SAC.png" alt="Angle Lifestyle" className="w-full h-full object-cover" />
                      </div>
-                     <p className="mt-4 text-zinc-300 font-bold text-xs uppercase tracking-wider">Angle Lifestyle</p>
+                     <p className="mt-4 text-zinc-300 font-bold text-[10px] sm:text-xs text-center uppercase tracking-wider">Angle Lifestyle (Vue de Dos)</p>
                   </div>
                   {/* Variation 3 */}
                   <div className="flex-1 flex flex-col items-center">
                      <div className="w-full aspect-square bg-gradient-to-bl from-zinc-800 to-zinc-900 border border-zinc-700 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden group">
                         <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <video src="https://res.cloudinary.com/dtr2wtoty/video/upload/v1777478457/DEMO_SAC_MARRON_emxajn.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover"></video>
-                        <div className="absolute top-2 right-2 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded uppercase animate-bounce">-50%</div>
+                        <img src="https://i.ibb.co/NnjPZzng/BAS-SAC.png" alt="Angle Urgence" className="w-full h-full object-cover" />
+                        <div className="absolute top-2 right-2 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded uppercase animate-pulse shadow-md">STOCK LIMITÉ</div>
                      </div>
-                     <p className="mt-4 text-zinc-300 font-bold text-xs uppercase tracking-wider">Angle Urgence</p>
+                     <p className="mt-4 text-zinc-300 font-bold text-[10px] sm:text-xs text-center uppercase tracking-wider">Angle Urgence (Structure Base)</p>
                   </div>
                </div>
+            </div>
+
+            <div className="mt-12 text-zinc-400 font-medium text-lg max-w-3xl mx-auto bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800 shadow-inner">
+               Nourrir l'algorithme Meta avec des angles psychologiques différents (Luxe, Urgence, Lifestyle) pour trouver instantanément celui qui fait cliquer vos clients.
             </div>
          </div>
       </section>
@@ -228,7 +248,7 @@ export default function OnyxPubLanding() {
               </div>
 
               {/* Carte 2 : OnyxPub Pro */}
-              <div className="bg-black border-[3px] border-[#23a9dc] shadow-[0_0_40px_rgba(35,169,220,0.25)] p-8 md:p-10 rounded-[3rem] transform md:scale-105 transition-all flex flex-col h-full relative z-10">
+              <div className="bg-black border-[3px] border-[#23a9dc] p-8 md:p-10 rounded-[3rem] transform md:scale-105 transition-all flex flex-col h-full relative z-10 neon-border">
                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#23a9dc] text-black px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl">
                     <Sparkles size={14}/> Recommandé
                  </div>
