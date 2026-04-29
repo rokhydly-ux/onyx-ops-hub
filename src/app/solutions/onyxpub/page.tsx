@@ -319,7 +319,7 @@ export default function OnyxPubLanding() {
       <section className="py-24 px-6 relative z-10">
         <div className="max-w-5xl mx-auto">
            <div className="text-center mb-16">
-              <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-4`}>
+              <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter ${mounted && theme === 'light' ? 'text-black' : 'text-white'} mb-4`}>
                  Un investissement <span className="text-[#39FF14]">instantanément rentable.</span>
               </h2>
               <p className="text-zinc-500 font-bold text-lg">Zéro blabla, que des résultats.</p>

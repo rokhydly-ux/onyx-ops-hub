@@ -862,7 +862,7 @@ export default function OnyxOpsElite() {
 
       {/* MODULE DE NOTIFICATIONS FLOTTANT */}
       <div className={`fixed bottom-24 md:bottom-8 left-4 md:left-6 z-[100] transition-all duration-500 transform ${showNotification && !isNotificationDismissed ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
-         <div className="bg-white p-3 pr-8 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-start gap-3 w-[calc(100vw-2rem)] md:w-auto max-w-[280px] cursor-pointer hover:scale-105 transition relative" onClick={() => navigateTo('home', 'tarifs')}>
+         <div className="bg-white text-black p-3 pr-8 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-start gap-3 w-[calc(100vw-2rem)] md:w-auto max-w-[280px] cursor-pointer hover:scale-105 transition relative" onClick={() => navigateTo('home', 'tarifs')}>
             <button 
                onClick={(e) => { e.stopPropagation(); setIsNotificationDismissed(true); }} 
                className="absolute top-2 right-2 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-full p-1 transition-colors"
@@ -944,7 +944,7 @@ export default function OnyxOpsElite() {
         </nav>
 
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-8 lg:hidden animate-in fade-in">
+          <div className="fixed inset-0 z-40 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-8 lg:hidden animate-in fade-in text-black">
             <button onClick={() => navigateTo('home', 'solutions')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Solutions</button>
             <button onClick={() => navigateTo('home', 'tarifs')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase`}>Tarifs</button>
             <button onClick={() => navigateTo('home', 'premium')} className={`${spaceGrotesk.className} text-3xl font-bold uppercase text-[#00E5FF] flex items-center gap-3`}>
@@ -1166,7 +1166,7 @@ export default function OnyxOpsElite() {
             </section>
 
             {/* --- SECTION QUIZ INTERACTIF --- */}
-            <section id="quiz-section" className="py-24 bg-zinc-50 border-t border-zinc-200 mt-10">
+            <section id="quiz-section" className="py-24 bg-zinc-50 border-t border-zinc-200 mt-10 text-black">
                <div className="max-w-4xl mx-auto px-6 text-center">
                   <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase mb-4`}>CHAOS DE STOCK OÙ VENTES EN BAISSE ?</h2>
                   <p className="text-zinc-600 font-bold text-lg mb-12">En 2 clics, trouvez l'outil Onyx pour sécuriser votre caisse ou doubler vos bénéfices CFA.</p>
@@ -1436,7 +1436,7 @@ export default function OnyxOpsElite() {
             </section>
 
             {/* SECTION TEMOIGNAGES ALEATOIRES INFINIS */}
-            <section className="py-20 bg-zinc-50 border-t border-zinc-200">
+            <section className="py-20 bg-zinc-50 border-t border-zinc-200 text-black">
                <div className="max-w-7xl mx-auto px-6">
                   <div className="text-center mb-16">
                      <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Ils réussissent avec <span className="text-[#39FF14]">Onyx</span></h2>
@@ -1468,7 +1468,7 @@ export default function OnyxOpsElite() {
             </section>
 
             {/* --- NOUVEAU : SECTION FAQ --- */}
-            <section id="faq" className="py-24 bg-white">
+            <section id="faq" className="py-24 bg-white text-black">
               <div className="max-w-4xl mx-auto px-6">
                 <div className="text-center mb-16">
                   <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Questions <span className="text-[#39FF14]">Fréquentes</span></h2>
@@ -1509,7 +1509,7 @@ export default function OnyxOpsElite() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                {articles.map((article) => (
-                  <div key={article.id} onClick={() => { setSelectedArticle(article); setBlogEmail(""); }} className="bg-white border border-zinc-200 rounded-[3rem] p-8 shadow-sm hover:shadow-xl hover:border-black transition cursor-pointer flex flex-col h-full">
+                  <div key={article.id} onClick={() => { setSelectedArticle(article); setBlogEmail(""); }} className="bg-white text-black border border-zinc-200 rounded-[3rem] p-8 shadow-sm hover:shadow-xl hover:border-black transition cursor-pointer flex flex-col h-full">
                      <div className="flex gap-2 mb-6">
                         <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">{article.category}</span>
                         <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || '5 min'}</span>
@@ -1525,7 +1525,7 @@ export default function OnyxOpsElite() {
 
             {selectedArticle && (
                <div id="modal-overlay" onClick={handleOutsideClick(setSelectedArticle)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-                 <div className="bg-white p-10 md:p-16 rounded-[3.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in my-8">
+                 <div className="bg-white text-black p-10 md:p-16 rounded-[3.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in my-8">
                    <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
                    <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block">{selectedArticle.category}</span>
                    <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase mb-6 leading-tight`}>{selectedArticle.title}</h2>
@@ -1576,7 +1576,7 @@ export default function OnyxOpsElite() {
                   <button onClick={() => setPartnerStep('form')} className="bg-black text-[#39FF14] px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest hover:scale-105 transition shadow-[0_15px_40px_rgba(57,255,20,0.3)] animate-bounce">Rejoindre le Mouvement</button>
                 </div>
 
-                <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl border-2 border-zinc-100 text-left mb-20">
+                <div className="bg-white text-black p-8 md:p-12 rounded-[3rem] shadow-xl border-2 border-zinc-100 text-left mb-20">
                   <h3 className={`${spaceGrotesk.className} font-black text-3xl mb-8 uppercase flex items-center gap-3`}><Target className="text-[#39FF14] w-8 h-8"/> Simulez vos futurs revenus</h3>
                   <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-6">
@@ -1610,7 +1610,7 @@ export default function OnyxOpsElite() {
             )}
 
             {partnerStep === 'form' && (
-              <div className="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl border border-zinc-100 animate-in zoom-in">
+              <div className="max-w-3xl mx-auto bg-white text-black p-8 md:p-12 rounded-[3rem] shadow-2xl border border-zinc-100 animate-in zoom-in">
                 <div className="flex justify-between items-center mb-8">
                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter`}>Candidature Ambassadeur</h2>
                   <button onClick={() => setPartnerStep('landing')} className="text-xs font-bold text-zinc-400 hover:text-black"><X size={24}/></button>
@@ -1670,7 +1670,7 @@ export default function OnyxOpsElite() {
             )}
 
             {partnerStep === 'success' && (
-               <div className="text-center max-w-lg mx-auto bg-white p-12 rounded-[3rem] shadow-2xl border-2 border-[#39FF14] animate-in zoom-in">
+               <div className="text-center max-w-lg mx-auto bg-white text-black p-12 rounded-[3rem] shadow-2xl border-2 border-[#39FF14] animate-in zoom-in">
                   <CheckCircle className="w-20 h-20 text-[#39FF14] mx-auto mb-6" />
                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-4`}>Félicitations !</h2>
                   <p className="text-xs font-bold text-zinc-500 mb-8">Votre candidature a été reçue et est en cours d'analyse par un administrateur.</p>
@@ -1687,7 +1687,7 @@ export default function OnyxOpsElite() {
                   <button onClick={() => setPartnerStep('landing')} className="text-xs font-bold text-zinc-400 hover:text-black flex items-center gap-1"><X size={14}/> Quitter</button>
                 </div>
 
-                <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-zinc-200 mb-8">
+                <div className="bg-white text-black p-8 rounded-[3rem] shadow-sm border border-zinc-200 mb-8">
                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Votre Lien de Parrainage</p>
                    <div className="bg-zinc-100 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 border border-zinc-200 hover:border-black transition">
                       <span className="text-sm font-bold text-zinc-600 truncate flex-1">https://onyxlinks.com/ref/ambassadeur-demo</span>
@@ -1702,11 +1702,11 @@ export default function OnyxOpsElite() {
                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Solde Disponible (M1)</p>
                     <p className={`${spaceGrotesk.className} text-4xl font-black text-[#39FF14]`}>142.500 F</p>
                   </div>
-                  <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:border-[#39FF14] transition">
+                  <div className="bg-white text-black p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:border-[#39FF14] transition">
                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Ventes Réalisées</p>
                     <p className={`${spaceGrotesk.className} text-4xl font-black text-black`}>12</p>
                   </div>
-                  <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:border-[#39FF14] transition">
+                  <div className="bg-white text-black p-8 rounded-[2rem] shadow-sm border border-zinc-200 cursor-pointer hover:border-[#39FF14] transition">
                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Statut du compte</p>
                     <p className={`${spaceGrotesk.className} text-3xl font-black text-yellow-500`}>EN ATTENTE</p>
                   </div>
@@ -1719,7 +1719,7 @@ export default function OnyxOpsElite() {
         {/* --- MODALES COMMUNES --- */}
         {showAuthModal && (
           <div id="modal-overlay" onClick={handleOutsideClick(setShowAuthModal)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl animate-in zoom-in">
+            <div className="bg-white text-black p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl animate-in zoom-in">
               <button onClick={() => setShowAuthModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
               <div className="flex justify-center gap-4 mb-8 bg-zinc-100 p-1.5 rounded-2xl">
                  <button onClick={() => setAuthMode('login')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition ${authMode === 'login' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Se connecter</button>
@@ -1759,7 +1759,7 @@ export default function OnyxOpsElite() {
 
           return (
             <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasChoice)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-              <div className="bg-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14] max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <div className="bg-white text-black p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14] max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-50" onClick={() => setShowSaasChoice(null)}><X size={20}/></button>
                 
                 {/* SYSTÈME D'ONGLETS */}
@@ -1930,7 +1930,7 @@ export default function OnyxOpsElite() {
         {/* --- MODALE : ONBOARDING CAPTURE LEAD (MAIMOUNA) --- */}
         {showOnboarding && (
           <div id="modal-overlay" onClick={handleOutsideClick(setShowOnboarding)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in overflow-y-auto">
-            <div className="bg-white rounded-3xl w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(57,255,20,0.15)] animate-in zoom-in min-h-[500px]">
+            <div className="bg-white text-black rounded-3xl w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(57,255,20,0.15)] animate-in zoom-in min-h-[500px]">
               <button onClick={() => setShowOnboarding(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
 
               {/* Colonne Gauche : Image Conseillère */}
@@ -2053,7 +2053,7 @@ export default function OnyxOpsElite() {
         {/* --- MODALE EXIT INTENT REVISITÉE AVEC FORMULAIRE & BÉNÉFICES CHIFFRÉS --- */}
         {showExitIntent && (
           <div id="modal-overlay" onClick={handleOutsideClick(setShowExitIntent)} className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
-            <div className="bg-white p-6 sm:p-10 rounded-3xl max-w-lg w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in text-center border-t-8 border-black">
+            <div className="bg-white text-black p-6 sm:p-10 rounded-3xl max-w-lg w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in text-center border-t-8 border-black">
               <button onClick={() => setShowExitIntent(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
               
               <div className="w-20 h-20 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-bounce">
@@ -2133,7 +2133,7 @@ export default function OnyxOpsElite() {
         {/* --- BOT FLOTTANT --- */}
         <div className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
           {isBotOpen && (
-            <div className="bg-white rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[340px] h-[450px] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
+            <div className="bg-white text-black rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[340px] h-[450px] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
                <div className="bg-black p-4 flex justify-between items-center">
                   <div className="flex items-center gap-3">
                      <div className="relative">
