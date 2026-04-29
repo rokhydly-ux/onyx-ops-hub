@@ -2,9 +2,17 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ArrowRight, Sparkles, CheckCircle, Zap, Image as ImageIcon, Camera, Wand2, X, Send, MessageSquare } from "lucide-react";
+import { ChevronLeft, ArrowRight, Sparkles, CheckCircle, Zap, Image as ImageIcon, Camera, Wand2, X, Send, MessageSquare, ChevronDown } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
+
+const FAQ_DATA = [
+  { question: "Le budget pub est-il vraiment inclus chaque mois ?", answer: "Oui ! Par exemple, avec l'offre standard à 39 900F, nous réinvestissons directement 10 000 FCFA sur Meta Ads (Facebook/Instagram) pour lancer vos campagnes publicitaires." },
+  { question: "Comment se passe la génération de visuels par l'IA ?", answer: "Prenez simplement vos produits en photo avec votre smartphone (de préférence sur un fond neutre). Envoyez-les sur notre WhatsApp, et notre intelligence artificielle s'occupe de les transformer en véritables affiches publicitaires haut de gamme pour l'e-commerce." },
+  { question: "Combien de temps avant de voir les premiers résultats ?", answer: "La mise en place initiale de la machine prend environ 48h. Dès que vos publicités sont validées par Meta, les premiers messages et interactions de clients arrivent directement sur votre numéro WhatsApp." },
+  { question: "Dois-je m'engager sur plusieurs mois ?", answer: "Non. Les abonnements OnyxPub sont mensuels et sans engagement de durée. Notre seul but est que la rentabilité immédiate générée vous convainque de continuer mois après mois." },
+  { question: "Que fait le Bot WhatsApp exactement ?", answer: "Le Bot agit comme votre vendeur 24h/24. Il accueille instantanément les prospects venant des publicités, répond aux questions fréquentes, qualifie le besoin, et vous aide à conclure la vente." }
+];
 
 export default function OnyxPubLanding() {
   const router = useRouter();
@@ -17,6 +25,9 @@ export default function OnyxPubLanding() {
     { sender: 'bot', text: "Salut ! Je suis Lika, experte en publicité. Prête à transformer tes photos en machine à cash ?" }
   ]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // FAQ states
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -153,7 +164,7 @@ export default function OnyxPubLanding() {
                   <div className="flex-1 flex flex-col items-center">
                      <div className="w-full aspect-square bg-gradient-to-bl from-zinc-800 to-zinc-900 border border-zinc-700 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden group">
                         <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <img src="https://i.ibb.co/BVKC5TDN/sac.png" alt="Angle Urgence" className="w-3/4 h-3/4 object-contain drop-shadow-2xl sepia-[30%]" />
+                        <video src="https://res.cloudinary.com/dtr2wtoty/video/upload/v1777478457/DEMO_SAC_MARRON_emxajn.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover"></video>
                         <div className="absolute top-2 right-2 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded uppercase animate-bounce">-50%</div>
                      </div>
                      <p className="mt-4 text-zinc-300 font-bold text-xs uppercase tracking-wider">Angle Urgence</p>
@@ -188,7 +199,10 @@ export default function OnyxPubLanding() {
                  <ul className="space-y-4 mb-10 flex-1 text-sm font-bold">
                     <li className="flex items-start gap-3 text-white">
                        <Zap size={18} className="text-[#39FF14] shrink-0 mt-0.5" />
-                       <span><span className="text-[#39FF14]">10 000 FCFA de budget pub INCLUS</span></span>
+                       <span className="flex items-center flex-wrap gap-2 text-[#39FF14]">
+                          10 000 FCFA de budget pub INCLUS
+                          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLfm0ooWZDodEBD2zlKPK3xt37ot4lUZHIBw&s" alt="Meta Ads" className="h-4 w-auto rounded-[2px] object-contain inline-block bg-white" />
+                       </span>
                     </li>
                     <li className="flex items-start gap-3 text-zinc-300">
                        <CheckCircle size={18} className="text-[#23a9dc] shrink-0 mt-0.5" />
@@ -230,7 +244,10 @@ export default function OnyxPubLanding() {
                  <ul className="space-y-4 mb-10 flex-1 text-sm font-bold">
                     <li className="flex items-start gap-3 text-white">
                        <Zap size={18} className="text-[#39FF14] shrink-0 mt-0.5" />
-                       <span><span className="text-[#39FF14]">15 000 FCFA de budget pub INCLUS</span></span>
+                       <span className="flex items-center flex-wrap gap-2 text-[#39FF14]">
+                          15 000 FCFA de budget pub INCLUS
+                          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLfm0ooWZDodEBD2zlKPK3xt37ot4lUZHIBw&s" alt="Meta Ads" className="h-4 w-auto rounded-[2px] object-contain inline-block bg-white" />
+                       </span>
                     </li>
                     <li className="flex items-start gap-3 text-zinc-200">
                        <Camera size={18} className="text-[#23a9dc] shrink-0 mt-0.5" />
@@ -255,6 +272,36 @@ export default function OnyxPubLanding() {
                  </button>
               </div>
            </div>
+        </div>
+      </section>
+
+      {/* SECTION 4 : FAQ */}
+      <section className="py-24 px-6 bg-black relative z-10 border-t border-zinc-900">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-4`}>Questions <span className="text-[#23a9dc]">Fréquentes</span></h2>
+            <p className="text-zinc-500 font-bold max-w-2xl mx-auto text-lg">Tout ce que vous devez savoir avant de lancer votre machine à cash.</p>
+          </div>
+          <div className="space-y-4">
+            {FAQ_DATA.map((item, index) => (
+              <div key={index} className={`bg-zinc-900/50 border rounded-[2rem] p-6 transition-all duration-300 ${openFaq === index ? 'border-[#23a9dc]' : 'border-zinc-800'}`}>
+                <button 
+                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  className="w-full flex justify-between items-center text-left"
+                >
+                  <h3 className="font-black text-lg uppercase tracking-tight text-white">{item.question}</h3>
+                  <div className={`p-2 rounded-full transition-transform duration-300 shrink-0 ${openFaq === index ? 'bg-[#23a9dc] text-black rotate-180' : 'bg-zinc-800 text-zinc-400'}`}>
+                    <ChevronDown size={20} />
+                  </div>
+                </button>
+                <div className={`grid transition-all duration-300 ease-in-out ${openFaq === index ? 'grid-rows-[1fr] opacity-100 pt-4' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className="overflow-hidden">
+                    <p className={`text-zinc-400 font-medium leading-relaxed pr-8 transition-transform duration-500 ${openFaq === index ? 'translate-y-0' : '-translate-y-3'}`}>{item.answer}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
