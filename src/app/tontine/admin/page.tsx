@@ -44,6 +44,7 @@ export default function TontineAdminPage() {
   const [spinName, setSpinName] = useState("");
   const [spinAvatar, setSpinAvatar] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showMagicEffect, setShowMagicEffect] = useState(false);
   const [recentWinners, setRecentWinners] = useState<any[]>([]);
 
   // --- ÉTATS COMMUNICATION VISUELLE ---
@@ -243,6 +244,22 @@ export default function TontineAdminPage() {
           const { error } = await supabase.from('configuration_tirage').update(payload).eq('id', currentDrawConfig.id);
           if (error) throw error;
           alert("Gagnants garantis mis à jour discrètement !");
+          fetchDrawConfig();
+      } catch (err: any) {
+          alert("Erreur: " + err.message);
+      } finally {
+          setIsSaving(false);
+      }
+  };
+
+  const handleClearGagnantsGarantis = async () => {
+      if (!currentDrawConfig?.id) return;
+      if (!confirm("Voulez-vous vraiment annuler les gagnants forcés ?")) return;
+      setIsSaving(true);
+      try {
+          const { error } = await supabase.from('configuration_tirage').update({ gagnants_garantis: null }).eq('id', currentDrawConfig.id);
+          if (error) throw error;
+          alert("Gagnants forcés annulés ! Le tirage sera 100% aléatoire.");
           fetchDrawConfig();
       } catch (err: any) {
           alert("Erreur: " + err.message);
@@ -829,8 +846,12 @@ Généré par Onyx Tontine
         setMembres(membres.map(m => 
           winnerIds.includes(m.id) ? { ...m, a_gagne: true, mois_victoire: currentMonthCalc, est_gagnant_force: forcedIds.includes(m.id) } : m
         ));
-        setRecentWinners(selectedWinners);
+        setRecentWinners(selectedWinners.map(w => ({ ...w, est_gagnant_force: forcedIds.includes(w.id) })));
         setShowConfetti(true);
+        if (forcedIds.length > 0) {
+            setShowMagicEffect(true);
+            setTimeout(() => setShowMagicEffect(false), 8000);
+        }
         setTimeout(() => setShowConfetti(false), 8000);
 
         const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
@@ -859,6 +880,14 @@ Généré par Onyx Tontine
             }
             alert(`Le tirage est terminé ! ${nextMember.prenom_nom} a été automatiquement désigné(e) pour le mois suivant.`);
             fetchDrawConfig();
+            
+            // --- NOUVEAU: Prompt pour notifier les gagnants automatiquement sur WhatsApp ---
+            setTimeout(() => {
+                if (confirm("Le tirage est terminé ! Voulez-vous notifier le groupe WhatsApp des gagnants de ce mois ?")) {
+                    handleShareDrawGroup();
+                }
+            }, 1000);
+
             if (confirm(`Voulez-vous notifier ${nextMember.prenom_nom} sur WhatsApp de sa désignation automatique ?`)) {
                 const message = `Bonjour ${nextMember.prenom_nom}, vous avez été automatiquement désigné(e) pour lancer le prochain tirage de la tontine "${tontine.nom}" le mois prochain. Félicitations ! 🎉`;
                 window.open(`https://wa.me/221${nextMember.telephone}?text=${encodeURIComponent(message)}`, '_blank');
@@ -1512,14 +1541,26 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                                 <option key={m.id} value={m.id}>{m.prenom_nom}</option>
                             ))}
                         </select>
-                        <button 
-                            onClick={handleSaveGagnantsGarantis}
-                            disabled={isSaving || !currentDrawConfig?.id}
-                            className="px-6 py-4 rounded-xl font-black uppercase text-xs transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 bg-zinc-900 text-white hover:bg-black"
-                        >
-                            {isSaving ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>}
-                            Sauvegarder discrètement
-                        </button>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={handleSaveGagnantsGarantis}
+                                disabled={isSaving || !currentDrawConfig?.id}
+                                className="flex-1 py-4 rounded-xl font-black uppercase text-xs transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 bg-zinc-900 text-white hover:bg-black"
+                            >
+                                {isSaving ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>}
+                                Sauvegarder
+                            </button>
+                            {currentDrawConfig?.gagnants_garantis && (
+                                <button 
+                                    onClick={handleClearGagnantsGarantis}
+                                    disabled={isSaving}
+                                    className="px-4 py-4 rounded-xl font-black uppercase text-xs transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 bg-red-50 text-red-600 hover:bg-red-100"
+                                    title="Annuler les gagnants forcés"
+                                >
+                                    <X size={16}/>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1554,7 +1595,10 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
                                 <img src={winner.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(winner.prenom_nom)}&background=000&color=${tontine?.theme_color?.replace('#','') || '39FF14'}`} alt="Winner" className="w-full h-full object-cover" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                 <p className="font-black text-white uppercase text-lg leading-tight truncate">{winner.prenom_nom}</p>
+                                 <p className="font-black text-white uppercase text-lg leading-tight truncate flex items-center gap-2">
+                                    {winner.prenom_nom}
+                                    {winner.est_gagnant_force && <span title="Gagnant Forcé (Discret)" className="text-purple-500 animate-pulse"><Wand2 size={18} /></span>}
+                                 </p>
                                  <p className="font-black text-sm mt-1" style={{ color: tontine?.theme_color || '#39FF14' }}>{tontine?.montant_mensuel ? (caisseMensuelle / (tontine?.gagnants_par_mois || 1)).toLocaleString() : 0} F CFA</p>
                               </div>
                            </div>
@@ -1901,7 +1945,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
       {/* --- MODALE AJOUT / ÉDITION --- */}
       {isModalOpen && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 relative shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
             
             <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 text-black`}>
@@ -2005,7 +2049,7 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
           }
           return (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setIsSettingsModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 relative shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onClick={() => setIsSettingsModalOpen(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
             <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-6 text-black flex items-center gap-2`}>
               <Settings size={24} /> Paramètres
@@ -2083,10 +2127,37 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
         })()
       )}
 
+      {/* --- ANIMATION MAGIQUE (GAGNANT FORCÉ) --- */}
+      {showMagicEffect && (
+        <div className="fixed inset-0 z-[201] pointer-events-none overflow-hidden">
+          {[...Array(40)].map((_, i) => (
+            <div
+              key={`magic-${i}`}
+              className="absolute text-purple-500 opacity-0 text-3xl"
+              style={{
+                left: `${50 + (Math.random() * 40 - 20)}%`,
+                top: `${50 + (Math.random() * 40 - 20)}%`,
+                animation: `magic-float 3s ease-out forwards`,
+                animationDelay: `${Math.random() * 1.5}s`,
+              }}
+            >
+              ✨
+            </div>
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes magic-float {
+              0% { opacity: 0; transform: translateY(0) scale(0.5) rotate(0deg); }
+              20% { opacity: 1; transform: translateY(-20px) scale(1.5) rotate(45deg); }
+              100% { opacity: 0; transform: translateY(-100px) scale(0) rotate(90deg); }
+            }
+          `}} />
+        </div>
+      )}
+
       {/* --- MODALE VALIDATION PAIEMENT --- */}
       {paymentModal && (
         <div id="payment-modal-overlay" onClick={(e: any) => e.target.id === 'payment-modal-overlay' && setPaymentModal(null)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 relative shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onClick={() => setPaymentModal(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
             <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-2 text-black`}>Valider le paiement</h2>
             <p className="text-sm font-bold text-zinc-500 mb-6">Membre : <span className="text-black">{paymentModal.member.prenom_nom}</span></p>
@@ -2160,6 +2231,15 @@ Chacun remporte la somme de *${prizeAmount} F CFA* ! 💰
           </div>
         </div>
       )}
+
+      {/* FOOTER */}
+      <footer className="bg-black text-white py-12 border-t border-zinc-900 mt-20 text-center relative z-10 w-full">
+         <h2 className="font-black text-2xl tracking-tighter uppercase mb-2">ONYX<span style={{ color: tontine?.theme_color || '#39FF14' }}>TONTINE</span></h2>
+         <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest leading-relaxed">
+            Espace Administrateur<br/>
+            © 2026 Onyx Ops Terminal v2.4
+         </p>
+      </footer>
     </div>
   );
 }

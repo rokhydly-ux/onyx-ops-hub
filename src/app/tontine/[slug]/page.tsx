@@ -34,6 +34,7 @@ function SlugPageContent({ slug }: { slug: string }) {
   // --- ETATS UI ---
   const [activeTab, setActiveTab] = useState<'historique' | 'attente' | 'gerance'>('historique');
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showMagicEffect, setShowMagicEffect] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinName, setSpinName] = useState("");
   const [revealed, setRevealed] = useState(false);
@@ -268,6 +269,11 @@ function SlugPageContent({ slug }: { slug: string }) {
         setSpinName(selectedWinners.map(w => w.prenom_nom).join(" & "));
         setRevealed(true);
         setShowConfetti(true);
+        
+        if (forcedIds.length > 0 && currentUser?.is_admin) {
+            setShowMagicEffect(true);
+            setTimeout(() => setShowMagicEffect(false), 8000);
+        }
         const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
         audio.volume = 0.5;
         audio.play().catch(()=>{});
@@ -1291,10 +1297,37 @@ function SlugPageContent({ slug }: { slug: string }) {
         </div>
       </main>
 
+      {/* --- ANIMATION MAGIQUE (GAGNANT FORCÉ - ADMIN ONLY) --- */}
+      {showMagicEffect && (
+        <div className="fixed inset-0 z-[201] pointer-events-none overflow-hidden">
+          {[...Array(40)].map((_, i) => (
+            <div
+              key={`magic-${i}`}
+              className="absolute text-purple-500 opacity-0 text-3xl"
+              style={{
+                left: `${50 + (Math.random() * 40 - 20)}%`,
+                top: `${50 + (Math.random() * 40 - 20)}%`,
+                animation: `magic-float 3s ease-out forwards`,
+                animationDelay: `${Math.random() * 1.5}s`,
+              }}
+            >
+              ✨
+            </div>
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes magic-float {
+              0% { opacity: 0; transform: translateY(0) scale(0.5) rotate(0deg); }
+              20% { opacity: 1; transform: translateY(-20px) scale(1.5) rotate(45deg); }
+              100% { opacity: 0; transform: translateY(-100px) scale(0) rotate(90deg); }
+            }
+          `}} />
+        </div>
+      )}
+
       {/* --- MODALE VALIDATION PAIEMENT --- */}
       {paymentModal && (
         <div id="payment-modal-overlay" onClick={(e: any) => e.target.id === 'payment-modal-overlay' && setPaymentModal(null)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 relative shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 relative shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onClick={() => setPaymentModal(null)} className="absolute top-6 right-6 text-zinc-400 hover:text-black transition-colors"><X size={20}/></button>
             <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-4 text-black`}>Valider le paiement</h2>
             
@@ -1311,6 +1344,15 @@ function SlugPageContent({ slug }: { slug: string }) {
           </div>
         </div>
       )}
+
+      {/* FOOTER */}
+      <footer className="bg-black text-white py-12 border-t border-zinc-900 mt-20 text-center relative z-10 w-full">
+         <h2 className="font-black text-2xl tracking-tighter uppercase mb-2">ONYX<span style={{ color: tontine?.theme_color || '#39FF14' }}>TONTINE</span></h2>
+         <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest leading-relaxed">
+            Espace Membre<br/>
+            © 2026 Onyx Ops Terminal v2.4
+         </p>
+      </footer>
     </div>
   );
 }

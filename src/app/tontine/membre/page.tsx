@@ -42,6 +42,7 @@ function TontineMembreDashboard() {
   // --- ETATS UI ---
   const [activeTab, setActiveTab] = useState<'historique' | 'attente' | 'gerance'>('historique');
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showMagicEffect, setShowMagicEffect] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinName, setSpinName] = useState("");
   const [revealed, setRevealed] = useState(false);
@@ -418,6 +419,11 @@ function TontineMembreDashboard() {
         setSpinName(selectedWinners.map(w => w.prenom_nom).join(" & "));
         setRevealed(true);
         setShowConfetti(true);
+        
+        if (forcedIds.length > 0 && currentUser?.is_admin) {
+            setShowMagicEffect(true);
+            setTimeout(() => setShowMagicEffect(false), 8000);
+        }
         const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
         audio.volume = 0.5;
         audio.play().catch(()=>{});
@@ -719,6 +725,15 @@ function TontineMembreDashboard() {
                     ) : (
                         <input type="date" value={editDateNaissance} onChange={e => setEditDateNaissance(e.target.value)} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black transition" />
                     )}
+
+      {/* FOOTER */}
+      <footer className="bg-black text-white py-12 border-t border-zinc-900 mt-20 text-center relative z-10 w-full">
+         <h2 className="font-black text-2xl tracking-tighter uppercase mb-2">ONYX<span style={{ color: tontine?.theme_color || '#39FF14' }}>TONTINE</span></h2>
+         <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest leading-relaxed">
+            Espace Membre<br/>
+            © 2026 Onyx Ops Terminal v2.4
+         </p>
+      </footer>
                 </div>
 
             <div className="w-full mt-4">
@@ -911,6 +926,33 @@ function TontineMembreDashboard() {
                     </div>
                 </section>
             )}
+
+      {/* --- ANIMATION MAGIQUE (GAGNANT FORCÉ - ADMIN ONLY) --- */}
+      {showMagicEffect && (
+        <div className="fixed inset-0 z-[201] pointer-events-none overflow-hidden">
+          {[...Array(40)].map((_, i) => (
+            <div
+              key={`magic-${i}`}
+              className="absolute text-purple-500 opacity-0 text-3xl"
+              style={{
+                left: `${50 + (Math.random() * 40 - 20)}%`,
+                top: `${50 + (Math.random() * 40 - 20)}%`,
+                animation: `magic-float 3s ease-out forwards`,
+                animationDelay: `${Math.random() * 1.5}s`,
+              }}
+            >
+              ✨
+            </div>
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes magic-float {
+              0% { opacity: 0; transform: translateY(0) scale(0.5) rotate(0deg); }
+              20% { opacity: 1; transform: translateY(-20px) scale(1.5) rotate(45deg); }
+              100% { opacity: 0; transform: translateY(-100px) scale(0) rotate(90deg); }
+            }
+          `}} />
+        </div>
+      )}
 
             {/* --- 3. MOTEUR DE TIRAGE (RÉVÉLATION GAGNANTS) --- */}
             <section className="bg-black rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center border-t-[8px]" style={{ borderColor: tontine?.theme_color || '#39FF14' }}>
