@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ArrowRight, Sparkles, CheckCircle, Zap, Image as ImageIcon, Camera, Wand2, X, Send, MessageSquare, ChevronDown } from "lucide-react";
+import { useTheme } from "next-themes";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ArrowRight, Sparkles, CheckCircle, Zap, Camera, X, Send, MessageSquare, ChevronDown, PlayCircle, Sun, Moon } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -18,6 +20,18 @@ export default function OnyxPubLanding() {
   const router = useRouter();
   const waNumber = "221785338417";
 
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isGenerated, setIsGenerated] = useState(false);
+  
+  const [activeImgIndex, setActiveImgIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const imageKeys = ["face", "dos", "bas", "ouvert"];
+  const images: Record<string, string> = { face: "https://i.ibb.co/BVKC5TDN/sac.png", dos: "https://i.ibb.co/hRqbm8vY/DOS-SAC.png", bas: "https://i.ibb.co/NnjPZzng/BAS-SAC.png", ouvert: "https://i.ibb.co/Kx2b19xV/SAC-OUVERT.png" };
+
   // Lika Chat states
   const [isLikaChatOpen, setIsLikaChatOpen] = useState(false);
   const [userReply, setUserReply] = useState("");
@@ -32,6 +46,15 @@ export default function OnyxPubLanding() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [likaMessages, isLikaChatOpen]);
+
+  useEffect(() => {
+    setMounted(true);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLikaSend = () => {
     if (!userReply.trim()) return;
@@ -56,7 +79,7 @@ export default function OnyxPubLanding() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white selection:bg-[#23a9dc]/30 pb-24 font-sans overflow-x-hidden">
+    <main className={`min-h-screen ${mounted && theme === 'light' ? 'bg-zinc-50 text-black' : 'bg-[#0a0a0a] text-white'} selection:bg-[#39FF14]/30 pb-24 font-sans overflow-x-hidden transition-colors duration-300`}>
       {/* STYLES GLITCH HOVER */}
       <style dangerouslySetInnerHTML={{__html: `
         .glitch-hover:hover {
@@ -91,106 +114,161 @@ export default function OnyxPubLanding() {
 
       {/* NAVBAR */}
       <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
-         <button onClick={() => router.push('/')} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-white hover:scale-105 transition-transform`}>
-            ONYX<span className="text-[#23a9dc] drop-shadow-sm">PUB</span>
+         <button onClick={() => router.push('/')} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 hover:scale-105 transition-transform ${mounted && theme === 'light' ? 'text-black' : 'text-white'}`}>
+            ONYX<span className="text-[#39FF14] drop-shadow-sm">PUB</span>
          </button>
          
-         <button onClick={() => router.push('/')} className="bg-zinc-900 border border-zinc-800 text-white px-4 py-2 rounded-xl text-xs font-black uppercase hover:bg-white hover:text-black transition-colors flex items-center gap-1 shadow-sm">
-             <ChevronLeft size={14}/> Accueil
-         </button>
+         <div className="flex items-center gap-4">
+             <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className={`p-2 rounded-full border hover:scale-110 transition-transform ${mounted && theme === 'light' ? 'border-zinc-200 text-black' : 'border-zinc-800 text-white'}`} aria-label="Toggle Dark Mode">
+                {mounted && theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}
+             </button>
+             <div className="relative hidden sm:block" ref={dropdownRef}>
+                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className={`text-xs font-bold uppercase tracking-widest hover:text-[#39FF14] flex items-center gap-1 transition-colors ${mounted && theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                   Autres Solutions <ChevronDown size={14} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                <div className={`absolute top-full right-0 mt-2 border shadow-2xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${mounted && theme === 'light' ? 'bg-white border-zinc-200' : 'bg-zinc-900 border-zinc-800'} ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                   <button onClick={() => router.push('/jaay')} className={`text-left px-4 py-2 text-xs font-bold rounded-xl transition ${mounted && theme === 'light' ? 'text-zinc-800 hover:bg-zinc-100 hover:text-[#39FF14]' : 'text-zinc-400 hover:bg-black hover:text-[#39FF14]'}`}>🛒 Onyx Jaay</button>
+                   <button onClick={() => router.push('/solutions/onyx-tekki')} className={`text-left px-4 py-2 text-xs font-bold rounded-xl transition ${mounted && theme === 'light' ? 'text-zinc-800 hover:bg-zinc-100 hover:text-[#39FF14]' : 'text-zinc-400 hover:bg-black hover:text-[#39FF14]'}`}>📦 Onyx Tekki</button>
+                   <button onClick={() => router.push('/solutions/onyx-tekki-pro')} className={`text-left px-4 py-2 text-xs font-bold rounded-xl transition ${mounted && theme === 'light' ? 'text-zinc-800 hover:bg-zinc-100 hover:text-[#39FF14]' : 'text-zinc-400 hover:bg-black hover:text-[#39FF14]'}`}>🚀 Onyx Tekki Pro</button>
+                   <button onClick={() => router.push('/solutions/onyx-menu')} className={`text-left px-4 py-2 text-xs font-bold rounded-xl transition ${mounted && theme === 'light' ? 'text-zinc-800 hover:bg-zinc-100 hover:text-[#39FF14]' : 'text-zinc-400 hover:bg-black hover:text-[#39FF14]'}`}>🍽️ Onyx Menu</button>
+                   <button onClick={() => router.push('/solutions/onyx-booking')} className={`text-left px-4 py-2 text-xs font-bold rounded-xl transition ${mounted && theme === 'light' ? 'text-zinc-800 hover:bg-zinc-100 hover:text-[#39FF14]' : 'text-zinc-400 hover:bg-black hover:text-[#39FF14]'}`}>📅 Onyx Booking</button>
+                   <button onClick={() => router.push('/solutions/onyxcrm')} className={`text-left px-4 py-2 text-xs font-bold rounded-xl transition ${mounted && theme === 'light' ? 'text-zinc-800 hover:bg-zinc-100 hover:text-[#39FF14]' : 'text-zinc-400 hover:bg-black hover:text-[#39FF14]'}`}>🤝 Onyx CRM</button>
+                </div>
+             </div>
+             <button onClick={() => router.push('/')} className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-colors flex items-center gap-1 shadow-sm ${mounted && theme === 'light' ? 'bg-zinc-100 text-black hover:bg-black hover:text-[#39FF14]' : 'bg-zinc-900 border border-zinc-800 text-white hover:bg-white hover:text-black'}`}>
+                 <ChevronLeft size={14}/> Accueil
+             </button>
+         </div>
       </nav>
 
-      {/* SECTION 1 : HERO SECTION */}
-      <section className="pt-20 pb-24 px-6 text-center max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700 relative">
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#23a9dc] rounded-full blur-[150px] opacity-10 pointer-events-none"></div>
+      {/* SECTION 1 : HERO INTERACTIF */}
+      <section className="pt-24 pb-16 px-6 text-center max-w-6xl mx-auto relative z-10">
+         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-[#39FF14] rounded-full blur-[100px] md:blur-[150px] opacity-20 pointer-events-none"></div>
          
-         <div className="inline-flex items-center gap-2 bg-[#23a9dc]/10 border border-[#23a9dc]/20 text-[#23a9dc] px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-8 shadow-sm relative z-10">
-             <Sparkles size={14} /> La promesse OnyxPub
+         <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter leading-[1.05] mb-12 relative z-10 ${mounted && theme === 'light' ? 'text-black' : 'text-white'}`}>
+            Transformez une simple photo WhatsApp en <br className="hidden md:block"/>
+            <span className="text-[#39FF14] drop-shadow-lg">machine à cash en 48h.</span>
+         </h2>
+
+         {/* 360 BAG & EXPLOSION */}
+         <div className="relative w-full max-w-4xl mx-auto h-[400px] md:h-[550px] flex items-center justify-center mt-10 mb-12 perspective-1000">
+            <motion.div 
+               layout
+               animate={{ scale: isGenerated ? 0.6 : 1, y: isGenerated ? (typeof window !== 'undefined' && window.innerWidth < 768 ? -50 : 0) : 0 }}
+               transition={{ type: "spring", bounce: 0.3 }}
+               className="relative z-30 cursor-grab active:cursor-grabbing flex flex-col items-center"
+               onPointerDown={(e: any) => { setIsDragging(true); setStartX(e.clientX); }}
+               onPointerMove={(e: any) => {
+                 if (!isDragging) return;
+                 const deltaX = e.clientX - startX;
+                 if (Math.abs(deltaX) > 40) {
+                   if (deltaX > 0) setActiveImgIndex(p => (p - 1 + imageKeys.length) % imageKeys.length);
+                   else setActiveImgIndex(p => (p + 1) % imageKeys.length);
+                   setStartX(e.clientX);
+                 }
+               }}
+               onPointerUp={() => setIsDragging(false)}
+               onPointerLeave={() => setIsDragging(false)}
+            >
+               <img src={images[imageKeys[activeImgIndex]]} alt="Sac 360" className="w-56 h-56 md:w-80 md:h-80 object-contain drop-shadow-2xl pointer-events-none select-none" />
+               {!isGenerated && (
+                 <div className="mt-6 bg-black/90 text-[#39FF14] text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-full border border-[#39FF14]/30 shadow-[0_0_20px_rgba(57,255,20,0.3)] pointer-events-none animate-pulse">
+                   Glissez pour tourner 👆
+                 </div>
+               )}
+            </motion.div>
+
+            <AnimatePresence>
+               {isGenerated && (
+                 <>
+                    {/* Variation 1: Top Left */}
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.5, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
+                      animate={{ opacity: 1, scale: 1, left: "20%", top: "20%", x: "-50%", y: "-50%" }}
+                      transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
+                      className="absolute z-20 bg-black/90 backdrop-blur-md border border-[#23a9dc]/50 p-2 rounded-2xl shadow-[0_0_30px_rgba(35,169,220,0.3)] flex flex-col items-center w-32 md:w-48"
+                    >
+                       <img src="https://i.ibb.co/Kx2b19xV/SAC-OUVERT.png" className="w-full aspect-square object-cover rounded-xl" />
+                       <p className="text-[9px] md:text-[10px] font-bold text-center mt-2 text-[#23a9dc] uppercase tracking-widest leading-tight mb-1">Angle Prestige & Détails</p>
+                    </motion.div>
+
+                    {/* Variation 2: Top Right */}
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.5, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
+                      animate={{ opacity: 1, scale: 1, left: "80%", top: "20%", x: "-50%", y: "-50%" }}
+                      transition={{ duration: 0.6, type: "spring", bounce: 0.4, delay: 0.1 }}
+                      className="absolute z-20 bg-black/90 backdrop-blur-md border border-[#39FF14]/50 p-2 rounded-2xl shadow-[0_0_30px_rgba(57,255,20,0.3)] flex flex-col items-center w-32 md:w-48"
+                    >
+                       <img src="https://i.ibb.co/hRqbm8vY/DOS-SAC.png" className="w-full aspect-square object-cover rounded-xl" />
+                       <p className="text-[9px] md:text-[10px] font-bold text-center mt-2 text-[#39FF14] uppercase tracking-widest leading-tight mb-1">Angle Lifestyle Local</p>
+                    </motion.div>
+
+                    {/* Variation 3: Bottom Center */}
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.5, left: "50%", top: "50%", x: "-50%", y: "-50%" }}
+                      animate={{ opacity: 1, scale: 1, left: "50%", top: "85%", x: "-50%", y: "-50%" }}
+                      transition={{ duration: 0.6, type: "spring", bounce: 0.4, delay: 0.2 }}
+                      className="absolute z-20 bg-black/90 backdrop-blur-md border border-red-500/50 p-2 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.3)] flex flex-col items-center w-48 md:w-72"
+                    >
+                       <video src="https://res.cloudinary.com/dtr2wtoty/video/upload/v1777478457/DEMO_SAC_MARRON_emxajn.mp4" autoPlay loop muted playsInline className="w-full aspect-video object-cover rounded-xl" />
+                       <p className="text-[9px] md:text-[10px] font-bold text-center mt-2 text-red-500 uppercase tracking-widest leading-tight mb-1">Angle Urgence & Offre</p>
+                    </motion.div>
+                 </>
+               )}
+            </AnimatePresence>
          </div>
-         
-         <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.95] mb-8 text-white relative z-10`}>
-            <span className="glitch-text inline-block">
-               Transformez une simple photo WhatsApp en <br className="hidden md:block"/>
-               <span className="text-[#23a9dc]">machine à cash en 48h.</span>
-            </span>
-         </h1>
-         
-         {/* NOUVEAU: MAIN VIDEO DEMO */}
-         <div className="relative mx-auto w-full max-w-4xl aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(35,169,220,0.3)] mb-12 z-10 border-[4px] border-zinc-800 bg-zinc-900">
-            <video 
-               src="https://res.cloudinary.com/dtr2wtoty/video/upload/v1777478457/DEMO_SAC_MARRON_emxajn.mp4" 
-               autoPlay loop muted playsInline 
-               className="w-full h-full object-cover"
-            ></video>
+
+         <div className="relative z-20 mt-8 min-h-[80px]">
+            {!isGenerated ? (
+               <button onClick={() => setIsGenerated(true)} className="text-[#39FF14] text-sm md:text-lg font-black uppercase tracking-widest animate-pulse flex items-center justify-center gap-2 hover:scale-105 transition-transform w-full">
+                  Cliquez ici pour tester la magie 🪄
+               </button>
+            ) : (
+               <motion.button 
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ delay: 0.8 }}
+                 onClick={() => handleWaClick("OnyxPub")}
+                 className="bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto"
+               >
+                  Je veux ces résultats pour mon business <ArrowRight size={20} />
+               </motion.button>
+            )}
          </div>
-         
-         <p className="text-zinc-400 text-lg md:text-xl font-medium max-w-3xl mx-auto mb-12 leading-relaxed relative z-10">
-            Envoyez-nous les photos brutes de vos produits. Nous générons les visuels, configurons le Bot WhatsApp vendeur, et lançons vos publicités. <span className="text-[#39FF14] font-black drop-shadow-sm">Budget pub inclus.</span>
-         </p>
-         
-         <button onClick={() => handleWaClick("OnyxPub")} className="bg-[#23a9dc] text-black px-10 py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(35,169,220,0.2)] flex items-center justify-center gap-3 mx-auto relative z-10">
-            Lancer ma machine <ArrowRight size={20} />
-         </button>
       </section>
 
-      {/* SECTION 2 : DÉMO VISUELLE */}
-      <section className="py-24 px-6 bg-black border-y border-zinc-900 relative z-10">
-         <div className="max-w-6xl mx-auto text-center">
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter text-white mb-16`}>
-               1 Photo Brute. <br className="md:hidden" /><span className="text-[#23a9dc]">Variations infinies pour l'algorithme.</span>
+      {/* SECTION 2 : COPYWRITING */}
+      <section className={`py-24 px-6 border-y relative z-10 transition-colors ${mounted && theme === 'light' ? 'bg-white border-zinc-200' : 'bg-black border-zinc-900'}`}>
+         <div className="max-w-4xl mx-auto">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-10 leading-[1.1] ${mounted && theme === 'light' ? 'text-black' : 'text-white'}`}>
+               Le secret que les agences vous cachent : <br className="hidden md:block"/>
+               <span className="text-[#39FF14]">Le ciblage est mort. Place au Volume Créatif.</span>
             </h2>
+            
+            <div className={`space-y-6 text-lg md:text-xl font-medium leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-600' : 'text-zinc-400'}`}>
+               <p>La plupart des vendeurs au Sénégal gèrent encore leurs publicités Facebook comme en 2021. Ils s'obsèdent sur les réglages d'audience.</p>
+               <p>Mais l'algorithme a changé. Meta (Facebook/Instagram) n'est plus un outil de ciblage, c'est un moteur de matching créatif. Si vous boostez la même photo toute la semaine, le système s'étouffe. Pour exploser vos ventes, il faut du Volume Créatif.</p>
+               <p>Le problème ? Payer une agence pour produire 20 visuels différents détruit votre marge. Et utiliser des visuels génériques ou des "pubs de toubab" copiées-collées ne fait pas cliquer vos clients ici. C'est là qu'OnyxPub change les règles du jeu.</p>
+            </div>
 
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 mb-12">
-               {/* GAUCHE : Photo originale */}
-               <div className="flex flex-col items-center w-full lg:w-1/3">
-                  <div className="w-full aspect-square bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-3xl p-4 flex items-center justify-center relative shadow-lg">
-                     <img src="https://i.ibb.co/BVKC5TDN/sac.png" alt="Sac photo originale" className="w-3/4 h-3/4 object-contain opacity-90 drop-shadow-2xl" />
-                  </div>
-                  <p className="mt-4 text-zinc-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2">
-                     <ImageIcon size={16} /> Votre photo WhatsApp
-                  </p>
+            <div className="mt-12 space-y-8">
+               <div className="flex items-start gap-4">
+                  <div className="bg-[#39FF14]/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle className="text-[#39FF14]" size={24}/></div>
+                  <p className={`text-lg font-bold leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-800' : 'text-zinc-200'}`}><span className="text-[#39FF14] font-black uppercase">Ancrage 100% Local :</span> Nos créatives sont adaptées aux réalités sénégalaises et africaines. Fini les visuels déconnectés de votre cible.</p>
                </div>
-
-               {/* CENTRE : Flèche/Sparkles */}
-               <div className="flex justify-center items-center shrink-0">
-                  <div className="w-16 h-16 bg-[#23a9dc]/20 text-[#23a9dc] rounded-full flex items-center justify-center border border-[#23a9dc]/30 shadow-[0_0_30px_rgba(35,169,220,0.4)] animate-pulse">
-                     <Sparkles size={32} className="animate-[spin_4s_linear_infinite]" />
-                  </div>
+               <div className="flex items-start gap-4">
+                  <div className="bg-[#39FF14]/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle className="text-[#39FF14]" size={24}/></div>
+                  <p className={`text-lg font-bold leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-800' : 'text-zinc-200'}`}><span className="text-[#39FF14] font-black uppercase">Variété Infinie :</span> Nous ne faisons pas que du Luxe ou de l'Urgence. Nous générons une infinité d'angles psychologiques (Preuve sociale, Humour local, Rareté, Prestige) pour trouver ce qui fait vraiment vendre.</p>
                </div>
-
-               {/* DROITE : Variations */}
-               <div className="w-full lg:w-1/2 flex flex-col sm:flex-row gap-4">
-                  {/* Variation 1 */}
-                  <div className="flex-1 flex flex-col items-center">
-                     <div className="w-full aspect-square bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-[#23a9dc]/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <img src="https://i.ibb.co/Kx2b19xV/SAC-OUVERT.png" alt="Angle Luxe" className="w-full h-full object-cover" />
-                     </div>
-                     <p className="mt-4 text-zinc-300 font-bold text-[10px] sm:text-xs text-center uppercase tracking-wider">Angle Luxe (Détail Ouvert)</p>
-                  </div>
-                  {/* Variation 2 */}
-                  <div className="flex-1 flex flex-col items-center">
-                     <div className="w-full aspect-square bg-gradient-to-tr from-zinc-800 to-zinc-900 border border-zinc-700 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-[#39FF14]/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <img src="https://i.ibb.co/hRqbm8vY/DOS-SAC.png" alt="Angle Lifestyle" className="w-full h-full object-cover" />
-                     </div>
-                     <p className="mt-4 text-zinc-300 font-bold text-[10px] sm:text-xs text-center uppercase tracking-wider">Angle Lifestyle (Vue de Dos)</p>
-                  </div>
-                  {/* Variation 3 */}
-                  <div className="flex-1 flex flex-col items-center">
-                     <div className="w-full aspect-square bg-gradient-to-bl from-zinc-800 to-zinc-900 border border-zinc-700 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <img src="https://i.ibb.co/NnjPZzng/BAS-SAC.png" alt="Angle Urgence" className="w-full h-full object-cover" />
-                        <div className="absolute top-2 right-2 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded uppercase animate-pulse shadow-md">STOCK LIMITÉ</div>
-                     </div>
-                     <p className="mt-4 text-zinc-300 font-bold text-[10px] sm:text-xs text-center uppercase tracking-wider">Angle Urgence (Structure Base)</p>
-                  </div>
+               <div className="flex items-start gap-4">
+                  <div className="bg-[#39FF14]/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle className="text-[#39FF14]" size={24}/></div>
+                  <p className={`text-lg font-bold leading-relaxed ${mounted && theme === 'light' ? 'text-zinc-800' : 'text-zinc-200'}`}><span className="text-[#39FF14] font-black uppercase">Volume x10 :</span> Multipliez votre production par 10 sans augmenter vos effectifs ni payer de shooting.</p>
                </div>
             </div>
 
-            <div className="mt-12 text-zinc-400 font-medium text-lg max-w-3xl mx-auto bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800 shadow-inner">
-               Nourrir l'algorithme Meta avec des angles psychologiques différents (Luxe, Urgence, Lifestyle) pour trouver instantanément celui qui fait cliquer vos clients.
-            </div>
+            <p className={`mt-16 text-xl md:text-2xl font-black p-8 bg-[#39FF14]/10 border-l-4 border-[#39FF14] rounded-r-2xl leading-relaxed ${mounted && theme === 'light' ? 'text-black' : 'text-white'}`}>
+               Arrêtez d'affamer vos campagnes publicitaires. Laissez notre technologie gérer l'exécution, pendant que vous encaissez les ventes.
+            </p>
          </div>
       </section>
 
@@ -219,7 +297,7 @@ export default function OnyxPubLanding() {
                  <ul className="space-y-4 mb-10 flex-1 text-sm font-bold">
                     <li className="flex items-start gap-3 text-white">
                        <Zap size={18} className="text-[#39FF14] shrink-0 mt-0.5" />
-                       <span className="flex items-center flex-wrap gap-2 text-[#39FF14]">
+                       <span className="flex items-center flex-wrap gap-2 text-black bg-[#39FF14] px-3 py-1 rounded-md font-black uppercase shadow-[0_0_15px_rgba(57,255,20,0.5)]">
                           10 000 FCFA de budget pub INCLUS
                           <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLfm0ooWZDodEBD2zlKPK3xt37ot4lUZHIBw&s" alt="Meta Ads" className="h-4 w-auto rounded-[2px] object-contain inline-block bg-white" />
                        </span>
@@ -264,7 +342,7 @@ export default function OnyxPubLanding() {
                  <ul className="space-y-4 mb-10 flex-1 text-sm font-bold">
                     <li className="flex items-start gap-3 text-white">
                        <Zap size={18} className="text-[#39FF14] shrink-0 mt-0.5" />
-                       <span className="flex items-center flex-wrap gap-2 text-[#39FF14]">
+                       <span className="flex items-center flex-wrap gap-2 text-black bg-[#39FF14] px-3 py-1 rounded-md font-black uppercase shadow-[0_0_15px_rgba(57,255,20,0.5)]">
                           15 000 FCFA de budget pub INCLUS
                           <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLfm0ooWZDodEBD2zlKPK3xt37ot4lUZHIBw&s" alt="Meta Ads" className="h-4 w-auto rounded-[2px] object-contain inline-block bg-white" />
                        </span>
