@@ -11,7 +11,7 @@ import {
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
   Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search,
   ChevronDown,
-  ShieldAlert, ChevronLeft, Activity, Rocket, Bot,
+  ShieldAlert, ChevronLeft, Activity, Rocket, Bot, Sun, Moon,
   Crosshair, RefreshCcw
 } from "lucide-react";
 import InteractiveParticles from "@/components/InteractiveParticles";
@@ -63,6 +63,7 @@ const SOLUTIONS = [
   { id: "Onyx Menu", icon: Utensils, category: "Restauration", price: 13900, pain: "Menus sales, chers à imprimer et erreurs de commande.", solution: "QR Menu interactif : le client scanne et commande proprement.", upsellPack: "tekki", upsellName: "Pack Tekki" },
   { id: "Onyx Booking", icon: Calendar, category: "Services", price: 13900, pain: "Rendez-vous manqués (No-shows) et planning brouillon.", solution: "Réservations en ligne avec paiement d'acompte sécurisé.", upsellPack: "tekki", upsellName: "Pack Tekki" },
   { id: "Onyx Staff", icon: Users, category: "Gestion & RH", price: 13900, pain: "Casse-tête des avances Tabaski, fiches de paie manuelles.", solution: "Pointage GPS WhatsApp, fiches de paie par QR Code.", upsellPack: "tekki", upsellName: "Pack Tekki" },
+  { id: "OnyxPub", icon: Target, category: "Marketing", price: 39900, pain: "Pas de visibilité et pubs trop chères.", solution: "Création de visuels, bot WhatsApp et pubs financées.", upsellPack: "booster", upsellName: "Booster Ventes" },
   { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 13900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "tekkipro", upsellName: "Pack Tekki Pro" },
   { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "tekki", upsellName: "Pack Tekki" },
 ];
@@ -159,10 +160,40 @@ const CustomNavIcons = {
   )
 };
 
+const TiltImage = () => {
+  const [transform, setTransform] = useState("rotateX(0deg) rotateY(0deg)");
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = ((y - centerY) / centerY) * -20;
+    const rotateY = ((x - centerX) / centerX) * 20;
+    setTransform(`rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`);
+  };
+  const handleMouseLeave = () => {
+    setTransform("rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)");
+  };
+  return (
+    <div 
+      className="relative w-full aspect-square flex flex-col items-center justify-center cursor-grab active:cursor-grabbing group"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ perspective: "1000px" }}
+    >
+       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#39FF14] rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none"></div>
+       <img src="https://i.ibb.co/BVKC5TDN/sac.png" alt="Sac à main OnyxPub" className="w-[85%] h-auto object-contain transition-transform duration-300 ease-out z-10 drop-shadow-2xl" style={{ transform, transformStyle: "preserve-3d" }} />
+       <div className="absolute bottom-4 bg-black/80 backdrop-blur text-[#39FF14] text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-full border border-[#39FF14]/30 z-20 shadow-xl opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none">Glissez pour tourner 👆</div>
+    </div>
+  );
+};
+
 export default function OnyxOpsElite() {
   const router = useRouter();
   const [activeView, setActiveView] = useState<'home' | 'about' | 'blog' | 'dashboard'>('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   
   // MODALES & FILTRES
   const [showSaasChoice, setShowSaasChoice] = useState<any>(null);
@@ -754,7 +785,7 @@ export default function OnyxOpsElite() {
   const simMaxRev = simMaxSales * 10000;
 
   return (
-    <div className={`${inter.className} min-h-screen bg-white text-black overflow-x-hidden pt-20 relative`}>
+    <div className={`${inter.className} min-h-screen ${theme === 'dark' ? 'bg-[#050505] text-white' : 'bg-white text-black'} overflow-x-hidden pt-20 relative transition-colors duration-300`}>
       <InteractiveParticles themeColor="#39FF14" />
 
       <style dangerouslySetInnerHTML={{__html: `
@@ -813,12 +844,16 @@ export default function OnyxOpsElite() {
       <div className="relative z-10">
         
         {/* --- NAVIGATION --- */}
-        <nav className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex justify-between items-center w-full z-50 shadow-sm transition-all duration-300">
+        <nav className={`fixed top-0 left-0 right-0 ${theme === 'dark' ? 'bg-zinc-950/90 border-zinc-800' : 'bg-white/90 border-zinc-100'} backdrop-blur-md border-b px-6 py-4 flex justify-between items-center w-full z-50 shadow-sm transition-all duration-300`}>
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateTo('home')}>
             <Image src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" alt="Onyx Logo" width={350} height={250} className="h-[60px] w-auto object-contain" unoptimized />
           </div>
           
           <div className="hidden lg:flex gap-8 font-bold text-sm uppercase items-center">
+            {/* Dark Mode Toggle */}
+            <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className={`p-2 rounded-full border hover:scale-110 transition-transform ${theme === 'dark' ? 'border-zinc-800' : 'border-zinc-200'}`} aria-label="Toggle Dark Mode">
+               {theme === 'light' ? <Moon size={18} className="text-zinc-900"/> : <Sun size={18} className="text-white"/>}
+            </button>
             <button onClick={() => navigateTo('home', 'solutions')} className="hover:text-[#39FF14] transition">Solutions</button>
             <button onClick={() => navigateTo('home', 'tarifs')} className="hover:text-[#39FF14] transition">Tarifs</button>
             <button onClick={() => navigateTo('home', 'premium')} className="hover:text-[#00E5FF] transition text-zinc-600 flex items-center gap-1.5">
@@ -845,12 +880,16 @@ export default function OnyxOpsElite() {
           </div>
 
           <div className="flex lg:hidden items-center gap-4">
+             {/* Dark Mode Toggle Mobile */}
+             <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className={`p-2 rounded-full border hover:scale-110 transition-transform ${theme === 'dark' ? 'border-zinc-800 text-white' : 'border-zinc-200 text-black'}`} aria-label="Toggle Dark Mode">
+                {theme === 'light' ? <Moon size={16}/> : <Sun size={16}/>}
+             </button>
              {!currentUser && (
                <button onClick={() => setShowAuthModal(true)} className="bg-black text-[#39FF14] px-4 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest">
                  Hub
                </button>
              )}
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2.5 bg-zinc-100 rounded-full text-black">
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`p-2.5 ${theme === 'dark' ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-black'} rounded-full`}>
               {isMobileMenuOpen ? <CustomNavIcons.Close className="w-6 h-6" /> : <CustomNavIcons.Menu className="w-6 h-6" />}
             </button>
           </div>
@@ -887,12 +926,12 @@ export default function OnyxOpsElite() {
                     🛑 BÀYYI THIOW LI, NUY JAAY.
                   </div>
                   
-                  <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>
+                  <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                     Arrêtez de discuter sur WhatsApp. <br/>
                     Commencez à <span className="text-[#39FF14] drop-shadow-sm">encaisser.</span>
                   </h1>
                   
-                  <p className={`${inter.className} text-zinc-600 text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
+                  <p className={`${inter.className} ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'} text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
                     <span className="font-black text-black bg-[#39FF14]/20 px-1 rounded animate-pulse inline-block">Fini les 'Prix en Inbox'</span> qui ne mènent à rien ou vos amis qui mettent en sourdine vos <span className="font-black text-black bg-[#39FF14]/20 px-1 rounded animate-pulse inline-block">50 statuts photos</span> de produits. Donnez à vos clients un catalogue clair, laissez-les choisir, et réveillez-vous avec des notifications de paiement et des commandes prêtes à livrer.
                   </p>
 
@@ -935,7 +974,7 @@ export default function OnyxOpsElite() {
                     }} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14]">
                       LANCER MA MACHINE (1er Mois Offert)
                     </button>
-                    <button onClick={() => setShowVideoModal(true)} className="inline-flex justify-center items-center gap-2 border-2 border-black text-black px-8 py-5 rounded-full font-black text-sm uppercase hover:bg-black hover:text-white transition">
+                    <button onClick={() => setShowVideoModal(true)} className={`inline-flex justify-center items-center gap-2 border-2 ${theme === 'dark' ? 'border-white text-white hover:bg-white hover:text-black' : 'border-black text-black hover:bg-black hover:text-white'} px-8 py-5 rounded-full font-black text-sm uppercase transition`}>
                       <PlayCircle className="w-5 h-5" /> Voir comment ça marche
                     </button>
                   </div>
@@ -973,61 +1012,44 @@ export default function OnyxOpsElite() {
                     </div>
                   </div>
                   
-                  {/* SLIDE 2 : LE BOOSTER DE VENTES */}
+                  {/* SLIDE 2 : LE BOOSTER DE VENTES (ONYXPUB) */}
                   <div className="flex-[0_0_100%] min-w-0">
                     <div className="grid lg:grid-cols-2 gap-12 items-center px-4">
                       {/* Colonne Gauche */}
                       <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
                         <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-sm border border-zinc-800">
-                          <span>🚀 LE BOOSTER DE VENTES</span>
+                          <span>🚀 ONYXPUB : LE BOOSTER DE VENTES</span>
                         </div>
                         
-                        <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>
+                        <h1 className={`${spaceGrotesk.className} glitch-hover text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
                           NE CHERCHEZ PLUS DE CLIENTS. <br/>
                           ON VOUS LES <span className="text-[#39FF14] drop-shadow-sm bg-black px-2 py-1 rounded-xl">AMÈNE.</span>
                         </h1>
                         
-                        <p className={`${inter.className} text-zinc-600 text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
-                          Arrêtez de poster dans le vide. Notre équipe crée pour vous des vidéos et des visuels qui vendent, et <strong className="text-black bg-[#39FF14]/20 px-1 rounded">on paie même vos premières publicités</strong> pour lancer la machine.
+                        <p className={`${inter.className} ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'} text-lg md:text-xl font-medium mb-8 leading-relaxed`}>
+                          Pas de site web ? Pas de problème. Envoyez-nous une simple photo sur WhatsApp. Notre équipe crée des visuels qui vendent, configure le Bot pour répondre à vos clients, et on paie même vos premières publicités.
                         </p>
       
                         <div className="flex flex-col sm:flex-row gap-4 mb-10">
-                          <button onClick={() => document.getElementById('solutions')?.scrollIntoView({behavior:'smooth'})} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14]">
-                            Activer le Booster <ArrowRight size={20}/>
+                          <button onClick={() => router.push('/solutions/onyxpub')} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14]">
+                            Découvrir OnyxPub <ArrowRight size={20}/>
                           </button>
+                          <button onClick={() => setShowVideoModal(true)} className={`inline-flex justify-center items-center gap-2 border-2 ${theme === 'dark' ? 'border-white text-white hover:bg-white hover:text-black' : 'border-black text-black hover:bg-black hover:text-white'} px-8 py-5 rounded-full font-black text-sm uppercase transition`}>
+                            <PlayCircle className="w-5 h-5" /> Voir comment ça marche
+                          </button>
+                        </div>
+
+                        <div className="pt-6 border-t border-zinc-200/60 max-w-md text-left">
+                          <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Paiements Locaux Intégrés</p>
+                          <div className="flex justify-start">
+                            <PaymentMethods />
+                          </div>
                         </div>
                       </div>
       
-                      {/* Colonne Droite : Mockup */}
-                      <div className="relative mx-auto w-full max-w-[320px] lg:max-w-[360px] animate-in slide-in-from-right-8 fade-in duration-1000 mt-10 lg:mt-0">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[80%] bg-[#39FF14] rounded-full blur-[80px] opacity-40 pointer-events-none"></div>
-                        <div className="relative bg-black rounded-[3rem] border-[8px] border-black shadow-2xl overflow-hidden aspect-[9/16] flex flex-col items-center justify-center">
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-3xl z-20"></div>
-                          <div className="w-full h-full bg-zinc-900 relative p-4 flex flex-col gap-4 pt-10">
-                            <div className="grid grid-cols-2 gap-3 mt-4">
-                               <div className="bg-zinc-800 rounded-2xl h-36 animate-pulse"></div>
-                               <div className="bg-zinc-800 rounded-2xl h-36 animate-pulse delay-75"></div>
-                               <div className="bg-zinc-800 rounded-2xl h-36 animate-pulse delay-150"></div>
-                               <div className="bg-zinc-800 rounded-2xl h-36 animate-pulse delay-300"></div>
-                            </div>
-                            <div className="absolute bottom-10 left-4 right-4 flex flex-col gap-3 z-30">
-                               <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce">
-                                  <div className="w-8 h-8 bg-[#39FF14] rounded-full flex items-center justify-center text-black"><Check size={16}/></div>
-                                  <div>
-                                     <p className="text-xs font-black uppercase text-black">Paiement reçu</p>
-                                     <p className="text-[10px] font-bold text-zinc-500">+ 25 000 F CFA</p>
-                                  </div>
-                               </div>
-                               <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce" style={{animationDelay: '0.5s'}}>
-                                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white"><Users size={16}/></div>
-                                  <div>
-                                     <p className="text-xs font-black uppercase text-black">Nouveau Client</p>
-                                     <p className="text-[10px] font-bold text-zinc-500">Depuis Meta Ads</p>
-                                  </div>
-                               </div>
-                            </div>
-                          </div>
-                        </div>
+                      {/* Colonne Droite : Interactif */}
+                      <div className="relative mx-auto w-full max-w-[320px] lg:max-w-[400px] animate-in slide-in-from-right-8 fade-in duration-1000 mt-10 lg:mt-0 perspective-1000">
+                         <TiltImage />
                       </div>
                     </div>
                   </div>
@@ -1252,15 +1274,15 @@ export default function OnyxOpsElite() {
             {/* --- SECTION : NOS SOLUTIONS RADICALES (BENTO GRID) --- */}
             <section id="solutions" className="py-24 px-6 max-w-5xl mx-auto mt-10">
               <div className="text-center mb-12">
-                 <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>MENU <span className="text-[#39FF14] drop-shadow-sm">À LA CARTE</span></h2>
-                 <p className="text-zinc-600 font-bold max-w-2xl mx-auto mb-8 text-lg">Ajoutez des briques à votre écosystème au fur et à mesure. Survolez une application pour voir ce qu'elle fait.</p>
+                 <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>MENU <span className="text-[#39FF14] drop-shadow-sm">À LA CARTE</span></h2>
+                 <p className={`${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'} font-bold max-w-2xl mx-auto mb-8 text-lg`}>Ajoutez des briques à votre écosystème au fur et à mesure. Survolez une application pour voir ce qu'elle fait.</p>
                  
                  <div className="flex flex-wrap justify-center gap-3">
                     {saasCategories.map(cat => (
                        <button 
                          key={cat} 
                          onClick={() => setSaasFilter(cat)} 
-                         className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all shadow-sm border ${saasFilter === cat ? 'bg-black text-[#39FF14] border-black scale-105' : 'bg-white text-zinc-600 border-zinc-200 hover:border-black hover:text-black'}`}
+                         className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all shadow-sm border ${saasFilter === cat ? 'bg-[#39FF14] text-black border-[#39FF14] scale-105' : (theme === 'dark' ? 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white' : 'bg-white text-zinc-600 border-zinc-200 hover:border-black hover:text-black')}`}
                        >
                          {cat}
                        </button>
@@ -1274,20 +1296,40 @@ export default function OnyxOpsElite() {
                   return (
                     <div 
                       key={i} 
-                      onClick={() => { setShowSaasChoice(s); saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` }); }} 
-                      className="group relative overflow-hidden bg-white border-2 border-zinc-100 rounded-[2rem] shadow-sm cursor-pointer aspect-square flex flex-col items-center justify-center p-4 text-center transition-all duration-300 hover:bg-black hover:border-[#39FF14] hover:shadow-[0_0_30px_rgba(57,255,20,0.2)]"
+                      onClick={() => { 
+                        saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` });
+                        if (s.id === 'OnyxPub') {
+                          router.push('/solutions/onyxpub');
+                        } else {
+                          setShowSaasChoice(s);
+                        }
+                      }} 
+                      onMouseMove={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+                        e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+                      }}
+                      className={`group relative overflow-hidden ${theme === 'dark' ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-zinc-100'} border-2 rounded-[2rem] shadow-sm cursor-pointer aspect-square flex flex-col items-center justify-center p-4 text-center transition-all duration-300 hover:bg-black hover:border-[#39FF14] hover:shadow-[0_0_30px_rgba(57,255,20,0.2)]`}
                     >
+                      {/* Mouse tracking glow */}
+                      <div 
+                        className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 group-hover:opacity-100 z-0"
+                        style={{ background: 'radial-gradient(400px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(57,255,20,0.15), transparent 40%)' }}
+                      />
+
                       {/* Face par défaut (Visible) */}
-                      <div className="flex flex-col items-center justify-center w-full h-full group-hover:opacity-0 transition-opacity duration-300 absolute inset-0 p-4">
-                         <div className="bg-zinc-50 border border-zinc-100 text-black w-16 h-16 rounded-[1.2rem] flex items-center justify-center mb-4 shadow-sm group-hover:scale-90 transition-transform">
+                      <div className="flex flex-col items-center justify-center w-full h-full group-hover:opacity-0 transition-opacity duration-300 absolute inset-0 p-4 z-10 pointer-events-none">
+                         <div className={`${theme === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-zinc-50 border-zinc-100 text-black'} border w-16 h-16 rounded-[1.2rem] flex items-center justify-center mb-4 shadow-sm group-hover:scale-90 transition-transform`}>
                             <Icon className="w-8 h-8" />
                          </div>
-                         <h3 className={`${spaceGrotesk.className} text-sm md:text-base font-black uppercase tracking-tighter text-black leading-tight px-2`}>{s.id}</h3>
+                         <h3 className={`${spaceGrotesk.className} text-sm md:text-base font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} leading-tight px-2`}>{s.id}</h3>
                       </div>
 
                       {/* Face au survol (Cachée par défaut) */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute inset-0 flex flex-col items-center justify-center p-4 bg-black z-10">
-                         <Icon className="w-8 h-8 text-[#39FF14] mb-3 opacity-80 scale-75 group-hover:scale-100 transition-transform duration-500" />
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute inset-0 flex flex-col items-center justify-center p-4 z-10 pointer-events-none">
+                         <Icon className="w-8 h-8 text-[#39FF14] mb-3 opacity-80 scale-75 group-hover:scale-100 transition-transform duration-500 drop-shadow-[0_0_10px_rgba(57,255,20,0.5)]" />
                          <p className="text-[10px] sm:text-xs font-bold text-white leading-tight mb-4 px-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{s.solution}</p>
                          <span className="bg-[#39FF14] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-100">+ INFOS</span>
                       </div>
@@ -1792,6 +1834,8 @@ export default function OnyxOpsElite() {
                             router.push('/solutions/onyx-formation');
                          } else if (showSaasChoice.id === 'Pack Onyx CRM' || showSaasChoice.id === 'Onyx CRM') {
                             router.push('/solutions/onyxcrm');
+                         } else if (showSaasChoice.id === 'OnyxPub') {
+                            router.push('/solutions/onyxpub');
                           } else {
                              alert("La page détaillée pour ce module sera bientôt disponible !");
                           }
