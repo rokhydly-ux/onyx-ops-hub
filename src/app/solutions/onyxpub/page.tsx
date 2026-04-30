@@ -16,6 +16,17 @@ const FAQ_DATA = [
   { question: "Que fait le Bot WhatsApp exactement ?", answer: "Le Bot agit comme votre vendeur 24h/24. Il accueille instantanément les prospects venant des publicités, répond aux questions fréquentes, qualifie le besoin, et vous aide à conclure la vente." }
 ];
 
+const galleryImages = [
+  "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563498/A_moody__high-end_luxury_promotional_202604301516_zoftg0.jpg",
+  "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563489/A_luxurious_corporate_promotional_poster._202604301529_docu21.jpg",
+  "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563486/A_high-end_modern_cosmetic_promotional_202604301537_qqhvht.jpg",
+  "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563485/A_futuristic_and_modern_graphic_202604301528_kon2vz.jpg",
+  "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563485/A_clean__high-end_beauty_brand_202604301536_oke06i.jpg",
+  "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563481/A_vibrant_and_appetizing_food_202604301533_dmp5uw.jpg",
+  "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563472/A_high-end_modern_promotional_poster_202604301536_c7cpzr.jpg",
+  "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563486/A_high-end_modern_cosmetic_promotional_202604301537_qqhvht.jpg"
+];
+
 export default function OnyxPubLanding() {
   const router = useRouter();
   const waNumber = "221785338417";
@@ -301,15 +312,15 @@ export default function OnyxPubLanding() {
                transition={{ repeat: Infinity, ease: "linear", duration: 30 }} 
                className="flex"
             >
-               {/* 16 placeholders (8 x 2 pour loop) */}
-               {[...Array(16)].map((_, i) => (
-                  <div key={i} className="aspect-[9/16] w-64 md:w-80 rounded-2xl bg-zinc-900 border border-zinc-800 flex-shrink-0 mx-4 flex items-center justify-center relative overflow-hidden group shadow-lg">
-                     <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 opacity-50"></div>
-                     <Camera className="text-zinc-700 w-12 h-12 relative z-10 group-hover:scale-110 transition-transform" />
-                     <div className="absolute bottom-6 left-6 right-6 h-2 bg-zinc-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-zinc-700 w-1/2 rounded-full"></div>
-                     </div>
-                  </div>
+               {/* 16 images (8 x 2 pour loop infinie) */}
+               {[...galleryImages, ...galleryImages].map((src, i) => (
+                  <img 
+                     key={i} 
+                     src={src} 
+                     alt={`Visuel généré IA ${i + 1}`} 
+                     loading="lazy"
+                     className="aspect-[9/16] w-64 md:w-80 rounded-2xl object-cover flex-shrink-0 mx-4 border border-zinc-800 shadow-lg" 
+                  />
                ))}
             </motion.div>
          </div>
