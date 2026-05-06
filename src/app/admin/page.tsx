@@ -90,6 +90,8 @@ const ECOSYSTEM_SAAS = [
 const getSaasPrice = (saasName: string) => {
    if (!saasName) return 0;
    if (saasName.includes('Gold')) return 59900;
+   if (saasName.includes('OnyxPub Pro')) return 59900;
+   if (saasName.includes('OnyxPub')) return 39900;
    if (saasName.includes('CRM')) return 39900;
    if (saasName.includes('Tekki Pro')) return 27900;
    if (saasName.includes('Tekki')) return 22900;
@@ -903,7 +905,24 @@ export default function AdminDashboard() {
   };
 
   const generateAcompte = (lead: any) => {
-    const montant = lead.saas === 'Onyx Modernize' ? '150 000' : lead.saas === 'Onyx Boost' ? '75 000' : '25 000';
+    let montant = '25 000';
+    let designation = `Acompte Démarrage - ${lead.saas || 'Offre Onyx'}`;
+
+    if (lead.saas === 'Onyx Modernize') montant = '150 000';
+    else if (lead.saas === 'Onyx Boost') montant = '75 000';
+    else if (lead.saas === 'OnyxPub' || (lead.saas || '').includes('OnyxPub (Essai')) {
+        montant = '10 000';
+        designation = `Acompte (Crédit Pub Meta) - OnyxPub`;
+    }
+    else if (lead.saas === 'OnyxPub Pro' || (lead.saas || '').includes('OnyxPub Pro (Essai')) {
+        montant = '15 000';
+        designation = `Acompte (Crédit Pub Meta) - OnyxPub Pro`;
+    }
+    else if (lead.saas === 'Add-on CM Pub') {
+        montant = '10 000';
+        designation = `Acompte (Crédit Pub Meta) - ${lead.saas}`;
+    }
+
     const totalStr = montant + ' F CFA';
     
     const invoiceWindow = window.open("", "_blank");
@@ -970,7 +989,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Acompte Démarrage - ${lead.saas || 'Offre Onyx'}</td>
+                    <td>${designation}</td>
                     <td style="text-align: center;">1</td>
                     <td style="text-align: right;">${totalStr}</td>
                   </tr>
@@ -997,7 +1016,8 @@ export default function AdminDashboard() {
     }
 
     setTimeout(() => {
-      const msg = `Bonjour ${lead.full_name},\n\nVoici votre facture d'acompte (${montant} F CFA) pour le démarrage de l'offre ${lead.saas || 'Onyx'}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxlinks.com/acompte\n\nMerci de votre confiance !`;
+      const typeAcompte = designation.includes('Crédit Pub') ? "de crédit publicitaire" : "d'acompte";
+      const msg = `Bonjour ${lead.full_name},\n\nVoici votre facture ${typeAcompte} (${montant} F CFA) pour le démarrage de l'offre ${lead.saas || 'Onyx'}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxlinks.com/acompte\n\nMerci de votre confiance !`;
       window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     }, 500);
   };
@@ -1027,7 +1047,9 @@ export default function AdminDashboard() {
        'Add-on CM Pub': 49900,
        'Onyx Formation': 9900,
        'Onyx Boost': 150000,
-       'Onyx Modernize': 300000
+       'Onyx Modernize': 300000,
+       'OnyxPub': 39900,
+       'OnyxPub Pro': 59900
     };
     
     const monthly = saasPriceMap[lead.saas] || 13900;
@@ -1137,7 +1159,8 @@ export default function AdminDashboard() {
     const saasPriceMap: any = {
        'Onyx Jaay': 13900, 'Pack Tekki': 22900, 'Pack Tekki Pro': 27900, 'Onyx CRM': 39900,
        'Pack Onyx Gold': 59900, 'Add-on CM Pub': 49900, 'Onyx Boost': 150000, 'Onyx Modernize': 300000,
-       'Onyx Tiak': 13900, 'Onyx Stock': 13900, 'Onyx Menu': 13900, 'Onyx Booking': 13900, 'Onyx Staff': 13900, 'Onyx Tontine': 6900, 'Onyx Formation': 9900
+       'Onyx Tiak': 13900, 'Onyx Stock': 13900, 'Onyx Menu': 13900, 'Onyx Booking': 13900, 'Onyx Staff': 13900, 'Onyx Tontine': 6900, 'Onyx Formation': 9900,
+       'OnyxPub': 39900, 'OnyxPub Pro': 59900
     };
     const activeSaasList = lead.active_saas && lead.active_saas.length > 0 ? lead.active_saas : (lead.saas ? [lead.saas] : []);
     let total = 0;
@@ -4468,6 +4491,8 @@ export default function AdminDashboard() {
                          <option value="Onyx Boost">Onyx Boost (150.000 F)</option>
                          <option value="Onyx Modernize">Onyx Modernize (300.000 F)</option>
                          <option value="Add-on CM Pub">Add-on CM Pub (49.900 F)</option>
+                         <option value="OnyxPub">OnyxPub (39.900 F)</option>
+                         <option value="OnyxPub Pro">OnyxPub Pro (59.900 F)</option>
                       </optgroup>
                    </select>
                 </div>

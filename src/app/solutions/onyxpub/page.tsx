@@ -9,7 +9,7 @@ import { ChevronLeft, ArrowRight, Sparkles, CheckCircle, Zap, Camera, X, Send, M
 const spaceGrotesk = { className: "font-sans" };
 
 const FAQ_DATA = [
-  { question: "Le budget pub est-il vraiment inclus chaque mois ?", answer: "Oui ! Par exemple, avec l'offre standard à 39 900F, nous réinvestissons directement 10 000 FCFA sur Meta Ads (Facebook/Instagram) pour lancer vos campagnes publicitaires." },
+  { question: "Comment fonctionne le paiement en deux fois (14 jours) ?", answer: "Vous payez uniquement le crédit publicitaire (10 000F ou 15 000F) au démarrage pour que nous puissions lancer les publicités Meta. Notre équipe crée les visuels et configure le système gratuitement. Vous ne payez nos frais d'agence que 14 jours plus tard, une fois que vous avez reçu vos premiers potentiels clients et que vous êtes satisfait du résultat." },
   { question: "Comment se passe la génération de visuels par l'IA ?", answer: "Prenez simplement vos produits en photo avec votre smartphone (de préférence sur un fond neutre). Envoyez-les sur notre WhatsApp, et notre intelligence artificielle s'occupe de les transformer en véritables affiches publicitaires haut de gamme pour l'e-commerce." },
   { question: "Combien de temps avant de voir les premiers résultats ?", answer: "La mise en place initiale de la machine prend environ 48h. Dès que vos publicités sont validées par Meta, les premiers messages et interactions de clients arrivent directement sur votre numéro WhatsApp." },
   { question: "Dois-je m'engager sur plusieurs mois ?", answer: "Non. Les abonnements OnyxPub sont mensuels et sans engagement de durée. Notre seul but est que la rentabilité immédiate générée vous convainque de continuer mois après mois." },
@@ -74,11 +74,11 @@ export default function OnyxPubLanding() {
     setUserReply("");
 
     setTimeout(() => {
-       let botResponse = "C'est une excellente question ! Avec OnyxPub, on génère des visuels pros et on gère les pubs pour toi. Tu as une question sur le budget ou la méthode ?";
+       let botResponse = "C'est une excellente question ! Avec OnyxPub, on génère des visuels pros et on gère les pubs pour toi sans risque. Tu as une question sur le budget ou la méthode ?";
        const lowerReply = currentReply.toLowerCase();
-       if (lowerReply.includes('prix') || lowerReply.includes('tarif') || lowerReply.includes('combien')) botResponse = "L'offre standard est à 39 900 F/mois (budget pub inclus !), et l'offre Pro à 59 900 F/mois avec un shooting terrain.";
+       if (lowerReply.includes('prix') || lowerReply.includes('tarif') || lowerReply.includes('combien')) botResponse = "Vous avancez juste le crédit pub (10 000 F ou 15 000 F) pour démarrer. Les frais d'agence (29 900 F ou 44 900 F) ne sont payés que dans 14 jours, si vous êtes satisfait !";
        else if (lowerReply.includes('photo') || lowerReply.includes('whatsapp') || lowerReply.includes('comment')) botResponse = "Tu nous envoies juste des photos simples sur WhatsApp, et notre IA s'occupe de créer les versions Luxe, Lifestyle, etc.";
-       else if (lowerReply.includes('budget') || lowerReply.includes('pub') || lowerReply.includes('facebook')) botResponse = "L'offre de départ est à 2.900 F pour tester 1 créative IA. Si ça te plaît, les forfaits standards gèrent tout avec le budget pub Facebook/Insta inclus !";
+       else if (lowerReply.includes('budget') || lowerReply.includes('pub') || lowerReply.includes('facebook')) botResponse = "Notre offre : Vous payez uniquement le crédit publicitaire Meta au démarrage. On crée les vidéos, on lance la machine, et vous ne payez nos frais d'agence que dans 14 jours, une fois les premiers clients reçus !";
 
        setLikaMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
     }, 1000);
@@ -86,6 +86,11 @@ export default function OnyxPubLanding() {
 
   const handleWaClick = (plan: string) => {
     const msg = `Bonjour l'équipe Onyx ! Je souhaite lancer ma machine à cash avec l'offre ${plan}.`;
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const handleQualifClick = () => {
+    const msg = `🚀 *Candidature : Offre Confiance OnyxPub*\n\nBonjour l'équipe ! Je souhaite postuler à l'offre zéro risque (Paiement dans 14 jours).\n\nVoici les infos de mon business pour vérifier mon éligibilité :\n\n📦 *Type de produits :* [À compléter]\n💸 *Prix moyen d'un article :* [À compléter]\n📱 *J'ai déjà une page FB/Insta ?* [Oui/Non]\n\nMerci !`;
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -336,34 +341,7 @@ export default function OnyxPubLanding() {
               <p className="text-zinc-500 font-bold text-lg">Zéro blabla, que des résultats.</p>
            </div>
 
-           <div className="grid lg:grid-cols-3 gap-6 items-center">
-              {/* Carte 0 : Starter IA */}
-              <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[3rem] hover:border-[#39FF14] transition-all flex flex-col h-full">
-                 <div className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-300 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 w-max">
-                    Offre de Départ
-                 </div>
-                 <h3 className={`${spaceGrotesk.className} text-4xl font-black text-white mb-2 uppercase`}>Starter IA</h3>
-                 <p className="text-zinc-400 font-medium text-sm mb-6 h-12">Le prix d'un poulet pour tester notre algorithme et recevoir un visuel de qualité agence.</p>
-                 <div className="text-4xl md:text-5xl font-black text-white mb-8 italic">
-                    2 900 F <span className="text-sm text-zinc-500 font-normal not-italic">/ test</span>
-                 </div>
-                 
-                 <ul className="space-y-4 mb-10 flex-1 text-sm font-bold">
-                    <li className="flex items-start gap-3 text-white">
-                       <Zap size={18} className="text-[#39FF14] shrink-0 mt-0.5" />
-                       <span>1 Visuel ou Vidéo Haute Conversion généré par IA</span>
-                    </li>
-                    <li className="flex items-start gap-3 text-zinc-300">
-                       <CheckCircle size={18} className="text-[#23a9dc] shrink-0 mt-0.5" />
-                       <span>Copywriting inclus (Texte de vente)</span>
-                    </li>
-                 </ul>
-
-                 <button onClick={() => handleWaClick("Starter IA à 2900F")} className="w-full bg-[#39FF14] text-black hover:bg-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-[0_10px_20px_rgba(57,255,20,0.2)]">
-                    Je teste pour 2.900F
-                 </button>
-              </div>
-
+           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center max-w-5xl mx-auto">
               {/* Carte 1 : OnyxPub */}
               <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[3rem] hover:border-zinc-700 transition-all flex flex-col h-full">
                  <div className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-300 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 w-max">
@@ -371,15 +349,16 @@ export default function OnyxPubLanding() {
                  </div>
                  <h3 className={`${spaceGrotesk.className} text-4xl font-black text-white mb-2 uppercase`}>OnyxPub</h3>
                  <p className="text-zinc-400 font-medium text-sm mb-6 h-12">Pour le prix d'un gardien de nuit, vous avez une agence marketing et un vendeur 24h/24.</p>
-                 <div className="text-4xl md:text-5xl font-black text-white mb-8 italic">
-                    39 900 F <span className="text-sm text-zinc-500 font-normal not-italic">/ mois</span>
+                 <div className="text-4xl md:text-5xl font-black text-white mb-2 italic">
+                    10 000 F <span className="text-sm text-zinc-500 font-normal not-italic">aujourd'hui</span>
                  </div>
+                 <p className="text-[#39FF14] text-xs font-bold uppercase tracking-widest mb-8">+ 29 900 F dans 14 jours (Si résultats OK)</p>
                  
                  <ul className="space-y-4 mb-10 flex-1 text-sm font-bold">
                     <li className="flex items-start gap-3 text-white">
                        <Zap size={18} className="text-[#39FF14] shrink-0 mt-0.5" />
                        <span className="flex items-center flex-wrap gap-2 text-black bg-[#39FF14] px-3 py-1 rounded-md font-black uppercase shadow-[0_0_15px_rgba(57,255,20,0.5)]">
-                          10 000 FCFA de budget pub INCLUS
+                          Crédit Meta payé d'avance
                           <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLfm0ooWZDodEBD2zlKPK3xt37ot4lUZHIBw&s" alt="Meta Ads" className="h-4 w-auto rounded-[2px] object-contain inline-block bg-white" />
                        </span>
                     </li>
@@ -401,8 +380,8 @@ export default function OnyxPubLanding() {
                     </li>
                  </ul>
 
-                 <button onClick={() => handleWaClick("OnyxPub")} className="w-full bg-zinc-800 text-white hover:bg-zinc-700 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all">
-                    Sélectionner OnyxPub
+                 <button onClick={() => handleWaClick("OnyxPub (Essai 14j)")} className="w-full bg-zinc-800 text-white hover:bg-zinc-700 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all">
+                    Démarrer avec 10 000 F
                  </button>
               </div>
 
@@ -416,15 +395,16 @@ export default function OnyxPubLanding() {
                  </div>
                  <h3 className={`${spaceGrotesk.className} text-4xl font-black text-white mb-2 uppercase`}>OnyxPub <span className="text-[#23a9dc]">Pro</span></h3>
                  <p className="text-zinc-400 font-medium text-sm mb-6 h-12">L'écosystème complet. Du tournage terrain à la vente automatisée.</p>
-                 <div className="text-4xl md:text-5xl font-black text-white mb-8 italic">
-                    59 900 F <span className="text-sm text-zinc-500 font-normal not-italic">/ mois</span>
+                 <div className="text-4xl md:text-5xl font-black text-white mb-2 italic">
+                    15 000 F <span className="text-sm text-zinc-500 font-normal not-italic">aujourd'hui</span>
                  </div>
+                 <p className="text-[#23a9dc] text-xs font-bold uppercase tracking-widest mb-8">+ 44 900 F dans 14 jours (Si résultats OK)</p>
                  
                  <ul className="space-y-4 mb-10 flex-1 text-sm font-bold">
                     <li className="flex items-start gap-3 text-white">
                        <Zap size={18} className="text-[#39FF14] shrink-0 mt-0.5" />
                        <span className="flex items-center flex-wrap gap-2 text-black bg-[#39FF14] px-3 py-1 rounded-md font-black uppercase shadow-[0_0_15px_rgba(57,255,20,0.5)]">
-                          15 000 FCFA de budget pub INCLUS
+                          Crédit Meta payé d'avance
                           <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLfm0ooWZDodEBD2zlKPK3xt37ot4lUZHIBw&s" alt="Meta Ads" className="h-4 w-auto rounded-[2px] object-contain inline-block bg-white" />
                        </span>
                     </li>
@@ -446,8 +426,8 @@ export default function OnyxPubLanding() {
                     </li>
                  </ul>
 
-                 <button onClick={() => handleWaClick("OnyxPub Pro")} className="w-full bg-[#23a9dc] text-black hover:bg-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-lg flex justify-center items-center gap-2">
-                    Passer au niveau Pro <ArrowRight size={18}/>
+                 <button onClick={() => handleWaClick("OnyxPub Pro (Essai 14j)")} className="w-full bg-[#23a9dc] text-black hover:bg-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-lg flex justify-center items-center gap-2">
+                    Démarrer avec 15 000 F <ArrowRight size={18}/>
                  </button>
               </div>
            </div>
