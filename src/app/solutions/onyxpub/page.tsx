@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ArrowRight, Sparkles, CheckCircle, Zap, Camera, X, Send, MessageSquare, ChevronDown, PlayCircle, Sun, Moon } from "lucide-react";
@@ -46,8 +47,10 @@ export default function OnyxPubLanding() {
   // Lika Chat states
   const [isLikaChatOpen, setIsLikaChatOpen] = useState(false);
   const [userReply, setUserReply] = useState("");
-  const [likaMessages, setLikaMessages] = useState<{sender: 'bot'|'client', text: string}[]>([
-    { sender: 'bot', text: "Salut ! Je suis Lika, experte en publicité. Prête à transformer tes photos en machine à cash ?" }
+  const [botStep, setBotStep] = useState(0);
+  const [leadData, setLeadData] = useState({ name: '', phone: '', city: '', business: '', question: '' });
+  const [likaMessages, setLikaMessages] = useState<{sender: 'bot'|'client', text: string, options?: string[]}[]>([
+    { sender: 'bot', text: "Salut ! Je suis Lika, experte en publicité. Prête à exploser tes ventes ? Que veux-tu savoir ?", options: ["Comment ça marche ?", "C'est quoi les tarifs ?", "Je veux mes 50 acheteurs 🚀"] }
   ]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -67,20 +70,69 @@ export default function OnyxPubLanding() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLikaSend = () => {
-    if (!userReply.trim()) return;
-    setLikaMessages(prev => [...prev, { sender: 'client', text: userReply }]);
-    const currentReply = userReply;
+  const processLikaReply = async (reply: string) => {
+    if (!reply.trim()) return;
+    setLikaMessages(prev => [...prev, { sender: 'client', text: reply }]);
     setUserReply("");
 
-    setTimeout(() => {
-       let botResponse = "C'est une excellente question ! Avec OnyxPub, on génère des visuels pros et on gère les pubs pour toi sans risque. Tu as une question sur le budget ou la méthode ?";
-       const lowerReply = currentReply.toLowerCase();
-       if (lowerReply.includes('prix') || lowerReply.includes('tarif') || lowerReply.includes('combien')) botResponse = "Vous avancez juste le crédit pub (10 000 F ou 15 000 F) pour démarrer. Les frais d'agence (29 900 F ou 44 900 F) ne sont payés que dans 14 jours, si vous êtes satisfait !";
-       else if (lowerReply.includes('photo') || lowerReply.includes('whatsapp') || lowerReply.includes('comment')) botResponse = "Tu nous envoies juste des photos simples sur WhatsApp, et notre IA s'occupe de créer les versions Luxe, Lifestyle, etc.";
-       else if (lowerReply.includes('budget') || lowerReply.includes('pub') || lowerReply.includes('facebook')) botResponse = "Notre offre : Vous payez uniquement le crédit publicitaire Meta au démarrage. On crée les vidéos, on lance la machine, et vous ne payez nos frais d'agence que dans 14 jours, une fois les premiers clients reçus !";
+    setTimeout(async () => {
+       let botResponse = "";
+       let botOptions: string[] | undefined = undefined;
+       let nextStep = botStep;
+       let currentData = { ...leadData };
 
-       setLikaMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
+       if (botStep === 0) {
+         const lowerReply = reply.toLowerCase();
+         if (lowerReply.includes('marche') || lowerReply.includes('comment')) {
+           botResponse = "C'est simple : on avance le crédit pub Meta, on crée des visuels pros pour toi, on lance les campagnes, et tu reçois tes acheteurs sur WhatsApp. Tu paies dans 14 jours si tu es satisfait. Prêt à tester ?";
+           botOptions = ["Je veux mes 50 acheteurs 🚀", "J'ai une autre question"];
+         } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix')) {
+           botResponse = "Tu paies 0 F de frais d'agence aujourd'hui ! Tu avances juste 10.000 F ou 15.000 F de crédit pub Meta. Nos frais d'agence se paient dans 14 jours si tu as des résultats. On se lance ?";
+           botOptions = ["Je veux mes 50 acheteurs 🚀", "J'ai une autre question"];
+         } else if (lowerReply.includes('50 acheteurs') || lowerReply.includes('lance')) {
+           botResponse = "Génial ! 🚀 Pour préparer ta machine à cash, quel est ton prénom et nom ?";
+           nextStep = 1;
+         } else {
+           botResponse = "Je vois. Pour qu'un expert analyse ça, quel est ton prénom et nom ?";
+           currentData.question = reply;
+           nextStep = 1;
+         }
+       } 
+       else if (botStep === 1) {
+         currentData.name = reply;
+         botResponse = `Enchantée ${reply.split(' ')[0]} ! Quel est ton numéro WhatsApp (ex: 77 123 45 67) ?`;
+         nextStep = 2;
+       }
+       else if (botStep === 2) {
+         currentData.phone = reply;
+         botResponse = "Super. Dans quelle ville te trouves-tu ?";
+         nextStep = 3;
+       }
+       else if (botStep === 3) {
+         currentData.city = reply;
+         botResponse = "Dernière question : quel est le nom de ton business ou de ta boutique ?";
+         nextStep = 4;
+       }
+       else if (botStep === 4) {
+         currentData.business = reply;
+         botResponse = "Parfait ! J'ai toutes les infos. Je te redirige vers notre équipe sur WhatsApp pour lancer tes campagnes ! 🚀";
+         nextStep = 5;
+         
+         try {
+           await supabase.from('leads').insert([{
+             full_name: currentData.name, phone: currentData.phone, city: currentData.city,
+             message: `Business: ${currentData.business} | Note: ${currentData.question || 'Veut lancer ses pubs'}`,
+             intent: 'Je veux mes 50 acheteurs (OnyxPub)', source: 'Bot Lika (OnyxPub)', status: 'Nouveau', saas: 'OnyxPub'
+           }]);
+         } catch (e) {}
+
+         const waMsg = `🚀 *Lancement OnyxPub*\n\nJe veux mes 50 acheteurs !\n\n*Nom:* ${currentData.name}\n*Business:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'avance de crédit (Wave/OM) ?`;
+         setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
+       }
+
+       setLeadData(currentData);
+       setBotStep(nextStep);
+       setLikaMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
     }, 1000);
   };
 
@@ -262,10 +314,10 @@ export default function OnyxPubLanding() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10, scale: 0.9 }}
                     transition={{ delay: 0.2 }}
-                    onClick={() => handleWaClick("OnyxPub")}
-                    className="bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto w-full max-w-lg animate-pulse"
+                    onClick={() => handleWaClick("OnyxPub (Je veux 50 acheteurs)")}
+                    className="bg-[#39FF14] text-black px-8 py-5 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto w-full max-w-xl animate-pulse"
                   >
-                     Je veux ces résultats pour mon business <ArrowRight size={20} />
+                     Je veux 50 acheteurs → Paiement Wave/OM 15k <ArrowRight size={20} />
                   </motion.button>
                )}
             </AnimatePresence>
@@ -496,14 +548,21 @@ export default function OnyxPubLanding() {
                         <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? 'bg-zinc-800 text-white border border-zinc-700 rounded-tl-none shadow-sm' : 'bg-[#23a9dc] text-black rounded-tr-none shadow-md'}`}>
                            {msg.text}
                         </div>
+                        {msg.options && (
+                           <div className="flex flex-col gap-2 mt-2 w-full pl-2">
+                              {msg.options.map((opt: string, idx: number) => (
+                                 <button key={idx} onClick={() => processLikaReply(opt)} className="bg-zinc-800 border border-zinc-700 text-white text-xs font-bold p-2.5 rounded-xl hover:bg-[#39FF14] hover:text-black transition text-left shadow-sm">{opt}</button>
+                              ))}
+                           </div>
+                        )}
                      </div>
                   ))}
                   <div ref={chatEndRef} />
                </div>
 
                <div className="p-3 bg-zinc-900 border-t border-zinc-800 flex gap-2">
-                  <input type="text" value={userReply} onChange={e => setUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLikaSend()} placeholder="Poser une question..." className="flex-1 bg-black border border-zinc-800 text-white rounded-xl px-4 outline-none text-sm font-bold focus:border-[#23a9dc] transition-colors" />
-                  <button onClick={handleLikaSend} className="bg-[#23a9dc] p-3 rounded-xl text-black hover:scale-105 transition"><Send size={18}/></button>
+                  <input type="text" value={userReply} onChange={e => setUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processLikaReply(userReply)} placeholder="Écrire..." className="flex-1 bg-black border border-zinc-800 text-white rounded-xl px-4 outline-none text-sm font-bold focus:border-[#39FF14] transition-colors" />
+                  <button onClick={() => processLikaReply(userReply)} className="bg-[#39FF14] p-3 rounded-xl text-black hover:scale-105 transition"><Send size={18}/></button>
                </div>
             </div>
          ) : (
