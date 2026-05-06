@@ -1020,7 +1020,7 @@ export default function OnyxOpsElite() {
                       audio.play().catch(()=>{});
                       document.getElementById('tarifs')?.scrollIntoView({behavior:'smooth'});
                     }} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14]">
-                      LANCER MA MACHINE (1er Mois Offert)
+                      LANCER MA MACHINE (Mois à 2.900 F)
                     </button>
                     <button onClick={() => setShowVideoModal(true)} className={`inline-flex justify-center items-center gap-2 border-2 ${theme === 'dark' ? 'border-white text-white hover:bg-white hover:text-black' : 'border-black text-black hover:bg-black hover:text-white'} px-8 py-5 rounded-full font-black text-sm uppercase transition`}>
                       <PlayCircle className="w-5 h-5" /> Voir comment ça marche
@@ -1788,6 +1788,17 @@ export default function OnyxOpsElite() {
                           <div className="flex flex-col items-center w-full">
                              <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Offre Basique</span>
                              <span className="text-2xl font-black mb-4">{showSaasChoice.price.toLocaleString()} F</span>
+                          {showSaasChoice.price === 13900 && (
+                             <div className="bg-[#39FF14]/20 border border-[#39FF14]/50 text-black px-3 py-2 rounded-xl text-[10px] font-black uppercase mb-4 shadow-sm text-center flex flex-col items-center">
+                                <span>🎁 1er Mois à 2.900 F (-79%)</span>
+                                <span className="text-[8px] font-bold text-zinc-600 mt-1 normal-case tracking-normal">Accès FULL. Payez via:</span>
+                                <div className="flex justify-center items-center gap-2 mt-1.5 w-full">
+                                   <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm9rYPURKIok7K0ZF22oqFgMbzIHgNCauVQA&s" alt="Wave" className="h-4 rounded-sm object-contain" />
+                                   <img src="https://www.rapyd.net/wp-content/uploads/2025/04/Orange-Money-logo-500x336-1.png" alt="OM" className="h-4 object-contain" />
+                                   <div className="h-4 px-1.5 bg-black text-white rounded flex items-center justify-center italic text-[7px] tracking-widest"><span className="text-[#39FF14]">YAS</span></div>
+                                </div>
+                             </div>
+                          )}
                           </div>
                           <div className="w-full flex flex-col gap-2 mt-2 z-10">
                              {showSaasChoice.id === 'Onyx Tontine' ? (

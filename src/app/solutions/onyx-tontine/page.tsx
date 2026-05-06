@@ -94,12 +94,12 @@ export default function OnyxTontineLanding() {
         if (lowerReply === "oui") {
             botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, les relances, ou la sécurité.";
         } else if (lowerReply === "non" || lowerReply === "non merci") {
-            botResponse = "Très bien ! Profitez bien de votre premier mois OFFERT en cliquant sur le bouton en bas de page.";
+            botResponse = "Très bien ! Profitez bien de votre premier mois à 2.900 F en cliquant sur le bouton en bas de page.";
         } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
             botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
-            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Tontine et j'aimerais profiter du premier mois gratuit.")}`, '_blank'); }, 1000);
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Tontine et j'aimerais profiter du premier mois à 2.900 F.")}`, '_blank'); }, 1000);
         } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
-            botResponse = "Le premier mois est 100% OFFERT ! Ensuite, c'est seulement 6 900 F/mois pour toute l'association. C'est le prix du Dalal ak Xel !";
+            botResponse = "Le premier mois est à 2.900 F (-58%) ! Ensuite, c'est seulement 6 900 F/mois pour toute l'association. C'est le prix du Dalal ak Xel !";
         } else {
             botResponse = "C'est noté ! Voulez-vous que je vous mette en relation avec un conseiller humain sur WhatsApp pour en discuter ?";
             botOptions = ["Oui, parler à un conseiller", "Non merci"];
@@ -114,7 +114,7 @@ export default function OnyxTontineLanding() {
   };
 
   const handleWaClick = () => {
-    const msg = `Bonjour l'équipe Onyx ! Je veux profiter de l'offre PREMIER MOIS OFFERT pour créer ma Tontine.`;
+    const msg = `Bonjour l'équipe Onyx ! Je veux profiter de l'offre du 1er mois à 2.900 F pour créer ma Tontine.`;
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -156,7 +156,7 @@ export default function OnyxTontineLanding() {
       {/* 1. HERO SECTION */}
       <section className="pt-16 pb-20 px-6 text-center max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
          <div className="inline-flex items-center gap-2 bg-[#FACC15]/20 border border-[#FACC15]/50 text-[#FACC15] px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] mb-8 shadow-[0_0_30px_rgba(250,204,21,0.3)] animate-pulse">
-             🎁 1er Mois 100% Offert - Sans Engagement
+             🎁 1er Mois à 2.900 F (-58%) - Sans Engagement
          </div>
          <h1 className={`${spaceGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.95] mb-8`}>
             BUL SONN CI CAHIER YI. <br/> GÉREZ VOTRE NATT EN <span className="text-[#FACC15] underline decoration-[#FACC15]/30 underline-offset-8">TOUTE SÉRÉNITÉ.</span>
@@ -167,7 +167,7 @@ export default function OnyxTontineLanding() {
          
          <button onClick={handleWaClick} className="bg-[#FACC15] text-black px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(250,204,21,0.4)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group">
             <div className="absolute inset-0 bg-white/30 translate-y-full group-hover:translate-y-0 transition-transform"></div>
-            <Wallet size={24} className="relative z-10" /> <span className="relative z-10">Créer ma Tontine (Mois Gratuit)</span>
+            <Wallet size={24} className="relative z-10" /> <span className="relative z-10">Créer ma Tontine (Mois à 2.900F)</span>
          </button>
       </section>
 
@@ -268,7 +268,7 @@ export default function OnyxTontineLanding() {
                   <h3 className={`${spaceGrotesk.className} text-4xl font-black uppercase mb-4`}>Onyx Tontine</h3>
                   <p className={`${textMuted} font-medium mb-6`}>Créez des tontines illimitées, invitez tous vos membres, et automatisez vos finances sans rien payer aujourd'hui.</p>
                   <ul className={`space-y-4 mb-8 text-sm font-bold ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-700'}`}>
-                     <li className="flex gap-3"><CheckCircle size={18} className="text-[#FACC15]"/> 1er Mois 100% OFFERT</li>
+                     <li className="flex gap-3"><CheckCircle size={18} className="text-[#FACC15]"/> 1er Mois à 2.900 F (-58%)</li>
                      <li className="flex gap-3"><CheckCircle size={18} className="text-[#FACC15]"/> Relances WhatsApp Automatiques</li>
                      <li className="flex gap-3"><CheckCircle size={18} className="text-[#FACC15]"/> Tirage au sort digital sécurisé</li>
                   </ul>
@@ -276,7 +276,7 @@ export default function OnyxTontineLanding() {
                
                <div className={`${theme === 'dark' ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'} border p-8 rounded-[2rem] w-full md:w-auto text-center relative z-10 shadow-xl`}>
                   <div className="text-lg font-black text-red-500 line-through mb-1">6 900 F</div>
-                  <div className="text-6xl font-black mb-2 text-[#FACC15]">0 F</div>
+                  <div className="text-5xl lg:text-6xl font-black mb-2 text-[#FACC15]">2 900 F</div>
                   <div className={`text-sm ${textMuted} font-bold uppercase tracking-widest mb-8`}>Le premier mois</div>
                   <button onClick={handleWaClick} className="w-full bg-[#FACC15] text-black py-4 px-8 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(250,204,21,0.2)]">
                      Profiter de l'offre
@@ -355,7 +355,7 @@ export default function OnyxTontineLanding() {
       <div className={`fixed bottom-0 left-0 right-0 border-t p-4 z-40 shadow-[0_-20px_40px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-full ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'}`}>
           <div className="max-w-4xl mx-auto flex justify-between items-center px-2">
              <div>
-                <p className={`font-black text-sm md:text-base ${theme === 'dark' ? 'text-white' : 'text-black'}`}>1er MOIS <span className="text-[#FACC15] text-lg font-black">OFFERT</span></p>
+                <p className={`font-black text-sm md:text-base ${theme === 'dark' ? 'text-white' : 'text-black'}`}>1er MOIS <span className="text-[#FACC15] text-lg font-black">À 2.900 F</span></p>
                 <p className={`text-[10px] md:text-xs font-bold ${textMuted} uppercase tracking-widest hidden sm:block`}>Sans carte bancaire. Annulez quand vous voulez.</p>
              </div>
              <button onClick={handleWaClick} className="bg-[#FACC15] text-black px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(250,204,21,0.3)]">

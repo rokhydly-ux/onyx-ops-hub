@@ -197,12 +197,12 @@ export default function OnyxJaayLanding() {
         if (lowerReply === "oui") {
             botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, la création du catalogue, ou la livraison.";
         } else if (lowerReply === "non" || lowerReply === "non merci") {
-            botResponse = "Très bien ! N'hésitez pas à cliquer sur le bouton 'Créer mon catalogue' en bas de la page pour commencer votre mois gratuit.";
+            botResponse = "Très bien ! N'hésitez pas à cliquer sur le bouton en bas de la page pour commencer votre mois d'essai à 2.900 F.";
         } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
             botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Jaay et j'aimerais parler à un conseiller.")}`, '_blank'); }, 1000);
         } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
-            botResponse = "Onyx Jaay coûte seulement 13 000 F/mois. C'est sans engagement, et votre 1er mois est 100% gratuit !";
+            botResponse = "Onyx Jaay coûte 13 900 F/mois, mais pour te prouver que ça marche, le 1er mois est à 2.900 F (-79%) !";
         } else if (lowerReply.includes("catalogue") || lowerReply.includes("produit") || lowerReply.includes("ajouter") || lowerReply.includes("comment")) {
             botResponse = "C'est super simple : vous ajoutez vos photos et prix depuis votre téléphone. Vos clients auront un beau lien pour commander directement sans vous poser 20 fois la même question !";
         } else if (lowerReply.includes("livraison") || lowerReply.includes("tiak") || lowerReply.includes("livreur")) {
@@ -234,7 +234,7 @@ export default function OnyxJaayLanding() {
       {/* BANNIÈRE PROMO HAUT DE PAGE */}
 
       <div className="bg-[#39FF14] text-black text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md">
-          🎁 Lancez votre catalogue aujourd'hui : Le 1er mois d'utilisation est 100% Gratuit !
+          🎁 Normalement 13.900F. Ce mois-ci 2.900F (prix d’un poulet) pour tester. Si ça ne te fait pas gagner 1h/jour, on te rembourse !
       </div>
 
       {/* Navbar */}
@@ -250,6 +250,10 @@ export default function OnyxJaayLanding() {
                  </button>
                  <div className={`absolute top-full right-0 mt-2 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
                     <button onClick={() => window.location.href = '/'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🏠 Accueil Onyx</button>
+                   <button onClick={() => window.location.href = '/solutions/onyx-tekki'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">📦 Onyx Tekki</button>
+                   <button onClick={() => window.location.href = '/solutions/onyx-tekki-pro'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🚀 Onyx Tekki Pro</button>
+                   <button onClick={() => window.location.href = '/solutions/onyxpub'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🎯 OnyxPub</button>
+                   <button onClick={() => window.location.href = '/solutions/onyxcrm'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🤝 Onyx CRM</button>
                     <button onClick={() => window.location.href = '/solutions/onyx-tontine'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">💰 Onyx Tontine</button>
                     <button onClick={() => window.location.href = '/solutions/onyx-tiak'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🚚 Onyx Tiak</button>
                     <button onClick={() => window.location.href = '/solutions/onyx-menu'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🍽️ Onyx Menu</button>
@@ -267,16 +271,16 @@ export default function OnyxJaayLanding() {
          <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest mb-8 shadow-[0_10px_20px_rgba(57,255,20,0.2)]">
              <Zap size={14} className="fill-[#39FF14]" /> Fini le bricolage sur WhatsApp
          </div>
-         <h1 className="font-sans text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter mb-8 leading-[0.95]">
-             Ne vendez plus un simple produit. <br/>
-             <span className="text-zinc-400">Vendez une expérience qui</span> <span className="text-[#39FF14] underline decoration-black decoration-8 underline-offset-8">encaisse 24h/24.</span>
+         <h1 className={`${spaceGrotesk.className} text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-8 leading-[0.95]`}>
+             Arrêtez de perdre du temps à <br/>
+             <span className="text-[#39FF14] underline decoration-black decoration-8 underline-offset-8">calculer vos marges.</span>
          </h1>
          <p className="text-zinc-600 text-lg md:text-xl font-bold max-w-3xl mx-auto mb-12 leading-relaxed">
-             Onyx Jaay est le 1er catalogue phygital au Sénégal pensé 100% pour WhatsApp. Transformez vos discussions interminables en commandes fermes, gérez votre stock en auto, et sachez exactement quel <span className="text-black font-black uppercase tracking-widest bg-[#39FF14]/20 px-2 py-0.5 rounded">xaliss</span> (marge nette) vous gagnez.
+             <strong className="text-black bg-[#39FF14]/20 px-2 py-0.5 rounded">Normalement 13.900F. Ce mois-ci 2.900F (prix d’un poulet) pour tester. Si ça te fait pas gagner 1h/jour, je te rembourse.</strong><br/><br/>Onyx Jaay est le 1er catalogue phygital pensé 100% pour WhatsApp. Transformez vos discussions en commandes fermes, et gérez votre stock en auto.
          </p>
          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
              <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className="w-full sm:w-auto bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-2">
-                 Démarrer l'essai (13 000 F/mois) <ArrowRight size={18} />
+                 Je teste pour 2.900F → Paiement Wave/OM <ArrowRight size={18} />
              </button>
              <button onClick={() => window.open('/keur-yaay', '_blank')} className="w-full sm:w-auto bg-transparent border-2 border-black text-black px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2">
                  <PlayCircle size={18} /> Voir une démo
@@ -720,11 +724,11 @@ export default function OnyxJaayLanding() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom-full">
           <div className="max-w-4xl mx-auto flex justify-between items-center px-2">
              <div>
-                <p className="font-black text-sm md:text-base text-black">13 000 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
-                <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Sans engagement. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">1er MOIS GRATUIT</span></p>
+                <p className="font-black text-sm md:text-base text-black"><span className="line-through text-red-500 text-xs mr-2">13 900F</span><span className="text-[#39FF14]">2 900 F</span><span className="text-zinc-500 text-xs font-bold">/1er mois</span></p>
+                <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Sans engagement. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">SATISFAIT OU REMBOURSÉ</span></p>
              </div>
-             <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-black/20">
-                Créer mon catalogue
+             <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(57,255,20,0.4)]">
+                Je teste pour 2.900F → Wave/OM
              </button>
           </div>
       </div>

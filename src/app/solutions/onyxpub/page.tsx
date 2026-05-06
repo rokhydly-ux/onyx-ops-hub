@@ -78,7 +78,7 @@ export default function OnyxPubLanding() {
        const lowerReply = currentReply.toLowerCase();
        if (lowerReply.includes('prix') || lowerReply.includes('tarif') || lowerReply.includes('combien')) botResponse = "L'offre standard est à 39 900 F/mois (budget pub inclus !), et l'offre Pro à 59 900 F/mois avec un shooting terrain.";
        else if (lowerReply.includes('photo') || lowerReply.includes('whatsapp') || lowerReply.includes('comment')) botResponse = "Tu nous envoies juste des photos simples sur WhatsApp, et notre IA s'occupe de créer les versions Luxe, Lifestyle, etc.";
-       else if (lowerReply.includes('budget') || lowerReply.includes('pub') || lowerReply.includes('facebook')) botResponse = "On inclut directement le budget de la publicité Facebook/Insta dans nos abonnements ! C'est 100% clé en main.";
+       else if (lowerReply.includes('budget') || lowerReply.includes('pub') || lowerReply.includes('facebook')) botResponse = "L'offre de départ est à 2.900 F pour tester 1 créative IA. Si ça te plaît, les forfaits standards gèrent tout avec le budget pub Facebook/Insta inclus !";
 
        setLikaMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
     }, 1000);
@@ -336,7 +336,34 @@ export default function OnyxPubLanding() {
               <p className="text-zinc-500 font-bold text-lg">Zéro blabla, que des résultats.</p>
            </div>
 
-           <div className="grid md:grid-cols-2 gap-8 items-center">
+           <div className="grid lg:grid-cols-3 gap-6 items-center">
+              {/* Carte 0 : Starter IA */}
+              <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[3rem] hover:border-[#39FF14] transition-all flex flex-col h-full">
+                 <div className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-300 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 w-max">
+                    Offre de Départ
+                 </div>
+                 <h3 className={`${spaceGrotesk.className} text-4xl font-black text-white mb-2 uppercase`}>Starter IA</h3>
+                 <p className="text-zinc-400 font-medium text-sm mb-6 h-12">Le prix d'un poulet pour tester notre algorithme et recevoir un visuel de qualité agence.</p>
+                 <div className="text-4xl md:text-5xl font-black text-white mb-8 italic">
+                    2 900 F <span className="text-sm text-zinc-500 font-normal not-italic">/ test</span>
+                 </div>
+                 
+                 <ul className="space-y-4 mb-10 flex-1 text-sm font-bold">
+                    <li className="flex items-start gap-3 text-white">
+                       <Zap size={18} className="text-[#39FF14] shrink-0 mt-0.5" />
+                       <span>1 Visuel ou Vidéo Haute Conversion généré par IA</span>
+                    </li>
+                    <li className="flex items-start gap-3 text-zinc-300">
+                       <CheckCircle size={18} className="text-[#23a9dc] shrink-0 mt-0.5" />
+                       <span>Copywriting inclus (Texte de vente)</span>
+                    </li>
+                 </ul>
+
+                 <button onClick={() => handleWaClick("Starter IA à 2900F")} className="w-full bg-[#39FF14] text-black hover:bg-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-[0_10px_20px_rgba(57,255,20,0.2)]">
+                    Je teste pour 2.900F
+                 </button>
+              </div>
+
               {/* Carte 1 : OnyxPub */}
               <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[3rem] hover:border-zinc-700 transition-all flex flex-col h-full">
                  <div className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-300 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 w-max">

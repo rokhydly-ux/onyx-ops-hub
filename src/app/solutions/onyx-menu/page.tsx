@@ -67,12 +67,12 @@ export default function OnyxMenuLanding() {
         if (lowerReply === "oui") {
             botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, le QR code, ou la réception des commandes.";
         } else if (lowerReply === "non" || lowerReply === "non merci") {
-            botResponse = "Très bien ! N'hésitez pas à cliquer sur le bouton 'Créer mon Menu' pour commencer votre essai gratuit.";
+            botResponse = "Très bien ! N'hésitez pas à cliquer sur le bouton 'Créer mon Menu' pour commencer votre essai à 2.900 F.";
         } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
             botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Menu et j'aimerais parler à un conseiller.")}`, '_blank'); }, 1000);
         } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
-            botResponse = "Onyx Menu coûte 13 000 F/mois. Pour un Resto complet, nous avons l'offre OnyxTekki (Menu + Stock Ingrédients + Caisse) à 22 900 F !";
+            botResponse = "Onyx Menu coûte 13 900 F/mois. Le 1er mois est à 2.900 F (-79%) pour tester ! Pour un Resto complet, nous avons l'offre OnyxTekki à 22 900 F.";
         } else if (lowerReply.includes("qr") || lowerReply.includes("scan") || lowerReply.includes("imprimer") || lowerReply.includes("comment")) {
             botResponse = "C'est magique : vous téléchargez votre QR code depuis l'appli, vous le placez sur vos tables, et les clients scannent pour voir vos plats en HD.";
         } else if (lowerReply.includes("commande") || lowerReply.includes("reception") || lowerReply.includes("cuisine") || lowerReply.includes("whatsapp")) {
@@ -135,7 +135,7 @@ export default function OnyxMenuLanding() {
          
          <button onClick={() => handleWaClick("Onyx Menu (Essai Gratuit)")} className="bg-[#FF5722] text-white px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(255,87,34,0.3)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group">
             <div className="absolute inset-0 bg-black/10 translate-y-full group-hover:translate-y-0 transition-transform"></div>
-            <QrCode size={24} className="relative z-10" /> <span className="relative z-10">Créer mon menu digital (Essai Gratuit)</span>
+            <QrCode size={24} className="relative z-10" /> <span className="relative z-10">Créer mon menu digital (Essai à 2.900 F)</span>
          </button>
 
          {/* HERO IMAGE PLACEHOLDER */}
@@ -189,21 +189,23 @@ export default function OnyxMenuLanding() {
                <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[3rem] flex flex-col">
                   <p className="text-[10px] font-black tracking-widest text-zinc-500 uppercase mb-2">Idéal Food-Truck</p>
                   <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-6`}>Onyx Menu</h3>
-                  <div className="text-4xl font-black mb-6 italic">13 000 F <span className="text-sm text-zinc-500 not-italic font-normal">/ mois</span></div>
+                  <div className="text-4xl font-black mb-6 italic flex items-center">
+                     <span className="line-through text-red-500 text-xl mr-2">13 900 F</span><span className="text-[#FF5722]">2 900 F</span> <span className="text-sm text-zinc-500 not-italic font-normal ml-2">/ 1er mois</span>
+                  </div>
                   <ul className="space-y-4 mb-10 text-zinc-400 text-sm font-bold flex-1">
                      <li className="flex gap-2">✔ Menu Digital QR Code</li>
                      <li className="flex gap-2">✔ Photos HD illimitées</li>
                      <li className="flex gap-2">✔ Commandes WhatsApp Formatées</li>
                   </ul>
                   <button onClick={() => handleWaClick("Onyx Menu Solo")} className="w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-700 transition">
-                     Créer mon Menu
+                     Je teste pour 2.900F
                   </button>
                </div>
 
                {/* CARTE BUNDLE (OnyxTekki Resto - Recommandée) */}
                <div className="bg-gradient-to-b from-[#FF5722]/20 to-black border-4 border-[#FF5722] p-8 md:p-10 rounded-[3rem] flex flex-col relative md:scale-110 shadow-[0_0_50px_rgba(255,87,34,0.2)] z-10">
                   <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white text-[#FF5722] border-2 border-zinc-200 px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase whitespace-nowrap animate-pulse shadow-xl flex items-center gap-2">
-                     <Zap size={14}/> PREMIER MOIS OFFERT !
+                     <Zap size={14}/> PREMIER MOIS À 2.900 F !
                   </div>
                   <div className="flex items-center gap-2 mb-2 mt-4">
                      <p className="text-[10px] font-black tracking-[0.3em] text-[#FF5722] uppercase">La Machine Ultime</p>
@@ -300,10 +302,10 @@ export default function OnyxMenuLanding() {
           <div className="max-w-4xl mx-auto flex justify-between items-center px-2">
              <div>
                 <p className="font-black text-sm md:text-base text-black">22 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
-                <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Pack Resto Complet. <span className="text-white bg-[#FF5722] px-1.5 py-0.5 rounded shadow-sm">1er MOIS GRATUIT</span></p>
+                <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Pack Resto Complet. <span className="text-white bg-[#FF5722] px-1.5 py-0.5 rounded shadow-sm">1er MOIS À 2.900 F</span></p>
              </div>
              <button onClick={() => handleWaClick("OnyxTekki Resto")} className="bg-[#FF5722] text-white px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-[#FF5722]/20">
-                Démarrer l'essai
+                Je teste pour 2.900 F
              </button>
           </div>
       </div>
