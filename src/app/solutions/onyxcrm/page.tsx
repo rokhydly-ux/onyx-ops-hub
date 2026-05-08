@@ -125,7 +125,7 @@ export default function OnyxCRMLanding() {
   };
 
   const handleWaClick = (pack: string) => {
-    const msg = `Bonjour l'équipe Onyx ! Je suis intéressé(e) par ${pack} pour structurer mes ventes B2B.`;
+    const msg = `Bonjour l'équipe Onyx ! Je suis intéressé(e) par ${pack} pour structurer mes ventes B2B. Je souhaite profiter de l'essai à 2.900 F.`;
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 

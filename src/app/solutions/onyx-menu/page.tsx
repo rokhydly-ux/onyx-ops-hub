@@ -123,7 +123,7 @@ export default function OnyxMenuLanding() {
   };
 
   const handleWaClick = (pack: string) => {
-    const msg = `Bonjour l'équipe Onyx ! Je veux moderniser mon restaurant avec ${pack}.`;
+    const msg = `Bonjour l'équipe Onyx ! Je veux moderniser mon restaurant avec ${pack}. Je souhaite profiter du 1er mois à 2.900 F.`;
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 

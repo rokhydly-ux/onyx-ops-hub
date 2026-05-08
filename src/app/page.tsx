@@ -269,6 +269,7 @@ export default function OnyxOpsElite() {
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [hasTriggeredExitIntent, setHasTriggeredExitIntent] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [onboardingFomoTime, setOnboardingFomoTime] = useState(900);
 
   // NOUVEAU: Fonction de validation stricte du téléphone
   const validatePhone = (code: string, number: string) => {
@@ -448,6 +449,14 @@ export default function OnyxOpsElite() {
   const formatTime = (secs: number) => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`;
 
   useEffect(() => {
+      if (showOnboarding) {
+          setOnboardingFomoTime(900);
+          const interval = setInterval(() => setOnboardingFomoTime(prev => prev > 0 ? prev - 1 : 0), 1000);
+          return () => clearInterval(interval);
+      }
+  }, [showOnboarding]);
+
+  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [botMessages]);
 
@@ -545,7 +554,7 @@ export default function OnyxOpsElite() {
 
     const finalPhone = leadData.phone.replace(/\s+/g, '').startsWith('+221') ? leadData.phone.replace(/\s+/g, '') : `${countryCode}${leadData.phone.replace(/\s+/g, '')}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte._`;
+    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte et profiter du 1er mois à 2.900 F._`;
 
     await saveLead({
        source: 'Onboarding Site',
@@ -1973,6 +1982,10 @@ export default function OnyxOpsElite() {
 
               {/* Colonne Droite : Formulaire */}
               <div className="flex-1 p-6 sm:p-10 flex flex-col justify-center">
+                 <div className="mb-6 bg-red-50 border border-red-200 p-3 rounded-xl flex items-center justify-between">
+                    <span className="text-red-600 text-xs font-black uppercase flex items-center gap-2"><Flame size={16} className="animate-pulse"/> L'offre à 2.900F expire dans</span>
+                    <span className="bg-red-600 text-white text-xs font-black px-2 py-1 rounded-md tracking-widest shadow-sm">{formatTime(onboardingFomoTime)}</span>
+                 </div>
                  {onboardingStep === 1 && (
                    <div className="space-y-6 animate-in slide-in-from-right-8">
                      <div className="mb-8">

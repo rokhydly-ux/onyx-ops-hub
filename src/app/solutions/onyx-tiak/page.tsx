@@ -135,7 +135,7 @@ export default function OnyxTiakLanding() {
   };
 
   const handleWaClick = (pack: string) => {
-    const msg = `Bonjour l'équipe Onyx ! Je suis intéressé(e) par la solution logistique ${pack} pour sécuriser mes livraisons.`;
+    const msg = `Bonjour l'équipe Onyx ! Je suis intéressé(e) par la solution logistique ${pack} pour sécuriser mes livraisons. Je souhaite profiter du 1er mois à 2.900 F.`;
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 

@@ -35,6 +35,8 @@ export default function OnyxJaayLanding() {
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [hasTriggeredExitIntent, setHasTriggeredExitIntent] = useState(false);
 
+  const [onboardingFomoTime, setOnboardingFomoTime] = useState(900);
+
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Navigation Menu
@@ -85,6 +87,16 @@ export default function OnyxJaayLanding() {
     }, 5000);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (showOnboarding) {
+      setOnboardingFomoTime(900);
+      const interval = setInterval(() => setOnboardingFomoTime(prev => prev > 0 ? prev - 1 : 0), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [showOnboarding]);
+
+  const formatTime = (secs: number) => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`;
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -146,7 +158,7 @@ export default function OnyxJaayLanding() {
 
     const finalPhone = cleanNumber.startsWith('+221') ? cleanNumber : `${countryCode}${cleanNumber}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Onyx Jaay)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n\n_Le client a créé son compte lui-même via le formulaire complet._`;
+    const msg = `🚀 *NOUVEAU LEAD (Onyx Jaay)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n\n_Le client a créé son compte lui-même et souhaite profiter du 1er mois à 2.900 F._`;
 
     await saveLead({ source: 'Landing Page Onyx Jaay', intent: 'Création Compte Onyx Jaay', contact: finalPhone, full_name: leadData.name, city: leadData.region, address: leadData.address, message: `Activité: ${finalCategory} | Email: ${leadData.email}`, email: leadData.email });
     
@@ -475,6 +487,10 @@ export default function OnyxJaayLanding() {
 
             {/* Colonne Droite : Formulaire */}
             <div className="flex-1 p-6 sm:p-10 flex flex-col justify-center">
+               <div className="mb-6 bg-red-50 border border-red-200 p-3 rounded-xl flex items-center justify-between">
+                  <span className="text-red-600 text-xs font-black uppercase flex items-center gap-2"><Zap size={16} className="animate-pulse"/> L'offre à 2.900F expire dans</span>
+                  <span className="bg-red-600 text-white text-xs font-black px-2 py-1 rounded-md tracking-widest shadow-sm">{formatTime(onboardingFomoTime)}</span>
+               </div>
                {onboardingStep === 0 && (
                  <div className="space-y-6 animate-in slide-in-from-right-8">
                    <div className="mb-8">
@@ -500,7 +516,7 @@ export default function OnyxJaayLanding() {
                       }} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-105 transition flex items-center justify-center gap-3">
                          <UserPlus size={20} /> Créer mon compte moi-même
                       </button>
-                      <button onClick={() => { if(!leadData.name || !leadData.phone) return alert('Veuillez saisir votre prénom et numéro WhatsApp.'); handleDirectWaClick('Démarrage Onyx Jaay', `Bonjour, je m'appelle ${leadData.name} et je souhaite démarrer un essai pour Onyx Jaay.`); }} className="w-full bg-zinc-100 text-black py-5 rounded-[2rem] font-black uppercase text-sm shadow-sm hover:bg-zinc-200 transition flex items-center justify-center gap-3">
+                      <button onClick={() => { if(!leadData.name || !leadData.phone) return alert('Veuillez saisir votre prénom et numéro WhatsApp.'); handleDirectWaClick('Démarrage Onyx Jaay', `Bonjour, je m'appelle ${leadData.name} et je souhaite profiter de l'offre à 2.900 F pour démarrer avec Onyx Jaay.`); }} className="w-full bg-zinc-100 text-black py-5 rounded-[2rem] font-black uppercase text-sm shadow-sm hover:bg-zinc-200 transition flex items-center justify-center gap-3">
                          <MessageSquare size={20} /> Démarrer via WhatsApp
                       </button>
                    </div>
