@@ -28,9 +28,11 @@ export default function OnyxTontineLanding() {
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isBotDismissed, setIsBotDismissed] = useState(false);
   const [userReply, setUserReply] = useState("");
+  const [botStep, setBotStep] = useState(0);
+  const [botData, setBotData] = useState({ name: '', phone: '', city: '', business: '', question: '' });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [botMessages, setBotMessages] = useState<any[]>([
-    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta. Avez-vous des questions sur Onyx Tontine, notre outil pour gérer votre Natt en toute tranquillité ?", options: ["Oui", "Non"] }
+    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta. Prêt à simplifier la gestion de votre tontine ? Que voulez-vous savoir ?", options: ["Comment ça marche ?", "C'est quoi les tarifs ?", "Je veux créer ma tontine 🚀"] }
   ]);
 
   const steps = [
@@ -87,29 +89,63 @@ export default function OnyxTontineLanding() {
     setUserReply("");
 
     setTimeout(async () => {
-        const lowerReply = reply.toLowerCase();
         let botResponse = "";
         let botOptions: string[] | undefined = undefined;
+        let nextStep = botStep;
+        let currentData = { ...botData };
 
-        if (lowerReply === "oui") {
-            botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, les relances, ou la sécurité.";
-        } else if (lowerReply === "non" || lowerReply === "non merci") {
-            botResponse = "Très bien ! Profitez bien de votre premier mois à 2.900 F en cliquant sur le bouton en bas de page.";
-        } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
-            botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
-            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Tontine et j'aimerais profiter du premier mois à 2.900 F.")}`, '_blank'); }, 1000);
-        } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
-            botResponse = "Le premier mois est à 2.900 F (-58%) ! Ensuite, c'est seulement 6 900 F/mois pour toute l'association. C'est le prix du Dalal ak Xel !";
-        } else {
-            botResponse = "C'est noté ! Voulez-vous que je vous mette en relation avec un conseiller humain sur WhatsApp pour en discuter ?";
-            botOptions = ["Oui, parler à un conseiller", "Non merci"];
+        if (botStep === 0) {
+            const lowerReply = reply.toLowerCase();
+            if (lowerReply.includes('marche') || lowerReply.includes('comment') || lowerReply.includes('sécurité')) {
+                botResponse = "C'est simple : vous importez vos membres sans mot de passe, l'appli les relance automatiquement pour payer sur WhatsApp. Prêt à tester ?";
+                botOptions = ["Je veux créer ma tontine 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
+                botResponse = "C'est seulement 6 900 F/mois pour toute l'association. Et le premier mois est à 2.900 F (-58%) ! On se lance ?";
+                botOptions = ["Je veux créer ma tontine 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('tontine') || lowerReply.includes('lance') || lowerReply.includes('oui')) {
+                botResponse = "Génial ! 🚀 Pour configurer votre espace Natt, quel est votre prénom et nom ?";
+                nextStep = 1;
+            } else {
+                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                currentData.question = reply;
+                nextStep = 1;
+            }
+        }
+        else if (botStep === 1) {
+            currentData.name = reply;
+            botResponse = `Enchantée ${reply.split(' ')[0]} ! Quel est votre numéro WhatsApp (ex: 77 123 45 67) ?`;
+            nextStep = 2;
+        }
+        else if (botStep === 2) {
+            currentData.phone = reply;
+            botResponse = "Super. Dans quelle ville vous trouvez-vous ?";
+            nextStep = 3;
+        }
+        else if (botStep === 3) {
+            currentData.city = reply;
+            botResponse = "Dernière question : quel est le nom de votre association ou groupe de tontine ?";
+            nextStep = 4;
+        }
+        else if (botStep === 4) {
+            currentData.business = reply;
+            botResponse = "Parfait ! J'ai toutes les infos. Je vous redirige vers notre équipe sur WhatsApp pour activer votre espace ! 🚀";
+            nextStep = 5;
+            
+            try {
+                await supabase.from('leads').insert([{
+                    full_name: currentData.name, phone: currentData.phone, city: currentData.city,
+                    message: `Groupe: ${currentData.business} | Note: ${currentData.question || 'Veut créer sa tontine'}`,
+                    intent: 'Je veux créer ma tontine (Onyx Tontine)', source: 'Bot Fanta (Onyx Tontine)', status: 'Nouveau', saas: 'Onyx Tontine', ambassador_id: refId || undefined
+                }]);
+            } catch (err) {}
+
+            const waMsg = `🚀 *Création Onyx Tontine*\n\nJe veux créer ma tontine !\n\n*Nom:* ${currentData.name}\n*Groupe:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?`;
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
+        setBotData(currentData);
+        setBotStep(nextStep);
         setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
-
-        try {
-            await supabase.from('leads').insert([{ full_name: 'Visiteur Tontine', intent: 'Question Bot', source: 'Bot Fanta', message: reply, status: 'Nouveau', ambassador_id: refId || undefined }]);
-        } catch (err) {}
     }, 1000);
   };
 
@@ -124,9 +160,9 @@ export default function OnyxTontineLanding() {
   const textMuted = theme === 'dark' ? 'text-zinc-400' : 'text-zinc-500';
 
   return (
-    <main className={`min-h-screen ${bgMain} overflow-x-hidden selection:bg-[#FACC15]/30 pb-24 font-sans transition-colors duration-300`}>
+    <main className={`min-h-screen ${bgMain} selection:bg-[#FACC15]/30 pb-24 transition-colors duration-300 font-sans overflow-x-hidden`}>
       {/* NAVBAR */}
-      <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
+      <nav className={`p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50`}>
          <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 hover:scale-105 transition-transform`}>
             ONYX<span className="text-[#FACC15] drop-shadow-sm">TONTINE</span>
          </button>

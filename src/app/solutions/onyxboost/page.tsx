@@ -1,14 +1,108 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ArrowRight, Activity, Target, Bot } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { ChevronLeft, ArrowRight, Activity, Target, Bot, X, Send, MessageSquare } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
 
 export default function OnyxBoostLanding() {
   const router = useRouter();
   const waNumber = "221785338417";
+  
+  const [refId, setRefId] = useState<string | null>(null);
+
+  // Configuration Bot Fanta
+  const [isBotOpen, setIsBotOpen] = useState(false);
+  const [isBotDismissed, setIsBotDismissed] = useState(false);
+  const [userReply, setUserReply] = useState("");
+  const [botStep, setBotStep] = useState(0);
+  const [botData, setBotData] = useState({ name: '', phone: '', city: '', business: '', question: '' });
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [botMessages, setBotMessages] = useState<any[]>([
+    { sender: 'bot', text: "👋 Bonjour ! Je suis Fanta, experte Growth. Prêt à faire exploser vos ventes ? Que voulez-vous savoir ?", options: ["Comment ça marche ?", "C'est quoi les tarifs ?", "Je veux un audit gratuit 🚀"] }
+  ]);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const ref = searchParams.get('ref') || localStorage.getItem('onyx_ambassador_ref');
+    if (ref) {
+      setRefId(ref);
+      localStorage.setItem('onyx_ambassador_ref', ref);
+    }
+    const timer = setTimeout(() => setIsBotOpen(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [botMessages]);
+
+  const processBotReply = (reply: string) => {
+    if(!reply.trim()) return;
+    const newMsgs = [...botMessages, { sender: 'client', text: reply }];
+    setBotMessages(newMsgs);
+    setUserReply("");
+
+    setTimeout(async () => {
+        let botResponse = "";
+        let botOptions: string[] | undefined = undefined;
+        let nextStep = botStep;
+        let currentData = { ...botData };
+
+        if (botStep === 0) {
+            const lowerReply = reply.toLowerCase();
+            if (lowerReply.includes('marche') || lowerReply.includes('comment')) {
+                botResponse = "C'est simple : on audite votre marque, on crée une stratégie sur-mesure et on exécute les campagnes pour vous ramener des clients qualifiés. Prêt à tester ?";
+                botOptions = ["Je veux un audit gratuit 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
+                botResponse = "L'accompagnement Onyx Boost démarre à 150 000 F / mois, taillé pour les entreprises ambitieuses ! On se lance ?";
+                botOptions = ["Je veux un audit gratuit 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('audit') || lowerReply.includes('lance') || lowerReply.includes('oui')) {
+                botResponse = "Génial ! 🚀 Pour préparer votre audit Growth, quel est votre prénom et nom ?";
+                nextStep = 1;
+            } else {
+                botResponse = "Je vois ! Pour vous aider au mieux et préparer votre audit, quel est votre prénom et nom ?";
+                currentData.question = reply;
+                nextStep = 1;
+            }
+        }
+        else if (botStep === 1) {
+            currentData.name = reply;
+            botResponse = `Enchantée ${reply.split(' ')[0]} ! Quel est votre numéro WhatsApp (ex: 77 123 45 67) ?`;
+            nextStep = 2;
+        }
+        else if (botStep === 2) {
+            currentData.phone = reply;
+            botResponse = "Super. Dans quelle ville se trouve votre entreprise ?";
+            nextStep = 3;
+        }
+        else if (botStep === 3) {
+            currentData.city = reply;
+            botResponse = "Dernière question : quel est le nom de votre marque ou agence ?";
+            nextStep = 4;
+        }
+        else if (botStep === 4) {
+            currentData.business = reply;
+            botResponse = "Parfait ! J'ai toutes les infos. Je vous redirige vers notre équipe d'experts sur WhatsApp pour planifier votre audit ! 🚀";
+            nextStep = 5;
+            
+            try {
+                await supabase.from('leads').insert([{
+                    full_name: currentData.name, phone: currentData.phone, city: currentData.city,
+                    message: `Entreprise: ${currentData.business} | Note: ${currentData.question || 'Veut un audit Boost'}`,
+                    intent: 'Je veux un audit (Onyx Boost)', source: 'Bot Fanta (Onyx Boost)', status: 'Nouveau', saas: 'Onyx Boost', ambassador_id: refId || undefined
+                }]);
+            } catch (err) {}
+
+            const waMsg = `🚀 *Audit Onyx Boost*\n\nJe souhaite auditer ma marque !\n\n*Nom:* ${currentData.name}\n*Entreprise:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour la stratégie ?`;
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
+        }
+
+        setBotData(currentData);
+        setBotStep(nextStep);
+        setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
+    }, 1000);
+  };
 
   const handleWaClick = () => {
     const msg = "Bonjour l'équipe Onyx ! Je souhaite un audit gratuit de ma marque pour l'offre High-Ticket Onyx Boost.";
@@ -129,6 +223,59 @@ export default function OnyxBoostLanding() {
             </button>
          </div>
       </section>
+
+      {/* BOT FANTA FAQ ONYX BOOST */}
+      <div className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
+        {isBotOpen && (
+          <div className="bg-zinc-950 rounded-[2rem] shadow-2xl border-2 border-[#00E5FF] p-0 mb-4 w-[340px] h-[400px] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
+             <div className="bg-black p-4 flex justify-between items-center border-b border-zinc-800">
+                <div className="flex items-center gap-3">
+                   <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-zinc-900 border border-[#00E5FF] flex items-center justify-center text-xl">👩🏾‍💻</div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00E5FF] rounded-full border border-black animate-pulse"></div>
+                   </div>
+                   <div><p className="text-[#00E5FF] font-black uppercase text-xs tracking-wider">Fanta - Experte Growth</p></div>
+                </div>
+                <button onClick={() => setIsBotOpen(false)} className="text-zinc-500 hover:text-white transition"><X size={18}/></button>
+             </div>
+             
+             <div className="flex-1 bg-zinc-900/50 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar">
+                {botMessages.map((msg, i) => (
+                   <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? 'bg-zinc-800 border border-zinc-700 text-white rounded-tl-none shadow-sm' : 'bg-[#00E5FF] text-black rounded-tr-none shadow-md'}`}>
+                         {msg.text}
+                      </div>
+                      {msg.options && (
+                         <div className="flex flex-wrap gap-2 mt-2 w-full">
+                            {msg.options.map((opt: string, idx: number) => (
+                               <button key={idx} onClick={() => processBotReply(opt)} className="bg-zinc-800 border border-zinc-700 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-black hover:text-[#00E5FF] hover:border-[#00E5FF] shadow-sm transition-colors">{opt}</button>
+                            ))}
+                         </div>
+                      )}
+                   </div>
+                ))}
+                <div ref={chatEndRef} />
+             </div>
+
+             <div className="p-3 bg-black border-t border-zinc-800 flex gap-2">
+                <input type="text" value={userReply} onChange={e => setUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processBotReply(userReply)} placeholder="Poser une question..." className="flex-1 bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 outline-none text-sm font-bold focus:ring-1 focus:ring-[#00E5FF]" />
+                <button onClick={() => processBotReply(userReply)} className="bg-[#00E5FF] p-3 rounded-xl text-black hover:scale-105 transition"><Send size={18}/></button>
+             </div>
+          </div>
+        )}
+        
+        {!isBotOpen && !isBotDismissed && (
+           <div className="relative group animate-bounce flex items-center justify-center">
+             <button onClick={(e) => { e.stopPropagation(); setIsBotDismissed(true); }} className="absolute -top-1 -right-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-black p-1 rounded-full z-10 transition-colors shadow-sm">
+               <X size={14} />
+             </button>
+             <button onClick={() => setIsBotOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#00E5FF] hover:scale-110 transition-transform bg-black relative flex items-center justify-center text-2xl">
+               👩🏾‍💻
+             </button>
+           </div>
+        )}
+      </div>
+
     </main>
   );
 }

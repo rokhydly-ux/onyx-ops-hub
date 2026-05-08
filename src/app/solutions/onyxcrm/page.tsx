@@ -24,9 +24,11 @@ export default function OnyxCRMLanding() {
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isBotDismissed, setIsBotDismissed] = useState(false);
   const [userReply, setUserReply] = useState("");
+  const [botStep, setBotStep] = useState(0);
+  const [botData, setBotData] = useState({ name: '', phone: '', city: '', business: '', question: '' });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [botMessages, setBotMessages] = useState<any[]>([
-    { sender: 'bot', text: "👋 Bonjour ! Je suis Fanta. Prêt à structurer vos ventes B2B avec OnyxCRM ?", options: ["Oui, carrément !", "Je regarde juste"] }
+    { sender: 'bot', text: "👋 Bonjour ! Je suis Fanta, experte CRM. Prêt à structurer vos ventes B2B ? Que voulez-vous savoir ?", options: ["Comment ça marche ?", "C'est quoi les tarifs ?", "Je veux mon CRM 🚀"] }
   ]);
 
   useEffect(() => {
@@ -62,33 +64,63 @@ export default function OnyxCRMLanding() {
     setUserReply("");
 
     setTimeout(async () => {
-        const lowerReply = reply.toLowerCase();
         let botResponse = "";
         let botOptions: string[] | undefined = undefined;
+        let nextStep = botStep;
+        let currentData = { ...botData };
 
-        if (lowerReply.includes("oui")) {
-            botResponse = "Excellent. Vous pouvez me poser vos questions sur l'import Odoo/Excel, la gestion des marges, ou les devis.";
-        } else if (lowerReply.includes("regarde") || lowerReply.includes("non")) {
-            botResponse = "Pas de problème. Découvrez nos 'super-pouvoirs' plus bas et cliquez sur le bouton pour un essai gratuit !";
-        } else if (lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
-            botResponse = "Je vous redirige vers un expert Data/CRM sur WhatsApp ! À tout de suite 🚀";
-            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je souhaite un RDV pour implémenter OnyxCRM.")}`, '_blank'); }, 1000);
-        } else if (lowerReply.includes("prix") || lowerReply.includes("tarif")) {
-            botResponse = "OnyxCRM est à 29 900 F / mois, et ce prix inclut jusqu'à 3 utilisateurs pour vos équipes commerciales !";
-        } else if (lowerReply.includes("odoo") || lowerReply.includes("excel") || lowerReply.includes("import")) {
-            botResponse = "Notre module d'import universel permet de connecter votre base de données existante (Odoo, Excel, CSV) sans aucune friction ni perte d'historique.";
-        } else if (lowerReply.includes("marge") || lowerReply.includes("financier")) {
-            botResponse = "C'est notre point fort : vous entrez votre prix HT, OnyxCRM calcule le TTC, projette votre CA et affiche votre Marge Nette en temps réel sur le tableau de bord.";
-        } else {
-            botResponse = "C'est noté ! Voulez-vous qu'on en discute plus en détail sur WhatsApp avec un conseiller stratégique ?";
-            botOptions = ["Parler à un expert B2B", "Non merci"];
+        if (botStep === 0) {
+            const lowerReply = reply.toLowerCase();
+            if (lowerReply.includes('marche') || lowerReply.includes('comment') || lowerReply.includes('odoo')) {
+                botResponse = "Notre module d'import universel permet de connecter votre base de données existante (Odoo, Excel) sans friction. Vous suivez vos marges et générez des devis en un clic. Prêt à tester ?";
+                botOptions = ["Je veux mon CRM 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
+                botResponse = "OnyxCRM est à 39 900 F / mois, mais pour vous prouver sa valeur, le 1er mois est à 2.900 F (-92%) ! On se lance ?";
+                botOptions = ["Je veux mon CRM 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('crm') || lowerReply.includes('lance') || lowerReply.includes('oui')) {
+                botResponse = "Génial ! 🚀 Pour configurer votre espace B2B, quel est votre prénom et nom ?";
+                nextStep = 1;
+            } else {
+                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                currentData.question = reply;
+                nextStep = 1;
+            }
+        }
+        else if (botStep === 1) {
+            currentData.name = reply;
+            botResponse = `Enchantée ${reply.split(' ')[0]} ! Quel est votre numéro WhatsApp (ex: 77 123 45 67) ?`;
+            nextStep = 2;
+        }
+        else if (botStep === 2) {
+            currentData.phone = reply;
+            botResponse = "Super. Dans quelle ville se trouve votre entreprise ?";
+            nextStep = 3;
+        }
+        else if (botStep === 3) {
+            currentData.city = reply;
+            botResponse = "Dernière question : quel est le nom de votre entreprise ou agence ?";
+            nextStep = 4;
+        }
+        else if (botStep === 4) {
+            currentData.business = reply;
+            botResponse = "Parfait ! J'ai toutes les infos. Je vous redirige vers notre équipe d'experts sur WhatsApp pour activer votre CRM ! 🚀";
+            nextStep = 5;
+            
+            try {
+                await supabase.from('leads').insert([{
+                    full_name: currentData.name, phone: currentData.phone, city: currentData.city,
+                    message: `Entreprise: ${currentData.business} | Note: ${currentData.question || 'Veut son CRM'}`,
+                    intent: 'Je veux mon CRM (Onyx CRM)', source: 'Bot Fanta (Onyx CRM)', status: 'Nouveau', saas: 'Onyx CRM', ambassador_id: refId || undefined
+                }]);
+            } catch (err) {}
+
+            const waMsg = `🚀 *Création Onyx CRM*\n\nJe veux structurer mes ventes !\n\n*Nom:* ${currentData.name}\n*Entreprise:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?`;
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
+        setBotData(currentData);
+        setBotStep(nextStep);
         setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
-
-        try {
-            await supabase.from('leads').insert([{ full_name: 'Visiteur CRM', intent: 'Question Bot CRM', source: 'Bot Fanta FAQ', message: reply, status: 'Nouveau', ambassador_id: refId || undefined }]);
-        } catch (err) {}
     }, 1000);
   };
 
@@ -250,10 +282,15 @@ export default function OnyxCRMLanding() {
                </div>
                
                <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] w-full md:w-auto text-center relative z-10 shadow-2xl flex flex-col items-center justify-center min-w-[280px]">
-                  <div className="text-5xl font-black mb-2 italic text-white">29 900 F</div>
-                  <div className="text-sm text-zinc-500 font-bold uppercase tracking-widest mb-8">Par Mois</div>
-                  <button onClick={() => handleWaClick("Abonnement OnyxCRM à 29900F")} className="w-full bg-[#00E5FF] text-white py-5 px-8 rounded-xl font-black uppercase text-sm hover:bg-black hover:text-[#00E5FF] hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,229,255,0.4)]">
-                     Activer mon CRM
+                  <div className="text-5xl font-black mb-2 italic text-white flex flex-col items-center">
+                     <div className="flex items-center gap-2">
+                        <span className="line-through text-red-500 text-2xl mr-1">39 900 F</span>
+                        <span className="text-[#00E5FF]">2 900 F</span>
+                     </div>
+                  </div>
+                  <div className="text-sm text-zinc-500 font-bold uppercase tracking-widest mb-8">Le premier mois</div>
+                  <button onClick={() => handleWaClick("OnyxCRM (Essai 2.900F)")} className="w-full bg-[#00E5FF] text-white py-5 px-8 rounded-xl font-black uppercase text-sm hover:bg-black hover:text-[#00E5FF] hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,229,255,0.4)]">
+                     Je teste pour 2.900 F
                   </button>
                </div>
             </div>
@@ -330,11 +367,11 @@ export default function OnyxCRMLanding() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-full">
           <div className="max-w-4xl mx-auto flex justify-between items-center px-2">
              <div>
-                <p className="font-black text-sm md:text-base text-zinc-900">29 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
-                <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">OnyxCRM <span className="text-white bg-[#00E5FF] px-1.5 py-0.5 rounded shadow-sm">3 UTILISATEURS INCLUS</span></p>
+                <p className="font-black text-sm md:text-base text-zinc-900"><span className="line-through text-red-500 text-xs mr-2">39 900F</span><span className="text-[#00E5FF]">2 900 F</span><span className="text-zinc-500 text-xs font-bold">/1er mois</span></p>
+                <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">OnyxCRM <span className="text-black bg-[#00E5FF] px-1.5 py-0.5 rounded shadow-sm">1ER MOIS À 2.900 F (-92%)</span></p>
              </div>
-             <button onClick={() => handleWaClick("OnyxCRM à 29900F")} className="bg-[#00E5FF] text-white px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(0,229,255,0.4)]">
-                Démarrer l'essai
+             <button onClick={() => handleWaClick("OnyxCRM (Essai 2.900F)")} className="bg-[#00E5FF] text-white px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(0,229,255,0.4)]">
+                Je teste pour 2.900 F
              </button>
           </div>
       </div>

@@ -45,9 +45,11 @@ export default function OnyxJaayLanding() {
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isBotDismissed, setIsBotDismissed] = useState(false);
   const [userReply, setUserReply] = useState("");
+  const [botStep, setBotStep] = useState(0);
+  const [botData, setBotData] = useState({ name: '', phone: '', city: '', business: '', question: '' });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [botMessages, setBotMessages] = useState<any[]>([
-    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta. Avez-vous des questions sur Onyx Jaay, notre catalogue digital pour WhatsApp ?", options: ["Oui", "Non"] }
+    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta, conseillère Onyx. Prêt à automatiser vos ventes ? Que voulez-vous savoir ?", options: ["Comment ça marche ?", "C'est quoi les tarifs ?", "Je veux mon catalogue 🚀"] }
   ]);
 
   useEffect(() => {
@@ -190,37 +192,63 @@ export default function OnyxJaayLanding() {
     setUserReply("");
 
     setTimeout(async () => {
-        const lowerReply = reply.toLowerCase();
         let botResponse = "";
         let botOptions: string[] | undefined = undefined;
+        let nextStep = botStep;
+        let currentData = { ...botData };
 
-        if (lowerReply === "oui") {
-            botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, la création du catalogue, ou la livraison.";
-        } else if (lowerReply === "non" || lowerReply === "non merci") {
-            botResponse = "Très bien ! N'hésitez pas à cliquer sur le bouton en bas de la page pour commencer votre mois d'essai à 2.900 F.";
-        } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
-            botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
-            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Jaay et j'aimerais parler à un conseiller.")}`, '_blank'); }, 1000);
-        } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
-            botResponse = "Onyx Jaay coûte 13 900 F/mois, mais pour te prouver que ça marche, le 1er mois est à 2.900 F (-79%) !";
-        } else if (lowerReply.includes("catalogue") || lowerReply.includes("produit") || lowerReply.includes("ajouter") || lowerReply.includes("comment")) {
-            botResponse = "C'est super simple : vous ajoutez vos photos et prix depuis votre téléphone. Vos clients auront un beau lien pour commander directement sans vous poser 20 fois la même question !";
-        } else if (lowerReply.includes("livraison") || lowerReply.includes("tiak") || lowerReply.includes("livreur")) {
-            botResponse = "Onyx Jaay calcule automatiquement les frais de livraison selon la zone de votre client. (Si vous voulez aussi suivre vos livreurs en temps réel, regardez notre Pack Trio !)";
-        } else if (lowerReply.includes("paiement") || lowerReply.includes("payer") || lowerReply.includes("wave") || lowerReply.includes("orange money")) {
-            botResponse = "Le client valide son panier sur WhatsApp avec le montant total exact (produits + livraison). Vous pouvez encaisser par Wave, Orange Money ou à la livraison en toute simplicité.";
-        } else {
-            botResponse = "C'est noté ! Voulez-vous que je vous mette en relation avec un conseiller humain sur WhatsApp pour voir comment adapter ça à votre boutique ?";
-            botOptions = ["Oui, parler à un conseiller", "Non merci"];
+        if (botStep === 0) {
+            const lowerReply = reply.toLowerCase();
+            if (lowerReply.includes('marche') || lowerReply.includes('comment')) {
+                botResponse = "C'est super simple : vous ajoutez vos photos et prix depuis votre téléphone. Vos clients auront un beau lien pour commander directement. Prêt à tester ?";
+                botOptions = ["Je veux mon catalogue 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
+                botResponse = "Onyx Jaay coûte 13 900 F/mois, mais pour te prouver que ça marche, le 1er mois est à 2.900 F (-79%) ! On se lance ?";
+                botOptions = ["Je veux mon catalogue 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('catalogue') || lowerReply.includes('lance') || lowerReply.includes('oui')) {
+                botResponse = "Génial ! 🚀 Pour créer votre boutique, quel est votre prénom et nom ?";
+                nextStep = 1;
+            } else {
+                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                currentData.question = reply;
+                nextStep = 1;
+            }
+        }
+        else if (botStep === 1) {
+            currentData.name = reply;
+            botResponse = `Enchantée ${reply.split(' ')[0]} ! Quel est votre numéro WhatsApp (ex: 77 123 45 67) ?`;
+            nextStep = 2;
+        }
+        else if (botStep === 2) {
+            currentData.phone = reply;
+            botResponse = "Super. Dans quelle ville vous trouvez-vous ?";
+            nextStep = 3;
+        }
+        else if (botStep === 3) {
+            currentData.city = reply;
+            botResponse = "Dernière question : quel est le nom de votre boutique ou business ?";
+            nextStep = 4;
+        }
+        else if (botStep === 4) {
+            currentData.business = reply;
+            botResponse = "Parfait ! J'ai toutes les infos. Je vous redirige vers notre équipe sur WhatsApp pour activer votre catalogue ! 🚀";
+            nextStep = 5;
+            
+            try {
+                await supabase.from('leads').insert([{
+                    full_name: currentData.name, phone: currentData.phone, city: currentData.city,
+                    message: `Business: ${currentData.business} | Note: ${currentData.question || 'Veut son catalogue'}`,
+                    intent: 'Je veux mon catalogue (Onyx Jaay)', source: 'Bot Fanta (Onyx Jaay)', status: 'Nouveau', saas: 'Onyx Jaay', ambassador_id: refId || undefined
+                }]);
+            } catch (err) {}
+
+            const waMsg = `🚀 *Création Onyx Jaay*\n\nJe veux mon catalogue !\n\n*Nom:* ${currentData.name}\n*Boutique:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'essai à 2900F (Wave/OM) ?`;
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
+        setBotData(currentData);
+        setBotStep(nextStep);
         setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
-
-        try {
-            await supabase.from('leads').insert([{
-                full_name: 'Visiteur Jaay', intent: 'Question Bot Jaay', source: 'Bot Fanta FAQ', message: reply, status: 'Nouveau', ambassador_id: refId || undefined
-            }]);
-        } catch (err) {}
     }, 1000);
   };
 
@@ -268,8 +296,13 @@ export default function OnyxJaayLanding() {
 
       {/* 1. HERO SECTION */}
       <section className="pt-10 pb-20 px-6 max-w-5xl mx-auto text-center">
-         <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest mb-8 shadow-[0_10px_20px_rgba(57,255,20,0.2)]">
-             <Zap size={14} className="fill-[#39FF14]" /> Fini le bricolage sur WhatsApp
+         <div className="inline-flex flex-wrap justify-center items-center gap-3 mb-8">
+             <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-[0_10px_20px_rgba(57,255,20,0.2)]">
+                 <Zap size={14} className="fill-[#39FF14]" /> Fini le bricolage sur WhatsApp
+             </div>
+             <div className="inline-flex items-center gap-2 bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+                 Machine à 2.900 F
+             </div>
          </div>
          <h1 className={`${spaceGrotesk.className} text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter mb-8 leading-[0.95]`}>
              Arrêtez de perdre du temps à <br/>

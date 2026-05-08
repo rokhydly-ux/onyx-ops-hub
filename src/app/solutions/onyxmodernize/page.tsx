@@ -1,14 +1,28 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from "@/lib/supabaseClient";
 import { 
   Sun, Moon, ArrowRight, Database, Users, ShieldCheck, 
-  Settings, CheckCircle, ChevronRight, Zap, Briefcase
+  Settings, CheckCircle, ChevronRight, Zap, Briefcase, X, Send, MessageSquare
 } from 'lucide-react';
 
 export default function OnyxModernizePage() {
   const [isDark, setIsDark] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
+  const waNumber = "221785338417";
+  const [refId, setRefId] = useState<string | null>(null);
+
+  // Configuration Bot Fanta
+  const [isBotOpen, setIsBotOpen] = useState(false);
+  const [isBotDismissed, setIsBotDismissed] = useState(false);
+  const [userReply, setUserReply] = useState("");
+  const [botStep, setBotStep] = useState(0);
+  const [botData, setBotData] = useState({ name: '', phone: '', city: '', business: '', question: '' });
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [botMessages, setBotMessages] = useState<any[]>([
+    { sender: 'bot', text: "👋 Bonjour ! Je suis Fanta, experte en intégration. Prêt à structurer votre écosystème digital ? Que voulez-vous savoir ?", options: ["Comment ça marche ?", "C'est quoi les tarifs ?", "Je veux un audit de modernisation 🚀"] }
+  ]);
 
   // Gestion du scroll pour la navbar
   useEffect(() => {
@@ -17,9 +31,89 @@ export default function OnyxModernizePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const ref = searchParams.get('ref') || localStorage.getItem('onyx_ambassador_ref');
+    if (ref) {
+      setRefId(ref);
+      localStorage.setItem('onyx_ambassador_ref', ref);
+    }
+    const timer = setTimeout(() => setIsBotOpen(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [botMessages]);
+
+  const processBotReply = (reply: string) => {
+    if(!reply.trim()) return;
+    const newMsgs = [...botMessages, { sender: 'client', text: reply }];
+    setBotMessages(newMsgs);
+    setUserReply("");
+
+    setTimeout(async () => {
+        let botResponse = "";
+        let botOptions: string[] | undefined = undefined;
+        let nextStep = botStep;
+        let currentData = { ...botData };
+
+        if (botStep === 0) {
+            const lowerReply = reply.toLowerCase();
+            if (lowerReply.includes('marche') || lowerReply.includes('comment')) {
+                botResponse = "C'est notre offre VIP : on déploie l'intégralité de votre système digital, on migre vos données (Odoo, Excel) et on forme vos équipes sur le terrain. Prêt à moderniser votre entreprise ?";
+                botOptions = ["Je veux un audit de modernisation 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
+                botResponse = "L'intégration VIP Onyx Modernize est un forfait unique à partir de 300 000 F, avec un suivi complet. On se lance ?";
+                botOptions = ["Je veux un audit de modernisation 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('audit') || lowerReply.includes('lance') || lowerReply.includes('oui') || lowerReply.includes('modernis')) {
+                botResponse = "Génial ! 🚀 Pour préparer le chiffrage de votre déploiement, quel est votre prénom et nom ?";
+                nextStep = 1;
+            } else {
+                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                currentData.question = reply;
+                nextStep = 1;
+            }
+        }
+        else if (botStep === 1) {
+            currentData.name = reply;
+            botResponse = `Enchantée ${reply.split(' ')[0]} ! Quel est votre numéro WhatsApp (ex: 77 123 45 67) ?`;
+            nextStep = 2;
+        }
+        else if (botStep === 2) {
+            currentData.phone = reply;
+            botResponse = "Super. Dans quelle ville se trouve votre entreprise ?";
+            nextStep = 3;
+        }
+        else if (botStep === 3) {
+            currentData.city = reply;
+            botResponse = "Dernière question : quel est le nom de votre entreprise ?";
+            nextStep = 4;
+        }
+        else if (botStep === 4) {
+            currentData.business = reply;
+            botResponse = "Parfait ! J'ai toutes les infos. Je vous redirige vers notre équipe d'intégration sur WhatsApp ! 🚀";
+            nextStep = 5;
+            
+            try {
+                await supabase.from('leads').insert([{
+                    full_name: currentData.name, phone: currentData.phone, city: currentData.city,
+                    message: `Entreprise: ${currentData.business} | Note: ${currentData.question || 'Veut une intégration Modernize'}`,
+                    intent: 'Je veux une intégration (Onyx Modernize)', source: 'Bot Fanta (Onyx Modernize)', status: 'Nouveau', saas: 'Onyx Modernize', ambassador_id: refId || undefined
+                }]);
+            } catch (err) {}
+
+            const waMsg = `🚀 *Audit Onyx Modernize*\n\nJe souhaite structurer mon entreprise !\n\n*Nom:* ${currentData.name}\n*Entreprise:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour le déploiement ?`;
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
+        }
+
+        setBotData(currentData);
+        setBotStep(nextStep);
+        setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
+    }, 1000);
+  };
+
   const handleWaClick = () => {
     const message = "Bonjour l'équipe Onyx ! Je souhaite réserver un audit gratuit pour l'installation VIP Onyx Modernize de mon entreprise.";
-    window.open(`https://wa.me/221785338417?text=${encodeURIComponent(message)}`, "_blank");
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   // Thèmes de couleurs dynamiques
@@ -192,6 +286,58 @@ export default function OnyxModernizePage() {
           Contacter la Direction Onyx <ChevronRight size={18} />
         </button>
       </section>
+
+      {/* BOT FANTA FAQ ONYX MODERNIZE */}
+      <div className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
+        {isBotOpen && (
+          <div className={`${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'} rounded-[2rem] shadow-2xl border-2 border-[#00E5FF] p-0 mb-4 w-[340px] h-[400px] flex flex-col animate-in zoom-in duration-300 overflow-hidden`}>
+             <div className={`${isDark ? 'bg-black border-zinc-800' : 'bg-zinc-50 border-zinc-200'} p-4 flex justify-between items-center border-b`}>
+                <div className="flex items-center gap-3">
+                   <div className="relative">
+                      <div className={`w-10 h-10 rounded-full ${isDark ? 'bg-zinc-900' : 'bg-white'} border border-[#00E5FF] flex items-center justify-center text-xl`}>👩🏾‍💻</div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00E5FF] rounded-full border border-black animate-pulse"></div>
+                   </div>
+                   <div><p className="text-[#00E5FF] font-black uppercase text-xs tracking-wider">Fanta - Experte Intégration</p></div>
+                </div>
+                <button onClick={() => setIsBotOpen(false)} className="text-zinc-500 hover:text-[#00E5FF] transition"><X size={18}/></button>
+             </div>
+             
+             <div className={`flex-1 ${isDark ? 'bg-zinc-900/50' : 'bg-zinc-50'} p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar`}>
+                {botMessages.map((msg, i) => (
+                   <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? (isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border border-zinc-200 text-zinc-900') + ' rounded-tl-none shadow-sm' : 'bg-[#00E5FF] text-black rounded-tr-none shadow-md'}`}>
+                         {msg.text}
+                      </div>
+                      {msg.options && (
+                         <div className="flex flex-wrap gap-2 mt-2 w-full">
+                            {msg.options.map((opt: string, idx: number) => (
+                               <button key={idx} onClick={() => processBotReply(opt)} className={`${isDark ? 'bg-zinc-800 border-zinc-700 text-white hover:bg-black hover:text-[#00E5FF]' : 'bg-white border-zinc-200 text-zinc-800 hover:bg-zinc-100 hover:text-[#00E5FF]'} text-xs font-bold px-4 py-2 rounded-xl border shadow-sm transition-colors`}>{opt}</button>
+                            ))}
+                         </div>
+                      )}
+                   </div>
+                ))}
+                <div ref={chatEndRef} />
+             </div>
+
+             <div className={`p-3 ${isDark ? 'bg-black border-zinc-800' : 'bg-white border-zinc-200'} border-t flex gap-2`}>
+                <input type="text" value={userReply} onChange={e => setUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processBotReply(userReply)} placeholder="Poser une question..." className={`flex-1 ${isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-zinc-100 border-transparent text-zinc-900'} border rounded-xl px-4 outline-none text-sm font-bold focus:ring-1 focus:ring-[#00E5FF]`} />
+                <button onClick={() => processBotReply(userReply)} className="bg-[#00E5FF] p-3 rounded-xl text-black hover:scale-105 transition"><Send size={18}/></button>
+             </div>
+          </div>
+        )}
+        
+        {!isBotOpen && !isBotDismissed && (
+           <div className="relative group animate-bounce flex items-center justify-center">
+             <button onClick={(e) => { e.stopPropagation(); setIsBotDismissed(true); }} className={`absolute -top-1 -right-1 ${isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white' : 'bg-white border-zinc-200 text-zinc-500 hover:text-black'} border p-1 rounded-full z-10 transition-colors shadow-sm`}>
+               <X size={14} />
+             </button>
+             <button onClick={() => setIsBotOpen(true)} className={`w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#00E5FF] hover:scale-110 transition-transform ${isDark ? 'bg-black' : 'bg-white'} relative flex items-center justify-center text-2xl`}>
+               👩🏾‍💻
+             </button>
+           </div>
+        )}
+      </div>
 
     </div>
   );

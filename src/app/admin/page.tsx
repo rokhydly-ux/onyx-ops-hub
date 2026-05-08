@@ -1517,9 +1517,14 @@ export default function AdminDashboard() {
   };
 
   const handleSaasDateChange = (saas: string, date: string) => {
-      setEditingContact(prev => ({
-          ...prev, saas_expiration_dates: { ...(prev.saas_expiration_dates || {}), [saas]: date }
-      }));
+      setEditingContact(prev => {
+          const isMainSaas = prev.saas === saas || (!prev.saas && prev.active_saas?.[0] === saas);
+          return {
+              ...prev, 
+              saas_expiration_dates: { ...(prev.saas_expiration_dates || {}), [saas]: date },
+              ...(isMainSaas ? { expiration_date: date } : {})
+          };
+      });
   };
 
   const handleDeleteItem = async (table: string, id: string) => {

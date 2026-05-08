@@ -73,7 +73,7 @@ const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: s
   { id: "solo", name: "Onyx Jaay", price: 13900, label: "Onyx Jaay", rating: "4.9/5", avis: 142 },
   { id: "tekki", name: "Pack Tekki", price: 22900, label: "Pack Tekki", rating: "5.0/5", avis: 312 },
   { id: "tekkipro", name: "Pack Tekki Pro", price: 27900, label: "Pack Tekki Pro", rating: "5.0/5", avis: 189 },
-  { id: "crm", name: "Onyx CRM", price: 29900, label: "Onyx CRM", rating: "4.9/5", avis: 215 },
+  { id: "crm", name: "Onyx CRM", price: 39900, label: "Onyx CRM", rating: "4.9/5", avis: 215 },
 ];
 
 const AMBASSADOR_TESTIMONIALS = [
@@ -985,7 +985,10 @@ export default function OnyxOpsElite() {
 
                   <div className="bg-black border border-[#39FF14] p-6 rounded-3xl mb-10 shadow-[0_0_30px_rgba(57,255,20,0.2)] relative overflow-hidden group">
                     <div className="absolute top-0 left-0 w-2 h-full bg-[#39FF14]"></div>
-                    <h3 className="text-white font-black uppercase text-lg mb-4 flex items-center gap-2 pl-2"><Target className="text-[#39FF14]"/> Simulateur de Rentabilité Meta</h3>
+                    <h3 className="text-white font-black uppercase text-lg mb-4 flex items-center justify-between gap-2 pl-2">
+                       <span className="flex items-center gap-2"><Target className="text-[#39FF14]"/> Simulateur de Rentabilité</span>
+                       <span className="text-[10px] bg-[#39FF14]/20 text-[#39FF14] px-2 py-1 rounded uppercase tracking-widest hidden sm:block border border-[#39FF14]/30">Machine à 2.900 F</span>
+                    </h3>
                     <p className="text-sm text-zinc-400 font-bold mb-6 pl-2">Ajustez votre budget publicitaire pour estimer vos retours avec notre méthode.</p>
                     
                     <div className="mb-8 pl-2 pr-2">
@@ -1256,19 +1259,20 @@ export default function OnyxOpsElite() {
                     const planDetails = PLAN_DETAILS[pack.id];
                     const isRecommended = quizResult && quizResult.packId === pack.id;
                     const isTekki = pack.id === 'tekki';
+                    const isCrm = pack.id === 'crm';
 
                     return (
                       <div key={pack.id} className={`${isTekki || isRecommended ? 'bg-gradient-to-b from-[#39FF14]/30 via-black to-black border-[4px] border-[#39FF14] md:scale-105 shadow-[0_0_60px_rgba(57,255,20,0.5)] z-30' : 'bg-zinc-900/50 border border-white/10 hover:border-zinc-700'} p-6 xl:p-8 rounded-[2.5rem] xl:rounded-[3rem] transition-all duration-300 flex flex-col relative group`}>
                         
                         {/* BULLE PROMOTIONNELLE */}
-                        {(isTekki || isRecommended) && (
-                           <div className={`absolute -top-5 left-1/2 -translate-x-1/2 ${isTekki ? 'bg-red-600 border-2 border-red-400 text-white' : 'bg-[#39FF14] text-black'} px-5 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-2`}>
-                              {isTekki ? <><Flame size={14}/> PREMIER MOIS OFFERT ! (Économisez 16 100 F)</> : <><Sparkles size={14}/> Choix Idéal</>}
+                        {(isTekki || isRecommended || isCrm) && (
+                           <div className={`absolute -top-5 left-1/2 -translate-x-1/2 ${isTekki ? 'bg-red-600 border-2 border-red-400 text-white' : isCrm ? 'bg-[#00E5FF] text-black border-2 border-[#00E5FF]' : 'bg-[#39FF14] text-black'} px-5 py-2 rounded-full text-[10px] sm:text-[11px] font-black uppercase whitespace-nowrap animate-pulse shadow-lg z-30 flex items-center gap-2`}>
+                              {isTekki ? <><Flame size={14}/> PREMIER MOIS OFFERT ! (Économisez 16 100 F)</> : isCrm ? <><Zap size={14}/> 1ER MOIS À 2.900 F (-92%) !</> : <><Sparkles size={14}/> Choix Idéal</>}
                            </div>
                         )}
 
                         <div className="flex items-center gap-2 mb-1 mt-2">
-                           <p className={`text-[10px] font-black tracking-[0.3em] ${isTekki || isRecommended ? 'text-[#39FF14]' : 'text-zinc-500'} uppercase`}>{pack.label}</p>
+                           <p className={`text-[10px] font-black tracking-[0.3em] ${isTekki || isRecommended ? 'text-[#39FF14]' : isCrm ? 'text-[#00E5FF]' : 'text-zinc-500'} uppercase`}>{pack.label}</p>
                            {(pack.id === 'tekki' || pack.id === 'tekkipro') && (
                               <span className="bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF] border text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse">
                                  Nouveau
@@ -1281,10 +1285,23 @@ export default function OnyxOpsElite() {
                         </div>
                         <div className="mb-6">
                           <div className="text-2xl xl:text-3xl font-black italic text-white flex items-center">
-                             {((typeof pack.price === 'number' ? pack.price : 0) + (isBoosterActive ? 39900 : 0)).toLocaleString()} F
-                             {pack.id === 'tekkipro' && <TrendingUp size={20} className="inline-block ml-3 text-[#00E5FF]" />}
-                             <span className="text-xs text-zinc-500 font-normal not-italic ml-2">{pack.isUnique ? ' (Unique)' : '/ mois'}</span>
+                             {isCrm && !isBoosterActive ? (
+                                <div className="flex items-center">
+                                   <span className="line-through text-red-500 text-lg mr-2">39 900 F</span>
+                                   <span className="text-[#00E5FF]">2 900 F</span>
+                                   <span className="text-xs text-zinc-500 font-normal not-italic ml-2"> / 1er mois</span>
+                                </div>
+                             ) : (
+                                <>
+                                   {((typeof pack.price === 'number' ? pack.price : 0) + (isBoosterActive ? 39900 : 0)).toLocaleString()} F
+                                   {pack.id === 'tekkipro' && <TrendingUp size={20} className="inline-block ml-3 text-[#00E5FF]" />}
+                                   <span className="text-xs text-zinc-500 font-normal not-italic ml-2">{pack.isUnique ? ' (Unique)' : '/ mois'}</span>
+                                </>
+                             )}
                           </div>
+                          {isCrm && !isBoosterActive && (
+                             <p className="text-[10px] text-[#00E5FF] font-bold mt-1 uppercase tracking-widest">+ 39 900 F / mois suivant</p>
+                          )}
                         </div>
                         
                         {isBoosterActive && (

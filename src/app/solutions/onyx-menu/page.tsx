@@ -22,9 +22,11 @@ export default function OnyxMenuLanding() {
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isBotDismissed, setIsBotDismissed] = useState(false);
   const [userReply, setUserReply] = useState("");
+  const [botStep, setBotStep] = useState(0);
+  const [botData, setBotData] = useState({ name: '', phone: '', city: '', business: '', question: '' });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [botMessages, setBotMessages] = useState<any[]>([
-    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta. Avez-vous des questions sur Onyx Menu, le menu QR pour votre restaurant ?", options: ["Oui", "Non"] }
+    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta. Prêt à digitaliser votre restaurant ? Que voulez-vous savoir ?", options: ["Comment ça marche ?", "C'est quoi les tarifs ?", "Je veux mon menu QR 🚀"] }
   ]);
 
   useEffect(() => {
@@ -60,33 +62,63 @@ export default function OnyxMenuLanding() {
     setUserReply("");
 
     setTimeout(async () => {
-        const lowerReply = reply.toLowerCase();
         let botResponse = "";
         let botOptions: string[] | undefined = undefined;
+        let nextStep = botStep;
+        let currentData = { ...botData };
 
-        if (lowerReply === "oui") {
-            botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, le QR code, ou la réception des commandes.";
-        } else if (lowerReply === "non" || lowerReply === "non merci") {
-            botResponse = "Très bien ! N'hésitez pas à cliquer sur le bouton 'Créer mon Menu' pour commencer votre essai à 2.900 F.";
-        } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
-            botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
-            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Menu et j'aimerais parler à un conseiller.")}`, '_blank'); }, 1000);
-        } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
-            botResponse = "Onyx Menu coûte 13 900 F/mois. Le 1er mois est à 2.900 F (-79%) pour tester ! Pour un Resto complet, nous avons l'offre OnyxTekki à 22 900 F.";
-        } else if (lowerReply.includes("qr") || lowerReply.includes("scan") || lowerReply.includes("imprimer") || lowerReply.includes("comment")) {
-            botResponse = "C'est magique : vous téléchargez votre QR code depuis l'appli, vous le placez sur vos tables, et les clients scannent pour voir vos plats en HD.";
-        } else if (lowerReply.includes("commande") || lowerReply.includes("reception") || lowerReply.includes("cuisine") || lowerReply.includes("whatsapp")) {
-            botResponse = "Le client valide son choix sur son téléphone, et la commande arrive parfaitement détaillée directement sur le WhatsApp de votre caisse ou de la cuisine !";
-        } else {
-            botResponse = "C'est noté ! Voulez-vous que je vous mette en relation avec un conseiller humain sur WhatsApp pour en discuter ?";
-            botOptions = ["Oui, parler à un conseiller", "Non merci"];
+        if (botStep === 0) {
+            const lowerReply = reply.toLowerCase();
+            if (lowerReply.includes('marche') || lowerReply.includes('comment') || lowerReply.includes('qr')) {
+                botResponse = "C'est magique : vous placez votre QR code sur vos tables, et les clients commandent depuis leur téléphone directement sur votre WhatsApp. Prêt à tester ?";
+                botOptions = ["Je veux mon menu QR 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
+                botResponse = "Onyx Menu coûte 13 900 F/mois. Le 1er mois est à 2.900 F (-79%) pour tester ! On se lance ?";
+                botOptions = ["Je veux mon menu QR 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('menu') || lowerReply.includes('lance') || lowerReply.includes('oui')) {
+                botResponse = "Génial ! 🚀 Pour configurer votre menu digital, quel est votre prénom et nom ?";
+                nextStep = 1;
+            } else {
+                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                currentData.question = reply;
+                nextStep = 1;
+            }
+        }
+        else if (botStep === 1) {
+            currentData.name = reply;
+            botResponse = `Enchantée ${reply.split(' ')[0]} ! Quel est votre numéro WhatsApp (ex: 77 123 45 67) ?`;
+            nextStep = 2;
+        }
+        else if (botStep === 2) {
+            currentData.phone = reply;
+            botResponse = "Super. Dans quelle ville se trouve votre restaurant ?";
+            nextStep = 3;
+        }
+        else if (botStep === 3) {
+            currentData.city = reply;
+            botResponse = "Dernière question : quel est le nom de votre restaurant ou fast-food ?";
+            nextStep = 4;
+        }
+        else if (botStep === 4) {
+            currentData.business = reply;
+            botResponse = "Parfait ! J'ai toutes les infos. Je vous redirige vers notre équipe sur WhatsApp pour activer votre menu ! 🚀";
+            nextStep = 5;
+            
+            try {
+                await supabase.from('leads').insert([{
+                    full_name: currentData.name, phone: currentData.phone, city: currentData.city,
+                    message: `Restaurant: ${currentData.business} | Note: ${currentData.question || 'Veut son menu QR'}`,
+                    intent: 'Je veux mon menu QR (Onyx Menu)', source: 'Bot Fanta (Onyx Menu)', status: 'Nouveau', saas: 'Onyx Menu'
+                }]);
+            } catch (err) {}
+
+            const waMsg = `🚀 *Création Onyx Menu*\n\nJe veux mon menu QR !\n\n*Nom:* ${currentData.name}\n*Restaurant:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?`;
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
+        setBotData(currentData);
+        setBotStep(nextStep);
         setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
-
-        try {
-            await supabase.from('leads').insert([{ full_name: 'Visiteur Menu', intent: 'Question Bot Menu', source: 'Bot Fanta FAQ', message: reply, status: 'Nouveau' }]);
-        } catch (err) {}
     }, 1000);
   };
 

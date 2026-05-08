@@ -24,9 +24,11 @@ export default function OnyxTiakLanding() {
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isBotDismissed, setIsBotDismissed] = useState(false);
   const [userReply, setUserReply] = useState("");
+  const [botStep, setBotStep] = useState(0);
+  const [botData, setBotData] = useState({ name: '', phone: '', city: '', business: '', question: '' });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [botMessages, setBotMessages] = useState<any[]>([
-    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta. Avez-vous des questions sur Onyx Tiak, notre outil pour gérer vos livreurs ?", options: ["Oui", "Non"] }
+    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta. Prêt à sécuriser vos livraisons ? Que voulez-vous savoir ?", options: ["Comment ça marche ?", "C'est quoi les tarifs ?", "Je veux gérer mes livreurs 🚀"] }
   ]);
 
   useEffect(() => {
@@ -72,33 +74,63 @@ export default function OnyxTiakLanding() {
     setUserReply("");
 
     setTimeout(async () => {
-        const lowerReply = reply.toLowerCase();
         let botResponse = "";
         let botOptions: string[] | undefined = undefined;
+        let nextStep = botStep;
+        let currentData = { ...botData };
 
-        if (lowerReply === "oui") {
-            botResponse = "Je vous écoute ! Vous pouvez me poser vos questions sur le prix, le suivi GPS, ou la gestion de la caisse.";
-        } else if (lowerReply === "non" || lowerReply === "non merci") {
-            botResponse = "Très bien ! N'hésitez pas à cliquer sur 'Démarrer l'essai' en bas de la page pour commencer votre mois gratuit.";
-        } else if (lowerReply === "oui, parler à un conseiller" || lowerReply.includes("conseiller") || lowerReply.includes("humain") || lowerReply.includes("whatsapp")) {
-            botResponse = "Je vous redirige vers notre expert sur WhatsApp ! À tout de suite 🚀";
-            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour l'équipe Onyx ! Je suis sur la page Onyx Tiak et j'aimerais parler à un conseiller.")}`, '_blank'); }, 1000);
-        } else if (lowerReply.includes("prix") || lowerReply.includes("coût") || lowerReply.includes("tarif") || lowerReply.includes("combien")) {
-            botResponse = "Onyx Tiak coûte seulement 13 000 F/mois. Mais nous recommandons fortement le Pack Trio (Vente + Stock + Tiak) à 22 900 F pour tout sécuriser !";
-        } else if (lowerReply.includes("livreur") || lowerReply.includes("suivi") || lowerReply.includes("gps") || lowerReply.includes("comment")) {
-            botResponse = "Vous assignez les courses en 1 clic. Le livreur valide sur son WhatsApp, et vous suivez sa position et le statut de la course en temps réel.";
-        } else if (lowerReply.includes("caisse") || lowerReply.includes("argent") || lowerReply.includes("vol") || lowerReply.includes("perte")) {
-            botResponse = "Fini les écarts de caisse ! Le système calcule exactement ce que le livreur doit vous verser à la fin de la journée (Cash, Wave, OM).";
-        } else {
-            botResponse = "C'est noté ! Voulez-vous que je vous mette en relation avec un conseiller humain sur WhatsApp pour en discuter ?";
-            botOptions = ["Oui, parler à un conseiller", "Non merci"];
+        if (botStep === 0) {
+            const lowerReply = reply.toLowerCase();
+            if (lowerReply.includes('marche') || lowerReply.includes('comment')) {
+                botResponse = "Vous assignez les courses en 1 clic. Le livreur valide sur son WhatsApp, et vous suivez sa position en temps réel. Prêt à tester ?";
+                botOptions = ["Je veux gérer mes livreurs 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
+                botResponse = "Onyx Tiak seul coûte 13 900 F/mois. Mais le Pack Trio (Vente + Stock + Tiak) à 22 900 F est le plus recommandé ! On y va ?";
+                botOptions = ["Je veux gérer mes livreurs 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('livreur') || lowerReply.includes('lance') || lowerReply.includes('oui') || lowerReply.includes('gérer')) {
+                botResponse = "Génial ! 🚀 Pour configurer votre espace logistique, quel est votre prénom et nom ?";
+                nextStep = 1;
+            } else {
+                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                currentData.question = reply;
+                nextStep = 1;
+            }
+        }
+        else if (botStep === 1) {
+            currentData.name = reply;
+            botResponse = `Enchantée ${reply.split(' ')[0]} ! Quel est votre numéro WhatsApp (ex: 77 123 45 67) ?`;
+            nextStep = 2;
+        }
+        else if (botStep === 2) {
+            currentData.phone = reply;
+            botResponse = "Super. Dans quelle ville vous trouvez-vous ?";
+            nextStep = 3;
+        }
+        else if (botStep === 3) {
+            currentData.city = reply;
+            botResponse = "Dernière question : quel est le nom de votre business / entreprise ?";
+            nextStep = 4;
+        }
+        else if (botStep === 4) {
+            currentData.business = reply;
+            botResponse = "Parfait ! J'ai toutes les infos. Je vous redirige vers notre équipe sur WhatsApp pour activer votre espace ! 🚀";
+            nextStep = 5;
+            
+            try {
+                await supabase.from('leads').insert([{
+                    full_name: currentData.name, phone: currentData.phone, city: currentData.city,
+                    message: `Business: ${currentData.business} | Note: ${currentData.question || 'Veut gérer ses livreurs'}`,
+                    intent: 'Je veux gérer mes livreurs (Onyx Tiak)', source: 'Bot Fanta (Onyx Tiak)', status: 'Nouveau', saas: 'Onyx Tiak', ambassador_id: refId || undefined
+                }]);
+            } catch (err) {}
+
+            const waMsg = `🚀 *Création Onyx Tiak*\n\nJe veux gérer mes livreurs !\n\n*Nom:* ${currentData.name}\n*Business:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?`;
+            setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
+        setBotData(currentData);
+        setBotStep(nextStep);
         setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
-
-        try {
-            await supabase.from('leads').insert([{ full_name: 'Visiteur Tiak', intent: 'Question Bot Tiak', source: 'Bot Fanta FAQ', message: reply, status: 'Nouveau', ambassador_id: refId || undefined }]);
-        } catch (err) {}
     }, 1000);
   };
 
@@ -119,8 +151,13 @@ export default function OnyxTiakLanding() {
         {/* 1. HERO SECTION */}
         <section className="pt-20 pb-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
            <div className="text-left animate-in slide-in-from-bottom-8 fade-in duration-1000">
-              <div className="inline-flex items-center gap-2 bg-[#39FF14]/10 text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-[#39FF14]/20">
-                 <Truck size={14} /> La logistique simplifiée
+              <div className="inline-flex flex-wrap items-center gap-3 mb-6">
+                 <div className="inline-flex items-center gap-2 bg-[#39FF14]/10 text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-[#39FF14]/20">
+                    <Truck size={14} /> La logistique simplifiée
+                 </div>
+                 <div className="inline-flex items-center gap-2 bg-[#39FF14]/20 text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-[#39FF14]/30">
+                    Machine à 2.900 F
+                 </div>
               </div>
               <h1 className={`${spaceGrotesk.className} text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6`}>
                  Ne perdez plus <br/> la trace de vos <span className="text-[#39FF14] underline decoration-[#39FF14]/30 decoration-8 underline-offset-8">livraisons.</span>
@@ -209,28 +246,30 @@ export default function OnyxTiakLanding() {
                <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[3rem] flex flex-col">
                   <p className="text-[10px] font-black tracking-widest text-zinc-500 uppercase mb-2">L'essentiel</p>
                   <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-6`}>Onyx Tiak</h3>
-                  <div className="text-4xl font-black mb-6 italic">13 000 F <span className="text-sm text-zinc-500 not-italic font-normal">/ mois</span></div>
+                  <div className="text-4xl font-black mb-6 italic flex items-center">
+                     <span className="line-through text-red-500 text-xl mr-2">13 900 F</span><span className="text-[#39FF14]">2 900 F</span> <span className="text-sm text-zinc-500 not-italic font-normal ml-2">/ 1er mois</span>
+                  </div>
                   <ul className="space-y-4 mb-10 text-zinc-400 text-sm font-bold flex-1">
                      <li className="flex gap-2">✔ Suivi GPS des livreurs</li>
                      <li className="flex gap-2">✔ Alertes WhatsApp clients</li>
                      <li className="flex gap-2">✔ Bilan de caisse journalier</li>
                   </ul>
                   <button onClick={() => handleWaClick("Onyx Tiak Solo")} className="w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-700 transition">
-                     Démarrer Tiak
+                     Je teste pour 2.900 F
                   </button>
                </div>
 
                {/* CARTE BUNDLE (OnyxTekki - Recommandée) */}
                <div className="bg-gradient-to-b from-[#39FF14]/20 to-black border-4 border-[#39FF14] p-8 md:p-10 rounded-[3rem] flex flex-col relative md:scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)] z-10">
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-red-600 border-2 border-red-400 text-white px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase whitespace-nowrap animate-pulse shadow-lg flex items-center gap-2">
-                     <Zap size={14}/> PREMIER MOIS OFFERT !
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white text-[#39FF14] border-2 border-zinc-200 px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase whitespace-nowrap animate-pulse shadow-xl flex items-center gap-2">
+                     <Zap size={14}/> 1ER MOIS À 2.900 F !
                   </div>
                   <div className="flex items-center gap-2 mb-2 mt-4">
                      <p className="text-[10px] font-black tracking-[0.3em] text-[#39FF14] uppercase">Le Choix Évident</p>
                   </div>
                   <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-6 text-white`}>OnyxTekki <span className="text-[#39FF14] text-xl">(Trio)</span></h3>
                   <div className="text-4xl font-black mb-6 italic text-white flex items-center">
-                     22 900 F <span className="text-sm text-zinc-400 not-italic font-normal ml-2">/ mois</span>
+                     <span className="line-through text-red-500 text-xl mr-2">22 900 F</span><span className="text-[#39FF14]">2 900 F</span> <span className="text-sm text-zinc-400 not-italic font-normal ml-2">/ 1er mois</span>
                   </div>
                   <div className="bg-black/50 border border-[#39FF14]/30 p-4 rounded-2xl mb-8 text-xs text-[#39FF14] font-bold leading-relaxed">
                      Pourquoi payer 13 000 F juste pour la logistique, quand 22 900 F sécurisent TOUT votre business ?
@@ -242,7 +281,7 @@ export default function OnyxTiakLanding() {
                      <li className="flex gap-2">✔ Zéro rupture, zéro perte</li>
                   </ul>
                   <button onClick={() => handleWaClick("OnyxTekki Trio")} className="w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2 animate-pulse hover:animate-none">
-                     LANCER MON COMMERCE <ArrowRight size={18}/>
+                     JE TESTE POUR 2.900 F <ArrowRight size={18}/>
                   </button>
                </div>
             </div>
@@ -319,11 +358,11 @@ export default function OnyxTiakLanding() {
       <div className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800 p-4 z-40 shadow-[0_-20px_40px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full">
           <div className="max-w-4xl mx-auto flex justify-between items-center px-2">
              <div>
-                <p className="font-black text-sm md:text-base text-white">22 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
-                <p className="text-[10px] md:text-xs font-bold text-zinc-400 uppercase tracking-widest hidden sm:block">Le Pack Trio Complet. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">1er MOIS GRATUIT</span></p>
+                <p className="font-black text-sm md:text-base text-white"><span className="line-through text-red-500 text-xs mr-2">22 900F</span><span className="text-[#39FF14]">2 900 F</span><span className="text-zinc-500 text-xs font-bold">/1er mois</span></p>
+                <p className="text-[10px] md:text-xs font-bold text-zinc-400 uppercase tracking-widest hidden sm:block">Le Pack Trio Complet. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">1ER MOIS À 2.900 F</span></p>
              </div>
              <button onClick={() => handleWaClick("OnyxTekki Trio")} className="bg-[#39FF14] text-black px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(57,255,20,0.3)]">
-                Démarrer l'essai
+                Je teste pour 2.900 F
              </button>
           </div>
       </div>
