@@ -112,7 +112,7 @@ export default function OnyxMenuLanding() {
                 }]);
             } catch (err) {}
 
-            const waMsg = `🚀 *Création Onyx Menu*\n\nJe veux mon menu QR !\n\n*Nom:* ${currentData.name}\n*Restaurant:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?`;
+            const waMsg = `🚀 *Création Onyx Menu*\n\nJe veux mon menu QR !\n\n*Nom:* ${currentData.name}\n*Restaurant:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?\n\n_*(Offre flash de bienvenue non cumulable)*_`;
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
@@ -232,6 +232,7 @@ export default function OnyxMenuLanding() {
                   <button onClick={() => handleWaClick("Onyx Menu Solo")} className="w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-700 transition">
                      Je teste pour 2.900F
                   </button>
+                  <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Offre flash non cumulable</p>
                </div>
 
                {/* CARTE BUNDLE (OnyxTekki Resto - Recommandée) */}
@@ -258,6 +259,7 @@ export default function OnyxMenuLanding() {
                   <button onClick={() => handleWaClick("OnyxTekki Resto")} className="w-full bg-[#FF5722] text-white py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(255,87,34,0.3)] flex justify-center items-center gap-2 animate-pulse hover:animate-none">
                      INSTALLER MON RESTO 2.0 <ArrowRight size={18}/>
                   </button>
+                  <p className="text-[10px] font-bold text-center text-[#FF5722] uppercase tracking-widest mt-4 opacity-80">* Offre flash non cumulable</p>
                </div>
             </div>
          </div>

@@ -1017,7 +1017,7 @@ export default function AdminDashboard() {
 
     setTimeout(() => {
       const typeAcompte = designation.includes('Crédit Pub') ? "de crédit publicitaire" : "d'acompte";
-      const msg = `Bonjour ${lead.full_name},\n\nVoici votre facture ${typeAcompte} (${montant} F CFA) pour le démarrage de l'offre ${lead.saas || 'Onyx'}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxlinks.com/acompte\n\nMerci de votre confiance !`;
+      const msg = `Bonjour ${lead.full_name},\n\nVoici votre facture ${typeAcompte} (${montant} F CFA) pour le démarrage de l'offre ${lead.saas || 'Onyx'}.\n\nLien de paiement sécurisé (Wave/OM) : https://pay.onyxlinks.com/acompte\n\nMerci de votre confiance !\n\n_*(Offre de bienvenue non cumulable)*_`;
       window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     }, 500);
   };
@@ -1150,7 +1150,7 @@ export default function AdminDashboard() {
     }
 
     setTimeout(() => {
-      const msg = `Bonjour ${lead.full_name},\n\nVoici votre devis global pour l'offre ${lead.saas || 'Onyx'} (Montant total : ${totalStr}).\n\nN'hésitez pas si vous avez des questions pour valider votre déploiement !\n\nL'équipe OnyxOps.`;
+      const msg = `Bonjour ${lead.full_name},\n\nVoici votre devis global pour l'offre ${lead.saas || 'Onyx'} (Montant total : ${totalStr}).\n\nN'hésitez pas si vous avez des questions pour valider votre déploiement !\n\nL'équipe OnyxOps.\n\n_*(Offre de bienvenue non cumulable)*_`;
       window.open(`https://wa.me/${(lead.phone||'').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
     }, 500);
   };

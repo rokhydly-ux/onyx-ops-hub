@@ -554,7 +554,7 @@ export default function OnyxOpsElite() {
 
     const finalPhone = leadData.phone.replace(/\s+/g, '').startsWith('+221') ? leadData.phone.replace(/\s+/g, '') : `${countryCode}${leadData.phone.replace(/\s+/g, '')}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte et profiter du 1er mois à 2.900 F._`;
+    const msg = `🚀 *NOUVEAU LEAD (Via Site)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n*SaaS ciblé:* ${leadData.saas || 'Pack Trio'}\n\n_Le client souhaite créer son compte et profiter du 1er mois à 2.900 F._\n\n_*(Offre flash de bienvenue non cumulable)*_`;
 
     await saveLead({
        source: 'Onboarding Site',
@@ -583,7 +583,7 @@ export default function OnyxOpsElite() {
 
     const finalPhone = leadData.phone.replace(/\s+/g, '').startsWith('+221') ? leadData.phone.replace(/\s+/g, '') : `${countryCode}${leadData.phone.replace(/\s+/g, '')}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory || 'Non renseignée'}\n\n_Le client souhaite un diagnostic gratuit._`;
+    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory || 'Non renseignée'}\n\n_Le client souhaite un diagnostic gratuit._\n\n_*(Offre flash de bienvenue non cumulable)*_`;
 
     await saveLead({
        source: 'Exit Intent',

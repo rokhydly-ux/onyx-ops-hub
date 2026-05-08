@@ -114,7 +114,7 @@ export default function OnyxCRMLanding() {
                 }]);
             } catch (err) {}
 
-            const waMsg = `🚀 *Création Onyx CRM*\n\nJe veux structurer mes ventes !\n\n*Nom:* ${currentData.name}\n*Entreprise:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?`;
+            const waMsg = `🚀 *Création Onyx CRM*\n\nJe veux structurer mes ventes !\n\n*Nom:* ${currentData.name}\n*Entreprise:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?\n\n_*(Offre flash de bienvenue non cumulable)*_`;
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
@@ -292,6 +292,7 @@ export default function OnyxCRMLanding() {
                   <button onClick={() => handleWaClick("OnyxCRM (Essai 2.900F)")} className="w-full bg-[#00E5FF] text-white py-5 px-8 rounded-xl font-black uppercase text-sm hover:bg-black hover:text-[#00E5FF] hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,229,255,0.4)]">
                      Je teste pour 2.900 F
                   </button>
+                  <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Offre flash non cumulable</p>
                </div>
             </div>
          </div>

@@ -158,7 +158,7 @@ export default function OnyxJaayLanding() {
 
     const finalPhone = cleanNumber.startsWith('+221') ? cleanNumber : `${countryCode}${cleanNumber}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Onyx Jaay)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n\n_Le client a créé son compte lui-même et souhaite profiter du 1er mois à 2.900 F._`;
+    const msg = `🚀 *NOUVEAU LEAD (Onyx Jaay)*\n\n*Nom:* ${leadData.name}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory}\n\n_Le client a créé son compte lui-même et souhaite profiter du 1er mois à 2.900 F._\n\n_*(Offre flash de bienvenue non cumulable)*_`;
 
     await saveLead({ source: 'Landing Page Onyx Jaay', intent: 'Création Compte Onyx Jaay', contact: finalPhone, full_name: leadData.name, city: leadData.region, address: leadData.address, message: `Activité: ${finalCategory} | Email: ${leadData.email}`, email: leadData.email });
     
@@ -180,7 +180,7 @@ export default function OnyxJaayLanding() {
 
     const finalPhone = cleanNumber.startsWith('+221') ? cleanNumber : `${countryCode}${cleanNumber}`;
     const finalCategory = leadData.category === 'Autre' ? leadData.customCategory : leadData.category;
-    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory || 'Non renseignée'}\n\n_Le client souhaite un diagnostic gratuit._`;
+    const msg = `🚀 *NOUVEAU LEAD (Exit Intent)*\n\n*Nom:* ${leadData.name || 'Visiteur'}\n*Téléphone:* ${finalPhone}\n*Email:* ${leadData.email || 'Non renseigné'}\n*Région:* ${leadData.region || 'Non renseignée'}\n*Activité:* ${finalCategory || 'Non renseignée'}\n\n_Le client souhaite un diagnostic gratuit._\n\n_*(Offre flash de bienvenue non cumulable)*_`;
 
     await saveLead({
        source: 'Exit Intent Onyx Jaay',
@@ -254,7 +254,7 @@ export default function OnyxJaayLanding() {
                 }]);
             } catch (err) {}
 
-            const waMsg = `🚀 *Création Onyx Jaay*\n\nJe veux mon catalogue !\n\n*Nom:* ${currentData.name}\n*Boutique:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'essai à 2900F (Wave/OM) ?`;
+            const waMsg = `🚀 *Création Onyx Jaay*\n\nJe veux mon catalogue !\n\n*Nom:* ${currentData.name}\n*Boutique:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'essai à 2900F (Wave/OM) ?\n\n_*(Offre flash de bienvenue non cumulable)*_`;
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 

@@ -139,7 +139,7 @@ export default function OnyxTontineLanding() {
                 }]);
             } catch (err) {}
 
-            const waMsg = `🚀 *Création Onyx Tontine*\n\nJe veux créer ma tontine !\n\n*Nom:* ${currentData.name}\n*Groupe:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?`;
+            const waMsg = `🚀 *Création Onyx Tontine*\n\nJe veux créer ma tontine !\n\n*Nom:* ${currentData.name}\n*Groupe:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour l'activation ?\n\n_*(Offre flash de bienvenue non cumulable)*_`;
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
@@ -317,6 +317,7 @@ export default function OnyxTontineLanding() {
                   <button onClick={handleWaClick} className="w-full bg-[#FACC15] text-black py-4 px-8 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(250,204,21,0.2)]">
                      Profiter de l'offre
                   </button>
+                  <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Offre flash non cumulable</p>
                </div>
             </div>
          </div>
