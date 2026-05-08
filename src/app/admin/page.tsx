@@ -1501,7 +1501,8 @@ export default function AdminDashboard() {
       newDates[newSaas] = expDateStr;
 
       setEditingContact(prev => ({
-          ...prev, active_saas: [...currentActive, newSaas], saas_expiration_dates: newDates
+          ...prev, active_saas: [...currentActive, newSaas], saas_expiration_dates: newDates,
+          expiration_date: expDateStr // Synchronise aussi la date globale à l'ajout
       }));
       setProrataMsg(msg);
   };
@@ -1518,11 +1519,10 @@ export default function AdminDashboard() {
 
   const handleSaasDateChange = (saas: string, date: string) => {
       setEditingContact(prev => {
-          const isMainSaas = prev.saas === saas || (!prev.saas && prev.active_saas?.[0] === saas);
           return {
               ...prev, 
               saas_expiration_dates: { ...(prev.saas_expiration_dates || {}), [saas]: date },
-              ...(isMainSaas ? { expiration_date: date } : {})
+              expiration_date: date // Force la mise à jour globale
           };
       });
   };

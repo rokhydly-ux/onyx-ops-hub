@@ -621,6 +621,7 @@ export default function OnyxJaayLanding() {
                        <CheckCircle size={16}/> Terminer & Activer
                      </button>
                    </div>
+                   <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Offre flash de bienvenue non cumulable</p>
                  </form>
                )}
             </div>
@@ -697,6 +698,7 @@ export default function OnyxJaayLanding() {
                <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition flex justify-center items-center gap-2">
                  Recevoir mon diagnostic <ArrowRight size={18}/>
                </button>
+               <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Offre flash de bienvenue non cumulable</p>
             </form>
 
             <button onClick={() => setShowExitIntent(false)} className="mt-6 text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-black transition">Non merci, je préfère tout faire manuellement</button>
