@@ -94,7 +94,7 @@ export default function OnyxBoostLanding() {
                 }]);
             } catch (err) {}
 
-            const waMsg = `🚀 *Audit Onyx Boost*\n\nJe souhaite auditer ma marque !\n\n*Nom:* ${currentData.name}\n*Entreprise:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour la stratégie ?`;
+            const waMsg = `🚀 *Audit Onyx Boost*\n\nJe souhaite auditer ma marque !\n\n*Nom:* ${currentData.name}\n*Entreprise:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour la stratégie ?\n\n_*(Demande soumise à l'étude de votre dossier)*_`;
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
@@ -105,7 +105,7 @@ export default function OnyxBoostLanding() {
   };
 
   const handleWaClick = () => {
-    const msg = "Bonjour l'équipe Onyx ! Je souhaite un audit gratuit de ma marque pour l'offre High-Ticket Onyx Boost.";
+    const msg = "Bonjour l'équipe Onyx ! Je souhaite un audit gratuit de ma marque pour l'offre High-Ticket Onyx Boost.\n\n_*(Demande soumise à l'étude de votre dossier)*_";
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -142,6 +142,7 @@ export default function OnyxBoostLanding() {
          <button onClick={handleWaClick} className="bg-[#00E5FF] text-black px-10 py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(0,229,255,0.2)] flex items-center justify-center gap-3 mx-auto relative z-10">
             Faire auditer ma marque (Gratuit) <ArrowRight size={20} />
          </button>
+         <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4 relative z-10">* Audit et accompagnement soumis à l'étude de votre dossier</p>
       </section>
 
       {/* DOULEURS */}
@@ -221,6 +222,7 @@ export default function OnyxBoostLanding() {
             <button onClick={handleWaClick} className="bg-[#00E5FF] text-black px-12 py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-[0_20px_40px_rgba(0,229,255,0.2)]">
                Faire auditer ma marque (Gratuit)
             </button>
+            <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Audit et accompagnement soumis à l'étude de votre dossier</p>
          </div>
       </section>
 

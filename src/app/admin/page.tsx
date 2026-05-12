@@ -3553,6 +3553,8 @@ export default function AdminDashboard() {
                                  <div className="space-y-3 pr-1">
                                  {colContacts.map(c => {
                                     const isNew = c.created_at && (new Date().getTime() - new Date(c.created_at).getTime() < 24 * 60 * 60 * 1000);
+                                   const isVip = c.saas === 'Onyx Modernize' || c.saas === 'Onyx Boost';
+                                   const badgeLabel = isVip ? 'VIP ⭐' : 'Qualifié 🔥';
                                     return (
                                     <div key={c.id} 
                                          draggable
@@ -3562,6 +3564,7 @@ export default function AdminDashboard() {
                                           <div className="flex flex-wrap items-center gap-1.5">
                                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${c.saas === 'Onyx Modernize' ? 'bg-orange-100 text-orange-600' : c.saas === 'Onyx Boost' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>{c.saas}</span>
                                              {isNew && <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-red-500 text-white animate-pulse shadow-sm">Nouveau</span>}
+                                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-yellow-400 text-black shadow-sm">{badgeLabel}</span>
                                           </div>
                                           <button onClick={() => { setEditingContact(c); setShowContactModal(true); }} className="text-zinc-300 hover:text-black dark:hover:text-white shrink-0 p-1"><Edit3 size={14}/></button>
                                        </div>

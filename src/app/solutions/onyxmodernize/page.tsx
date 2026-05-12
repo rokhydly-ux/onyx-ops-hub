@@ -101,7 +101,7 @@ export default function OnyxModernizePage() {
                 }]);
             } catch (err) {}
 
-            const waMsg = `🚀 *Audit Onyx Modernize*\n\nJe souhaite structurer mon entreprise !\n\n*Nom:* ${currentData.name}\n*Entreprise:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour le déploiement ?`;
+            const waMsg = `🚀 *Audit Onyx Modernize*\n\nJe souhaite structurer mon entreprise !\n\n*Nom:* ${currentData.name}\n*Entreprise:* ${currentData.business}\n*Ville:* ${currentData.city}\n\nComment on procède pour le déploiement ?\n\n_*(Demande soumise à l'étude de votre dossier)*_`;
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
@@ -112,7 +112,7 @@ export default function OnyxModernizePage() {
   };
 
   const handleWaClick = () => {
-    const message = "Bonjour l'équipe Onyx ! Je souhaite réserver un audit gratuit pour l'installation VIP Onyx Modernize de mon entreprise.";
+    const message = "Bonjour l'équipe Onyx ! Je souhaite réserver un audit gratuit pour l'installation VIP Onyx Modernize de mon entreprise.\n\n_*(Demande soumise à l'étude de votre dossier)*_";
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
@@ -180,6 +180,7 @@ export default function OnyxModernizePage() {
             Dès 300 000 FCFA <br className="hidden sm:block"/> (Paiement Unique)
           </p>
         </div>
+        <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Audit et chiffrage soumis à l'étude de votre dossier</p>
       </main>
 
       {/* SECTION BÉNÉFICES - LE PROCESSUS VIP */}
@@ -285,6 +286,7 @@ export default function OnyxModernizePage() {
         <button onClick={handleWaClick} className="bg-black text-[#00E5FF] px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 hover:bg-zinc-900 transition-all shadow-2xl flex justify-center items-center gap-3 mx-auto">
           Contacter la Direction Onyx <ChevronRight size={18} />
         </button>
+        <p className="text-[10px] font-bold text-center text-black/60 uppercase tracking-widest mt-4">* Accompagnement soumis à l'étude de votre dossier</p>
       </section>
 
       {/* BOT FANTA FAQ ONYX MODERNIZE */}
