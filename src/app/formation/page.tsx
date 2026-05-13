@@ -639,8 +639,8 @@ export default function OnyxFormationPage() {
 
       {/* MODALE QUIZ */}
       {showQuiz && selectedCourse && (
-       <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-[2.5rem] p-6 sm:p-10 max-w-2xl w-full shadow-[0_0_50px_rgba(57,255,20,0.15)] relative">
+       <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-[2.5rem] p-6 sm:p-10 max-w-2xl w-full shadow-[0_0_50px_rgba(57,255,20,0.15)] relative animate-in zoom-in-95 duration-200">
              <button onClick={() => setShowQuiz(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white"><X size={20}/></button>
 
              {!quizFinished ? (
@@ -839,8 +839,8 @@ export default function OnyxFormationPage() {
 
       {/* MODALE DE PROFIL */}
       {showProfileModal && (
-        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowProfileModal(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-zinc-950 p-8 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.1)] border-t-[12px] border-[#39FF14] animate-in zoom-in-95 my-auto">
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowProfileModal(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-zinc-950 p-8 sm:p-12 rounded-[3.5rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.1)] border-t-[12px] border-[#39FF14] animate-in zoom-in-95 duration-200 my-auto">
             <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all text-zinc-400">
               <X size={20} />
             </button>

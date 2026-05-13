@@ -161,82 +161,6 @@ const CustomNavIcons = {
   )
 };
 
-const Floating360Product = () => {
-  const [activeImg, setActiveImg] = useState("face");
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-
-  const images = {
-    face: "https://i.ibb.co/BVKC5TDN/sac.png",
-    dos: "https://i.ibb.co/hRqbm8vY/DOS-SAC.png",
-    bas: "https://i.ibb.co/NnjPZzng/BAS-SAC.png",
-    ouvert: "https://i.ibb.co/Kx2b19xV/SAC-OUVERT.png",
-  };
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    setStartX(e.clientX);
-  };
-
-  const handlePointerUp = () => setIsDragging(false);
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (!isDragging) {
-      const y = e.clientY - rect.top;
-      if (y < rect.height * 0.3) {
-        setActiveImg("bas");
-      } else if (y > rect.height * 0.7) {
-        setActiveImg("ouvert");
-      } else if (activeImg === "ouvert" || activeImg === "bas") {
-        setActiveImg("face");
-      }
-      return;
-    }
-    const deltaX = e.clientX - startX;
-    if (deltaX > 40) {
-      setActiveImg("dos");
-    } else if (deltaX < -40) {
-      setActiveImg("face");
-    }
-  };
-
-  return (
-    <div 
-      className="relative w-full aspect-square flex flex-col items-center justify-center cursor-grab active:cursor-grabbing group touch-none perspective-1000"
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
-      onPointerMove={handlePointerMove}
-    >
-       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#23a9dc] rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none"></div>
-       
-       <motion.div
-         animate={{ y: [0, -15, 0] }}
-         transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-         className="w-[85%] h-auto z-10 drop-shadow-2xl relative flex items-center justify-center aspect-square"
-       >
-         <AnimatePresence mode="wait">
-           <motion.img 
-             key={activeImg}
-             src={images[activeImg as keyof typeof images]}
-             alt={`Sac ${activeImg}`}
-             initial={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
-             animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-             exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
-             transition={{ duration: 0.2 }}
-             className="absolute max-w-full max-h-full object-contain pointer-events-none"
-           />
-         </AnimatePresence>
-       </motion.div>
-
-       <div className="absolute bottom-4 bg-black/80 backdrop-blur text-[#23a9dc] text-xs font-black uppercase tracking-widest px-5 py-2.5 rounded-full border border-[#23a9dc]/30 z-20 shadow-xl opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none">
-         Glissez pour tourner 👆
-       </div>
-    </div>
-  );
-};
-
 export default function OnyxOpsElite() {
   const router = useRouter();
   const [activeView, setActiveView] = useState<'home' | 'about' | 'blog' | 'dashboard'>('home');
@@ -1064,6 +988,7 @@ export default function OnyxOpsElite() {
                         title="Vidéo Promo Bàyyi thiow li, nuy jaay"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                         allowFullScreen
+                        loading="lazy"
                         className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
                       ></iframe>
                     </div>
@@ -1550,8 +1475,8 @@ export default function OnyxOpsElite() {
             </div>
 
             {selectedArticle && (
-               <div id="modal-overlay" onClick={handleOutsideClick(setSelectedArticle)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-                 <div className="bg-white text-black p-10 md:p-16 rounded-[3.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in my-8">
+               <div id="modal-overlay" onClick={handleOutsideClick(setSelectedArticle)} className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+                 <div className="bg-white text-black p-10 md:p-16 rounded-[3.5rem] max-w-3xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-8">
                    <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
                    <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block">{selectedArticle.category}</span>
                    <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase mb-6 leading-tight`}>{selectedArticle.title}</h2>
@@ -1744,8 +1669,8 @@ export default function OnyxOpsElite() {
 
         {/* --- MODALES COMMUNES --- */}
         {showAuthModal && (
-          <div id="modal-overlay" onClick={handleOutsideClick(setShowAuthModal)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white text-black p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl animate-in zoom-in">
+          <div id="modal-overlay" onClick={handleOutsideClick(setShowAuthModal)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white text-black p-6 sm:p-8 rounded-3xl max-w-md w-full relative shadow-2xl animate-in zoom-in-95 duration-200">
               <button onClick={() => setShowAuthModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
               <div className="flex justify-center gap-4 mb-8 bg-zinc-100 p-1.5 rounded-2xl">
                  <button onClick={() => setAuthMode('login')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-xl transition ${authMode === 'login' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Se connecter</button>
@@ -1784,8 +1709,8 @@ export default function OnyxOpsElite() {
           if (showSaasChoice.upsellName.includes("Pro")) { upsellNormalPrice = 27900; upsellDiscountPrice = 27900; }
 
           return (
-            <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasChoice)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in">
-              <div className="bg-white text-black p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl animate-in zoom-in text-center border-t-4 border-[#39FF14] max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div id="modal-overlay" onClick={handleOutsideClick(setShowSaasChoice)} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-white text-black p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 text-center border-t-4 border-[#39FF14] max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <button className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-50" onClick={() => setShowSaasChoice(null)}><X size={20}/></button>
                 
                 {/* SYSTÈME D'ONGLETS */}
@@ -1804,7 +1729,7 @@ export default function OnyxOpsElite() {
                     <p className="text-sm font-bold text-zinc-500 mb-6 px-4">{showSaasChoice.solution}</p>
 
                     <div className="flex flex-col sm:flex-row gap-3 mb-8 px-4 max-w-lg mx-auto transition-all">
-                       <input type="text" placeholder="Votre Prénom *" value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="flex-1 p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition" />
+                       <input type="text" autoFocus placeholder="Votre Prénom *" value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="flex-1 p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition" />
                        <input type="tel" placeholder="Votre WhatsApp *" value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})} className="flex-1 p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition" />
                     </div>
 
@@ -1950,14 +1875,15 @@ export default function OnyxOpsElite() {
 
     {/* --- MODALE VIDÉO YOUTUBE --- */}
     {showVideoModal && (
-      <div id="video-modal-overlay" onClick={(e: any) => e.target.id === 'video-modal-overlay' && setShowVideoModal(false)} className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in">
-        <div className="bg-black border border-zinc-800 rounded-3xl w-full max-w-4xl relative shadow-[0_0_50px_rgba(57,255,20,0.2)] animate-in zoom-in overflow-hidden aspect-video">
+      <div id="video-modal-overlay" onClick={(e: any) => e.target.id === 'video-modal-overlay' && setShowVideoModal(false)} className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="bg-black border border-zinc-800 rounded-3xl w-full max-w-4xl relative shadow-[0_0_50px_rgba(57,255,20,0.2)] animate-in zoom-in-95 duration-200 overflow-hidden aspect-video">
           <button onClick={() => setShowVideoModal(false)} className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition z-20 backdrop-blur-md"><X size={20}/></button>
           <iframe 
             src="https://www.youtube.com/embed/acFsObjm2E0?autoplay=1&mute=0" 
             title="Vidéo Démo Onyx"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             allowFullScreen
+            loading="lazy"
             className="w-full h-full border-0"
           ></iframe>
         </div>
@@ -1966,8 +1892,8 @@ export default function OnyxOpsElite() {
 
         {/* --- MODALE : ONBOARDING CAPTURE LEAD (MAIMOUNA) --- */}
         {showOnboarding && (
-          <div id="modal-overlay" onClick={handleOutsideClick(setShowOnboarding)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in overflow-y-auto">
-            <div className="bg-white text-black rounded-3xl w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(57,255,20,0.15)] animate-in zoom-in min-h-[500px]">
+          <div id="modal-overlay" onClick={handleOutsideClick(setShowOnboarding)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+            <div className="bg-white text-black rounded-3xl w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row shadow-[0_0_50px_rgba(57,255,20,0.15)] animate-in zoom-in-95 duration-200 min-h-[500px]">
               <button onClick={() => setShowOnboarding(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
 
               {/* Colonne Gauche : Image Conseillère */}
@@ -2030,7 +1956,7 @@ export default function OnyxOpsElite() {
                      <div className="space-y-4">
                        <div>
                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-2 mb-1 block">Nom ou Nom de la structure *</label>
-                         <input type="text" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="Ex: Boutique Fatou" />
+                         <input type="text" autoFocus required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black focus:ring-2 focus:ring-[#39FF14]/30 transition" placeholder="Ex: Boutique Fatou" />
                        </div>
                        
                        <div>
@@ -2094,8 +2020,8 @@ export default function OnyxOpsElite() {
 
         {/* --- MODALE EXIT INTENT REVISITÉE AVEC FORMULAIRE & BÉNÉFICES CHIFFRÉS --- */}
         {showExitIntent && (
-          <div id="modal-overlay" onClick={handleOutsideClick(setShowExitIntent)} className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in">
-            <div className="bg-white text-black p-6 sm:p-10 rounded-3xl max-w-lg w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in text-center border-t-8 border-black">
+          <div id="modal-overlay" onClick={handleOutsideClick(setShowExitIntent)} className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="bg-white text-black p-6 sm:p-10 rounded-3xl max-w-lg w-full relative shadow-[0_0_100px_rgba(57,255,20,0.2)] animate-in zoom-in-95 duration-200 text-center border-t-8 border-black">
               <button onClick={() => setShowExitIntent(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition"><X size={20}/></button>
               
               <div className="w-20 h-20 bg-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-bounce">
@@ -2113,7 +2039,7 @@ export default function OnyxOpsElite() {
               </div>
 
               <form onSubmit={submitExitIntentLead} className="space-y-4">
-                 <input type="text" placeholder="Votre Prénom *" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
+                 <input type="text" autoFocus placeholder="Votre Prénom *" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold outline-none focus:border-black transition" />
                  
                  <div className="flex gap-2">
                    <select 
