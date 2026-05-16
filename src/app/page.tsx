@@ -381,6 +381,24 @@ export default function OnyxOpsElite() {
   }, [showOnboarding]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAuthModal(false);
+        setShowSaasChoice(null);
+        setShowVideoModal(false);
+        setShowOnboarding(false);
+        setShowExitIntent(false);
+        setSelectedArticle(null);
+        setIsMobileMenuOpen(false);
+          setShowProfileModal(false);
+          setIsBotOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [botMessages]);
 

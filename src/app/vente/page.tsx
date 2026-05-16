@@ -1317,6 +1317,26 @@ export default function OnyxJaayShop() {
     localStorage.setItem('onyx_jaay_theme', newTheme);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+        setIsCartOpen(false);
+        setIsWishlistOpen(false);
+        setIsTrackingModalOpen(false);
+        setIsCheckoutModalOpen(false);
+        setIsOrderSuccessOpen(false);
+        setReviewOrderId(null);
+        setIsModalOpen(false);
+        setViewingProduct(null);
+        setQrCodeProduct(null);
+        setSelectedClient(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // New useEffect for QR code deep linking
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);

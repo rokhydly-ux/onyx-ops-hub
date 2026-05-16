@@ -309,6 +309,20 @@ export default function OnyxFormationPage() {
     if (savedXp) setXp(parseInt(savedXp));
   }, [user]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowProfileModal(false);
+        setShowQuiz(false);
+        setIsLikaChatOpen(false);
+        setShowCertificate(false);
+        setShowLeaderboard(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const fetchLeaderboard = async () => {
     const { data } = await supabase.from('clients').select('id, full_name, avatar_url').limit(10);
     let mockData = (data || []).map((c, i) => ({...c, xp: 5000 - (i * 450) + Math.floor(Math.random() * 200)}));

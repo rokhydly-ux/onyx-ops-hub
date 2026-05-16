@@ -343,6 +343,34 @@ export default function AdminDashboard() {
     localStorage.setItem('onyx_admin_theme', newTheme);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowProductModal(null);
+        setShowContactModal(false);
+        setShowProfileModal(false);
+        setQuoteModal(null);
+        setShowHubsMap(false);
+        setSelectedHub(null);
+        setShowRapportIA(false);
+        setShowSaasLogin(null);
+        setShowDiffusionModal(null);
+        setShowPartnerModal(false);
+        setShowAddPartnerModal(false);
+        setShowEditPartnerModal(false);
+        setViewingAvatarUrl(null);
+        setEditingArticle(null);
+        setValidateWithdrawalModal(null);
+        setShowAddHardwareModal(false);
+        setEditingBiGoal(null);
+        setShowPrevisionnelModal(false);
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // --- CHARGEMENT DES DONNÉES (Supabase uniquement) ---
   const fetchSupabaseData = async () => {
    setIsLoading(true);

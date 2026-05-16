@@ -53,6 +53,17 @@ export default function OnyxFormationLanding() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [botMessages]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsDropdownOpen(false);
+        setIsBotOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const processBotReply = (reply: string) => {
     if(!reply.trim()) return;
     const newMsgs = [...botMessages, { sender: 'client', text: reply }];
