@@ -8,7 +8,7 @@ import {
   Calculator, Gift, Bot, 
   Truck, ArrowRight, ShoppingCart, ChevronLeft,
   Sparkles, LayoutDashboard, QrCode, PlayCircle, X,
-  UserPlus, MessageSquare, ArrowUp, ChevronDown, Send
+  UserPlus, MessageSquare, ArrowUp, ChevronDown, Send, Flame
 } from "lucide-react";
 
 const ONBOARDING_CATEGORIES = [
