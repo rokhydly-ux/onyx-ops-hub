@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Utensils, QrCode, Smartphone, TrendingUp, CheckCircle, 
   ArrowRight, ChevronLeft, Printer, AlertTriangle, Zap, ChevronDown,
-  Send, X, ArrowUp
+  Send, X, ArrowUp, Flame
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -17,6 +17,14 @@ export default function OnyxMenuLanding() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // FOMO Timer
+  const [fomoTime, setFomoTime] = useState(900);
+  useEffect(() => {
+    const interval = setInterval(() => setFomoTime(prev => prev > 0 ? prev - 1 : 0), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const formatTime = (secs: number) => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`;
 
   // Configuration Bot Fanta
   const [isBotOpen, setIsBotOpen] = useState(false);
@@ -81,7 +89,7 @@ export default function OnyxMenuLanding() {
         if (botStep === 0) {
             const lowerReply = reply.toLowerCase();
             if (lowerReply.includes('marche') || lowerReply.includes('comment') || lowerReply.includes('qr')) {
-                botResponse = "C'est magique : vous placez votre QR code sur vos tables, et les clients commandent depuis leur téléphone directement sur votre WhatsApp. Prêt à tester ?";
+                botResponse = "C'est magique : vous placez votre QR code sur vos tables, et les clients commandent depuis leur téléphone directement sur votre WhatsApp. Prêt à tester ? (⏳ L'offre à 2.900 F expire bientôt !)";
                 botOptions = ["Je veux mon menu QR 🚀", "J'ai une autre question"];
             } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
                 botResponse = "Onyx Menu coûte 13 900 F/mois. Le 1er mois est à 2.900 F (-79%) pour tester ! On se lance ?";
@@ -90,7 +98,7 @@ export default function OnyxMenuLanding() {
                 botResponse = "Génial ! 🚀 Pour configurer votre menu digital, quel est votre prénom et nom ?";
                 nextStep = 1;
             } else {
-                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                botResponse = "Je vois ! (⚠️ Attention, l'offre à 2.900 F expire dans quelques minutes). Pour vous aider au mieux, quel est votre prénom et nom ?";
                 currentData.question = reply;
                 nextStep = 1;
             }
@@ -140,6 +148,12 @@ export default function OnyxMenuLanding() {
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-zinc-900 overflow-x-hidden selection:bg-[#FF5722]/30 pb-24 font-sans">
+      {/* BANNIÈRE PROMO HAUT DE PAGE */}
+      <div className="bg-red-600 text-white text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md flex items-center justify-center gap-2">
+          <Flame size={16} className="animate-pulse" /> 
+          Offre de bienvenue : L'essai à 2.900 F expire dans {formatTime(fomoTime)}
+      </div>
+
       {/* NAVBAR */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
          <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black hover:scale-105 transition-transform`}>
@@ -248,8 +262,8 @@ export default function OnyxMenuLanding() {
 
                {/* CARTE BUNDLE (OnyxTekki Resto - Recommandée) */}
                <div className="bg-gradient-to-b from-[#FF5722]/20 to-black border-4 border-[#FF5722] p-8 md:p-10 rounded-[3rem] flex flex-col relative md:scale-110 shadow-[0_0_50px_rgba(255,87,34,0.2)] z-10">
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white text-[#FF5722] border-2 border-zinc-200 px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase whitespace-nowrap animate-pulse shadow-xl flex items-center gap-2">
-                     <Zap size={14}/> PREMIER MOIS À 2.900 F !
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-red-600 text-white border-2 border-red-500 px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase whitespace-nowrap shadow-xl flex items-center gap-2">
+                     <Flame size={14} className="animate-pulse"/> OFFRE EXPIRE DANS {formatTime(fomoTime)} !
                   </div>
                   <div className="flex items-center gap-2 mb-2 mt-4">
                      <p className="text-[10px] font-black tracking-[0.3em] text-[#FF5722] uppercase">La Machine Ultime</p>

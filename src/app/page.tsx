@@ -609,11 +609,11 @@ export default function OnyxOpsElite() {
         let msg = "";
         let options: string[] = [];
         if(reply.includes("Boutique")) {
-           msg = "Excellent. Pour une boutique, voici mes recommandations :\n⭐ Le Meilleur : Pack Tekki (Vente + Stock + Tiak)\n💰 L'Essentiel moins cher : Onyx Jaay (Catalogue)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
+           msg = "Excellent. Pour une boutique, voici mes recommandations :\n⭐ Le Meilleur : Pack Tekki (Vente + Stock + Tiak)\n💰 L'Essentiel moins cher : Onyx Jaay (Catalogue)\n\n(⏳ L'offre à 2.900 F expire bientôt !)\nTapez 1 ou 2, ou cliquez ci-dessous :";
            options = ["1. Pack Tekki", "2. Onyx Jaay"];
         }
         else if(reply.includes("Restaurant")) {
-           msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : Pack Tekki (Encaissement & Stock)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\nTapez 1 ou 2, ou cliquez ci-dessous :";
+           msg = "Parfait. Pour la restauration :\n⭐ Le Meilleur : Pack Tekki (Encaissement & Stock)\n💰 L'Essentiel moins cher : Onyx Menu (Menu QR)\n\n(⏳ L'offre à 2.900 F expire bientôt !)\nTapez 1 ou 2, ou cliquez ci-dessous :";
            options = ["1. Pack Tekki", "2. Onyx Menu"];
         }
         else if(reply.includes("Ambassadeur") || reply.includes("Partenaire")) {
@@ -623,13 +623,13 @@ export default function OnyxOpsElite() {
            return;
         }
         else if(reply.includes("Autre")) {
-           msg = "Je vois ! Expliquez-moi brièvement ce que vous faites et ce que vous aimeriez améliorer, je vais analyser ça pour vous proposer l'outil parfait.";
+           msg = "Je vois ! Expliquez-moi brièvement ce que vous faites et ce que vous aimeriez améliorer, je vais analyser ça pour vous proposer l'outil parfait. (⚠️ Attention, l'offre à 2.900 F expire dans quelques minutes).";
            setBotMessages(prev => [...prev, { sender: 'bot', text: msg }]);
            setBotStep(2.5);
            return;
         }
         else {
-           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : Pack Tekki\n💰 L'Essentiel moins cher : Onyx Jaay\n\nQue choisissez-vous ?";
+           msg = "D'accord. La solution idéale pour vous :\n⭐ Le Meilleur : Pack Tekki\n💰 L'Essentiel moins cher : Onyx Jaay\n\nQue choisissez-vous ? (⏳ L'offre à 2.900 F pour tester expire dans quelques minutes)";
            options = ["1. Pack Tekki", "2. Onyx Jaay"];
         }
         

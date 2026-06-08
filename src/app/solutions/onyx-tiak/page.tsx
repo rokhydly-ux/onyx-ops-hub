@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Truck, MapPin, ShieldCheck, AlertTriangle, CheckCircle, 
   Smartphone, TrendingUp, ArrowRight, ChevronLeft, PackageCheck, Zap, Crosshair, ChevronDown,
-  Send, X, ArrowUp
+  Send, X, ArrowUp, Flame
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -19,6 +19,14 @@ export default function OnyxTiakLanding() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // FOMO Timer
+  const [fomoTime, setFomoTime] = useState(900);
+  useEffect(() => {
+    const interval = setInterval(() => setFomoTime(prev => prev > 0 ? prev - 1 : 0), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const formatTime = (secs: number) => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`;
 
   // Configuration Bot Fanta
   const [isBotOpen, setIsBotOpen] = useState(false);
@@ -93,16 +101,16 @@ export default function OnyxTiakLanding() {
         if (botStep === 0) {
             const lowerReply = reply.toLowerCase();
             if (lowerReply.includes('marche') || lowerReply.includes('comment')) {
-                botResponse = "Vous assignez les courses en 1 clic. Le livreur valide sur son WhatsApp, et vous suivez sa position en temps réel. Prêt à tester ?";
+                botResponse = "Vous assignez les courses en 1 clic. Le livreur valide sur son WhatsApp, et vous suivez sa position en temps réel. Prêt à tester ? (⏳ L'offre à 2.900 F expire bientôt !)";
                 botOptions = ["Je veux gérer mes livreurs 🚀", "J'ai une autre question"];
             } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
-                botResponse = "Onyx Tiak seul coûte 13 900 F/mois. Mais le Pack Trio (Vente + Stock + Tiak) à 22 900 F est le plus recommandé ! On y va ?";
+                botResponse = "Onyx Tiak seul coûte 13 900 F/mois. Mais le Pack Trio (Vente + Stock + Tiak) à 22 900 F est le plus recommandé, et le 1er mois est à 2.900 F ! On y va ?";
                 botOptions = ["Je veux gérer mes livreurs 🚀", "J'ai une autre question"];
             } else if (lowerReply.includes('livreur') || lowerReply.includes('lance') || lowerReply.includes('oui') || lowerReply.includes('gérer')) {
                 botResponse = "Génial ! 🚀 Pour configurer votre espace logistique, quel est votre prénom et nom ?";
                 nextStep = 1;
             } else {
-                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                botResponse = "Je vois ! (⚠️ Attention, l'offre à 2.900 F expire dans quelques minutes). Pour vous aider au mieux, quel est votre prénom et nom ?";
                 currentData.question = reply;
                 nextStep = 1;
             }
@@ -152,6 +160,12 @@ export default function OnyxTiakLanding() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white overflow-x-hidden selection:bg-[#39FF14]/30 pb-24">
+      {/* BANNIÈRE PROMO HAUT DE PAGE */}
+      <div className="bg-red-600 text-white text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md flex items-center justify-center gap-2">
+          <Flame size={16} className="animate-pulse" /> 
+          Offre de bienvenue : L'essai à 2.900 F expire dans {formatTime(fomoTime)}
+      </div>
+
       {/* NAVBAR */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
            <button onClick={() => window.location.href = '/'} className="flex items-center gap-2 hover:scale-105 transition-transform">
@@ -273,8 +287,8 @@ export default function OnyxTiakLanding() {
 
                {/* CARTE BUNDLE (OnyxTekki - Recommandée) */}
                <div className="bg-gradient-to-b from-[#39FF14]/20 to-black border-4 border-[#39FF14] p-8 md:p-10 rounded-[3rem] flex flex-col relative md:scale-110 shadow-[0_0_50px_rgba(57,255,20,0.2)] z-10">
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white text-[#39FF14] border-2 border-zinc-200 px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase whitespace-nowrap animate-pulse shadow-xl flex items-center gap-2">
-                     <Zap size={14}/> 1ER MOIS À 2.900 F !
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-red-600 text-white border-2 border-red-500 px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase whitespace-nowrap shadow-xl flex items-center gap-2">
+                     <Flame size={14} className="animate-pulse"/> OFFRE EXPIRE DANS {formatTime(fomoTime)} !
                   </div>
                   <div className="flex items-center gap-2 mb-2 mt-4">
                      <p className="text-[10px] font-black tracking-[0.3em] text-[#39FF14] uppercase">Le Choix Évident</p>

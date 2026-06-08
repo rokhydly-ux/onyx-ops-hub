@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Download, ShoppingCart, X, CheckCircle, ShieldCheck, Loader2, Box, Eye, Send, Minus, Plus, Trash2, Search, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 function CatalogueViewer() {

@@ -97,7 +97,7 @@ export default function OnyxTontineLanding() {
         if (botStep === 0) {
             const lowerReply = reply.toLowerCase();
             if (lowerReply.includes('marche') || lowerReply.includes('comment') || lowerReply.includes('sécurité')) {
-                botResponse = "C'est simple : vous importez vos membres sans mot de passe, l'appli les relance automatiquement pour payer sur WhatsApp. Prêt à tester ?";
+                botResponse = "C'est simple : vous importez vos membres sans mot de passe, l'appli les relance automatiquement pour payer sur WhatsApp. Prêt à tester ? (⏳ L'offre à 2.900 F expire bientôt !)";
                 botOptions = ["Je veux créer ma tontine 🚀", "J'ai une autre question"];
             } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
                 botResponse = "C'est seulement 6 900 F/mois pour toute l'association. Et le premier mois est à 2.900 F (-58%) ! On se lance ?";
@@ -106,7 +106,7 @@ export default function OnyxTontineLanding() {
                 botResponse = "Génial ! 🚀 Pour configurer votre espace Natt, quel est votre prénom et nom ?";
                 nextStep = 1;
             } else {
-                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                botResponse = "Je vois ! (⚠️ Attention, l'offre à 2.900 F expire dans quelques minutes). Pour vous aider au mieux, quel est votre prénom et nom ?";
                 currentData.question = reply;
                 nextStep = 1;
             }

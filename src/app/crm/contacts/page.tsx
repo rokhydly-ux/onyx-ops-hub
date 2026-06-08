@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles, Upload, Download, Trash2, Calendar, TrendingUp, Send, Wand2, PieChart as PieChartIcon, Star, RefreshCcw } from 'lucide-react';
+import { Search, Phone, Activity, Tag, CheckCircle, ChevronLeft, ChevronRight, Loader2, Bot, X, ShoppingBag, Edit3, Clock, Sparkles, Upload, Download, Trash2, Calendar, TrendingUp, Send, Wand2, PieChart as PieChartIcon, Star, RefreshCcw, Plus, Gift } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';

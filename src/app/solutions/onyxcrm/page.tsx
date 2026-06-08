@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   LineChart, Columns, Bot, FileText, Database, 
   ArrowRight, ChevronLeft, CheckCircle, Zap, ChevronDown, Target,
-  Send, X, ArrowUp, Activity, Crosshair, Users
+  Send, X, ArrowUp, Activity, Crosshair, Users, Flame
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -19,6 +19,16 @@ export default function OnyxCRMLanding() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // FOMO Timer
+  const [fomoTime, setFomoTime] = useState(900);
+  const [showFomoPopup, setShowFomoPopup] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => setFomoTime(prev => prev > 0 ? prev - 1 : 0), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const formatTime = (secs: number) => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`;
 
   // Configuration Bot Fanta
   const [isBotOpen, setIsBotOpen] = useState(false);
@@ -72,7 +82,7 @@ export default function OnyxCRMLanding() {
         if (botStep === 0) {
             const lowerReply = reply.toLowerCase();
             if (lowerReply.includes('marche') || lowerReply.includes('comment') || lowerReply.includes('odoo')) {
-                botResponse = "Notre module d'import universel permet de connecter votre base de données existante (Odoo, Excel) sans friction. Vous suivez vos marges et générez des devis en un clic. Prêt à tester ?";
+                botResponse = "Notre module d'import universel permet de connecter votre base de données existante (Odoo, Excel) sans friction. Vous suivez vos marges et générez des devis en un clic. Prêt à tester ? (⏳ L'offre à 2.900 F expire bientôt !)";
                 botOptions = ["Je veux mon CRM 🚀", "J'ai une autre question"];
             } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
                 botResponse = "OnyxCRM est à 39 900 F / mois, mais pour vous prouver sa valeur, le 1er mois est à 2.900 F (-92%) ! On se lance ?";
@@ -81,7 +91,7 @@ export default function OnyxCRMLanding() {
                 botResponse = "Génial ! 🚀 Pour configurer votre espace B2B, quel est votre prénom et nom ?";
                 nextStep = 1;
             } else {
-                botResponse = "Je vois ! Pour vous aider au mieux, quel est votre prénom et nom ?";
+                botResponse = "Je vois ! (⚠️ Attention, l'offre à 2.900 F expire dans quelques minutes). Pour vous aider au mieux, quel est votre prénom et nom ?";
                 currentData.question = reply;
                 nextStep = 1;
             }
@@ -131,6 +141,42 @@ export default function OnyxCRMLanding() {
 
   return (
     <main className="min-h-screen bg-zinc-50 text-zinc-900 overflow-x-hidden selection:bg-[#00E5FF]/30 pb-24 font-sans">
+      {/* SHAKE CSS POUR LE FOMO */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fomo-shake {
+          0%, 100% { transform: translateX(0) scale(1.05); }
+          25% { transform: translateX(-4px) scale(1.05); }
+          75% { transform: translateX(4px) scale(1.05); }
+        }
+        .fomo-shake-active {
+          animation: fomo-shake 0.4s ease-in-out infinite;
+        }
+      `}} />
+
+      {/* BULLE FOMO ANIMÉE */}
+      {showFomoPopup && (
+        <div className="fixed bottom-24 left-4 md:left-6 z-[100] animate-in slide-in-from-bottom-8 duration-500">
+          <div className="bg-white text-zinc-900 p-4 rounded-2xl shadow-2xl border-2 border-[#00E5FF] flex items-start gap-4 w-[calc(100vw-2rem)] md:w-auto max-w-[320px] relative">
+            <button 
+              onClick={() => setShowFomoPopup(false)} 
+              className="absolute top-2 right-2 text-zinc-400 hover:text-zinc-900 bg-zinc-100 p-1 rounded-full transition-colors"
+            >
+              <X size={14} />
+            </button>
+            <div className="w-10 h-10 bg-[#00E5FF]/10 text-[#00E5FF] rounded-full flex items-center justify-center shrink-0">
+              <Flame size={20} className="animate-pulse" />
+            </div>
+            <div className="pr-4">
+              <p className="text-[10px] font-black uppercase text-[#00E5FF] tracking-widest mb-1">Offre Flash</p>
+              <p className="text-xs font-bold leading-tight mb-2">Le 1er mois d'essai à 2.900 F expire dans :</p>
+              <div className="bg-zinc-900 text-[#00E5FF] px-3 py-1.5 rounded-lg text-base font-black inline-block shadow-inner tracking-widest animate-pulse">
+                {formatTime(fomoTime)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* NAVBAR */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
          <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-zinc-900 hover:scale-105 transition-transform`}>
@@ -173,7 +219,7 @@ export default function OnyxCRMLanding() {
             Bien plus qu'un simple pipeline commercial. OnyxCRM est la seule machine de vente qui centralise vos leads WhatsApp, génère vos devis et sécurise vos marges nettes en temps réel.
          </p>
          
-         <button onClick={() => handleWaClick("OnyxCRM (Essai Gratuit)")} className="bg-[#00E5FF] text-white px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-black hover:text-[#00E5FF] hover:scale-105 transition-all shadow-[0_20px_40px_rgba(0,229,255,0.3)] flex items-center justify-center gap-3 mx-auto relative z-10">
+         <button onClick={() => handleWaClick("OnyxCRM (Essai Gratuit)")} className={`bg-[#00E5FF] text-white px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-black hover:text-[#00E5FF] hover:scale-105 transition-all shadow-[0_20px_40px_rgba(0,229,255,0.3)] flex items-center justify-center gap-3 mx-auto relative z-10 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
             Déployer OnyxCRM <ArrowRight size={24} />
          </button>
       </section>
@@ -289,7 +335,7 @@ export default function OnyxCRMLanding() {
                      </div>
                   </div>
                   <div className="text-sm text-zinc-500 font-bold uppercase tracking-widest mb-8">Le premier mois</div>
-                  <button onClick={() => handleWaClick("OnyxCRM (Essai 2.900F)")} className="w-full bg-[#00E5FF] text-white py-5 px-8 rounded-xl font-black uppercase text-sm hover:bg-black hover:text-[#00E5FF] hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,229,255,0.4)]">
+                  <button onClick={() => handleWaClick("OnyxCRM (Essai 2.900F)")} className={`w-full bg-[#00E5FF] text-white py-5 px-8 rounded-xl font-black uppercase text-sm hover:bg-black hover:text-[#00E5FF] hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,229,255,0.4)] ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                      Je teste pour 2.900 F
                   </button>
                   <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Offre flash non cumulable</p>
@@ -371,7 +417,7 @@ export default function OnyxCRMLanding() {
                 <p className="font-black text-sm md:text-base text-zinc-900"><span className="line-through text-red-500 text-xs mr-2">39 900F</span><span className="text-[#00E5FF]">2 900 F</span><span className="text-zinc-500 text-xs font-bold">/1er mois</span></p>
                 <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">OnyxCRM <span className="text-black bg-[#00E5FF] px-1.5 py-0.5 rounded shadow-sm">1ER MOIS À 2.900 F (-92%)</span></p>
              </div>
-             <button onClick={() => handleWaClick("OnyxCRM (Essai 2.900F)")} className="bg-[#00E5FF] text-white px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(0,229,255,0.4)]">
+             <button onClick={() => handleWaClick("OnyxCRM (Essai 2.900F)")} className={`bg-[#00E5FF] text-white px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(0,229,255,0.4)] ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                 Je teste pour 2.900 F
              </button>
           </div>

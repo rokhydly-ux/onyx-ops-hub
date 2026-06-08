@@ -9,7 +9,7 @@ import {
   MessageSquare, Edit, Trash2, Plus, FileUp, Sparkles, X, Heart, Star, QrCode, Download, Box,
   Image as ImageIcon, DollarSign, Tag, Type, Home, LayoutDashboard, GripVertical,
   Settings, Store, ChevronRight, Share2, Menu, ShoppingCart, Minus, Filter, ArrowRight, Sun, Moon, BarChart, AlertTriangle, Ticket, Printer, Truck, Bell, Users, Clock, Lock, Gift, ArrowUp, ArrowDown, Eye, EyeOff, Calendar, PieChart as PieChartIcon, TrendingUp, ArrowDownRight, RefreshCcw, Search, Save, Package, Check, LayoutTemplate, Phone, LogOut, Megaphone, Send, XCircle, CheckCircle, Edit3, Copy, LogIn, Wallet, ExternalLink
-, ChevronLeft, GraduationCap } from 'lucide-react';
+, ChevronLeft, GraduationCap, ImagePlus, Palette } from 'lucide-react';
 import QRCode from "react-qr-code";
 import * as XLSX from 'xlsx';
 import { supabase } from "@/lib/supabaseClient";
