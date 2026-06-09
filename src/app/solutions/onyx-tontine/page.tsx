@@ -29,6 +29,14 @@ export default function OnyxTontineLanding() {
   }, []);
   const formatTime = (secs: number) => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`;
 
+  useEffect(() => {
+    if (fomoTime > 0 && fomoTime <= 10) {
+      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3");
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+    }
+  }, [fomoTime]);
+
   // Carrousel Etapes
   const [currentStep, setCurrentStep] = useState(0);
 
