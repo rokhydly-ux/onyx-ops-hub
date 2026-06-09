@@ -220,7 +220,6 @@ export default function OnyxOpsElite() {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const [notificationIndex, setNotificationIndex] = useState(0);
-  const [showNotification, setShowNotification] = useState(true);
   const [isNotificationDismissed, setIsNotificationDismissed] = useState(false);
   const [isBotDismissed, setIsBotDismissed] = useState(false);
 
@@ -339,11 +338,7 @@ export default function OnyxOpsElite() {
     const testimonialInterval = setInterval(() => setTestimonialIndex((prev) => (prev + 1) % AMBASSADOR_TESTIMONIALS.length), 5000);
     
     const notifInterval = setInterval(() => {
-       setShowNotification(false);
-       setTimeout(() => {
           setNotificationIndex((prev) => (prev + 1) % RECENT_NOTIFICATIONS.length);
-          setShowNotification(true);
-       }, 500);
     }, 8000);
 
     const handleMouseLeave = (e: MouseEvent) => {
@@ -838,32 +833,45 @@ export default function OnyxOpsElite() {
       `}} />
 
       {/* MODULE DE NOTIFICATIONS FLOTTANT */}
-      <div className={`fixed bottom-24 md:bottom-8 left-4 md:left-6 z-[100] transition-all duration-500 transform ${showNotification && !isNotificationDismissed ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}>
-         <div className="bg-white text-black p-3 pr-8 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-l-4 border-[#39FF14] flex items-start gap-3 w-[calc(100vw-2rem)] md:w-auto max-w-[280px] cursor-pointer hover:scale-105 transition relative" onClick={() => navigateTo('home', 'tarifs')}>
+      <div className="fixed bottom-24 md:bottom-8 left-4 md:left-6 z-[100] pointer-events-none flex flex-col justify-end">
+        <AnimatePresence mode="wait">
+          {!isNotificationDismissed && (
+            <motion.div
+               key={notificationIndex}
+               initial={{ opacity: 0, y: 20, scale: 0.9 }}
+               animate={{ opacity: 1, y: 0, scale: 1 }}
+               exit={{ opacity: 0, y: -20, scale: 0.9 }}
+               transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+               className="pointer-events-auto bg-white text-black p-3.5 pr-10 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.2)] border border-zinc-100 flex items-start gap-3.5 w-[calc(100vw-2rem)] md:w-auto max-w-[320px] cursor-pointer hover:shadow-[0_20px_50px_rgba(57,255,20,0.15)] hover:border-[#39FF14]/30 transition-all relative group" 
+               onClick={() => navigateTo('home', 'tarifs')}
+            >
+               <div className="absolute top-0 left-0 w-1.5 h-full bg-[#39FF14] rounded-l-2xl"></div>
             <button 
-               onClick={(e) => { e.stopPropagation(); setIsNotificationDismissed(true); }} 
-               className="absolute top-2 right-2 text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-full p-1 transition-colors"
+               onClick={(e) => { e.stopPropagation(); setIsNotificationDismissed(true); }}
+               className="absolute top-2 right-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-full p-1.5 transition-colors opacity-0 group-hover:opacity-100"
                aria-label="Fermer"
             >
-               <X size={14} />
+               <X size={12} strokeWidth={3} />
             </button>
-            <div className="bg-black text-[#39FF14] p-2.5 rounded-lg flex-shrink-0 mt-0.5">
-               {React.createElement(RECENT_NOTIFICATIONS[notificationIndex].icon, { size: 18 })}
+            <div className="bg-black text-[#39FF14] p-3 rounded-xl flex-shrink-0 mt-0.5 shadow-inner">
+               {React.createElement(RECENT_NOTIFICATIONS[notificationIndex].icon, { size: 20 })}
             </div>
             <div className="flex-1">
                <div className="flex items-center gap-1.5 mb-1">
                  <span className="flex h-2 w-2 relative">
-                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#39FF14] opacity-75"></span>
+                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#39FF14] opacity-80"></span>
                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#39FF14]"></span>
                  </span>
-                 <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Achat Récent</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Achat Récent</p>
                </div>
-               <p className="text-xs text-zinc-800 leading-tight">
-                  <span className="font-black">{RECENT_NOTIFICATIONS[notificationIndex].name}</span> {RECENT_NOTIFICATIONS[notificationIndex].action} <span className="font-black text-black bg-[#39FF14]/20 px-1 rounded inline-block mt-0.5">{RECENT_NOTIFICATIONS[notificationIndex].product}</span>
+               <p className="text-xs text-zinc-800 leading-snug">
+                  <span className="font-black text-black">{RECENT_NOTIFICATIONS[notificationIndex].name}</span> {RECENT_NOTIFICATIONS[notificationIndex].action} <span className="font-black text-black bg-[#39FF14]/20 px-1.5 py-0.5 rounded-md inline-block mt-0.5 shadow-sm border border-[#39FF14]/30">{RECENT_NOTIFICATIONS[notificationIndex].product}</span>
                </p>
-               <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase tracking-wider">{RECENT_NOTIFICATIONS[notificationIndex].time}</p>
+               <p className="text-[9px] font-bold text-zinc-400 mt-1.5 uppercase tracking-widest">{RECENT_NOTIFICATIONS[notificationIndex].time}</p>
             </div>
-         </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="relative z-10">

@@ -584,7 +584,7 @@ function CatalogueViewer() {
       {cart.length > 0 && (
           <button onClick={() => setIsCartOpen(true)} className="fixed bottom-8 right-8 bg-[#39FF14] text-black p-4 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-40">
               <ShoppingCart size={24} />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center">{cart.length}</span>
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-black px-1.5 min-w-[1.5rem] h-6 rounded-full flex items-center justify-center">{cart.reduce((acc, item) => acc + item.qty, 0)}</span>
           </button>
       )}
 
@@ -609,7 +609,10 @@ function CatalogueViewer() {
                                   )}
                                   <div className="flex-1">
                                       <p className="font-bold text-sm line-clamp-1">{item.product.name}</p>
-                                      <p className="text-[#39FF14] font-black text-sm mt-1">{(item.product.unit_price || item.product.price_ttc || 0).toLocaleString('fr-FR')} F</p>
+                                      <p className="text-[#39FF14] font-black text-sm mt-1">
+                                          {((item.product.unit_price || item.product.price_ttc || 0) * item.qty).toLocaleString('fr-FR')} F 
+                                          <span className="text-[10px] text-zinc-500 font-normal ml-2">({(item.product.unit_price || item.product.price_ttc || 0).toLocaleString('fr-FR')} F/u)</span>
+                                      </p>
                                       <div className="flex items-center justify-between mt-2">
                                           <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
                                               <button onClick={() => updateCartQty(item.product.id, -1)} className="p-1"><Minus size={12}/></button>
@@ -659,12 +662,12 @@ function CatalogueViewer() {
                                   type="button" 
                                   onClick={() => {
                                       if (confirm("Voulez-vous annuler et prévenir par WhatsApp ?")) {
-                                          const itemsText = cart.map(i => `- ${i.product.name} (x${i.qty})`).join('%0A');
+                                          const itemsText = cart.map(i => `- ${i.product.name} (x${i.qty})`).join('\n');
                                           setCart([]);
                                           setLeadForm({ name: '', phone: '', message: '' });
                                           setIsCartOpen(false);
-                                          const msg = `Bonjour, j'ai parcouru votre catalogue et j'avais sélectionné ces articles :%0A${itemsText}%0A%0AMais j'ai décidé d'annuler ma demande de devis pour le moment. J'aurais besoin de plus d'informations.`;
-                                          window.open(`https://wa.me/?text=${msg}`, '_blank');
+                                          const msg = `Bonjour, j'ai parcouru votre catalogue et j'avais sélectionné ces articles :\n${itemsText}\n\nMais j'ai décidé d'annuler ma demande de devis pour le moment. J'aurais besoin de plus d'informations.`;
+                                          window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                                       }
                                   }} 
                                   className="flex-1 py-4 rounded-xl font-black uppercase text-xs shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-red-50 text-red-500 border border-red-200 dark:bg-red-500/10 dark:border-red-500/20"
