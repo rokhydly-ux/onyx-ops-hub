@@ -788,6 +788,16 @@ export default function OnyxOpsElite() {
       <InteractiveParticles themeColor="#39FF14" />
 
       <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fomo-shake {
+          0%, 100% { transform: translateX(0) scale(1.05); }
+          25% { transform: translateX(-4px) scale(1.05); }
+          75% { transform: translateX(4px) scale(1.05); }
+        }
+        .fomo-shake-active {
+          animation: fomo-shake 0.4s ease-in-out infinite;
+        }
+      `}} />
+      <style dangerouslySetInnerHTML={{__html: `
         .glitch-hover:hover {
           animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
         }
@@ -973,7 +983,7 @@ export default function OnyxOpsElite() {
                       audio.volume = 0.5;
                       audio.play().catch(()=>{});
                       document.getElementById('tarifs')?.scrollIntoView({behavior:'smooth'});
-                    }} className="inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14]">
+                    }} className={`inline-flex justify-center items-center gap-2 bg-[#39FF14] text-black px-8 py-5 rounded-full font-black text-sm uppercase tracking-wider hover:bg-black hover:text-[#39FF14] transition duration-300 shadow-[0_15px_30px_rgba(57,255,20,0.4)] border border-transparent hover:border-[#39FF14] ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                       LANCER MA MACHINE (Mois à 2.900 F)
                     </button>
                     <button onClick={() => setShowVideoModal(true)} className={`inline-flex justify-center items-center gap-2 border-2 ${theme === 'dark' ? 'border-white text-white hover:bg-white hover:text-black' : 'border-black text-black hover:bg-black hover:text-white'} px-8 py-5 rounded-full font-black text-sm uppercase transition`}>
@@ -1288,7 +1298,7 @@ export default function OnyxOpsElite() {
     setLeadData(prev => ({ ...prev, saas: pack.label })); 
     setShowOnboarding(true); 
   }} 
-  className={`w-full block text-center py-4 rounded-2xl font-black uppercase transition-transform ${isTekki ? 'bg-[#39FF14] text-black hover:scale-105 shadow-xl text-base' : 'bg-white text-black hover:bg-[#39FF14] text-sm'}`}
+  className={`w-full block text-center py-4 rounded-2xl font-black uppercase transition-transform ${isTekki ? 'bg-[#39FF14] text-black hover:scale-105 shadow-xl text-base' : 'bg-white text-black hover:bg-[#39FF14] text-sm'} ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}
 >
   {isTekki ? 'LANCER MON COMMERCE' : 'Commencer'}
 </button>
@@ -1801,7 +1811,7 @@ export default function OnyxOpsElite() {
                        {/* OPTION UPSELL AVEC FOMO */}
                        {showSaasChoice.id !== 'Onyx Tontine' && (
                          <div className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-3xl shadow-[0_15px_30px_rgba(57,255,20,0.2)] flex flex-col items-center justify-between border-2 border-[#39FF14] relative overflow-hidden">
-                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase animate-pulse w-max z-20 flex items-center gap-1 shadow-lg">
+                      <div className={`absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase animate-pulse w-max z-20 flex items-center gap-1 shadow-lg ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
                              🔥 Offre Flash : {formatTime(fomoTime)}
                           </div>
                           
@@ -1926,7 +1936,7 @@ export default function OnyxOpsElite() {
 
               {/* Colonne Droite : Formulaire */}
               <div className="flex-1 p-6 sm:p-10 flex flex-col justify-center">
-                 <div className="mb-6 bg-red-50 border border-red-200 p-3 rounded-xl flex items-center justify-between">
+                 <div className={`mb-6 bg-red-50 border border-red-200 p-3 rounded-xl flex items-center justify-between ${onboardingFomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
                     <span className="text-red-600 text-xs font-black uppercase flex items-center gap-2"><Flame size={16} className="animate-pulse"/> L'offre à 2.900F expire dans</span>
                     <span className="bg-red-600 text-white text-xs font-black px-2 py-1 rounded-md tracking-widest shadow-sm">{formatTime(onboardingFomoTime)}</span>
                  </div>

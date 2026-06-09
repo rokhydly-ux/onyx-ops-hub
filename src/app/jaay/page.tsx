@@ -21,6 +21,8 @@ const ONBOARDING_CATEGORIES = [
 
 const REGIONS_SENEGAL = ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou", "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou", "Tambacounda", "Thiès", "Ziguinchor"];
 
+const spaceGrotesk = { className: "font-sans" };
+
 export default function OnyxJaayLanding() {
   const router = useRouter();
 
@@ -31,6 +33,13 @@ export default function OnyxJaayLanding() {
   const waNumber = "221785338417";
 
   const [refId, setRefId] = useState<string | null>(null);
+
+  // FOMO Timer
+  const [fomoTime, setFomoTime] = useState(900);
+  useEffect(() => {
+    const interval = setInterval(() => setFomoTime(prev => prev > 0 ? prev - 1 : 0), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [showExitIntent, setShowExitIntent] = useState(false);
   const [hasTriggeredExitIntent, setHasTriggeredExitIntent] = useState(false);
@@ -270,6 +279,17 @@ export default function OnyxJaayLanding() {
 
   return (
     <main className="min-h-screen bg-zinc-50 text-black overflow-x-hidden selection:bg-[#39FF14]/30 pb-24">
+      {/* SHAKE CSS POUR LE FOMO */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fomo-shake {
+          0%, 100% { transform: translateX(0) scale(1.05); }
+          25% { transform: translateX(-4px) scale(1.05); }
+          75% { transform: translateX(4px) scale(1.05); }
+        }
+        .fomo-shake-active {
+          animation: fomo-shake 0.4s ease-in-out infinite;
+        }
+      `}} />
       
       {/* BANNIÈRE PROMO HAUT DE PAGE */}
 
@@ -324,10 +344,10 @@ export default function OnyxJaayLanding() {
              <strong className="text-black bg-[#39FF14]/20 px-2 py-0.5 rounded">Normalement 13.900F. Ce mois-ci 2.900F (prix d’un poulet) pour tester. Si ça te fait pas gagner 1h/jour, je te rembourse.</strong><br/><br/>Onyx Jaay est le 1er catalogue phygital pensé 100% pour WhatsApp. Transformez vos discussions en commandes fermes, et gérez votre stock en auto.
          </p>
          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-             <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className="w-full sm:w-auto bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-2">
+             <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className={`w-full sm:w-auto bg-black text-[#39FF14] px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-2 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                  Je teste pour 2.900F → Paiement Wave/OM <ArrowRight size={18} />
              </button>
-             <button onClick={() => window.open('/keur-yaay', '_blank')} className="w-full sm:w-auto bg-transparent border-2 border-black text-black px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2">
+             <button onClick={() => window.open('/keur-yaay', '_blank')} className={`w-full sm:w-auto bg-transparent border-2 border-black text-black px-10 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                  <PlayCircle size={18} /> Voir une démo
              </button>
          </div>
@@ -443,7 +463,7 @@ export default function OnyxJaayLanding() {
             <Truck size={56} className="mx-auto text-[#39FF14] mb-8 animate-bounce" />
             <h2 className="font-sans text-3xl md:text-5xl font-black uppercase text-white tracking-tighter mb-6 leading-tight">Vous gérez des livreurs <br/> et un gros stock ?</h2>
             <p className="text-zinc-400 font-medium text-lg max-w-2xl mx-auto mb-10 leading-relaxed">Passez au <span className="text-white font-bold bg-[#39FF14]/20 px-2 py-1 rounded">Pack Trio à 24 900 FCFA</span>. Ne tombez jamais en rupture et contrôlez tout le cash encaissé par vos livreurs en temps réel.</p>
-            <button onClick={() => router.push('/trio')} className="bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-white hover:scale-105 transition-all shadow-2xl relative z-10 flex items-center justify-center gap-2 mx-auto">
+            <button onClick={() => router.push('/trio')} className={`bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-white hover:scale-105 transition-all shadow-2xl relative z-10 flex items-center justify-center gap-2 mx-auto ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                Découvrir le Pack Trio <ArrowRight size={18} />
             </button>
          </div>
@@ -463,7 +483,7 @@ export default function OnyxJaayLanding() {
          <div className="relative z-10 max-w-4xl mx-auto">
             <h2 className="font-sans text-4xl md:text-6xl font-black uppercase tracking-tighter mb-8 leading-[0.95]">Arrêtez de perdre de l'argent dans vos DM WhatsApp.</h2>
             <p className="text-zinc-400 font-bold text-lg md:text-xl mb-12">Laissez la machine Onyx faire le travail difficile. Encaisser devient un jeu d'enfant.</p>
-            <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className="bg-[#39FF14] text-black px-12 py-6 rounded-[2rem] font-black uppercase tracking-widest text-base hover:scale-105 hover:bg-white transition-all shadow-[0_20px_50px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto">
+            <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className={`bg-[#39FF14] text-black px-12 py-6 rounded-[2rem] font-black uppercase tracking-widest text-base hover:scale-105 hover:bg-white transition-all shadow-[0_20px_50px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                <ShoppingCart size={24} /> Créer ma machine à cash
             </button>
          </div>
@@ -487,7 +507,7 @@ export default function OnyxJaayLanding() {
 
             {/* Colonne Droite : Formulaire */}
             <div className="flex-1 p-6 sm:p-10 flex flex-col justify-center">
-               <div className="mb-6 bg-red-50 border border-red-200 p-3 rounded-xl flex items-center justify-between">
+               <div className={`mb-6 bg-red-50 border border-red-200 p-3 rounded-xl flex items-center justify-between ${onboardingFomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
                   <span className="text-red-600 text-xs font-black uppercase flex items-center gap-2"><Zap size={16} className="animate-pulse"/> L'offre à 2.900F expire dans</span>
                   <span className="bg-red-600 text-white text-xs font-black px-2 py-1 rounded-md tracking-widest shadow-sm">{formatTime(onboardingFomoTime)}</span>
                </div>
@@ -778,7 +798,7 @@ export default function OnyxJaayLanding() {
                 <p className="font-black text-sm md:text-base text-black"><span className="line-through text-red-500 text-xs mr-2">13 900F</span><span className="text-[#39FF14]">2 900 F</span><span className="text-zinc-500 text-xs font-bold">/1er mois</span></p>
                 <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Sans engagement. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">SATISFAIT OU REMBOURSÉ</span></p>
              </div>
-             <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className="bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(57,255,20,0.4)]">
+             <button onClick={() => { setShowOnboarding(true); setOnboardingStep(0); }} className={`bg-black text-[#39FF14] px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(57,255,20,0.4)] ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                 Je teste pour 2.900F → Wave/OM
              </button>
           </div>

@@ -21,6 +21,14 @@ export default function OnyxTontineLanding() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  // FOMO Timer
+  const [fomoTime, setFomoTime] = useState(900);
+  useEffect(() => {
+    const interval = setInterval(() => setFomoTime(prev => prev > 0 ? prev - 1 : 0), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const formatTime = (secs: number) => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`;
+
   // Carrousel Etapes
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -161,6 +169,17 @@ export default function OnyxTontineLanding() {
 
   return (
     <main className={`min-h-screen ${bgMain} selection:bg-[#FACC15]/30 pb-24 transition-colors duration-300 font-sans overflow-x-hidden`}>
+      {/* SHAKE CSS POUR LE FOMO */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fomo-shake {
+          0%, 100% { transform: translateX(0) scale(1.05); }
+          25% { transform: translateX(-4px) scale(1.05); }
+          75% { transform: translateX(4px) scale(1.05); }
+        }
+        .fomo-shake-active {
+          animation: fomo-shake 0.4s ease-in-out infinite;
+        }
+      `}} />
       {/* NAVBAR */}
       <nav className={`p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50`}>
          <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 hover:scale-105 transition-transform`}>
@@ -191,8 +210,8 @@ export default function OnyxTontineLanding() {
 
       {/* 1. HERO SECTION */}
       <section className="pt-16 pb-20 px-6 text-center max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-         <div className="inline-flex items-center gap-2 bg-[#FACC15]/20 border border-[#FACC15]/50 text-[#FACC15] px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] mb-8 shadow-[0_0_30px_rgba(250,204,21,0.3)] animate-pulse">
-             🎁 1er Mois à 2.900 F (-58%) - Sans Engagement
+         <div className={`inline-flex items-center gap-2 bg-red-900/30 border border-red-500/50 text-red-500 px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] mb-8 shadow-[0_0_30px_rgba(239,68,68,0.3)] animate-pulse ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
+             🔥 Offre Flash : Le 1er mois à 2.900 F expire dans {formatTime(fomoTime)}
          </div>
          <h1 className={`${spaceGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.95] mb-8`}>
             BUL SONN CI CAHIER YI. <br/> GÉREZ VOTRE NATT EN <span className="text-[#FACC15] underline decoration-[#FACC15]/30 underline-offset-8">TOUTE SÉRÉNITÉ.</span>
@@ -201,7 +220,7 @@ export default function OnyxTontineLanding() {
             Importez vos membres, laissez l'application réclamer les cotisations sur WhatsApp à votre place. <strong className={theme === 'dark' ? 'text-white' : 'text-black'}>Une gestion transparente, pensée pour le Sénégal.</strong>
          </p>
          
-         <button onClick={handleWaClick} className="bg-[#FACC15] text-black px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(250,204,21,0.4)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group">
+         <button onClick={handleWaClick} className={`bg-[#FACC15] text-black px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(250,204,21,0.4)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
             <div className="absolute inset-0 bg-white/30 translate-y-full group-hover:translate-y-0 transition-transform"></div>
             <Wallet size={24} className="relative z-10" /> <span className="relative z-10">Créer ma Tontine (Mois à 2.900F)</span>
          </button>
@@ -314,7 +333,7 @@ export default function OnyxTontineLanding() {
                   <div className="text-lg font-black text-red-500 line-through mb-1">6 900 F</div>
                   <div className="text-5xl lg:text-6xl font-black mb-2 text-[#FACC15]">2 900 F</div>
                   <div className={`text-sm ${textMuted} font-bold uppercase tracking-widest mb-8`}>Le premier mois</div>
-                  <button onClick={handleWaClick} className="w-full bg-[#FACC15] text-black py-4 px-8 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(250,204,21,0.2)]">
+                  <button onClick={handleWaClick} className={`w-full bg-[#FACC15] text-black py-4 px-8 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(250,204,21,0.2)] ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                      Profiter de l'offre
                   </button>
                   <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Offre flash non cumulable</p>
@@ -395,7 +414,7 @@ export default function OnyxTontineLanding() {
                 <p className={`font-black text-sm md:text-base ${theme === 'dark' ? 'text-white' : 'text-black'}`}>1er MOIS <span className="text-[#FACC15] text-lg font-black">À 2.900 F</span></p>
                 <p className={`text-[10px] md:text-xs font-bold ${textMuted} uppercase tracking-widest hidden sm:block`}>Sans carte bancaire. Annulez quand vous voulez.</p>
              </div>
-             <button onClick={handleWaClick} className="bg-[#FACC15] text-black px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(250,204,21,0.3)]">
+             <button onClick={handleWaClick} className={`bg-[#FACC15] text-black px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(250,204,21,0.3)] ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                 Tester Gratuitement
              </button>
           </div>

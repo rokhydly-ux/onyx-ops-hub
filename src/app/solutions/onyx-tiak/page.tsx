@@ -160,8 +160,19 @@ export default function OnyxTiakLanding() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white overflow-x-hidden selection:bg-[#39FF14]/30 pb-24">
+      {/* SHAKE CSS POUR LE FOMO */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fomo-shake {
+          0%, 100% { transform: translateX(0) scale(1.05); }
+          25% { transform: translateX(-4px) scale(1.05); }
+          75% { transform: translateX(4px) scale(1.05); }
+        }
+        .fomo-shake-active {
+          animation: fomo-shake 0.4s ease-in-out infinite;
+        }
+      `}} />
       {/* BANNIÈRE PROMO HAUT DE PAGE */}
-      <div className="bg-red-600 text-white text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md flex items-center justify-center gap-2">
+      <div className={`bg-red-600 text-white text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md flex items-center justify-center gap-2 ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
           <Flame size={16} className="animate-pulse" /> 
           Offre de bienvenue : L'essai à 2.900 F expire dans {formatTime(fomoTime)}
       </div>
@@ -191,7 +202,7 @@ export default function OnyxTiakLanding() {
                  Assignez vos courses, suivez vos livreurs en temps réel, notifiez vos clients sur WhatsApp et contrôlez votre caisse sans erreurs.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                 <button onClick={() => handleWaClick("Onyx Tiak")} className="bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition shadow-[0_0_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2">
+                 <button onClick={() => handleWaClick("Onyx Tiak")} className={`bg-[#39FF14] text-black px-8 py-4 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 transition shadow-[0_0_30px_rgba(57,255,20,0.3)] flex items-center justify-center gap-2 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                     Démarrer l'essai gratuit <ArrowRight size={18}/>
                  </button>
               </div>
@@ -279,7 +290,7 @@ export default function OnyxTiakLanding() {
                      <li className="flex gap-2">✔ Alertes WhatsApp clients</li>
                      <li className="flex gap-2">✔ Bilan de caisse journalier</li>
                   </ul>
-                  <button onClick={() => handleWaClick("Onyx Tiak Solo")} className="w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-700 transition">
+                  <button onClick={() => handleWaClick("Onyx Tiak Solo")} className={`w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-700 transition ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                      Je teste pour 2.900 F
                   </button>
                   <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Offre flash non cumulable</p>
@@ -306,7 +317,7 @@ export default function OnyxTiakLanding() {
                      <li className="flex gap-2">✔ <strong className="text-white">Onyx Stock</strong> (Inventaire Auto)</li>
                      <li className="flex gap-2">✔ Zéro rupture, zéro perte</li>
                   </ul>
-                  <button onClick={() => handleWaClick("OnyxTekki Trio")} className="w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2 animate-pulse hover:animate-none">
+                  <button onClick={() => handleWaClick("OnyxTekki Trio")} className={`w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2 ${fomoTime <= 120 ? 'fomo-shake-active' : 'animate-pulse hover:animate-none'}`}>
                      JE TESTE POUR 2.900 F <ArrowRight size={18}/>
                   </button>
                   <p className="text-[10px] font-bold text-center text-[#39FF14] uppercase tracking-widest mt-4 opacity-80">* Offre flash non cumulable</p>
@@ -388,7 +399,7 @@ export default function OnyxTiakLanding() {
                 <p className="font-black text-sm md:text-base text-white"><span className="line-through text-red-500 text-xs mr-2">22 900F</span><span className="text-[#39FF14]">2 900 F</span><span className="text-zinc-500 text-xs font-bold">/1er mois</span></p>
                 <p className="text-[10px] md:text-xs font-bold text-zinc-400 uppercase tracking-widest hidden sm:block">Le Pack Trio Complet. <span className="text-black bg-[#39FF14] px-1.5 py-0.5 rounded shadow-sm">1ER MOIS À 2.900 F</span></p>
              </div>
-             <button onClick={() => handleWaClick("OnyxTekki Trio")} className="bg-[#39FF14] text-black px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(57,255,20,0.3)]">
+             <button onClick={() => handleWaClick("OnyxTekki Trio")} className={`bg-[#39FF14] text-black px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-[0_0_20px_rgba(57,255,20,0.3)] ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                 Je teste pour 2.900 F
              </button>
           </div>

@@ -155,7 +155,7 @@ export default function OnyxCRMLanding() {
 
       {/* BULLE FOMO ANIMÉE */}
       {showFomoPopup && (
-        <div className="fixed bottom-24 left-4 md:left-6 z-[100] animate-in slide-in-from-bottom-8 duration-500">
+        <div className={`fixed bottom-24 left-4 md:left-6 z-[100] animate-in slide-in-from-bottom-8 duration-500 ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
           <div className="bg-white text-zinc-900 p-4 rounded-2xl shadow-2xl border-2 border-[#00E5FF] flex items-start gap-4 w-[calc(100vw-2rem)] md:w-auto max-w-[320px] relative">
             <button 
               onClick={() => setShowFomoPopup(false)} 

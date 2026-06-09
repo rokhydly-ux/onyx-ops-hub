@@ -148,8 +148,19 @@ export default function OnyxMenuLanding() {
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-zinc-900 overflow-x-hidden selection:bg-[#FF5722]/30 pb-24 font-sans">
+      {/* SHAKE CSS POUR LE FOMO */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fomo-shake {
+          0%, 100% { transform: translateX(0) scale(1.05); }
+          25% { transform: translateX(-4px) scale(1.05); }
+          75% { transform: translateX(4px) scale(1.05); }
+        }
+        .fomo-shake-active {
+          animation: fomo-shake 0.4s ease-in-out infinite;
+        }
+      `}} />
       {/* BANNIÈRE PROMO HAUT DE PAGE */}
-      <div className="bg-red-600 text-white text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md flex items-center justify-center gap-2">
+      <div className={`bg-red-600 text-white text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md flex items-center justify-center gap-2 ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
           <Flame size={16} className="animate-pulse" /> 
           Offre de bienvenue : L'essai à 2.900 F expire dans {formatTime(fomoTime)}
       </div>
@@ -190,7 +201,7 @@ export default function OnyxMenuLanding() {
             Un menu digital interactif qui donne faim. Vos clients scannent, salivent devant des photos HD et commandent directement sur WhatsApp en <strong className="text-black">10 secondes chrono.</strong>
          </p>
          
-         <button onClick={() => handleWaClick("Onyx Menu (Essai Gratuit)")} className="bg-[#FF5722] text-white px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(255,87,34,0.3)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group">
+         <button onClick={() => handleWaClick("Onyx Menu (Essai Gratuit)")} className={`bg-[#FF5722] text-white px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(255,87,34,0.3)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
             <div className="absolute inset-0 bg-black/10 translate-y-full group-hover:translate-y-0 transition-transform"></div>
             <QrCode size={24} className="relative z-10" /> <span className="relative z-10">Créer mon menu digital (Essai à 2.900 F)</span>
          </button>
@@ -254,7 +265,7 @@ export default function OnyxMenuLanding() {
                      <li className="flex gap-2">✔ Photos HD illimitées</li>
                      <li className="flex gap-2">✔ Commandes WhatsApp Formatées</li>
                   </ul>
-                  <button onClick={() => handleWaClick("Onyx Menu Solo")} className="w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-700 transition">
+                  <button onClick={() => handleWaClick("Onyx Menu Solo")} className={`w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-sm hover:bg-zinc-700 transition ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                      Je teste pour 2.900F
                   </button>
                   <p className="text-[10px] font-bold text-center text-zinc-500 uppercase tracking-widest mt-4">* Offre flash non cumulable</p>
@@ -281,7 +292,7 @@ export default function OnyxMenuLanding() {
                      <li className="flex gap-2">✔ <strong className="text-white">Onyx Tiak</strong> (Suivi Livreurs)</li>
                      <li className="flex gap-2 text-[#FF5722]">✔ Marge sous contrôle</li>
                   </ul>
-                  <button onClick={() => handleWaClick("OnyxTekki Resto")} className="w-full bg-[#FF5722] text-white py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(255,87,34,0.3)] flex justify-center items-center gap-2 animate-pulse hover:animate-none">
+                  <button onClick={() => handleWaClick("OnyxTekki Resto")} className={`w-full bg-[#FF5722] text-white py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(255,87,34,0.3)] flex justify-center items-center gap-2 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                      INSTALLER MON RESTO 2.0 <ArrowRight size={18}/>
                   </button>
                   <p className="text-[10px] font-bold text-center text-[#FF5722] uppercase tracking-widest mt-4 opacity-80">* Offre flash non cumulable</p>
@@ -363,7 +374,7 @@ export default function OnyxMenuLanding() {
                 <p className="font-black text-sm md:text-base text-black">22 900 F<span className="text-zinc-500 text-xs font-bold">/mois</span></p>
                 <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Pack Resto Complet. <span className="text-white bg-[#FF5722] px-1.5 py-0.5 rounded shadow-sm">1er MOIS À 2.900 F</span></p>
              </div>
-             <button onClick={() => handleWaClick("OnyxTekki Resto")} className="bg-[#FF5722] text-white px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-[#FF5722]/20">
+             <button onClick={() => handleWaClick("OnyxTekki Resto")} className={`bg-[#FF5722] text-white px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:scale-105 transition-transform shadow-lg shadow-[#FF5722]/20 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                 Je teste pour 2.900 F
              </button>
           </div>
