@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   Activity, HeartPulse, Smartphone, Flame, CheckCircle, 
-  ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown,
+  ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown, ChevronRight,
   Send, X, ArrowUp, BookOpen, Sparkles
 } from "lucide-react";
 
@@ -32,12 +32,59 @@ const TESTIMONIALS = [
   }
 ];
 
+const TRANSFORMATIONS = [
+  {
+    name: "Ndeye S.",
+    stats: "-12kg en 4 mois",
+    beforeImg: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg",
+    afterImg: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg",
+    story: "Ndeye voulait retrouver sa silhouette d'avant grossesse sans sacrifier les repas en famille. Mission accomplie !"
+  },
+  {
+    name: "Ousmane T.",
+    stats: "Ventre plat en 2 mois",
+    beforeImg: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg",
+    afterImg: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg",
+    story: "Ousmane a dit adieu à son ventre de 'cadre sédentaire' en apprenant à mieux choisir ses plats au restaurant."
+  }
+];
+
+const FAQ_DATA = [
+  {
+    question: "Est-ce un régime restrictif ?",
+    answer: "Non, pas du tout. 'Nutrition à l'Africaine' est un rééquilibrage alimentaire, pas un régime. Nous n'éliminons aucun groupe d'aliments. Le but est de vous apprendre à manger les bonnes portions de VOS plats, pour des résultats durables sans frustration."
+  },
+  {
+    question: "Dois-je arrêter de manger du Thieboudienne ou du Mafé ?",
+    answer: "Absolument pas ! C'est le cœur de notre méthode. Nous vous montrons comment continuer à manger vos plats préférés en ajustant simplement les quantités et la fréquence, pour qu'ils s'intègrent dans votre objectif de perte de poids."
+  },
+  {
+    question: "Comment fonctionne le suivi sur WhatsApp ?",
+    answer: "Chaque semaine, vous avez un point avec votre coach nutritionniste directement sur WhatsApp. Vous pouvez poser vos questions, partager vos repas en photo pour des conseils, et recevoir la motivation nécessaire. C'est comme avoir un expert dans votre poche."
+  },
+  {
+    question: "Est-ce que ça coûte cher en courses ?",
+    answer: "Non, car notre programme est basé sur les aliments que vous achetez déjà au marché local. Pas de quinoa, de baies de goji ou de produits importés coûteux. On optimise ce qui est déjà dans votre cuisine."
+  },
+  {
+    question: "En combien de temps puis-je voir des résultats ?",
+    answer: "La plupart de nos membres ressentent une différence (plus d'énergie, moins de ballonnements) dès la première semaine. La perte de poids visible commence généralement dès le premier mois. Notre objectif est une perte de poids saine et durable, pas un 'choc' pour votre corps."
+  }
+];
+
 export default function NutritionAfricaineLanding() {
   const waNumber = "221785338417";
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Carousel & FAQ State
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
+  const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
 
   // FOMO Timer
   const [fomoTime, setFomoTime] = useState(900);
@@ -378,23 +425,105 @@ export default function NutritionAfricaineLanding() {
             </h2>
             <p className="text-zinc-500 font-bold text-lg">Découvrez les parcours de nos membres.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {TESTIMONIALS.map((testimonial, index) => (
-              <motion.div
+          <div className="relative max-w-3xl mx-auto">
+            <div className="overflow-hidden relative min-h-[380px] sm:min-h-[320px]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTestimonial}
+                  initial={{ x: 200, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -200, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+                  className="absolute inset-0"
+                >
+                  <div className="bg-zinc-50 border border-zinc-100 p-8 rounded-[2rem] flex flex-col items-center text-center h-full shadow-sm">
+                    <img src={TESTIMONIALS[activeTestimonial].image} alt={`Photo de ${TESTIMONIALS[activeTestimonial].name}`} className="w-24 h-24 rounded-full object-cover mb-6 border-4 border-white shadow-lg" />
+                    <p className="text-zinc-600 font-medium leading-relaxed mb-6 flex-1">"{TESTIMONIALS[activeTestimonial].text}"</p>
+                    <div>
+                      <h4 className="font-black text-lg uppercase text-black">{TESTIMONIALS[activeTestimonial].name}</h4>
+                      <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">{TESTIMONIALS[activeTestimonial].role}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+            <button onClick={prevTestimonial} className="absolute top-1/2 -translate-y-1/2 -left-4 sm:-left-12 bg-white border border-zinc-200 p-3 rounded-full shadow-md hover:bg-black hover:text-[#39FF14] transition-all z-10"><ChevronLeft size={24}/></button>
+            <button onClick={nextTestimonial} className="absolute top-1/2 -translate-y-1/2 -right-4 sm:-right-12 bg-white border border-zinc-200 p-3 rounded-full shadow-md hover:bg-black hover:text-[#39FF14] transition-all z-10"><ChevronRight size={24}/></button>
+            
+            <div className="flex justify-center gap-2 mt-8">
+              {TESTIMONIALS.map((_, index) => (
+                <button key={index} onClick={() => setActiveTestimonial(index)} className={`w-3 h-3 rounded-full transition-all ${activeTestimonial === index ? 'bg-black scale-125' : 'bg-zinc-300 hover:bg-zinc-400'}`} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 5.5 : AVANT/APRÈS */}
+      <section className="py-24 px-6 bg-zinc-950 text-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4`}>
+              Des résultats <span className="text-[#39FF14]">visibles</span>, pas des promesses.
+            </h2>
+            <p className="text-zinc-400 font-bold text-lg">Ils ont fait confiance à la méthode. Leurs corps ont changé.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-12">
+            {TRANSFORMATIONS.map((trans, index) => (
+              <motion.div 
                 key={index}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, amount: 0.3 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-zinc-50 border border-zinc-100 p-8 rounded-[2rem] flex flex-col items-center text-center"
+                className="bg-black border border-zinc-800 p-6 rounded-[2rem] shadow-2xl"
               >
-                <img src={testimonial.image} alt={`Photo de ${testimonial.name}`} className="w-24 h-24 rounded-full object-cover mb-6 border-4 border-white shadow-lg" />
-                <p className="text-zinc-600 font-medium leading-relaxed mb-6 flex-1">"{testimonial.text}"</p>
-                <div>
-                  <h4 className="font-black text-lg uppercase text-black">{testimonial.name}</h4>
-                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">{testimonial.role}</p>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="relative">
+                    <img src={trans.beforeImg} alt={`Avant - ${trans.name}`} className="w-full h-full object-cover rounded-xl aspect-[3/4] grayscale" />
+                    <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black uppercase px-2 py-1 rounded">Avant</span>
+                  </div>
+                  <div className="relative">
+                    <img src={trans.afterImg} alt={`Après - ${trans.name}`} className="w-full h-full object-cover rounded-xl aspect-[3/4]" />
+                    <span className="absolute top-2 left-2 bg-[#39FF14] text-black text-[10px] font-black uppercase px-2 py-1 rounded">Après</span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <h4 className="font-black text-xl uppercase text-white">{trans.name}</h4>
+                  <p className="font-bold text-lg text-[#39FF14] mb-2">{trans.stats}</p>
+                  <p className="text-sm text-zinc-400 font-medium">{trans.story}</p>
                 </div>
               </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 6 : FAQ */}
+      <section className="py-24 px-6 bg-zinc-100 border-t border-zinc-200">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              Vos Questions, <span className="text-black border-b-4 border-[#39FF14]">Nos Réponses.</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Toutes les informations pour démarrer sereinement.</p>
+          </div>
+          <div className="space-y-4">
+            {FAQ_DATA.map((item, index) => (
+              <div key={index} className={`bg-white border-2 rounded-[2rem] p-6 transition-all duration-300 ${openFaq === index ? 'border-[#39FF14]' : 'border-zinc-200'}`}>
+                <button onClick={() => setOpenFaq(openFaq === index ? null : index)} className="w-full flex justify-between items-center text-left gap-4">
+                  <h3 className="font-black text-lg uppercase tracking-tight text-black">{item.question}</h3>
+                  <div className={`p-2 rounded-full transition-transform duration-300 shrink-0 ${openFaq === index ? 'bg-black text-[#39FF14] rotate-180' : 'bg-zinc-200 text-zinc-600'}`}>
+                    <ChevronDown size={20} />
+                  </div>
+                </button>
+                <div className={`grid transition-all duration-300 ease-in-out ${openFaq === index ? 'grid-rows-[1fr] opacity-100 pt-4' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className="overflow-hidden">
+                    <p className="text-zinc-600 font-medium leading-relaxed pr-8">{item.answer}</p>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
