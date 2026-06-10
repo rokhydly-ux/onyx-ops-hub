@@ -179,6 +179,7 @@ export default function NutritionAfricaineLanding() {
   // Calorie Calculator State
   const [selectedDish, setSelectedDish] = useState<string>("");
   const [dishInfo, setDishInfo] = useState<{ calories: number; optimizedCalories: number; tip: string } | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
   const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
@@ -200,11 +201,25 @@ export default function NutritionAfricaineLanding() {
   }, [fomoTime]);
 
   // Calorie Calculator Handler
-  const handleDishChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleDishChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const dishName = e.target.value;
     setSelectedDish(dishName);
     if (dishName && DISH_CALORIES[dishName]) {
       setDishInfo(DISH_CALORIES[dishName]);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+
+      // Sauvegarde du choix en arrière-plan pour analyse
+      try {
+         await supabase.from('leads').insert([{
+             full_name: 'Visiteur (Calculateur)',
+             message: `Plat simulé : ${dishName}`,
+             intent: "Simulation de plat",
+             source: "Calculateur Calories",
+             status: 'Nouveau',
+             saas: "Nutrition à l'Africaine"
+         }]);
+      } catch (err) {}
     } else {
       setDishInfo(null);
     }
@@ -327,6 +342,26 @@ export default function NutritionAfricaineLanding() {
         }
       `}} />
       
+      {/* ANIMATION LUDIQUE DE CONFETTIS */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-[500] pointer-events-none overflow-hidden">
+          {[...Array(50)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animation: `fall-${i % 2 === 0 ? 'left' : 'right'} ${2 + Math.random() * 3}s ease-in forwards`,
+                animationDelay: `${Math.random() * 0.5}s`,
+              }}
+            >
+              {['🎉', '✨', '🔥', '🥬', '🥗', '🥑'][i % 6]}
+            </div>
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `@keyframes fall-left { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg) translateX(-50px); opacity: 0; } } @keyframes fall-right { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(-360deg) translateX(50px); opacity: 0; } }`}} />
+        </div>
+      )}
+
       {/* BANNIÈRE PROMO HAUT DE PAGE */}
       <div className={`bg-black text-[#39FF14] text-center py-2.5 px-4 font-black uppercase text-[10px] md:text-xs tracking-widest z-50 relative shadow-md flex items-center justify-center gap-2 ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
           <HeartPulse size={16} className="animate-pulse text-[#39FF14]" /> 
