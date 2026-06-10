@@ -40,10 +40,10 @@ const ALL_MENUS = [
 
 const DAILY_MENU = {
    autopilot: [
-      { type: 'Petit-déjeuner', time: '08:00', meal: 'Bouillie de Mil (Lakh) allégée, sans sucre ajouté', cals: 300, proteins: 8 },
-      { type: 'Déjeuner', time: '13:30', meal: 'Thieboudienne (1/4 assiette riz brisé, 1/2 légumes, gros morceau de poisson)', cals: 600, proteins: 35 },
-      { type: 'Collation', time: '16:00', meal: 'Poignée d\'arachides grillées (sans sel) ou fruits de saison', cals: 150, proteins: 5 },
-      { type: 'Dîner', time: '19:30', meal: 'Salade de Niébé aux crudités, vinaigrette légère', cals: 400, proteins: 20 },
+      { type: 'Petit-déjeuner', time: '08:00', meal: 'Bouillie de Mil (Lakh) allégée', cals: 300, proteins: 8, carbs: 50, fats: 5, recipe: "Faire bouillir 50g de mil avec de l'eau. Ajouter un filet de lait demi-écrémé et de la noix de muscade." },
+      { type: 'Déjeuner', time: '13:30', meal: 'Thieboudienne Diététique', cals: 600, proteins: 35, carbs: 70, fats: 15, recipe: "Utiliser 1/4 d'assiette de riz brisé (ou de fonio). Beaucoup de légumes (chou, carotte). Morceau de poisson de 150g. Limiter l'huile à 1 cuillère à soupe par personne." },
+      { type: 'Collation', time: '16:00', meal: 'Poignée d\'arachides', cals: 150, proteins: 5, carbs: 10, fats: 12, recipe: "Une petite poignée de cacahuètes grillées sans sel (environ 20g)." },
+      { type: 'Dîner', time: '19:30', meal: 'Salade de Niébé', cals: 400, proteins: 20, carbs: 45, fats: 10, recipe: "Mélanger 100g de niébé cuit avec des tomates, concombres, oignons. Vinaigrette : 1 càc d'huile d'olive, citron, sel, poivre." },
    ],
    compass: [
       { type: 'Règle d\'Or', time: 'Toute la journée', meal: 'Limitez les féculents (Riz, Fonio, Mil) à 1/4 de votre assiette max.' },
@@ -100,10 +100,19 @@ export default function NutritionDashboard() {
   const [calories, setCalories] = useState(0);
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [proteins, setProteins] = useState(0);
+  const [carbs, setCarbs] = useState(0);
+  const [fats, setFats] = useState(0);
   
   // Bilan
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [reportData, setReportData] = useState({ followedMenu: false, cravedRice: false, drankWater: false });
+  const [selectedMealModal, setSelectedMealModal] = useState<any>(null);
+  
+  // Objectifs
+  const [calorieGoal, setCalorieGoal] = useState(1500);
+  const [proteinGoal, setProteinGoal] = useState(80);
+  const [carbsGoal, setCarbsGoal] = useState(150);
+  const [fatsGoal, setFatsGoal] = useState(50);
   
   const [profileForm, setProfileForm] = useState({ full_name: "", avatar_url: "", password: "" });
   const [showReminder, setShowReminder] = useState(false);
@@ -165,8 +174,35 @@ export default function NutritionDashboard() {
               setCalories(todayLog.calories_consumed || 0);
               setWaterGlasses(todayLog.water_glasses || 0);
               setProteins(todayLog.proteins_consumed || 0);
+              setCarbs(todayLog.carbs_consumed || 0);
+              setFats(todayLog.fats_consumed || 0);
               if (todayLog.report_data) setReportData(todayLog.report_data);
             }
+          }
+
+          // Récupérer le profil nutritionnel (via Supabase ou localStorage)
+          const { data: nutritionData } = await supabase
+            .from('nutrition_profiles')
+            .select('*')
+            .eq('phone', userPhone)
+            .single();
+
+          if (nutritionData) {
+             setCalorieGoal(nutritionData.daily_calorie_goal || 1500);
+             setProteinGoal(nutritionData.protein_goal || 80);
+             setCarbsGoal(nutritionData.carbs_goal || 150);
+             setFatsGoal(nutritionData.fats_goal || 50);
+          } else {
+             const localGoals = localStorage.getItem('onyx_nutrition_goals');
+             if (localGoals) {
+                try {
+                   const parsed = JSON.parse(localGoals);
+                   if (parsed.calories) setCalorieGoal(Math.round(parsed.calories));
+                   if (parsed.protein) setProteinGoal(Math.round(parsed.protein));
+                   if (parsed.carbs) setCarbsGoal(Math.round(parsed.carbs));
+                   if (parsed.fats) setFatsGoal(Math.round(parsed.fats));
+                } catch (e) {}
+             }
           }
         }
       }
@@ -230,6 +266,36 @@ export default function NutritionDashboard() {
     });
   };
   
+  const handleMealClick = (mealType: string, plannedMeal: any) => {
+      setSelectedMealModal({ type: mealType, meal: plannedMeal, mode: trackingMode });
+  };
+
+  const confirmMealLog = async (cals: number, prots: number, mealCarbs: number, mealFats: number) => {
+      const newCals = calories + cals;
+      const newProts = proteins + prots;
+      const newCarbs = carbs + mealCarbs;
+      const newFats = fats + mealFats;
+      
+      setCalories(newCals);
+      setProteins(newProts);
+      setCarbs(newCarbs);
+      setFats(newFats);
+      
+      setSelectedMealModal(null);
+      
+      if (clientProfile) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          await supabase.from('nutrition_daily_logs').upsert({
+            client_id: clientProfile.id,
+            log_date: todayStr,
+            calories_consumed: newCals,
+            proteins_consumed: newProts,
+            carbs_consumed: newCarbs,
+            fats_consumed: newFats
+          }, { onConflict: 'client_id, log_date' });
+      }
+  };
+
   const submitDailyReport = async () => {
     if (!clientProfile) return;
     const todayStr = new Date().toISOString().split('T')[0];
@@ -238,8 +304,8 @@ export default function NutritionDashboard() {
     let currentCals = calories;
     let currentProts = proteins;
     if (reportData.followedMenu && currentCals === 0) {
-        currentCals = 1450;
-        currentProts = 68;
+        currentCals = calorieGoal;
+        currentProts = proteinGoal;
         setCalories(currentCals);
         setProteins(currentProts);
     }
@@ -298,6 +364,8 @@ export default function NutritionDashboard() {
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
   }
+
+  const remainingCalories = Math.max(0, calorieGoal - calories);
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-black pb-24 font-sans selection:bg-[#39FF14]/30">
@@ -369,55 +437,95 @@ export default function NutritionDashboard() {
             </div>
 
             {/* JAUGES DU JOUR */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-               <div className="flex items-center justify-between mb-8">
-                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Activity className="text-[#39FF14]"/> Suivi du Jour</h2>
-                 <p className="text-xs font-bold text-zinc-500">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <div className="bg-black p-8 rounded-[2rem] border border-zinc-800 shadow-2xl text-center relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 blur-[50px] rounded-full"></div>
+               
+               <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter text-white flex items-center justify-center gap-3 mb-6`}><Activity className="text-[#39FF14]"/> Synthèse Journalière</h2>
+               
+               {/* JAUGE CENTRALE (CALORIES) */}
+               <div className="relative w-48 h-48 mx-auto mb-8">
+                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" className="stroke-zinc-800" strokeWidth="6" fill="transparent" />
+                      <motion.circle 
+                         cx="50" cy="50" r="40" 
+                         className="stroke-[#39FF14] text-[#39FF14]" strokeWidth="6" fill="transparent" 
+                         strokeDasharray={2 * Math.PI * 40} 
+                         strokeDashoffset={(2 * Math.PI * 40) - (Math.min(remainingCalories / calorieGoal, 1) * (2 * Math.PI * 40))}
+                         initial={{ strokeDashoffset: 2 * Math.PI * 40 }}
+                         animate={{ strokeDashoffset: (2 * Math.PI * 40) - (Math.min(remainingCalories / calorieGoal, 1) * (2 * Math.PI * 40)) }}
+                         transition={{ duration: 1.5, ease: "easeOut" }}
+                         strokeLinecap="round"
+                      />
+                   </svg>
+                   <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                      <span className="text-4xl font-black">{remainingCalories}</span>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Kcal Restantes</span>
+                   </div>
                </div>
-               <div className="flex flex-wrap justify-around gap-8">
-                  <CircularProgress value={calories} max={1500} colorClass="stroke-orange-500 text-orange-500" label="Énergie" unit="kcal" icon={Flame} />
-                  
-                  <div className="relative cursor-pointer group" onClick={handleAddWater}>
-                     <CircularProgress value={waterGlasses} max={8} colorClass="stroke-blue-500 text-blue-500" label="Hydratation" unit="verres" icon={Droplet} />
-                     <div className="absolute inset-0 bg-black/5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="bg-blue-500 text-white text-[10px] font-black px-2 py-1 rounded-full">+1 Verre</span>
-                     </div>
-                  </div>
-                  
-                  <CircularProgress value={proteins} max={80} colorClass="stroke-purple-500 text-purple-500" label="Protéines" unit="g" icon={Target} />
+
+               {/* MINI-JAUGES MACROS */}
+               <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
+                   <div className="text-left">
+                      <div className="flex justify-between text-[10px] font-black uppercase mb-1">
+                         <span className="text-yellow-600">Glucides</span>
+                         <span className="text-zinc-400">{carbs} / {carbsGoal}g</span>
+                      </div>
+                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                         <div className="bg-yellow-600 h-full" style={{ width: `${Math.min((carbs/carbsGoal)*100, 100)}%` }}></div>
+                      </div>
+                   </div>
+                   <div className="text-left">
+                      <div className="flex justify-between text-[10px] font-black uppercase mb-1">
+                         <span className="text-[#39FF14]">Protéines</span>
+                         <span className="text-zinc-400">{proteins} / {proteinGoal}g</span>
+                      </div>
+                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                         <div className="bg-[#39FF14] h-full" style={{ width: `${Math.min((proteins/proteinGoal)*100, 100)}%` }}></div>
+                      </div>
+                   </div>
+                   <div className="text-left">
+                      <div className="flex justify-between text-[10px] font-black uppercase mb-1">
+                         <span className="text-zinc-300">Lipides</span>
+                         <span className="text-zinc-400">{fats} / {fatsGoal}g</span>
+                      </div>
+                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                         <div className="bg-zinc-300 h-full" style={{ width: `${Math.min((fats/fatsGoal)*100, 100)}%` }}></div>
+                      </div>
+                   </div>
                </div>
             </div>
 
-            {/* MENU DU JOUR */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black mb-6 flex items-center gap-3`}><Utensils className="text-black"/> Mon Menu du Jour</h2>
-               
-               <div className="space-y-4">
-                  {(trackingMode === 'autopilot' ? DAILY_MENU.autopilot : DAILY_MENU.compass).map((item, idx) => (
-                     <div key={idx} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#39FF14] transition-colors">
-                        <div>
-                           <div className="flex items-center gap-3 mb-2">
-                              <span className="bg-black text-[#39FF14] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{item.type}</span>
-                              <span className="text-xs font-bold text-zinc-500 flex items-center gap-1"><Clock size={12}/> {item.time}</span>
-                           </div>
-                           <p className="font-bold text-sm text-black">{item.meal}</p>
-                        </div>
-                        {trackingMode === 'autopilot' && item.cals && (
-                           <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-zinc-200 shrink-0">
-                              <div className="text-center">
-                                 <p className="text-[10px] font-black text-zinc-400 uppercase">Calories</p>
-                                 <p className="text-sm font-black text-orange-500">{item.cals}</p>
-                              </div>
-                              <div className="w-px h-8 bg-zinc-200"></div>
-                              <div className="text-center">
-                                 <p className="text-[10px] font-black text-zinc-400 uppercase">Protéines</p>
-                                 <p className="text-sm font-black text-purple-500">{item.proteins}g</p>
-                              </div>
-                           </div>
-                        )}
-                     </div>
-                  ))}
-               </div>
+            {/* CORPS : LES REPAS */}
+            <div className="grid md:grid-cols-2 gap-4">
+                {['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner'].map((mealType) => {
+                    const plannedMeal = DAILY_MENU.autopilot.find(m => m.type === mealType);
+                    
+                    return (
+                       <div key={mealType} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors cursor-pointer" onClick={() => handleMealClick(mealType, plannedMeal)}>
+                          <div className="flex justify-between items-center mb-4">
+                             <span className="bg-zinc-100 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{mealType}</span>
+                             {trackingMode === 'autopilot' && plannedMeal && (
+                                <span className="text-xs font-bold text-zinc-500 flex items-center gap-1"><Clock size={12}/> {plannedMeal.time}</span>
+                             )}
+                          </div>
+                          
+                          {trackingMode === 'autopilot' && plannedMeal ? (
+                             <div>
+                                <p className="font-black text-lg text-black mb-2">{plannedMeal.meal}</p>
+                                <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
+                                   <span className="flex items-center gap-1 text-orange-500"><Flame size={14}/> {plannedMeal.cals} kcal</span>
+                                   <span className="flex items-center gap-1 text-[#39FF14]"><Target size={14}/> {plannedMeal.proteins}g prot</span>
+                                </div>
+                             </div>
+                          ) : (
+                             <div className="flex flex-col items-center justify-center py-4 border-2 border-dashed border-zinc-200 rounded-xl hover:border-black hover:bg-zinc-50 transition-colors">
+                                <span className="text-2xl mb-2 text-zinc-300">+</span>
+                                <span className="text-xs font-black uppercase tracking-widest text-zinc-500">Ajouter un aliment</span>
+                             </div>
+                          )}
+                       </div>
+                    );
+                })}
             </div>
 
             {/* BOUTON BILAN FIN DE JOURNÉE */}
@@ -462,6 +570,57 @@ export default function NutritionDashboard() {
                      <button onClick={submitDailyReport} className="w-full mt-8 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
                         <CheckCircle size={20} /> Valider ma journée
                      </button>
+                  </div>
+               </div>
+            )}
+
+            {/* MODALE REPAS (LOGGING) */}
+            {selectedMealModal && (
+               <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setSelectedMealModal(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+                  <div className="bg-white p-8 sm:p-10 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto">
+                     <button onClick={() => setSelectedMealModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+                     <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter mb-2`}>{selectedMealModal.type}</h2>
+                     
+                     {selectedMealModal.mode === 'autopilot' && selectedMealModal.meal ? (
+                         <>
+                             <p className="text-sm font-bold text-zinc-500 mb-6">{selectedMealModal.meal.meal}</p>
+                             <div className="bg-zinc-50 p-5 rounded-2xl border border-zinc-200 mb-6">
+                                <h4 className="font-black text-xs uppercase tracking-widest text-zinc-400 mb-2">Recette / Consignes</h4>
+                                <p className="text-sm font-medium text-zinc-700 leading-relaxed">{selectedMealModal.meal.recipe}</p>
+                             </div>
+                             <div className="grid grid-cols-4 gap-2 mb-8 text-center">
+                                <div className="bg-orange-50 p-2 rounded-xl border border-orange-100"><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{selectedMealModal.meal.cals}</p></div>
+                                <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100"><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{selectedMealModal.meal.carbs}g</p></div>
+                                <div className="bg-green-50 p-2 rounded-xl border border-green-100"><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{selectedMealModal.meal.proteins}g</p></div>
+                                <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200"><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{selectedMealModal.meal.fats}g</p></div>
+                             </div>
+                             <button onClick={() => confirmMealLog(selectedMealModal.meal.cals, selectedMealModal.meal.proteins, selectedMealModal.meal.carbs, selectedMealModal.meal.fats)} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
+                                <CheckCircle size={20} /> J'ai mangé ça !
+                             </button>
+                         </>
+                     ) : (
+                         <>
+                             <p className="text-sm font-bold text-zinc-500 mb-6">Mode Flexible : Entrez les macros de votre repas.</p>
+                             <div className="space-y-4 mb-8">
+                                <div><label className="text-[10px] font-black uppercase text-zinc-500">Nom du plat</label><input type="text" id="flex_name" className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm" placeholder="Ex: Salade composée"/></div>
+                                <div className="grid grid-cols-2 gap-4">
+                                   <div><label className="text-[10px] font-black uppercase text-orange-500">Calories (kcal)</label><input type="number" id="flex_cals" defaultValue={300} className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm"/></div>
+                                   <div><label className="text-[10px] font-black uppercase text-green-500">Protéines (g)</label><input type="number" id="flex_prots" defaultValue={15} className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm"/></div>
+                                   <div><label className="text-[10px] font-black uppercase text-yellow-600">Glucides (g)</label><input type="number" id="flex_carbs" defaultValue={30} className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm"/></div>
+                                   <div><label className="text-[10px] font-black uppercase text-zinc-400">Lipides (g)</label><input type="number" id="flex_fats" defaultValue={10} className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm"/></div>
+                                </div>
+                             </div>
+                             <button onClick={() => {
+                                 const cals = parseInt((document.getElementById('flex_cals') as HTMLInputElement).value) || 0;
+                                 const prots = parseInt((document.getElementById('flex_prots') as HTMLInputElement).value) || 0;
+                                 const carbs = parseInt((document.getElementById('flex_carbs') as HTMLInputElement).value) || 0;
+                                 const fats = parseInt((document.getElementById('flex_fats') as HTMLInputElement).value) || 0;
+                                 confirmMealLog(cals, prots, carbs, fats);
+                             }} className="w-full bg-black text-[#00E5FF] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
+                                <CheckCircle size={20} /> Ajouter au tracker
+                             </button>
+                         </>
+                     )}
                   </div>
                </div>
             )}
@@ -541,7 +700,7 @@ export default function NutritionDashboard() {
                            const dateStr = d.toISOString().split('T')[0];
                            const log = dailyLogs.find(l => l.log_date === dateStr);
                            const count = log?.calories_consumed || 0;
-                           const target = 1500;
+                           const target = calorieGoal;
                            const heightPct = count > 0 ? Math.min((count / target) * 100, 100) : 0;
                            return (
                               <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
@@ -708,11 +867,11 @@ export default function NutritionDashboard() {
                    <div className="space-y-4">
                       <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
                          <span className="text-sm font-bold text-zinc-500">Objectif Calories</span>
-                         <span className="font-black text-black">1500 kcal / jour</span>
+                         <span className="font-black text-black">{calorieGoal} kcal / jour</span>
                       </div>
                       <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
                          <span className="text-sm font-bold text-zinc-500">Objectif Protéines</span>
-                         <span className="font-black text-black">80 g / jour</span>
+                         <span className="font-black text-black">{proteinGoal} g / jour</span>
                       </div>
                       <div className="flex justify-between items-center">
                          <span className="text-sm font-bold text-zinc-500">Hydratation</span>
