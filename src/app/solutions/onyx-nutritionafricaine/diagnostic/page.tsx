@@ -1,189 +1,231 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { 
-  ChevronLeft, Download, Lock, CheckCircle, 
-  Activity, Calendar, Clock, ArrowRight, ShieldAlert, Sparkles, HeartPulse
-} from "lucide-react";
+import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale } from "lucide-react";
 import { motion } from "framer-motion";
 
 const spaceGrotesk = { className: "font-sans" };
 
-const WEEKLY_MENUS = [
-  {
-    week: 1,
-    status: "unlocked",
-    title: "Semaine 1 : Détox & Découverte",
-    desc: "Commencez en douceur avec nos alternatives locales (Fonio, Mil) et nos astuces pour alléger vos plats.",
-    meals: ["Lundi : Fonio au poulet (500 kcal)", "Mardi : Salade de Niébé (450 kcal)", "Mercredi : Thieboudienne revisité (600 kcal)"]
-  },
-  {
-    week: 2,
-    status: "unlocked",
-    title: "Semaine 2 : L'Équilibre Africain",
-    desc: "Votre corps s'habitue. On introduit des portions contrôlées pour vos plats familiaux.",
-    meals: ["Lundi : Mafé allégé (550 kcal)", "Mardi : Poisson grillé et légumes locaux", "Mercredi : Couscous de mil (Thiéré)"]
-  },
-  {
-    week: 3,
-    status: "locked",
-    title: "Semaine 3 : Accélération",
-    desc: "La perte de poids s'accélère. Des menus spécifiques pour brûler les graisses résistantes.",
-    meals: []
-  },
-  {
-    week: 4,
-    status: "locked",
-    title: "Semaine 4 : Consolidation",
-    desc: "Maintenez vos résultats sans effet yoyo et apprenez à stabiliser votre poids.",
-    meals: []
-  }
-];
-
-export default function NutritionDashboard() {
+export default function NutritionDiagnostic() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [daysLeft, setDaysLeft] = useState(14); // Simulation de 14 jours restants
+  const waNumber = "221785338417";
+  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    gender: "",
+    age: "",
+    height: "",
+    currentWeight: "",
+    targetWeight: "",
+    activityLevel: "",
+    dietaryHabits: "",
+    allergies: "",
+    familyDynamic: "",
+    lunchHabit: "",
+    shoppingHabit: "",
+    sleepHours: ""
+  });
 
-  useEffect(() => {
-    const verifyAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser({ ...session.user, full_name: session.user.user_metadata?.full_name || "Membre" });
-      } else {
-        // Fallback pour localStorage si pas de session Supabase active
-        const customSession = localStorage.getItem('onyx_custom_session');
-        if (customSession) {
-          setUser(JSON.parse(customSession));
-        } else {
-          router.push('/login');
-        }
-      }
-      setLoading(false);
-    };
-    verifyAuth();
-  }, [router]);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step < 4) {
+      setStep(step + 1);
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      await supabase.from('leads').insert([{
+        full_name: formData.name,
+        phone: formData.phone,
+        source: "Diagnostic Nutrition",
+        intent: "A complété son diagnostic (Attente Plan)",
+        status: "Nouveau",
+        saas: "Nutrition à l'Africaine",
+        message: `Âge: ${formData.age} | Sexe: ${formData.gender} | Poids actuel: ${formData.currentWeight}kg | Cible: ${formData.targetWeight}kg | Taille: ${formData.height}cm | Activité: ${formData.activityLevel} | Sommeil: ${formData.sleepHours}h | Famille: ${formData.familyDynamic} | Déj: ${formData.lunchHabit} | Courses: ${formData.shoppingHabit} | Habitudes: ${formData.dietaryHabits} | Allergies: ${formData.allergies}`
+      }]);
+      
+      setStep(5); // Success step
+    } catch (err) {
+      alert("Une erreur est survenue.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleWaRedirect = () => {
+    const msg = `🚀 *NOUVEAU PROFIL NUTRITION*\n\nBonjour l'équipe ! Je m'appelle ${formData.name} et je viens de terminer mon diagnostic nutritionnel.\n\nJe souhaite activer mes 14 jours d'essai gratuits et recevoir mon Guide PDF ainsi que mon menu de la Semaine 1 !`;
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  // Calculs Intelligents pour le résultat
+  const heightCm = parseFloat(formData.height) || 0;
+  const currentWeight = parseFloat(formData.currentWeight) || 0;
+  const targetWeight = parseFloat(formData.targetWeight) || 0;
+  const isMale = formData.gender === "Homme";
+  
+  // Formule de Lorentz pour le poids idéal
+  const idealWeight = heightCm > 0 
+    ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) 
+    : 0;
+  
+  const weightToLose = currentWeight - targetWeight;
+  const estimatedMonths = weightToLose > 0 ? Math.max(1, Math.ceil(weightToLose / 3)) : 0; // Base: Perte saine de 3kg/mois
 
   return (
-    <main className="min-h-screen bg-[#fafafa] text-black pb-24 font-sans selection:bg-[#39FF14]/30">
-      {/* Header */}
-      <header className="bg-black text-white px-6 py-8 border-b-4 border-[#39FF14] relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/20 blur-[100px] rounded-full pointer-events-none"></div>
+    <main className="min-h-screen bg-[#fafafa] flex items-center justify-center p-6 text-black">
+      <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2rem] shadow-xl overflow-hidden flex flex-col min-h-[600px]">
         
-        <div className="max-w-6xl mx-auto">
-          <button onClick={() => router.push('/hub')} className="flex items-center gap-2 text-zinc-400 hover:text-[#39FF14] transition-colors font-black uppercase text-xs tracking-widest mb-8 bg-zinc-900 w-max px-4 py-2 rounded-xl border border-zinc-800">
-            <ChevronLeft size={16}/> Retour au Hub
-          </button>
-          
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
-            <div>
-              <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
-              <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
-                Bonjour, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> ! 👋
-              </h1>
-            </div>
-            
-            {/* Bandeau Essai Gratuit */}
-            <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4 shadow-xl">
-              <div className="bg-black border border-zinc-700 p-3 rounded-xl">
-                 <Clock className="text-[#39FF14]" size={24} />
-              </div>
-              <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Période d'essai</p>
-                 <p className="text-sm font-bold text-white"><strong className="text-[#39FF14]">{daysLeft} jours</strong> restants</p>
-              </div>
-            </div>
+        {/* Header */}
+        <div className="bg-black text-white p-8 text-center relative">
+          <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800">
+            <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${(step / 4) * 100}%` }}></div>
           </div>
+          <Activity className="text-[#39FF14] mx-auto mb-4" size={32} />
+          <h1 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter`}>
+            {step === 5 ? "Diagnostic Terminé !" : "Création de votre profil"}
+          </h1>
+          <p className="text-zinc-400 text-sm mt-2 font-medium">
+            {step === 5 ? "L'algorithme a traité vos données." : "Pour un plan alimentaire 100% adapté à vos besoins."}
+          </p>
         </div>
-      </header>
 
-      <div className="max-w-6xl mx-auto px-6 mt-12 space-y-12">
-        
-        {/* SECTION 1 : GUIDE PDF */}
-        <section>
-           <div className="bg-white border border-zinc-200 p-8 md:p-10 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group hover:border-[#39FF14] transition-colors">
-             <div className="flex items-center gap-6 relative z-10">
-                <div className="bg-[#39FF14]/10 text-[#39FF14] p-5 rounded-2xl border border-[#39FF14]/20 group-hover:scale-110 transition-transform">
-                   <Download size={32} />
+        {/* Form Content */}
+        <div className="p-8 flex-1 flex flex-col justify-center">
+          {step !== 5 ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {step === 1 && (
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                  <div className="flex items-center gap-3 mb-6"><Scale className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Informations de base</h2></div>
+                  <input type="text" name="name" required placeholder="Votre Prénom et Nom *" value={formData.name} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  <input type="tel" name="phone" required placeholder="Numéro WhatsApp *" value={formData.phone} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  <select name="gender" required value={formData.gender} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
+                    <option value="" disabled>Votre sexe *</option>
+                    <option value="Femme">Femme</option>
+                    <option value="Homme">Homme</option>
+                  </select>
+                  <input type="number" name="age" required placeholder="Votre Âge *" value={formData.age} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                </motion.div>
+              )}
+
+              {step === 2 && (
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                  <div className="flex items-center gap-3 mb-6"><Target className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Mensurations & Objectifs</h2></div>
+                  <div className="flex gap-4">
+                    <input type="number" name="height" required placeholder="Taille (cm) *" value={formData.height} onChange={handleChange} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                    <input type="number" name="currentWeight" required placeholder="Poids Actuel (kg) *" value={formData.currentWeight} onChange={handleChange} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  </div>
+                  <input type="number" name="targetWeight" required placeholder="Poids Cible / Objectif (kg) *" value={formData.targetWeight} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  <select name="activityLevel" required value={formData.activityLevel} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
+                    <option value="" disabled>Niveau d'activité physique *</option>
+                    <option value="Sédentaire">Sédentaire (Bureau, peu de sport)</option>
+                    <option value="Actif">Légèrement actif (Marche, sport 1-2 fois/semaine)</option>
+                    <option value="Très actif">Très actif (Sport 3+ fois/semaine)</option>
+                  </select>
+                  <input type="number" name="sleepHours" required placeholder="Heures de sommeil par nuit (ex: 7) *" value={formData.sleepHours} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                </motion.div>
+              )}
+
+              {step === 3 && (
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                  <div className="flex items-center gap-3 mb-6"><Apple className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Habitudes Alimentaires</h2></div>
+                  <select name="familyDynamic" required value={formData.familyDynamic} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
+                    <option value="" disabled>Dynamique familiale *</option>
+                    <option value="Cuisine pour la famille">Je cuisine pour une famille</option>
+                    <option value="Gère ses propres repas">Je gère mes propres repas</option>
+                  </select>
+                  <select name="lunchHabit" required value={formData.lunchHabit} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
+                    <option value="" disabled>À midi, vous mangez plutôt... *</option>
+                    <option value="À la cantine du bureau">À la cantine du bureau</option>
+                    <option value="Un plat commandé">Un plat commandé</option>
+                    <option value="Un repas préparé à la maison">Un repas préparé à la maison</option>
+                  </select>
+                  <select name="shoppingHabit" required value={formData.shoppingHabit} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
+                    <option value="" disabled>Où faites-vous vos courses principalement ? *</option>
+                    <option value="Marché local">Marché local</option>
+                    <option value="Supermarché (Auchan, etc.)">Supermarché (Auchan, etc.)</option>
+                    <option value="Mixte">Mixte (Marché + Supermarché)</option>
+                  </select>
+                  <select name="dietaryHabits" required value={formData.dietaryHabits} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
+                    <option value="" disabled>Consommation de riz/plats en sauce ? *</option>
+                    <option value="Tous les jours">Tous les jours</option>
+                    <option value="3-4 fois par semaine">3 à 4 fois par semaine</option>
+                    <option value="Rarement">Rarement</option>
+                  </select>
+                  <input type="text" name="allergies" placeholder="Allergies / Intolérances (ex: Lait, Arachide...)" value={formData.allergies} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  <p className="text-xs text-zinc-500 font-bold mt-2">Laissez vide si vous n'avez aucune allergie.</p>
+                </motion.div>
+              )}
+
+              {step === 4 && (
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
+                  <CheckCircle className="text-[#39FF14] w-20 h-20 mx-auto mb-6" />
+                  <h2 className="text-2xl font-black uppercase mb-4 text-black">Prêt(e) à générer votre plan ?</h2>
+                  <p className="text-zinc-600 font-medium mb-8">Nous allons analyser vos données pour créer un menu parfaitement adapté à votre métabolisme et à vos habitudes.</p>
+                  <button type="submit" disabled={isSubmitting} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-xl flex justify-center items-center gap-2">
+                    {isSubmitting ? "Analyse en cours..." : "Valider mon profil"} <ArrowRight size={18}/>
+                  </button>
+                </motion.div>
+              )}
+
+              {step < 4 && (
+                <div className="flex gap-4 pt-4 border-t border-zinc-100">
+                  {step > 1 && (
+                    <button type="button" onClick={() => setStep(step - 1)} className="px-6 py-4 bg-zinc-100 rounded-xl font-bold text-sm hover:bg-zinc-200 transition text-black">
+                      Retour
+                    </button>
+                  )}
+                  <button type="submit" className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-800 transition shadow-lg flex justify-center items-center gap-2">
+                    Suivant <ChevronRight size={18}/>
+                  </button>
                 </div>
-                <div>
-                   <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-1`}>Le Guide Complet</h2>
-                   <p className="text-zinc-500 font-bold text-sm">Nutrition à l'Africaine : Vos 10 pages d'astuces et recettes.</p>
+              )}
+            </form>
+          ) : (
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
+              <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl border-4 border-[#39FF14]">
+                <Activity className="text-[#39FF14] w-10 h-10" />
+              </div>
+              <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-6 text-black tracking-tighter`}>Analyse Terminée !</h2>
+              
+              {/* RÉSULTATS DU CALCUL */}
+              <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-6 mb-8 text-left space-y-4 shadow-sm">
+                <div className="flex justify-between items-center border-b border-zinc-200 pb-4">
+                   <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Poids Santé Idéal</span>
+                   <span className="font-black text-2xl text-black">{idealWeight > 0 ? idealWeight.toFixed(1) : '--'} kg</span>
                 </div>
-             </div>
-             <button className="w-full md:w-auto bg-black text-[#39FF14] px-8 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2 relative z-10">
-                Télécharger mon guide (PDF)
-             </button>
-           </div>
-        </section>
+                <div className="flex justify-between items-center border-b border-zinc-200 pb-4">
+                   <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Objectif Cible</span>
+                   <span className="font-black text-lg text-black bg-[#39FF14] px-3 py-1 rounded-xl">-{weightToLose > 0 ? weightToLose.toFixed(1) : 0} kg</span>
+                </div>
+                <div className="flex justify-between items-center">
+                   <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Temps estimé</span>
+                   <span className="font-black text-xl text-black">{estimatedMonths > 0 ? `${estimatedMonths} mois` : '--'}</span>
+                </div>
+                <p className="text-[10px] text-zinc-400 italic text-center pt-2">* Estimation basée sur une perte saine et durable sans frustration.</p>
+              </div>
 
-        {/* SECTION 2 : MENUS DE LA SEMAINE */}
-        <section>
-           <div className="flex items-center gap-3 mb-8">
-              <Calendar className="text-[#39FF14] bg-black p-2 rounded-lg" size={36} />
-              <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Vos Menus Sur-Mesure</h2>
-           </div>
+              <div className="bg-black text-[#39FF14] p-5 rounded-2xl mb-8 shadow-2xl relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#39FF14]/20 rounded-full blur-2xl pointer-events-none"></div>
+                 <p className="font-black uppercase text-sm mb-2 flex items-center justify-center gap-2">🎁 Compte Créé : 14 Jours Offerts !</p>
+                 <p className="text-xs text-white font-medium leading-relaxed">Félicitations. Vous venez de débloquer votre <strong className="text-[#39FF14]">Guide PDF</strong> complet et votre <strong className="text-[#39FF14]">Menu de la Semaine 1</strong> gratuitement.</p>
+              </div>
 
-           <div className="grid md:grid-cols-2 gap-6">
-              {WEEKLY_MENUS.map((menu, idx) => (
-                 <motion.div 
-                   initial={{ opacity: 0, y: 20 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   transition={{ delay: idx * 0.1 }}
-                   key={menu.week} 
-                   className={`relative border-2 rounded-[2rem] p-8 transition-all overflow-hidden ${menu.status === 'unlocked' ? 'bg-white border-zinc-200 hover:border-black shadow-sm' : 'bg-zinc-100 border-dashed border-zinc-300'}`}
-                 >
-                    {menu.status === 'locked' && (
-                       <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center">
-                          <div className="w-16 h-16 bg-zinc-200 text-zinc-500 rounded-full flex items-center justify-center mb-4 shadow-inner">
-                             <Lock size={28} />
-                          </div>
-                          <h3 className="font-black uppercase text-lg text-black mb-2">Semaine Verrouillée</h3>
-                          <p className="text-xs font-bold text-zinc-500 mb-6">Passez au plan Premium pour débloquer la suite de votre programme et l'accès au groupe privé.</p>
-                          <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite passer au plan Premium Nutrition pour débloquer toutes les semaines !', '_blank')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center gap-2">
-                             <Sparkles size={14}/> Passer Premium
-                          </button>
-                       </div>
-                    )}
-                    
-                    <div className="flex justify-between items-start mb-6">
-                       <div>
-                          <span className={`inline-block px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-3 ${menu.status === 'unlocked' ? 'bg-[#39FF14]/20 text-green-700' : 'bg-zinc-200 text-zinc-500'}`}>
-                             Semaine {menu.week}
-                          </span>
-                          <h3 className={`${spaceGrotesk.className} text-xl font-black uppercase text-black`}>{menu.title}</h3>
-                       </div>
-                       {menu.status === 'unlocked' && <CheckCircle className="text-[#39FF14]" size={24} />}
-                    </div>
-                    
-                    <p className="text-sm font-medium text-zinc-600 mb-6">{menu.desc}</p>
-                    
-                    {menu.status === 'unlocked' && (
-                       <div className="bg-zinc-50 border border-zinc-100 p-5 rounded-2xl">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 border-b border-zinc-200 pb-2">Aperçu du menu</p>
-                          <ul className="space-y-3">
-                             {menu.meals.map((meal, i) => (
-                                <li key={i} className="text-xs font-bold text-zinc-700 flex items-start gap-2">
-                                   <span className="text-[#39FF14] mt-0.5">●</span> {meal}
-                                </li>
-                             ))}
-                          </ul>
-                          <button className="w-full mt-6 bg-black text-white py-3 rounded-xl font-black uppercase text-[10px] hover:bg-zinc-800 transition flex items-center justify-center gap-2">
-                             Voir le menu complet <ArrowRight size={14} />
-                          </button>
-                       </div>
-                    )}
-                 </motion.div>
-              ))}
-           </div>
-        </section>
+              <button onClick={handleWaRedirect} className="w-full bg-[#25D366] text-white py-5 rounded-xl font-black uppercase tracking-widest hover:bg-[#1ebd58] transition-colors shadow-lg shadow-[#25D366]/30 flex justify-center items-center gap-2">
+                Récupérer mon accès sur WhatsApp <ArrowRight size={18}/>
+              </button>
+            </motion.div>
+          )}
+        </div>
       </div>
     </main>
   );
