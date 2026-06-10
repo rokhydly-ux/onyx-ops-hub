@@ -183,7 +183,7 @@ export default function OnyxFormationPage() {
        else if (lowerReply.includes('bot') || lowerReply.includes('whatsapp')) botResponse = "Automatiser WhatsApp te permet de filtrer les curieux. Demande toujours le besoin et le budget avant qu'un humain ne prenne le relais !";
        
        setLikaMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
-    }, 1000);
+    }, 500);
   };
 
   const handleCompleteModule = () => {
@@ -746,7 +746,7 @@ export default function OnyxFormationPage() {
 
       {/* FLOATING LIKA MASCOT */}
       {selectedCourse && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end animate-in slide-in-from-right-8">
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[100] flex flex-col items-end animate-in slide-in-from-right-8">
            <style dangerouslySetInnerHTML={{__html: `
               @keyframes float-lika {
                 0% { transform: translateY(0px); }
@@ -759,7 +759,7 @@ export default function OnyxFormationPage() {
            `}} />
            
            {isLikaChatOpen ? (
-              <div className="bg-zinc-950 rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[340px] h-[450px] flex flex-col animate-in zoom-in duration-300 overflow-hidden pointer-events-auto">
+              <div className="bg-zinc-950 rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[calc(100vw-2rem)] md:w-[340px] h-[450px] max-h-[70vh] flex flex-col animate-in zoom-in duration-300 overflow-hidden pointer-events-auto">
                  <div className="bg-black p-4 flex justify-between items-center border-b border-zinc-800">
                     <div className="flex items-center gap-3">
                        <div className="relative">

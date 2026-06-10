@@ -144,7 +144,7 @@ export default function OnyxPubLanding() {
        setLeadData(currentData);
        setBotStep(nextStep);
        setLikaMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
-    }, 1000);
+    }, 500);
   };
 
   const handleWaClick = (plan: string) => {
@@ -528,7 +528,7 @@ export default function OnyxPubLanding() {
       </section>
 
       {/* FLOATING LIKA MASCOT */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end animate-in slide-in-from-right-8">
+      <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[100] flex flex-col items-end animate-in slide-in-from-right-8">
          <style dangerouslySetInnerHTML={{__html: `
             @keyframes float-lika {
               0% { transform: translateY(0px); }
@@ -541,7 +541,7 @@ export default function OnyxPubLanding() {
          `}} />
          
          {isLikaChatOpen ? (
-            <div className="bg-black rounded-[2rem] shadow-[0_0_40px_rgba(35,169,220,0.3)] border-2 border-[#23a9dc] p-0 mb-4 w-[340px] h-[450px] flex flex-col animate-in zoom-in duration-300 overflow-hidden pointer-events-auto">
+            <div className="bg-black rounded-[2rem] shadow-[0_0_40px_rgba(35,169,220,0.3)] border-2 border-[#23a9dc] p-0 mb-4 w-[calc(100vw-2rem)] md:w-[340px] h-[450px] max-h-[70vh] flex flex-col animate-in zoom-in duration-300 overflow-hidden pointer-events-auto">
                <div className="bg-zinc-900 p-4 flex justify-between items-center border-b border-zinc-800">
                   <div className="flex items-center gap-3">
                      <div className="relative">

@@ -570,7 +570,7 @@ export default function OnyxOpsElite() {
           text: `Enchantée ${reply.split(' ')[0]} ! Pourrions-nous avoir votre numéro WhatsApp pour vous recontacter si besoin ? (Ex: 77 123 45 67)` 
         }]);
         setBotStep(1);
-      }, 1000);
+      }, 500);
     } 
     else if (botStep === 1) {
       currentData.phone = reply;
@@ -584,7 +584,7 @@ export default function OnyxOpsElite() {
           options: ["Dakar", "Thiès", "Autre Région", "Hors Sénégal"] 
         }]);
         setBotStep(1.5);
-      }, 1000);
+      }, 500);
     }
     else if (botStep === 1.5) {
       currentData.city = reply; 
@@ -596,7 +596,7 @@ export default function OnyxOpsElite() {
           text: `C'est noté. Pourriez-vous préciser votre adresse ou quartier (Ex: Médina, Sacré-Coeur...) ?`
         }]);
         setBotStep(1.75);
-      }, 1000);
+      }, 500);
     }
     else if (botStep === 1.75) {
       currentData.address = reply;
@@ -609,7 +609,7 @@ export default function OnyxOpsElite() {
           options: ["Boutique / Vente en ligne", "Restaurant / Fast Food", "Devenir Partenaire/Ambassadeur", "Autre (Précisez)"] 
         }]);
         setBotStep(2);
-      }, 1000);
+      }, 500);
     }
     else if (botStep === 2) {
       currentData.sector = reply;
@@ -646,7 +646,7 @@ export default function OnyxOpsElite() {
         
         setBotMessages(prev => [...prev, { sender: 'bot', text: msg, options }]);
         setBotStep(3);
-      }, 1000);
+      }, 500);
     }
     else if (botStep === 2.8) {
        saveLead({ 
@@ -664,7 +664,7 @@ export default function OnyxOpsElite() {
           }]);
           setBotUserData({...currentData, product: 'Ambassadeur'});
           setBotStep(4);
-       }, 1500);
+       }, 800);
     }
     else if (botStep === 2.5) {
        saveLead({ source: 'Bot Fanta', intent: `Besoins spécifiques: ${reply}`, contact: currentData.phone, full_name: currentData.name });
@@ -676,7 +676,7 @@ export default function OnyxOpsElite() {
           }]);
           setBotUserData({...currentData, product: 'Pack Tekki'});
           setBotStep(4);
-       }, 1500);
+       }, 800);
     }
     else if (botStep === 3) {
       const selected = reply.includes("1") || reply.includes("Tekki") ? "Pack Tekki" : (reply.includes("Menu") ? "Onyx Menu" : "Onyx Jaay");
@@ -691,7 +691,7 @@ export default function OnyxOpsElite() {
           options: ["Parler à Fanta (WhatsApp)"] 
         }]);
         setBotStep(4);
-      }, 1500);
+      }, 800);
     }
     else if (botStep === 4) {
       if(reply === "Parler à Fanta (WhatsApp)") {
@@ -705,7 +705,7 @@ export default function OnyxOpsElite() {
             text: "Message bien reçu ! Un expert va analyser votre demande. Je vous invite à cliquer sur 'Parler à Fanta' pour finaliser sur WhatsApp.", 
             options: ["Parler à Fanta (WhatsApp)"] 
           }]);
-        }, 1000);
+        }, 500);
       }
     }
   };

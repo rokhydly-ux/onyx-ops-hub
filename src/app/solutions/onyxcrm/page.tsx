@@ -139,7 +139,7 @@ export default function OnyxCRMLanding() {
         setBotData(currentData);
         setBotStep(nextStep);
         setBotMessages(prev => [...prev, { sender: 'bot', text: botResponse, options: botOptions }]);
-    }, 1000);
+    }, 500);
   };
 
   const handleWaClick = (pack: string) => {
@@ -363,9 +363,9 @@ export default function OnyxCRMLanding() {
       )}
 
       {/* BOT FANTA FAQ ONYXCRM */}
-      <div className="fixed bottom-24 right-6 z-[90] flex flex-col items-end">
+      <div className="fixed bottom-24 right-4 md:right-6 z-[100] flex flex-col items-end">
         {isBotOpen && (
-          <div className="bg-white rounded-[2rem] shadow-2xl border-2 border-[#00E5FF] p-0 mb-4 w-[340px] h-[400px] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
+          <div className="bg-white rounded-[2rem] shadow-2xl border-2 border-[#00E5FF] p-0 mb-4 w-[calc(100vw-2rem)] md:w-[340px] h-[400px] max-h-[70vh] flex flex-col animate-in zoom-in duration-300 overflow-hidden">
              <div className="bg-white p-4 flex justify-between items-center border-b border-zinc-200">
                 <div className="flex items-center gap-3">
                    <div className="relative">
