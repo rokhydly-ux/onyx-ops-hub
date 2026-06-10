@@ -11,7 +11,7 @@ import {
   Zap, CheckCircle, AlertCircle, Lock, Handshake, Package, X,
   Clock, Mail, Menu, Star, MessageSquare, Flame, Share2, Link, Wallet, Check, Send, TrendingUp, PlayCircle, LogIn, UserPlus, Sparkles, Bell ,FileText, ChevronRight, Search,
   ChevronDown,
-  ShieldAlert, ChevronLeft, Activity, Rocket, Bot, Sun, Moon,
+  ShieldAlert, ChevronLeft, Activity, Rocket, Bot, Sun, Moon, HeartPulse,
   Crosshair, RefreshCcw
 } from "lucide-react";
 import InteractiveParticles from "@/components/InteractiveParticles";
@@ -37,6 +37,7 @@ const ECOSYSTEM_SAAS = [
   { id: "formation", name: "Onyx Formation", type: "Marketing & Ads" },
   { id: "fit", name: "Onyx Fit", type: "Rééquilibrage Alimentaire" },
   { id: "tontine", name: "Onyx Tontine", type: "Finance & Tontine" },
+  { id: "nutrition", name: "OnyxNutrition", type: "Rééquilibrage Alimentaire" },
 ];
 
 const ONBOARDING_CATEGORIES = [
@@ -67,6 +68,7 @@ const SOLUTIONS = [
   { id: "OnyxPub", icon: Target, category: "Marketing", price: 39900, pain: "Pas de visibilité et pubs trop chères.", solution: "Création de visuels, bot WhatsApp et pubs financées.", upsellPack: "booster", upsellName: "Booster Ventes" },
   { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 13900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "tekkipro", upsellName: "Pack Tekki Pro" },
   { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "tekki", upsellName: "Pack Tekki" },
+  { id: "OnyxNutrition", icon: HeartPulse, category: "Santé", price: 2900, pain: "Régimes yoyo et plats locaux difficiles à adapter.", solution: "Rééquilibrage alimentaire sur-mesure avec nos plats locaux et suivi WhatsApp.", upsellPack: "tekki", upsellName: "Pack Tekki" },
 ];
 
 const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: string; rating: string; avis: number; isUnique?: boolean }> = [
@@ -172,7 +174,7 @@ export default function OnyxOpsElite() {
   const [modalTab, setModalTab] = useState<'prix' | 'details'>('prix');
   const [fomoTime, setFomoTime] = useState(900); // 15 mins for Upsell timer
   const [saasFilter, setSaasFilter] = useState("Tout");
-  const saasCategories = ["Tout", "Vente & Boutique", "Restauration", "Logistique", "Gestion & RH", "Services", "Finance", "Marketing"];
+  const saasCategories = ["Tout", "Vente & Boutique", "Restauration", "Logistique", "Gestion & RH", "Services", "Finance", "Marketing", "Santé"];
   const filteredSolutions = saasFilter === "Tout" ? SOLUTIONS : SOLUTIONS.filter(s => s.category.includes(saasFilter));
 
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -1909,6 +1911,8 @@ export default function OnyxOpsElite() {
                             router.push('/solutions/onyxcrm');
                          } else if (showSaasChoice.id === 'OnyxPub') {
                             router.push('/solutions/onyxpub');
+                        } else if (showSaasChoice.id === 'OnyxNutrition') {
+                           router.push('/solutions/onyx-nutritionafricaine');
                           } else {
                              alert("La page détaillée pour ce module sera bientôt disponible !");
                           }
