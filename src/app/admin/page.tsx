@@ -66,6 +66,7 @@ const AVAILABLE_MODULES = [
   { id: 'tiak', name: 'Onyx Tiak' },
   { id: 'menu', name: 'Onyx Menu' },
   { id: 'formation', name: 'Onyx Formation' },
+  { id: 'nutrition', name: 'OnyxNutrition' },
   { id: 'tontine', name: 'Onyx Tontine' },
   { id: 'cmpub', name: 'Add-on CM & Pub (+49.9k)' }
 ];
@@ -81,6 +82,7 @@ const ECOSYSTEM_SAAS = [
   { id: "tontine", name: "Onyx Tontine", desc: "Finance", price: "6 900 F", link: "/admin/saas/tontine", color: "bg-pink-500" },
   { id: "formation", name: "Onyx Formation", desc: "Cours Androméda", price: "9 900 F", link: "/admin/saas/formation", color: "bg-yellow-500" },
   { id: "menu", name: "Onyx Menu", desc: "Resto", price: "13 900 F", link: "/admin/saas/menu", color: "bg-rose-500" },
+  { id: "nutrition", name: "OnyxNutrition", desc: "Rééquilibrage Alimentaire", price: "2 900 F", link: "/admin/saas/nutrition", color: "bg-fuchsia-500" },
   { id: "gold", name: "Pack Onyx Gold", desc: "L'Arsenal Complet VIP", price: "59 900 F", link: "/admin/saas/onyx-gold", color: "bg-lime-400" },
   { id: "cmpub", name: "Add-on CM Pub", desc: "Création de contenu", price: "49 900 F", link: "/admin/saas/cm-pub", color: "bg-purple-500" },
   { id: "boost", name: "Onyx Boost", desc: "Stratégie Digitale", price: "Sur Devis", link: "/admin/saas/boost", color: "bg-blue-500" },
@@ -97,6 +99,7 @@ const getSaasPrice = (saasName: string) => {
    if (saasName.includes('Tekki')) return 22900;
    if (saasName.includes('Tontine')) return 6900;
    if (saasName.includes('Formation')) return 9900;
+   if (saasName.includes('Nutrition')) return 2900;
    if (saasName.includes('Jaay') || saasName.includes('Solo')) return 13900;
    if (saasName.includes('Menu') || saasName.includes('Booking') || saasName.includes('Staff') || saasName.includes('Stock') || saasName.includes('Tiak')) return 13900;
    if (saasName.includes('Add-on CM Pub')) return 49900;
@@ -1077,7 +1080,8 @@ export default function AdminDashboard() {
        'Onyx Boost': 150000,
        'Onyx Modernize': 300000,
        'OnyxPub': 39900,
-       'OnyxPub Pro': 59900
+       'OnyxPub Pro': 59900,
+       'OnyxNutrition': 2900
     };
     
     const monthly = saasPriceMap[lead.saas] || 13900;
@@ -1188,7 +1192,8 @@ export default function AdminDashboard() {
        'Onyx Jaay': 13900, 'Pack Tekki': 22900, 'Pack Tekki Pro': 27900, 'Onyx CRM': 39900,
        'Pack Onyx Gold': 59900, 'Add-on CM Pub': 49900, 'Onyx Boost': 150000, 'Onyx Modernize': 300000,
        'Onyx Tiak': 13900, 'Onyx Stock': 13900, 'Onyx Menu': 13900, 'Onyx Booking': 13900, 'Onyx Staff': 13900, 'Onyx Tontine': 6900, 'Onyx Formation': 9900,
-       'OnyxPub': 39900, 'OnyxPub Pro': 59900
+       'OnyxPub': 39900, 'OnyxPub Pro': 59900,
+       'OnyxNutrition': 2900
     };
     const activeSaasList = lead.active_saas && lead.active_saas.length > 0 ? lead.active_saas : (lead.saas ? [lead.saas] : []);
     let total = 0;
@@ -4522,6 +4527,7 @@ export default function AdminDashboard() {
                          <option value="Onyx Tiak">Onyx Tiak (13.900 F)</option>
                          <option value="Onyx Tontine">Onyx Tontine (6.900 F)</option>
                          <option value="Onyx Formation">Onyx Formation - Androméda (9.900 F)</option>
+                         <option value="OnyxNutrition">OnyxNutrition (2.900 F)</option>
                       </optgroup>
                       <optgroup label="🚀 HIGH-TICKET">
                          <option value="Onyx Boost">Onyx Boost (150.000 F)</option>
