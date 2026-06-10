@@ -32,6 +32,51 @@ const TESTIMONIALS = [
   }
 ];
 
+const CalorieGauge = ({ value, maxValue = 1200, colorClass, label }: { value: number, maxValue?: number, colorClass: string, label: string }) => {
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const progress = Math.min(value / maxValue, 1);
+  const offset = circumference - progress * circumference;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative w-32 h-32">
+        <svg className="w-full h-full" viewBox="0 0 100 100">
+          {/* Background circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            className="stroke-current text-zinc-200"
+            strokeWidth="12"
+            fill="transparent"
+          />
+          {/* Progress circle */}
+          <motion.circle
+            cx="50"
+            cy="50"
+            r={radius}
+            className={`stroke-current ${colorClass}`}
+            strokeWidth="12"
+            fill="transparent"
+            strokeDasharray={circumference}
+            strokeLinecap="round"
+            transform="rotate(-90 50 50)"
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ duration: 1.5, ease: "circOut" }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className={`text-3xl font-black ${colorClass}`}>{value}</span>
+          <span className="text-xs font-bold text-zinc-500">kcal</span>
+        </div>
+      </div>
+      <p className="text-xs font-black uppercase tracking-widest text-center">{label}</p>
+    </div>
+  );
+};
+
 const INGREDIENTS = [
   { name: "Fonio", benefits: "Sans Gluten, Riche en Fer & Magnésium, Indice Glycémique Bas", desc: "Le Fonio est un grain ancien parfait pour remplacer le riz. Il est léger, facile à digérer et aide à contrôler la glycémie, ce qui est essentiel pour la perte de poids.", icon: "🌾" },
   { name: "Mil", benefits: "Riche en Protéines & Fibres, Énergisant, Bon pour le cœur", desc: "Le Mil est une céréale robuste qui vous garde rassasié plus longtemps grâce à ses fibres. C'est une excellente source d'énergie durable pour éviter les fringales.", icon: "🌽" },
@@ -39,17 +84,20 @@ const INGREDIENTS = [
   { name: "Niébé", benefits: "Source de Protéines Végétales, Riche en Folate, Faible en gras", desc: "L'haricot local (Niébé) est une alternative incroyable à la viande. Il construit du muscle, vous cale et stabilise votre énergie sans les graisses saturées.", icon: "🫘" }
 ];
 
-const DISH_CALORIES: Record<string, { calories: number; tip: string }> = {
+const DISH_CALORIES: Record<string, { calories: number; optimizedCalories: number; tip: string }> = {
   "Thieboudienne (Plat standard)": {
     calories: 850,
+    optimizedCalories: 550,
     tip: "En réduisant l'huile et en privilégiant le poisson, on peut facilement descendre à 550 kcal tout en gardant le goût !"
   },
   "Mafé (Plat standard)": {
     calories: 950,
+    optimizedCalories: 600,
     tip: "Le secret ? Contrôler la quantité de pâte d'arachide et d'huile. Une version rééquilibrée tourne autour de 600 kcal."
   },
   "Yassa Poulet (Plat standard)": {
     calories: 750,
+    optimizedCalories: 500,
     tip: "Utiliser du poulet sans la peau et une cuisson avec moins d'huile (ou Air Fryer) peut ramener ce plat à 500 kcal."
   }
 };
@@ -130,7 +178,7 @@ export default function NutritionAfricaineLanding() {
 
   // Calorie Calculator State
   const [selectedDish, setSelectedDish] = useState<string>("");
-  const [dishInfo, setDishInfo] = useState<{ calories: number; tip: string } | null>(null);
+  const [dishInfo, setDishInfo] = useState<{ calories: number; optimizedCalories: number; tip: string } | null>(null);
 
   const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
   const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
@@ -642,13 +690,14 @@ export default function NutritionAfricaineLanding() {
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-8 text-left"
+                className="mt-8"
               >
-                <div className="bg-red-50 border border-red-200 p-6 rounded-2xl text-center mb-6">
-                  <p className="text-sm font-bold text-red-700 uppercase tracking-widest">Calories Estimées (Standard)</p>
-                  <p className="text-5xl font-black text-red-600">{dishInfo.calories} <span className="text-2xl">kcal</span></p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-8">
+                  <CalorieGauge value={dishInfo.calories} colorClass="text-red-500" label="Standard" />
+                  <div className="text-4xl font-black text-zinc-300 hidden sm:block">→</div>
+                  <CalorieGauge value={dishInfo.optimizedCalories} colorClass="text-green-500" label="Version Optimisée" />
                 </div>
-                <div className="bg-green-50 border border-green-200 p-6 rounded-2xl">
+                <div className="bg-green-50 border border-green-200 p-6 rounded-2xl text-left">
                   <p className="text-sm font-bold text-green-700 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> L'astuce Nutrition à l'Africaine</p>
                   <p className="text-zinc-700 font-medium mt-2">{dishInfo.tip}</p>
                 </div>
