@@ -227,6 +227,38 @@ export default function OnyxNutritionLanding() {
          </div>
       </section>
 
+      {/* NOUVEAU : SECTION GUIDE */}
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <div className="text-left">
+            <div className="inline-flex items-center gap-2 bg-zinc-100 border border-zinc-200 text-zinc-700 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-8 shadow-sm">
+                <BookOpen size={14} /> Le Guide Inclus
+            </div>
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-6 text-black`}>Le Guide qui <span className="text-black border-b-4 border-[#39FF14]">change tout.</span></h2>
+            <p className="text-zinc-600 font-medium text-lg mb-8 leading-relaxed">
+              Découvrez les secrets de la nutrition adaptée à nos réalités. Ce guide de 10 pages déconstruit les mythes, vous présente les céréales locales qui remplacent le riz blanc, et vous prouve que manger sainement ne coûte pas plus cher.
+            </p>
+            <button onClick={handleWaClick} className="bg-black text-[#39FF14] px-8 py-4 rounded-xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2">
+              Obtenir mon Guide <ArrowRight size={18}/>
+            </button>
+          </div>
+          <div className="relative mx-auto w-full max-w-sm flex items-center justify-center">
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#39FF14] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
+             <motion.div
+               animate={{ y: [0, -20, 0] }}
+               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+               className="w-[85%] h-auto z-10 drop-shadow-2xl"
+             >
+               <img 
+                 src="https://i.ibb.co/Yy62b03/mockup-guide-nutrition.png"
+                 alt="Mockup du Guide Nutrition à l'Africaine"
+                 className="max-w-full max-h-full object-contain"
+               />
+             </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* 3. TARIFICATION */}
       <section id="tarifs" className="py-24 px-6 bg-zinc-950 text-white relative mt-10 rounded-[4rem] mx-4">
          <div className="max-w-5xl mx-auto">
