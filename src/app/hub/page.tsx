@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { 
   Smartphone, Truck, Utensils, Box, Lock, LogOut, 
-  User, GraduationCap, ArrowRight, ShieldCheck, Wallet, AlertTriangle, HelpCircle, X,
+  User, GraduationCap, ArrowRight, ShieldCheck, Wallet, AlertTriangle, HelpCircle, X, HeartPulse,
   Search, CheckCircle, ExternalLink, Calendar, Users, MessageSquare, Mail, Package, Sparkles
 } from "lucide-react";
 import AccountModal from "@/components/AccountModal";
@@ -23,6 +23,7 @@ const APPS = [
   { id: "formation", name: "Onyx Formation", icon: GraduationCap, color: "bg-yellow-500", route: "/formation", desc: "Académie Marketing", price: "13 900 F" },
   { id: "tontine", name: "Onyx Tontine", icon: Wallet, color: "bg-pink-500", route: "/tontine/admin", desc: "Finance & Tontine", price: "6 900 F" },
   { id: "staff", name: "Onyx Staff", icon: Users, color: "bg-cyan-500", route: "/staff", desc: "RH & Plannings", price: "13 900 F" },
+  { id: "nutrition", name: "Nutrition à l'Africaine", icon: HeartPulse, color: "bg-green-600", route: "/nutrition", desc: "Rééquilibrage Alimentaire", price: "2 900 F" },
   { id: "crm", name: "Onyx CRM", icon: ShieldCheck, color: "bg-[#39FF14]", route: "/crm", desc: "CRM B2B HT", price: "39 900 F" },
 ];
 
@@ -109,6 +110,7 @@ export default function OnyxHubPortal() {
               if (saas.includes('formation')) achats.push('formation');
               if (saas.includes('tontine')) achats.push('tontine');
               if (saas.includes('staff')) achats.push('staff');
+              if (saas.includes('nutrition')) achats.push('nutrition');
               if (saas.includes('crm')) achats.push('crm');
               
               for (const [packName, modules] of Object.entries(PACK_CONTENTS)) {
