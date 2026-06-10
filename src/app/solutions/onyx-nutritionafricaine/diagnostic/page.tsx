@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale } from "lucide-react";
+import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale, Flame } from "lucide-react";
 import { motion } from "framer-motion";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -34,6 +34,41 @@ export default function NutritionDiagnostic() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // --- MOTEUR DE CALCUL NUTRITIONNEL ---
+  const heightCm = parseFloat(formData.height) || 0;
+  const currentWeight = parseFloat(formData.currentWeight) || 0;
+  const targetWeight = parseFloat(formData.targetWeight) || 0;
+  const age = parseFloat(formData.age) || 0;
+  const isMale = formData.gender === "Homme";
+  
+  // 1. Formule de Lorentz pour le poids idéal théorique
+  const idealWeight = heightCm > 0 
+    ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) 
+    : 0;
+  
+  const weightToLose = currentWeight - targetWeight;
+  const estimatedMonths = weightToLose > 0 ? Math.max(1, Math.ceil(weightToLose / 3)) : 0; 
+
+  // 2. Calcul du Métabolisme de Base (BMR) via Mifflin-St Jeor
+  const bmr = (heightCm > 0 && currentWeight > 0 && age > 0)
+    ? (isMale ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + 5 
+              : (10 * currentWeight) + (6.25 * heightCm) - (5 * age) - 161)
+    : 0;
+
+  // 3. Calcul de la Dépense Énergétique Journalière (TDEE)
+  const activityMultiplier = formData.activityLevel === "Très actif" ? 1.55 : (formData.activityLevel === "Actif" ? 1.375 : 1.2);
+  const tdee = bmr * activityMultiplier;
+
+  // 4. Application du déficit/surplus calorique
+  let rawCalories = weightToLose > 0 ? tdee - 400 : (weightToLose < 0 ? tdee + 300 : tdee);
+  // Sécurité : Ne jamais descendre sous 1200 kcal (femme) ou 1500 kcal (homme)
+  const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
+
+  // 5. Répartition des Macros : 40% Glucides, 30% Protéines, 30% Lipides
+  const carbs = (dailyCalories * 0.40) / 4;   // 1g de glucides = 4 kcal
+  const protein = (dailyCalories * 0.30) / 4; // 1g de protéines = 4 kcal
+  const fats = (dailyCalories * 0.30) / 9;    // 1g de lipides = 9 kcal
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (step < 4) {
@@ -43,6 +78,23 @@ export default function NutritionDiagnostic() {
     
     setIsSubmitting(true);
     try {
+      // Sauvegarde des objectifs pour récupération dans le Dashboard plus tard
+      localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
+         calories: dailyCalories, carbs, protein, fats
+      }));
+
+      // Insertion automatique dans la nouvelle table nutrition_profiles
+      await supabase.from('nutrition_profiles').upsert({
+         phone: formData.phone,
+         bmr: Math.round(bmr),
+         tdee: Math.round(tdee),
+         daily_calorie_goal: Math.round(dailyCalories),
+         carbs_goal: Math.round(carbs),
+         protein_goal: Math.round(protein),
+         fats_goal: Math.round(fats),
+         diagnostic_data: formData
+      }, { onConflict: 'phone' });
+
       await supabase.from('leads').insert([{
         full_name: formData.name,
         phone: formData.phone,
@@ -50,7 +102,7 @@ export default function NutritionDiagnostic() {
         intent: "A complété son diagnostic (Attente Plan)",
         status: "Nouveau",
         saas: "Nutrition à l'Africaine",
-        message: `Âge: ${formData.age} | Sexe: ${formData.gender} | Poids actuel: ${formData.currentWeight}kg | Cible: ${formData.targetWeight}kg | Taille: ${formData.height}cm | Activité: ${formData.activityLevel} | Sommeil: ${formData.sleepHours}h | Famille: ${formData.familyDynamic} | Déj: ${formData.lunchHabit} | Courses: ${formData.shoppingHabit} | Habitudes: ${formData.dietaryHabits} | Allergies: ${formData.allergies}`
+        message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal (P:${Math.round(protein)}g, G:${Math.round(carbs)}g) | Perte ciblée: ${weightToLose}kg`
       }]);
       
       setStep(5); // Success step
@@ -65,20 +117,6 @@ export default function NutritionDiagnostic() {
     const msg = `🚀 *NOUVEAU PROFIL NUTRITION*\n\nBonjour l'équipe ! Je m'appelle ${formData.name} et je viens de terminer mon diagnostic nutritionnel.\n\nJe souhaite activer mes 14 jours d'essai gratuits et recevoir mon Guide PDF ainsi que mon menu de la Semaine 1 !`;
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
-
-  // Calculs Intelligents pour le résultat
-  const heightCm = parseFloat(formData.height) || 0;
-  const currentWeight = parseFloat(formData.currentWeight) || 0;
-  const targetWeight = parseFloat(formData.targetWeight) || 0;
-  const isMale = formData.gender === "Homme";
-  
-  // Formule de Lorentz pour le poids idéal
-  const idealWeight = heightCm > 0 
-    ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) 
-    : 0;
-  
-  const weightToLose = currentWeight - targetWeight;
-  const estimatedMonths = weightToLose > 0 ? Math.max(1, Math.ceil(weightToLose / 3)) : 0; // Base: Perte saine de 3kg/mois
 
   return (
     <main className="min-h-screen bg-[#fafafa] flex items-center justify-center p-6 text-black">
@@ -204,8 +242,26 @@ export default function NutritionDiagnostic() {
                    <span className="font-black text-2xl text-black">{idealWeight > 0 ? idealWeight.toFixed(1) : '--'} kg</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-zinc-200 pb-4">
-                   <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Objectif Cible</span>
-                   <span className="font-black text-lg text-black bg-[#39FF14] px-3 py-1 rounded-xl">-{weightToLose > 0 ? weightToLose.toFixed(1) : 0} kg</span>
+                   <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2"><Flame size={16}/> Cible Calorique</span>
+                   <span className="font-black text-2xl text-[#39FF14] bg-black px-4 py-1.5 rounded-xl shadow-lg">{dailyCalories > 0 ? dailyCalories.toFixed(0) : '--'} kcal</span>
+                </div>
+                
+                <div className="pt-2">
+                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Répartition Quotidienne</p>
+                   <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-orange-100 border border-orange-200 p-3 rounded-2xl text-center">
+                         <p className="text-[10px] font-black uppercase text-orange-600 mb-1">Glucides</p>
+                         <p className="font-black text-lg text-orange-700">{carbs > 0 ? carbs.toFixed(0) : '--'}g</p>
+                      </div>
+                      <div className="bg-purple-100 border border-purple-200 p-3 rounded-2xl text-center">
+                         <p className="text-[10px] font-black uppercase text-purple-600 mb-1">Protéines</p>
+                         <p className="font-black text-lg text-purple-700">{protein > 0 ? protein.toFixed(0) : '--'}g</p>
+                      </div>
+                      <div className="bg-yellow-100 border border-yellow-200 p-3 rounded-2xl text-center">
+                         <p className="text-[10px] font-black uppercase text-yellow-600 mb-1">Lipides</p>
+                         <p className="font-black text-lg text-yellow-700">{fats > 0 ? fats.toFixed(0) : '--'}g</p>
+                      </div>
+                   </div>
                 </div>
                 <div className="flex justify-between items-center">
                    <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Temps estimé</span>

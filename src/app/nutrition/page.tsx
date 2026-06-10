@@ -125,6 +125,11 @@ export default function NutritionDashboard() {
       }
 
       setUser({ ...finalUser, full_name: finalUser.user_metadata?.full_name || finalUser.full_name || "Membre" });
+      setProfileForm({
+         full_name: finalUser.user_metadata?.full_name || finalUser.full_name || "",
+         avatar_url: finalUser.user_metadata?.avatar_url || finalUser.avatar_url || "",
+         password: ""
+      });
 
       // Récupérer le profil client complet depuis la table 'clients'
       const phoneMatch = finalUser.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
@@ -179,6 +184,25 @@ export default function NutritionDashboard() {
     }
 
   }, [router, searchParams]);
+
+  // Système de relance automatique (Notification à 20h00)
+  useEffect(() => {
+    const checkReminder = () => {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const hasLoggedToday = dailyLogs.some(log => log.log_date === todayStr && log.report_data);
+      
+      if (now.getHours() >= 20 && !hasLoggedToday) {
+        setShowReminder(true);
+      } else {
+        setShowReminder(false);
+      }
+    };
+
+    checkReminder();
+    const interval = setInterval(checkReminder, 60000); // Vérification chaque minute
+    return () => clearInterval(interval);
+  }, [dailyLogs]);
 
   const weeklyMenus = ALL_MENUS.map(menu => ({
     ...menu,
@@ -236,6 +260,38 @@ export default function NutritionDashboard() {
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), updatedLog]);
     } else {
        alert("Une erreur est survenue lors de l'enregistrement.");
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      // 1. Mise à jour du mot de passe dans Supabase Auth (si renseigné)
+      if (profileForm.password) {
+        await supabase.auth.updateUser({ password: profileForm.password });
+      }
+
+      // 2. Mise à jour des métadonnées (photo et nom)
+      await supabase.auth.updateUser({
+        data: { full_name: profileForm.full_name, avatar_url: profileForm.avatar_url }
+      });
+
+      // 3. Mise à jour de la table clients
+      if (clientProfile) {
+        await supabase.from('clients').update({
+          full_name: profileForm.full_name,
+          avatar_url: profileForm.avatar_url
+        }).eq('id', clientProfile.id);
+      }
+
+      setUser({ ...user, full_name: profileForm.full_name, avatar_url: profileForm.avatar_url });
+      alert("Profil mis à jour avec succès !");
+      setProfileForm({ ...profileForm, password: "" });
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour :", error);
+      alert("Une erreur est survenue lors de la mise à jour.");
     }
   };
 
@@ -420,10 +476,24 @@ export default function NutritionDashboard() {
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                <div>
                   <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2"><Award className="text-yellow-500" size={24}/> Badges & Récompenses</h3>
-                  <p className="text-sm text-zinc-500 font-medium">Cumulez des jours parfaits (suivi du menu et hydratation) pour débloquer des trophées.</p>
+                  <p className="text-sm text-zinc-500 font-medium mb-4">Cumulez des jours parfaits (suivi du menu et hydratation) pour débloquer des trophées.</p>
+                  <div className="flex gap-2">
+                     {Array.from({length: 7}, (_, i) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - (6 - i));
+                        const dateStr = d.toISOString().split('T')[0];
+                        const log = dailyLogs.find(l => l.log_date === dateStr);
+                        const isPerfect = log?.report_data?.followedMenu && log?.water_glasses >= 6;
+                        return (
+                           <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${isPerfect ? 'bg-[#39FF14] text-black shadow-sm' : 'bg-zinc-100 text-zinc-400'}`}>
+                              {d.toLocaleDateString('fr-FR', {weekday:'narrow'})}
+                           </div>
+                        );
+                     })}
+                  </div>
                </div>
                <div className="flex gap-4">
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[120px] transition-all ${dailyLogs.filter(l => l.report_data?.followedMenu).length >= 5 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60'}`}>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[120px] transition-all ${dailyLogs.filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60'}`}>
                      <Award size={36} className="mb-2" />
                      <span className="text-[10px] font-black uppercase text-center leading-tight">Semaine<br/>Parfaite</span>
                   </div>
