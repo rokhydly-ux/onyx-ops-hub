@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, 
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -92,17 +92,21 @@ export default function NutritionDashboard() {
   const [daysLeft, setDaysLeft] = useState(0);
   
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<'today' | 'week'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile'>('today');
   const [trackingMode, setTrackingMode] = useState<'autopilot' | 'compass'>('autopilot');
+  const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   
-  // Jauges quotidiennes (Mockées, à lier avec Supabase par la suite)
-  const [calories, setCalories] = useState(850);
-  const [waterGlasses, setWaterGlasses] = useState(4);
-  const [proteins, setProteins] = useState(45);
+  // Jauges quotidiennes
+  const [calories, setCalories] = useState(0);
+  const [waterGlasses, setWaterGlasses] = useState(0);
+  const [proteins, setProteins] = useState(0);
   
   // Bilan
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [reportData, setReportData] = useState({ followedMenu: false, cravedRice: false, drankWater: false });
+  
+  const [profileForm, setProfileForm] = useState({ full_name: "", avatar_url: "", password: "" });
+  const [showReminder, setShowReminder] = useState(false);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -139,6 +143,26 @@ export default function NutritionDashboard() {
           const now = new Date().getTime();
           const diffDays = Math.max(0, Math.ceil((trialEnds - now) / (1000 * 60 * 60 * 24)));
           setDaysLeft(diffDays);
+
+          // Récupération de l'historique des logs journaliers
+          const { data: logsData } = await supabase
+            .from('nutrition_daily_logs')
+            .select('*')
+            .eq('client_id', profileData.id)
+            .order('log_date', { ascending: true });
+
+          if (logsData) {
+            setDailyLogs(logsData);
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayLog = logsData.find(log => log.log_date === todayStr);
+            if (todayLog) {
+              setCalories(todayLog.calories_consumed || 0);
+              setWaterGlasses(todayLog.water_glasses || 0);
+              setProteins(todayLog.proteins_consumed || 0);
+              if (todayLog.report_data) setReportData(todayLog.report_data);
+            }
+          }
         }
       }
 
@@ -160,11 +184,59 @@ export default function NutritionDashboard() {
     ...menu,
     status: clientProfile?.plan_type === 'premium' || menu.week <= 2 ? 'unlocked' : 'locked'
   }));
+
+  const handleAddWater = async () => {
+    if (!clientProfile) return;
+    const newAmount = Math.min(waterGlasses + 1, 8);
+    setWaterGlasses(newAmount);
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    await supabase.from('nutrition_daily_logs').upsert({
+      client_id: clientProfile.id,
+      log_date: todayStr,
+      water_glasses: newAmount,
+      calories_consumed: calories,
+      proteins_consumed: proteins
+    }, { onConflict: 'client_id, log_date' });
+    
+    setDailyLogs(prev => {
+      const filtered = prev.filter(l => l.log_date !== todayStr);
+      const existing = prev.find(l => l.log_date === todayStr) || {};
+      return [...filtered, { ...existing, client_id: clientProfile.id, log_date: todayStr, water_glasses: newAmount, calories_consumed: calories, proteins_consumed: proteins }];
+    });
+  };
   
   const submitDailyReport = async () => {
-    // Ici, vous ajouteriez l'insertion dans la table `nutrition_daily_logs`
-    alert("Bilan de la journée enregistré avec succès ! L'IA adaptera votre menu de demain.");
-    setShowDailyReport(false);
+    if (!clientProfile) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    // Valeurs simulées du menu respecté pour l'exemple
+    let currentCals = calories;
+    let currentProts = proteins;
+    if (reportData.followedMenu && currentCals === 0) {
+        currentCals = 1450;
+        currentProts = 68;
+        setCalories(currentCals);
+        setProteins(currentProts);
+    }
+
+    const { error } = await supabase.from('nutrition_daily_logs').upsert({
+      client_id: clientProfile.id,
+      log_date: todayStr,
+      report_data: reportData,
+      water_glasses: waterGlasses,
+      calories_consumed: currentCals,
+      proteins_consumed: currentProts
+    }, { onConflict: 'client_id, log_date' });
+
+    if (!error) {
+       alert("Bilan de la journée enregistré avec succès ! L'IA adaptera votre menu de demain.");
+       setShowDailyReport(false);
+       const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: reportData, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
+       setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), updatedLog]);
+    } else {
+       alert("Une erreur est survenue lors de l'enregistrement.");
+    }
   };
 
   if (loading) {
@@ -185,9 +257,12 @@ export default function NutritionDashboard() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
             <div>
               <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
-              <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
-                Bonjour, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> ! 👋
-              </h1>
+              <div className="flex items-center gap-4">
+                <img src={user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.full_name || "Membre")} alt="Profil" className="w-16 h-16 rounded-full border-4 border-[#39FF14] object-cover bg-zinc-800" />
+                <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
+                  Bonjour, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
+                </h1>
+              </div>
             </div>
             
             {/* Bandeau Essai Gratuit */}
@@ -210,9 +285,11 @@ export default function NutritionDashboard() {
         <div className="flex bg-zinc-200/50 p-1.5 rounded-2xl w-max mx-auto md:mx-0">
            <button onClick={() => setActiveTab('today')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'today' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Mon Jour (Dashboard)</button>
            <button onClick={() => setActiveTab('week')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'week' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Programme Semaine</button>
+           <button onClick={() => setActiveTab('history')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'history' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Historique</button>
+           <button onClick={() => setActiveTab('profile')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'profile' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Profil & Réglages</button>
         </div>
         
-        {activeTab === 'today' ? (
+        {activeTab === 'today' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
             
             {/* SÉLECTEUR DE MODE & ACTIONS */}
@@ -244,7 +321,7 @@ export default function NutritionDashboard() {
                <div className="flex flex-wrap justify-around gap-8">
                   <CircularProgress value={calories} max={1500} colorClass="stroke-orange-500 text-orange-500" label="Énergie" unit="kcal" icon={Flame} />
                   
-                  <div className="relative cursor-pointer group" onClick={() => setWaterGlasses(prev => Math.min(prev + 1, 8))}>
+                  <div className="relative cursor-pointer group" onClick={handleAddWater}>
                      <CircularProgress value={waterGlasses} max={8} colorClass="stroke-blue-500 text-blue-500" label="Hydratation" unit="verres" icon={Droplet} />
                      <div className="absolute inset-0 bg-black/5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <span className="bg-blue-500 text-white text-[10px] font-black px-2 py-1 rounded-full">+1 Verre</span>
@@ -334,7 +411,113 @@ export default function NutritionDashboard() {
             )}
 
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'history' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-left-4">
+            
+            {/* BADGES ET GAMIFICATION */}
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+               <div>
+                  <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2"><Award className="text-yellow-500" size={24}/> Badges & Récompenses</h3>
+                  <p className="text-sm text-zinc-500 font-medium">Cumulez des jours parfaits (suivi du menu et hydratation) pour débloquer des trophées.</p>
+               </div>
+               <div className="flex gap-4">
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[120px] transition-all ${dailyLogs.filter(l => l.report_data?.followedMenu).length >= 5 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60'}`}>
+                     <Award size={36} className="mb-2" />
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Semaine<br/>Parfaite</span>
+                  </div>
+               </div>
+            </div>
+            
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}>
+                  <BarChart className="text-[#39FF14]" /> Évolution sur 7 jours
+               </h2>
+               
+               <div className="grid md:grid-cols-2 gap-8">
+                  {/* GRAPHIQUE : Hydratation */}
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
+                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Droplet size={16}/> Hydratation (Verres)</h3>
+                     <div className="flex items-end justify-between h-40 gap-2">
+                        {Array.from({length: 7}, (_, i) => {
+                           const d = new Date();
+                           d.setDate(d.getDate() - (6 - i));
+                           const dateStr = d.toISOString().split('T')[0];
+                           const log = dailyLogs.find(l => l.log_date === dateStr);
+                           const count = log?.water_glasses || 0;
+                           const heightPct = Math.min((count / 8) * 100, 100);
+                           return (
+                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                                 <div className="w-full max-w-[30px] bg-blue-500 rounded-t-lg transition-all duration-500 relative group-hover:bg-blue-400" style={{ height: `${heightPct}%`, minHeight: '4px' }}>
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                       {count} verres
+                                    </div>
+                                 </div>
+                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+
+                  {/* GRAPHIQUE : Calories */}
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-100">
+                     <h3 className="text-sm font-black uppercase text-zinc-500 mb-6 flex items-center gap-2"><Flame size={16}/> Calories Consommées</h3>
+                     <div className="flex items-end justify-between h-40 gap-2">
+                        {Array.from({length: 7}, (_, i) => {
+                           const d = new Date();
+                           d.setDate(d.getDate() - (6 - i));
+                           const dateStr = d.toISOString().split('T')[0];
+                           const log = dailyLogs.find(l => l.log_date === dateStr);
+                           const count = log?.calories_consumed || 0;
+                           const target = 1500;
+                           const heightPct = count > 0 ? Math.min((count / target) * 100, 100) : 0;
+                           return (
+                              <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                                 <div className={`w-full max-w-[30px] rounded-t-lg transition-all duration-500 relative ${count > target ? 'bg-red-500 group-hover:bg-red-400' : 'bg-orange-500 group-hover:bg-orange-400'}`} style={{ height: `${heightPct}%`, minHeight: '4px' }}>
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                       {count} kcal
+                                    </div>
+                                 </div>
+                                 <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* LISTE DES BILANS */}
+            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><ListChecks className="text-black"/> Historique des Bilans</h2>
+               <div className="space-y-4">
+                  {[...dailyLogs].sort((a,b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime()).map((log, idx) => (
+                     <div key={idx} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                           <p className="font-black text-sm text-black mb-1">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                           <div className="flex flex-wrap gap-2 mt-2">
+                              {log.report_data?.followedMenu ? <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-black uppercase">Menu suivi</span> : <span className="bg-zinc-200 text-zinc-600 px-2 py-1 rounded text-[10px] font-black uppercase">Non suivi</span>}
+                              {log.report_data?.drankWater ? <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-black uppercase">Eau respectée</span> : null}
+                              {log.report_data?.cravedRice ? <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-black uppercase">Craquage</span> : null}
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
+                           <span className="flex items-center gap-1"><Flame size={14}/> {log.calories_consumed || 0} kcal</span>
+                           <span className="flex items-center gap-1"><Droplet size={14}/> {log.water_glasses || 0}/8</span>
+                        </div>
+                     </div>
+                  ))}
+                  {dailyLogs.length === 0 && (
+                     <p className="text-sm text-zinc-500 font-medium italic">Aucun bilan enregistré pour le moment.</p>
+                  )}
+               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'week' && (
           <div className="space-y-12 animate-in fade-in slide-in-from-right-4">
             
             {/* SECTION GUIDE PDF */}
@@ -418,7 +601,87 @@ export default function NutritionDashboard() {
 
           </div>
         )}
+
+        {activeTab === 'profile' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}><Settings className="text-black"/> Profil & Réglages</h2>
+                
+                <form onSubmit={handleSaveProfile} className="space-y-6 max-w-xl">
+                   <div className="flex items-center gap-6 mb-8">
+                      <img src={profileForm.avatar_url || "https://ui-avatars.com/api/?name=" + (profileForm.full_name || "M")} className="w-24 h-24 rounded-full object-cover border-4 border-zinc-100 shadow-sm" />
+                      <div className="flex-1">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">URL de la photo de profil</label>
+                         <input type="url" value={profileForm.avatar_url} onChange={e => setProfileForm({...profileForm, avatar_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition" placeholder="https://..." />
+                      </div>
+                   </div>
+
+                   <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nom complet</label>
+                      <input type="text" value={profileForm.full_name} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition" required />
+                   </div>
+
+                   <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Nouveau mot de passe</label>
+                      <input type="password" value={profileForm.password} onChange={e => setProfileForm({...profileForm, password: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition" placeholder="Laissez vide pour ne pas modifier" />
+                   </div>
+
+                   <button type="submit" className="bg-black text-[#39FF14] px-8 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition shadow-lg flex items-center gap-2">
+                      <Save size={16} /> Enregistrer les modifications
+                   </button>
+                </form>
+             </div>
+
+             <div className="grid md:grid-cols-2 gap-8">
+                <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                   <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Target className="text-[#39FF14]"/> Mes Objectifs</h3>
+                   <div className="space-y-4">
+                      <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
+                         <span className="text-sm font-bold text-zinc-500">Objectif Calories</span>
+                         <span className="font-black text-black">1500 kcal / jour</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
+                         <span className="text-sm font-bold text-zinc-500">Objectif Protéines</span>
+                         <span className="font-black text-black">80 g / jour</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                         <span className="text-sm font-bold text-zinc-500">Hydratation</span>
+                         <span className="font-black text-black">8 verres / jour</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                   <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><MessageCircle className="text-blue-500"/> Échange & Support</h3>
+                   <p className="text-sm font-medium text-zinc-600 mb-6">Rejoignez notre communauté bienveillante pour partager vos repas, vos victoires et vos questions avec les coachs.</p>
+                   <div className="space-y-3">
+                      <button onClick={() => window.open('https://chat.whatsapp.com/', '_blank')} className="w-full bg-[#25D366] text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#1ebd58] transition shadow-md flex justify-center items-center gap-2">
+                         Communauté WhatsApp
+                      </button>
+                      <button onClick={() => window.open('https://facebook.com/groups/', '_blank')} className="w-full bg-[#1877F2] text-white py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#155fc0] transition shadow-md flex justify-center items-center gap-2">
+                         Groupe Facebook Privé
+                      </button>
+                   </div>
+                </div>
+             </div>
+          </div>
+        )}
       </div>
+
+      {/* FLOATING REMINDER */}
+      {showReminder && (
+         <div className="fixed bottom-6 right-6 z-[100] bg-black text-white p-4 rounded-2xl shadow-2xl border-l-4 border-red-500 max-w-sm flex items-start gap-4 animate-in slide-in-from-right-8">
+            <AlertCircle className="text-red-500 shrink-0" size={24} />
+            <div>
+               <h4 className="font-black uppercase text-sm mb-1">Bilan en attente !</h4>
+               <p className="text-xs text-zinc-400 font-medium mb-3">Il est plus de 20h00, n'oubliez pas de remplir votre bilan de fin de journée pour adapter votre menu de demain.</p>
+               <div className="flex gap-2">
+                  <button onClick={() => { setShowReminder(false); setActiveTab('today'); setShowDailyReport(true); }} className="bg-[#39FF14] text-black px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-transform hover:scale-105">Remplir maintenant</button>
+                  <button onClick={() => setShowReminder(false)} className="text-zinc-500 hover:text-white px-2 py-2 rounded-lg font-bold text-[10px] uppercase">Plus tard</button>
+               </div>
+            </div>
+         </div>
+      )}
     </main>
   );
 }
