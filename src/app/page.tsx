@@ -1913,6 +1913,8 @@ export default function OnyxOpsElite() {
                             router.push('/solutions/onyxpub');
                         } else if (showSaasChoice.id === 'OnyxNutrition') {
                            router.push('/solutions/onyx-nutritionafricaine');
+                        } else if (showSaasChoice.id === 'OnyxNutrition') {
+                           router.push('/solutions/onyx-nutritionafricaine');
                           } else {
                              alert("La page détaillée pour ce module sera bientôt disponible !");
                           }
