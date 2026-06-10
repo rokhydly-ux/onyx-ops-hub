@@ -32,6 +32,28 @@ const TESTIMONIALS = [
   }
 ];
 
+const INGREDIENTS = [
+  { name: "Fonio", benefits: "Sans Gluten, Riche en Fer & Magnésium, Indice Glycémique Bas", desc: "Le Fonio est un grain ancien parfait pour remplacer le riz. Il est léger, facile à digérer et aide à contrôler la glycémie, ce qui est essentiel pour la perte de poids.", icon: "🌾" },
+  { name: "Mil", benefits: "Riche en Protéines & Fibres, Énergisant, Bon pour le cœur", desc: "Le Mil est une céréale robuste qui vous garde rassasié plus longtemps grâce à ses fibres. C'est une excellente source d'énergie durable pour éviter les fringales.", icon: "🌽" },
+  { name: "Sorgho", benefits: "Antioxydant, Améliore la digestion, Contrôle le cholestérol", desc: "Le Sorgho est un allié puissant pour votre santé digestive. Ses antioxydants combattent l'inflammation, un facteur clé dans la prise de poids.", icon: "🌱" },
+  { name: "Niébé", benefits: "Source de Protéines Végétales, Riche en Folate, Faible en gras", desc: "L'haricot local (Niébé) est une alternative incroyable à la viande. Il construit du muscle, vous cale et stabilise votre énergie sans les graisses saturées.", icon: "🫘" }
+];
+
+const DISH_CALORIES: Record<string, { calories: number; tip: string }> = {
+  "Thieboudienne (Plat standard)": {
+    calories: 850,
+    tip: "En réduisant l'huile et en privilégiant le poisson, on peut facilement descendre à 550 kcal tout en gardant le goût !"
+  },
+  "Mafé (Plat standard)": {
+    calories: 950,
+    tip: "Le secret ? Contrôler la quantité de pâte d'arachide et d'huile. Une version rééquilibrée tourne autour de 600 kcal."
+  },
+  "Yassa Poulet (Plat standard)": {
+    calories: 750,
+    tip: "Utiliser du poulet sans la peau et une cuisson avec moins d'huile (ou Air Fryer) peut ramener ce plat à 500 kcal."
+  }
+};
+
 const TRANSFORMATIONS = [
   {
     name: "Ndeye S.",
@@ -72,6 +94,29 @@ const FAQ_DATA = [
   }
 ];
 
+const FAMILY_APPROACH_POINTS = [
+  {
+    icon: "🍲",
+    title: "Partagez la même sauce",
+    text: "Pas besoin de cuisiner deux repas ! Vous mangez la même sauce savoureuse (légumes, viandes, poissons) que toute la famille."
+  },
+  {
+    icon: "🔄",
+    title: "Le 'Switch' Intelligent",
+    text: "Pendant que la famille prend du riz blanc, vous prenez votre portion de fonio, mil ou céréales complètes. C'est simple et discret."
+  },
+  {
+    icon: "⚖️",
+    title: "Le Contrôle des Portions",
+    text: "Vous voulez manger le riz familial ? Pas de problème. Le guide vous apprend à prendre la juste portion qui respecte vos objectifs."
+  },
+  {
+    icon: "👨‍👩‍👧‍👦",
+    title: "Montrez l'exemple",
+    text: "En mangeant plus sainement sans vous isoler, vous inspirez positivement vos proches. Le bien-être devient une affaire de famille."
+  }
+];
+
 export default function NutritionAfricaineLanding() {
   const waNumber = "221785338417";
   
@@ -82,6 +127,10 @@ export default function NutritionAfricaineLanding() {
   // Carousel & FAQ State
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  // Calorie Calculator State
+  const [selectedDish, setSelectedDish] = useState<string>("");
+  const [dishInfo, setDishInfo] = useState<{ calories: number; tip: string } | null>(null);
 
   const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
   const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
@@ -102,6 +151,16 @@ export default function NutritionAfricaineLanding() {
     }
   }, [fomoTime]);
 
+  // Calorie Calculator Handler
+  const handleDishChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const dishName = e.target.value;
+    setSelectedDish(dishName);
+    if (dishName && DISH_CALORIES[dishName]) {
+      setDishInfo(DISH_CALORIES[dishName]);
+    } else {
+      setDishInfo(null);
+    }
+  };
   // Configuration Bot Fanta
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isBotDismissed, setIsBotDismissed] = useState(false);
@@ -322,10 +381,10 @@ export default function NutritionAfricaineLanding() {
             {/* APRÈS : Nutrition à l'Africaine */}
             <div className="bg-black border-2 border-[#39FF14] p-8 rounded-[2rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.15)] transform md:scale-105 z-10">
               <span className="bg-[#39FF14] text-black font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max shadow-lg">
-                <CheckCircle size={14} /> Nutrition à l'Africaine
+                <CheckCircle size={14} /> Nutrition à l'Africaine (La Méthode)
               </span>
               <ul className="space-y-4 text-zinc-200 font-medium text-lg">
-                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Plaisir & Culture :</strong> Perdez du poids en mangeant votre Mafé. On ajuste juste les quantités.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Plaisir & Culture :</strong> Mangez votre Mafé en ajustant les quantités (Pilier 1), ou remplacez le riz par du fonio pour accélérer les résultats (Pilier 2). C'est vous qui choisissez.</span></li>
                 <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Rééquilibrage Durable :</strong> On ne vous met pas au régime, on vous apprend à manger pour la vie.</span></li>
                 <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Économique & Accessible :</strong> Les ingrédients sont déjà dans votre cuisine et au marché du coin.</span></li>
                 <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Vie Sociale Préservée :</strong> Continuez à partager les repas en famille, sans culpabilité.</span></li>
@@ -496,6 +555,106 @@ export default function NutritionAfricaineLanding() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION : APPROCHE FAMILIALE */}
+      <section className="py-24 px-6 bg-zinc-100 border-y border-zinc-200">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              "Et si ma famille mange du riz ?"
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">On a pensé à tout. Voici comment le programme s'intègre <span className="text-black border-b-4 border-[#39FF14]">sans perturber vos repas familiaux.</span></p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            {FAMILY_APPROACH_POINTS.map((point, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-white border border-zinc-200 p-8 rounded-[2rem] flex items-start gap-6 shadow-sm"
+              >
+                <div className="text-4xl mt-1">{point.icon}</div>
+                <div>
+                  <h3 className="font-black text-lg uppercase text-black mb-2">{point.title}</h3>
+                  <p className="text-zinc-600 font-medium leading-relaxed">{point.text}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION : LES TRÉSORS DE NOS TERROIRS */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              Les Trésors de <span className="text-black border-b-4 border-[#39FF14]">Nos Terroirs</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Découvrez les super-pouvoirs des ingrédients que nous mettons en avant.</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {INGREDIENTS.map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-zinc-50 border border-zinc-100 p-8 rounded-[2rem] text-center flex flex-col"
+              >
+                <div className="text-5xl mb-4">{item.icon}</div>
+                <h3 className="font-black text-xl uppercase text-black mb-2">{item.name}</h3>
+                <p className="text-xs font-bold text-[#39FF14] bg-black px-3 py-1 rounded-full mb-4 w-max mx-auto">{item.benefits}</p>
+                <p className="text-zinc-600 font-medium leading-relaxed flex-1">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION : CALCULATEUR DE CALORIES SIMPLIFIÉ */}
+      <section className="py-24 px-6 bg-zinc-100 border-t border-zinc-200">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+            Calculez pour <span className="text-black border-b-4 border-[#39FF14]">Comprendre</span>
+          </h2>
+          <p className="text-zinc-500 font-bold text-lg mb-8">Estimez les calories de plats courants et voyez comment notre méthode les optimise.</p>
+          
+          <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-zinc-200">
+            <select 
+              value={selectedDish}
+              onChange={handleDishChange}
+              className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl font-bold text-lg outline-none focus:border-black transition appearance-none text-center cursor-pointer"
+            >
+              <option value="">-- Choisissez un plat --</option>
+              {Object.keys(DISH_CALORIES).map(dish => (
+                <option key={dish} value={dish}>{dish}</option>
+              ))}
+            </select>
+
+            {dishInfo && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-8 text-left"
+              >
+                <div className="bg-red-50 border border-red-200 p-6 rounded-2xl text-center mb-6">
+                  <p className="text-sm font-bold text-red-700 uppercase tracking-widest">Calories Estimées (Standard)</p>
+                  <p className="text-5xl font-black text-red-600">{dishInfo.calories} <span className="text-2xl">kcal</span></p>
+                </div>
+                <div className="bg-green-50 border border-green-200 p-6 rounded-2xl">
+                  <p className="text-sm font-bold text-green-700 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16}/> L'astuce Nutrition à l'Africaine</p>
+                  <p className="text-zinc-700 font-medium mt-2">{dishInfo.tip}</p>
+                </div>
+                <p className="text-xs text-zinc-400 mt-4 text-center italic">Ces valeurs sont des estimations. Le programme vous donne des calculs personnalisés.</p>
+              </motion.div>
+            )}
           </div>
         </div>
       </section>

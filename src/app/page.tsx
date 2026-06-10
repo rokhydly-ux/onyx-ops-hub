@@ -185,6 +185,7 @@ export default function OnyxOpsElite() {
   const [quizAnswers, setQuizAnswers] = useState({ priority: '', team: '' });
   const [quizStep, setQuizStep] = useState(0);
   const [quizResult, setQuizResult] = useState<{packId: string, message: string} | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   // ONBOARDING (Maimouna Modal & Exit Intent)
@@ -471,11 +472,15 @@ export default function OnyxOpsElite() {
         } else if (value === 'Gérer mes devis B2B, mes marges et mes clients') {
             setQuizResult({ packId: 'crm', message: "Pour le B2B et la gestion de vos devis, OnyxCRM est l'outil parfait pour structurer vos données et sécuriser vos marges." });
             setQuizStep(2);
-            setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 500);
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 5000);
+            setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 1500);
         } else if (value === 'Déléguer ma publicité pour avoir plus de clients') {
             setQuizResult({ packId: 'agence', message: "Nous avons exactement ce qu'il vous faut. Activez l'Add-on CM & Pub pour que notre équipe d'experts gère vos campagnes et vous amène des acheteurs chauds." });
             setQuizStep(2);
-            setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 500);
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 5000);
+            setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 1500);
         }
     } else if (field === 'team') {
         let packId = 'solo';
@@ -496,7 +501,9 @@ export default function OnyxOpsElite() {
 
         setQuizResult({ packId, message: msg });
         setQuizStep(2);
-        setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 500);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+        setTimeout(() => document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' }), 1500);
     }
   };
 
@@ -833,6 +840,26 @@ export default function OnyxOpsElite() {
           100% { text-shadow: 2px 0 #39FF14, -2px 0 #ff00ff; }
         }
       `}} />
+
+      {/* ANIMATION LUDIQUE DE CONFETTIS */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-[500] pointer-events-none overflow-hidden">
+          {[...Array(50)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animation: `fall-${i % 2 === 0 ? 'left' : 'right'} ${2 + Math.random() * 3}s ease-in forwards`,
+                animationDelay: `${Math.random() * 0.5}s`,
+              }}
+            >
+              {['🎉', '🎊', '✨', '🔥'][i % 4]}
+            </div>
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `@keyframes fall-left { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg) translateX(-50px); opacity: 0; } } @keyframes fall-right { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(-360deg) translateX(50px); opacity: 0; } }`}} />
+        </div>
+      )}
 
       {/* MODULE DE NOTIFICATIONS FLOTTANT */}
       <div className="fixed bottom-24 md:bottom-8 left-4 md:left-6 z-[100] pointer-events-none flex flex-col justify-end">
