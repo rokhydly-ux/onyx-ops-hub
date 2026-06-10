@@ -180,6 +180,11 @@ export default function NutritionAfricaineLanding() {
   const [selectedDish, setSelectedDish] = useState<string>("");
   const [dishInfo, setDishInfo] = useState<{ calories: number; optimizedCalories: number; tip: string } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  
+  // Lead Capture State for Calculator
+  const [calcLeadData, setCalcLeadData] = useState({ name: '', phone: '' });
+  const [isCalcLeadCaptured, setIsCalcLeadCaptured] = useState(false);
+  const [pendingDish, setPendingDish] = useState<string>("");
 
   const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
   const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
@@ -200,19 +205,17 @@ export default function NutritionAfricaineLanding() {
     }
   }, [fomoTime]);
 
-  // Calorie Calculator Handler
-  const handleDishChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const dishName = e.target.value;
-    setSelectedDish(dishName);
-    if (dishName && DISH_CALORIES[dishName]) {
-      setDishInfo(DISH_CALORIES[dishName]);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000);
-
+  const triggerResult = async (dishName: string) => {
+      if (DISH_CALORIES[dishName]) {
+          setDishInfo(DISH_CALORIES[dishName]);
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 5000);
+          
       // Sauvegarde du choix en arrière-plan pour analyse
       try {
          await supabase.from('leads').insert([{
-             full_name: 'Visiteur (Calculateur)',
+             full_name: calcLeadData.name || 'Visiteur (Calculateur)',
+             phone: calcLeadData.phone,
              message: `Plat simulé : ${dishName}`,
              intent: "Simulation de plat",
              source: "Calculateur Calories",
@@ -220,10 +223,38 @@ export default function NutritionAfricaineLanding() {
              saas: "Nutrition à l'Africaine"
          }]);
       } catch (err) {}
+      }
+  };
+
+  // Calorie Calculator Handler
+  const handleDishChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const dishName = e.target.value;
+    setSelectedDish(dishName);
+    
+    if (!dishName) {
+      setDishInfo(null);
+      setPendingDish("");
+      return;
+    }
+
+    if (isCalcLeadCaptured) {
+      triggerResult(dishName);
     } else {
+      setPendingDish(dishName);
       setDishInfo(null);
     }
   };
+
+  const handleCalcSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!calcLeadData.name || !calcLeadData.phone) return;
+    setIsCalcLeadCaptured(true);
+    if (pendingDish) {
+        triggerResult(pendingDish);
+        setPendingDish("");
+    }
+  };
+
   // Configuration Bot Fanta
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isBotDismissed, setIsBotDismissed] = useState(false);
@@ -394,13 +425,14 @@ export default function NutritionAfricaineLanding() {
          <div className="inline-flex items-center gap-2 bg-green-100 border border-green-200 text-green-700 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-8 shadow-sm">
              <Activity size={14} /> Santé & Bien-être
          </div>
-         <h1 className={`${spaceGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-8 text-black`}>
-            FINI LES RÉGIMES IMPOSSIBLES. <br/>
-            <span className="text-zinc-400">MANGEZ LOCAL ET</span> <span className="underline decoration-[#39FF14] decoration-8 underline-offset-8">PERDEZ DU POIDS.</span>
+         <h1 className={`${spaceGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>
+            MANGEZ LOCAL ET PERDEZ <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-[#2bd40d] drop-shadow-sm">JUSQU'À 8 KG / MOIS*</span>
          </h1>
-         <p className="text-zinc-600 text-lg md:text-xl font-medium max-w-3xl mx-auto mb-12 leading-relaxed">
-            Oubliez les mythes sur le thé brûle-graisse et le stress qui fait gonfler. Thieb, Mafé, Yassa : on rééquilibre votre alimentation selon <strong className="text-black">NOS réalités africaines</strong>, avec un suivi direct sur WhatsApp pour des résultats durables.
+         <p className="text-zinc-600 text-lg md:text-xl font-medium max-w-3xl mx-auto mb-4 leading-relaxed">
+            Oubliez les mythes sur le thé brûle-graisse. Thieb, Mafé, Yassa : on rééquilibre votre alimentation selon <strong className="text-black">NOS réalités africaines</strong>, avec un suivi direct sur WhatsApp.
          </p>
+         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-12">* Les résultats varient selon votre métabolisme et votre point de départ.</p>
          
          <button onClick={handleWaClick} className={`bg-black text-[#39FF14] px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
             <HeartPulse size={24} className="relative z-10" /> <span className="relative z-10">Démarrer pour 2.900 F / mois</span>
@@ -720,6 +752,26 @@ export default function NutritionAfricaineLanding() {
                 <option key={dish} value={dish}>{dish}</option>
               ))}
             </select>
+
+            {pendingDish && !dishInfo && !isCalcLeadCaptured && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-8 bg-zinc-50 border border-zinc-200 p-6 sm:p-8 rounded-[2rem] text-left max-w-lg mx-auto"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-black text-[#39FF14] rounded-xl"><Sparkles size={20}/></div>
+                    <h4 className="font-black text-xl uppercase text-black">Presque là !</h4>
+                </div>
+                <p className="text-zinc-500 mb-6 font-bold text-sm">Entrez vos informations pour découvrir l'impact de notre méthode sur ce plat et recevoir vos résultats.</p>
+                <form onSubmit={handleCalcSubmit} className="space-y-4">
+                    <input type="text" placeholder="Votre Prénom *" value={calcLeadData.name} onChange={e => setCalcLeadData({...calcLeadData, name: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black transition" required />
+                    <input type="tel" placeholder="Numéro WhatsApp * (Ex: 77 123 45 67)" value={calcLeadData.phone} onChange={e => setCalcLeadData({...calcLeadData, phone: e.target.value})} className="w-full p-4 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black transition" required />
+                    <button type="submit" className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2">Découvrir le résultat <ArrowRight size={18}/></button>
+                </form>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-4 text-center">* Vous pourrez tester d'autres plats ensuite sans remplir ce formulaire.</p>
+              </motion.div>
+            )}
 
             {dishInfo && (
               <motion.div 
