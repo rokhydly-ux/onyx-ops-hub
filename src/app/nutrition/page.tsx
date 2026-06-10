@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, 
@@ -11,31 +11,27 @@ import { motion } from "framer-motion";
 
 const spaceGrotesk = { className: "font-sans" };
 
-const WEEKLY_MENUS = [
+const ALL_MENUS = [
   {
     week: 1,
-    status: "unlocked",
     title: "Semaine 1 : Détox & Découverte",
     desc: "Commencez en douceur avec nos alternatives locales (Fonio, Mil) et nos astuces pour alléger vos plats.",
     meals: ["Lundi : Fonio au poulet (500 kcal)", "Mardi : Salade de Niébé (450 kcal)", "Mercredi : Thieboudienne revisité (600 kcal)"]
   },
   {
     week: 2,
-    status: "unlocked",
     title: "Semaine 2 : L'Équilibre Africain",
     desc: "Votre corps s'habitue. On introduit des portions contrôlées pour vos plats familiaux.",
     meals: ["Lundi : Mafé allégé (550 kcal)", "Mardi : Poisson grillé et légumes locaux", "Mercredi : Couscous de mil (Thiéré)"]
   },
   {
     week: 3,
-    status: "locked",
     title: "Semaine 3 : Accélération",
     desc: "La perte de poids s'accélère. Des menus spécifiques pour brûler les graisses résistantes.",
     meals: []
   },
   {
     week: 4,
-    status: "locked",
     title: "Semaine 4 : Consolidation",
     desc: "Maintenez vos résultats sans effet yoyo et apprenez à stabiliser votre poids.",
     meals: []
@@ -44,28 +40,68 @@ const WEEKLY_MENUS = [
 
 export default function NutritionDashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
+  const [clientProfile, setClientProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [daysLeft, setDaysLeft] = useState(14); // Simulation de 14 jours restants
+  const [daysLeft, setDaysLeft] = useState(0);
 
   useEffect(() => {
     const verifyAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser({ ...session.user, full_name: session.user.user_metadata?.full_name || "Membre" });
-      } else {
+      let finalUser = session?.user;
+
+      if (!finalUser) {
         // Fallback pour localStorage si pas de session Supabase active
         const customSession = localStorage.getItem('onyx_custom_session');
         if (customSession) {
-          setUser(JSON.parse(customSession));
+          finalUser = JSON.parse(customSession);
         } else {
           router.push('/login');
+          return;
         }
       }
+
+      setUser({ ...finalUser, full_name: finalUser.user_metadata?.full_name || finalUser.full_name || "Membre" });
+
+      // Récupérer le profil client complet depuis la table 'clients'
+      const phoneMatch = finalUser.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
+      const userPhone = phoneMatch ? phoneMatch[1] : finalUser.phone;
+
+      if (userPhone) {
+        const { data: profileData, error } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('phone', userPhone)
+          .single();
+
+        if (profileData) {
+          setClientProfile(profileData);
+          const trialEnds = profileData.trial_ends_at ? new Date(profileData.trial_ends_at).getTime() : 0;
+          const now = new Date().getTime();
+          const diffDays = Math.max(0, Math.ceil((trialEnds - now) / (1000 * 60 * 60 * 24)));
+          setDaysLeft(diffDays);
+        }
+      }
+
       setLoading(false);
     };
+
     verifyAuth();
-  }, [router]);
+
+    // Afficher un message de bienvenue après le diagnostic
+    if (searchParams.get('from') === 'diagnostic') {
+      alert("Félicitations et bienvenue ! Votre espace personnel est prêt.");
+      // Nettoyer l'URL
+      router.replace('/nutrition', undefined);
+    }
+
+  }, [router, searchParams]);
+
+  const weeklyMenus = ALL_MENUS.map(menu => ({
+    ...menu,
+    status: clientProfile?.plan_type === 'premium' || menu.week <= 2 ? 'unlocked' : 'locked'
+  }));
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
@@ -93,11 +129,11 @@ export default function NutritionDashboard() {
             {/* Bandeau Essai Gratuit */}
             <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4 shadow-xl">
               <div className="bg-black border border-zinc-700 p-3 rounded-xl">
-                 <Clock className="text-[#39FF14]" size={24} />
+                 <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={24} />
               </div>
               <div>
                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Période d'essai</p>
-                 <p className="text-sm font-bold text-white"><strong className="text-[#39FF14]">{daysLeft} jours</strong> restants</p>
+                 <p className="text-sm font-bold text-white"><strong className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours` : 'Expiré'}</strong></p>
               </div>
             </div>
           </div>
@@ -132,7 +168,7 @@ export default function NutritionDashboard() {
            </div>
 
            <div className="grid md:grid-cols-2 gap-6">
-              {WEEKLY_MENUS.map((menu, idx) => (
+              {weeklyMenus.map((menu, idx) => (
                  <motion.div 
                    initial={{ opacity: 0, y: 20 }}
                    animate={{ opacity: 1, y: 0 }}
