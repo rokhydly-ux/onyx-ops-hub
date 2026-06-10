@@ -59,6 +59,7 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
 };
 
 const SOLUTIONS = [
+  { id: "OnyxNutrition", icon: HeartPulse, category: "Santé", price: 2900, pain: "Régimes yoyo et plats locaux difficiles à adapter.", solution: "Rééquilibrage alimentaire sur-mesure avec nos plats locaux et suivi WhatsApp.", upsellPack: "nutrition_3_mois", upsellName: "Programme 3 Mois" },
   { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 13900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "tekki", upsellName: "Pack Tekki" },
   { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 13900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "tekki", upsellName: "Pack Tekki" },
   { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 13900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "tekki", upsellName: "Pack Tekki" },
@@ -68,7 +69,6 @@ const SOLUTIONS = [
   { id: "OnyxPub", icon: Target, category: "Marketing", price: 39900, pain: "Pas de visibilité et pubs trop chères.", solution: "Création de visuels, bot WhatsApp et pubs financées.", upsellPack: "booster", upsellName: "Booster Ventes" },
   { id: "Onyx Formation", icon: TrendingUp, category: "Marketing", price: 13900, pain: "Manque de visibilité et publicités inefficaces qui ruinent le budget.", solution: "Maîtrisez le marketing digital, la pub Facebook/TikTok et le design Canva.", upsellPack: "tekkipro", upsellName: "Pack Tekki Pro" },
   { id: "Onyx Tontine", icon: Wallet, category: "Finance", price: 6900, pain: "Cahiers perdus et cotisations non suivies avec risques de fraude.", solution: "Gestion de tontine automatisée et transparente avec reçus WhatsApp.", upsellPack: "tekki", upsellName: "Pack Tekki" },
-  { id: "OnyxNutrition", icon: HeartPulse, category: "Santé", price: 2900, pain: "Régimes yoyo et plats locaux difficiles à adapter.", solution: "Rééquilibrage alimentaire sur-mesure avec nos plats locaux et suivi WhatsApp.", upsellPack: "tekki", upsellName: "Pack Tekki" },
 ];
 
 const PACKS: Array<{ id: PlanKey; name: string; price: number | string; label: string; rating: string; avis: number; isUnique?: boolean }> = [
@@ -1835,7 +1835,7 @@ export default function OnyxOpsElite() {
                        </div>
                        
                        {/* OPTION UPSELL AVEC FOMO */}
-                       {showSaasChoice.id !== 'Onyx Tontine' && (
+                       {showSaasChoice.id !== 'Onyx Tontine' && showSaasChoice.id !== 'OnyxNutrition' && (
                          <div className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-3xl shadow-[0_15px_30px_rgba(57,255,20,0.2)] flex flex-col items-center justify-between border-2 border-[#39FF14] relative overflow-hidden">
                       <div className={`absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase animate-pulse w-max z-20 flex items-center gap-1 shadow-lg ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
                              🔥 Offre Flash : {formatTime(fomoTime)}
@@ -1868,6 +1868,34 @@ export default function OnyxOpsElite() {
                                 <MessageSquare size={14}/> Essai via WhatsApp
                              </button>
                           </div>
+                         </div>
+                       )}
+
+                       {/* UPSELL SPÉCIFIQUE ONYXNUTRITION */}
+                       {showSaasChoice.id === 'OnyxNutrition' && (
+                         <div className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-3xl shadow-[0_15px_30px_rgba(57,255,20,0.2)] flex flex-col items-center justify-between border-2 border-[#39FF14] relative overflow-hidden">
+                           <div className={`absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase animate-pulse w-max z-20 flex items-center gap-1 shadow-lg ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
+                             🔥 Offre Flash : {formatTime(fomoTime)}
+                           </div>
+                           
+                           <div className="flex flex-col items-center w-full mt-4">
+                              <span className="text-[10px] font-black uppercase text-white tracking-widest mb-1">Recommandé</span>
+                              <span className="text-lg font-black leading-tight mb-2 text-white">Programme 3 Mois</span>
+                              <div className="flex flex-col items-center bg-[#39FF14]/10 w-full rounded-2xl py-3 border border-[#39FF14]/20 mb-4">
+                                 <span className="text-lg font-bold text-red-400 line-through">8 700 F</span>
+                                 <span className="text-3xl font-black text-[#39FF14]">7 500 F</span>
+                              </div>
+                           </div>
+                           
+                           <div className="w-full flex flex-col gap-2 mt-auto z-10">
+                              <button onClick={() => { 
+                                  if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp.");
+                                  handleWaClick("Programme 3 Mois Nutrition", `Bonjour, je m'appelle ${leadData.name} et je veux profiter de l'offre 3 mois pour OnyxNutrition à 7.500F !`); setShowSaasChoice(null); 
+                              }} className="w-full bg-[#39FF14] text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-white transition shadow-xl flex items-center justify-center gap-1">
+                                 Prendre 3 mois & Économiser <ArrowRight size={14}/>
+                              </button>
+                              <p className="text-center text-[9px] text-zinc-400 font-bold mt-1">Pour des résultats visibles et durables.</p>
+                           </div>
                          </div>
                        )}
                     </div>

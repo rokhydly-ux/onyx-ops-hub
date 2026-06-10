@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   Activity, HeartPulse, Smartphone, Flame, CheckCircle, 
   ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown,
-  Send, X, ArrowUp
+  Send, X, ArrowUp, BookOpen, Sparkles
 } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -159,8 +160,8 @@ export default function OnyxNutritionLanding() {
 
       {/* NAVBAR */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
-         <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black hover:scale-105 transition-transform`}>
-            ONYX<span className="text-black drop-shadow-sm border-b-4 border-[#39FF14]">NUTRITION</span>
+         <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-xl md:text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black hover:scale-105 transition-transform`}>
+            NUTRITION <span className="text-black drop-shadow-sm border-b-4 border-[#39FF14]">À L'AFRICAINE</span>
          </button>
          
          <div className="flex items-center gap-4">
@@ -168,7 +169,7 @@ export default function OnyxNutritionLanding() {
                  <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="text-xs font-bold text-zinc-500 uppercase tracking-widest hover:text-black flex items-center gap-1 transition-colors">
                     Autres Solutions <ChevronDown size={14} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                  </button>
-                 <div className={`absolute top-full right-0 mt-2 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                 <div className={`absolute top-full right-0 mt-2 bg-white border border-zinc-200 shadow-2xl rounded-2xl p-2 w-48 flex flex-col z-50 transition-all origin-top-right ${isDropdownOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
                     <button onClick={() => window.location.href = '/'} className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-black rounded-xl transition">🏠 Accueil Onyx</button>
                  </div>
              </div>
@@ -183,12 +184,12 @@ export default function OnyxNutritionLanding() {
          <div className="inline-flex items-center gap-2 bg-green-100 border border-green-200 text-green-700 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-8 shadow-sm">
              <Activity size={14} /> Santé & Bien-être
          </div>
-         <h1 className={`${spaceGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.95] mb-8 text-black`}>
+         <h1 className={`${spaceGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-8 text-black`}>
             FINI LES RÉGIMES IMPOSSIBLES. <br/>
             <span className="text-zinc-400">MANGEZ LOCAL ET</span> <span className="underline decoration-[#39FF14] decoration-8 underline-offset-8">PERDEZ DU POIDS.</span>
          </h1>
-         <p className="text-zinc-600 text-lg md:text-xl font-bold max-w-3xl mx-auto mb-12 leading-relaxed">
-            Pas besoin d'avocat ou de saumon hors de prix. Thieb, Mafé, Yassa : on rééquilibre votre alimentation selon <strong className="text-black">NOS réalités africaines</strong>, avec un suivi direct sur WhatsApp.
+         <p className="text-zinc-600 text-lg md:text-xl font-medium max-w-3xl mx-auto mb-12 leading-relaxed">
+            Oubliez les mythes sur le thé brûle-graisse et le stress qui fait gonfler. Thieb, Mafé, Yassa : on rééquilibre votre alimentation selon <strong className="text-black">NOS réalités africaines</strong>, avec un suivi direct sur WhatsApp pour des résultats durables.
          </p>
          
          <button onClick={handleWaClick} className={`bg-black text-[#39FF14] px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-center gap-3 mx-auto relative overflow-hidden group ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
@@ -230,24 +231,42 @@ export default function OnyxNutritionLanding() {
       <section id="tarifs" className="py-24 px-6 bg-zinc-950 text-white relative mt-10 rounded-[4rem] mx-4">
          <div className="max-w-5xl mx-auto">
             <div className="text-center mb-16">
-               <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Un prix <span className="text-[#39FF14]">accessible à tous.</span></h2>
+               <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter mb-4`}>Choisissez votre <span className="text-[#39FF14]">engagement.</span></h2>
             </div>
             
-            <div className="grid md:grid-cols-1 gap-8 max-w-lg mx-auto items-center">
-               {/* CARTE UNIQUE */}
-               <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[3rem] flex flex-col relative md:scale-105 shadow-[0_0_50px_rgba(57,255,20,0.1)] z-10">
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-[#39FF14] text-black border-2 border-[#39FF14] px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase whitespace-nowrap shadow-xl flex items-center gap-2">
-                     <HeartPulse size={14} className="animate-pulse"/> RECOMMANDÉ
-                  </div>
-                  <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-6 text-white text-center mt-4`}>OnyxNutrition</h3>
-                  <div className="text-5xl font-black mb-6 italic text-[#39FF14] flex items-center justify-center">
+            <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto items-stretch">
+               {/* CARTE 1 MOIS */}
+               <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[3rem] flex flex-col relative hover:border-zinc-700 transition-colors">
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-white`}>Essai 1 Mois</h3>
+                  <p className="text-zinc-400 text-sm font-medium mb-6">Idéal pour tester la méthode et voir les premiers résultats.</p>
+                  <div className="text-4xl font-black mb-6 italic text-white flex items-center">
                      2 900 F <span className="text-sm text-zinc-400 not-italic font-normal ml-2">/ mois</span>
                   </div>
-                  <ul className="space-y-4 mb-10 text-zinc-300 text-sm font-bold flex-1">
+                  <ul className="space-y-3 mb-10 text-zinc-400 text-sm font-bold flex-1">
                      <li className="flex gap-2">✔ Plan alimentaire personnalisé</li>
                      <li className="flex gap-2">✔ Intégration des repas locaux</li>
                      <li className="flex gap-2">✔ Suivi WhatsApp (Hebdo)</li>
-                     <li className="flex gap-2">✔ Recettes & Listes de courses</li>
+                  </ul>
+                  <button onClick={handleWaClick} className={`w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-transform`}>
+                     Commencer l'essai
+                  </button>
+               </div>
+
+               {/* CARTE 3 MOIS (RECOMMANDÉ) */}
+               <div className="bg-zinc-900 border-2 border-[#39FF14] p-8 rounded-[3rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.2)] z-10 md:scale-105">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#39FF14] text-black px-5 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap shadow-xl flex items-center gap-2">
+                     <Sparkles size={14} className="animate-pulse"/> Recommandé
+                  </div>
+                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-2 text-white mt-6`}>Programme 3 Mois</h3>
+                  <p className="text-zinc-300 text-sm font-medium mb-6">Pour des résultats visibles, durables et une vraie transformation.</p>
+                  <div className="text-4xl font-black mb-1 italic text-[#39FF14] flex items-center gap-3">
+                     7 500 F <span className="text-sm text-zinc-400 not-italic font-normal">/ trimestre</span>
+                  </div>
+                  <p className="text-sm font-bold text-red-400 line-through mb-6">au lieu de 8 700 F</p>
+                  <ul className="space-y-3 mb-10 text-zinc-300 text-sm font-bold flex-1">
+                     <li className="flex gap-2 text-white">✔ <strong className="text-white">Tout le programme de base</strong></li>
+                     <li className="flex gap-2 text-white">✔ <strong className="text-white">Accès au Guide PDF Complet (10 pages)</strong></li>
+                     <li className="flex gap-2 text-white">✔ <strong className="text-white">Suivi renforcé pour ancrer les habitudes</strong></li>
                   </ul>
                   <button onClick={handleWaClick} className={`w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                      COMMENCER MON PROGRAMME <ArrowRight size={18}/>
