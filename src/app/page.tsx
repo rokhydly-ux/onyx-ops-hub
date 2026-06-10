@@ -1391,6 +1391,8 @@ export default function OnyxOpsElite() {
                         saveLead({ source: 'Site Web', intent: `Découverte Solution: ${s.id}` });
                         if (s.id === 'OnyxPub') {
                           router.push('/solutions/onyxpub');
+                        } else if (s.id === "Nutrition à l'Africaine") {
+                          router.push('/solutions/onyx-nutritionafricaine');
                         } else {
                           setShowSaasChoice(s);
                         }
