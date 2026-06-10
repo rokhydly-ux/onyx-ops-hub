@@ -37,7 +37,7 @@ const ECOSYSTEM_SAAS = [
   { id: "formation", name: "Onyx Formation", type: "Marketing & Ads" },
   { id: "fit", name: "Onyx Fit", type: "Rééquilibrage Alimentaire" },
   { id: "tontine", name: "Onyx Tontine", type: "Finance & Tontine" },
-  { id: "nutrition", name: "OnyxNutrition", type: "Rééquilibrage Alimentaire" },
+  { id: "nutrition", name: "Nutrition à l'Africaine", type: "Rééquilibrage Alimentaire" },
 ];
 
 const ONBOARDING_CATEGORIES = [
@@ -59,7 +59,7 @@ const PLAN_DETAILS: Record<PlanKey, { title: string; desc: string; benefits: str
 };
 
 const SOLUTIONS = [
-  { id: "OnyxNutrition", icon: HeartPulse, category: "Santé", price: 2900, pain: "Régimes yoyo et plats locaux difficiles à adapter.", solution: "Rééquilibrage alimentaire sur-mesure avec nos plats locaux et suivi WhatsApp.", upsellPack: "nutrition_3_mois", upsellName: "Programme 3 Mois" },
+  { id: "Nutrition à l'Africaine", icon: HeartPulse, category: "Santé", price: 2900, pain: "Régimes yoyo et plats locaux difficiles à adapter.", solution: "Rééquilibrage alimentaire sur-mesure avec nos plats locaux et suivi WhatsApp.", upsellPack: "nutrition_3_mois", upsellName: "Programme 3 Mois" },
   { id: "Onyx Jaay", icon: Smartphone, category: "Vente & Boutique", price: 13900, pain: "Photos WhatsApp interminables et devis gribouillés.", solution: "Catalogue digital interactif et générateur de devis PDF pro en 60s.", upsellPack: "tekki", upsellName: "Pack Tekki" },
   { id: "Onyx Tiak", icon: Truck, category: "Logistique", price: 13900, pain: "Le gérant ne sait jamais où est son cash ou son livreur.", solution: "Suivi logistique et sécurisation des encaissements en temps réel.", upsellPack: "tekki", upsellName: "Pack Tekki" },
   { id: "Onyx Stock", icon: Box, category: "Vente & Boutique", price: 13900, pain: "Rupture de stock fatale ou vols d'inventaire non détectés.", solution: "Inventaire par scan et alertes WhatsApp avant la rupture.", upsellPack: "tekki", upsellName: "Pack Tekki" },
@@ -1835,7 +1835,7 @@ export default function OnyxOpsElite() {
                        </div>
                        
                        {/* OPTION UPSELL AVEC FOMO */}
-                       {showSaasChoice.id !== 'Onyx Tontine' && showSaasChoice.id !== 'OnyxNutrition' && (
+                       {showSaasChoice.id !== 'Onyx Tontine' && showSaasChoice.id !== "Nutrition à l'Africaine" && (
                          <div className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-3xl shadow-[0_15px_30px_rgba(57,255,20,0.2)] flex flex-col items-center justify-between border-2 border-[#39FF14] relative overflow-hidden">
                       <div className={`absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase animate-pulse w-max z-20 flex items-center gap-1 shadow-lg ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
                              🔥 Offre Flash : {formatTime(fomoTime)}
@@ -1871,8 +1871,8 @@ export default function OnyxOpsElite() {
                          </div>
                        )}
 
-                       {/* UPSELL SPÉCIFIQUE ONYXNUTRITION */}
-                       {showSaasChoice.id === 'OnyxNutrition' && (
+                       {/* UPSELL SPÉCIFIQUE Nutrition à l'Africaine */}
+                       {showSaasChoice.id === "Nutrition à l'Africaine" && (
                          <div className="w-full bg-black text-[#39FF14] py-6 px-4 rounded-3xl shadow-[0_15px_30px_rgba(57,255,20,0.2)] flex flex-col items-center justify-between border-2 border-[#39FF14] relative overflow-hidden">
                            <div className={`absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase animate-pulse w-max z-20 flex items-center gap-1 shadow-lg ${fomoTime <= 60 ? 'fomo-shake-active' : ''}`}>
                              🔥 Offre Flash : {formatTime(fomoTime)}
@@ -1890,7 +1890,7 @@ export default function OnyxOpsElite() {
                            <div className="w-full flex flex-col gap-2 mt-auto z-10">
                               <button onClick={() => { 
                                   if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp.");
-                                  handleWaClick("Programme 3 Mois Nutrition", `Bonjour, je m'appelle ${leadData.name} et je veux profiter de l'offre 3 mois pour OnyxNutrition à 7.500F !`); setShowSaasChoice(null); 
+                                  handleWaClick("Programme 3 Mois Nutrition", `Bonjour, je m'appelle ${leadData.name} et je veux profiter de l'offre 3 mois pour Nutrition à l'Africaine à 7.500F !`); setShowSaasChoice(null); 
                               }} className="w-full bg-[#39FF14] text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-white transition shadow-xl flex items-center justify-center gap-1">
                                  Prendre 3 mois & Économiser <ArrowRight size={14}/>
                               </button>
@@ -1939,9 +1939,7 @@ export default function OnyxOpsElite() {
                             router.push('/solutions/onyxcrm');
                          } else if (showSaasChoice.id === 'OnyxPub') {
                             router.push('/solutions/onyxpub');
-                        } else if (showSaasChoice.id === 'OnyxNutrition') {
-                           router.push('/solutions/onyx-nutritionafricaine');
-                        } else if (showSaasChoice.id === 'OnyxNutrition') {
+                        } else if (showSaasChoice.id === "Nutrition à l'Africaine") {
                            router.push('/solutions/onyx-nutritionafricaine');
                           } else {
                              alert("La page détaillée pour ce module sera bientôt disponible !");

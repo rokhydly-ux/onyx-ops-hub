@@ -11,7 +11,28 @@ import {
 
 const spaceGrotesk = { className: "font-sans" };
 
-export default function OnyxNutritionLanding() {
+const TESTIMONIALS = [
+  {
+    name: "Aïssatou K.",
+    role: "Mère de famille, Dakar",
+    text: "J'ai perdu 8 kg en 3 mois sans arrêter de manger mon mafé ! Le suivi WhatsApp est incroyable, on ne se sent jamais seule. C'est la première fois qu'un programme s'adapte à moi, et pas l'inverse.",
+    image: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"
+  },
+  {
+    name: "Mamadou D.",
+    role: "Cadre dynamique, Thiès",
+    text: "Avec mon travail, je n'avais pas le temps de cuisiner des plats compliqués. OnyxNutrition m'a montré comment équilibrer mes repas au restaurant. J'ai plus d'énergie et mon ventre a disparu.",
+    image: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"
+  },
+  {
+    name: "Fatima B.",
+    role: "Étudiante, Saint-Louis",
+    text: "Je pensais que manger sainement coûtait cher. Le guide m'a ouvert les yeux sur les alternatives locales. J'ai appris à mieux manger avec mon budget d'étudiante. Merci l'équipe !",
+    image: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"
+  }
+];
+
+export default function NutritionAfricaineLanding() {
   const waNumber = "221785338417";
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -118,12 +139,12 @@ export default function OnyxNutritionLanding() {
             try {
                 await supabase.from('leads').insert([{
                     full_name: currentData.name, phone: currentData.phone, city: currentData.city,
-                    message: `Note: ${currentData.question || 'Veut démarrer OnyxNutrition'}`,
-                    intent: 'Je veux démarrer (OnyxNutrition)', source: 'Bot Fanta (OnyxNutrition)', status: 'Nouveau', saas: 'OnyxNutrition'
+                    message: `Note: ${currentData.question || "Veut démarrer Nutrition à l'Africaine"}`,
+                    intent: "Je veux démarrer (Nutrition à l'Africaine)", source: "Bot Fanta (Nutrition à l'Africaine)", status: 'Nouveau', saas: "Nutrition à l'Africaine"
                 }]);
             } catch (err) {}
 
-            const waMsg = `🚀 *Démarrage OnyxNutrition*\n\nJe veux commencer mon rééquilibrage !\n\n*Nom:* ${currentData.name}\n*Ville:* ${currentData.city}\n\nComment on procède pour le paiement de 2.900 F ?`;
+            const waMsg = `🚀 *Démarrage Nutrition à l'Africaine*\n\nJe veux commencer mon rééquilibrage !\n\n*Nom:* ${currentData.name}\n*Ville:* ${currentData.city}\n\nComment on procède pour le paiement de 2.900 F ?`;
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
@@ -134,7 +155,7 @@ export default function OnyxNutritionLanding() {
   };
 
   const handleWaClick = () => {
-    const msg = `Bonjour l'équipe Onyx ! Je souhaite démarrer mon programme OnyxNutrition pour 2.900 F par mois.`;
+    const msg = `Bonjour l'équipe Onyx ! Je souhaite démarrer mon programme Nutrition à l'Africaine pour 2.900 F par mois.`;
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -227,6 +248,46 @@ export default function OnyxNutritionLanding() {
          </div>
       </section>
 
+      {/* SECTION : COMPARAISON */}
+      <section className="py-24 px-6 bg-zinc-950 text-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4`}>
+              Le Match : Régimes Classiques <span className="text-red-500">VS</span> Nutrition à l'Africaine
+            </h2>
+            <p className="text-zinc-400 font-bold text-lg">Arrêtez de vous battre contre votre culture.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
+            {/* AVANT : Régimes Classiques */}
+            <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] flex flex-col relative opacity-90">
+              <span className="bg-red-900/50 text-red-500 font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max border border-red-800">
+                <AlertTriangle size={14} /> Régimes Occidentaux
+              </span>
+              <ul className="space-y-4 text-zinc-400 font-medium text-lg">
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Restriction & Frustration :</strong> Adieu Thieb, bonjour salade sans goût.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Effet Yoyo Garanti :</strong> Vous perdez 10kg, vous en reprenez 15 dès que vous arrêtez.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Coûteux & Compliqué :</strong> Trouver du quinoa et des baies de goji à Dakar ? Bonne chance.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Isolement Social :</strong> "Désolé je ne peux pas manger avec vous, je suis au régime."</span></li>
+              </ul>
+            </div>
+
+            {/* APRÈS : Nutrition à l'Africaine */}
+            <div className="bg-black border-2 border-[#39FF14] p-8 rounded-[2rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.15)] transform md:scale-105 z-10">
+              <span className="bg-[#39FF14] text-black font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max shadow-lg">
+                <CheckCircle size={14} /> Nutrition à l'Africaine
+              </span>
+              <ul className="space-y-4 text-zinc-200 font-medium text-lg">
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Plaisir & Culture :</strong> Perdez du poids en mangeant votre Mafé. On ajuste juste les quantités.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Rééquilibrage Durable :</strong> On ne vous met pas au régime, on vous apprend à manger pour la vie.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Économique & Accessible :</strong> Les ingrédients sont déjà dans votre cuisine et au marché du coin.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Vie Sociale Préservée :</strong> Continuez à partager les repas en famille, sans culpabilité.</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* NOUVEAU : SECTION GUIDE */}
       <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
@@ -251,7 +312,7 @@ export default function OnyxNutritionLanding() {
              >
                <img 
                  src="https://i.ibb.co/Yy62b03/mockup-guide-nutrition.png"
-                 alt="Mockup du Guide Nutrition à l'Africaine"
+                 alt="Aperçu du Guide Nutrition à l'Africaine"
                  className="max-w-full max-h-full object-contain"
                />
              </motion.div>
@@ -285,7 +346,7 @@ export default function OnyxNutritionLanding() {
                </div>
 
                {/* CARTE 3 MOIS (RECOMMANDÉ) */}
-               <div className="bg-zinc-900 border-2 border-[#39FF14] p-8 rounded-[3rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.2)] z-10 md:scale-105">
+               <div className="bg-gradient-to-b from-[#39FF14]/20 to-black border-2 border-[#39FF14] p-8 rounded-[3rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.3)] z-10 md:scale-105">
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#39FF14] text-black px-5 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap shadow-xl flex items-center gap-2">
                      <Sparkles size={14} className="animate-pulse"/> Recommandé
                   </div>
@@ -306,6 +367,37 @@ export default function OnyxNutritionLanding() {
                </div>
             </div>
          </div>
+      </section>
+
+      {/* SECTION 5 : TÉMOIGNAGES */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              Ils ont transformé leur vie, <span className="text-black border-b-4 border-[#39FF14]">pas leur culture.</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Découvrez les parcours de nos membres.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {TESTIMONIALS.map((testimonial, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-zinc-50 border border-zinc-100 p-8 rounded-[2rem] flex flex-col items-center text-center"
+              >
+                <img src={testimonial.image} alt={`Photo de ${testimonial.name}`} className="w-24 h-24 rounded-full object-cover mb-6 border-4 border-white shadow-lg" />
+                <p className="text-zinc-600 font-medium leading-relaxed mb-6 flex-1">"{testimonial.text}"</p>
+                <div>
+                  <h4 className="font-black text-lg uppercase text-black">{testimonial.name}</h4>
+                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">{testimonial.role}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
       </section>
       {/* BOUTON REMONTER EN HAUT */}
       {showScrollTop && (
