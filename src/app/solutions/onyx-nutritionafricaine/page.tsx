@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Activity, HeartPulse, Smartphone, Flame, CheckCircle, 
   ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown, ChevronRight,
-  Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download
+  Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -347,6 +347,17 @@ export default function NutritionAfricaineLanding() {
             message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal | Poids cible: ${idealWeight.toFixed(1)}kg | Profil Santé: ${diagData.healthProfile || '-'}`
       }]);
       
+      // GÉNÉRATION DU MESSAGE D'ONBOARDING AUTOMATIQUE SELON LE PROFIL
+      let welcomeMsg = "";
+      if (diagData.healthProfile === "Allaitement") {
+          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de jeune maman, ton corps a besoin de douceur et d'énergie. J'ai préparé ton plan pour te permettre de maigrir sainement sans impacter ton allaitement. Prête à commencer ?`;
+      } else if (diagData.healthProfile === "Changements hormonaux") {
+          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} ✨ ! Bienvenue chez Onyx. La périménopause/ménopause bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme tout en douceur. Prête à retrouver un ventre plat ?`;
+      } else {
+          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🚀 ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
+      }
+      localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
+
       setDiagStep(5);
     } catch (err) {
       alert("Une erreur est survenue.");
@@ -1267,7 +1278,7 @@ export default function NutritionAfricaineLanding() {
                 <div className="text-center py-6 animate-in zoom-in">
                   <h3 className="text-2xl font-black uppercase mb-6 text-black">Analyse Terminée !</h3>
                   
-                  <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-6 mb-8 text-left shadow-sm">
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-6 mb-6 text-left shadow-sm">
                      <div className="flex justify-between items-center border-b border-zinc-200 pb-4 mb-4">
                         <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Votre IMC</span>
                         <span className="font-black text-3xl text-black">{calculateIMC()}</span>
@@ -1277,6 +1288,14 @@ export default function NutritionAfricaineLanding() {
                         <span className="font-black text-sm md:text-base text-black bg-[#39FF14] px-4 py-1.5 rounded-xl text-center shadow-sm">{getIMCCategory(calculateIMC())}</span>
                      </div>
                   </div>
+
+                  {typeof window !== 'undefined' && localStorage.getItem('onyx_nutrition_welcome') && (
+                     <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 mb-8 text-left shadow-sm">
+                        <h4 className="text-xs font-black text-blue-800 uppercase tracking-widest flex items-center gap-2 mb-3"><MessageSquare size={16}/> Mot de votre coach</h4>
+                        <p className="text-blue-900 font-medium italic text-sm leading-relaxed">"{localStorage.getItem('onyx_nutrition_welcome')}"</p>
+                        <p className="text-[9px] text-blue-600 font-bold mt-4 uppercase tracking-widest">Ce message vous attendra sur votre Dashboard personnel.</p>
+                     </div>
+                  )}
 
                   <p className="text-zinc-600 font-medium mb-8">Téléchargez votre bilan complet au format PDF pour le conserver, ou envoyez-le à votre coach pour obtenir votre premier menu.</p>
                   
