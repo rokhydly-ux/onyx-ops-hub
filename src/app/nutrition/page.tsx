@@ -228,6 +228,7 @@ export default function NutritionDashboard() {
 
   const [profileForm, setProfileForm] = useState({ full_name: "", avatar_url: "", password: "" });
   const [showReminder, setShowReminder] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -348,6 +349,9 @@ export default function NutritionDashboard() {
       // Nettoyer l'URL
       router.replace('/nutrition', undefined);
     }
+    
+    const welcome = localStorage.getItem('onyx_nutrition_welcome');
+    if (welcome) setWelcomeMessage(welcome);
 
   }, [router, searchParams]);
 
@@ -980,6 +984,18 @@ export default function NutritionDashboard() {
             <div className="bg-blue-50 border border-blue-100 text-blue-800 p-4 rounded-xl text-sm font-medium">
                <p><strong>{trackingMode === 'guided' ? 'Mode Guidé (Menu Strict) :' : 'Mode Libre (Flexible) :'}</strong> {trackingMode === 'guided' ? "Idéal pour les 14 premiers jours. Suivez le menu généré à la lettre pour des résultats rapides." : "Vous êtes libre de composer vos repas ! Ajoutez ce que vous mangez via la barre de recherche."}</p>
             </div>
+
+        {/* MESSAGE D'ONBOARDING */}
+        {welcomeMessage && (
+           <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex items-start gap-4 shadow-sm relative">
+              <button onClick={() => { setWelcomeMessage(null); localStorage.removeItem('onyx_nutrition_welcome'); }} className="absolute top-4 right-4 text-blue-400 hover:text-blue-600"><X size={16}/></button>
+              <div className="bg-blue-600 text-white p-2 rounded-full shrink-0"><MessageCircle size={20}/></div>
+              <div className="pr-6">
+                 <h3 className="font-black text-blue-800 uppercase text-sm mb-1">Message de ton Coach</h3>
+                 <p className="text-blue-900 font-medium text-sm leading-relaxed">{welcomeMessage}</p>
+              </div>
+           </div>
+        )}
 
             {/* JAUGES DU JOUR */}
             <div className="bg-black p-8 rounded-[2rem] border border-zinc-800 shadow-2xl text-center relative overflow-hidden">

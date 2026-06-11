@@ -314,10 +314,16 @@ export default function NutritionAfricaineLanding() {
           else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
           const tdee = bmr * nap;
           let rawCalories = weightToLose > 0 ? tdee - deficit : (weightToLose < 0 ? tdee + 300 : tdee);
+          if (diagData.healthProfile === "Allaitement") {
+              rawCalories += 500;
+          }
           const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
 
-          const carbs = (dailyCalories * 0.40) / 4;
-          const protein = (dailyCalories * 0.30) / 4;
+          let proteinRatio = 0.30;
+          if (age >= 50) proteinRatio = 0.35;
+          
+          const carbs = (dailyCalories * (0.70 - proteinRatio)) / 4;
+          const protein = (dailyCalories * proteinRatio) / 4;
           const fats = (dailyCalories * 0.30) / 9;
 
           localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
@@ -350,9 +356,9 @@ export default function NutritionAfricaineLanding() {
       // GÉNÉRATION DU MESSAGE D'ONBOARDING AUTOMATIQUE SELON LE PROFIL
       let welcomeMsg = "";
       if (diagData.healthProfile === "Allaitement") {
-          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de jeune maman, ton corps a besoin de douceur et d'énergie. J'ai préparé ton plan pour te permettre de maigrir sainement sans impacter ton allaitement. Prête à commencer ?`;
-      } else if (diagData.healthProfile === "Changements hormonaux") {
-          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} ✨ ! Bienvenue chez Onyx. La périménopause/ménopause bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme tout en douceur. Prête à retrouver un ventre plat ?`;
+          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de maman allaitante, ton corps a besoin d'énergie. J'ai préparé ton plan avec un bonus calorique pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids. Prête à commencer ?`;
+      } else if (diagData.healthProfile === "Changements hormonaux" || age >= 50) {
+          welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} ✨ ! Bienvenue chez Onyx. La périménopause ou l'âge bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme et protéger tes articulations tout en douceur. Prête à retrouver la forme ?`;
       } else {
           welcomeMsg = `Bonjour ${diagData.name.split(' ')[0]} 🚀 ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
       }
@@ -1288,6 +1294,19 @@ export default function NutritionAfricaineLanding() {
                         <span className="font-black text-sm md:text-base text-black bg-[#39FF14] px-4 py-1.5 rounded-xl text-center shadow-sm">{getIMCCategory(calculateIMC())}</span>
                      </div>
                   </div>
+
+               {diagData.healthProfile === 'Allaitement' && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-6 flex items-center gap-4 text-left shadow-inner">
+                     <div className="text-2xl">🤱</div>
+                     <div><p className="font-black text-orange-600 text-sm uppercase">Profil Maman Énergie</p><p className="text-xs text-orange-800 font-medium mt-1">Tes calories incluent un bonus de 500 kcal pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids.</p></div>
+                  </div>
+               )}
+               {(parseFloat(diagData.age) || 0) >= 50 && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 mb-6 flex items-center gap-4 text-left shadow-inner">
+                     <div className="text-2xl">🧘‍♀️</div>
+                     <div><p className="font-black text-purple-600 text-sm uppercase">Profil Longévité</p><p className="text-xs text-purple-800 font-medium mt-1">Ton objectif de protéines a été rehaussé pour protéger ton tonus musculaire et tes articulations.</p></div>
+                  </div>
+               )}
 
                   {typeof window !== 'undefined' && localStorage.getItem('onyx_nutrition_welcome') && (
                      <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 mb-8 text-left shadow-sm">

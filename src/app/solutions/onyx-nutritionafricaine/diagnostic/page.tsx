@@ -132,12 +132,18 @@ export default function NutritionDiagnostic() {
 
   // 4. Application du déficit calorique
   let rawCalories = weightToLose > 0 ? tdee - deficit : (weightToLose < 0 ? tdee + 300 : tdee);
+  if (formData.healthProfile === "Allaitement") {
+      rawCalories += 500;
+  }
   // Sécurité : Ne jamais descendre sous 1200 kcal (femme) ou 1500 kcal (homme)
   const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
 
-  // 5. Répartition des Macros : 40% Glucides, 30% Protéines, 30% Lipides
-  const carbs = (dailyCalories * 0.40) / 4;   // 1g de glucides = 4 kcal
-  const protein = (dailyCalories * 0.30) / 4; // 1g de protéines = 4 kcal
+  // 5. Répartition des Macros
+  let proteinRatio = 0.30;
+  if (age >= 50) proteinRatio = 0.35; // Rehaussement pour profils seniors
+  
+  const carbs = (dailyCalories * (0.70 - proteinRatio)) / 4;
+  const protein = (dailyCalories * proteinRatio) / 4;
   const fats = (dailyCalories * 0.30) / 9;    // 1g de lipides = 9 kcal
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -194,6 +200,16 @@ export default function NutritionDiagnostic() {
         message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal (P:${Math.round(protein)}g, G:${Math.round(carbs)}g) | Poids idéal cible: ${idealWeight.toFixed(1)}kg | Profil Santé: ${formData.healthProfile || '-'}`
       }]);
       
+      let welcomeMsg = "";
+      if (formData.healthProfile === "Allaitement") {
+          welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de jeune maman, ton corps a besoin d'énergie. J'ai préparé ton plan avec un bonus calorique pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids. Prête à commencer ?`;
+      } else if (formData.healthProfile === "Changements hormonaux" || age >= 50) {
+          welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} ✨ ! Bienvenue chez Onyx. La périménopause ou l'âge bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme et protéger ton tonus musculaire et tes articulations tout en douceur. Prête à retrouver la forme ?`;
+      } else {
+          welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} 🚀 ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
+      }
+      localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
+
       setStep(5); // Success step
     } catch (err) {
       alert("Une erreur est survenue.");
@@ -427,6 +443,19 @@ export default function NutritionDiagnostic() {
                     </p>
                  </div>
               </div>
+
+            {formData.healthProfile === 'Allaitement' && (
+               <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-8 flex items-center gap-4 text-left shadow-inner">
+                  <div className="text-2xl">🤱</div>
+                  <div><p className="font-black text-orange-600 text-sm uppercase">Profil Maman Énergie</p><p className="text-xs text-orange-800 font-medium mt-1">Tes calories incluent un bonus de 500 kcal pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids.</p></div>
+               </div>
+            )}
+            {age >= 50 && (
+               <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 mb-8 flex items-center gap-4 text-left shadow-inner">
+                  <div className="text-2xl">🧘‍♀️</div>
+                  <div><p className="font-black text-purple-600 text-sm uppercase">Profil Longévité</p><p className="text-xs text-purple-800 font-medium mt-1">Ton objectif de protéines a été rehaussé pour protéger ton tonus musculaire et tes articulations.</p></div>
+               </div>
+            )}
 
               {/* La Jauge Énergétique Verrouillée */}
               <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 mb-10 shadow-lg relative overflow-hidden group">
