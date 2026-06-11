@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, 
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion } from "framer-motion";
@@ -152,9 +152,12 @@ export default function NutritionDashboard() {
   const [daysLeft, setDaysLeft] = useState(0);
   
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites' | 'coaching'>('today');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState("");
   
   // Jauges quotidiennes
   const [calories, setCalories] = useState(0);
@@ -586,6 +589,58 @@ export default function NutritionDashboard() {
       }
   };
 
+  const handleProcessPayment = async () => {
+     setShowPaymentModal(false);
+     if (clientProfile) {
+         const newDate = new Date();
+         newDate.setDate(newDate.getDate() + 30);
+         await supabase.from('clients').update({ trial_ends_at: newDate.toISOString(), plan_type: 'premium' }).eq('id', clientProfile.id);
+         setDaysLeft(30);
+         setClientProfile({...clientProfile, plan_type: 'premium', trial_ends_at: newDate.toISOString()});
+         alert("Paiement validé ! Votre abonnement Premium est prolongé de 30 jours.");
+     } else {
+         alert("Simulation: Paiement validé.");
+     }
+  };
+
+  const handleScanProduct = async () => {
+     if (!barcodeInput) return;
+     try {
+        const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcodeInput}.json`);
+        const data = await res.json();
+        if (data.status === 1) {
+           const product = data.product;
+           const nutriments = product.nutriments;
+           const newFood = {
+              id: product._id,
+              nom: product.product_name || "Produit Scanné",
+              categorie: "Produit Scanné (API)",
+              portion_standard_nom: "100g",
+              portion_standard_grammes: 100,
+              valeurs_pour_100g: {
+                 calories: nutriments['energy-kcal_100g'] || 0,
+                 glucides: nutriments.carbohydrates_100g || 0,
+                 lipides: nutriments.fat_100g || 0,
+                 proteines: nutriments.proteins_100g || 0,
+                 fibres: nutriments.fiber_100g || 0,
+                 sodium_mg: (nutriments.sodium_100g || 0) * 1000
+              },
+              flags_ia: { is_local_senegal: false, ig_bas: null, high_sodium: false, ultra_transforme: true },
+              message_coach_ia: "Produit industriel scanné via l'API OpenFoodFacts. Ajoutez-le à votre journal."
+           };
+           setSelectedFoodDB(newFood);
+           setFoodSearchQuery(product.product_name);
+           setIsScanning(false);
+           setBarcodeInput("");
+           alert(`Produit trouvé : ${product.product_name}. Confirmez-vous l'ajout ?`);
+        } else {
+           alert("Produit introuvable dans la base de données OpenFoodFacts.");
+        }
+     } catch (e) {
+        alert("Erreur lors de la recherche du produit via l'API.");
+     }
+  };
+
   const handleSaveWeight = async () => {
       const todayStr = new Date().toISOString().split('T')[0];
       const lastLog = weightLogs.length > 0 ? weightLogs[weightLogs.length - 1] : null;
@@ -799,14 +854,17 @@ export default function NutritionDashboard() {
                      <p className="text-white text-xs font-bold">{jongomaXP} XP</p>
                   </div>
                </div>
-               <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4 shadow-xl">
-                 <div className="bg-black border border-zinc-700 p-3 rounded-xl">
-                    <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={24} />
+               <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4 shadow-xl">
+                 <div className="flex items-center gap-4">
+                    <div className="bg-black border border-zinc-700 p-3 rounded-xl">
+                       <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={24} />
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Abonnement</p>
+                       <p className="text-sm font-bold text-white"><strong className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours restants` : 'Expiré'}</strong></p>
+                    </div>
                  </div>
-                 <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Période d'essai</p>
-                    <p className="text-sm font-bold text-white"><strong className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours` : 'Expiré'}</strong></p>
-                 </div>
+                 <button onClick={() => setShowPaymentModal(true)} className="w-full sm:w-auto bg-[#39FF14] text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-colors">Renouveler</button>
                </div>
             </div>
           </div>
@@ -822,6 +880,7 @@ export default function NutritionDashboard() {
            <button onClick={() => setActiveTab('community')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'community' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Communauté</button>
            <button onClick={() => setActiveTab('week')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'week' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Programme Semaine</button>
            <button onClick={() => setActiveTab('favorites')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'favorites' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Recettes Enregistrées</button>
+           <button onClick={() => setActiveTab('coaching')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'coaching' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Coaching Personnel</button>
            <button onClick={() => setActiveTab('history')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'history' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Historique</button>
            <button onClick={() => setActiveTab('profile')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'profile' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Réglages</button>
         </div>
@@ -1048,16 +1107,29 @@ export default function NutritionDashboard() {
                          </>
                      ) : (
                          <>
-                             <div className="relative mb-6">
-                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18}/>
-                                 <input 
-                                    type="text" 
-                                    placeholder="Rechercher (ex: Fonio, Thiof)..." 
-                                    value={foodSearchQuery}
-                                    onChange={e => { setFoodSearchQuery(e.target.value); setSelectedFoodDB(null); }}
-                                    className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black"
-                                 />
+                             <div className="flex gap-2 mb-6">
+                                 <div className="relative flex-1">
+                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18}/>
+                                     <input 
+                                        type="text" 
+                                        placeholder="Rechercher (ex: Fonio, Thiof)..." 
+                                        value={foodSearchQuery}
+                                        onChange={e => { setFoodSearchQuery(e.target.value); setSelectedFoodDB(null); setIsScanning(false); }}
+                                        className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black"
+                                     />
+                                 </div>
+                                 <button onClick={() => setIsScanning(!isScanning)} className={`px-5 rounded-2xl flex items-center justify-center transition-colors ${isScanning ? 'bg-[#39FF14] text-black' : 'bg-black text-white hover:bg-zinc-800'}`} title="Scanner un produit">
+                                     <ScanLine size={20} />
+                                 </button>
                              </div>
+                             
+                             {isScanning && (
+                                 <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 mb-6 flex flex-col gap-3 animate-in fade-in">
+                                     <p className="text-xs font-bold text-blue-800 flex items-center gap-2"><ScanLine size={16}/> Scanner via OpenFoodFacts</p>
+                                     <input type="text" placeholder="Entrez le code-barres (ex: 3017620422003)" value={barcodeInput} onChange={e => setBarcodeInput(e.target.value)} className="w-full p-3 border border-blue-200 rounded-xl text-sm font-bold outline-none focus:border-blue-500 bg-white"/>
+                                     <button onClick={handleScanProduct} className="bg-blue-600 text-white py-3 rounded-xl font-black uppercase text-xs hover:bg-blue-700 transition-colors">Chercher le produit</button>
+                                 </div>
+                             )}
                              
                              {!selectedFoodDB && foodSearchQuery && (
                                 <div className="max-h-60 overflow-y-auto space-y-2 mb-6 border border-zinc-100 rounded-xl p-2">
@@ -1134,6 +1206,40 @@ export default function NutritionDashboard() {
                </div>
             )}
 
+          </div>
+        )}
+
+        {/* VUE COACHING */}
+        {activeTab === 'coaching' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Activity className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Coaching Personnel</h2>
+                <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl mb-8">
+                   <h3 className="font-black text-lg text-blue-800 mb-2">Besoin d'un accompagnement sur-mesure ?</h3>
+                   <p className="text-sm font-medium text-blue-700">Prenez rendez-vous avec l'un de nos experts en nutrition pour adapter votre programme, surmonter un blocage ou poser vos questions.</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between hover:border-black transition-colors">
+                      <div>
+                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Clock size={20}/></div>
+                         <h4 className="font-black uppercase text-sm mb-2">Bilan 15 min (Gratuit)</h4>
+                         <p className="text-xs text-zinc-500 font-medium mb-4">Inclus dans votre abonnement Premium. Idéal pour un ajustement rapide de votre plan.</p>
+                      </div>
+                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver mon bilan gratuit de 15min avec un coach.', '_blank')} className="w-full bg-black text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-colors">Réserver</button>
+                   </div>
+
+                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden hover:border-[#39FF14] transition-colors">
+                      <div className="absolute top-0 right-0 bg-[#39FF14] text-black text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl">Recommandé</div>
+                      <div>
+                         <div className="w-12 h-12 bg-black text-[#39FF14] rounded-full flex items-center justify-center mb-4"><Target size={20}/></div>
+                         <h4 className="font-black uppercase text-sm mb-2">Consultation Complète (45 min)</h4>
+                         <p className="text-xs text-zinc-500 font-medium mb-4">Analyse approfondie, refonte du plan alimentaire et stratégies avancées.</p>
+                      </div>
+                      <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite réserver une consultation complète de 45min (10.000F).', '_blank')} className="w-full bg-[#39FF14] text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Réserver (10.000 F)</button>
+                   </div>
+                </div>
+             </div>
           </div>
         )}
 
@@ -1715,6 +1821,47 @@ export default function NutritionDashboard() {
             <div className="pt-6 border-t border-zinc-100 shrink-0">
                <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("Salut ! Je te mets au défi de me battre sur le classement Jongoma XP de OnyxNutrition ! Rejoins-moi et voyons qui aura le plus de points cette semaine 🔥💪\n\nhttps://onyxlinks.com/nutrition")}`, '_blank')} className="w-full bg-[#25D366] text-white py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
                   <MessageCircle size={18}/> Défier une amie sur WhatsApp
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE DE PAIEMENT WAVE / OM */}
+      {showPaymentModal && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowPaymentModal(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white p-8 rounded-[3rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.15)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto flex flex-col overflow-hidden">
+            <button onClick={() => setShowPaymentModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all text-zinc-500 z-[60]">
+              <X size={20} />
+            </button>
+            <div className="text-center mb-8 shrink-0 mt-4">
+               <div className="w-20 h-20 bg-black text-[#39FF14] rounded-[2rem] mx-auto flex items-center justify-center mb-6 shadow-xl"><CreditCard size={32} /></div>
+               <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Renouvellement Premium</h3>
+               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2">Paiement sécurisé via PayDunya</p>
+            </div>
+            
+            <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 mb-8">
+               <div className="flex justify-between items-center mb-4">
+                  <span className="font-bold text-sm">Abonnement Mensuel</span>
+                  <span className="font-black text-xl">2 900 F</span>
+               </div>
+               <p className="text-xs text-zinc-500 font-medium leading-relaxed">
+                  Prolongez votre accès au Smart Planner, au générateur de listes de courses, et au réseau communautaire privé OnyxNutrition.
+               </p>
+            </div>
+
+            <div className="space-y-3">
+               <button onClick={() => {
+                   window.open('https://pay.onyxlinks.com/renew-nutrition', '_blank');
+                   if(confirm("Simulation: Avez-vous terminé le paiement Wave/OM ?")) { handleProcessPayment(); }
+               }} className="w-full bg-[#1b74e4] text-white py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
+                  Payer avec Wave
+               </button>
+               <button onClick={() => {
+                   window.open('https://pay.onyxlinks.com/renew-nutrition', '_blank');
+                   if(confirm("Simulation: Avez-vous terminé le paiement Wave/OM ?")) { handleProcessPayment(); }
+               }} className="w-full bg-[#ff6600] text-white py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
+                  Payer avec Orange Money
                </button>
             </div>
           </div>
