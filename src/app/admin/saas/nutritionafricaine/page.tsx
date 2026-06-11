@@ -19,32 +19,57 @@ export default function AdminNutritionAfricaine() {
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
   const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [] as any[] });
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
+  const [editingClient, setEditingClient] = useState<any>(null);
+  const [clientForm, setClientForm] = useState({ id: '', daily_calorie_goal: 0, protein_goal: 0, carbs_goal: 0, fats_goal: 0, tracking_mode: 'guided' });
 
   useEffect(() => {
     const fetchClients = async () => {
-      // Fetch depuis la table clients pour s'assurer d'avoir tous ceux inscrits
-      const { data: clientsData, error } = await supabase
+      // Fetch clients d'abord avec un ilike pour capturer toutes les variantes de "Nutrition"
+      const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
-        .select(`
-          *,
-          nutrition_profiles(*),
-          nutrition_daily_logs(*),
-          nutrition_weight_logs(*)
-        `)
-        .in('saas', ["Nutrition à l'Africaine", "OnyxNutrition"])
+        .select('*')
+        .ilike('saas', '%utrition%')
         .order('created_at', { ascending: false });
 
-      if (clientsData && !error) {
+      if (clientsError) {
+        console.error("Error fetching clients:", clientsError);
+        setLoading(false);
+        return;
+      }
+
+      if (clientsData && clientsData.length > 0) {
+        const clientIds = clientsData.map(c => c.id);
+
+        // Fetch manuel pour éviter les problèmes de clés étrangères non définies côté postgREST
+        const [profilesRes, logsRes, weightLogsRes] = await Promise.all([
+           supabase.from('nutrition_profiles').select('*').in('client_id', clientIds),
+           supabase.from('nutrition_daily_logs').select('*').in('client_id', clientIds),
+           supabase.from('nutrition_weight_logs').select('*').in('client_id', clientIds)
+        ]);
+
+        const profiles = profilesRes.data || [];
+        const logs = logsRes.data || [];
+        const weightLogs = weightLogsRes.data || [];
+
         const mappedProfiles = clientsData.map(c => {
-           const prof = (c.nutrition_profiles && c.nutrition_profiles.length > 0) ? c.nutrition_profiles[0] : {};
+           const prof = profiles.find(p => p.client_id === c.id) || {};
+           const clientLogs = logs.filter(l => l.client_id === c.id) || [];
+           const clientWeightLogs = weightLogs.filter(w => w.client_id === c.id) || [];
+           
            return {
               ...prof,
+              id: prof.id || c.id,
               client: c,
-              logs: c.nutrition_daily_logs || [],
-              weight_logs: c.nutrition_weight_logs || []
+              phone: c.phone || prof.phone,
+              logs: clientLogs,
+              weight_logs: clientWeightLogs,
+              daily_calorie_goal: prof.daily_calorie_goal || 1500,
+              protein_goal: prof.protein_goal || 80
            };
         });
         setClients(mappedProfiles);
+      } else {
+        setClients([]);
       }
       setLoading(false);
     };
@@ -93,6 +118,28 @@ export default function AdminNutritionAfricaine() {
       if (!confirm("Supprimer cette recette ?")) return;
       await supabase.from('nutrition_recipes').delete().eq('id', id);
       setRecipes(recipes.filter(r => r.id !== id));
+  };
+
+  const handleOpenClientModal = (profile: any) => {
+    setEditingClient(profile);
+    setClientForm({
+        id: profile.id,
+        daily_calorie_goal: profile.daily_calorie_goal || 1500,
+        protein_goal: profile.protein_goal || 80,
+        carbs_goal: profile.carbs_goal || 150,
+        fats_goal: profile.fats_goal || 50,
+        tracking_mode: profile.tracking_mode || 'guided'
+    });
+  };
+
+  const handleSaveClient = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const payload = { client_id: editingClient.client.id, daily_calorie_goal: clientForm.daily_calorie_goal, protein_goal: clientForm.protein_goal, carbs_goal: clientForm.carbs_goal, fats_goal: clientForm.fats_goal, tracking_mode: clientForm.tracking_mode };
+      const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
+      if (!error) {
+          setClients(clients.map(c => c.client.id === editingClient.client.id ? { ...c, ...payload } : c));
+          setEditingClient(null);
+      } else alert(error.message);
   };
 
   if (loading) {
@@ -268,7 +315,10 @@ export default function AdminNutritionAfricaine() {
 
                     <button onClick={() => window.open(`https://wa.me/${phone.replace('+', '')}`, '_blank')} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform flex justify-center items-center gap-2">
                        Contacter sur WhatsApp <ExternalLink size={14}/>
-                  </button>
+                    </button>
+                    <button onClick={() => handleOpenClientModal(profile)} className="w-full bg-zinc-100 text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2 mt-2">
+                       <Edit3 size={14}/> Modifier Objectifs & Mode
+                    </button>
                  </div>
               );
            })}
@@ -395,6 +445,41 @@ export default function AdminNutritionAfricaine() {
 
                   <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
                      <CheckCircle size={20}/> Enregistrer la recette
+                  </button>
+               </form>
+            </div>
+         </div>
+      )}
+
+      {/* MODALE CLIENT */}
+      {editingClient && (
+         <div id="client-modal-overlay" onClick={(e: any) => e.target.id === 'client-modal-overlay' && setEditingClient(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto text-black">
+               <button onClick={() => setEditingClient(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-2 flex items-center gap-3`}>
+                  <Target className="text-[#39FF14]"/> Objectifs Client
+               </h2>
+               <p className="text-zinc-500 font-bold text-xs mb-8">{editingClient.client.full_name}</p>
+               
+               <form onSubmit={handleSaveClient} className="space-y-6">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Mode de Suivi</label>
+                     <select value={clientForm.tracking_mode} onChange={e => setClientForm({...clientForm, tracking_mode: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black cursor-pointer">
+                        <option value="guided">Guidé (Menu Strict)</option>
+                        <option value="flexible">Libre (Flexible)</option>
+                        <option value="autopilot">Autopilot</option>
+                     </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-orange-500 tracking-widest ml-1">Kcal / Jour</label><input type="number" required value={clientForm.daily_calorie_goal} onChange={e => setClientForm({...clientForm, daily_calorie_goal: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-green-500 tracking-widest ml-1">Protéines (g)</label><input type="number" required value={clientForm.protein_goal} onChange={e => setClientForm({...clientForm, protein_goal: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-yellow-600 tracking-widest ml-1">Glucides (g)</label><input type="number" required value={clientForm.carbs_goal} onChange={e => setClientForm({...clientForm, carbs_goal: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-1">Lipides (g)</label><input type="number" required value={clientForm.fats_goal} onChange={e => setClientForm({...clientForm, fats_goal: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                  </div>
+
+                  <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
+                     <Save size={20}/> Mettre à jour
                   </button>
                </form>
             </div>
