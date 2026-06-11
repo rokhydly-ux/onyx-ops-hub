@@ -5,10 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, 
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion } from "framer-motion";
+import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -215,6 +216,8 @@ export default function NutritionDashboard() {
   ]);
   const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [pdfHistory, setPdfHistory] = useState<any[]>([]);
+  const [isSharingPDF, setIsSharingPDF] = useState(false);
 
   // Objectifs
   const [calorieGoal, setCalorieGoal] = useState(1500);
@@ -331,9 +334,14 @@ export default function NutritionDashboard() {
              }
           }
 
-          const savedFavs = localStorage.getItem('onyx_favorite_meals');
+          const savedFavs = localStorage.getItem(`onyx_favorite_meals_${profileData.id}`);
           if (savedFavs) {
              try { setFavoriteMeals(JSON.parse(savedFavs)); } catch(e) {}
+          }
+          
+          const savedPdfs = localStorage.getItem(`onyx_pdf_history_${profileData.id}`);
+          if (savedPdfs) {
+             try { setPdfHistory(JSON.parse(savedPdfs)); } catch(e) {}
           }
         }
       }
@@ -518,6 +526,7 @@ export default function NutritionDashboard() {
       const list: any = { 'Supermarché': {}, 'Marché local': {}, 'Boucherie / Pêche': {} };
       weeklyGeneratedMenu.forEach(dayInfo => {
           Object.values(dayInfo.meals).forEach((recipe: any) => {
+              if (!recipe || !recipe.ingredients) return;
               recipe.ingredients.forEach((ing: any) => {
                   const rayon = ing.rayon || 'Supermarché';
                   if (!list[rayon]) list[rayon] = {};
@@ -530,6 +539,99 @@ export default function NutritionDashboard() {
           });
       });
       return list;
+  };
+
+  const shareGroceryListWhatsApp = async () => {
+      if (!clientProfile) return;
+      setIsSharingPDF(true);
+      try {
+          const doc = new jsPDF();
+          doc.setFontSize(22);
+          doc.text("Liste de Courses - Onyx Nutrition", 14, 20);
+          doc.setFontSize(12);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`Semaine du ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+          
+          let y = 45;
+          const list = getGroceryList();
+          
+          Object.entries(list).forEach(([rayon, items]: any) => {
+              if (Object.keys(items).length === 0) return;
+              if (y > 260) { doc.addPage(); y = 20; }
+              doc.setFontSize(14);
+              doc.setTextColor(0, 0, 0);
+              doc.setFont("helvetica", "bold");
+              doc.text(rayon.toUpperCase(), 14, y);
+              y += 8;
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(12);
+              Object.entries(items).forEach(([nom, data]: any) => {
+                  if (y > 280) { doc.addPage(); y = 20; }
+                  doc.text(`• ${nom}`, 20, y);
+                  doc.text(`${data.quantite} ${data.unite}`, 190, y, { align: 'right' });
+                  y += 7;
+              });
+              y += 10;
+          });
+
+          const pdfBlob = doc.output('blob');
+          const fileName = `Liste_Courses_${clientProfile.id}_${Date.now()}.pdf`;
+          
+          const { error: uploadError } = await supabase.storage.from('tontines').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage.from('tontines').getPublicUrl(fileName);
+          const fileUrl = urlData.publicUrl;
+
+          const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: fileUrl }, ...pdfHistory];
+          setPdfHistory(newHistory);
+          localStorage.setItem(`onyx_pdf_history_${clientProfile.id}`, JSON.stringify(newHistory));
+
+          const text = `Bonjour ! Voici ma liste de courses de la semaine générée par OnyxNutrition 🛒🥦 :\n\n${fileUrl}`;
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      } catch (err: any) {
+          alert("Erreur lors de la génération du lien : " + err.message);
+      } finally {
+          setIsSharingPDF(false);
+      }
+  };
+
+  const downloadGroceryListPDF = () => {
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.text("Liste de Courses - Onyx Nutrition", 14, 20);
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Semaine du ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+      
+      let y = 45;
+      const list = getGroceryList();
+      
+      Object.entries(list).forEach(([rayon, items]: any) => {
+          if (Object.keys(items).length === 0) return;
+          if (y > 260) { doc.addPage(); y = 20; }
+          doc.setFontSize(14);
+          doc.setTextColor(0, 0, 0);
+          doc.setFont("helvetica", "bold");
+          doc.text(rayon.toUpperCase(), 14, y);
+          y += 8;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(12);
+          Object.entries(items).forEach(([nom, data]: any) => {
+              if (y > 280) { doc.addPage(); y = 20; }
+              doc.text(`• ${nom}`, 20, y);
+              doc.text(`${data.quantite} ${data.unite}`, 190, y, { align: 'right' });
+              y += 7;
+          });
+          y += 10;
+      });
+      doc.save(`Liste_Courses_Onyx_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: null }, ...pdfHistory];
+      setPdfHistory(newHistory);
+      if (clientProfile) {
+          localStorage.setItem(`onyx_pdf_history_${clientProfile.id}`, JSON.stringify(newHistory));
+      }
   };
 
   const handleAddWater = async () => {
@@ -876,7 +978,9 @@ export default function NutritionDashboard() {
           newFavs = [...favoriteMeals, meal];
       }
       setFavoriteMeals(newFavs);
-      localStorage.setItem('onyx_favorite_meals', JSON.stringify(newFavs));
+      if (clientProfile) {
+          localStorage.setItem(`onyx_favorite_meals_${clientProfile.id}`, JSON.stringify(newFavs));
+      }
   };
 
   const remainingCalories = Math.max(0, calorieGoal - calories);
@@ -1464,6 +1568,9 @@ export default function NutritionDashboard() {
                      <button onClick={generateWeeklyMenu} className="bg-white border border-zinc-200 text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-50 transition shadow-sm flex items-center gap-2">
                         <RefreshCcw size={14}/> Regénérer
                      </button>
+                     <button onClick={() => setShowGroceryList(true)} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition shadow-sm flex items-center gap-2">
+                        <ShoppingCart size={14}/> Liste de courses
+                     </button>
                   </div>
                </div>
 
@@ -1644,6 +1751,31 @@ export default function NutritionDashboard() {
                    </div>
                 </div>
              </div>
+
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm mt-8">
+                <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Download className="text-[#39FF14]"/> Historique des Téléchargements PDF</h3>
+                {pdfHistory.length > 0 ? (
+                   <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                      {pdfHistory.map((item, idx) => (
+                         <div key={idx} className="flex justify-between items-center bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                            <div>
+                               <p className="font-bold text-sm text-black">{item.type}</p>
+                               <p className="text-[10px] font-black uppercase text-zinc-500">{new Date(item.date).toLocaleDateString('fr-FR', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</p>
+                            </div>
+                            {item.url ? (
+                               <a href={item.url} target="_blank" rel="noopener noreferrer" className="bg-black text-[#39FF14] px-4 py-2 rounded-lg text-[10px] font-black uppercase hover:scale-105 transition-transform flex items-center gap-2 w-max">
+                                  <ExternalLink size={14}/> Ouvrir
+                               </a>
+                            ) : (
+                               <span className="bg-zinc-200 text-zinc-500 px-3 py-1 rounded-lg text-[10px] font-black uppercase w-max">Local</span>
+                            )}
+                         </div>
+                      ))}
+                   </div>
+                ) : (
+                   <p className="text-sm font-medium text-zinc-500 italic">Aucun PDF téléchargé ou partagé pour le moment.</p>
+                )}
+             </div>
           </div>
         )}
       </div>
@@ -1688,6 +1820,14 @@ export default function NutritionDashboard() {
                         </div>
                      );
                   })}
+               </div>
+               <div className="flex flex-col sm:flex-row gap-4 mt-8">
+                  <button onClick={downloadGroceryListPDF} className="flex-1 bg-zinc-100 text-black py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-zinc-200 transition-colors shadow-sm flex items-center justify-center gap-2">
+                     <Download size={18}/> Télécharger (Local)
+                  </button>
+                  <button onClick={shareGroceryListWhatsApp} disabled={isSharingPDF} className="flex-1 bg-[#25D366] text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2 disabled:opacity-50">
+                     {isSharingPDF ? <Loader2 size={18} className="animate-spin"/> : <MessageCircle size={18}/>} Envoyer sur WhatsApp
+                  </button>
                </div>
             </div>
          </div>
@@ -1923,7 +2063,7 @@ export default function NutritionDashboard() {
             
             <div className="flex items-center gap-4 mb-6 border-b border-zinc-100 pb-6">
               <div className="relative">
-                <img src="https://ui-avatars.com/api/?name=Rokhy&background=0D8ABC&color=fff" alt="Rokhy" className="w-16 h-16 rounded-full border-2 border-[#39FF14]" />
+                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781176401/A_portrait_of_the_character_202606111113_jfaetc.jpg" alt="Rokhy" className="w-16 h-16 rounded-full border-2 border-[#39FF14]" />
                 <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#39FF14] border-2 border-white rounded-full animate-pulse"></div>
               </div>
               <div>
@@ -2009,7 +2149,7 @@ export default function NutritionDashboard() {
       {rokhyMessage && (
          <div className="fixed bottom-6 left-6 z-[110] bg-white p-5 rounded-3xl shadow-2xl border border-zinc-100 max-w-sm flex gap-4 animate-in slide-in-from-bottom-8">
             <div className="relative shrink-0">
-               <img src="https://ui-avatars.com/api/?name=Rokhy&background=0D8ABC&color=fff&rounded=true" alt="Rokhy Coach IA" className="w-12 h-12 rounded-full border-2 border-white shadow-md" />
+               <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781176401/A_portrait_of_the_character_202606111113_jfaetc.jpg" alt="Rokhy Coach IA" className="w-12 h-12 rounded-full border-2 border-white shadow-md" />
                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#39FF14] border-2 border-white rounded-full"></div>
             </div>
             <div>

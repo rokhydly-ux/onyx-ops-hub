@@ -16,21 +16,24 @@ const spaceGrotesk = { className: "font-sans" };
 const TESTIMONIALS = [
   {
     name: "Aïssatou K.",
-    role: "Mère de famille, Dakar",
-    text: "J'ai perdu 8 kg en 3 mois sans arrêter de manger mon mafé ! Le suivi WhatsApp est incroyable, on ne se sent jamais seule. C'est la première fois qu'un programme s'adapte à moi, et pas l'inverse.",
-    image: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"
+    role: "35 ans, Mère de famille, Dakar",
+    text: "Finie la fatigue de l'après-midi. Je mange avec mes enfants et le suivi WhatsApp me motive tous les jours !",
+    image: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg", // Placeholder, replace with actual image if available
+    stats: "-8 kg en 3 mois"
   },
   {
-    name: "Mamadou D.",
-    role: "Cadre dynamique, Thiès",
-    text: "Avec mon travail, je n'avais pas le temps de cuisiner des plats compliqués. OnyxNutrition m'a montré comment équilibrer mes repas au restaurant. J'ai plus d'énergie et mon ventre a disparu.",
-    image: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"
+    name: "Penda DIOP",
+    role: "56 ans, Retraitée, Saint-Louis",
+    text: "Mon médecin m'avait dit de faire attention au diabète et au sel. L'application m'a sauvé la vie en me montrant comment remplacer le cube Maggi par le Nététou brut.",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111507_ukx5d4.jpg",
+    stats: "Profil Périménopause"
   },
   {
-    name: "Fatima B.",
-    role: "Étudiante, Saint-Louis",
-    text: "Je pensais que manger sainement coûtait cher. Le guide m'a ouvert les yeux sur les alternatives locales. J'ai appris à mieux manger avec mon budget d'étudiante. Merci l'équipe !",
-    image: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"
+    name: "Amadou T.",
+    role: "62 ans, Cadre, Dakar",
+    text: "J'ai éliminé mon ventre de sédentaire en 2 mois au restaurant en apprenant à choisir les bonnes céréales. Ma tension est redevenue stable.",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781190763/An_authentic_photorealistic_full-body_portrait_202606111512_f3zs3t.jpg",
+    stats: "Profil Tension & Ventre Plat"
   }
 ];
 
@@ -81,10 +84,10 @@ const CalorieGauge = ({ value, maxValue = 1200, colorClass, label }: { value: nu
 };
 
 const INGREDIENTS = [
-  { name: "Fonio", benefits: "Sans Gluten, Riche en Fer & Magnésium, Indice Glycémique Bas", desc: "Le Fonio est un grain ancien parfait pour remplacer le riz. Il est léger, facile à digérer et aide à contrôler la glycémie, ce qui est essentiel pour la perte de poids.", icon: "🌾" },
-  { name: "Mil", benefits: "Riche en Protéines & Fibres, Énergisant, Bon pour le cœur", desc: "Le Mil est une céréale robuste qui vous garde rassasié plus longtemps grâce à ses fibres. C'est une excellente source d'énergie durable pour éviter les fringales.", icon: "🌽" },
-  { name: "Sorgho", benefits: "Antioxydant, Améliore la digestion, Contrôle le cholestérol", desc: "Le Sorgho est un allié puissant pour votre santé digestive. Ses antioxydants combattent l'inflammation, un facteur clé dans la prise de poids.", icon: "🌱" },
-  { name: "Niébé", benefits: "Source de Protéines Végétales, Riche en Folate, Faible en gras", desc: "L'haricot local (Niébé) est une alternative incroyable à la viande. Il construit du muscle, vous cale et stabilise votre énergie sans les graisses saturées.", icon: "🫘" }
+  { name: "Le Fonio", benefits: "L'alternative n'1 au riz blanc", desc: "Indice glycémique très bas, idéal pour couper la faim des diabétiques. Retrouvez-le au rayon terroir chez Auchan Sénégal.", icon: "🌾" },
+  { name: "Le Soumbala (Nététou)", benefits: "Notre bouillon cube naturel", desc: "Donne le goût traditionnel aux sauces tout en aidant à réguler la tension artérielle. Disponible sur tous les marchés locaux.", icon: "🍲" },
+  { name: "La Poudre de Bouye (Baobab)", benefits: "6 fois plus riche en vitamine C que l'orange", desc: "Ses fibres se transforment en gel coupe-faim naturel dans l'estomac. Un coupe-faim naturel et délicieux.", icon: "🌳" },
+  { name: "Le Riz local étuvé", benefits: "Moins transformé que le riz blanc", desc: "Une option plus saine que le riz blanc classique, avec un indice glycémique légèrement plus bas. Retrouvez-le chez Auchan Sénégal.", icon: "🍚" }
 ];
 
 const DISH_CALORIES: Record<string, { calories: number; optimizedCalories: number; tip: string }> = {
@@ -104,23 +107,6 @@ const DISH_CALORIES: Record<string, { calories: number; optimizedCalories: numbe
     tip: "Utiliser du poulet sans la peau et une cuisson avec moins d'huile (ou Air Fryer) peut ramener ce plat à 500 kcal."
   }
 };
-
-const TRANSFORMATIONS = [
-  {
-    name: "Ndeye S.",
-    stats: "-12kg en 4 mois",
-    beforeImg: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg",
-    afterImg: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg",
-    story: "Ndeye voulait retrouver sa silhouette d'avant grossesse sans sacrifier les repas en famille. Mission accomplie !"
-  },
-  {
-    name: "Ousmane T.",
-    stats: "Ventre plat en 2 mois",
-    beforeImg: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg",
-    afterImg: "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg",
-    story: "Ousmane a dit adieu à son ventre de 'cadre sédentaire' en apprenant à mieux choisir ses plats au restaurant."
-  }
-];
 
 const FAQ_DATA = [
   {
@@ -145,26 +131,26 @@ const FAQ_DATA = [
   }
 ];
 
-const FAMILY_APPROACH_POINTS = [
+const FAMILY_APPROACH_POINTS_NEW = [
   {
     icon: "🍲",
     title: "Partagez la même sauce",
-    text: "Pas besoin de cuisiner deux repas ! Vous mangez la même sauce savoureuse (légumes, viandes, poissons) que toute la famille."
+    text: "Vous mangez le même Yassa savoureux (légumes, poisson, zébu) que vos proches."
   },
   {
     icon: "🔄",
     title: "Le 'Switch' Intelligent",
-    text: "Pendant que la famille prend du riz blanc, vous prenez votre portion de fonio, mil ou céréales complètes. C'est simple et discret."
+    text: "Pendant que la famille prend le riz blanc lourd, vous versez votre portion de Fonio précuit ou de Riz local étuvé acheté chez Auchan Sénégal. C'est simple et discret."
   },
   {
     icon: "⚖️",
     title: "Le Contrôle des Portions",
-    text: "Vous voulez manger le riz familial ? Pas de problème. Le guide vous apprend à prendre la juste portion qui respecte vos objectifs."
+    text: "L'application vous apprend à vous servir la juste quantité dans le bol commun sans frustration."
   },
   {
     icon: "👨‍👩‍👧‍👦",
     title: "Montrez l'exemple",
-    text: "En mangeant plus sainement sans vous isoler, vous inspirez positivement vos proches. Le bien-être devient une affaire de famille."
+    text: "En mangeant plus sainement sans vous isoler, vous inspirez positivement vos proches. Le bien-être devient une affaire de famille." // Kept this one as it's still relevant
   }
 ];
 
@@ -645,16 +631,16 @@ export default function NutritionAfricaineLanding() {
       </nav>
 
       {/* 1. HERO SECTION */}
-      <section className="pt-16 pb-24 px-6 text-center max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <section className="pt-16 pb-16 px-6 text-center max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
          <div className="inline-flex items-center gap-2 bg-green-100 border border-green-200 text-green-700 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-8 shadow-sm">
              <Activity size={14} /> Santé & Bien-être
          </div>
          <h1 className={`${spaceGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>
-            MANGEZ LOCAL ET PERDEZ <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-[#2bd40d] drop-shadow-sm">JUSQU'À 8 KG / MOIS*</span>
+            MANGEZ NOTRE TERROIR. <br/>
+            RETROUVEZ VOTRE SILHOUETTE DE <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-[#2bd40d] drop-shadow-sm">JONGOMA.</span>
          </h1>
          <p className="text-zinc-600 text-lg md:text-xl font-medium max-w-3xl mx-auto mb-4 leading-relaxed">
-            Oubliez les mythes sur le thé brûle-graisse. Thieb, Mafé, Yassa : on rééquilibre votre alimentation selon <strong className="text-black">NOS réalités africaines</strong>, avec un suivi direct sur WhatsApp.
+            Perdez jusqu'à 8 kg par mois sans vous isoler du bol familial. Oubliez les thés miracles importés et les régimes à la toubab. Ceebu jën, Yassa, Maffé : le Dr Thierno Ly et Rokhy rééquilibrent votre alimentation selon NOS réalités sénégalaises. Votre santé n’attend pas.
          </p>
          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-12">* Les résultats varient selon votre métabolisme et votre point de départ.</p>
          
@@ -663,13 +649,50 @@ export default function NutritionAfricaineLanding() {
               <HeartPulse size={24} className="relative z-10" /> <span className="relative z-10">Démarrer à 2.900 F</span>
            </button>
            <button onClick={() => setShowDiagnosticModal(true)} className="bg-white text-black border-2 border-black px-8 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-lg flex items-center justify-center gap-3 w-full sm:w-auto">
-              Diagnostic Gratuit <Activity size={20} />
+              Commencer mon diagnostic gratuit <Activity size={20} />
            </button>
          </div>
       </section>
 
-      {/* 2. BÉNÉFICES DIRECTS */}
-      <section className="py-24 px-6 border-t border-zinc-200 bg-white">
+      {/* 2. LA RÉASSURANCE "BOL FAMILIAL" (Nouvelle Position Haute) */}
+      <section className="py-24 px-6 bg-zinc-100 border-y border-zinc-200">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              "Et si la famille partage le même bol ?" <span className="text-black border-b-4 border-[#39FF14]">On a pensé à tout.</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Au Sénégal, manger c'est partager. Pas question de cuisiner un plat à part dans votre coin.</p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            {FAMILY_APPROACH_POINTS_NEW.map((point, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-white border border-zinc-200 p-8 rounded-[2rem] flex items-start gap-6 shadow-sm"
+              >
+                <div className="text-4xl mt-1">{point.icon}</div>
+                <div>
+                  <h3 className="font-black text-lg uppercase text-black mb-2">{point.title}</h3>
+                  <p className="text-zinc-600 font-medium leading-relaxed">{point.text}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          <div className="relative mx-auto w-full max-w-lg mt-16">
+             <img 
+               src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198836/A_high-angle_studio_commercial_shot_202606111513_yehlsx.jpg"
+               alt="Famille partageant un bol de riz"
+               className="w-full h-auto rounded-[2rem] shadow-xl border border-zinc-200"
+             />
+          </div>
+        </div>
+      </section>
+
+      {/* 3. BÉNÉFICES DIRECTS (Original section 2, now section 3) */}
+      <section className="py-24 px-6 bg-white">
          <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
                <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>Pourquoi ça <span className="text-black border-b-4 border-[#39FF14]">fonctionne enfin ?</span></h2>
@@ -716,59 +739,79 @@ export default function NutritionAfricaineLanding() {
          </div>
       </section>
 
-      {/* SECTION : COMPARAISON */}
+      {/* 4. LE MATCH : RÉGIMES OCCIDENTAUX VS NUTRITION À L'AFRICAINE */}
       <section className="py-24 px-6 bg-zinc-950 text-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4`}>
-              Le Match : Régimes Classiques <span className="text-red-500">VS</span> Nutrition à l'Africaine
+              Arrêtez de vous battre contre votre <span className="text-red-500">propre culture.</span>
             </h2>
-            <p className="text-zinc-400 font-bold text-lg">Arrêtez de vous battre contre votre culture.</p>
+            <p className="text-zinc-400 font-bold text-lg">Le Match : Régimes de l'Étranger VS Nutrition à l'Africaine</p>
           </div>
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
             {/* AVANT : Régimes Classiques */}
             <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-[2rem] flex flex-col relative opacity-90">
               <span className="bg-red-900/50 text-red-500 font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max border border-red-800">
-                <AlertTriangle size={14} /> Régimes Occidentaux
+                <AlertTriangle size={14} /> Les Régimes de l'Étranger (❌)
               </span>
               <ul className="space-y-4 text-zinc-400 font-medium text-lg">
-                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Restriction & Frustration :</strong> Adieu Thieb, bonjour salade sans goût.</span></li>
-                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Effet Yoyo Garanti :</strong> Vous perdez 10kg, vous en reprenez 15 dès que vous arrêtez.</span></li>
-                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Coûteux & Compliqué :</strong> Trouver du quinoa et des baies de goji à Dakar ? Bonne chance.</span></li>
-                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Isolement Social :</strong> "Désolé je ne peux pas manger avec vous, je suis au régime."</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Adieu le bon riz, bonjour les salades fades.</strong> Devoir chercher du quinoa ou du saumon hors de prix à Dakar.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">S'isoler lors des repas de famille :</strong> "Désolé, je ne mange pas avec vous, je suis au régime."</span></li>
+                <li className="flex gap-3 items-start"><span className="text-red-500 mt-1">❌</span><span><strong className="text-white">Résultat ? Vous craquez et reprenez tout.</strong> Effet Yoyo garanti.</span></li>
               </ul>
             </div>
 
             {/* APRÈS : Nutrition à l'Africaine */}
             <div className="bg-black border-2 border-[#39FF14] p-8 rounded-[2rem] flex flex-col relative shadow-[0_0_50px_rgba(57,255,20,0.15)] transform md:scale-105 z-10">
               <span className="bg-[#39FF14] text-black font-black uppercase text-xs px-4 py-2 rounded-full mb-6 inline-flex items-center gap-2 w-max shadow-lg">
-                <CheckCircle size={14} /> Nutrition à l'Africaine (La Méthode)
+                <CheckCircle size={14} /> La Méthode Locale (✅)
               </span>
               <ul className="space-y-4 text-zinc-200 font-medium text-lg">
-                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Plaisir & Culture :</strong> Mangez votre Mafé en ajustant les quantités (Pilier 1), ou remplacez le riz par du fonio pour accélérer les résultats (Pilier 2). C'est vous qui choisissez.</span></li>
-                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Rééquilibrage Durable :</strong> On ne vous met pas au régime, on vous apprend à manger pour la vie.</span></li>
-                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Économique & Accessible :</strong> Les ingrédients sont déjà dans votre cuisine et au marché du coin.</span></li>
-                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Vie Sociale Préservée :</strong> Continuez à partager les repas en famille, sans culpabilité.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Conservez le plaisir de nos sauces</strong> en apprenant à doser l'huile.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Utilisez les super-aliments de nos marchés</strong> (Soumbala, Bouye, Kinkeliba) pour booster votre métabolisme et bloquer le stockage des graisses.</span></li>
+                <li className="flex gap-3 items-start"><span className="text-[#39FF14] mt-1">✅</span><span><strong className="text-white">Une méthode économique, durable et 100% validée médicalement.</strong></span></li>
               </ul>
             </div>
+          </div>
+          <div className="relative mx-auto w-full max-w-lg mt-16">
+             <img 
+               src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198836/A_split-screen_composition_styled_for_202606111513_ompcjz.jpg"
+               alt="Comparaison Régimes"
+               className="w-full h-auto rounded-[2rem] shadow-xl border border-zinc-800"
+             />
           </div>
         </div>
       </section>
 
-      {/* NOUVEAU : SECTION GUIDE */}
-      <section className="py-24 px-6">
+      {/* 5. LA VITRINE DES TERROIRS (Section interactive & Auchan) - FUSION AVEC CALCULATEUR */}
+      <section className="py-24 px-6 bg-zinc-100 border-t border-zinc-200">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div className="text-left">
             <div className="inline-flex items-center gap-2 bg-zinc-100 border border-zinc-200 text-zinc-700 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-8 shadow-sm">
                 <BookOpen size={14} /> Le Guide Inclus
             </div>
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-6 text-black`}>Le Guide qui <span className="text-black border-b-4 border-[#39FF14]">change tout.</span></h2>
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-6 text-black`}>Nos ingrédients ont des <span className="text-black border-b-4 border-[#39FF14]">super-pouvoirs.</span></h2>
             <p className="text-zinc-600 font-medium text-lg mb-8 leading-relaxed">
-              Découvrez les secrets de la nutrition adaptée à nos réalités. Ce guide de 10 pages déconstruit les mythes, vous présente les céréales locales qui remplacent le riz blanc, et vous prouve que manger sainement ne coûte pas plus cher.
+              Découvrez les champions de notre dictionnaire nutritionnel, tous accessibles sur les marchés locaux ou emballés au rayon terroir chez Auchan Sénégal :
             </p>
-            <button onClick={handleWaClick} className="bg-black text-[#39FF14] px-8 py-4 rounded-xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2">
-              Obtenir mon Guide <ArrowRight size={18}/>
-            </button>
+            <div className="space-y-6">
+              {INGREDIENTS.map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.5 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="flex items-start gap-4"
+                >
+                  <div className="text-3xl shrink-0">{item.icon}</div>
+                  <div>
+                    <h3 className="font-black text-lg uppercase text-black mb-1">{item.name}</h3>
+                    <p className="text-zinc-600 font-medium text-sm">{item.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
           <div className="relative mx-auto w-full max-w-sm flex items-center justify-center">
              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#39FF14] rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
@@ -776,18 +819,18 @@ export default function NutritionAfricaineLanding() {
                animate={{ y: [0, -20, 0] }}
                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                className="w-[85%] h-auto z-10 drop-shadow-2xl"
-             >
+             > 
                <img 
-                 src="https://i.ibb.co/Yy62b03/mockup-guide-nutrition.png"
+                 src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781199255/A_premium_studio_shot_of_202606111733_kaohlz.jpg"
                  alt="Aperçu du Guide Nutrition à l'Africaine"
                  className="max-w-full max-h-full object-contain"
                />
              </motion.div>
-          </div>
+          </div> 
         </div>
       </section>
 
-      {/* 3. TARIFICATION */}
+      {/* 6. TARIFICATION (Original section 3, now section 6) */}
       <section id="tarifs" className="py-24 px-6 bg-zinc-950 text-white relative mt-10 rounded-[4rem] mx-4">
          <div className="max-w-5xl mx-auto">
             <div className="text-center mb-16">
@@ -836,29 +879,29 @@ export default function NutritionAfricaineLanding() {
          </div>
       </section>
 
-      {/* SECTION 5 : TÉMOIGNAGES */}
+      {/* 7. LES PREUVES SOCIALES & NOUVEAUX PERSONNAGES SENIORS (Original section 5, now section 7) */}
       <section className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
-              Ils ont transformé leur vie, <span className="text-black border-b-4 border-[#39FF14]">pas leur culture.</span>
+              Ils ont transformé leur corps <span className="text-black border-b-4 border-[#39FF14]">sans renier leur culture.</span>
             </h2>
             <p className="text-zinc-500 font-bold text-lg">Découvrez les parcours de nos membres.</p>
           </div>
           <div className="relative max-w-3xl mx-auto">
             <div className="overflow-hidden relative min-h-[380px] sm:min-h-[320px]">
               <AnimatePresence mode="wait">
-                <motion.div
+                <motion.div 
                   key={activeTestimonial}
                   initial={{ x: 200, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   exit={{ x: -200, opacity: 0 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 25 }}
                   className="absolute inset-0"
-                >
+                > 
                   <div className="bg-zinc-50 border border-zinc-100 p-8 rounded-[2rem] flex flex-col items-center text-center h-full shadow-sm">
                     <img src={TESTIMONIALS[activeTestimonial].image} alt={`Photo de ${TESTIMONIALS[activeTestimonial].name}`} className="w-24 h-24 rounded-full object-cover mb-6 border-4 border-white shadow-lg" />
-                    <p className="text-zinc-600 font-medium leading-relaxed mb-6 flex-1">"{TESTIMONIALS[activeTestimonial].text}"</p>
+                    <p className="text-zinc-600 font-medium leading-relaxed mb-6 flex-1">"{TESTIMONIALS[activeTestimonial].text}" <br/><span className="text-black font-bold mt-2 block">{TESTIMONIALS[activeTestimonial].stats}</span></p>
                     <div>
                       <h4 className="font-black text-lg uppercase text-black">{TESTIMONIALS[activeTestimonial].name}</h4>
                       <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest">{TESTIMONIALS[activeTestimonial].role}</p>
@@ -878,109 +921,9 @@ export default function NutritionAfricaineLanding() {
           </div>
         </div>
       </section>
-
-      {/* SECTION 5.5 : AVANT/APRÈS */}
-      <section className="py-24 px-6 bg-zinc-950 text-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4`}>
-              Des résultats <span className="text-[#39FF14]">visibles</span>, pas des promesses.
-            </h2>
-            <p className="text-zinc-400 font-bold text-lg">Ils ont fait confiance à la méthode. Leurs corps ont changé.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-12">
-            {TRANSFORMATIONS.map((trans, index) => (
-              <motion.div 
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-black border border-zinc-800 p-6 rounded-[2rem] shadow-2xl"
-              >
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="relative">
-                    <img src={trans.beforeImg} alt={`Avant - ${trans.name}`} className="w-full h-full object-cover rounded-xl aspect-[3/4] grayscale" />
-                    <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-black uppercase px-2 py-1 rounded">Avant</span>
-                  </div>
-                  <div className="relative">
-                    <img src={trans.afterImg} alt={`Après - ${trans.name}`} className="w-full h-full object-cover rounded-xl aspect-[3/4]" />
-                    <span className="absolute top-2 left-2 bg-[#39FF14] text-black text-[10px] font-black uppercase px-2 py-1 rounded">Après</span>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <h4 className="font-black text-xl uppercase text-white">{trans.name}</h4>
-                  <p className="font-bold text-lg text-[#39FF14] mb-2">{trans.stats}</p>
-                  <p className="text-sm text-zinc-400 font-medium">{trans.story}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION : APPROCHE FAMILIALE */}
-      <section className="py-24 px-6 bg-zinc-100 border-y border-zinc-200">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
-              "Et si ma famille mange du riz ?"
-            </h2>
-            <p className="text-zinc-500 font-bold text-lg">On a pensé à tout. Voici comment le programme s'intègre <span className="text-black border-b-4 border-[#39FF14]">sans perturber vos repas familiaux.</span></p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            {FAMILY_APPROACH_POINTS.map((point, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.5 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white border border-zinc-200 p-8 rounded-[2rem] flex items-start gap-6 shadow-sm"
-              >
-                <div className="text-4xl mt-1">{point.icon}</div>
-                <div>
-                  <h3 className="font-black text-lg uppercase text-black mb-2">{point.title}</h3>
-                  <p className="text-zinc-600 font-medium leading-relaxed">{point.text}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION : LES TRÉSORS DE NOS TERROIRS */}
+      {/* 8. CALCULATEUR DE CALORIES SIMPLIFIÉ (Original section "CALCULATEUR", now section 8) */}
+      {/* This section is now combined with the "Trésors de nos Terroirs" concept */}
       <section className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
-              Les Trésors de <span className="text-black border-b-4 border-[#39FF14]">Nos Terroirs</span>
-            </h2>
-            <p className="text-zinc-500 font-bold text-lg">Découvrez les super-pouvoirs des ingrédients que nous mettons en avant.</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {INGREDIENTS.map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-zinc-50 border border-zinc-100 p-8 rounded-[2rem] text-center flex flex-col"
-              >
-                <div className="text-5xl mb-4">{item.icon}</div>
-                <h3 className="font-black text-xl uppercase text-black mb-2">{item.name}</h3>
-                <p className="text-xs font-bold text-[#39FF14] bg-black px-3 py-1 rounded-full mb-4 w-max mx-auto">{item.benefits}</p>
-                <p className="text-zinc-600 font-medium leading-relaxed flex-1">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION : CALCULATEUR DE CALORIES SIMPLIFIÉ */}
-      <section className="py-24 px-6 bg-zinc-100 border-t border-zinc-200">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
             Calculez pour <span className="text-black border-b-4 border-[#39FF14]">Comprendre</span>
@@ -1041,7 +984,7 @@ export default function NutritionAfricaineLanding() {
         </div>
       </section>
 
-      {/* SECTION 6 : FAQ */}
+      {/* 9. FAQ (Original section 6, now section 9) */}
       <section className="py-24 px-6 bg-zinc-100 border-t border-zinc-200">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
