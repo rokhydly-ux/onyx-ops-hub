@@ -253,11 +253,9 @@ export default function NutritionDashboard() {
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [communityPosts, setCommunityPosts] = useState<any[]>([
-     { id: "1", client: "Aïssatou K.", content: "Thieboudienne revisité au Fonio pour ce midi ! L'astuce de la sauce sans huile change tout.", created_at: new Date().toISOString(), reactions: { top: 12, sain: 5, courage: 2 } },
-     { id: "2", client: "Fatima B.", content: "J'ai eu du mal à boire mon eau aujourd'hui, mais j'ai fini mon 8ème verre ! On lâche rien les filles 💪", created_at: new Date(Date.now() - 86400000).toISOString(), reactions: { top: 4, sain: 0, courage: 15 } }
-  ]);
+  const [communityPosts, setCommunityPosts] = useState<any[]>([]);
   const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
+  const [favoriteSearchQuery, setFavoriteSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [isSharingPDF, setIsSharingPDF] = useState(false);
@@ -283,7 +281,7 @@ export default function NutritionDashboard() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [shopCart, setShopCart] = useState<any[]>([]);
   const [savedShopProducts, setSavedShopProducts] = useState<any[]>([]);
-  const [shopDataDB, setShopDataDB] = useState<any[]>(SHOP_DATA);
+  const [shopDataDB, setShopDataDB] = useState<any[]>([]);
   const [shopPromoCode, setShopPromoCode] = useState("");
   const [isShopPromoApplied, setIsShopPromoApplied] = useState(false);
   const [shopPromoCodesDB, setShopPromoCodesDB] = useState<any[]>([]);
@@ -442,6 +440,15 @@ export default function NutritionDashboard() {
           // Fetch Promo Codes
           const { data: dbPromos } = await supabase.from('nutrition_promo_codes').select('*').eq('active', true);
           if (dbPromos) setShopPromoCodesDB(dbPromos);
+          
+          // Fetch Community Posts
+          const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(full_name)').order('created_at', { ascending: false });
+          if (cPosts) {
+              setCommunityPosts(cPosts.map((p: any) => ({
+                 ...p,
+                 client: p.clients?.full_name || 'Membre'
+              })));
+          }
         }
       }
 
@@ -638,6 +645,22 @@ export default function NutritionDashboard() {
           });
       });
       return list;
+  };
+
+  const openProductModal = async (product: any) => {
+      const newViews = (product.views || 0) + 1;
+      setSelectedProduct({ ...product, views: newViews });
+      setShopDataDB(prev => prev.map(cat => ({
+          ...cat,
+          produits: cat.produits.map((p: any) => p.id === product.id ? { ...p, views: newViews } : p)
+      })));
+      await supabase.from('nutrition_products').update({ views: newViews }).eq('id', product.id);
+  };
+
+  const handleShareProduct = (product: any) => {
+      const url = `${window.location.origin}/solutions/onyx-nutritionafricaine?product=${product.id}`;
+      const text = `Découvrez ${product.nom} sur la boutique OnyxNutrition !\n\n${product.description_courte || ''}\n\n👉 Achetez ici : ${url}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const shareGroceryListWhatsApp = async () => {
@@ -2063,8 +2086,22 @@ export default function NutritionDashboard() {
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><HeartPulse className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Recettes Enregistrées</h2>
+                
+                <div className="relative mb-6">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                   <input 
+                      type="text" 
+                      placeholder="Rechercher une recette sauvegardée..." 
+                      value={favoriteSearchQuery}
+                      onChange={e => setFavoriteSearchQuery(e.target.value)}
+                      className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition-colors"
+                   />
+                </div>
+
                 <div className="grid md:grid-cols-2 gap-4">
-                   {(Array.isArray(favoriteMeals) ? favoriteMeals : []).map((fav, i) => {
+                   {(Array.isArray(favoriteMeals) ? favoriteMeals : [])
+                      .filter(fav => (fav.meal || fav.nom || '').toLowerCase().includes(favoriteSearchQuery.toLowerCase()))
+                      .map((fav, i) => {
                        const isDBFood = !!fav.valeurs_pour_100g;
                        const name = fav.meal || fav.nom;
                        const cals = fav.cals || fav.calories || (isDBFood ? fav.valeurs_pour_100g.calories : 0);
@@ -2096,11 +2133,13 @@ export default function NutritionDashboard() {
                            </button>
                        </div>
                    )})}
-                   {(!Array.isArray(favoriteMeals) || favoriteMeals.length === 0) && (
+                   {(!Array.isArray(favoriteMeals) || favoriteMeals.length === 0) ? (
                       <div className="col-span-full py-12 text-center border-2 border-dashed border-zinc-200 rounded-3xl">
                          <p className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Aucune recette sauvegardée.</p>
                          <p className="text-zinc-400 text-xs mt-1">Utilisez le bouton "Cœur" sur un plat pour le retrouver ici.</p>
                       </div>
+                   ) : (favoriteMeals.filter(fav => (fav.meal || fav.nom || '').toLowerCase().includes(favoriteSearchQuery.toLowerCase())).length === 0) && (
+                      <div className="col-span-full py-8 text-center text-zinc-500 font-bold">Aucune recette ne correspond à votre recherche.</div>
                    )}
                 </div>
              </div>
@@ -2152,7 +2191,7 @@ export default function NutritionDashboard() {
                     .filter(p => selectedShopGoal === 'all' || (selectedShopGoal === 'saved' ? savedShopProducts.some((sp: any) => sp.id === p.id) : p.goal === selectedShopGoal))
                     .map(product => (
                        <div key={product.id} className="bg-white border border-zinc-100 rounded-[2.5rem] p-6 flex flex-col hover:border-[#39FF14] transition-all hover:shadow-2xl group">
-                          <div className="relative aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                          <div className="relative aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 cursor-pointer" onClick={() => openProductModal(product)}>
                              <img src={product.image_url} alt={product.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                              {product.badge && <span className="absolute top-4 left-4 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">{product.badge}</span>}
                           </div>
@@ -2203,6 +2242,9 @@ export default function NutritionDashboard() {
                     <div className="flex-1 p-10 flex flex-col text-black">
                        <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 w-max">Zoom Produit</span>
                        <h2 className="text-3xl font-black uppercase tracking-tighter mb-4 leading-tight">{selectedProduct.nom}</h2>
+                       <div className="flex items-center gap-4 mb-4 text-zinc-500 font-bold text-sm">
+                           <span className="flex items-center gap-1"><Eye size={16}/> {selectedProduct.views || 0} vues</span>
+                       </div>
                        <p className="text-zinc-500 font-medium leading-relaxed mb-8">{selectedProduct.description_longue}</p>
                        <div className="space-y-3 mb-10">
                           <div className="flex items-center gap-3 text-sm font-bold"><CheckCircle size={18} className="text-[#39FF14]"/> 🌱 100% Naturel : Sans conservateurs.</div>
@@ -2214,7 +2256,10 @@ export default function NutritionDashboard() {
                              <p className="text-[10px] font-black uppercase text-zinc-400 mb-1">Prix Premium</p>
                              <p className="text-4xl font-black text-black">{selectedProduct.prix_premium.toLocaleString()} F</p>
                           </div>
-                          <button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="w-full sm:w-auto bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={18}/> Ajouter au panier</button>
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                             <button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="flex-1 sm:flex-none bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={18}/> Ajouter au panier</button>
+                             <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-5 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm"><Share2 size={18}/></button>
+                          </div>
                        </div>
                     </div>
                  </motion.div>

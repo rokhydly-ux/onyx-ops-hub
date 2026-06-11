@@ -196,6 +196,7 @@ export default function NutritionAfricaineLanding() {
   const [calcLeadData, setCalcLeadData] = useState({ name: '', phone: '' });
   const [isCalcLeadCaptured, setIsCalcLeadCaptured] = useState(false);
   const [pendingDish, setPendingDish] = useState<string>("");
+  const [storeProducts, setStoreProducts] = useState<any[]>([]);
 
   const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
   const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
@@ -215,6 +216,14 @@ export default function NutritionAfricaineLanding() {
       audio.play().catch(() => {});
     }
   }, [fomoTime]);
+
+  useEffect(() => {
+      const fetchStore = async () => {
+          const { data } = await supabase.from('nutrition_products').select('*').limit(3);
+          if (data && data.length > 0) setStoreProducts(data);
+      };
+      fetchStore();
+  }, []);
 
   const triggerResult = async (dishName: string) => {
       if (DISH_CALORIES[dishName]) {
@@ -876,22 +885,18 @@ export default function NutritionAfricaineLanding() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-               {[
-                  { nom: "Fonio Premium (500g)", price: 2500, premium: 2100, img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781199255/A_premium_studio_shot_of_202606111733_kaohlz.jpg", badge: "Best Seller" },
-                  { nom: "Pâte d'Arachide Pure", price: 3000, premium: 2500, img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563481/A_vibrant_and_appetizing_food_202604301533_dmp5uw.jpg", badge: "100% Naturel" },
-                  { nom: "Gourde Motivante", price: 7000, premium: 5500, img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563498/A_moody__high-end_luxury_promotional_202604301516_zoftg0.jpg", badge: "Accessoire" }
-               ].map((p, idx) => (
+               {storeProducts.length > 0 ? storeProducts.map((p, idx) => (
                   <div key={idx} className="bg-white border border-zinc-200 rounded-[2.5rem] p-6 hover:border-[#39FF14] transition-all hover:shadow-2xl group flex flex-col">
                      <div className="aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 relative">
-                        <img src={p.img} alt={p.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        <img src={p.image_url} alt={p.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                         <span className="absolute top-4 left-4 bg-black text-[#39FF14] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">{p.badge}</span>
                      </div>
                      <div className="flex-1">
                         <h3 className="font-black text-xl uppercase tracking-tighter text-black mb-2">{p.nom}</h3>
                         <div className="flex flex-col gap-1 mb-8">
-                           <p className="text-zinc-400 text-sm font-bold line-through">{p.price} F (Standard)</p>
+                           <p className="text-zinc-400 text-sm font-bold line-through">{p.prix_standard} F (Standard)</p>
                            <p className="text-2xl font-black text-black">
-                              {p.premium} F <span className="text-[10px] font-bold text-[#39FF14] bg-black px-2 py-0.5 rounded ml-2 uppercase">Premium</span>
+                              {p.prix_premium} F <span className="text-[10px] font-bold text-[#39FF14] bg-black px-2 py-0.5 rounded ml-2 uppercase">Premium</span>
                            </p>
                         </div>
                      </div>
@@ -899,7 +904,7 @@ export default function NutritionAfricaineLanding() {
                         Commander via WhatsApp <ArrowRight size={16}/>
                      </button>
                   </div>
-               ))}
+               )) : <p className="text-zinc-500 col-span-full text-center py-10">Boutique en cours de mise à jour...</p>}
             </div>
 
             <div className="mt-16 text-center">

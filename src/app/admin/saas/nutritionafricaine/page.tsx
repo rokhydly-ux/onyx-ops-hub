@@ -215,6 +215,47 @@ export default function AdminNutritionAfricaine() {
       if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleImportProductCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+          const csvText = event.target?.result as string;
+          const rows = csvText.split('\n').filter(r => r.trim());
+          if (rows.length < 2) return;
+          const headers = rows[0].split(';').map(h => h.trim().toLowerCase());
+          
+          const newProducts = [];
+          for (let i = 1; i < rows.length; i++) {
+              const cols = rows[i].split(';');
+              const prod: any = {};
+              headers.forEach((h, index) => {
+                  prod[h] = cols[index]?.trim() || '';
+              });
+
+              if (prod.nom) {
+                  const existingProd = products.find(p => p.nom.toLowerCase() === prod.nom.toLowerCase());
+                  const pPayload: any = {
+                      nom: prod.nom, categorie_nom: prod.categorie_nom || 'Général', description_courte: prod.description_courte || '', description_longue: prod.description_longue || '',
+                      prix_standard: Number(prod.prix_standard) || 0, prix_premium: Number(prod.prix_premium) || 0, stock: Number(prod.stock) || 0, image_url: prod.image_url || '', badge: prod.badge || '', goal: prod.goal || 'all'
+                  };
+                  if (existingProd) pPayload.id = existingProd.id;
+                  newProducts.push(pPayload);
+              }
+          }
+          if (newProducts.length > 0) {
+              setLoading(true);
+              const { error } = await supabase.from('nutrition_products').upsert(newProducts);
+              if (error) alert("Erreur d'importation: " + error.message);
+              else { alert(`${newProducts.length} produits importés/mis à jour avec succès !`); const { data } = await supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }); if (data) setProducts(data); }
+              setLoading(false);
+          }
+      };
+      reader.readAsText(file);
+      if (fileProductInputRef.current) fileProductInputRef.current.value = '';
+  };
+
   const handleOpenProductModal = (prod?: any) => {
      if (prod) {
          setEditingProduct(prod);
@@ -358,6 +399,8 @@ export default function AdminNutritionAfricaine() {
             )}
             {activeTab === 'shop' && (
                <div className="flex w-full md:w-auto gap-4">
+                  <input type="file" accept=".csv" className="hidden" ref={fileProductInputRef} onChange={handleImportProductCSV} />
+                  <button onClick={() => fileProductInputRef.current?.click()} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={16}/> Import CSV</button>
                   <button onClick={() => handleOpenProductModal()} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={16}/> Nouveau Produit</button>
                </div>
             )}
