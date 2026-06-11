@@ -317,6 +317,9 @@ export default function NutritionDashboard() {
       const userPhone = phoneMatch ? phoneMatch[1] : finalUser.phone;
 
       if (userPhone) {
+        const welcome = localStorage.getItem(`onyx_nutrition_welcome_${userPhone}`);
+        if (welcome) setWelcomeMessage(welcome);
+
         const { data: profileData, error } = await supabase
           .from('clients')
           .select('*')
@@ -370,7 +373,7 @@ export default function NutritionDashboard() {
             .from('nutrition_profiles')
             .select('*')
             .eq('client_id', profileData.id)
-            .single();
+            .maybeSingle();
 
           if (nutritionData) {
              setCalorieGoal(nutritionData.daily_calorie_goal || 1500);
@@ -453,9 +456,6 @@ export default function NutritionDashboard() {
       // Nettoyer l'URL
       router.replace('/nutrition', undefined);
     }
-    
-    const welcome = localStorage.getItem(`onyx_nutrition_welcome_${userPhone}`);
-    if (welcome) setWelcomeMessage(welcome);
 
   }, [router, searchParams]);
 
