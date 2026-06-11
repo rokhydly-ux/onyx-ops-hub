@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, 
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy
 } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion } from "framer-motion";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -151,7 +152,7 @@ export default function NutritionDashboard() {
   const [daysLeft, setDaysLeft] = useState(0);
   
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community'>('today');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   
@@ -175,6 +176,20 @@ export default function NutritionDashboard() {
 
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
+
+  // Gamification & Feed Communautaire
+  const [jongomaXP, setJongomaXP] = useState(0);
+  const [weightLogs, setWeightLogs] = useState<any[]>([]);
+  const [currentWeightInput, setCurrentWeightInput] = useState<number>(75);
+  const [newPostText, setNewPostText] = useState("");
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [newPostImage, setNewPostImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [communityPosts, setCommunityPosts] = useState<any[]>([
+     { id: "1", client: "Aïssatou K.", content: "Thieboudienne revisité au Fonio pour ce midi ! L'astuce de la sauce sans huile change tout.", created_at: new Date().toISOString(), reactions: { top: 12, sain: 5, courage: 2 } },
+     { id: "2", client: "Fatima B.", content: "J'ai eu du mal à boire mon eau aujourd'hui, mais j'ai fini mon 8ème verre ! On lâche rien les filles 💪", created_at: new Date(Date.now() - 86400000).toISOString(), reactions: { top: 4, sain: 0, courage: 15 } }
+  ]);
 
   // Objectifs
   const [calorieGoal, setCalorieGoal] = useState(1500);
@@ -265,6 +280,14 @@ export default function NutritionDashboard() {
              setProteinGoal(nutritionData.protein_goal || 80);
              setCarbsGoal(nutritionData.carbs_goal || 150);
              setFatsGoal(nutritionData.fats_goal || 50);
+             setJongomaXP(nutritionData.jongoma_xp || 0);
+          }
+          
+          // Récupérer le poids
+          const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('client_id', profileData.id).order('log_date', { ascending: true });
+          if (wLogs) {
+              setWeightLogs(wLogs);
+              if (wLogs.length > 0) setCurrentWeightInput(wLogs[wLogs.length - 1].weight);
           } else {
              const localGoals = localStorage.getItem('onyx_nutrition_goals');
              if (localGoals) {
@@ -296,6 +319,63 @@ export default function NutritionDashboard() {
     }
 
   }, [router, searchParams]);
+
+  const updateXP = async (amount: number, reason: string) => {
+      const newXP = jongomaXP + amount;
+      setJongomaXP(newXP);
+      if (clientProfile) {
+         await supabase.from('nutrition_profiles').update({ jongoma_xp: newXP }).eq('client_id', clientProfile.id);
+      }
+      alert(`+${amount} XP ! (${reason})`);
+  };
+
+  const getJongomaLevel = (xp: number) => {
+      if (xp >= 2000) return { name: "Star Nutrition", badge: "🌟", desc: "Code promo boutique débloqué !" };
+      if (xp >= 500) return { name: "Adhérente", badge: "💎", desc: "Badge de profil débloqué" };
+      return { name: "Novice", badge: "🌱", desc: "En apprentissage" };
+  };
+
+  const fetchLeaderboard = async () => {
+    const { data } = await supabase
+      .from('nutrition_profiles')
+      .select('jongoma_xp, client:clients(id, full_name, avatar_url)')
+      .order('jongoma_xp', { ascending: false, nullsFirst: false })
+      .limit(10);
+      
+    if (data && data.length > 0) {
+        const formattedData = data.map(d => ({
+            id: (d.client as any)?.id,
+            full_name: (d.client as any)?.full_name || 'Membre',
+            avatar_url: (d.client as any)?.avatar_url,
+            xp: d.jongoma_xp || 0
+        })).filter(d => d.id);
+        
+        if (clientProfile && !formattedData.some(d => d.id === clientProfile.id)) {
+           formattedData.push({
+               id: clientProfile.id,
+               full_name: user?.full_name || 'Moi',
+               avatar_url: user?.avatar_url,
+               xp: jongomaXP
+           });
+           formattedData.sort((a: any, b: any) => b.xp - a.xp);
+        }
+        setLeaderboardData(formattedData);
+    } else {
+        const mockData = [
+            { id: "1", full_name: "Fatou Diop", xp: 2450 },
+            { id: "2", full_name: "Aïcha Sy", xp: 1800 },
+            { id: "3", full_name: "Ndeye Ndiaye", xp: 1200 },
+        ];
+        if (user) mockData.push({ id: user.id || "4", full_name: user.full_name || "Moi", xp: jongomaXP });
+        mockData.sort((a, b) => b.xp - a.xp);
+        setLeaderboardData(mockData);
+    }
+  };
+
+  const openLeaderboard = () => {
+    fetchLeaderboard();
+    setShowLeaderboard(true);
+  };
 
   // Système de relance automatique (Notification à 20h00)
   useEffect(() => {
@@ -384,6 +464,11 @@ export default function NutritionDashboard() {
     if (!clientProfile) return;
     const newAmount = Math.min(waterGlasses + 1, 8);
     setWaterGlasses(newAmount);
+    
+    if (waterGlasses === 7 && newAmount === 8) {
+        updateXP(5, "Objectif d'eau quotidien atteint !");
+    }
+
     const todayStr = new Date().toISOString().split('T')[0];
     
     await supabase.from('nutrition_daily_logs').upsert({
@@ -438,6 +523,10 @@ export default function NutritionDashboard() {
       setFats(newFats);
       setConsumedMeals(updatedConsumedMeals);
       
+      if (updatedConsumedMeals.length === 3 && consumedMeals.length === 2) {
+          updateXP(10, "3 repas logués aujourd'hui !");
+      }
+
       setSelectedMealModal(null);
       
       // --- L'Intervention de l'Avatar IA (Rokhy) ---
@@ -491,6 +580,64 @@ export default function NutritionDashboard() {
       }
   };
 
+  const handleSaveWeight = async () => {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const lastLog = weightLogs.length > 0 ? weightLogs[weightLogs.length - 1] : null;
+      
+      if (lastLog) {
+          const days = (new Date(todayStr).getTime() - new Date(lastLog.log_date).getTime()) / (1000 * 3600 * 24);
+          if (days < 7 && lastLog.log_date !== todayStr) {
+              alert(`Vous avez déjà enregistré votre poids cette semaine. On évite l'obsession ! Revenez dans ${Math.ceil(7 - days)} jours.`);
+              return;
+          }
+      }
+      
+      const newWeight = currentWeightInput;
+      const isLoss = lastLog ? newWeight < lastLog.weight : true;
+      
+      if (isLoss) {
+          setRokhyMessage({ title: "Perte validée !", text: "Bravo ! Les efforts payent. On a brûlé la graisse, on continue sur cette lancée !", type: 'success' });
+      } else {
+          setRokhyMessage({ title: "Ne panique pas.", text: "Stop, ne panique pas. Le poids fluctue à cause de l'eau, du cycle hormonal ou du stress. Reste focus sur ton menu cette semaine, le processus fonctionne.", type: 'warning' });
+      }
+      
+      const newLog = { log_date: todayStr, weight: newWeight };
+      const updatedLogs = [...weightLogs.filter(l => l.log_date !== todayStr), newLog].sort((a,b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime());
+      setWeightLogs(updatedLogs);
+      
+      if (clientProfile) {
+          await supabase.from('nutrition_weight_logs').upsert({ client_id: clientProfile.id, log_date: todayStr, weight: newWeight }, { onConflict: 'client_id, log_date' });
+      }
+  };
+
+  const handlePostCommunity = async () => {
+      if (clientProfile?.plan_type !== 'premium' && daysLeft <= 0) return alert("La publication est réservée aux membres Premium pour garantir l'absence de spams.");
+      if (!newPostText && !newPostImage) return;
+      const newPost = { id: Date.now().toString(), client: user?.full_name || 'Membre', content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 }, created_at: new Date().toISOString() };
+      setCommunityPosts([newPost, ...communityPosts]);
+      setNewPostText("");
+      setNewPostImage(null);
+      updateXP(15, "Photo/Plat publié dans le Feed");
+      if (clientProfile) await supabase.from('nutrition_community_posts').insert({ client_id: clientProfile.id, content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 } });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+        setUploadingImage(true);
+        const ext = file.name.split('.').pop();
+        const fileName = `posts/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        const { error, data: uploadData } = await supabase.storage.from('avatars').upload(fileName, file);
+        if (error) throw error;
+        const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+        setNewPostImage(data.publicUrl);
+    } catch (err: any) {
+        alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'avatars' est public et accepte les uploads.");
+    } finally {
+        setUploadingImage(false);
+    }
+  };
   const submitDailyReport = async () => {
     if (!clientProfile) return;
     const todayStr = new Date().toISOString().split('T')[0];
@@ -593,6 +740,7 @@ export default function NutritionDashboard() {
   }
 
   const remainingCalories = Math.max(0, calorieGoal - calories);
+  const lvlInfo = getJongomaLevel(jongomaXP);
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-black pb-24 font-sans selection:bg-[#39FF14]/30">
@@ -617,14 +765,23 @@ export default function NutritionDashboard() {
             </div>
             
             {/* Bandeau Essai Gratuit */}
-            <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4 shadow-xl">
-              <div className="bg-black border border-zinc-700 p-3 rounded-xl">
-                 <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={24} />
-              </div>
-              <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Période d'essai</p>
-                 <p className="text-sm font-bold text-white"><strong className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours` : 'Expiré'}</strong></p>
-              </div>
+            <div className="flex items-center gap-4">
+               <div className="hidden sm:flex items-center gap-3 bg-zinc-900 p-2 pr-4 rounded-2xl border border-zinc-800 shadow-inner cursor-pointer hover:bg-zinc-800 transition-colors" title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
+                  <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border border-zinc-700">{lvlInfo.badge}</div>
+                  <div>
+                     <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest">Niveau : {lvlInfo.name}</p>
+                     <p className="text-white text-xs font-bold">{jongomaXP} XP</p>
+                  </div>
+               </div>
+               <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4 shadow-xl">
+                 <div className="bg-black border border-zinc-700 p-3 rounded-xl">
+                    <Clock className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"} size={24} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Période d'essai</p>
+                    <p className="text-sm font-bold text-white"><strong className={daysLeft > 0 ? "text-[#39FF14]" : "text-red-500"}>{daysLeft > 0 ? `${daysLeft} jours` : 'Expiré'}</strong></p>
+                 </div>
+               </div>
             </div>
           </div>
         </div>
@@ -633,11 +790,13 @@ export default function NutritionDashboard() {
       <div className="max-w-6xl mx-auto px-6 mt-12 space-y-12">
 
         {/* NOUVEAU : SYSTÈME D'ONGLETS */}
-        <div className="flex bg-zinc-200/50 p-1.5 rounded-2xl w-max mx-auto md:mx-0">
-           <button onClick={() => setActiveTab('today')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'today' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Mon Jour (Dashboard)</button>
-           <button onClick={() => setActiveTab('week')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'week' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Programme Semaine</button>
-           <button onClick={() => setActiveTab('history')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'history' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Historique</button>
-           <button onClick={() => setActiveTab('profile')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'profile' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Profil & Réglages</button>
+        <div className="flex bg-zinc-200/50 p-1.5 rounded-2xl w-max mx-auto md:mx-0 overflow-x-auto max-w-full">
+           <button onClick={() => setActiveTab('today')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'today' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Mon Jour</button>
+           <button onClick={() => setActiveTab('weight')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'weight' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Mon Poids</button>
+           <button onClick={() => setActiveTab('community')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'community' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Communauté</button>
+           <button onClick={() => setActiveTab('week')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'week' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Programme Semaine</button>
+           <button onClick={() => setActiveTab('history')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'history' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Historique</button>
+           <button onClick={() => setActiveTab('profile')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'profile' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Réglages</button>
         </div>
         
         {activeTab === 'today' && (
@@ -1301,6 +1460,175 @@ export default function NutritionDashboard() {
                </div>
             </div>
          </div>
+      )}
+
+        {/* VUE TRACKER DE POIDS */}
+        {activeTab === 'weight' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
+             <div className="bg-white p-8 sm:p-12 rounded-[2rem] border border-zinc-200 shadow-sm text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 blur-[50px] rounded-full pointer-events-none"></div>
+                <Scale size={48} className="mx-auto mb-6 text-[#39FF14]" />
+                <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter text-black mb-2`}>Tracker de Poids</h2>
+                <p className="text-zinc-500 font-bold mb-10 max-w-md mx-auto">Une pesée par semaine, pas plus. La constance bat l'obsession. Ajustez le curseur et validez.</p>
+                
+                <div className="max-w-md mx-auto bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-100 mb-10 shadow-inner">
+                   <p className="text-7xl font-black text-black mb-8 tracking-tighter">{currentWeightInput} <span className="text-2xl text-zinc-400">kg</span></p>
+                   <input 
+                      type="range" min="40" max="150" step="0.5" 
+                      value={currentWeightInput} 
+                      onChange={e => setCurrentWeightInput(parseFloat(e.target.value))}
+                      className="w-full accent-black h-3 bg-zinc-200 rounded-full appearance-none cursor-pointer mb-8"
+                   />
+                   <button onClick={handleSaveWeight} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-xl">
+                       Enregistrer ma pesée
+                   </button>
+                </div>
+
+                {weightLogs.length > 0 && (
+                   <div className="h-72 w-full mt-10 pt-8 border-t border-zinc-100">
+                     <h3 className="text-left font-black uppercase text-sm text-zinc-400 tracking-widest mb-6">Évolution</h3>
+                     <ResponsiveContainer width="100%" height="100%">
+                       <LineChart data={weightLogs}>
+                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
+                         <XAxis dataKey="log_date" tickFormatter={(v) => new Date(v).toLocaleDateString('fr-FR', {day:'numeric', month:'short'})} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
+                         <YAxis domain={['auto', 'auto']} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
+                         <RechartsTooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                         <Line type="monotone" dataKey="weight" stroke="#39FF14" strokeWidth={4} dot={{ r: 6, fill: '#000', stroke: '#39FF14', strokeWidth: 2 }} activeDot={{ r: 8 }} />
+                       </LineChart>
+                     </ResponsiveContainer>
+                   </div>
+                )}
+             </div>
+          </div>
+        )}
+
+        {/* VUE COMMUNAUTÉ (FEED) */}
+        {activeTab === 'community' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-3xl mx-auto">
+             <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col gap-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                     <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Camera className="text-[#39FF14]" /> Le Mur des Assiettes</h2>
+                     <p className="text-zinc-500 text-sm font-bold">Partagez vos repas sains avec la communauté Premium Onyx.</p>
+                  </div>
+                  <button onClick={openLeaderboard} className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-1 shadow-sm border border-yellow-200 shrink-0">
+                     <Trophy size={14}/> Classement
+                  </button>
+                </div>
+                
+                <div className="bg-zinc-50 border border-zinc-100 p-4 rounded-2xl focus-within:border-black transition-colors">
+                   {newPostImage && (
+                       <div className="relative w-24 h-24 mb-3 rounded-xl overflow-hidden border border-zinc-200">
+                          <img src={newPostImage} className="w-full h-full object-cover" />
+                          <button onClick={() => setNewPostImage(null)} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={12}/></button>
+                       </div>
+                   )}
+                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Qu'y a-t-il dans votre assiette aujourd'hui ?" className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[80px]" />
+                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-200">
+                      <label className="text-zinc-400 hover:text-black transition-colors p-2 cursor-pointer">
+                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                         {uploadingImage ? <Activity size={20} className="animate-spin" /> : <ImageIcon size={20}/>}
+                      </label>
+                      <button onClick={handlePostCommunity} className="bg-black text-[#39FF14] px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Publier (+15 XP)</button>
+                   </div>
+                </div>
+             </div>
+
+             <div className="space-y-6">
+                {communityPosts.map((post, idx) => (
+                   <div key={post.id || idx} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+                      <div className="flex items-center gap-3 mb-4">
+                         <div className="w-10 h-10 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black">{post.client?.charAt(0) || 'M'}</div>
+                         <div>
+                            <p className="font-bold text-sm text-black">{post.client}</p>
+                            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{new Date(post.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</p>
+                         </div>
+                         {post.client === user?.full_name && <span className="ml-auto bg-yellow-100 text-yellow-700 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Premium</span>}
+                      </div>
+                      <p className="text-zinc-700 font-medium text-sm mb-4 leading-relaxed">{post.content}</p>
+                      {post.image_url && <img src={post.image_url} alt="Plat" className="w-full h-64 object-cover rounded-2xl mb-4 border border-zinc-100" />}
+                      
+                      <div className="flex items-center gap-2 pt-4 border-t border-zinc-100">
+                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-red-50 hover:text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🔥 Top {post.reactions?.top > 0 && `(${post.reactions.top})`}</button>
+                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-green-50 hover:text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🥗 Sain {post.reactions?.sain > 0 && `(${post.reactions.sain})`}</button>
+                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-blue-50 hover:text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">💪 Courage {post.reactions?.courage > 0 && `(${post.reactions.courage})`}</button>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </div>
+        )}
+
+      {/* MODALE LEADERBOARD */}
+      {showLeaderboard && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowLeaderboard(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white p-8 rounded-[3rem] max-w-2xl w-full relative shadow-[0_0_50px_rgba(57,255,20,0.15)] border-t-[8px] border-yellow-400 animate-in zoom-in-95 my-auto max-h-[90vh] flex flex-col overflow-hidden">
+            <button onClick={() => setShowLeaderboard(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all text-zinc-500 z-[60]">
+              <X size={20} />
+            </button>
+            <div className="text-center mb-8 shrink-0">
+               <Trophy className="mx-auto mb-3 text-yellow-400" size={40} />
+               <h3 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter`}>Classement Jongoma XP</h3>
+               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Les membres les plus assidues de ce mois</p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+               {/* PODIUM TOP 3 */}
+               <div className="flex items-end justify-center gap-4 mb-10 pt-4">
+                  {leaderboardData.length > 1 && (
+                     <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-100">
+                        <div className="w-12 h-12 rounded-full border-2 border-zinc-300 overflow-hidden mb-2 relative">
+                           <img src={leaderboardData[1].avatar_url || `https://ui-avatars.com/api/?name=${leaderboardData[1].full_name}&background=random`} alt="Avatar" className="w-full h-full object-cover"/>
+                           <div className="absolute -bottom-1 -right-1 bg-zinc-400 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">2</div>
+                        </div>
+                        <div className="bg-zinc-100 w-20 h-24 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-zinc-300">
+                           <span className="text-[10px] font-bold mt-1 text-zinc-500">{leaderboardData[1].xp} XP</span>
+                        </div>
+                        <p className="text-[10px] font-black uppercase mt-2 text-zinc-600 truncate max-w-[70px]">{leaderboardData[1].full_name.split(' ')[0]}</p>
+                     </div>
+                  )}
+                  {leaderboardData.length > 0 && (
+                     <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700">
+                        <div className="w-16 h-16 rounded-full border-4 border-yellow-400 overflow-hidden mb-2 relative shadow-[0_0_20px_rgba(250,204,21,0.5)]">
+                           <img src={leaderboardData[0].avatar_url || `https://ui-avatars.com/api/?name=${leaderboardData[0].full_name}&background=random`} alt="Avatar" className="w-full h-full object-cover"/>
+                           <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border border-white">1</div>
+                        </div>
+                        <div className="bg-yellow-50 w-24 h-32 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-yellow-400">
+                           <span className="text-xs font-black mt-1 text-yellow-600">{leaderboardData[0].xp} XP</span>
+                        </div>
+                        <p className="text-[11px] font-black uppercase mt-2 text-yellow-600 truncate max-w-[80px]">{leaderboardData[0].full_name.split(' ')[0]}</p>
+                     </div>
+                  )}
+                  {leaderboardData.length > 2 && (
+                     <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
+                        <div className="w-12 h-12 rounded-full border-2 border-orange-400 overflow-hidden mb-2 relative">
+                           <img src={leaderboardData[2].avatar_url || `https://ui-avatars.com/api/?name=${leaderboardData[2].full_name}&background=random`} alt="Avatar" className="w-full h-full object-cover"/>
+                           <div className="absolute -bottom-1 -right-1 bg-orange-400 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">3</div>
+                        </div>
+                        <div className="bg-orange-50 w-20 h-20 rounded-t-xl flex flex-col items-center justify-start pt-2 border-t-4 border-orange-400">
+                           <span className="text-[10px] font-bold mt-1 text-orange-600">{leaderboardData[2].xp} XP</span>
+                        </div>
+                        <p className="text-[10px] font-black uppercase mt-2 text-orange-500 truncate max-w-[70px]">{leaderboardData[2].full_name.split(' ')[0]}</p>
+                     </div>
+                  )}
+               </div>
+
+               {/* LISTE DES AUTRES */}
+               <div className="space-y-2">
+                  {leaderboardData.slice(3).map((student, idx) => (
+                     <div key={student.id || idx} className={`flex items-center justify-between p-3 rounded-xl border ${student.id === clientProfile?.id ? 'bg-[#39FF14]/10 border-[#39FF14]/50' : 'bg-zinc-50 border-zinc-100'}`}>
+                        <div className="flex items-center gap-3">
+                           <span className="font-black text-zinc-400 w-4 text-xs">{idx + 4}</span>
+                           <img src={student.avatar_url || `https://ui-avatars.com/api/?name=${student.full_name}&background=random`} alt="Avatar" className="w-8 h-8 rounded-full border border-zinc-200 object-cover" />
+                           <p className={`font-bold text-sm ${student.id === clientProfile?.id ? 'text-[#39FF14]' : 'text-black'}`}>{student.full_name} {student.id === clientProfile?.id ? '(Vous)' : ''}</p>
+                        </div>
+                        <span className="font-black text-zinc-600 text-xs">{student.xp} XP</span>
+                     </div>
+                  ))}
+               </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* INTERVENTION AVATAR ROKHY (IA) */}
