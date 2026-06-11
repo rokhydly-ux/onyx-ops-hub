@@ -8,7 +8,7 @@ import {
   Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -593,7 +593,8 @@ export default function NutritionDashboard() {
       });
       setWeeklyGeneratedMenu(newMenu);
       if (clientProfile) {
-         await supabase.from('nutrition_profiles').update({ weekly_menu: newMenu }).eq('client_id', clientProfile.id);
+         const safeMenu = JSON.parse(JSON.stringify(newMenu));
+         await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('client_id', clientProfile.id);
       }
   };
 
@@ -611,7 +612,8 @@ export default function NutritionDashboard() {
           updatedMenu[dayIndex].meals[mealType] = newRecipe;
           setWeeklyGeneratedMenu(updatedMenu);
           if (clientProfile) {
-             await supabase.from('nutrition_profiles').update({ weekly_menu: updatedMenu }).eq('client_id', clientProfile.id);
+             const safeMenu = JSON.parse(JSON.stringify(updatedMenu));
+             await supabase.from('nutrition_profiles').update({ weekly_menu: safeMenu }).eq('client_id', clientProfile.id);
           }
       } else {
           alert("Aucune alternative disponible pour ce type de repas dans la base de données.");
