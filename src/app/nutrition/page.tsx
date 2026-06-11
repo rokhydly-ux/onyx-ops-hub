@@ -264,9 +264,12 @@ export default function NutritionDashboard() {
 
         if (profileData) {
           setClientProfile(profileData);
-          const trialEnds = profileData.trial_ends_at ? new Date(profileData.trial_ends_at).getTime() : 0;
+          const trialEnds = profileData.trial_ends_at ? new Date(profileData.trial_ends_at).getTime() : (new Date(profileData.created_at || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000);
           const now = new Date().getTime();
-          const diffDays = Math.max(0, Math.ceil((trialEnds - now) / (1000 * 60 * 60 * 24)));
+          let diffDays = Math.max(0, Math.ceil((trialEnds - now) / (1000 * 60 * 60 * 24)));
+          if (profileData.plan_type === 'premium') {
+             diffDays = 999;
+          }
           setDaysLeft(diffDays);
 
           // Récupération de l'historique des logs journaliers
@@ -337,9 +340,6 @@ export default function NutritionDashboard() {
     };
 
     verifyAuth();
-    
-    // Générer le menu si vide
-    if (weeklyGeneratedMenu.length === 0 && clientProfile) generateWeeklyMenu();
 
     // Afficher un message de bienvenue après le diagnostic
     if (searchParams.get('from') === 'diagnostic') {
@@ -349,6 +349,13 @@ export default function NutritionDashboard() {
     }
 
   }, [router, searchParams]);
+
+  // S'assurer que le menu est généré si l'utilisateur vient d'arriver
+  useEffect(() => {
+      if (clientProfile && weeklyGeneratedMenu.length === 0) {
+          generateWeeklyMenu();
+      }
+  }, [clientProfile, weeklyGeneratedMenu.length]);
 
   const updateXP = async (amount: number, reason: string) => {
       const newXP = jongomaXP + amount;
@@ -1915,7 +1922,7 @@ export default function NutritionDashboard() {
                <button onClick={() => setShowRedoDiagModal(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm">
                   Retour au Hub
                </button>
-               <button disabled={!redoReason} onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic')} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+               <button disabled={!redoReason} onClick={() => window.location.href = '/solutions/onyx-nutritionafricaine/diagnostic'} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                   Continuer <ArrowRight size={14} className="inline ml-1"/>
                </button>
             </div>

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale, Flame } from "lucide-react";
+import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale, Flame, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -22,6 +22,8 @@ export default function NutritionDiagnostic() {
     height: "",
     currentWeight: "",
     dailySteps: "",
+    weightLossPace: "Normalement",
+    mainChallenge: "",
     dietaryHabits: "",
     allergies: "",
     familyDynamic: "",
@@ -45,8 +47,13 @@ export default function NutritionDiagnostic() {
     ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) 
     : 0;
   
+  let deficit = 500;
+  let lossPerWeek = 0.5;
+  if (formData.weightLossPace === 'Progressivement') { deficit = 300; lossPerWeek = 0.3; }
+  else if (formData.weightLossPace === 'Rapidement') { deficit = 700; lossPerWeek = 0.7; }
+  
   const weightToLose = currentWeight - idealWeight;
-  const estimatedWeeks = weightToLose > 0 ? Math.ceil(weightToLose / 0.5) : 0; 
+  const estimatedWeeks = weightToLose > 0 ? Math.ceil(weightToLose / lossPerWeek) : 0; 
   const estimatedMonths = estimatedWeeks > 0 ? (estimatedWeeks / 4).toFixed(1) : 0; 
 
   // 2. Calcul du Métabolisme de Base (BMR) via Mifflin-St Jeor
@@ -62,8 +69,8 @@ export default function NutritionDiagnostic() {
   
   const tdee = bmr * nap;
 
-  // 4. Application du déficit calorique (-500 kcal)
-  let rawCalories = weightToLose > 0 ? tdee - 500 : (weightToLose < 0 ? tdee + 300 : tdee);
+  // 4. Application du déficit calorique
+  let rawCalories = weightToLose > 0 ? tdee - deficit : (weightToLose < 0 ? tdee + 300 : tdee);
   // Sécurité : Ne jamais descendre sous 1200 kcal (femme) ou 1500 kcal (homme)
   const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
 
@@ -203,6 +210,27 @@ export default function NutritionDiagnostic() {
                        ))}
                     </div>
                   </div>
+                  
+                  <div className="space-y-2 mt-6 bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
+                    <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Rythme de perte de poids souhaité *</label>
+                    <div className="relative pt-4 pb-2 px-2">
+                       <input 
+                          type="range" 
+                          min="1" max="3" step="1" 
+                          value={formData.weightLossPace === 'Progressivement' ? 1 : formData.weightLossPace === 'Normalement' ? 2 : 3}
+                          onChange={(e) => {
+                             const val = e.target.value;
+                             setFormData({...formData, weightLossPace: val === '1' ? 'Progressivement' : val === '2' ? 'Normalement' : 'Rapidement'});
+                          }}
+                          className="w-full accent-black h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                       />
+                       <div className="flex justify-between text-[10px] font-black uppercase text-zinc-400 mt-4">
+                          <span className={`w-1/3 text-left ${formData.weightLossPace === 'Progressivement' ? 'text-[#39FF14] drop-shadow-md' : ''}`}>Progressif<br/>(-0.3kg/sem)</span>
+                          <span className={`w-1/3 text-center ${formData.weightLossPace === 'Normalement' ? 'text-black' : ''}`}>Normal<br/>(-0.5kg/sem)</span>
+                          <span className={`w-1/3 text-right ${formData.weightLossPace === 'Rapidement' ? 'text-red-500' : ''}`}>Rapide<br/>(-0.7kg/sem)</span>
+                       </div>
+                    </div>
+                  </div>
                   <input type="number" name="sleepHours" required placeholder="Heures de sommeil par nuit (ex: 7) *" value={formData.sleepHours} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black mt-4" />
                 </motion.div>
               )}
@@ -263,59 +291,76 @@ export default function NutritionDiagnostic() {
               )}
             </form>
           ) : (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
-              <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl border-4 border-[#39FF14]">
-                <Activity className="text-[#39FF14] w-10 h-10" />
-              </div>
-              <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase mb-6 text-black tracking-tighter`}>Analyse Terminée !</h2>
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-4">
               
-              {/* RÉSULTATS DU CALCUL */}
-              <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-6 mb-8 text-left space-y-4 shadow-sm">
-                <div className="flex justify-between items-center border-b border-zinc-200 pb-4">
-                   <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Poids Santé Idéal</span>
-                   <span className="font-black text-2xl text-black">{idealWeight > 0 ? idealWeight.toFixed(1) : '--'} kg</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-zinc-200 pb-4">
-                   <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2"><Flame size={16}/> Cible Calorique</span>
-                   <span className="font-black text-2xl text-[#39FF14] bg-black px-4 py-1.5 rounded-xl shadow-lg">{dailyCalories > 0 ? dailyCalories.toFixed(0) : '--'} kcal</span>
-                </div>
-                
-                <div className="pt-2">
-                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Répartition Quotidienne</p>
-                   <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-orange-100 border border-orange-200 p-3 rounded-2xl text-center">
-                         <p className="text-[10px] font-black uppercase text-orange-600 mb-1">Glucides</p>
-                         <p className="font-black text-lg text-orange-700">{carbs > 0 ? carbs.toFixed(0) : '--'}g</p>
-                      </div>
-                      <div className="bg-purple-100 border border-purple-200 p-3 rounded-2xl text-center">
-                         <p className="text-[10px] font-black uppercase text-purple-600 mb-1">Protéines</p>
-                         <p className="font-black text-lg text-purple-700">{protein > 0 ? protein.toFixed(0) : '--'}g</p>
-                      </div>
-                      <div className="bg-yellow-100 border border-yellow-200 p-3 rounded-2xl text-center">
-                         <p className="text-[10px] font-black uppercase text-yellow-600 mb-1">Lipides</p>
-                         <p className="font-black text-lg text-yellow-700">{fats > 0 ? fats.toFixed(0) : '--'}g</p>
-                      </div>
-                   </div>
-                </div>
-                <div className="flex justify-between items-center">
-                   <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Temps estimé</span>
-                   <span className="font-black text-xl text-black">{estimatedMonths > 0 ? `${estimatedMonths} mois` : '--'}</span>
-                </div>
-                <p className="text-[10px] text-zinc-400 italic text-center pt-2">* Estimation basée sur une perte saine et durable sans frustration.</p>
+              {/* L'En-tête de Victoire */}
+              <div className="bg-gradient-to-r from-green-600 to-[#2bd40d] text-white p-6 rounded-[2rem] shadow-2xl mb-8">
+                 <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase mb-2 tracking-tighter leading-tight`}>Diagnostic Terminé !</h2>
+                 <p className="font-bold text-sm">Ta feuille de route Jongoma est prête.</p>
               </div>
 
-              <div className="bg-black text-[#39FF14] p-5 rounded-2xl mb-8 shadow-2xl relative overflow-hidden">
-                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#39FF14]/20 rounded-full blur-2xl pointer-events-none"></div>
-                 <p className="font-black uppercase text-sm mb-2 flex items-center justify-center gap-2">🎁 Compte Créé : 14 Jours Offerts !</p>
-                 <p className="text-xs text-white font-medium leading-relaxed">Félicitations. Vous venez de débloquer votre <strong className="text-[#39FF14]">Guide PDF</strong> complet et votre <strong className="text-[#39FF14]">Menu de la Semaine 1</strong> gratuitement.</p>
+              {/* Le Comparatif de Poids Visuel */}
+              <div className="flex flex-col sm:flex-row items-center justify-between bg-zinc-50 border border-zinc-200 rounded-[2rem] p-6 mb-8 shadow-sm relative">
+                 <div className="text-center w-full sm:w-1/3">
+                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Poids Actuel</p>
+                    <p className="text-4xl md:text-5xl font-black text-red-500">{formData.currentWeight || '--'} <span className="text-lg">kg</span></p>
+                 </div>
+                 
+                 <div className="w-full sm:w-1/3 flex flex-col items-center justify-center py-4 sm:py-0">
+                    <motion.div animate={{ x: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 1.5 }} className="bg-black text-[#39FF14] p-3 rounded-full mb-2 shadow-[0_0_15px_#39FF14]">
+                       <ArrowRight size={24} />
+                    </motion.div>
+                    <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest text-center">En {estimatedWeeks > 0 ? estimatedWeeks : '--'} semaines<br/>sans frustration</p>
+                 </div>
+
+                 <div className="text-center w-full sm:w-1/3">
+                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Poids Idéal Santé</p>
+                    <p className="text-4xl md:text-5xl font-black text-[#39FF14] drop-shadow-[0_0_15px_rgba(57,255,20,0.5)]">{idealWeight > 0 ? idealWeight.toFixed(1) : '--'} <span className="text-lg text-black">kg</span></p>
+                 </div>
+              </div>
+              
+              {/* Le Badge du Profil Métabolique */}
+              <div className="bg-[#39FF14]/10 border-2 border-[#39FF14] rounded-2xl p-4 mb-8 flex items-center gap-4 text-left shadow-inner">
+                 <div className="bg-[#39FF14] p-3 rounded-xl text-black shadow-md"><Activity size={24} /></div>
+                 <div>
+                    <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Ton Profil Métabolique</p>
+                    <p className="font-black text-black text-sm md:text-base uppercase leading-tight mt-0.5">
+                       Jongoma {formData.dailySteps.includes('< 5 000') ? 'Sédentaire' : 'Active'} - 
+                       {formData.mainChallenge === 'Le Sel & la Tension' ? ' Sensible au Sel' : formData.mainChallenge === "Le Sucre & l'Attaya" ? ' Alerte Sucre' : ' Profil Familial'}
+                    </p>
+                 </div>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <button onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full bg-black text-[#39FF14] py-5 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors shadow-lg flex justify-center items-center gap-2">
-                  Accéder à mon espace personnel <ArrowRight size={18}/>
+              {/* La Jauge Énergétique Verrouillée */}
+              <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 mb-10 shadow-lg relative overflow-hidden group">
+                 <h3 className="font-black uppercase text-xs text-zinc-400 tracking-widest mb-4">Ton Quota Quotidien Calculé</h3>
+                 <div className="flex justify-center items-center gap-2 mb-6">
+                    <Flame className="text-orange-500 animate-pulse" size={32} />
+                    <span className="text-4xl font-black text-black">{dailyCalories > 0 ? dailyCalories.toFixed(0) : '--'} <span className="text-xl text-zinc-400">kcal / jour</span></span>
+                 </div>
+                 
+                 <div className="relative">
+                    <div className="filter blur-[6px] opacity-60 pointer-events-none select-none space-y-2">
+                       <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Matin</span><span className="text-sm font-medium">Bouillie de Mil allégée</span></div>
+                       <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Midi</span><span className="text-sm font-medium">Yassa Poulet Diététique</span></div>
+                       <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Soir</span><span className="text-sm font-medium">Salade de Niébé</span></div>
+                    </div>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                       <Lock className="text-black mb-3 w-12 h-12 bg-white p-3 rounded-full shadow-lg" />
+                       <span className="bg-black text-[#39FF14] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl border border-[#39FF14]/30">Menu Verrouillé</span>
+                    </div>
+                 </div>
+              </div>
+
+              {/* Le CTA Magnétique */}
+              <div className="flex flex-col gap-3">
+                <button onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full bg-[#1b74e4] text-white py-6 rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest hover:bg-[#155fc0] transition-colors shadow-[0_15px_30px_rgba(27,116,228,0.3)] flex justify-center items-center gap-3 hover:scale-105 active:scale-95 animate-in slide-in-from-bottom-4">
+                  <CheckCircle size={20} /> Créer mon compte & Débloquer mon Yassa Léger de Midi
                 </button>
-                <button onClick={handleWaRedirect} className="w-full bg-zinc-100 text-black py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors shadow-sm flex justify-center items-center gap-2 border border-zinc-200">
-                  Contacter le coach sur WhatsApp
+                <p className="text-[10px] text-zinc-500 font-bold mt-2 uppercase tracking-widest">Rejoins les 25 000 membres de la communauté. Inscription gratuite en 10 secondes via Google ou Téléphone.</p>
+                
+                <button onClick={handleWaRedirect} className="w-full mt-4 bg-zinc-100 text-black py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-colors shadow-sm flex justify-center items-center gap-2 border border-zinc-200">
+                  Poser une question sur WhatsApp
                 </button>
               </div>
             </motion.div>

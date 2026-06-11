@@ -190,6 +190,8 @@ export default function NutritionAfricaineLanding() {
     height: "",
     currentWeight: "",
     dailySteps: "",
+    weightLossPace: "Normalement",
+    mainChallenge: "",
     dietaryHabits: "",
     allergies: ""
   });
@@ -329,6 +331,23 @@ export default function NutritionAfricaineLanding() {
       if (val < 35) return "Obésité modérée";
       return "Obésité sévère";
    };
+
+  // --- MOTEUR DE CALCUL NUTRITIONNEL (Pour le résultat Choc) ---
+  const heightCm = parseFloat(diagData.height) || 0;
+  const currentWeight = parseFloat(diagData.currentWeight) || 0;
+  const age = parseFloat(diagData.age) || 0;
+  const isMale = diagData.gender === "Homme";
+  const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
+  const weightToLose = currentWeight - idealWeight;
+  const estimatedWeeks = weightToLose > 0 ? Math.ceil(weightToLose / 0.5) : 0; 
+  const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+  let nap = 1.2;
+  if (diagData.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
+  else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
+  else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+  const tdee = bmr * nap;
+  let rawCalories = weightToLose > 0 ? tdee - 500 : (weightToLose < 0 ? tdee + 300 : tdee);
+  const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
@@ -1112,6 +1131,27 @@ export default function NutritionAfricaineLanding() {
                             ))}
                          </div>
                       </div>
+                      
+                      <div className="space-y-2 mt-6 bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Rythme de perte de poids souhaité *</label>
+                        <div className="relative pt-4 pb-2 px-2">
+                           <input 
+                              type="range" 
+                              min="1" max="3" step="1" 
+                              value={diagData.weightLossPace === 'Progressivement' ? 1 : diagData.weightLossPace === 'Normalement' ? 2 : 3}
+                              onChange={(e) => {
+                                 const val = e.target.value;
+                                 setDiagData({...diagData, weightLossPace: val === '1' ? 'Progressivement' : val === '2' ? 'Normalement' : 'Rapidement'});
+                              }}
+                              className="w-full accent-black h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                           />
+                           <div className="flex justify-between text-[10px] font-black uppercase text-zinc-400 mt-4">
+                              <span className={`w-1/3 text-left ${diagData.weightLossPace === 'Progressivement' ? 'text-[#39FF14] drop-shadow-md' : ''}`}>Progressif<br/>(-0.3kg/sem)</span>
+                              <span className={`w-1/3 text-center ${diagData.weightLossPace === 'Normalement' ? 'text-black' : ''}`}>Normal<br/>(-0.5kg/sem)</span>
+                              <span className={`w-1/3 text-right ${diagData.weightLossPace === 'Rapidement' ? 'text-red-500' : ''}`}>Rapide<br/>(-0.7kg/sem)</span>
+                           </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -1127,6 +1167,21 @@ export default function NutritionAfricaineLanding() {
                                </button>
                             ))}
                          </div>
+                      </div>
+                      <div className="space-y-4 mt-6">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est ton défi principal au quotidien ? *</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                           {[
+                             { id: "Le Sel & la Tension", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781177365/A_studio_minimalist_close-up_shot_202606111128_iln7to.jpg", title: "Le Sel & la Tension" },
+                             { id: "Le Sucre & l'Attaya", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781177365/A_minimalist_close-up_shot_of_202606111128_cn0uom.jpg", title: "Le Sucre & l'Attaya" },
+                             { id: "Le Bol Familial", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781177435/A_high-angle_studio_shot_of_202606111129_rmwlo7.jpg", title: "Le Bol Familial" }
+                           ].map(challenge => (
+                              <div key={challenge.id} onClick={() => setDiagData({...diagData, mainChallenge: challenge.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.mainChallenge === challenge.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                                 <img src={challenge.img} className="w-full aspect-square object-cover" alt={challenge.title} />
+                                 <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-[10px] backdrop-blur-sm">{challenge.title}</div>
+                              </div>
+                           ))}
+                        </div>
                       </div>
                       <input type="text" placeholder="Allergies (Ex: Arachide...)" value={diagData.allergies} onChange={(e) => setDiagData({...diagData, allergies: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
                     </div>
