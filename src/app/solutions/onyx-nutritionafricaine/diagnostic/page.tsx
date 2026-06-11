@@ -202,11 +202,11 @@ export default function NutritionDiagnostic() {
       
       let welcomeMsg = "";
       if (formData.healthProfile === "Allaitement") {
-          welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} 🌸 ! Bienvenue chez Onyx. D'après ton profil de jeune maman, ton corps a besoin d'énergie. J'ai préparé ton plan avec un bonus calorique pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids. Prête à commencer ?`;
+          welcomeMsg = `Bonjour ${formData.name.split(' ')[0]}  ! Bienvenue chez Onyx. D'après ton profil de jeune maman, ton corps a besoin d'énergie. J'ai préparé ton plan avec un bonus calorique pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids. Prête à commencer ?`;
       } else if (formData.healthProfile === "Changements hormonaux" || age >= 50) {
-          welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} ✨ ! Bienvenue chez Onyx. La périménopause ou l'âge bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme et protéger ton tonus musculaire et tes articulations tout en douceur. Prête à retrouver la forme ?`;
+          welcomeMsg = `Bonjour ${formData.name.split(' ')[0]}  ! Bienvenue chez Onyx. La périménopause ou l'âge bloque parfois la perte de poids, mais c'est terminé ! Ton plan va réactiver ton métabolisme et protéger ton tonus musculaire et tes articulations tout en douceur. Prête à retrouver la forme ?`;
       } else {
-          welcomeMsg = `Bonjour ${formData.name.split(' ')[0]} 🚀 ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
+          welcomeMsg = `Bonjour ${formData.name.split(' ')[0]}  ! Bienvenue chez Onyx. Ton diagnostic est validé ! On va transformer ton corps sans que tu aies besoin d'arrêter de manger nos délicieux plats locaux. Prête à passer à l'action ?`;
       }
       localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
