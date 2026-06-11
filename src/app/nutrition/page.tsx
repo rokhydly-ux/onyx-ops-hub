@@ -576,6 +576,18 @@ export default function NutritionDashboard() {
       };
   });
 
+  // --- GESTION ET SAUVEGARDE DU MODE DE SUIVI ---
+  const handleTrackingModeChange = async (mode: 'guided' | 'flexible') => {
+     setTrackingMode(mode);
+     if (clientProfile && clientProfile.phone) {
+        await supabase.from('nutrition_profiles').update({ tracking_mode: mode }).eq('phone', clientProfile.phone);
+     } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        const phone = user?.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/)?.[1] || user?.phone;
+        if (phone) await supabase.from('nutrition_profiles').update({ tracking_mode: mode }).eq('phone', phone);
+     }
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
   }
@@ -634,10 +646,10 @@ export default function NutritionDashboard() {
             {/* SÉLECTEUR DE MODE & ACTIONS */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                <div className="bg-white border border-zinc-200 p-2 rounded-2xl flex items-center shadow-sm w-full md:w-auto">
-                 <button onClick={() => setTrackingMode('guided')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'guided' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
+                 <button onClick={() => handleTrackingModeChange('guided')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'guided' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
                     <Utensils size={16}/> Mode Guidé
                  </button>
-                 <button onClick={() => setTrackingMode('flexible')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'flexible' ? 'bg-black text-[#00E5FF] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
+                 <button onClick={() => handleTrackingModeChange('flexible')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'flexible' ? 'bg-black text-[#00E5FF] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
                     <Compass size={16}/> Mode Libre
                  </button>
                </div>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock } from "lucide-react";
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -88,6 +88,22 @@ export default function AdminNutritionAfricaine() {
               const calsGoal = profile.daily_calorie_goal || 1500;
               const protsGoal = profile.protein_goal || 80;
 
+              // LOGIQUE D'ALERTES COACH
+              const isOverCalories = calsConsumed > calsGoal;
+              let isMissingLogs = false;
+              
+              const threeDaysAgo = new Date();
+              threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+              
+              if (profile.logs && profile.logs.length > 0) {
+                 const sortedLogs = [...profile.logs].sort((a: any, b: any) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime());
+                 const latestLogDate = new Date(sortedLogs[0].log_date);
+                 if (latestLogDate.getTime() < threeDaysAgo.getTime()) isMissingLogs = true;
+              } else {
+                 const createdAt = new Date(profile.created_at || new Date());
+                 if (createdAt.getTime() < threeDaysAgo.getTime()) isMissingLogs = true;
+              }
+
               return (
                  <div key={profile.id} className="bg-white border border-zinc-200 p-6 rounded-[2rem] shadow-sm hover:border-[#39FF14] hover:shadow-xl transition-all flex flex-col">
                     <div className="flex justify-between items-start mb-4">
@@ -102,6 +118,14 @@ export default function AdminNutritionAfricaine() {
                           {profile.tracking_mode === 'guided' || profile.tracking_mode === 'autopilot' ? 'Guidé' : 'Libre'}
                        </span>
                     </div>
+
+                    {/* ZONES D'ALERTES */}
+                    {(isOverCalories || isMissingLogs) && (
+                       <div className="flex flex-col gap-2 mb-4">
+                          {isOverCalories && <div className="bg-red-50 text-red-600 px-3 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2"><AlertTriangle size={14}/> Dépassement Calorique</div>}
+                          {isMissingLogs && <div className="bg-orange-50 text-orange-600 px-3 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2"><Clock size={14}/> Inactif depuis +3 jours</div>}
+                       </div>
+                    )}
 
                     <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-6 space-y-4 flex-1">
                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 border-b border-zinc-200 pb-2 flex justify-between">
