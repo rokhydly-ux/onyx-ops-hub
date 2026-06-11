@@ -445,34 +445,40 @@ export default function NutritionDashboard() {
 
   // --- LOGIQUE SMART PLANNER ---
   const generateWeeklyMenu = async () => {
+      let currentRecipes = RECIPES_DB;
+      try {
+          const { data } = await supabase.from('nutrition_recipes').select('*');
+          if (data && data.length > 0) currentRecipes = data;
+      } catch(e) {}
+      
       let newMenu: any[] = [];
       let bolCommunCount = 0;
       const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
       
       days.forEach(day => {
-          const breakfasts = RECIPES_DB.filter(r => r.type === 'Petit-déjeuner');
-          const lunches = RECIPES_DB.filter(r => r.type === 'Déjeuner');
-          const dinners = RECIPES_DB.filter(r => r.type === 'Dîner');
-          const snacks = RECIPES_DB.filter(r => r.type === 'Collation');
+          const breakfasts = currentRecipes.filter(r => r.type === 'Petit-déjeuner');
+          const lunches = currentRecipes.filter(r => r.type === 'Déjeuner');
+          const dinners = currentRecipes.filter(r => r.type === 'Dîner');
+          const snacks = currentRecipes.filter(r => r.type === 'Collation');
 
           let lunch;
           // S'assure d'intégrer 2-3 déjeuners "Bol Commun" dans la semaine
           if (bolCommunCount < 3 && Math.random() > 0.4) {
               const bcLunches = lunches.filter(r => r.is_bol_commun);
-              lunch = bcLunches[Math.floor(Math.random() * bcLunches.length)] || lunches[0];
-              bolCommunCount++;
+              lunch = bcLunches.length > 0 ? bcLunches[Math.floor(Math.random() * bcLunches.length)] : lunches[0];
+              if (bcLunches.length > 0) bolCommunCount++;
           } else {
               const normalLunches = lunches.filter(r => !r.is_bol_commun);
-              lunch = normalLunches[Math.floor(Math.random() * normalLunches.length)] || lunches[0];
+              lunch = normalLunches.length > 0 ? normalLunches[Math.floor(Math.random() * normalLunches.length)] : lunches[0];
           }
 
           newMenu.push({
               day,
               meals: {
-                  'Petit-déjeuner': breakfasts[Math.floor(Math.random() * breakfasts.length)],
-                  'Déjeuner': lunch,
-                  'Collation': snacks[Math.floor(Math.random() * snacks.length)],
-                  'Dîner': dinners[Math.floor(Math.random() * dinners.length)]
+                  'Petit-déjeuner': breakfasts.length > 0 ? breakfasts[Math.floor(Math.random() * breakfasts.length)] : null,
+                  'Déjeuner': lunch || null,
+                  'Collation': snacks.length > 0 ? snacks[Math.floor(Math.random() * snacks.length)] : null,
+                  'Dîner': dinners.length > 0 ? dinners[Math.floor(Math.random() * dinners.length)] : null
               }
           });
       });
@@ -482,13 +488,24 @@ export default function NutritionDashboard() {
       }
   };
 
-  const handleSwapMeal = (dayIndex: number, mealType: string, currentRecipeId: string) => {
-      const alternatives = RECIPES_DB.filter(r => r.type === mealType && r.id !== currentRecipeId);
+  const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
+      let currentRecipes = RECIPES_DB;
+      try {
+          const { data } = await supabase.from('nutrition_recipes').select('*');
+          if (data && data.length > 0) currentRecipes = data;
+      } catch(e) {}
+      
+      const alternatives = currentRecipes.filter(r => r.type === mealType && r.id !== currentRecipeId);
       if (alternatives.length > 0) {
           const newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
           const updatedMenu = [...weeklyGeneratedMenu];
           updatedMenu[dayIndex].meals[mealType] = newRecipe;
           setWeeklyGeneratedMenu(updatedMenu);
+          if (clientProfile) {
+             await supabase.from('nutrition_profiles').update({ weekly_menu: updatedMenu }).eq('client_id', clientProfile.id);
+          }
+      } else {
+          alert("Aucune alternative disponible pour ce type de repas dans la base de données.");
       }
   };
 
@@ -1023,7 +1040,7 @@ export default function NutritionDashboard() {
             {/* CORPS : LES REPAS */}
             <div className="grid md:grid-cols-2 gap-4">
                 {['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner'].map((mealType) => {
-                    const generatedMeal = todayPlan?.meals[mealType];
+                    const generatedMeal = todayPlan?.meals ? todayPlan.meals[mealType] : null;
                     const plannedMeal = generatedMeal ? {
                         type: mealType,
                         time: mealType === 'Petit-déjeuner' ? '08:00' : mealType === 'Déjeuner' ? '13:30' : mealType === 'Collation' ? '16:00' : '19:30',
@@ -1032,7 +1049,7 @@ export default function NutritionDashboard() {
                         proteins: Math.round((generatedMeal.calories * 0.2) / 4),
                         carbs: Math.round((generatedMeal.calories * 0.5) / 4),
                         fats: Math.round((generatedMeal.calories * 0.3) / 9),
-                        recipe: `Ingrédients : ${generatedMeal.ingredients.map((i: any) => `${i.quantite}${i.unite} ${i.nom}`).join(', ')}`
+                        recipe: generatedMeal.recipe || `Ingrédients : ${generatedMeal.ingredients?.map((i: any) => `${i.quantite}${i.unite} ${i.nom}`).join(', ') || ''}`
                     } : null;
                     
                     const itemsForThisMeal = consumedMeals.filter(m => m.type === mealType);
