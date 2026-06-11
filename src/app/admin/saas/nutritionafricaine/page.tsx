@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const spaceGrotesk = { className: "font-sans" };
@@ -17,10 +17,11 @@ export default function AdminNutritionAfricaine() {
   const [recipes, setRecipes] = useState<any[]>([]);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
-  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [] as any[] });
+  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [] as any[], image_url: '', description: '', gallery: [] as string[] });
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [clientForm, setClientForm] = useState({ id: '', daily_calorie_goal: 0, protein_goal: 0, carbs_goal: 0, fats_goal: 0, tracking_mode: 'guided' });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -91,10 +92,10 @@ export default function AdminNutritionAfricaine() {
   const handleOpenRecipeModal = (recipe?: any) => {
      if (recipe) {
          setEditingRecipe(recipe);
-         setRecipeForm({ ...recipe, ingredients: recipe.ingredients || [] });
+         setRecipeForm({ ...recipe, ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', description: recipe.description || '' });
      } else {
          setEditingRecipe(null);
-         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [] });
+         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [], image_url: '', description: '', gallery: [] });
      }
      setShowRecipeModal(true);
   };
@@ -142,9 +143,74 @@ export default function AdminNutritionAfricaine() {
       } else alert(error.message);
   };
 
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+          const csvText = event.target?.result as string;
+          const rows = csvText.split('\n').filter(r => r.trim());
+          if (rows.length < 2) return;
+          const headers = rows[0].split(';').map(h => h.trim().toLowerCase());
+          
+          const newRecipes = [];
+          for (let i = 1; i < rows.length; i++) {
+              const cols = rows[i].split(';');
+              const recipe: any = {};
+              headers.forEach((h, index) => {
+                  recipe[h] = cols[index]?.trim() || '';
+              });
+
+              if (recipe.nom) {
+                  let parsedIngredients = [];
+                  try { parsedIngredients = recipe.ingredients ? JSON.parse(recipe.ingredients) : []; } catch (e) {}
+                  
+                  const existingRecipe = recipes.find(r => r.nom.toLowerCase() === recipe.nom.toLowerCase());
+                  
+                  const rPayload: any = {
+                      nom: recipe.nom, type: recipe.type || 'Déjeuner', calories: Number(recipe.calories) || 0, proteins: Number(recipe.proteins) || 0, carbs: Number(recipe.carbs) || 0, fats: Number(recipe.fats) || 0, is_bol_commun: recipe.is_bol_commun?.toLowerCase() === 'oui' || recipe.is_bol_commun === 'true', recipe: recipe.etapes_cuisson || recipe.recipe || '', description: recipe.description || '', image_url: recipe.photo || recipe.image_url || '', gallery: recipe.galerie_photo ? recipe.galerie_photo.split(',').map((s:string) => s.trim()) : [], ingredients: parsedIngredients
+                  };
+
+                  if (existingRecipe) rPayload.id = existingRecipe.id;
+                  newRecipes.push(rPayload);
+              }
+          }
+
+          if (newRecipes.length > 0) {
+              setLoading(true);
+              const { error } = await supabase.from('nutrition_recipes').upsert(newRecipes);
+              if (error) alert("Erreur d'importation: " + error.message);
+              else {
+                  alert(`${newRecipes.length} recettes importées/mises à jour avec succès !`);
+                  const { data: updatedRecipes } = await supabase.from('nutrition_recipes').select('*').order('created_at', { ascending: false });
+                  if (updatedRecipes) setRecipes(updatedRecipes);
+              }
+              setLoading(false);
+          }
+      };
+      reader.readAsText(file);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-black"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
   }
+
+  // Calcul moyenne globale des calories consommées aujourd'hui
+  const todayStr = new Date().toISOString().split('T')[0];
+  let totalCaloriesToday = 0;
+  let clientsWithLogsToday = 0;
+
+  clients.forEach(client => {
+     const todayLog = client.logs?.find((l: any) => l.log_date === todayStr);
+     if (todayLog && todayLog.calories_consumed > 0) {
+        totalCaloriesToday += todayLog.calories_consumed;
+        clientsWithLogsToday++;
+     }
+  });
+
+  const averageCaloriesToday = clientsWithLogsToday > 0 ? Math.round(totalCaloriesToday / clientsWithLogsToday) : 0;
 
   return (
     <div className="min-h-screen bg-[#fafafa] text-black font-sans pb-24">
@@ -184,18 +250,55 @@ export default function AdminNutritionAfricaine() {
             </div>
             )}
             {activeTab === 'recipes' && (
-               <button onClick={() => handleOpenRecipeModal()} className="w-full md:w-auto bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={16}/> Nouvelle Recette</button>
+               <div className="flex w-full md:w-auto gap-4">
+                  <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleImportCSV} />
+                  <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={16}/> Import CSV</button>
+                  <button onClick={() => handleOpenRecipeModal()} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={16}/> Nouvelle Recette</button>
+               </div>
             )}
         </div>
 
         {activeTab === 'clients' ? (
+        <>
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <div className="bg-black text-[#39FF14] p-6 rounded-2xl shadow-sm border border-zinc-800 flex flex-col justify-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Moyenne Kcal (Aujourd'hui)</p>
+                <div className="flex items-center gap-4">
+                   <div className="bg-[#39FF14]/10 p-4 rounded-xl"><Flame size={28} className="text-[#39FF14]"/></div>
+                   <div>
+                     <p className="text-4xl font-black">{averageCaloriesToday} <span className="text-sm font-bold text-zinc-500">kcal</span></p>
+                     <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold">Sur {clientsWithLogsToday} clients ayant logué</p>
+                   </div>
+                </div>
+             </div>
+             
+             <div className="bg-white text-black p-6 rounded-2xl shadow-sm border border-zinc-200 flex flex-col justify-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Clients Actifs (Aujourd'hui)</p>
+                <div className="flex items-center gap-4">
+                   <div className="bg-blue-50 p-4 rounded-xl"><Activity size={28} className="text-blue-500"/></div>
+                   <div>
+                     <p className="text-4xl font-black">{clientsWithLogsToday} <span className="text-sm font-bold text-zinc-500">/ {clients.length}</span></p>
+                     <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold">Taux d'activité journalier</p>
+                   </div>
+                </div>
+             </div>
+             
+             <div className="bg-white text-black p-6 rounded-2xl shadow-sm border border-zinc-200 flex flex-col justify-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Base de Recettes</p>
+                <div className="flex items-center gap-4">
+                   <div className="bg-orange-50 p-4 rounded-xl"><Utensils size={28} className="text-orange-500"/></div>
+                   <div>
+                     <p className="text-4xl font-black">{recipes.length}</p>
+                     <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold">Plats configurés dans l'app</p>
+                   </div>
+                </div>
+             </div>
+          </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
            {filteredClients.map(profile => {
               const clientName = profile.client?.full_name || "Client Inconnu";
               const phone = profile.phone || profile.client?.phone || "";
               
-              // Trouver le log du jour
-              const todayStr = new Date().toISOString().split('T')[0];
               const todayLog = profile.logs?.find((l: any) => l.log_date === todayStr);
 
               const calsConsumed = todayLog?.calories_consumed || 0;
@@ -330,6 +433,7 @@ export default function AdminNutritionAfricaine() {
               </div>
            )}
         </div>
+        </>
         ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
@@ -418,6 +522,21 @@ export default function AdminNutritionAfricaine() {
                   <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Instructions / Recette</label>
                      <textarea value={recipeForm.recipe} onChange={e => setRecipeForm({...recipeForm, recipe: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black min-h-[100px]" placeholder="Astuces de cuisson, remplacement d'ingrédients..."></textarea>
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Description</label>
+                     <textarea value={recipeForm.description} onChange={e => setRecipeForm({...recipeForm, description: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black min-h-[60px]" placeholder="Courte description de la recette..."></textarea>
+                  </div>
+                  
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">URL Image Principale</label>
+                     <input type="text" value={recipeForm.image_url} onChange={e => setRecipeForm({...recipeForm, image_url: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black" placeholder="https://..." />
+                  </div>
+                  
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Galerie Photos (URLs séparées par virgule)</label>
+                     <input type="text" value={recipeForm.gallery.join(', ')} onChange={e => setRecipeForm({...recipeForm, gallery: e.target.value.split(',').map(url => url.trim()).filter(Boolean)})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black" placeholder="https://img1.jpg, https://img2.jpg" />
                   </div>
 
                   <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-200">
