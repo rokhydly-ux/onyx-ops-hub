@@ -16,6 +16,7 @@ export default function NutritionDiagnostic() {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
+    pin: "",
     gender: "",
     age: "",
     height: "",
@@ -83,9 +84,26 @@ export default function NutritionDiagnostic() {
          calories: dailyCalories, carbs, protein, fats
       }));
 
+      // Création automatique du compte client pour l'auto-login
+      const trialEnds = new Date();
+      trialEnds.setDate(trialEnds.getDate() + 14); // 14 Jours d'essai
+
+      const { data: clientData } = await supabase.from('clients').upsert({
+        full_name: formData.name,
+        phone: formData.phone,
+        password_temp: formData.pin || "0000",
+        type: "Client",
+        saas: "Nutrition à l'Africaine",
+        status: "Essai",
+        trial_ends_at: trialEnds.toISOString(),
+      }, { onConflict: 'phone' }).select().single();
+
+      if (clientData) localStorage.setItem('onyx_custom_session', JSON.stringify(clientData));
+
       // Insertion automatique dans la nouvelle table nutrition_profiles
       await supabase.from('nutrition_profiles').upsert({
          phone: formData.phone,
+         client_id: clientData?.id || null,
          bmr: Math.round(bmr),
          tdee: Math.round(tdee),
          daily_calorie_goal: Math.round(dailyCalories),
@@ -146,6 +164,7 @@ export default function NutritionDiagnostic() {
                   <div className="flex items-center gap-3 mb-6"><Scale className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Informations de base</h2></div>
                   <input type="text" name="name" required placeholder="Votre Prénom et Nom *" value={formData.name} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   <input type="tel" name="phone" required placeholder="Numéro WhatsApp *" value={formData.phone} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  <input type="password" name="pin" maxLength={4} required placeholder="Créez un code PIN (4 chiffres) *" value={formData.pin} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   <select name="gender" required value={formData.gender} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
                     <option value="" disabled>Votre sexe *</option>
                     <option value="Femme">Femme</option>
@@ -276,9 +295,14 @@ export default function NutritionDiagnostic() {
                  <p className="text-xs text-white font-medium leading-relaxed">Félicitations. Vous venez de débloquer votre <strong className="text-[#39FF14]">Guide PDF</strong> complet et votre <strong className="text-[#39FF14]">Menu de la Semaine 1</strong> gratuitement.</p>
               </div>
 
-              <button onClick={handleWaRedirect} className="w-full bg-[#25D366] text-white py-5 rounded-xl font-black uppercase tracking-widest hover:bg-[#1ebd58] transition-colors shadow-lg shadow-[#25D366]/30 flex justify-center items-center gap-2">
-                Récupérer mon accès sur WhatsApp <ArrowRight size={18}/>
-              </button>
+              <div className="flex flex-col gap-4">
+                <button onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full bg-black text-[#39FF14] py-5 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors shadow-lg flex justify-center items-center gap-2">
+                  Accéder à mon espace personnel <ArrowRight size={18}/>
+                </button>
+                <button onClick={handleWaRedirect} className="w-full bg-zinc-100 text-black py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors shadow-sm flex justify-center items-center gap-2 border border-zinc-200">
+                  Contacter le coach sur WhatsApp
+                </button>
+              </div>
             </motion.div>
           )}
         </div>

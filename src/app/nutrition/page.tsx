@@ -180,6 +180,24 @@ export default function NutritionDashboard() {
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
 
+  // --- NOTIFICATIONS PUSH PWA ---
+  const sendWaterReminderPush = () => {
+    if (typeof window !== 'undefined' && 'Notification' in window && navigator.serviceWorker) {
+       Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+             navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification("💧 C'est l'heure de s'hydrater !", {
+                   body: "N'oublie pas de boire ton verre d'eau pour atteindre ton objectif aujourd'hui. Ton métabolisme te dira merci !",
+                   icon: "https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png",
+                   badge: "https://i.ibb.co/N6FwP9jD/LOGO-ONYX.png",
+                   vibrate: [200, 100, 200]
+                });
+             });
+          }
+       });
+    }
+  };
+
   // Gamification & Feed Communautaire
   const [jongomaXP, setJongomaXP] = useState(0);
   const [weightLogs, setWeightLogs] = useState<any[]>([]);
@@ -404,6 +422,16 @@ export default function NutritionDashboard() {
     const interval = setInterval(checkReminder, 60000); // Vérification chaque minute
     return () => clearInterval(interval);
   }, [dailyLogs]);
+
+  // Hook de relance d'hydratation
+  useEffect(() => {
+     const waterInterval = setInterval(() => {
+        if (waterGlasses >= 0 && waterGlasses < 8) {
+           sendWaterReminderPush();
+        }
+     }, 2 * 60 * 60 * 1000); // Déclenche toutes les 2 heures si la jauge n'est pas remplie
+     return () => clearInterval(waterInterval);
+  }, [waterGlasses]);
 
   // --- LOGIQUE SMART PLANNER ---
   const generateWeeklyMenu = () => {
@@ -820,6 +848,10 @@ export default function NutritionDashboard() {
   const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
   const greetingSubtext = currentHour < 18 ? "Prête pour ta journée ?" : "Pense à t'hydrater ce soir.";
 
+  // Calcul pour le badge de coaching (3 premiers jours)
+  const createdDate = clientProfile?.created_at ? new Date(clientProfile.created_at) : new Date();
+  const isNewUser = (new Date().getTime() - createdDate.getTime()) / (1000 * 3600 * 24) <= 3;
+
   return (
     <main className="min-h-screen bg-[#fafafa] text-black pb-24 font-sans selection:bg-[#39FF14]/30">
       {/* Header */}
@@ -880,7 +912,15 @@ export default function NutritionDashboard() {
            <button onClick={() => setActiveTab('community')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'community' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Communauté</button>
            <button onClick={() => setActiveTab('week')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'week' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Programme Semaine</button>
            <button onClick={() => setActiveTab('favorites')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'favorites' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Recettes Enregistrées</button>
-           <button onClick={() => setActiveTab('coaching')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'coaching' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Coaching Personnel</button>
+           <button onClick={() => setActiveTab('coaching')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'coaching' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>
+              Coaching Personnel
+              {isNewUser && (
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                  </span>
+              )}
+           </button>
            <button onClick={() => setActiveTab('history')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'history' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Historique</button>
            <button onClick={() => setActiveTab('profile')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'profile' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Réglages</button>
         </div>

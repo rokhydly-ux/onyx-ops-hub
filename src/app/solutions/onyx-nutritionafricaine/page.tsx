@@ -184,6 +184,7 @@ export default function NutritionAfricaineLanding() {
   const [diagData, setDiagData] = useState({
     name: "",
     phone: "",
+    pin: "",
     gender: "",
     age: "",
     height: "",
@@ -277,6 +278,24 @@ export default function NutritionAfricaineLanding() {
 
     setIsSubmittingDiag(true);
     try {
+      const trialEnds = new Date();
+      trialEnds.setDate(trialEnds.getDate() + 14);
+
+      const { data: clientData } = await supabase.from('clients').upsert({
+        full_name: diagData.name,
+        phone: diagData.phone,
+        password_temp: diagData.pin || "0000",
+        type: "Client",
+        saas: "Nutrition à l'Africaine",
+        status: "Essai",
+        trial_ends_at: trialEnds.toISOString(),
+      }, { onConflict: 'phone' }).select().single();
+
+      if (clientData) {
+        localStorage.setItem('onyx_custom_session', JSON.stringify(clientData));
+        setTimeout(() => router.push('/nutrition?from=diagnostic'), 3000);
+      }
+
       await supabase.from('leads').insert([{
         full_name: diagData.name,
         phone: diagData.phone,
@@ -1059,6 +1078,7 @@ export default function NutritionAfricaineLanding() {
                       <div className="flex items-center gap-3 mb-4"><Scale className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Informations de base</h3></div>
                       <input type="text" name="name" required placeholder="Votre Prénom et Nom *" value={diagData.name} onChange={(e) => setDiagData({...diagData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
                       <input type="tel" name="phone" required placeholder="Numéro WhatsApp *" value={diagData.phone} onChange={(e) => setDiagData({...diagData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
+                      <input type="password" name="pin" maxLength={4} required placeholder="Créez un code PIN (4 chiffres) *" value={diagData.pin} onChange={(e) => setDiagData({...diagData, pin: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
                       <select required value={diagData.gender} onChange={(e) => setDiagData({...diagData, gender: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black cursor-pointer">
                         <option value="" disabled>Votre sexe *</option><option value="Femme">Femme</option><option value="Homme">Homme</option>
                       </select>
@@ -1130,12 +1150,12 @@ export default function NutritionAfricaineLanding() {
 
                   <p className="text-zinc-600 font-medium mb-8">Téléchargez votre bilan complet au format PDF pour le conserver, ou envoyez-le à votre coach pour obtenir votre premier menu.</p>
                   
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <button onClick={handleDownloadPDF} type="button" className="flex-1 bg-black text-[#39FF14] py-5 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors shadow-lg flex justify-center items-center gap-2">
-                      <Download size={18}/> Bilan PDF
+                  <div className="flex flex-col gap-4">
+                    <button onClick={() => router.push('/nutrition?from=diagnostic')} type="button" className="w-full bg-black text-[#39FF14] py-5 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors shadow-lg flex justify-center items-center gap-2">
+                      Accéder à mon espace personnel <ArrowRight size={18}/>
                     </button>
-                    <button onClick={() => window.open(`https://wa.me/221785338417?text=${encodeURIComponent(`Bonjour, je m'appelle ${diagData.name} et je viens de terminer mon diagnostic. Je souhaite voir mes résultats !`)}`, "_blank")} type="button" className="flex-1 bg-[#25D366] text-white py-5 rounded-xl font-black uppercase tracking-widest hover:bg-[#1ebd58] transition-colors shadow-lg shadow-[#25D366]/30 flex justify-center items-center gap-2">
-                      Coach WhatsApp <ArrowRight size={18}/>
+                    <button onClick={handleDownloadPDF} type="button" className="w-full bg-zinc-100 text-black py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors shadow-sm flex justify-center items-center gap-2 border border-zinc-200">
+                      <Download size={18}/> Télécharger mon bilan PDF
                     </button>
                   </div>
                 </div>
