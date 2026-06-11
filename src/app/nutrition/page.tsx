@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, 
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -51,6 +51,52 @@ const DAILY_MENU = {
       { type: 'Légumes', time: 'Repas principaux', meal: 'Remplissez la moitié de votre assiette avec des légumes locaux (carottes, choux, aubergines).' },
    ]
 };
+
+// ÉTAPE 3 : Base de données JSON (Aliments Locaux & Flags IA)
+const FOOD_DATABASE = [
+  {
+    id: "food_001", nom: "Fonio entier (sec)", categorie: "Céréales & Féculents",
+    portion_standard_nom: "1 Bol (cuit)", portion_standard_grammes: 150,
+    valeurs_pour_100g: { calories: 345, glucides: 75, lipides: 1.2, proteines: 7, fibres: 3.8, sodium_mg: 5 },
+    flags_ia: { is_local_senegal: true, ig_bas: true, high_sodium: false, ultra_transforme: false },
+    message_coach_ia: "Excellent choix ! Le fonio ne fera pas exploser ton insuline."
+  },
+  {
+    id: "food_002", nom: "Riz brisé local (Non étuvé)", categorie: "Céréales & Féculents",
+    portion_standard_nom: "1 Louche", portion_standard_grammes: 80,
+    valeurs_pour_100g: { calories: 350, glucides: 78, lipides: 0.6, proteines: 7, fibres: 1, sodium_mg: 2 },
+    flags_ia: { is_local_senegal: true, ig_bas: false, high_sodium: false, ultra_transforme: false },
+    message_coach_ia: "Le riz brisé est digéré très vite. Assure-toi d'avoir beaucoup de légumes (fibres) dans ton assiette pour compenser."
+  },
+  {
+    id: "food_003", nom: "Cube de bouillon (Type Maggi/Jumbo)", categorie: "Condiments & Sauces",
+    portion_standard_nom: "1/2 Cube", portion_standard_grammes: 5,
+    valeurs_pour_100g: { calories: 170, glucides: 15, lipides: 5, proteines: 10, fibres: 0, sodium_mg: 52000 },
+    flags_ia: { is_local_senegal: false, ig_bas: null, high_sodium: true, ultra_transforme: true },
+    message_coach_ia: "Alerte ! Ces cubes favorisent la rétention d'eau et gonflent le ventre. Essaie les épices pures ou le Soumbala (Nététou)."
+  },
+  {
+    id: "food_004", nom: "Thiof (Mérou blanc frais)", categorie: "Protéines",
+    portion_standard_nom: "1 Tranche moyenne", portion_standard_grammes: 120,
+    valeurs_pour_100g: { calories: 92, glucides: 0, lipides: 1, proteines: 20.5, fibres: 0, sodium_mg: 60 },
+    flags_ia: { is_local_senegal: true, ig_bas: true, high_sodium: false, ultra_transforme: false },
+    message_coach_ia: "Une protéine parfaite et ultra-maigre. Idéal pour construire du muscle sans stocker de gras."
+  },
+  {
+    id: "food_005", nom: "Soumbala / Nététou", categorie: "Condiments & Sauces",
+    portion_standard_nom: "1 Cuillère à café", portion_standard_grammes: 5,
+    valeurs_pour_100g: { calories: 300, glucides: 16, lipides: 18, proteines: 35, fibres: 5, sodium_mg: 150 },
+    flags_ia: { is_local_senegal: true, ig_bas: true, high_sodium: false, ultra_transforme: false },
+    message_coach_ia: "Le secret de nos grands-mères ! Un exhausteur de goût naturel qui protège ton cœur."
+  },
+  {
+    id: "food_006", nom: "Fleurs de Bissap Rouge (Infusion sans sucre)", categorie: "Boissons",
+    portion_standard_nom: "1 Grand Verre", portion_standard_grammes: 250,
+    valeurs_pour_100g: { calories: 0, glucides: 0, lipides: 0, proteines: 0, fibres: 0, sodium_mg: 2 },
+    flags_ia: { is_local_senegal: true, ig_bas: true, high_sodium: false, ultra_transforme: false },
+    message_coach_ia: "Excellent diurétique naturel. Parfait pour dégonfler, à condition de ne pas y ajouter de sucre blanc !"
+  }
+];
 
 const CircularProgress = ({ value, max, colorClass, label, icon: Icon, unit }: any) => {
   const radius = 36;
@@ -106,8 +152,17 @@ export default function NutritionDashboard() {
   // Bilan
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [reportData, setReportData] = useState({ followedMenu: false, cravedRice: false, drankWater: false });
+  const [consumedMeals, setConsumedMeals] = useState<any[]>([]);
   const [selectedMealModal, setSelectedMealModal] = useState<any>(null);
   
+  // Moteur de recherche et portions
+  const [foodSearchQuery, setFoodSearchQuery] = useState("");
+  const [selectedFoodDB, setSelectedFoodDB] = useState<any>(null);
+  const [foodQuantity, setFoodQuantity] = useState(1);
+
+  // Coach IA "Rokhy"
+  const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
+
   // Objectifs
   const [calorieGoal, setCalorieGoal] = useState(1500);
   const [proteinGoal, setProteinGoal] = useState(80);
@@ -177,6 +232,7 @@ export default function NutritionDashboard() {
               setCarbs(todayLog.carbs_consumed || 0);
               setFats(todayLog.fats_consumed || 0);
               if (todayLog.report_data) setReportData(todayLog.report_data);
+              if (todayLog.report_data?.consumedMeals) setConsumedMeals(todayLog.report_data.consumedMeals);
             }
           }
 
@@ -267,22 +323,53 @@ export default function NutritionDashboard() {
   };
   
   const handleMealClick = (mealType: string, plannedMeal: any) => {
+      setFoodSearchQuery("");
+      setSelectedFoodDB(null);
+      setFoodQuantity(1);
       setSelectedMealModal({ type: mealType, meal: plannedMeal, mode: trackingMode });
   };
 
-  const confirmMealLog = async (cals: number, prots: number, mealCarbs: number, mealFats: number) => {
-      const newCals = calories + cals;
-      const newProts = proteins + prots;
-      const newCarbs = carbs + mealCarbs;
-      const newFats = fats + mealFats;
+  const confirmMealLog = async (mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
+      const calsRounded = Math.round(cals);
+      const protsRounded = Math.round(prots);
+      const carbsRounded = Math.round(mealCarbs);
+      const fatsRounded = Math.round(mealFats);
+
+      const newCals = calories + calsRounded;
+      const newProts = proteins + protsRounded;
+      const newCarbs = carbs + carbsRounded;
+      const newFats = fats + fatsRounded;
       
+      const newConsumedItem = {
+         id: Date.now(),
+         type: selectedMealModal.type,
+         name: mealName,
+         cals: calsRounded,
+         prots: protsRounded,
+         carbs: carbsRounded,
+         fats: fatsRounded,
+         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      const updatedConsumedMeals = [...consumedMeals, newConsumedItem];
+
       setCalories(newCals);
       setProteins(newProts);
       setCarbs(newCarbs);
       setFats(newFats);
+      setConsumedMeals(updatedConsumedMeals);
       
       setSelectedMealModal(null);
       
+      // --- L'Intervention de l'Avatar IA (Rokhy) ---
+      if (foodObj?.flags_ia?.high_sodium) {
+         setRokhyMessage({ title: "Attention au sel !", text: foodObj.message_coach_ia, type: 'warning' });
+      } else if (newFats > fatsGoal) {
+         setRokhyMessage({ title: "Quota de lipides atteint", text: "Attention à l'huile pour le reste de la journée ! Privilégie une cuisson vapeur ou au four ce soir.", type: 'warning' });
+      } else if (foodObj?.message_coach_ia) {
+         setRokhyMessage({ title: "Bon choix", text: foodObj.message_coach_ia, type: 'success' });
+      }
+
       if (clientProfile) {
           const todayStr = new Date().toISOString().split('T')[0];
           await supabase.from('nutrition_daily_logs').upsert({
@@ -291,7 +378,36 @@ export default function NutritionDashboard() {
             calories_consumed: newCals,
             proteins_consumed: newProts,
             carbs_consumed: newCarbs,
-            fats_consumed: newFats
+            fats_consumed: newFats,
+            report_data: { ...reportData, consumedMeals: updatedConsumedMeals }
+          }, { onConflict: 'client_id, log_date' });
+      }
+  };
+
+  const deleteMealLog = async (itemToDelete: any) => {
+      const updatedConsumedMeals = consumedMeals.filter(m => m.id !== itemToDelete.id);
+      
+      const newCals = Math.max(0, calories - itemToDelete.cals);
+      const newProts = Math.max(0, proteins - itemToDelete.prots);
+      const newCarbs = Math.max(0, carbs - itemToDelete.carbs);
+      const newFats = Math.max(0, fats - itemToDelete.fats);
+
+      setCalories(newCals);
+      setProteins(newProts);
+      setCarbs(newCarbs);
+      setFats(newFats);
+      setConsumedMeals(updatedConsumedMeals);
+
+      if (clientProfile) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          await supabase.from('nutrition_daily_logs').upsert({
+            client_id: clientProfile.id,
+            log_date: todayStr,
+            calories_consumed: newCals,
+            proteins_consumed: newProts,
+            carbs_consumed: newCarbs,
+            fats_consumed: newFats,
+            report_data: { ...reportData, consumedMeals: updatedConsumedMeals }
           }, { onConflict: 'client_id, log_date' });
       }
   };
@@ -313,7 +429,7 @@ export default function NutritionDashboard() {
     const { error } = await supabase.from('nutrition_daily_logs').upsert({
       client_id: clientProfile.id,
       log_date: todayStr,
-      report_data: reportData,
+      report_data: { ...reportData, consumedMeals },
       water_glasses: waterGlasses,
       calories_consumed: currentCals,
       proteins_consumed: currentProts
@@ -322,7 +438,7 @@ export default function NutritionDashboard() {
     if (!error) {
        alert("Bilan de la journée enregistré avec succès ! L'IA adaptera votre menu de demain.");
        setShowDailyReport(false);
-       const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: reportData, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
+       const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: { ...reportData, consumedMeals }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), updatedLog]);
     } else {
        alert("Une erreur est survenue lors de l'enregistrement.");
@@ -499,9 +615,10 @@ export default function NutritionDashboard() {
             <div className="grid md:grid-cols-2 gap-4">
                 {['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner'].map((mealType) => {
                     const plannedMeal = DAILY_MENU.autopilot.find(m => m.type === mealType);
+                    const itemsForThisMeal = consumedMeals.filter(m => m.type === mealType);
                     
                     return (
-                       <div key={mealType} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors cursor-pointer" onClick={() => handleMealClick(mealType, plannedMeal)}>
+                       <div key={mealType} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors flex flex-col">
                           <div className="flex justify-between items-center mb-4">
                              <span className="bg-zinc-100 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{mealType}</span>
                              {trackingMode === 'autopilot' && plannedMeal && (
@@ -509,18 +626,36 @@ export default function NutritionDashboard() {
                              )}
                           </div>
                           
-                          {trackingMode === 'autopilot' && plannedMeal ? (
-                             <div>
-                                <p className="font-black text-lg text-black mb-2">{plannedMeal.meal}</p>
-                                <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
-                                   <span className="flex items-center gap-1 text-orange-500"><Flame size={14}/> {plannedMeal.cals} kcal</span>
-                                   <span className="flex items-center gap-1 text-[#39FF14]"><Target size={14}/> {plannedMeal.proteins}g prot</span>
+                          <div className="flex-1">
+                             {itemsForThisMeal.length > 0 ? (
+                                <div className="space-y-3 mb-4">
+                                   {itemsForThisMeal.map((item, i) => (
+                                      <div key={item.id} className="flex items-center justify-between bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                                         <div>
+                                            <p className="font-bold text-sm text-black">{item.name}</p>
+                                            <p className="text-[10px] font-black uppercase text-zinc-500">{item.cals} kcal • {item.prots}g prot</p>
+                                         </div>
+                                         <button onClick={() => deleteMealLog(item)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                            <Trash2 size={16}/>
+                                         </button>
+                                      </div>
+                                   ))}
                                 </div>
-                             </div>
-                          ) : (
-                             <div className="flex flex-col items-center justify-center py-4 border-2 border-dashed border-zinc-200 rounded-xl hover:border-black hover:bg-zinc-50 transition-colors">
-                                <span className="text-2xl mb-2 text-zinc-300">+</span>
-                                <span className="text-xs font-black uppercase tracking-widest text-zinc-500">Ajouter un aliment</span>
+                             ) : trackingMode === 'autopilot' && plannedMeal ? (
+                                <div onClick={() => handleMealClick(mealType, plannedMeal)} className="cursor-pointer">
+                                   <p className="font-black text-lg text-black mb-2">{plannedMeal.meal}</p>
+                                   <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
+                                      <span className="flex items-center gap-1 text-orange-500"><Flame size={14}/> {plannedMeal.cals} kcal</span>
+                                      <span className="flex items-center gap-1 text-[#39FF14]"><Target size={14}/> {plannedMeal.proteins}g prot</span>
+                                   </div>
+                                </div>
+                             ) : null}
+                          </div>
+
+                          {(trackingMode === 'compass' || (trackingMode === 'autopilot' && itemsForThisMeal.length === 0)) && (
+                             <div onClick={() => handleMealClick(mealType, plannedMeal)} className="mt-4 flex flex-col items-center justify-center py-4 border-2 border-dashed border-zinc-200 rounded-xl hover:border-black hover:bg-zinc-50 transition-colors cursor-pointer">
+                                <span className="text-2xl mb-1 text-zinc-300 leading-none">+</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{itemsForThisMeal.length > 0 ? "Ajouter autre chose" : "Ajouter un aliment"}</span>
                              </div>
                           )}
                        </div>
@@ -594,29 +729,85 @@ export default function NutritionDashboard() {
                                 <div className="bg-green-50 p-2 rounded-xl border border-green-100"><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{selectedMealModal.meal.proteins}g</p></div>
                                 <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200"><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{selectedMealModal.meal.fats}g</p></div>
                              </div>
-                             <button onClick={() => confirmMealLog(selectedMealModal.meal.cals, selectedMealModal.meal.proteins, selectedMealModal.meal.carbs, selectedMealModal.meal.fats)} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
+                             <button onClick={() => confirmMealLog(selectedMealModal.meal.meal, selectedMealModal.meal.cals, selectedMealModal.meal.proteins, selectedMealModal.meal.carbs, selectedMealModal.meal.fats)} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
                                 <CheckCircle size={20} /> J'ai mangé ça !
                              </button>
                          </>
                      ) : (
                          <>
-                             <p className="text-sm font-bold text-zinc-500 mb-6">Mode Flexible : Entrez les macros de votre repas.</p>
-                             <div className="space-y-4 mb-8">
-                                <div><label className="text-[10px] font-black uppercase text-zinc-500">Nom du plat</label><input type="text" id="flex_name" className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm" placeholder="Ex: Salade composée"/></div>
-                                <div className="grid grid-cols-2 gap-4">
-                                   <div><label className="text-[10px] font-black uppercase text-orange-500">Calories (kcal)</label><input type="number" id="flex_cals" defaultValue={300} className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm"/></div>
-                                   <div><label className="text-[10px] font-black uppercase text-green-500">Protéines (g)</label><input type="number" id="flex_prots" defaultValue={15} className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm"/></div>
-                                   <div><label className="text-[10px] font-black uppercase text-yellow-600">Glucides (g)</label><input type="number" id="flex_carbs" defaultValue={30} className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm"/></div>
-                                   <div><label className="text-[10px] font-black uppercase text-zinc-400">Lipides (g)</label><input type="number" id="flex_fats" defaultValue={10} className="w-full p-3 bg-zinc-50 border rounded-xl font-bold text-sm"/></div>
-                                </div>
+                             <div className="relative mb-6">
+                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18}/>
+                                 <input 
+                                    type="text" 
+                                    placeholder="Rechercher (ex: Fonio, Thiof)..." 
+                                    value={foodSearchQuery}
+                                    onChange={e => { setFoodSearchQuery(e.target.value); setSelectedFoodDB(null); }}
+                                    className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black"
+                                 />
                              </div>
-                             <button onClick={() => {
-                                 const cals = parseInt((document.getElementById('flex_cals') as HTMLInputElement).value) || 0;
-                                 const prots = parseInt((document.getElementById('flex_prots') as HTMLInputElement).value) || 0;
-                                 const carbs = parseInt((document.getElementById('flex_carbs') as HTMLInputElement).value) || 0;
-                                 const fats = parseInt((document.getElementById('flex_fats') as HTMLInputElement).value) || 0;
-                                 confirmMealLog(cals, prots, carbs, fats);
-                             }} className="w-full bg-black text-[#00E5FF] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
+                             
+                             {!selectedFoodDB && foodSearchQuery && (
+                                <div className="max-h-60 overflow-y-auto space-y-2 mb-6 border border-zinc-100 rounded-xl p-2">
+                                   {FOOD_DATABASE.filter(f => f.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).map(food => (
+                                      <div key={food.id} onClick={() => setSelectedFoodDB(food)} className="p-3 bg-white hover:bg-zinc-50 rounded-lg cursor-pointer flex justify-between items-center transition-colors">
+                                         <div>
+                                            <p className="font-bold text-sm">{food.nom}</p>
+                                            <p className="text-[10px] text-zinc-500 uppercase font-black">{food.categorie}</p>
+                                         </div>
+                                         <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{food.valeurs_pour_100g.calories} kcal/100g</span>
+                                      </div>
+                                   ))}
+                                   {FOOD_DATABASE.filter(f => f.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).length === 0 && (
+                                      <p className="text-xs text-zinc-400 text-center p-4 font-bold">Aucun aliment trouvé. Essayez autre chose.</p>
+                                   )}
+                                </div>
+                             )}
+
+                             {selectedFoodDB && (
+                                <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 mb-6 animate-in fade-in">
+                                   <div className="flex justify-between items-start mb-4">
+                                      <h4 className="font-black text-lg">{selectedFoodDB.nom}</h4>
+                                      <button onClick={() => setSelectedFoodDB(null)} className="text-xs font-bold text-zinc-400 hover:text-black">Changer</button>
+                                   </div>
+                                   
+                                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Quantité consommée</label>
+                                   <div className="flex items-center gap-4 mb-6">
+                                      <select value={foodQuantity} onChange={e => setFoodQuantity(parseFloat(e.target.value))} className="w-24 p-3 bg-white border border-zinc-200 rounded-xl font-bold outline-none">
+                                         <option value={0.5}>0.5</option>
+                                         <option value={1}>1</option>
+                                         <option value={1.5}>1.5</option>
+                                         <option value={2}>2</option>
+                                         <option value={3}>3</option>
+                                      </select>
+                                      <span className="text-sm font-bold text-zinc-600 flex-1">x {selectedFoodDB.portion_standard_nom} <br/><span className="text-xs text-zinc-400">({selectedFoodDB.portion_standard_grammes * foodQuantity}g)</span></span>
+                                   </div>
+
+                                   <div className="grid grid-cols-4 gap-2 text-center">
+                                      <div className="bg-orange-50 p-2 rounded-xl border border-orange-100"><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{Math.round((selectedFoodDB.valeurs_pour_100g.calories * selectedFoodDB.portion_standard_grammes * foodQuantity) / 100)}</p></div>
+                                      <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100"><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{Math.round((selectedFoodDB.valeurs_pour_100g.glucides * selectedFoodDB.portion_standard_grammes * foodQuantity) / 100)}g</p></div>
+                                      <div className="bg-green-50 p-2 rounded-xl border border-green-100"><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{Math.round((selectedFoodDB.valeurs_pour_100g.proteines * selectedFoodDB.portion_standard_grammes * foodQuantity) / 100)}g</p></div>
+                                      <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200"><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{Math.round((selectedFoodDB.valeurs_pour_100g.lipides * selectedFoodDB.portion_standard_grammes * foodQuantity) / 100)}g</p></div>
+                                   </div>
+                                </div>
+                             )}
+
+                             <button 
+                                disabled={!selectedFoodDB}
+                                onClick={() => {
+                                   if(selectedFoodDB) {
+                                      const factor = (selectedFoodDB.portion_standard_grammes * foodQuantity) / 100;
+                                      confirmMealLog(
+                                         selectedFoodDB.nom,
+                                         selectedFoodDB.valeurs_pour_100g.calories * factor,
+                                         selectedFoodDB.valeurs_pour_100g.proteines * factor,
+                                         selectedFoodDB.valeurs_pour_100g.glucides * factor,
+                                         selectedFoodDB.valeurs_pour_100g.lipides * factor,
+                                         selectedFoodDB
+                                      );
+                                   }
+                                }} 
+                                className={`w-full py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl flex justify-center items-center gap-2 transition-all ${selectedFoodDB ? 'bg-black text-[#00E5FF] hover:scale-[1.02]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}
+                             >
                                 <CheckCircle size={20} /> Ajouter au tracker
                              </button>
                          </>
@@ -908,6 +1099,23 @@ export default function NutritionDashboard() {
                   <button onClick={() => { setShowReminder(false); setActiveTab('today'); setShowDailyReport(true); }} className="bg-[#39FF14] text-black px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-transform hover:scale-105">Remplir maintenant</button>
                   <button onClick={() => setShowReminder(false)} className="text-zinc-500 hover:text-white px-2 py-2 rounded-lg font-bold text-[10px] uppercase">Plus tard</button>
                </div>
+            </div>
+         </div>
+      )}
+
+      {/* INTERVENTION AVATAR ROKHY (IA) */}
+      {rokhyMessage && (
+         <div className="fixed bottom-6 left-6 z-[110] bg-white p-5 rounded-3xl shadow-2xl border border-zinc-100 max-w-sm flex gap-4 animate-in slide-in-from-bottom-8">
+            <div className="relative shrink-0">
+               <img src="https://ui-avatars.com/api/?name=Rokhy&background=0D8ABC&color=fff&rounded=true" alt="Rokhy Coach IA" className="w-12 h-12 rounded-full border-2 border-white shadow-md" />
+               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#39FF14] border-2 border-white rounded-full"></div>
+            </div>
+            <div>
+               <div className="flex justify-between items-start mb-1">
+                  <h4 className="font-black text-sm text-black flex items-center gap-2">Rokhy (Coach IA)</h4>
+                  <button onClick={() => setRokhyMessage(null)} className="text-zinc-400 hover:text-black"><X size={14}/></button>
+               </div>
+               <p className={`text-xs font-bold ${rokhyMessage.type === 'warning' ? 'text-orange-600' : 'text-zinc-600'} leading-relaxed`}>{rokhyMessage.text}</p>
             </div>
          </div>
       )}
