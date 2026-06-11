@@ -385,27 +385,36 @@ export default function NutritionDashboard() {
              if (localGoals) {
                 try {
                    const parsed = JSON.parse(localGoals);
-                   if (parsed.calories) setCalorieGoal(Math.round(parsed.calories));
-                   if (parsed.protein) setProteinGoal(Math.round(parsed.protein));
-                   if (parsed.carbs) setCarbsGoal(Math.round(parsed.carbs));
-                   if (parsed.fats) setFatsGoal(Math.round(parsed.fats));
+                   if (parsed && parsed.calories) setCalorieGoal(Math.round(parsed.calories));
+                   if (parsed && parsed.protein) setProteinGoal(Math.round(parsed.protein));
+                   if (parsed && parsed.carbs) setCarbsGoal(Math.round(parsed.carbs));
+                   if (parsed && parsed.fats) setFatsGoal(Math.round(parsed.fats));
                 } catch (e) {}
              }
           }
 
           const savedFavs = localStorage.getItem(`onyx_nutrition_favs_${profileData.id}`);
           if (savedFavs) {
-             try { setFavoriteMeals(JSON.parse(savedFavs)); } catch(e) {}
+             try { 
+                const parsed = JSON.parse(savedFavs);
+                if (Array.isArray(parsed)) setFavoriteMeals(parsed);
+             } catch(e) {}
           }
           
           const savedPdfs = localStorage.getItem(`onyx_nutrition_pdfs_${profileData.id}`);
           if (savedPdfs) {
-             try { setPdfHistory(JSON.parse(savedPdfs)); } catch(e) {}
+             try { 
+                const parsed = JSON.parse(savedPdfs);
+                if (Array.isArray(parsed)) setPdfHistory(parsed);
+             } catch(e) {}
           }
 
           const savedShop = localStorage.getItem(`onyx_nutrition_saved_products_${profileData.id}`);
           if (savedShop) {
-             try { setSavedShopProducts(JSON.parse(savedShop)); } catch(e) {}
+             try { 
+                const parsed = JSON.parse(savedShop);
+                if (Array.isArray(parsed)) setSavedShopProducts(parsed);
+             } catch(e) {}
           }
 
           // Fetch DB Products
@@ -604,7 +613,7 @@ export default function NutritionDashboard() {
   const getGroceryList = () => {
       const list: any = { 'Supermarché': {}, 'Marché local': {}, 'Boucherie / Pêche': {} };
       weeklyGeneratedMenu.forEach(dayInfo => {
-          Object.values(dayInfo.meals).forEach((recipe: any) => {
+          Object.values(dayInfo.meals || {}).forEach((recipe: any) => {
               if (!recipe || !recipe.ingredients) return;
               recipe.ingredients.forEach((ing: any) => {
                   const rayon = ing.rayon || 'Supermarché';
@@ -1019,9 +1028,9 @@ export default function NutritionDashboard() {
       let displayMeals = menu.meals;
       if (menu.week === 1 && weeklyGeneratedMenu.length > 0) {
           displayMeals = [
-              `Lundi : ${weeklyGeneratedMenu.find(d => d.day === 'Lundi')?.meals['Déjeuner']?.nom || 'Repas'}`,
-              `Mardi : ${weeklyGeneratedMenu.find(d => d.day === 'Mardi')?.meals['Déjeuner']?.nom || 'Repas'}`,
-              `Mercredi : ${weeklyGeneratedMenu.find(d => d.day === 'Mercredi')?.meals['Déjeuner']?.nom || 'Repas'}`
+              `Lundi : ${weeklyGeneratedMenu.find(d => d.day === 'Lundi')?.meals?.['Déjeuner']?.nom || 'Repas'}`,
+              `Mardi : ${weeklyGeneratedMenu.find(d => d.day === 'Mardi')?.meals?.['Déjeuner']?.nom || 'Repas'}`,
+              `Mercredi : ${weeklyGeneratedMenu.find(d => d.day === 'Mercredi')?.meals?.['Déjeuner']?.nom || 'Repas'}`
           ];
       }
       return {
@@ -1311,9 +1320,9 @@ export default function NutritionDashboard() {
                          cx="50" cy="50" r="40" 
                          className="stroke-[#39FF14] text-[#39FF14]" strokeWidth="6" fill="transparent" 
                          strokeDasharray={2 * Math.PI * 40} 
-                         strokeDashoffset={(2 * Math.PI * 40) - (Math.min(remainingCalories / calorieGoal, 1) * (2 * Math.PI * 40))}
+                         strokeDashoffset={(2 * Math.PI * 40) - (Math.min(remainingCalories / (calorieGoal || 1), 1) * (2 * Math.PI * 40))}
                          initial={{ strokeDashoffset: 2 * Math.PI * 40 }}
-                         animate={{ strokeDashoffset: (2 * Math.PI * 40) - (Math.min(remainingCalories / calorieGoal, 1) * (2 * Math.PI * 40)) }}
+                         animate={{ strokeDashoffset: (2 * Math.PI * 40) - (Math.min(remainingCalories / (calorieGoal || 1), 1) * (2 * Math.PI * 40)) }}
                          transition={{ duration: 1.5, ease: "easeOut" }}
                          strokeLinecap="round"
                       />
@@ -1332,7 +1341,7 @@ export default function NutritionDashboard() {
                          <span className="text-zinc-400">{carbs} / {carbsGoal}g</span>
                       </div>
                       <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-yellow-600 h-full" style={{ width: `${Math.min((carbs/carbsGoal)*100, 100)}%` }}></div>
+                         <div className="bg-yellow-600 h-full" style={{ width: `${Math.min((carbs/(carbsGoal || 1))*100, 100)}%` }}></div>
                       </div>
                    </div>
                    <div className="text-left">
@@ -1341,7 +1350,7 @@ export default function NutritionDashboard() {
                          <span className="text-zinc-400">{proteins} / {proteinGoal}g</span>
                       </div>
                       <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-[#39FF14] h-full" style={{ width: `${Math.min((proteins/proteinGoal)*100, 100)}%` }}></div>
+                         <div className="bg-[#39FF14] h-full" style={{ width: `${Math.min((proteins/(proteinGoal || 1))*100, 100)}%` }}></div>
                       </div>
                    </div>
                    <div className="text-left">
@@ -1350,7 +1359,7 @@ export default function NutritionDashboard() {
                          <span className="text-zinc-400">{fats} / {fatsGoal}g</span>
                       </div>
                       <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-zinc-300 h-full" style={{ width: `${Math.min((fats/fatsGoal)*100, 100)}%` }}></div>
+                         <div className="bg-zinc-300 h-full" style={{ width: `${Math.min((fats/(fatsGoal || 1))*100, 100)}%` }}></div>
                       </div>
                    </div>
                </div>
@@ -1787,19 +1796,22 @@ export default function NutritionDashboard() {
                         <div key={dIdx} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors group">
                            <h3 className="font-black uppercase tracking-widest text-sm mb-4 border-b border-zinc-100 pb-2 text-zinc-600">{dayPlan.day}</h3>
                            <div className="space-y-3">
-                              {Object.entries(dayPlan.meals).map(([mealType, recipe]: any) => (
-                                 <div key={mealType} className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 relative pr-10 hover:border-[#39FF14] transition-colors">
-                                    <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
-                                    <p className="text-xs font-bold text-black leading-tight mb-1">{recipe.nom}</p>
-                                    <div className="flex gap-2 items-center">
-                                       <span className="text-[10px] font-bold text-orange-500">{recipe.calories} kcal</span>
-                                       {recipe.is_bol_commun && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Bol Commun</span>}
+                              {Object.entries(dayPlan.meals || {}).map(([mealType, recipe]: any) => {
+                                 if (!recipe) return null;
+                                 return (
+                                    <div key={mealType} className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 relative pr-10 hover:border-[#39FF14] transition-colors">
+                                       <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
+                                       <p className="text-xs font-bold text-black leading-tight mb-1">{recipe.nom}</p>
+                                       <div className="flex gap-2 items-center">
+                                          <span className="text-[10px] font-bold text-orange-500">{recipe.calories} kcal</span>
+                                          {recipe.is_bol_commun && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Bol Commun</span>}
+                                       </div>
+                                       <button onClick={() => handleSwapMeal(dIdx, mealType, recipe.id)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-black transition-colors p-1" title="Changer ce repas">
+                                          <RefreshCcw size={14}/>
+                                       </button>
                                     </div>
-                                    <button onClick={() => handleSwapMeal(dIdx, mealType, recipe.id)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-black transition-colors p-1" title="Changer ce repas">
-                                       <RefreshCcw size={14}/>
-                                    </button>
-                                 </div>
-                              ))}
+                                 );
+                              })}
                            </div>
                         </div>
                      ))}
@@ -2118,7 +2130,7 @@ export default function NutritionDashboard() {
               </div>
 
               <div id="shop-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                 {shopDataDB.flatMap(cat => cat.produits)
+                 {shopDataDB.flatMap(cat => cat.produits || [])
                     .filter(p => selectedShopGoal === 'all' || (selectedShopGoal === 'saved' ? savedShopProducts.some((sp: any) => sp.id === p.id) : p.goal === selectedShopGoal))
                     .map(product => (
                        <div key={product.id} className="bg-white border border-zinc-100 rounded-[2.5rem] p-6 flex flex-col hover:border-[#39FF14] transition-all hover:shadow-2xl group">
