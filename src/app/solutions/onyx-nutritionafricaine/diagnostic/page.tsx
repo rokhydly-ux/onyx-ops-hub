@@ -21,8 +21,7 @@ export default function NutritionDiagnostic() {
     age: "",
     height: "",
     currentWeight: "",
-    targetWeight: "",
-    activityLevel: "",
+    dailySteps: "",
     dietaryHabits: "",
     allergies: "",
     familyDynamic: "",
@@ -38,7 +37,6 @@ export default function NutritionDiagnostic() {
   // --- MOTEUR DE CALCUL NUTRITIONNEL ---
   const heightCm = parseFloat(formData.height) || 0;
   const currentWeight = parseFloat(formData.currentWeight) || 0;
-  const targetWeight = parseFloat(formData.targetWeight) || 0;
   const age = parseFloat(formData.age) || 0;
   const isMale = formData.gender === "Homme";
   
@@ -47,21 +45,25 @@ export default function NutritionDiagnostic() {
     ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) 
     : 0;
   
-  const weightToLose = currentWeight - targetWeight;
-  const estimatedMonths = weightToLose > 0 ? Math.max(1, Math.ceil(weightToLose / 3)) : 0; 
+  const weightToLose = currentWeight - idealWeight;
+  const estimatedWeeks = weightToLose > 0 ? Math.ceil(weightToLose / 0.5) : 0; 
+  const estimatedMonths = estimatedWeeks > 0 ? (estimatedWeeks / 4).toFixed(1) : 0; 
 
   // 2. Calcul du Métabolisme de Base (BMR) via Mifflin-St Jeor
   const bmr = (heightCm > 0 && currentWeight > 0 && age > 0)
-    ? (isMale ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + 5 
-              : (10 * currentWeight) + (6.25 * heightCm) - (5 * age) - 161)
+    ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161)
     : 0;
 
-  // 3. Calcul de la Dépense Énergétique Journalière (TDEE)
-  const activityMultiplier = formData.activityLevel === "Très actif" ? 1.55 : (formData.activityLevel === "Actif" ? 1.375 : 1.2);
-  const tdee = bmr * activityMultiplier;
+  // 3. Calcul de la Dépense Énergétique Journalière (TDEE) selon les pas
+  let nap = 1.2;
+  if (formData.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
+  else if (formData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
+  else if (formData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+  
+  const tdee = bmr * nap;
 
-  // 4. Application du déficit/surplus calorique
-  let rawCalories = weightToLose > 0 ? tdee - 400 : (weightToLose < 0 ? tdee + 300 : tdee);
+  // 4. Application du déficit calorique (-500 kcal)
+  let rawCalories = weightToLose > 0 ? tdee - 500 : (weightToLose < 0 ? tdee + 300 : tdee);
   // Sécurité : Ne jamais descendre sous 1200 kcal (femme) ou 1500 kcal (homme)
   const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
 
@@ -110,8 +112,9 @@ export default function NutritionDiagnostic() {
          carbs_goal: Math.round(carbs),
          protein_goal: Math.round(protein),
          fats_goal: Math.round(fats),
-         diagnostic_data: formData
-      }, { onConflict: 'phone' });
+         diagnostic_data: formData,
+         weekly_menu: [] // On réinitialise le menu existant pour forcer la regénération
+      }, { onConflict: 'client_id' });
 
       await supabase.from('leads').insert([{
         full_name: formData.name,
@@ -120,7 +123,7 @@ export default function NutritionDiagnostic() {
         intent: "A complété son diagnostic (Attente Plan)",
         status: "Nouveau",
         saas: "Nutrition à l'Africaine",
-        message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal (P:${Math.round(protein)}g, G:${Math.round(carbs)}g) | Perte ciblée: ${weightToLose}kg`
+        message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal (P:${Math.round(protein)}g, G:${Math.round(carbs)}g) | Poids idéal cible: ${idealWeight.toFixed(1)}kg`
       }]);
       
       setStep(5); // Success step
@@ -165,12 +168,21 @@ export default function NutritionDiagnostic() {
                   <input type="text" name="name" required placeholder="Votre Prénom et Nom *" value={formData.name} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   <input type="tel" name="phone" required placeholder="Numéro WhatsApp *" value={formData.phone} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   <input type="password" name="pin" maxLength={4} required placeholder="Créez un code PIN (4 chiffres) *" value={formData.pin} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
-                  <select name="gender" required value={formData.gender} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
-                    <option value="" disabled>Votre sexe *</option>
-                    <option value="Femme">Femme</option>
-                    <option value="Homme">Homme</option>
-                  </select>
-                  <input type="number" name="age" required placeholder="Votre Âge *" value={formData.age} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  
+                  <div className="space-y-2 mt-4">
+                    <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Votre sexe *</label>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div onClick={() => setFormData({...formData, gender: 'Femme'})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${formData.gender === 'Femme' ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                          <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_1_1_en_gardant_202606111043_unmonc.jpg" className="w-full aspect-square object-cover" alt="Femme" />
+                          <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-sm backdrop-blur-sm">Femme</div>
+                       </div>
+                       <div onClick={() => setFormData({...formData, gender: 'Homme'})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${formData.gender === 'Homme' ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                          <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_format_1_1_en_202606111044_rjknkg.jpg" className="w-full aspect-square object-cover" alt="Homme" />
+                          <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-sm backdrop-blur-sm">Homme</div>
+                       </div>
+                    </div>
+                  </div>
+                  <input type="number" name="age" required placeholder="Votre Âge *" value={formData.age} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black mt-4" />
                 </motion.div>
               )}
 
@@ -181,14 +193,17 @@ export default function NutritionDiagnostic() {
                     <input type="number" name="height" required placeholder="Taille (cm) *" value={formData.height} onChange={handleChange} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                     <input type="number" name="currentWeight" required placeholder="Poids Actuel (kg) *" value={formData.currentWeight} onChange={handleChange} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   </div>
-                  <input type="number" name="targetWeight" required placeholder="Poids Cible / Objectif (kg) *" value={formData.targetWeight} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
-                  <select name="activityLevel" required value={formData.activityLevel} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
-                    <option value="" disabled>Niveau d'activité physique *</option>
-                    <option value="Sédentaire">Sédentaire (Bureau, peu de sport)</option>
-                    <option value="Actif">Légèrement actif (Marche, sport 1-2 fois/semaine)</option>
-                    <option value="Très actif">Très actif (Sport 3+ fois/semaine)</option>
-                  </select>
-                  <input type="number" name="sleepHours" required placeholder="Heures de sommeil par nuit (ex: 7) *" value={formData.sleepHours} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  <div className="space-y-2 mt-6">
+                    <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Combien de pas faites-vous par jour ? *</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                       {["< 5 000 pas/jour (Sédentaire)", "5 000 à 7 499 pas/jour (Légèrement actif)", "7 500 à 9 999 pas/jour (Actif)", "10 000+ pas/jour (Très actif)"].map(steps => (
+                          <button type="button" key={steps} onClick={() => setFormData({...formData, dailySteps: steps})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${formData.dailySteps === steps ? 'bg-black text-[#39FF14] border-black shadow-lg' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                             {steps}
+                          </button>
+                       ))}
+                    </div>
+                  </div>
+                  <input type="number" name="sleepHours" required placeholder="Heures de sommeil par nuit (ex: 7) *" value={formData.sleepHours} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black mt-4" />
                 </motion.div>
               )}
 

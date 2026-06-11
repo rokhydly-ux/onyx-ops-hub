@@ -155,6 +155,8 @@ export default function NutritionDashboard() {
   const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites' | 'coaching'>('today');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
+  const [showRedoDiagModal, setShowRedoDiagModal] = useState(false);
+  const [redoReason, setRedoReason] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -294,7 +296,7 @@ export default function NutritionDashboard() {
           const { data: nutritionData } = await supabase
             .from('nutrition_profiles')
             .select('*')
-            .eq('phone', userPhone)
+            .eq('client_id', profileData.id)
             .single();
 
           if (nutritionData) {
@@ -303,6 +305,7 @@ export default function NutritionDashboard() {
              setCarbsGoal(nutritionData.carbs_goal || 150);
              setFatsGoal(nutritionData.fats_goal || 50);
              setJongomaXP(nutritionData.jongoma_xp || 0);
+             if (nutritionData.weekly_menu && nutritionData.weekly_menu.length > 0) setWeeklyGeneratedMenu(nutritionData.weekly_menu);
           }
           
           // Récupérer le poids
@@ -336,7 +339,7 @@ export default function NutritionDashboard() {
     verifyAuth();
     
     // Générer le menu si vide
-    if (weeklyGeneratedMenu.length === 0) generateWeeklyMenu();
+    if (weeklyGeneratedMenu.length === 0 && clientProfile) generateWeeklyMenu();
 
     // Afficher un message de bienvenue après le diagnostic
     if (searchParams.get('from') === 'diagnostic') {
@@ -434,7 +437,7 @@ export default function NutritionDashboard() {
   }, [waterGlasses]);
 
   // --- LOGIQUE SMART PLANNER ---
-  const generateWeeklyMenu = () => {
+  const generateWeeklyMenu = async () => {
       let newMenu: any[] = [];
       let bolCommunCount = 0;
       const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
@@ -467,6 +470,9 @@ export default function NutritionDashboard() {
           });
       });
       setWeeklyGeneratedMenu(newMenu);
+      if (clientProfile) {
+         await supabase.from('nutrition_profiles').update({ weekly_menu: newMenu }).eq('client_id', clientProfile.id);
+      }
   };
 
   const handleSwapMeal = (dayIndex: number, mealType: string, currentRecipeId: string) => {
@@ -939,7 +945,7 @@ export default function NutritionDashboard() {
                  </button>
                </div>
                
-               <button onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic')} className="bg-zinc-100 text-black border border-zinc-200 px-6 py-3 rounded-xl text-[10px] font-black uppercase hover:bg-zinc-200 transition-colors shadow-sm flex items-center gap-2">
+               <button onClick={() => setShowRedoDiagModal(true)} className="bg-zinc-100 text-black border border-zinc-200 px-6 py-3 rounded-xl text-[10px] font-black uppercase hover:bg-zinc-200 transition-colors shadow-sm flex items-center gap-2">
                  <RefreshCcw size={14}/> Refaire mon Diagnostic
                </button>
             </div>
@@ -1867,6 +1873,55 @@ export default function NutritionDashboard() {
         </div>
       )}
 
+      {/* MODALE REFAIRE LE DIAGNOSTIC (ROKHY) */}
+      {showRedoDiagModal && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowRedoDiagModal(false)} className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white p-8 rounded-[3rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95">
+            <button onClick={() => setShowRedoDiagModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+            
+            <div className="flex items-center gap-4 mb-6 border-b border-zinc-100 pb-6">
+              <div className="relative">
+                <img src="https://ui-avatars.com/api/?name=Rokhy&background=0D8ABC&color=fff" alt="Rokhy" className="w-16 h-16 rounded-full border-2 border-[#39FF14]" />
+                <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#39FF14] border-2 border-white rounded-full animate-pulse"></div>
+              </div>
+              <div>
+                <h3 className="font-black uppercase text-xl text-black leading-none">Rokhy</h3>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Coach Nutrition</p>
+              </div>
+            </div>
+
+            <p className="text-sm font-bold text-zinc-700 mb-6 leading-relaxed">
+              Salut ! Je vois que tu souhaites refaire ton bilan. Avant de continuer, dis-moi pourquoi ?
+            </p>
+
+            <div className="space-y-3 mb-6">
+              {["Je stagne dans ma perte de poids", "J'ai atteint mon objectif !", "Mes mensurations ont changé", "Je veux tester un autre mode"].map(reason => (
+                <button key={reason} onClick={() => setRedoReason(reason)} className={`w-full text-left p-4 rounded-xl border-2 font-bold text-xs transition-all ${redoReason === reason ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black'}`}>
+                   {reason}
+                </button>
+              ))}
+            </div>
+
+            {redoReason && (
+               <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl mb-6 animate-in fade-in slide-in-from-top-2">
+                  <p className="text-[10px] font-black uppercase text-orange-600 tracking-widest flex items-center gap-2 mb-1"><AlertTriangle size={14}/> Attention</p>
+                  <p className="text-xs font-medium text-orange-800 leading-relaxed">
+                     Refaire le diagnostic va <strong>réinitialiser ton plan actuel</strong> et recalculer tes objectifs caloriques. Es-tu sûre de vouloir continuer ?
+                  </p>
+               </div>
+            )}
+
+            <div className="flex gap-3">
+               <button onClick={() => setShowRedoDiagModal(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm">
+                  Retour au Hub
+               </button>
+               <button disabled={!redoReason} onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic')} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                  Continuer <ArrowRight size={14} className="inline ml-1"/>
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* MODALE DE PAIEMENT WAVE / OM */}
       {showPaymentModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowPaymentModal(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">

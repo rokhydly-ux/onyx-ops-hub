@@ -189,8 +189,7 @@ export default function NutritionAfricaineLanding() {
     age: "",
     height: "",
     currentWeight: "",
-    targetWeight: "",
-    activityLevel: "",
+    dailySteps: "",
     dietaryHabits: "",
     allergies: ""
   });
@@ -321,15 +320,15 @@ export default function NutritionAfricaineLanding() {
     return "0";
   };
 
-  const getIMCCategory = (imcValue: string) => {
-    const val = parseFloat(imcValue);
-    if (val === 0) return "-";
-    if (val < 18.5) return "Insuffisance pondérale";
-    if (val < 25) return "Corpulence normale";
-    if (val < 30) return "Surpoids";
-    if (val < 35) return "Obésité modérée";
-    return "Obésité sévère";
-  };
+   const getIMCCategory = (imcValue: string) => {
+      const val = parseFloat(imcValue);
+      if (val === 0) return "-";
+      if (val < 18.5) return "Insuffisance pondérale";
+      if (val < 25) return "Corpulence normale";
+      if (val < 30) return "Surpoids";
+      if (val < 35) return "Obésité modérée";
+      return "Obésité sévère";
+   };
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
@@ -1079,9 +1078,19 @@ export default function NutritionAfricaineLanding() {
                       <input type="text" name="name" required placeholder="Votre Prénom et Nom *" value={diagData.name} onChange={(e) => setDiagData({...diagData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
                       <input type="tel" name="phone" required placeholder="Numéro WhatsApp *" value={diagData.phone} onChange={(e) => setDiagData({...diagData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
                       <input type="password" name="pin" maxLength={4} required placeholder="Créez un code PIN (4 chiffres) *" value={diagData.pin} onChange={(e) => setDiagData({...diagData, pin: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
-                      <select required value={diagData.gender} onChange={(e) => setDiagData({...diagData, gender: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black cursor-pointer">
-                        <option value="" disabled>Votre sexe *</option><option value="Femme">Femme</option><option value="Homme">Homme</option>
-                      </select>
+                      <div className="space-y-2 mt-4">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Votre sexe *</label>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div onClick={() => setDiagData({...diagData, gender: 'Femme'})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.gender === 'Femme' ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_1_1_en_gardant_202606111043_unmonc.jpg" className="w-full aspect-square object-cover" alt="Femme" />
+                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-sm backdrop-blur-sm">Femme</div>
+                           </div>
+                           <div onClick={() => setDiagData({...diagData, gender: 'Homme'})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.gender === 'Homme' ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_format_1_1_en_202606111044_rjknkg.jpg" className="w-full aspect-square object-cover" alt="Homme" />
+                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-sm backdrop-blur-sm">Homme</div>
+                           </div>
+                        </div>
+                      </div>
                       <input type="number" required placeholder="Votre Âge *" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
                     </div>
                   )}
@@ -1093,24 +1102,32 @@ export default function NutritionAfricaineLanding() {
                         <input type="number" required placeholder="Taille (cm) *" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
                         <input type="number" required placeholder="Poids (kg) *" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
                       </div>
-                      <input type="number" required placeholder="Poids Cible (kg) *" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
-                      <select required value={diagData.activityLevel} onChange={(e) => setDiagData({...diagData, activityLevel: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black cursor-pointer">
-                        <option value="" disabled>Niveau d'activité physique *</option>
-                        <option value="Sédentaire">Sédentaire (Bureau, peu de sport)</option>
-                        <option value="Actif">Légèrement actif (Marche, sport 1-2 fois/semaine)</option>
-                      </select>
+                      <div className="space-y-2 mt-6">
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Combien de pas faites-vous par jour ? *</label>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {["< 5 000 pas/jour (Sédentaire)", "5 000 à 7 499 pas/jour (Légèrement actif)", "7 500 à 9 999 pas/jour (Actif)", "10 000+ pas/jour (Très actif)"].map(steps => (
+                               <button type="button" key={steps} onClick={() => setDiagData({...diagData, dailySteps: steps})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${diagData.dailySteps === steps ? 'bg-black text-[#39FF14] border-black shadow-lg' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                                  {steps}
+                               </button>
+                            ))}
+                         </div>
+                      </div>
                     </div>
                   )}
 
                   {diagStep === 3 && (
                     <div className="space-y-4 animate-in slide-in-from-right-8">
                       <div className="flex items-center gap-3 mb-4"><Apple className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Habitudes Alimentaires</h3></div>
-                      <select required value={diagData.dietaryHabits} onChange={(e) => setDiagData({...diagData, dietaryHabits: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black cursor-pointer">
-                        <option value="" disabled>Consommation de plats en sauce (Mafé, Thieb) ? *</option>
-                        <option value="Tous les jours">Tous les jours</option>
-                        <option value="3-4 fois par semaine">3 à 4 fois par semaine</option>
-                        <option value="Rarement">Rarement</option>
-                      </select>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Consommation de riz/plats en sauce ? *</label>
+                         <div className="grid grid-cols-1 gap-2">
+                            {["Tous les jours", "3-4 fois par semaine", "Rarement"].map(habit => (
+                               <button type="button" key={habit} onClick={() => setDiagData({...diagData, dietaryHabits: habit})} className={`p-4 rounded-2xl border-2 text-left font-bold text-sm transition-all ${diagData.dietaryHabits === habit ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                                  {habit}
+                               </button>
+                            ))}
+                         </div>
+                      </div>
                       <input type="text" placeholder="Allergies (Ex: Arachide...)" value={diagData.allergies} onChange={(e) => setDiagData({...diagData, allergies: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
                     </div>
                   )}
