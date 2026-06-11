@@ -3,8 +3,9 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale, Flame, Lock } from "lucide-react";
+import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale, Flame, Lock, Download } from "lucide-react";
 import { motion } from "framer-motion";
+import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -23,6 +24,7 @@ export default function NutritionDiagnostic() {
     currentWeight: "",
     dailySteps: "",
     weightLossPace: "Normalement",
+    healthProfile: "",
     mainChallenge: "",
     dietaryHabits: "",
     allergies: "",
@@ -34,6 +36,65 @@ export default function NutritionDiagnostic() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const calculateIMC = () => {
+    const h = parseFloat(formData.height) / 100;
+    const w = parseFloat(formData.currentWeight);
+    if (h > 0 && w > 0) return (w / (h * h)).toFixed(1);
+    return "0";
+  };
+
+   const getIMCCategory = (imcValue: string) => {
+      const val = parseFloat(imcValue);
+      if (val === 0) return "-";
+      if (val < 18.5) return "Insuffisance pondérale";
+      if (val < 25) return "Corpulence normale";
+      if (val < 30) return "Surpoids";
+      if (val < 35) return "Obésité modérée";
+      return "Obésité sévère";
+   };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(22);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Bilan Nutritionnel - Onyx", 20, 20);
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')}`, 150, 20);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 30, 190, 30);
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Informations Personnelles", 20, 45);
+    doc.setFontSize(12);
+    doc.text(`Nom Complet : ${formData.name}`, 20, 55);
+    doc.text(`Sexe : ${formData.gender}`, 20, 63);
+    doc.text(`Âge : ${formData.age} ans`, 100, 63);
+    doc.setFontSize(16);
+    doc.text("Mensurations & Objectifs", 20, 80);
+    doc.setFontSize(12);
+    doc.text(`Taille : ${formData.height} cm`, 20, 90);
+    doc.text(`Poids Actuel : ${formData.currentWeight} kg`, 20, 98);
+    const imc = calculateIMC();
+    const category = getIMCCategory(imc);
+    doc.setFontSize(14);
+    doc.setTextColor(40, 167, 69);
+    doc.text(`IMC Calculé : ${imc} (${category})`, 20, 110);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(16);
+    doc.text("Habitudes de Vie", 20, 130);
+    doc.setFontSize(12);
+    doc.text(`Niveau d'activité : ${formData.dailySteps}`, 20, 140);
+    doc.text(`Consommation plats en sauce : ${formData.dietaryHabits}`, 20, 148);
+    doc.text(`Allergies : ${formData.allergies || "Aucune"}`, 20, 156);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 270, 190, 270);
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.text("Diagnostic généré par l'application Onyx Nutrition à l'Africaine.", 20, 280);
+    doc.save(`Diagnostic_Nutrition_${formData.name.replace(/\s+/g, '_')}.pdf`);
   };
 
   // --- MOTEUR DE CALCUL NUTRITIONNEL ---
@@ -130,7 +191,7 @@ export default function NutritionDiagnostic() {
         intent: "A complété son diagnostic (Attente Plan)",
         status: "Nouveau",
         saas: "Nutrition à l'Africaine",
-        message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal (P:${Math.round(protein)}g, G:${Math.round(carbs)}g) | Poids idéal cible: ${idealWeight.toFixed(1)}kg`
+        message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal (P:${Math.round(protein)}g, G:${Math.round(carbs)}g) | Poids idéal cible: ${idealWeight.toFixed(1)}kg | Profil Santé: ${formData.healthProfile || '-'}`
       }]);
       
       setStep(5); // Success step
@@ -231,6 +292,24 @@ export default function NutritionDiagnostic() {
                        </div>
                     </div>
                   </div>
+                  
+                  {formData.gender === 'Femme' && (
+                    <div className="space-y-4 mt-6">
+                       <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Ta situation actuelle *</label>
+                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {[
+                            { id: "Allaitement", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181320/An_authentic_minimalistic_flat-lay_illustration_202606111234_dg6lni.jpg", title: "Allaitement" },
+                            { id: "Changements hormonaux", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181281/cle_ezqyki.jpg", title: "Changements hormonaux (Ménopause / Périménopause)" },
+                            { id: "Forme standard", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181319/A_minimal_sleek_white_modern_202606111234_bpcoy2.jpg", title: "Forme standard" }
+                          ].map(profile => (
+                             <div key={profile.id} onClick={() => setFormData({...formData, healthProfile: profile.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${formData.healthProfile === profile.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                                <img src={profile.img} className="w-full aspect-square object-cover" alt={profile.title} />
+                                <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 font-black uppercase tracking-widest text-[9px] backdrop-blur-sm h-12 flex items-center justify-center leading-tight">{profile.title}</div>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+                  )}
                   <input type="number" name="sleepHours" required placeholder="Heures de sommeil par nuit (ex: 7) *" value={formData.sleepHours} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black mt-4" />
                 </motion.div>
               )}
@@ -238,29 +317,46 @@ export default function NutritionDiagnostic() {
               {step === 3 && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                   <div className="flex items-center gap-3 mb-6"><Apple className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Habitudes Alimentaires</h2></div>
-                  <select name="familyDynamic" required value={formData.familyDynamic} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
-                    <option value="" disabled>Dynamique familiale *</option>
-                    <option value="Cuisine pour la famille">Je cuisine pour une famille</option>
-                    <option value="Gère ses propres repas">Je gère mes propres repas</option>
-                  </select>
-                  <select name="lunchHabit" required value={formData.lunchHabit} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
-                    <option value="" disabled>À midi, vous mangez plutôt... *</option>
-                    <option value="À la cantine du bureau">À la cantine du bureau</option>
-                    <option value="Un plat commandé">Un plat commandé</option>
-                    <option value="Un repas préparé à la maison">Un repas préparé à la maison</option>
-                  </select>
-                  <select name="shoppingHabit" required value={formData.shoppingHabit} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
-                    <option value="" disabled>Où faites-vous vos courses principalement ? *</option>
-                    <option value="Marché local">Marché local</option>
-                    <option value="Supermarché (Auchan, etc.)">Supermarché (Auchan, etc.)</option>
-                    <option value="Mixte">Mixte (Marché + Supermarché)</option>
-                  </select>
-                  <select name="dietaryHabits" required value={formData.dietaryHabits} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition cursor-pointer text-black">
-                    <option value="" disabled>Consommation de riz/plats en sauce ? *</option>
-                    <option value="Tous les jours">Tous les jours</option>
-                    <option value="3-4 fois par semaine">3 à 4 fois par semaine</option>
-                    <option value="Rarement">Rarement</option>
-                  </select>
+              <div className="space-y-2">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Dynamique familiale *</label>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {["Cuisine pour la famille", "Gère ses propres repas"].map(dyn => (
+                       <button type="button" key={dyn} onClick={() => setFormData({...formData, familyDynamic: dyn})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${formData.familyDynamic === dyn ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                          {dyn}
+                       </button>
+                    ))}
+                 </div>
+              </div>
+              <div className="space-y-2 mt-4">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">À midi, vous mangez plutôt... *</label>
+                 <div className="grid grid-cols-1 gap-2">
+                    {["À la cantine du bureau", "Un plat commandé", "Un repas préparé à la maison"].map(habit => (
+                       <button type="button" key={habit} onClick={() => setFormData({...formData, lunchHabit: habit})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${formData.lunchHabit === habit ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                          {habit}
+                       </button>
+                    ))}
+                 </div>
+              </div>
+              <div className="space-y-2 mt-4">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Où faites-vous vos courses principalement ? *</label>
+                 <div className="grid grid-cols-1 gap-2">
+                    {["Marché local", "Supermarché (Auchan, etc.)", "Mixte (Marché + Supermarché)"].map(habit => (
+                       <button type="button" key={habit} onClick={() => setFormData({...formData, shoppingHabit: habit})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${formData.shoppingHabit === habit ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                          {habit}
+                       </button>
+                    ))}
+                 </div>
+              </div>
+              <div className="space-y-2 mt-4">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Consommation de riz/plats en sauce ? *</label>
+                 <div className="grid grid-cols-1 gap-2">
+                    {["Tous les jours", "3-4 fois par semaine", "Rarement"].map(habit => (
+                       <button type="button" key={habit} onClick={() => setFormData({...formData, dietaryHabits: habit})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${formData.dietaryHabits === habit ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                          {habit}
+                       </button>
+                    ))}
+                 </div>
+              </div>
                   <input type="text" name="allergies" placeholder="Allergies / Intolérances (ex: Lait, Arachide...)" value={formData.allergies} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   <p className="text-xs text-zinc-500 font-bold mt-2">Laissez vide si vous n'avez aucune allergie.</p>
                 </motion.div>
@@ -327,6 +423,7 @@ export default function NutritionDiagnostic() {
                     <p className="font-black text-black text-sm md:text-base uppercase leading-tight mt-0.5">
                        Jongoma {formData.dailySteps.includes('< 5 000') ? 'Sédentaire' : 'Active'} - 
                        {formData.mainChallenge === 'Le Sel & la Tension' ? ' Sensible au Sel' : formData.mainChallenge === "Le Sucre & l'Attaya" ? ' Alerte Sucre' : ' Profil Familial'}
+                       {formData.healthProfile && formData.healthProfile !== 'Forme standard' ? ` - ${formData.healthProfile}` : ''}
                     </p>
                  </div>
               </div>

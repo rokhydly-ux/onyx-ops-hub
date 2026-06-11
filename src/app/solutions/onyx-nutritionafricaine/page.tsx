@@ -191,6 +191,7 @@ export default function NutritionAfricaineLanding() {
     currentWeight: "",
     dailySteps: "",
     weightLossPace: "Normalement",
+    healthProfile: "",
     mainChallenge: "",
     dietaryHabits: "",
     allergies: ""
@@ -297,14 +298,53 @@ export default function NutritionAfricaineLanding() {
         setTimeout(() => router.push('/nutrition?from=diagnostic'), 3000);
       }
 
-      await supabase.from('leads').insert([{
+          const heightCm = parseFloat(diagData.height) || 0;
+          const currentWeight = parseFloat(diagData.currentWeight) || 0;
+          const age = parseFloat(diagData.age) || 0;
+          const isMale = diagData.gender === "Homme";
+          const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
+          let deficit = 500;
+          if (diagData.weightLossPace === 'Progressivement') deficit = 300;
+          else if (diagData.weightLossPace === 'Rapidement') deficit = 700;
+          const weightToLose = currentWeight - idealWeight;
+          const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+          let nap = 1.2;
+          if (diagData.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
+          else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
+          else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+          const tdee = bmr * nap;
+          let rawCalories = weightToLose > 0 ? tdee - deficit : (weightToLose < 0 ? tdee + 300 : tdee);
+          const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
+
+          const carbs = (dailyCalories * 0.40) / 4;
+          const protein = (dailyCalories * 0.30) / 4;
+          const fats = (dailyCalories * 0.30) / 9;
+
+          localStorage.setItem('onyx_nutrition_goals', JSON.stringify({
+             calories: dailyCalories, carbs, protein, fats
+          }));
+
+          await supabase.from('nutrition_profiles').upsert({
+             phone: diagData.phone,
+             client_id: clientData?.id || null,
+             bmr: Math.round(bmr),
+             tdee: Math.round(tdee),
+             daily_calorie_goal: Math.round(dailyCalories),
+             carbs_goal: Math.round(carbs),
+             protein_goal: Math.round(protein),
+             fats_goal: Math.round(fats),
+             diagnostic_data: diagData,
+             weekly_menu: [] 
+          }, { onConflict: 'client_id' });
+
+          await supabase.from('leads').insert([{
         full_name: diagData.name,
         phone: diagData.phone,
         source: "Diagnostic Nutrition Landing",
         intent: "A complété son diagnostic (Attente Plan)",
         status: "Nouveau",
         saas: "Nutrition à l'Africaine",
-        message: `Âge: ${diagData.age} | Sexe: ${diagData.gender} | Poids: ${diagData.currentWeight}kg -> ${diagData.targetWeight}kg | Taille: ${diagData.height}cm | Activité: ${diagData.activityLevel} | Habitudes: ${diagData.dietaryHabits} | Allergies: ${diagData.allergies}`
+            message: `BMR: ${Math.round(bmr)} | Objectif: ${Math.round(dailyCalories)} kcal | Poids cible: ${idealWeight.toFixed(1)}kg | Profil Santé: ${diagData.healthProfile || '-'}`
       }]);
       
       setDiagStep(5);
@@ -638,6 +678,24 @@ export default function NutritionAfricaineLanding() {
                   <p className="text-zinc-600 font-medium leading-relaxed">Pas de régime miracle qui ruine votre métabolisme. Nous visons un rééquilibrage de fond pour une perte de poids et un maintien garanti.</p>
                </div>
             </div>
+                    
+                    {diagData.gender === 'Femme' && (
+                      <div className="space-y-4 mt-6">
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Ta situation actuelle *</label>
+                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {[
+                              { id: "Allaitement", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181320/An_authentic_minimalistic_flat-lay_illustration_202606111234_dg6lni.jpg", title: "Allaitement" },
+                              { id: "Changements hormonaux", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181281/cle_ezqyki.jpg", title: "Changements hormonaux (Ménopause / Périménopause)" },
+                              { id: "Forme standard", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181319/A_minimal_sleek_white_modern_202606111234_bpcoy2.jpg", title: "Forme standard" }
+                            ].map(profile => (
+                               <div key={profile.id} onClick={() => setDiagData({...diagData, healthProfile: profile.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.healthProfile === profile.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                                  <img src={profile.img} className="w-full aspect-square object-cover" alt={profile.title} />
+                                  <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 font-black uppercase tracking-widest text-[9px] backdrop-blur-sm h-12 flex items-center justify-center leading-tight">{profile.title}</div>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+                    )}
          </div>
       </section>
 
