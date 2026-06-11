@@ -152,7 +152,7 @@ export default function NutritionDashboard() {
   const [daysLeft, setDaysLeft] = useState(0);
   
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites'>('today');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   
@@ -190,6 +190,7 @@ export default function NutritionDashboard() {
      { id: "1", client: "Aïssatou K.", content: "Thieboudienne revisité au Fonio pour ce midi ! L'astuce de la sauce sans huile change tout.", created_at: new Date().toISOString(), reactions: { top: 12, sain: 5, courage: 2 } },
      { id: "2", client: "Fatima B.", content: "J'ai eu du mal à boire mon eau aujourd'hui, mais j'ai fini mon 8ème verre ! On lâche rien les filles 💪", created_at: new Date(Date.now() - 86400000).toISOString(), reactions: { top: 4, sain: 0, courage: 15 } }
   ]);
+  const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
 
   // Objectifs
   const [calorieGoal, setCalorieGoal] = useState(1500);
@@ -299,6 +300,11 @@ export default function NutritionDashboard() {
                    if (parsed.fats) setFatsGoal(Math.round(parsed.fats));
                 } catch (e) {}
              }
+          }
+
+          const savedFavs = localStorage.getItem('onyx_favorite_meals');
+          if (savedFavs) {
+             try { setFavoriteMeals(JSON.parse(savedFavs)); } catch(e) {}
           }
         }
       }
@@ -738,9 +744,26 @@ export default function NutritionDashboard() {
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
   }
+  
+  const toggleFavorite = (meal: any) => {
+      const mealName = meal.meal || meal.nom;
+      const exists = favoriteMeals.find(f => (f.meal || f.nom) === mealName);
+      let newFavs;
+      if (exists) {
+          newFavs = favoriteMeals.filter(f => (f.meal || f.nom) !== mealName);
+      } else {
+          newFavs = [...favoriteMeals, meal];
+      }
+      setFavoriteMeals(newFavs);
+      localStorage.setItem('onyx_favorite_meals', JSON.stringify(newFavs));
+  };
 
   const remainingCalories = Math.max(0, calorieGoal - calories);
   const lvlInfo = getJongomaLevel(jongomaXP);
+
+  const currentHour = new Date().getHours();
+  const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
+  const greetingSubtext = currentHour < 18 ? "Prête pour ta journée ?" : "Pense à t'hydrater ce soir.";
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-black pb-24 font-sans selection:bg-[#39FF14]/30">
@@ -758,9 +781,12 @@ export default function NutritionDashboard() {
               <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
               <div className="flex items-center gap-4">
                 <img src={user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.full_name || "Membre")} alt="Profil" className="w-16 h-16 rounded-full border-4 border-[#39FF14] object-cover bg-zinc-800" />
-                <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
-                  Bonjour, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
-                </h1>
+                <div>
+                  <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
+                    {greetingText}, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
+                  </h1>
+                  <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mt-1">{greetingSubtext}</p>
+                </div>
               </div>
             </div>
             
@@ -795,6 +821,7 @@ export default function NutritionDashboard() {
            <button onClick={() => setActiveTab('weight')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'weight' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Mon Poids</button>
            <button onClick={() => setActiveTab('community')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'community' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Communauté</button>
            <button onClick={() => setActiveTab('week')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'week' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Programme Semaine</button>
+           <button onClick={() => setActiveTab('favorites')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'favorites' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Recettes Enregistrées</button>
            <button onClick={() => setActiveTab('history')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'history' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Historique</button>
            <button onClick={() => setActiveTab('profile')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'profile' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Réglages</button>
         </div>
@@ -999,7 +1026,12 @@ export default function NutritionDashboard() {
                      
                      {selectedMealModal.mode === 'guided' && selectedMealModal.meal ? (
                          <>
-                             <p className="text-sm font-bold text-zinc-500 mb-6">{selectedMealModal.meal.meal}</p>
+                             <div className="flex justify-between items-start mb-6">
+                                <p className="text-sm font-bold text-zinc-500">{selectedMealModal.meal.meal}</p>
+                                <button onClick={() => toggleFavorite(selectedMealModal.meal)} className={`p-2 rounded-full transition-colors ${favoriteMeals.some(f => (f.meal || f.nom) === selectedMealModal.meal.meal) ? 'bg-red-50 text-red-500' : 'bg-zinc-100 text-zinc-400 hover:text-red-500'}`}>
+                                   <HeartPulse size={18} className={favoriteMeals.some(f => (f.meal || f.nom) === selectedMealModal.meal.meal) ? "fill-current" : ""} />
+                                </button>
+                             </div>
                              <div className="bg-zinc-50 p-5 rounded-2xl border border-zinc-200 mb-6">
                                 <h4 className="font-black text-xs uppercase tracking-widest text-zinc-400 mb-2">Recette / Consignes</h4>
                                 <p className="text-sm font-medium text-zinc-700 leading-relaxed">{selectedMealModal.meal.recipe}</p>
@@ -1048,7 +1080,12 @@ export default function NutritionDashboard() {
                                 <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 mb-6 animate-in fade-in">
                                    <div className="flex justify-between items-start mb-4">
                                       <h4 className="font-black text-lg">{selectedFoodDB.nom}</h4>
-                                      <button onClick={() => setSelectedFoodDB(null)} className="text-xs font-bold text-zinc-400 hover:text-black">Changer</button>
+                                      <div className="flex gap-2 items-center">
+                                         <button onClick={() => toggleFavorite(selectedFoodDB)} className={`p-2 rounded-full transition-colors ${favoriteMeals.some(f => (f.meal || f.nom) === selectedFoodDB.nom) ? 'bg-red-50 text-red-500' : 'bg-zinc-100 text-zinc-400 hover:text-red-500'}`}>
+                                            <HeartPulse size={16} className={favoriteMeals.some(f => (f.meal || f.nom) === selectedFoodDB.nom) ? "fill-current" : ""} />
+                                         </button>
+                                         <button onClick={() => setSelectedFoodDB(null)} className="text-xs font-bold text-zinc-400 hover:text-black">Changer</button>
+                                      </div>
                                    </div>
                                    
                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Quantité consommée</label>
@@ -1462,6 +1499,54 @@ export default function NutritionDashboard() {
          </div>
       )}
 
+        {activeTab === 'favorites' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><HeartPulse className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Recettes Enregistrées</h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                   {favoriteMeals.map((fav, i) => {
+                       const isDBFood = !!fav.valeurs_pour_100g;
+                       const name = fav.meal || fav.nom;
+                       const cals = fav.cals || fav.calories || (isDBFood ? fav.valeurs_pour_100g.calories : 0);
+                       const prots = fav.proteins || (isDBFood ? fav.valeurs_pour_100g.proteines : 0);
+                       return (
+                       <div key={i} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col justify-between hover:border-[#39FF14] transition-colors group">
+                           <div>
+                               <div className="flex justify-between items-start mb-2">
+                                   <p className="font-bold text-sm text-black">{name}</p>
+                                   <button onClick={() => toggleFavorite(fav)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 size={16}/></button>
+                               </div>
+                               <div className="flex gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
+                                   <span className="flex items-center gap-1"><Flame size={12} className="text-orange-500"/> {cals} kcal</span>
+                                   <span className="flex items-center gap-1"><Target size={12} className="text-[#39FF14]"/> {prots}g prot</span>
+                               </div>
+                           </div>
+                           <button onClick={() => {
+                               if(isDBFood) {
+                                   setSelectedFoodDB(fav);
+                                   setFoodSearchQuery(fav.nom);
+                                   setActiveTab('today');
+                                   setSelectedMealModal({ type: 'Collation', mode: 'flexible' });
+                               } else {
+                                   confirmMealLog(name, cals, prots, fav.carbs || 0, fav.fats || 0, fav);
+                                   alert("Ajouté au tracker du jour !");
+                               }
+                           }} className="w-full bg-zinc-200 text-black py-3 rounded-xl text-[10px] font-black uppercase hover:bg-black hover:text-[#39FF14] transition-all flex justify-center items-center gap-2">
+                               <CheckCircle size={14}/> Ajouter au menu du jour
+                           </button>
+                       </div>
+                   )})}
+                   {favoriteMeals.length === 0 && (
+                      <div className="col-span-full py-12 text-center border-2 border-dashed border-zinc-200 rounded-3xl">
+                         <p className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Aucune recette sauvegardée.</p>
+                         <p className="text-zinc-400 text-xs mt-1">Utilisez le bouton "Cœur" sur un plat pour le retrouver ici.</p>
+                      </div>
+                   )}
+                </div>
+             </div>
+          </div>
+        )}
+
         {/* VUE TRACKER DE POIDS */}
         {activeTab === 'weight' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
@@ -1626,6 +1711,11 @@ export default function NutritionDashboard() {
                      </div>
                   ))}
                </div>
+            </div>
+            <div className="pt-6 border-t border-zinc-100 shrink-0">
+               <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("Salut ! Je te mets au défi de me battre sur le classement Jongoma XP de OnyxNutrition ! Rejoins-moi et voyons qui aura le plus de points cette semaine 🔥💪\n\nhttps://onyxlinks.com/nutrition")}`, '_blank')} className="w-full bg-[#25D366] text-white py-4 rounded-[1.5rem] font-black uppercase text-xs hover:scale-105 transition-all shadow-xl flex justify-center items-center gap-2">
+                  <MessageCircle size={18}/> Défier une amie sur WhatsApp
+               </button>
             </div>
           </div>
         </div>
