@@ -5,13 +5,56 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, 
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
+
+const SHOP_DATA = [
+  {
+    "categorie_nom": "Super-Aliments & Céréales Locales",
+    "slug": "super-aliments",
+    "produits": [
+      { "id": "prod_001", "nom": "Fonio Premium Pré-lavé (500g)", "description_courte": "Le miracle sans gluten à IG bas, prêt à cuire en 5 minutes.", "description_longue": "Issu de coopératives locales, notre Fonio est soigneusement lavé et débarrassé de tout résidu sableux. L'alternative parfaite au riz blanc pour vos déjeuners.", "prix_standard": 2500, "prix_premium": 2100, "stock": 100, "rating": 4.8, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781199255/A_premium_studio_shot_of_202606111733_kaohlz.jpg", "badge": "Best Seller", "goal": "cooking" },
+      { "id": "prod_002", "nom": "Poudre de Moringa Bio (150g)", "description_courte": "La multivitamine naturelle d'Afrique pour booster votre métabolisme.", "description_longue": "Riche en fer, calcium et vitamines. Saupoudrez 1 cuillère par jour sur vos plats en fin de cuisson pour une énergie décuplée.", "prix_standard": 3500, "prix_premium": 2900, "stock": 50, "rating": 4.9, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563486/A_high-end_modern_cosmetic_promotional_202604301537_qqhvht.jpg", "badge": "Santé", "goal": "energy" },
+      { "id": "prod_005", "nom": "Soumbala / Nététou Pur (100g)", "description_courte": "L'exhausteur de goût santé qui protège votre cœur.", "description_longue": "Le remplaçant idéal de vos bouillons cubes industriels. Donne une saveur profonde à vos plats tout en régulant la tension.", "prix_standard": 1500, "prix_premium": 1200, "stock": 120, "rating": 4.5, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563481/A_vibrant_and_appetizing_food_202604301533_dmp5uw.jpg", "badge": "Cuisine Saine", "goal": "cooking" }
+    ]
+  },
+  {
+    "categorie_nom": "Infusions & Détox (Zéro Sucre)",
+    "slug": "infusions-detox",
+    "produits": [
+      { "id": "prod_006", "nom": "Bissap Rouge Séché (250g)", "description_courte": "Le diurétique naturel par excellence. Grandes fleurs de qualité.", "description_longue": "Infusez à froid ou à chaud sans sucre. Aide à combattre la rétention d'eau et à dégonfler le ventre rapidement.", "prix_standard": 2000, "prix_premium": 1600, "stock": 200, "rating": 4.9, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563472/A_high-end_modern_promotional_poster_202604301536_c7cpzr.jpg", "badge": "Détox", "goal": "detox" },
+      { "id": "prod_009", "nom": "Thé Vert Ataya Spécial (200g)", "description_courte": "Les feuilles pures pour un Ataya brûle-graisse.", "description_longue": "Remplacez le thé bas de gamme. Un thé vert riche en antioxydants (EGCG) conçu pour être bu sans sucre.", "prix_standard": 3500, "prix_premium": 2900, "stock": 90, "rating": 4.6, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563485/A_futuristic_and_modern_graphic_202604301528_kon2vz.jpg", "badge": "Ventre Plat", "goal": "detox" }
+    ]
+  },
+  {
+    "categorie_nom": "Snacks & Oléagineux",
+    "slug": "snacks",
+    "produits": [
+      { "id": "prod_011", "nom": "Pâte d'Arachide Pure (300g)", "description_courte": "100% arachide torréfiée. Zéro huile ajoutée, zéro sucre.", "description_longue": "Le goût de l'enfance, version saine. Idéale pour vos mafés diététiques ou sur vos pancakes d'avoine.", "prix_standard": 3000, "prix_premium": 2500, "stock": 70, "rating": 4.9, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563481/A_vibrant_and_appetizing_food_202604301533_dmp5uw.jpg", "badge": "Best Seller", "goal": "snacks" },
+      { "id": "prod_012", "nom": "Noix de Cajou Grillées (250g)", "description_courte": "Le snack parfait pour calmer le stress du bureau.", "description_longue": "Riches en magnésium. Croquez-en une petite poignée à 16h pour éviter le piège des biscuits industriels.", "prix_standard": 5000, "prix_premium": 4200, "stock": 80, "rating": 4.8, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563489/A_luxurious_corporate_promotional_poster._202604301529_docu21.jpg", "badge": "Énergie", "goal": "snacks" }
+    ]
+  },
+  {
+    "categorie_nom": "Équipements",
+    "slug": "equipements",
+    "produits": [
+      { "id": "prod_016", "nom": "Gourde Motivante 'Jongoma'", "description_courte": "Atteignez votre quota d'eau avec style (1.5L).", "description_longue": "Marqueurs de temps imprimés pour vous rappeler de boire de l'eau fraîche toute la journée. Design Vert Néon.", "prix_standard": 7000, "prix_premium": 5500, "stock": 150, "rating": 4.9, "image_url": "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563498/A_moody__high-end_luxury_promotional_202604301516_zoftg0.jpg", "badge": "Best Seller", "goal": "cooking" }
+    ]
+  }
+];
+
+const SHOP_GOALS = [
+  { id: "detox", label: "Ventre Plat & Détox", icon: "✨" },
+  { id: "energy", label: "Énergie & Anti-Fatigue", icon: "🔥" },
+  { id: "cooking", label: "Cuisine Saine", icon: "🍳" },
+  { id: "snacks", label: "Snacks Coupe-Faim", icon: "🥨" },
+  { id: "saved", label: "Sauvegardés", icon: "❤️" }
+];
 
 const ALL_MENUS = [
   {
@@ -232,6 +275,19 @@ export default function NutritionDashboard() {
   const [profileForm, setProfileForm] = useState({ full_name: "", avatar_url: "", password: "" });
   const [showReminder, setShowReminder] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Boutique states
+  const [selectedShopGoal, setSelectedShopGoal] = useState<string>("all");
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [shopCart, setShopCart] = useState<any[]>([]);
+  const [savedShopProducts, setSavedShopProducts] = useState<any[]>([]);
+  const [shopDataDB, setShopDataDB] = useState<any[]>(SHOP_DATA);
+  const [shopPromoCode, setShopPromoCode] = useState("");
+  const [isShopPromoApplied, setIsShopPromoApplied] = useState(false);
+  const [shopPromoCodesDB, setShopPromoCodesDB] = useState<any[]>([]);
+  const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -271,6 +327,9 @@ export default function NutritionDashboard() {
           setClientProfile(profileData);
           const trialEnds = profileData.trial_ends_at ? new Date(profileData.trial_ends_at).getTime() : (new Date(profileData.created_at || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000);
           const now = new Date().getTime();
+          
+          if (window.innerWidth < 1024) setIsSidebarOpen(false);
+
           let diffDays = Math.max(0, Math.ceil((trialEnds - now) / (1000 * 60 * 60 * 24)));
           if (profileData.plan_type === 'premium') {
              diffDays = 999;
@@ -334,15 +393,35 @@ export default function NutritionDashboard() {
              }
           }
 
-          const savedFavs = localStorage.getItem(`onyx_favorite_meals_${profileData.id}`);
+          const savedFavs = localStorage.getItem(`onyx_nutrition_favs_${profileData.id}`);
           if (savedFavs) {
              try { setFavoriteMeals(JSON.parse(savedFavs)); } catch(e) {}
           }
           
-          const savedPdfs = localStorage.getItem(`onyx_pdf_history_${profileData.id}`);
+          const savedPdfs = localStorage.getItem(`onyx_nutrition_pdfs_${profileData.id}`);
           if (savedPdfs) {
              try { setPdfHistory(JSON.parse(savedPdfs)); } catch(e) {}
           }
+
+          const savedShop = localStorage.getItem(`onyx_nutrition_saved_products_${profileData.id}`);
+          if (savedShop) {
+             try { setSavedShopProducts(JSON.parse(savedShop)); } catch(e) {}
+          }
+
+          // Fetch DB Products
+          const { data: dbProds } = await supabase.from('nutrition_products').select('*');
+          if (dbProds && dbProds.length > 0) {
+             const grouped = dbProds.reduce((acc: any, p: any) => {
+                if (!acc[p.categorie_nom]) acc[p.categorie_nom] = { categorie_nom: p.categorie_nom, slug: p.slug || 'cat', produits: [] };
+                acc[p.categorie_nom].produits.push(p);
+                return acc;
+             }, {});
+             setShopDataDB(Object.values(grouped));
+          }
+
+          // Fetch Promo Codes
+          const { data: dbPromos } = await supabase.from('nutrition_promo_codes').select('*').eq('active', true);
+          if (dbPromos) setShopPromoCodesDB(dbPromos);
         }
       }
 
@@ -358,7 +437,7 @@ export default function NutritionDashboard() {
       router.replace('/nutrition', undefined);
     }
     
-    const welcome = localStorage.getItem('onyx_nutrition_welcome');
+    const welcome = localStorage.getItem(`onyx_nutrition_welcome_${userPhone}`);
     if (welcome) setWelcomeMessage(welcome);
 
   }, [router, searchParams]);
@@ -585,7 +664,7 @@ export default function NutritionDashboard() {
 
           const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: fileUrl }, ...pdfHistory];
           setPdfHistory(newHistory);
-          localStorage.setItem(`onyx_pdf_history_${clientProfile.id}`, JSON.stringify(newHistory));
+          localStorage.setItem(`onyx_nutrition_pdfs_${clientProfile.id}`, JSON.stringify(newHistory));
 
           const text = `Bonjour ! Voici ma liste de courses de la semaine générée par OnyxNutrition 🛒🥦 :\n\n${fileUrl}`;
           window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -630,7 +709,7 @@ export default function NutritionDashboard() {
       const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: null }, ...pdfHistory];
       setPdfHistory(newHistory);
       if (clientProfile) {
-          localStorage.setItem(`onyx_pdf_history_${clientProfile.id}`, JSON.stringify(newHistory));
+          localStorage.setItem(`onyx_nutrition_pdfs_${clientProfile.id}`, JSON.stringify(newHistory));
       }
   };
 
@@ -979,7 +1058,7 @@ export default function NutritionDashboard() {
       }
       setFavoriteMeals(newFavs);
       if (clientProfile) {
-          localStorage.setItem(`onyx_favorite_meals_${clientProfile.id}`, JSON.stringify(newFavs));
+          localStorage.setItem(`onyx_nutrition_favs_${clientProfile.id}`, JSON.stringify(newFavs));
       }
   };
 
@@ -994,9 +1073,146 @@ export default function NutritionDashboard() {
   const createdDate = clientProfile?.created_at ? new Date(clientProfile.created_at) : new Date();
   const isNewUser = (new Date().getTime() - createdDate.getTime()) / (1000 * 3600 * 24) <= 3;
 
+  const menuItems = [
+    { id: 'today', label: 'Mon Jour', icon: Calendar },
+    { id: 'weight', label: 'Mon Poids', icon: Scale },
+    { id: 'community', label: 'Communauté', icon: Camera },
+    { id: 'shop', label: 'Boutique', icon: ShoppingBag },
+    { id: 'week', label: 'Programme', icon: ListChecks },
+    { id: 'favorites', label: 'Recettes', icon: HeartPulse },
+    { id: 'coaching', label: 'Coaching', icon: Activity, dot: isNewUser },
+    { id: 'history', label: 'Historique', icon: BarChart },
+    { id: 'profile', label: 'Réglages', icon: Settings },
+  ];
+
+  const addToCart = (product: any) => {
+    const isPremium = clientProfile?.plan_type === 'premium';
+    const price = isPremium ? product.prix_premium : product.prix_standard;
+    setShopCart([...shopCart, { ...product, finalPrice: price }]);
+    setToastMessage(`Ajouté au panier : ${product.nom}`);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const applyShopPromo = () => {
+     const codeObj = shopPromoCodesDB.find(c => c.code.toUpperCase() === shopPromoCode.toUpperCase());
+     if (codeObj) {
+         if (jongomaXP >= codeObj.min_xp) {
+             setIsShopPromoApplied(true);
+             setAppliedPromoData(codeObj);
+             alert(`Code ${codeObj.code} appliqué (-${codeObj.discount_pct}%) !`);
+         } else {
+             alert(`Vous n'avez pas assez d'XP pour utiliser ce code (${codeObj.min_xp} XP requis).`);
+         }
+     } else {
+         alert("Code promo invalide.");
+     }
+  };
+
+  const toggleSaveProduct = (prod: any) => {
+      const isSaved = savedShopProducts.some(p => p.id === prod.id);
+      const newSaved = isSaved ? savedShopProducts.filter(p => p.id !== prod.id) : [...savedShopProducts, prod];
+      setSavedShopProducts(newSaved);
+      if (clientProfile) localStorage.setItem(`onyx_nutrition_saved_products_${clientProfile.id}`, JSON.stringify(newSaved));
+  };
+
+  const handleShopCheckout = async () => {
+    if (shopCart.length === 0) return;
+
+    const discountPct = isShopPromoApplied && appliedPromoData ? appliedPromoData.discount_pct : 0;
+    const discountMultiplier = 1 - (discountPct / 100);
+    
+    const originalTotal = shopCart.reduce((acc, item) => acc + item.finalPrice, 0);
+    const discountAmount = Math.round(originalTotal * (discountPct / 100));
+    const total = Math.round(originalTotal * discountMultiplier);
+    const cartText = shopCart.map(item => `- ${item.nom} (${Math.round(item.finalPrice * discountMultiplier)} F)`).join('\n');
+
+    // Sauvegarde en DB
+    if (clientProfile) {
+       await supabase.from('nutrition_orders').insert({
+          client_id: clientProfile.id,
+          client_name: user?.full_name || 'Inconnu',
+          phone: clientProfile.phone || '',
+          items: shopCart,
+          total: total,
+          status: 'Nouveau',
+          promo_code: isShopPromoApplied && appliedPromoData ? appliedPromoData.code : null,
+          discount_amount: discountAmount
+       });
+    }
+
+    let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique Onyx Nutrition :\n\n${cartText}\n\n*Total : ${total} F*\n`;
+    if (isShopPromoApplied && appliedPromoData) {
+       msg += `\n🎁 *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
+    }
+    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}`;
+
+    window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
+    setShopCart([]);
+    setIsShopPromoApplied(false);
+    setShopPromoCode("");
+    setAppliedPromoData(null);
+  };
+
   return (
-    <main className="min-h-screen bg-[#fafafa] text-black pb-24 font-sans selection:bg-[#39FF14]/30">
+    <div className="flex min-h-screen bg-[#fafafa] font-sans selection:bg-[#39FF14]/30">
+      {/* SIDEBAR VERTICAL */}
+      <aside className={`fixed inset-y-0 left-0 z-50 bg-black text-white transition-all duration-500 ease-in-out border-r border-zinc-800 lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+         <div className="p-6 flex items-center justify-between">
+            <div className={`flex items-center gap-3 overflow-hidden ${!isSidebarOpen && 'lg:hidden'}`}>
+               <div className="w-10 h-10 bg-[#39FF14] rounded-xl flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(57,255,20,0.4)]">
+                  <HeartPulse className="text-black" size={24} />
+               </div>
+               <span className="font-black uppercase tracking-tighter text-xl whitespace-nowrap">Onyx<span className="text-[#39FF14]">Nutrition</span></span>
+            </div>
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden lg:flex p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400 hover:text-[#39FF14]">
+               {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
+            </button>
+            <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-2 hover:bg-zinc-800 rounded-xl transition-colors">
+               <X size={24}/>
+            </button>
+         </div>
+
+         <nav className="mt-10 px-4 space-y-2">
+            {menuItems.map((item: any) => (
+               <button 
+                  key={item.id} 
+                  onClick={() => { setActiveTab(item.id); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : 'text-zinc-500 hover:bg-zinc-900 hover:text-white'}`}
+               >
+                  <item.icon size={20} className="shrink-0" />
+                  <span className={`whitespace-nowrap transition-opacity duration-300 ${!isSidebarOpen && 'lg:opacity-0 lg:absolute lg:left-20'}`}>{item.label}</span>
+                  {item.dot && (
+                     <span className="absolute top-4 right-4 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                     </span>
+                  )}
+               </button>
+            ))}
+         </nav>
+
+         <div className={`absolute bottom-8 left-0 right-0 px-6 transition-opacity duration-300 ${!isSidebarOpen && 'lg:opacity-0'}`}>
+            <div className="bg-zinc-900 p-4 rounded-[1.5rem] border border-zinc-800">
+               <p className="text-[9px] font-black text-zinc-500 uppercase mb-2">XP Progression</p>
+               <div className="flex items-center gap-3">
+                  <div className="flex-1 h-1.5 bg-black rounded-full overflow-hidden">
+                     <div className="h-full bg-[#39FF14]" style={{ width: `${(jongomaXP / 2000) * 100}%` }}></div>
+                  </div>
+                  <span className="text-[10px] font-black">{jongomaXP}</span>
+               </div>
+            </div>
+         </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
       {/* Header */}
+      <div className="lg:hidden p-4 bg-black flex justify-between items-center">
+         <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
+         <img src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" className="h-8 w-auto grayscale invert" alt="Logo" />
+         <div className="w-10"></div>
+      </div>
+
       <header className="bg-black text-white px-6 py-8 border-b-4 border-[#39FF14] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/20 blur-[100px] rounded-full pointer-events-none"></div>
         
@@ -1046,26 +1262,6 @@ export default function NutritionDashboard() {
       </header>
 
       <div className="max-w-6xl mx-auto px-6 mt-12 space-y-12">
-        {/* NOUVEAU : SYSTÈME D'ONGLETS */}
-        <div className="flex bg-zinc-200/50 p-1.5 rounded-2xl w-max mx-auto md:mx-0 overflow-x-auto max-w-full">
-           <button onClick={() => setActiveTab('today')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'today' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Mon Jour</button>
-           <button onClick={() => setActiveTab('weight')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'weight' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Mon Poids</button>
-           <button onClick={() => setActiveTab('community')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'community' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Communauté</button>
-           <button onClick={() => setActiveTab('week')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'week' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Programme Semaine</button>
-           <button onClick={() => setActiveTab('favorites')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'favorites' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Recettes Enregistrées</button>
-           <button onClick={() => setActiveTab('coaching')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'coaching' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>
-              Coaching Personnel
-              {isNewUser && (
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                  </span>
-              )}
-           </button>
-           <button onClick={() => setActiveTab('history')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'history' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Historique</button>
-           <button onClick={() => setActiveTab('profile')} className={`shrink-0 px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'profile' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Réglages</button>
-        </div>
-        
         {activeTab === 'today' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
             
@@ -1881,6 +2077,121 @@ export default function NutritionDashboard() {
           </div>
         )}
 
+        {/* VUE BOUTIQUE */}
+        {activeTab === 'shop' && (
+           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
+              <div className="bg-black text-white p-10 rounded-[3rem] relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 border-b-8 border-[#39FF14] shadow-2xl">
+                 <div className="absolute top-0 right-0 w-80 h-80 bg-[#39FF14]/20 blur-[100px] rounded-full"></div>
+                 <div className="relative z-10">
+                    <h2 className={`${spaceGrotesk.className} text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4`}>Boutique <span className="text-[#39FF14]">Nutrition</span></h2>
+                    <p className="text-zinc-400 font-bold max-w-md uppercase tracking-widest text-xs">Équipez votre transformation Jongoma.</p>
+                 </div>
+                 {shopCart.length > 0 && (
+                    <div className="flex flex-col items-end gap-3 z-10">
+                       <div className="flex items-center gap-2">
+                          <input 
+                              type="text" 
+                              value={shopPromoCode} 
+                              onChange={e => setShopPromoCode(e.target.value)} 
+                              placeholder="Code Promo" 
+                              className="px-4 py-2 rounded-xl text-black font-bold text-xs outline-none"
+                              disabled={isShopPromoApplied}
+                          />
+                          <button onClick={applyShopPromo} disabled={isShopPromoApplied} className="bg-white text-black px-4 py-2 rounded-xl font-black text-xs hover:bg-zinc-200 transition disabled:opacity-50">
+                             {isShopPromoApplied ? 'Appliqué' : 'OK'}
+                          </button>
+                       </div>
+                       <button onClick={handleShopCheckout} className="bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition shadow-[0_0_40px_#39FF14] flex items-center gap-3">
+                          <ShoppingCart size={24}/> Commander ({shopCart.length})
+                       </button>
+                    </div>
+                 )}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                 <button onClick={() => setSelectedShopGoal('all')} className={`p-6 rounded-[2rem] border-2 font-black uppercase text-[10px] tracking-widest transition-all ${selectedShopGoal === 'all' ? 'bg-black text-[#39FF14] border-black' : 'bg-white border-zinc-100 text-zinc-400'}`}>Tous les produits</button>
+                 {SHOP_GOALS.map(goal => (
+                    <button key={goal.id} onClick={() => setSelectedShopGoal(goal.id)} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-3 font-black uppercase text-[10px] tracking-widest transition-all ${selectedShopGoal === goal.id ? 'bg-black text-[#39FF14] border-black shadow-xl' : 'bg-white border-zinc-100 text-zinc-400'}`}>
+                       <span className="text-2xl">{goal.icon}</span> {goal.label}
+                    </button>
+                 ))}
+              </div>
+
+              <div id="shop-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                 {shopDataDB.flatMap(cat => cat.produits)
+                    .filter(p => selectedShopGoal === 'all' || (selectedShopGoal === 'saved' ? savedShopProducts.some((sp: any) => sp.id === p.id) : p.goal === selectedShopGoal))
+                    .map(product => (
+                       <div key={product.id} className="bg-white border border-zinc-100 rounded-[2.5rem] p-6 flex flex-col hover:border-[#39FF14] transition-all hover:shadow-2xl group">
+                          <div className="relative aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 cursor-pointer" onClick={() => setSelectedProduct(product)}>
+                             <img src={product.image_url} alt={product.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                             {product.badge && <span className="absolute top-4 left-4 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">{product.badge}</span>}
+                          </div>
+                          <h4 className="font-black text-lg uppercase text-black mb-4 line-clamp-1">{product.nom}</h4>
+                          <div className="flex flex-col gap-1 mb-8">
+                             <p className="text-zinc-400 text-sm font-bold line-through">{product.prix_standard.toLocaleString()} F</p>
+                             <p className="text-2xl font-black text-[#39FF14] bg-black px-4 py-1 rounded-xl w-max italic">{product.prix_premium.toLocaleString()} F</p>
+                          </div>
+                          <div className="flex gap-2">
+                             <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2">
+                                <ShoppingCart size={16}/> Au panier
+                             </button>
+                             <button onClick={(e) => { e.stopPropagation(); toggleSaveProduct(product); }} className={`p-4 rounded-2xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
+                                <Heart size={18} className={savedShopProducts.some((sp: any) => sp.id === product.id) ? 'fill-current' : ''} />
+                             </button>
+                          </div>
+                       </div>
+                    ))}
+              </div>
+
+              <div className="mt-20 pt-12 border-t border-zinc-100">
+                 <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-8 flex items-center gap-3`}><BookOpen className="text-[#39FF14]"/> Nos Conseils Bien-être</h3>
+                 <div className="grid md:grid-cols-2 gap-8">
+                    {[
+                      { title: "Réussir ses pancakes d'avoine ?", desc: "L'astuce pour une texture parfaite sans farine de blé. Idéal avec notre pâte d'arachide pure.", link: "prod_011" },
+                      { title: "Pourquoi le Fonio est indispensable ?", desc: "Découvrez pourquoi cette céréale millénaire est le secret d'un ventre plat durable.", link: "prod_001" }
+                    ].map((article, idx) => (
+                       <div key={idx} className="bg-zinc-950 border border-zinc-800 p-8 rounded-[2.5rem] flex flex-col">
+                          <h4 className="font-black text-lg uppercase mb-3 text-[#39FF14]">{article.title}</h4>
+                          <p className="text-sm text-zinc-400 font-medium mb-6 flex-1">{article.desc}</p>
+                          <button onClick={() => { setSelectedShopGoal('all'); document.getElementById('shop-grid')?.scrollIntoView({behavior:'smooth'}); }} className="bg-white text-black px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest w-max hover:bg-[#39FF14] transition-colors">Acheter les ingrédients</button>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+           </div>
+        )}
+
+        {/* MODALE PRODUIT DÉTAILLÉ */}
+        <AnimatePresence>
+           {selectedProduct && (
+              <div id="product-overlay" onClick={(e: any) => e.target.id === 'product-overlay' && setSelectedProduct(null)} className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
+                 <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-[3rem] w-full max-w-4xl overflow-hidden flex flex-col md:flex-row relative shadow-2xl">
+                    <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
+                    <div className="w-full md:w-1/2 bg-zinc-50 flex items-center justify-center p-12">
+                       <img src={selectedProduct.image_url} alt={selectedProduct.nom} className="max-w-full h-auto object-contain drop-shadow-2xl" />
+                    </div>
+                    <div className="flex-1 p-10 flex flex-col text-black">
+                       <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 w-max">Zoom Produit</span>
+                       <h2 className="text-3xl font-black uppercase tracking-tighter mb-4 leading-tight">{selectedProduct.nom}</h2>
+                       <p className="text-zinc-500 font-medium leading-relaxed mb-8">{selectedProduct.description_longue}</p>
+                       <div className="space-y-3 mb-10">
+                          <div className="flex items-center gap-3 text-sm font-bold"><CheckCircle size={18} className="text-[#39FF14]"/> 🌱 100% Naturel : Sans conservateurs.</div>
+                          <div className="flex items-center gap-3 text-sm font-bold"><CheckCircle size={18} className="text-[#39FF14]"/> 🇸🇳 Fabrication locale : Coopératives de femmes.</div>
+                          <div className="flex items-center gap-3 text-sm font-bold"><CheckCircle size={18} className="text-[#39FF14]"/> 📦 Livraison rapide : Dakar en 24h.</div>
+                       </div>
+                       <div className="mt-auto pt-8 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+                          <div>
+                             <p className="text-[10px] font-black uppercase text-zinc-400 mb-1">Prix Premium</p>
+                             <p className="text-4xl font-black text-black">{selectedProduct.prix_premium.toLocaleString()} F</p>
+                          </div>
+                          <button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="w-full sm:w-auto bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={18}/> Ajouter au panier</button>
+                       </div>
+                    </div>
+                 </motion.div>
+              </div>
+           )}
+        </AnimatePresence>
+
         {/* VUE TRACKER DE POIDS */}
         {activeTab === 'weight' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
@@ -2097,7 +2408,7 @@ export default function NutritionDashboard() {
                <button onClick={() => setShowRedoDiagModal(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm">
                   Retour au Hub
                </button>
-               <button disabled={!redoReason} onClick={() => window.location.href = '/solutions/onyx-nutritionafricaine/diagnostic'} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+               <button disabled={!redoReason} onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic')} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                   Continuer <ArrowRight size={14} className="inline ml-1"/>
                </button>
             </div>
@@ -2162,5 +2473,6 @@ export default function NutritionDashboard() {
          </div>
       )}
     </main>
+    </div>
   );
 }

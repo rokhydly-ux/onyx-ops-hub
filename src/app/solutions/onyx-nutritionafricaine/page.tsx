@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { 
   Activity, HeartPulse, Smartphone, Flame, CheckCircle, 
   ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown, ChevronRight,
-  Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare
+  Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare, FileText, ShoppingBag
 } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -792,7 +792,7 @@ export default function NutritionAfricaineLanding() {
             </div>
             <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-6 text-black`}>Nos ingrédients ont des <span className="text-black border-b-4 border-[#39FF14]">super-pouvoirs.</span></h2>
             <p className="text-zinc-600 font-medium text-lg mb-8 leading-relaxed">
-              Découvrez les champions de notre dictionnaire nutritionnel, tous accessibles sur les marchés locaux ou emballés au rayon terroir chez Auchan Sénégal :
+              Découvrez les champions de notre guide nutritionnel de 10 pages, tous accessibles sur les marchés locaux ou emballés au rayon terroir chez Auchan Sénégal :
             </p>
             <div className="space-y-6">
               {INGREDIENTS.map((item, index) => (
@@ -821,13 +821,93 @@ export default function NutritionAfricaineLanding() {
                className="w-[85%] h-auto z-10 drop-shadow-2xl"
              > 
                <img 
-                 src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781199255/A_premium_studio_shot_of_202606111733_kaohlz.jpg"
+                 src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781201195/Design_sans_titre_avgfad.png"
                  alt="Aperçu du Guide Nutrition à l'Africaine"
                  className="max-w-full max-h-full object-contain"
                />
              </motion.div>
           </div> 
         </div>
+      </section>
+
+      {/* NOUVELLE SECTION : CE QUE VOUS ALLEZ APPRENDRE */}
+      <section className="py-24 px-6 bg-white border-b border-zinc-200">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+              Ce que vous allez apprendre <br/> <span className="text-black border-b-4 border-[#39FF14]">dans ce guide de 10 pages :</span>
+            </h2>
+            <p className="text-zinc-500 font-bold text-lg">Tout ce dont vous avez besoin pour démarrer votre transformation dès aujourd'hui.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-x-12 gap-y-6">
+            {[
+              "Pourquoi le riz blanc bloque votre perte de gras (et par quoi le remplacer).",
+              "L'astuce 'Bol Familial' pour manger comme tout le monde sans grossir.",
+              "Les 5 épices locales qui boostent votre métabolisme naturellement.",
+              "Comment doser l'huile dans le Thieb sans perdre le goût.",
+              "Le secret du Bissap rouge pour éliminer la rétention d'eau.",
+              "Pourquoi vous ne devez jamais sauter le petit-déjeuner.",
+              "Liste de courses optimisée chez Auchan ou au marché local.",
+              "Comment gérer les sorties au restaurant à Dakar.",
+              "L'importance des protéines locales (Niébé, Poisson, Poulet).",
+              "La méthode pour stabiliser votre poids après les 30 premiers jours."
+            ].map((point, idx) => (
+              <div key={idx} className="flex items-start gap-4">
+                <div className="bg-[#39FF14] text-black p-1 rounded-full mt-1"><CheckCircle size={16} /></div>
+                <p className="text-zinc-700 font-medium leading-relaxed">{point}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION : VITRINE BOUTIQUE */}
+      <section className="py-24 px-6 bg-[#fafafa]">
+         <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+               <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
+                  <ShoppingBag size={14}/> Boutique Nutrition
+               </div>
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 text-black`}>
+                  Équipez-vous pour <span className="text-black border-b-4 border-[#39FF14]">votre réussite.</span>
+               </h2>
+               <p className="text-zinc-500 font-bold text-lg max-w-2xl mx-auto">Nos super-aliments et accessoires exclusifs pour faciliter votre rééquilibrage.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+               {[
+                  { nom: "Fonio Premium (500g)", price: 2500, premium: 2100, img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781199255/A_premium_studio_shot_of_202606111733_kaohlz.jpg", badge: "Best Seller" },
+                  { nom: "Pâte d'Arachide Pure", price: 3000, premium: 2500, img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563481/A_vibrant_and_appetizing_food_202604301533_dmp5uw.jpg", badge: "100% Naturel" },
+                  { nom: "Gourde Motivante", price: 7000, premium: 5500, img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563498/A_moody__high-end_luxury_promotional_202604301516_zoftg0.jpg", badge: "Accessoire" }
+               ].map((p, idx) => (
+                  <div key={idx} className="bg-white border border-zinc-200 rounded-[2.5rem] p-6 hover:border-[#39FF14] transition-all hover:shadow-2xl group flex flex-col">
+                     <div className="aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 relative">
+                        <img src={p.img} alt={p.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        <span className="absolute top-4 left-4 bg-black text-[#39FF14] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">{p.badge}</span>
+                     </div>
+                     <div className="flex-1">
+                        <h3 className="font-black text-xl uppercase tracking-tighter text-black mb-2">{p.nom}</h3>
+                        <div className="flex flex-col gap-1 mb-8">
+                           <p className="text-zinc-400 text-sm font-bold line-through">{p.price} F (Standard)</p>
+                           <p className="text-2xl font-black text-black">
+                              {p.premium} F <span className="text-[10px] font-bold text-[#39FF14] bg-black px-2 py-0.5 rounded ml-2 uppercase">Premium</span>
+                           </p>
+                        </div>
+                     </div>
+                     <button onClick={() => window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour ! Je souhaite commander " + p.nom + " sur la boutique Onyx Nutrition.")}`, "_blank")} className="w-full bg-black text-white hover:bg-[#39FF14] hover:text-black py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl flex items-center justify-center gap-2">
+                        Commander via WhatsApp <ArrowRight size={16}/>
+                     </button>
+                  </div>
+               ))}
+            </div>
+
+            <div className="mt-16 text-center">
+               <button onClick={() => router.push('/nutrition')} className="inline-flex items-center gap-3 bg-white text-black border-2 border-black px-10 py-5 rounded-2xl font-black uppercase text-sm hover:bg-black hover:text-white transition-all shadow-lg">
+                  Accéder à la boutique complète <ArrowRight size={20}/>
+               </button>
+            </div>
+         </div>
       </section>
 
       {/* 6. TARIFICATION (Original section 3, now section 6) */}
@@ -1252,7 +1332,7 @@ export default function NutritionAfricaineLanding() {
                )}
 
                   {typeof window !== 'undefined' && localStorage.getItem('onyx_nutrition_welcome') && (
-                     <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 mb-8 text-left shadow-sm">
+                     <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 mb-6 text-left shadow-sm">
                         <h4 className="text-xs font-black text-blue-800 uppercase tracking-widest flex items-center gap-2 mb-3"><MessageSquare size={16}/> Mot de votre coach</h4>
                         <p className="text-blue-900 font-medium italic text-sm leading-relaxed">"{localStorage.getItem('onyx_nutrition_welcome')}"</p>
                         <p className="text-[9px] text-blue-600 font-bold mt-4 uppercase tracking-widest">Ce message vous attendra sur votre Dashboard personnel.</p>
@@ -1261,12 +1341,15 @@ export default function NutritionAfricaineLanding() {
 
                   <p className="text-zinc-600 font-medium mb-8">Téléchargez votre bilan complet au format PDF pour le conserver, ou envoyez-le à votre coach pour obtenir votre premier menu.</p>
                   
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3">
                     <button onClick={() => router.push('/nutrition?from=diagnostic')} type="button" className="w-full bg-black text-[#39FF14] py-5 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors shadow-lg flex justify-center items-center gap-2">
                       Accéder à mon espace personnel <ArrowRight size={18}/>
                     </button>
+                    <button onClick={() => window.open('https://res.cloudinary.com/dtr2wtoty/image/upload/v1781201195/Design_sans_titre_avgfad.png', '_blank')} type="button" className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase tracking-widest hover:bg-white transition-all shadow-lg flex justify-center items-center gap-2">
+                      <Download size={18}/> Télécharger le Guide (PDF)
+                    </button>
                     <button onClick={handleDownloadPDF} type="button" className="w-full bg-zinc-100 text-black py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors shadow-sm flex justify-center items-center gap-2 border border-zinc-200">
-                      <Download size={18}/> Télécharger mon bilan PDF
+                      <FileText size={18}/> Mon Bilan IMC (PDF)
                     </button>
                   </div>
                 </div>

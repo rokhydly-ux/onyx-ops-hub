@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const spaceGrotesk = { className: "font-sans" };
@@ -13,7 +13,7 @@ export default function AdminNutritionAfricaine() {
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<'clients'|'recipes'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'>('clients');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
@@ -22,6 +22,16 @@ export default function AdminNutritionAfricaine() {
   const [editingClient, setEditingClient] = useState<any>(null);
   const [clientForm, setClientForm] = useState({ id: '', daily_calorie_goal: 0, protein_goal: 0, carbs_goal: 0, fats_goal: 0, tracking_mode: 'guided' });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileProductInputRef = useRef<HTMLInputElement>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [productForm, setProductForm] = useState({ id: '', produit_id: '', categorie_nom: '', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all' });
+  const [promos, setPromos] = useState<any[]>([]);
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<any>(null);
+  const [promoForm, setPromoForm] = useState({ id: '', code: '', discount_pct: 10, min_xp: 0, active: true });
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -80,8 +90,20 @@ export default function AdminNutritionAfricaine() {
       if (data) setRecipes(data);
     };
 
+    const fetchShopAndOrders = async () => {
+      const [prods, ords, promosRes] = await Promise.all([
+         supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
+         supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
+         supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false })
+      ]);
+      if (prods.data) setProducts(prods.data);
+      if (ords.data) setOrders(ords.data);
+      if (promosRes.data) setPromos(promosRes.data);
+    };
+
     fetchClients();
     fetchRecipes();
+    fetchShopAndOrders();
   }, []);
 
   const filteredClients = clients.filter(c => 
@@ -193,6 +215,81 @@ export default function AdminNutritionAfricaine() {
       if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleOpenProductModal = (prod?: any) => {
+     if (prod) {
+         setEditingProduct(prod);
+         setProductForm({ ...prod });
+     } else {
+         setEditingProduct(null);
+         setProductForm({ id: '', produit_id: `prod_${Date.now()}`, categorie_nom: 'Super-Aliments & Céréales Locales', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all' });
+     }
+     setShowProductModal(true);
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const payload = { ...productForm };
+      delete payload.id;
+      if (editingProduct) {
+          const { error } = await supabase.from('nutrition_products').update(payload).eq('id', productForm.id);
+          if (!error) { setProducts(products.map(p => p.id === productForm.id ? { ...payload, id: productForm.id } : p)); setShowProductModal(false); }
+          else alert(error.message);
+      } else {
+          const { data, error } = await supabase.from('nutrition_products').insert([payload]).select().single();
+          if (!error && data) { setProducts([data, ...products]); setShowProductModal(false); }
+          else alert(error?.message);
+      }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+      if (!confirm("Supprimer ce produit ?")) return;
+      await supabase.from('nutrition_products').delete().eq('id', id);
+      setProducts(products.filter(p => p.id !== id));
+  };
+
+  const handleOpenPromoModal = (promo?: any) => {
+      if (promo) {
+          setEditingPromo(promo);
+          setPromoForm({ ...promo });
+      } else {
+          setEditingPromo(null);
+          setPromoForm({ id: '', code: '', discount_pct: 10, min_xp: 0, active: true });
+      }
+      setShowPromoModal(true);
+  };
+
+  const handleSavePromo = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const payload = { ...promoForm, code: promoForm.code.toUpperCase().replace(/\s+/g, '') };
+      delete payload.id;
+      let res;
+      if (editingPromo) res = await supabase.from('nutrition_promo_codes').update(payload).eq('id', promoForm.id).select().single();
+      else res = await supabase.from('nutrition_promo_codes').insert([payload]).select().single();
+      if (!res.error && res.data) {
+          if (editingPromo) setPromos(promos.map(p => p.id === promoForm.id ? res.data : p));
+          else setPromos([res.data, ...promos]);
+          setShowPromoModal(false);
+      } else alert(res.error?.message);
+  };
+
+  const handleDeletePromo = async (id: string) => {
+      if (!confirm("Supprimer ce code promo ?")) return;
+      await supabase.from('nutrition_promo_codes').delete().eq('id', id);
+      setPromos(promos.filter(p => p.id !== id));
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string, phone: string, clientName: string) => {
+      await supabase.from('nutrition_orders').update({ status: newStatus }).eq('id', orderId);
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      
+      let msg = "";
+      if (newStatus === 'En préparation') msg = `Bonjour ${clientName}, votre commande OnyxNutrition est en cours de préparation 📦 !`;
+      if (newStatus === 'Expédié') msg = `Bonjour ${clientName}, votre commande est en route 🚚 ! Notre livreur va vous contacter.`;
+      if (newStatus === 'Livré') msg = `Bonjour ${clientName}, votre commande a été livrée ✅. Merci pour votre confiance !`;
+
+      if (msg) window.open(`https://wa.me/${phone?.replace('+', '')}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-black"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
   }
@@ -235,6 +332,9 @@ export default function AdminNutritionAfricaine() {
             <div className="flex bg-white border border-zinc-200 p-1.5 rounded-2xl w-full md:w-auto shadow-sm">
                <button onClick={() => setActiveTab('clients')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'clients' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Suivi Clients</button>
                <button onClick={() => setActiveTab('recipes')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'recipes' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Menus & Recettes</button>
+               <button onClick={() => setActiveTab('shop')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'shop' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Boutique</button>
+               <button onClick={() => setActiveTab('orders')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'orders' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Commandes</button>
+               <button onClick={() => setActiveTab('promos')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'promos' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Codes Promo</button>
             </div>
             
             {activeTab === 'clients' && (
@@ -254,6 +354,16 @@ export default function AdminNutritionAfricaine() {
                   <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleImportCSV} />
                   <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={16}/> Import CSV</button>
                   <button onClick={() => handleOpenRecipeModal()} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={16}/> Nouvelle Recette</button>
+               </div>
+            )}
+            {activeTab === 'shop' && (
+               <div className="flex w-full md:w-auto gap-4">
+                  <button onClick={() => handleOpenProductModal()} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={16}/> Nouveau Produit</button>
+               </div>
+            )}
+            {activeTab === 'promos' && (
+               <div className="flex w-full md:w-auto gap-4">
+                  <button onClick={() => handleOpenPromoModal()} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2"><Plus size={16}/> Créer un Code Promo</button>
                </div>
             )}
         </div>
@@ -476,6 +586,128 @@ export default function AdminNutritionAfricaine() {
            </div>
         </div>
         )}
+
+        {activeTab === 'shop' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+           <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
+              <table className="w-full text-left min-w-[800px]">
+                 <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                    <tr>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Produit</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Prix (Standard/Premium)</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-zinc-50">
+                    {products.map(p => (
+                       <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
+                          <td className="p-4 flex items-center gap-3">
+                             {p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover bg-zinc-100" />}
+                             <div>
+                                <p className="font-bold text-sm text-black">{p.nom}</p>
+                                <p className="text-[10px] font-black text-zinc-500 uppercase mt-1">{p.categorie_nom}</p>
+                             </div>
+                          </td>
+                          <td className="p-4">
+                             <p className="text-xs font-bold text-zinc-500 line-through">{p.prix_standard} F</p>
+                             <p className="text-sm font-black text-[#39FF14] bg-black px-2 py-0.5 rounded w-max">{p.prix_premium} F</p>
+                          </td>
+                          <td className="p-4">
+                             <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${p.stock > 10 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.stock} en stock</span>
+                          </td>
+                          <td className="p-4 text-right flex justify-end gap-2">
+                             <button onClick={() => handleOpenProductModal(p)} className="p-2 bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Edit3 size={16}/></button>
+                             <button onClick={() => handleDeleteProduct(p.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                          </td>
+                       </tr>
+                    ))}
+                    {products.length === 0 && <tr><td colSpan={4} className="p-10 text-center text-zinc-400 font-bold">Aucun produit configuré.</td></tr>}
+                 </tbody>
+              </table>
+           </div>
+        </div>
+        )}
+
+        {activeTab === 'orders' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+           <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
+              <table className="w-full text-left min-w-[800px]">
+                 <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                    <tr>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Date & Client</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Commande</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-zinc-50">
+                    {orders.map(o => (
+                       <tr key={o.id} className="hover:bg-zinc-50 transition-colors">
+                          <td className="p-4">
+                             <p className="font-bold text-sm text-black">{o.client_name}</p>
+                             <p className="text-[10px] font-black text-zinc-500 uppercase mt-1">{new Date(o.created_at).toLocaleDateString('fr-FR')} • {o.phone}</p>
+                          </td>
+                          <td className="p-4">
+                             <p className="text-xs font-bold text-zinc-600 mb-1">{o.items?.length || 0} articles</p>
+                             <p className="text-sm font-black text-black">{o.total?.toLocaleString()} F</p>
+                             {o.promo_code && <p className="text-[10px] font-black text-[#39FF14] uppercase mt-1">Code: {o.promo_code} (-{o.discount_amount} F)</p>}
+                          </td>
+                          <td className="p-4">
+                             <select value={o.status} onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value, o.phone, o.client_name)} className={`p-2 border rounded-xl outline-none text-xs font-bold ${o.status === 'Nouveau' ? 'bg-blue-50 text-blue-600 border-blue-200' : o.status === 'Livré' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
+                               <option value="Nouveau">Nouveau</option>
+                               <option value="En préparation">En préparation</option>
+                               <option value="Expédié">Expédié</option>
+                               <option value="Livré">Livré</option>
+                               <option value="Annulé">Annulé</option>
+                             </select>
+                          </td>
+                          <td className="p-4 text-right flex justify-end gap-2">
+                             <button onClick={() => window.open(`https://wa.me/${o.phone?.replace('+', '')}`, '_blank')} className="px-3 py-2 bg-[#25D366] text-white hover:bg-[#1ebd58] rounded-lg transition-colors flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"><MessageSquare size={14}/> Relancer</button>
+                          </td>
+                       </tr>
+                    ))}
+                    {orders.length === 0 && <tr><td colSpan={4} className="p-10 text-center text-zinc-400 font-bold">Aucune commande enregistrée.</td></tr>}
+                 </tbody>
+              </table>
+           </div>
+        </div>
+        )}
+
+        {activeTab === 'promos' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+           <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
+              <table className="w-full text-left min-w-[600px]">
+                 <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                    <tr>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Code Promo</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Remise (%)</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Minimum XP</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Statut</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-zinc-50">
+                    {promos.map(p => (
+                       <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
+                          <td className="p-4 font-black text-sm text-black">{p.code}</td>
+                          <td className="p-4 font-black text-[#39FF14] text-lg">-{p.discount_pct}%</td>
+                          <td className="p-4 text-xs font-bold text-zinc-500">{p.min_xp} XP</td>
+                          <td className="p-4">
+                             <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${p.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.active ? 'Actif' : 'Inactif'}</span>
+                          </td>
+                          <td className="p-4 text-right flex justify-end gap-2">
+                             <button onClick={() => handleOpenPromoModal(p)} className="p-2 bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Edit3 size={16}/></button>
+                             <button onClick={() => handleDeletePromo(p.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                          </td>
+                       </tr>
+                    ))}
+                    {promos.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-400 font-bold">Aucun code promo créé.</td></tr>}
+                 </tbody>
+              </table>
+           </div>
+        </div>
+        )}
       </main>
 
       {/* MODALE RECETTE */}
@@ -599,6 +831,77 @@ export default function AdminNutritionAfricaine() {
 
                   <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
                      <Save size={20}/> Mettre à jour
+                  </button>
+               </form>
+            </div>
+         </div>
+      )}
+
+      {/* MODALE PRODUIT */}
+      {showProductModal && (
+         <div id="product-modal-overlay" onClick={(e: any) => e.target.id === 'product-modal-overlay' && setShowProductModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto text-black">
+               <button onClick={() => setShowProductModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-3`}><ShoppingBag className="text-[#39FF14]"/> Produit Boutique</h2>
+               
+               <form onSubmit={handleSaveProduct} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Catégorie</label><input type="text" required value={productForm.categorie_nom} onChange={e => setProductForm({...productForm, categorie_nom: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nom</label><input type="text" required value={productForm.nom} onChange={e => setProductForm({...productForm, nom: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Prix Standard</label><input type="number" required value={productForm.prix_standard} onChange={e => setProductForm({...productForm, prix_standard: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-[#39FF14] tracking-widest">Prix Premium</label><input type="number" required value={productForm.prix_premium} onChange={e => setProductForm({...productForm, prix_premium: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-blue-500 tracking-widest">Stock</label><input type="number" required value={productForm.stock} onChange={e => setProductForm({...productForm, stock: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                  </div>
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Description Courte</label><textarea required value={productForm.description_courte} onChange={e => setProductForm({...productForm, description_courte: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[60px]" /></div>
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Description Longue</label><textarea value={productForm.description_longue} onChange={e => setProductForm({...productForm, description_longue: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[100px]" /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Badge (Optionnel)</label><input type="text" value={productForm.badge} onChange={e => setProductForm({...productForm, badge: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="Ex: Best Seller" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Image URL</label><input type="text" required value={productForm.image_url} onChange={e => setProductForm({...productForm, image_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                  </div>
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Objectif (Goal)</label>
+                     <select value={productForm.goal} onChange={e => setProductForm({...productForm, goal: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">
+                        <option value="all">Général</option>
+                        <option value="detox">Détox</option>
+                        <option value="energy">Énergie</option>
+                        <option value="cooking">Cuisine</option>
+                        <option value="snacks">Snacks</option>
+                     </select>
+                  </div>
+                  <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
+                     <Save size={20}/> Sauvegarder
+                  </button>
+               </form>
+            </div>
+         </div>
+      )}
+
+      {/* MODALE PROMO CODE */}
+      {showPromoModal && (
+         <div id="promo-modal-overlay" onClick={(e: any) => e.target.id === 'promo-modal-overlay' && setShowPromoModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-md w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto text-black">
+               <button onClick={() => setShowPromoModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-3`}><Ticket className="text-[#39FF14]"/> Code Promotionnel</h2>
+               
+               <form onSubmit={handleSavePromo} className="space-y-4">
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Code Promo</label><input type="text" required value={promoForm.code} onChange={e => setPromoForm({...promoForm, code: e.target.value.toUpperCase()})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-black text-sm outline-none focus:border-black uppercase" placeholder="Ex: JONGOMA1000" /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Remise (%)</label><input type="number" min="0" max="100" required value={promoForm.discount_pct} onChange={e => setPromoForm({...promoForm, discount_pct: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Minimum XP requis</label><input type="number" required value={promoForm.min_xp} onChange={e => setPromoForm({...promoForm, min_xp: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                  </div>
+                  
+                  <label className="flex items-center gap-3 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl cursor-pointer hover:bg-zinc-100 transition-colors mt-4">
+                     <input type="checkbox" checked={promoForm.active} onChange={e => setPromoForm({...promoForm, active: e.target.checked})} className="w-5 h-5 accent-black" />
+                     <div>
+                        <p className="font-black text-sm uppercase text-black">Code Actif</p>
+                        <p className="text-[10px] font-bold text-zinc-500">Permettre son utilisation sur la boutique.</p>
+                     </div>
+                  </label>
+
+                  <button type="submit" className="w-full mt-4 bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
+                     <Save size={20}/> Sauvegarder
                   </button>
                </form>
             </div>

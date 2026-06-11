@@ -479,9 +479,12 @@ export default function NutritionDiagnostic() {
               </div>
 
               {/* Le CTA Magnétique */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 mt-4">
                 <button onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full bg-[#1b74e4] text-white py-6 rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest hover:bg-[#155fc0] transition-colors shadow-[0_15px_30px_rgba(27,116,228,0.3)] flex justify-center items-center gap-3 hover:scale-105 active:scale-95 animate-in slide-in-from-bottom-4">
                   <CheckCircle size={20} /> Créer mon compte & Débloquer mon Yassa Léger de Midi
+                </button>
+                <button onClick={() => window.open('https://res.cloudinary.com/dtr2wtoty/image/upload/v1781201195/Design_sans_titre_avgfad.png', '_blank')} className="w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest hover:bg-white transition-all shadow-xl flex justify-center items-center gap-2">
+                  <Download size={20} /> Télécharger le Guide Complet (PDF)
                 </button>
                 <p className="text-[10px] text-zinc-500 font-bold mt-2 uppercase tracking-widest">Rejoins les 25 000 membres de la communauté. Inscription gratuite en 10 secondes via Google ou Téléphone.</p>
                 
