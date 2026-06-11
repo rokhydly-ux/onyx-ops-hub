@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, 
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -98,6 +98,19 @@ const FOOD_DATABASE = [
   }
 ];
 
+// ÉTAPE 4 : Base de Données des Recettes pour le Générateur
+const RECIPES_DB = [
+  { id: "r1", type: "Petit-déjeuner", nom: "Lakh allégé", calories: 300, is_bol_commun: false, ingredients: [{nom: "Mil", quantite: 50, unite: "g", rayon: "Marché local"}, {nom: "Lait demi-écrémé", quantite: 50, unite: "ml", rayon: "Supermarché"}, {nom: "Noix de muscade", quantite: 1, unite: "pincée", rayon: "Supermarché"}] },
+  { id: "r2", type: "Petit-déjeuner", nom: "Flocons d'avoine & Banane", calories: 320, is_bol_commun: false, ingredients: [{nom: "Flocons d'avoine", quantite: 40, unite: "g", rayon: "Supermarché"}, {nom: "Banane", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
+  { id: "r3", type: "Déjeuner", nom: "Thieboudienne (Option Fonio)", calories: 600, is_bol_commun: true, ingredients: [{nom: "Thiof (Poisson)", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Fonio", quantite: 80, unite: "g", rayon: "Marché local"}, {nom: "Chou", quantite: 0.5, unite: "pièce", rayon: "Marché local"}, {nom: "Huile de colza", quantite: 1, unite: "càs", rayon: "Supermarché"}, {nom: "Carotte", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
+  { id: "r4", type: "Déjeuner", nom: "Mafé allégé au Poulet", calories: 550, is_bol_commun: true, ingredients: [{nom: "Blanc de Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Pâte d'arachide", quantite: 30, unite: "g", rayon: "Supermarché"}, {nom: "Riz brisé", quantite: 60, unite: "g", rayon: "Marché local"}, {nom: "Oignon", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
+  { id: "r5", type: "Déjeuner", nom: "Salade de Fonio au Poulet", calories: 450, is_bol_commun: false, ingredients: [{nom: "Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Fonio", quantite: 60, unite: "g", rayon: "Marché local"}, {nom: "Tomate", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Moutarde", quantite: 1, unite: "càc", rayon: "Supermarché"}] },
+  { id: "r6", type: "Dîner", nom: "Salade de Niébé fraîcheur", calories: 400, is_bol_commun: false, ingredients: [{nom: "Niébé (Haricots)", quantite: 100, unite: "g", rayon: "Marché local"}, {nom: "Concombre", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Vinaigre", quantite: 1, unite: "càs", rayon: "Supermarché"}] },
+  { id: "r7", type: "Dîner", nom: "Soupe de légumes locaux", calories: 300, is_bol_commun: false, ingredients: [{nom: "Carotte", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Navet", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Poireau", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
+  { id: "r8", type: "Collation", nom: "Poignée d'Arachides", calories: 150, is_bol_commun: false, ingredients: [{nom: "Arachides grillées", quantite: 30, unite: "g", rayon: "Marché local"}] },
+  { id: "r9", type: "Collation", nom: "Fruit de saison", calories: 100, is_bol_commun: false, ingredients: [{nom: "Fruit au choix (Mangue, etc)", quantite: 1, unite: "pièce", rayon: "Marché local"}] }
+];
+
 const CircularProgress = ({ value, max, colorClass, label, icon: Icon, unit }: any) => {
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
@@ -139,7 +152,7 @@ export default function NutritionDashboard() {
   
   // Nouveaux états de l'application Nutrition
   const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile'>('today');
-  const [trackingMode, setTrackingMode] = useState<'autopilot' | 'compass'>('autopilot');
+  const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   
   // Jauges quotidiennes
@@ -169,6 +182,10 @@ export default function NutritionDashboard() {
   const [carbsGoal, setCarbsGoal] = useState(150);
   const [fatsGoal, setFatsGoal] = useState(50);
   
+  // Smart Planner (Générateur)
+  const [weeklyGeneratedMenu, setWeeklyGeneratedMenu] = useState<any[]>([]);
+  const [showGroceryList, setShowGroceryList] = useState(false);
+
   const [profileForm, setProfileForm] = useState({ full_name: "", avatar_url: "", password: "" });
   const [showReminder, setShowReminder] = useState(false);
 
@@ -267,6 +284,9 @@ export default function NutritionDashboard() {
     };
 
     verifyAuth();
+    
+    // Générer le menu si vide
+    if (weeklyGeneratedMenu.length === 0) generateWeeklyMenu();
 
     // Afficher un message de bienvenue après le diagnostic
     if (searchParams.get('from') === 'diagnostic') {
@@ -296,10 +316,69 @@ export default function NutritionDashboard() {
     return () => clearInterval(interval);
   }, [dailyLogs]);
 
-  const weeklyMenus = ALL_MENUS.map(menu => ({
-    ...menu,
-    status: clientProfile?.plan_type === 'premium' || menu.week <= 2 ? 'unlocked' : 'locked'
-  }));
+  // --- LOGIQUE SMART PLANNER ---
+  const generateWeeklyMenu = () => {
+      let newMenu: any[] = [];
+      let bolCommunCount = 0;
+      const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+      
+      days.forEach(day => {
+          const breakfasts = RECIPES_DB.filter(r => r.type === 'Petit-déjeuner');
+          const lunches = RECIPES_DB.filter(r => r.type === 'Déjeuner');
+          const dinners = RECIPES_DB.filter(r => r.type === 'Dîner');
+          const snacks = RECIPES_DB.filter(r => r.type === 'Collation');
+
+          let lunch;
+          // S'assure d'intégrer 2-3 déjeuners "Bol Commun" dans la semaine
+          if (bolCommunCount < 3 && Math.random() > 0.4) {
+              const bcLunches = lunches.filter(r => r.is_bol_commun);
+              lunch = bcLunches[Math.floor(Math.random() * bcLunches.length)] || lunches[0];
+              bolCommunCount++;
+          } else {
+              const normalLunches = lunches.filter(r => !r.is_bol_commun);
+              lunch = normalLunches[Math.floor(Math.random() * normalLunches.length)] || lunches[0];
+          }
+
+          newMenu.push({
+              day,
+              meals: {
+                  'Petit-déjeuner': breakfasts[Math.floor(Math.random() * breakfasts.length)],
+                  'Déjeuner': lunch,
+                  'Collation': snacks[Math.floor(Math.random() * snacks.length)],
+                  'Dîner': dinners[Math.floor(Math.random() * dinners.length)]
+              }
+          });
+      });
+      setWeeklyGeneratedMenu(newMenu);
+  };
+
+  const handleSwapMeal = (dayIndex: number, mealType: string, currentRecipeId: string) => {
+      const alternatives = RECIPES_DB.filter(r => r.type === mealType && r.id !== currentRecipeId);
+      if (alternatives.length > 0) {
+          const newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
+          const updatedMenu = [...weeklyGeneratedMenu];
+          updatedMenu[dayIndex].meals[mealType] = newRecipe;
+          setWeeklyGeneratedMenu(updatedMenu);
+      }
+  };
+
+  const getGroceryList = () => {
+      const list: any = { 'Supermarché': {}, 'Marché local': {}, 'Boucherie / Pêche': {} };
+      weeklyGeneratedMenu.forEach(dayInfo => {
+          Object.values(dayInfo.meals).forEach((recipe: any) => {
+              recipe.ingredients.forEach((ing: any) => {
+                  const rayon = ing.rayon || 'Supermarché';
+                  if (!list[rayon]) list[rayon] = {};
+                  if (list[rayon][ing.nom]) {
+                      list[rayon][ing.nom].quantite += ing.quantite;
+                  } else {
+                      list[rayon][ing.nom] = { quantite: ing.quantite, unite: ing.unite };
+                  }
+              });
+          });
+      });
+      return list;
+  };
 
   const handleAddWater = async () => {
     if (!clientProfile) return;
@@ -477,6 +556,26 @@ export default function NutritionDashboard() {
     }
   };
 
+  const currentDayName = new Date().toLocaleDateString('fr-FR', { weekday: 'long' });
+  const formattedCurrentDay = currentDayName.charAt(0).toUpperCase() + currentDayName.slice(1);
+  const todayPlan = weeklyGeneratedMenu.find(d => d.day === formattedCurrentDay);
+
+  const weeklyMenus = ALL_MENUS.map(menu => {
+      let displayMeals = menu.meals;
+      if (menu.week === 1 && weeklyGeneratedMenu.length > 0) {
+          displayMeals = [
+              `Lundi : ${weeklyGeneratedMenu.find(d => d.day === 'Lundi')?.meals['Déjeuner']?.nom || 'Repas'}`,
+              `Mardi : ${weeklyGeneratedMenu.find(d => d.day === 'Mardi')?.meals['Déjeuner']?.nom || 'Repas'}`,
+              `Mercredi : ${weeklyGeneratedMenu.find(d => d.day === 'Mercredi')?.meals['Déjeuner']?.nom || 'Repas'}`
+          ];
+      }
+      return {
+          ...menu,
+          status: clientProfile?.plan_type === 'premium' || menu.week <= 2 ? 'unlocked' : 'locked',
+          meals: displayMeals
+      };
+  });
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
   }
@@ -535,11 +634,11 @@ export default function NutritionDashboard() {
             {/* SÉLECTEUR DE MODE & ACTIONS */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                <div className="bg-white border border-zinc-200 p-2 rounded-2xl flex items-center shadow-sm w-full md:w-auto">
-                 <button onClick={() => setTrackingMode('autopilot')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'autopilot' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
-                    <Utensils size={16}/> Mode Autopilote
+                 <button onClick={() => setTrackingMode('guided')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'guided' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
+                    <Utensils size={16}/> Mode Guidé
                  </button>
-                 <button onClick={() => setTrackingMode('compass')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'compass' ? 'bg-black text-[#00E5FF] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
-                    <Compass size={16}/> Mode Boussole
+                 <button onClick={() => setTrackingMode('flexible')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${trackingMode === 'flexible' ? 'bg-black text-[#00E5FF] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
+                    <Compass size={16}/> Mode Libre
                  </button>
                </div>
                
@@ -549,7 +648,7 @@ export default function NutritionDashboard() {
             </div>
             
             <div className="bg-blue-50 border border-blue-100 text-blue-800 p-4 rounded-xl text-sm font-medium">
-               <p><strong>{trackingMode === 'autopilot' ? 'Mode Autopilote (Strict) :' : 'Mode Boussole (Flexible) :'}</strong> {trackingMode === 'autopilot' ? "Idéal pour les 14 premiers jours. Suivez le menu à la lettre pour des résultats rapides." : "Vous êtes libre de composer vos repas ! Respectez simplement vos jauges de calories et protéines."}</p>
+               <p><strong>{trackingMode === 'guided' ? 'Mode Guidé (Menu Strict) :' : 'Mode Libre (Flexible) :'}</strong> {trackingMode === 'guided' ? "Idéal pour les 14 premiers jours. Suivez le menu généré à la lettre pour des résultats rapides." : "Vous êtes libre de composer vos repas ! Ajoutez ce que vous mangez via la barre de recherche."}</p>
             </div>
 
             {/* JAUGES DU JOUR */}
@@ -614,14 +713,25 @@ export default function NutritionDashboard() {
             {/* CORPS : LES REPAS */}
             <div className="grid md:grid-cols-2 gap-4">
                 {['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner'].map((mealType) => {
-                    const plannedMeal = DAILY_MENU.autopilot.find(m => m.type === mealType);
+                    const generatedMeal = todayPlan?.meals[mealType];
+                    const plannedMeal = generatedMeal ? {
+                        type: mealType,
+                        time: mealType === 'Petit-déjeuner' ? '08:00' : mealType === 'Déjeuner' ? '13:30' : mealType === 'Collation' ? '16:00' : '19:30',
+                        meal: generatedMeal.nom,
+                        cals: generatedMeal.calories,
+                        proteins: Math.round((generatedMeal.calories * 0.2) / 4),
+                        carbs: Math.round((generatedMeal.calories * 0.5) / 4),
+                        fats: Math.round((generatedMeal.calories * 0.3) / 9),
+                        recipe: `Ingrédients : ${generatedMeal.ingredients.map((i: any) => `${i.quantite}${i.unite} ${i.nom}`).join(', ')}`
+                    } : null;
+                    
                     const itemsForThisMeal = consumedMeals.filter(m => m.type === mealType);
                     
                     return (
                        <div key={mealType} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors flex flex-col">
                           <div className="flex justify-between items-center mb-4">
                              <span className="bg-zinc-100 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{mealType}</span>
-                             {trackingMode === 'autopilot' && plannedMeal && (
+                             {trackingMode === 'guided' && plannedMeal && (
                                 <span className="text-xs font-bold text-zinc-500 flex items-center gap-1"><Clock size={12}/> {plannedMeal.time}</span>
                              )}
                           </div>
@@ -641,7 +751,7 @@ export default function NutritionDashboard() {
                                       </div>
                                    ))}
                                 </div>
-                             ) : trackingMode === 'autopilot' && plannedMeal ? (
+                             ) : trackingMode === 'guided' && plannedMeal ? (
                                 <div onClick={() => handleMealClick(mealType, plannedMeal)} className="cursor-pointer">
                                    <p className="font-black text-lg text-black mb-2">{plannedMeal.meal}</p>
                                    <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
@@ -652,7 +762,7 @@ export default function NutritionDashboard() {
                              ) : null}
                           </div>
 
-                          {(trackingMode === 'compass' || (trackingMode === 'autopilot' && itemsForThisMeal.length === 0)) && (
+                          {(trackingMode === 'flexible' || (trackingMode === 'guided' && itemsForThisMeal.length === 0)) && (
                              <div onClick={() => handleMealClick(mealType, plannedMeal)} className="mt-4 flex flex-col items-center justify-center py-4 border-2 border-dashed border-zinc-200 rounded-xl hover:border-black hover:bg-zinc-50 transition-colors cursor-pointer">
                                 <span className="text-2xl mb-1 text-zinc-300 leading-none">+</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{itemsForThisMeal.length > 0 ? "Ajouter autre chose" : "Ajouter un aliment"}</span>
@@ -716,7 +826,7 @@ export default function NutritionDashboard() {
                      <button onClick={() => setSelectedMealModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
                      <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter mb-2`}>{selectedMealModal.type}</h2>
                      
-                     {selectedMealModal.mode === 'autopilot' && selectedMealModal.meal ? (
+                     {selectedMealModal.mode === 'guided' && selectedMealModal.meal ? (
                          <>
                              <p className="text-sm font-bold text-zinc-500 mb-6">{selectedMealModal.meal.meal}</p>
                              <div className="bg-zinc-50 p-5 rounded-2xl border border-zinc-200 mb-6">
@@ -940,83 +1050,131 @@ export default function NutritionDashboard() {
         {activeTab === 'week' && (
           <div className="space-y-12 animate-in fade-in slide-in-from-right-4">
             
-            {/* SECTION GUIDE PDF */}
+            {/* SECTION SMART PLANNER (Générateur) */}
             <section>
-           <div className="bg-white border border-zinc-200 p-8 md:p-10 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group hover:border-[#39FF14] transition-colors">
-             <div className="flex items-center gap-6 relative z-10">
-                <div className="bg-[#39FF14]/10 text-[#39FF14] p-5 rounded-2xl border border-[#39FF14]/20 group-hover:scale-110 transition-transform">
-                   <Download size={32} />
-                </div>
-                <div>
-                   <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-1`}>Le Guide Complet</h2>
-                   <p className="text-zinc-500 font-bold text-sm">Nutrition à l'Africaine : Vos 10 pages d'astuces et recettes.</p>
-                </div>
-             </div>
-             <button className="w-full md:w-auto bg-black text-[#39FF14] px-8 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2 relative z-10">
-                Télécharger mon guide (PDF)
-             </button>
-           </div>
-        </section>
+               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                  <div className="flex items-center gap-3">
+                     <Calendar className="text-[#39FF14] bg-black p-2 rounded-lg" size={36} />
+                     <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Smart Planner</h2>
+                  </div>
+                  <div className="flex gap-4">
+                     <button onClick={generateWeeklyMenu} className="bg-white border border-zinc-200 text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-50 transition shadow-sm flex items-center gap-2">
+                        <RefreshCcw size={14}/> Regénérer
+                     </button>
+                     <button onClick={() => setShowGroceryList(true)} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition shadow-lg flex items-center gap-2">
+                        <ShoppingCart size={14}/> Liste de courses
+                     </button>
+                  </div>
+               </div>
+
+               {clientProfile?.plan_type !== 'premium' && daysLeft <= 0 ? (
+                  <div className="bg-white border-2 border-dashed border-zinc-300 rounded-[2rem] p-12 text-center relative overflow-hidden">
+                     <div className="w-16 h-16 bg-zinc-100 text-zinc-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Lock size={28} />
+                     </div>
+                     <h3 className="font-black uppercase text-xl text-black mb-2">Générateur Verrouillé</h3>
+                     <p className="text-sm font-medium text-zinc-500 mb-6 max-w-md mx-auto">Votre période d'essai est terminée. Passez au plan Premium pour réactiver le Smart Planner et votre liste de courses automatique.</p>
+                     <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite passer au plan Premium !', '_blank')} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2 mx-auto">
+                        <Sparkles size={16}/> Passer Premium
+                     </button>
+                  </div>
+               ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                     {weeklyGeneratedMenu.map((dayPlan, dIdx) => (
+                        <div key={dIdx} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors group">
+                           <h3 className="font-black uppercase tracking-widest text-sm mb-4 border-b border-zinc-100 pb-2 text-zinc-600">{dayPlan.day}</h3>
+                           <div className="space-y-3">
+                              {Object.entries(dayPlan.meals).map(([mealType, recipe]: any) => (
+                                 <div key={mealType} className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 relative pr-10 hover:border-[#39FF14] transition-colors">
+                                    <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
+                                    <p className="text-xs font-bold text-black leading-tight mb-1">{recipe.nom}</p>
+                                    <div className="flex gap-2 items-center">
+                                       <span className="text-[10px] font-bold text-orange-500">{recipe.calories} kcal</span>
+                                       {recipe.is_bol_commun && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Bol Commun</span>}
+                                    </div>
+                                    <button onClick={() => handleSwapMeal(dIdx, mealType, recipe.id)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-black transition-colors p-1" title="Changer ce repas">
+                                       <RefreshCcw size={14}/>
+                                    </button>
+                                 </div>
+                              ))}
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               )}
+            </section>
 
             {/* SECTION MENUS DE LA SEMAINE */}
-            <section>
-           <div className="flex items-center gap-3 mb-8">
-              <Calendar className="text-[#39FF14] bg-black p-2 rounded-lg" size={36} />
-              <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Vos Menus Sur-Mesure</h2>
-           </div>
+            <section className="mt-12">
+               <div className="flex items-center gap-3 mb-8">
+                  <Calendar className="text-[#39FF14] bg-black p-2 rounded-lg" size={36} />
+                  <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Vos Menus Sur-Mesure</h2>
+               </div>
 
-           <div className="grid md:grid-cols-2 gap-6">
-              {weeklyMenus.map((menu, idx) => (
-                 <motion.div 
-                   initial={{ opacity: 0, y: 20 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   transition={{ delay: idx * 0.1 }}
-                   key={menu.week} 
-                   className={`relative border-2 rounded-[2rem] p-8 transition-all overflow-hidden ${menu.status === 'unlocked' ? 'bg-white border-zinc-200 hover:border-black shadow-sm' : 'bg-zinc-100 border-dashed border-zinc-300'}`}
-                 >
-                    {menu.status === 'locked' && (
-                       <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center">
-                          <div className="w-16 h-16 bg-zinc-200 text-zinc-500 rounded-full flex items-center justify-center mb-4 shadow-inner">
-                             <Lock size={28} />
-                          </div>
-                          <h3 className="font-black uppercase text-lg text-black mb-2">Semaine Verrouillée</h3>
-                          <p className="text-xs font-bold text-zinc-500 mb-6">Passez au plan Premium pour débloquer la suite de votre programme et l'accès au groupe privé.</p>
-                          <button onClick={() => window.open('https://wa.me/221785338417?text=Bonjour, je souhaite passer au plan Premium Nutrition pour débloquer toutes les semaines !', '_blank')} className="bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center gap-2">
-                             <Sparkles size={14}/> Passer Premium
-                          </button>
-                       </div>
-                    )}
-                    
-                    <div className="flex justify-between items-start mb-6">
-                       <div>
-                          <span className={`inline-block px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-3 ${menu.status === 'unlocked' ? 'bg-[#39FF14]/20 text-green-700' : 'bg-zinc-200 text-zinc-500'}`}>
-                             Semaine {menu.week}
-                          </span>
-                          <h3 className={`${spaceGrotesk.className} text-xl font-black uppercase text-black`}>{menu.title}</h3>
-                       </div>
-                       {menu.status === 'unlocked' && <CheckCircle className="text-[#39FF14]" size={24} />}
+               <div className="grid md:grid-cols-2 gap-6">
+                  {weeklyMenus.map((menu: any, idx: number) => (
+                     <motion.div 
+                       initial={{ opacity: 0, y: 20 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       transition={{ delay: idx * 0.1 }}
+                       key={menu.week} 
+                       className={`relative border-2 rounded-[2rem] p-8 transition-all overflow-hidden ${menu.status === 'unlocked' ? 'bg-white border-zinc-200 hover:border-black shadow-sm' : 'bg-zinc-100 border-dashed border-zinc-300'}`}
+                     >
+                        {menu.status === 'locked' && (
+                           <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center">
+                              <div className="w-16 h-16 bg-zinc-200 text-zinc-500 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                                 <Lock size={28} />
+                              </div>
+                              <h3 className="font-black uppercase text-lg text-black mb-2">Semaine Verrouillée</h3>
+                              <p className="text-xs font-bold text-zinc-500 mb-6">Passez au plan Premium pour débloquer la suite de votre programme.</p>
+                           </div>
+                        )}
+                        
+                        <div className="flex justify-between items-start mb-6">
+                           <div>
+                              <span className={`inline-block px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest mb-3 ${menu.status === 'unlocked' ? 'bg-[#39FF14]/20 text-green-700' : 'bg-zinc-200 text-zinc-500'}`}>
+                                 Semaine {menu.week}
+                              </span>
+                              <h3 className={`${spaceGrotesk.className} text-xl font-black uppercase text-black`}>{menu.title}</h3>
+                           </div>
+                           {menu.status === 'unlocked' && <CheckCircle className="text-[#39FF14]" size={24} />}
+                        </div>
+                        
+                        <p className="text-sm font-medium text-zinc-600 mb-6">{menu.desc}</p>
+                        
+                        {menu.status === 'unlocked' && (
+                           <div className="bg-zinc-50 border border-zinc-100 p-5 rounded-2xl">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 border-b border-zinc-200 pb-2">Aperçu du menu</p>
+                              <ul className="space-y-3">
+                                 {menu.meals.map((meal: string, i: number) => (
+                                    <li key={i} className="text-xs font-bold text-zinc-700 flex items-start gap-2">
+                                       <span className="text-[#39FF14] mt-0.5">●</span> {meal}
+                                    </li>
+                                 ))}
+                              </ul>
+                           </div>
+                        )}
+                     </motion.div>
+                  ))}
+               </div>
+            </section>
+
+            {/* SECTION GUIDE PDF */}
+            <section>
+               <div className="bg-white border border-zinc-200 p-8 md:p-10 rounded-[2rem] shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group hover:border-[#39FF14] transition-colors">
+                 <div className="flex items-center gap-6 relative z-10">
+                    <div className="bg-[#39FF14]/10 text-[#39FF14] p-5 rounded-2xl border border-[#39FF14]/20 group-hover:scale-110 transition-transform">
+                       <Download size={32} />
                     </div>
-                    
-                    <p className="text-sm font-medium text-zinc-600 mb-6">{menu.desc}</p>
-                    
-                    {menu.status === 'unlocked' && (
-                       <div className="bg-zinc-50 border border-zinc-100 p-5 rounded-2xl">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3 border-b border-zinc-200 pb-2">Aperçu du menu</p>
-                          <ul className="space-y-3">
-                             {menu.meals.map((meal, i) => (
-                                <li key={i} className="text-xs font-bold text-zinc-700 flex items-start gap-2">
-                                   <span className="text-[#39FF14] mt-0.5">●</span> {meal}
-                                </li>
-                             ))}
-                          </ul>
-                          <button className="w-full mt-6 bg-black text-white py-3 rounded-xl font-black uppercase text-[10px] hover:bg-zinc-800 transition flex items-center justify-center gap-2">
-                             Voir le menu complet <ArrowRight size={14} />
-                          </button>
-                       </div>
-                    )}
-                 </motion.div>
-              ))}
-           </div>
+                    <div>
+                       <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-1`}>Le Guide Complet</h2>
+                       <p className="text-zinc-500 font-bold text-sm">Nutrition à l'Africaine : Vos astuces et recettes de base.</p>
+                    </div>
+                 </div>
+                 <button className="w-full md:w-auto bg-black text-[#39FF14] px-8 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-lg flex items-center justify-center gap-2 relative z-10">
+                    Télécharger mon guide (PDF)
+                 </button>
+               </div>
             </section>
 
           </div>
@@ -1098,6 +1256,36 @@ export default function NutritionDashboard() {
                <div className="flex gap-2">
                   <button onClick={() => { setShowReminder(false); setActiveTab('today'); setShowDailyReport(true); }} className="bg-[#39FF14] text-black px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-transform hover:scale-105">Remplir maintenant</button>
                   <button onClick={() => setShowReminder(false)} className="text-zinc-500 hover:text-white px-2 py-2 rounded-lg font-bold text-[10px] uppercase">Plus tard</button>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* MODALE LISTE DE COURSES */}
+      {showGroceryList && (
+         <div id="grocery-overlay" onClick={(e: any) => e.target.id === 'grocery-overlay' && setShowGroceryList(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white p-8 sm:p-10 rounded-3xl max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto max-h-[90vh] overflow-y-auto">
+               <button onClick={() => setShowGroceryList(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+               <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter mb-2 flex items-center gap-3`}><ShoppingCart size={32} className="text-[#39FF14]" /> Liste de Courses</h2>
+               <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-8">Générée automatiquement d'après votre menu</p>
+
+               <div className="space-y-8">
+                  {Object.entries(getGroceryList()).map(([rayon, items]: any) => {
+                     if (Object.keys(items).length === 0) return null;
+                     return (
+                        <div key={rayon}>
+                           <h4 className="font-black uppercase text-sm mb-3 text-black bg-zinc-100 p-3 rounded-xl border border-zinc-200">{rayon}</h4>
+                           <ul className="grid md:grid-cols-2 gap-x-6 gap-y-3 px-2">
+                              {Object.entries(items).map(([nom, data]: any) => (
+                                 <li key={nom} className="flex items-center justify-between text-sm font-medium border-b border-zinc-100 pb-2">
+                                    <span className="text-zinc-700">{nom}</span>
+                                    <span className="font-black text-black">{data.quantite} {data.unite}</span>
+                                 </li>
+                              ))}
+                           </ul>
+                        </div>
+                     );
+                  })}
                </div>
             </div>
          </div>
