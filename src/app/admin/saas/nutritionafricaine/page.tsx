@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon } from "lucide-react";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -17,21 +18,33 @@ export default function AdminNutritionAfricaine() {
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
   const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [] as any[] });
+  const [expandedClient, setExpandedClient] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchClients = async () => {
-      // Pour cet affichage on join nutrition_profiles et nutrition_daily_logs
-      const { data: profiles, error } = await supabase
-        .from('nutrition_profiles')
+      // Fetch depuis la table clients pour s'assurer d'avoir tous ceux inscrits
+      const { data: clientsData, error } = await supabase
+        .from('clients')
         .select(`
           *,
-          client:clients(*),
-          logs:nutrition_daily_logs(*)
+          nutrition_profiles(*),
+          nutrition_daily_logs(*),
+          nutrition_weight_logs(*)
         `)
+        .in('saas', ["Nutrition à l'Africaine", "OnyxNutrition"])
         .order('created_at', { ascending: false });
 
-      if (profiles && !error) {
-        setClients(profiles);
+      if (clientsData && !error) {
+        const mappedProfiles = clientsData.map(c => {
+           const prof = (c.nutrition_profiles && c.nutrition_profiles.length > 0) ? c.nutrition_profiles[0] : {};
+           return {
+              ...prof,
+              client: c,
+              logs: c.nutrition_daily_logs || [],
+              weight_logs: c.nutrition_weight_logs || []
+           };
+        });
+        setClients(mappedProfiles);
       }
       setLoading(false);
     };
@@ -143,6 +156,9 @@ export default function AdminNutritionAfricaine() {
               const calsGoal = profile.daily_calorie_goal || 1500;
               const protsGoal = profile.protein_goal || 80;
 
+              const weightLogs = profile.weight_logs?.sort((a: any, b: any) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime()) || [];
+              const waterLogs = profile.logs?.sort((a: any, b: any) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime()).slice(-7) || [];
+
               // LOGIQUE D'ALERTES COACH
               const isOverCalories = calsConsumed > calsGoal;
               let isMissingLogs = false;
@@ -173,6 +189,47 @@ export default function AdminNutritionAfricaine() {
                           {profile.tracking_mode === 'guided' || profile.tracking_mode === 'autopilot' ? 'Guidé' : 'Libre'}
                        </span>
                     </div>
+
+                    {/* GRAPHIQUES POIDS & EAU */}
+                    {expandedClient === profile.id ? (
+                       <div className="mb-6 space-y-6 bg-zinc-900 p-4 rounded-2xl border border-zinc-800 animate-in slide-in-from-top-2">
+                          <div className="flex justify-between items-center mb-2">
+                             <h4 className="text-xs font-black uppercase text-white tracking-widest flex items-center gap-2"><LineChartIcon size={14} className="text-[#39FF14]"/> Courbe de Poids</h4>
+                             <button onClick={() => setExpandedClient(null)} className="text-zinc-500 hover:text-white"><X size={14}/></button>
+                          </div>
+                          
+                          {weightLogs.length > 0 ? (
+                             <div className="h-32 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={weightLogs}>
+                                    <Line type="monotone" dataKey="weight" stroke="#39FF14" strokeWidth={3} dot={{ r: 4, fill: '#000', stroke: '#39FF14' }} />
+                                    <RechartsTooltip contentStyle={{ fontSize: '10px', borderRadius: '8px', backgroundColor: '#000', border: '1px solid #333', color: '#fff' }} />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                             </div>
+                          ) : (
+                             <p className="text-[10px] text-zinc-500 italic">Aucune donnée de poids enregistrée.</p>
+                          )}
+
+                          <h4 className="text-xs font-black uppercase text-white tracking-widest flex items-center gap-2 pt-4 border-t border-zinc-800"><BarChartIcon size={14} className="text-[#00E5FF]"/> Historique Eau (7j)</h4>
+                          {waterLogs.length > 0 ? (
+                             <div className="h-32 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <BarChart data={waterLogs}>
+                                    <Bar dataKey="water_glasses" fill="#00E5FF" radius={[4, 4, 0, 0]} />
+                                    <RechartsTooltip contentStyle={{ fontSize: '10px', borderRadius: '8px', backgroundColor: '#000', border: '1px solid #333', color: '#fff' }} />
+                                  </BarChart>
+                                </ResponsiveContainer>
+                             </div>
+                          ) : (
+                             <p className="text-[10px] text-zinc-500 italic">Aucune donnée d'hydratation.</p>
+                          )}
+                       </div>
+                    ) : (
+                       <button onClick={() => setExpandedClient(profile.id)} className="mb-4 w-full bg-zinc-100 py-2.5 rounded-xl text-[10px] font-black uppercase text-zinc-500 hover:text-black hover:bg-zinc-200 flex justify-center items-center gap-2 transition-colors">
+                          <LineChartIcon size={14}/> Voir l'évolution (Poids & Eau)
+                       </button>
+                    )}
 
                     {/* ZONES D'ALERTES */}
                     {(isOverCalories || isMissingLogs) && (
