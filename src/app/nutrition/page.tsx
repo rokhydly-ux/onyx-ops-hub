@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, Sun, Moon,
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
@@ -231,6 +231,22 @@ export default function NutritionDashboard() {
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
 
+  // Diagnostic Interne (Redo)
+  const [diagStep, setDiagStep] = useState(0);
+  const [isSubmittingDiag, setIsSubmittingDiag] = useState(false);
+  const [diagData, setDiagData] = useState({
+    gender: "",
+    age: "",
+    height: "",
+    currentWeight: "",
+    dailySteps: "",
+    weightLossPace: "Normalement",
+    healthProfile: "",
+    mainChallenge: "",
+    dietaryHabits: "",
+    allergies: ""
+  });
+
   // --- NOTIFICATIONS PUSH PWA ---
   const sendWaterReminderPush = () => {
     if (typeof window !== 'undefined' && 'Notification' in window && navigator.serviceWorker) {
@@ -291,6 +307,8 @@ export default function NutritionDashboard() {
   const [shopPromoCode, setShopPromoCode] = useState("");
   const [isShopPromoApplied, setIsShopPromoApplied] = useState(false);
   const [shopPromoCodesDB, setShopPromoCodesDB] = useState<any[]>([]);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [clientOrders, setClientOrders] = useState<any[]>([]);
   const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
   const [showCartModal, setShowCartModal] = useState(false);
 
@@ -444,6 +462,12 @@ export default function NutritionDashboard() {
                 if (Array.isArray(parsed)) setSavedShopProducts(parsed);
              } catch(e) {}
           }
+          
+          if (profileData.address) setDeliveryAddress(profileData.address);
+
+          // Fetch des commandes du client
+          const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', profileData.id).order('created_at', { ascending: false });
+          if (ordersData) setClientOrders(ordersData);
 
           const savedExcluded = localStorage.getItem(`onyx_nutrition_excluded_ings_${profileData.id}`);
           if (savedExcluded) {
@@ -663,6 +687,58 @@ export default function NutritionDashboard() {
           }
       } else {
           alert("Aucune alternative disponible pour ce type de repas dans la base de données.");
+      }
+  };
+
+  const handleDiagSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (diagStep < 4) {
+          setDiagStep(diagStep + 1);
+          return;
+      }
+
+      setIsSubmittingDiag(true);
+      try {
+          const heightCm = parseFloat(diagData.height) || 0;
+          const currentWeight = parseFloat(diagData.currentWeight) || 0;
+          const age = parseFloat(diagData.age) || 0;
+          const isMale = diagData.gender === "Homme";
+          const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
+          let deficit = 500;
+          if (diagData.weightLossPace === 'Progressivement') deficit = 300;
+          else if (diagData.weightLossPace === 'Rapidement') deficit = 700;
+          const weightToLose = currentWeight - idealWeight;
+          const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+          let nap = 1.2;
+          if (diagData.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
+          else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
+          else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+          const tdee = bmr * nap;
+          let rawCalories = weightToLose > 0 ? tdee - deficit : (weightToLose < 0 ? tdee + 300 : tdee);
+          if (diagData.healthProfile === "Allaitement") rawCalories += 500;
+          
+          const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
+          let proteinRatio = age >= 50 ? 0.35 : 0.30;
+          const carbs = (dailyCalories * (0.70 - proteinRatio)) / 4;
+          const protein = (dailyCalories * proteinRatio) / 4;
+          const fats = (dailyCalories * 0.30) / 9;
+
+          localStorage.setItem('onyx_nutrition_goals', JSON.stringify({ calories: dailyCalories, carbs, protein, fats }));
+          setCalorieGoal(Math.round(dailyCalories));
+          setProteinGoal(Math.round(protein));
+          setCarbsGoal(Math.round(carbs));
+          setFatsGoal(Math.round(fats));
+
+          if (clientProfile) {
+              await supabase.from('nutrition_profiles').upsert({ client_id: clientProfile.id, bmr: Math.round(bmr), tdee: Math.round(tdee), daily_calorie_goal: Math.round(dailyCalories), carbs_goal: Math.round(carbs), protein_goal: Math.round(protein), fats_goal: Math.round(fats), diagnostic_data: diagData }, { onConflict: 'client_id' });
+              await generateWeeklyMenu();
+          }
+          
+          setDiagStep(5);
+      } catch (err) {
+          alert("Erreur lors de l'enregistrement du diagnostic.");
+      } finally {
+          setIsSubmittingDiag(false);
       }
   };
 
@@ -1180,7 +1256,7 @@ export default function NutritionDashboard() {
   const menuItems = [
     { id: 'today', label: 'Mon Jour', icon: Calendar },
     { id: 'weight', label: 'Mon Poids', icon: Scale },
-    { id: 'community', label: 'Communauté', icon: Camera },
+    { id: 'orders', label: 'Mes Commandes', icon: Package },
     { id: 'shop', label: 'Boutique', icon: ShoppingBag },
     { id: 'week', label: 'Programme', icon: ListChecks },
     { id: 'favorites', label: 'Recettes', icon: HeartPulse },
@@ -1190,11 +1266,32 @@ export default function NutritionDashboard() {
   ];
 
   const addToCart = (product: any) => {
-    const isPremium = clientProfile?.plan_type === 'premium';
-    const price = isPremium ? product.prix_premium : product.prix_standard;
-    setShopCart([...shopCart, { ...product, finalPrice: price }]);
+    const existingItem = shopCart.find(item => item.id === product.id);
+    if (existingItem) {
+        setShopCart(shopCart.map(item => item.id === product.id ? { ...item, quantity: (item.quantity || 1) + 1 } : item));
+    } else {
+        const isPremium = clientProfile?.plan_type === 'premium';
+        const price = isPremium ? product.prix_premium : product.prix_standard;
+        setShopCart([...shopCart, { ...product, finalPrice: price, quantity: 1 }]);
+    }
     setToastMessage(`Ajouté au panier : ${product.nom}`);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const updateCartQuantity = (productId: string, delta: number) => {
+    setShopCart(prevCart => {
+        const itemToUpdate = prevCart.find(item => item.id === productId);
+        // Si la quantité devient 0 ou moins, on supprime l'article
+        if (itemToUpdate && (itemToUpdate.quantity || 1) + delta < 1) {
+            return prevCart.filter(item => item.id !== productId);
+        }
+        // Sinon, on met à jour la quantité
+        return prevCart.map(item =>
+            item.id === productId
+                ? { ...item, quantity: (item.quantity || 1) + delta }
+                : item
+        );
+    });
   };
 
   const applyShopPromo = () => {
@@ -1220,35 +1317,51 @@ export default function NutritionDashboard() {
   };
 
   const handleShopCheckout = async () => {
-    if (shopCart.length === 0) return;
+    if (shopCart.length === 0) return alert("Votre panier est vide.");
+    if (!deliveryAddress.trim()) {
+        alert("Veuillez renseigner votre adresse de livraison dans le panier avant de commander.");
+        setShowCartModal(true);
+        return;
+    }
 
     const discountPct = isShopPromoApplied && appliedPromoData ? appliedPromoData.discount_pct : 0;
     const discountMultiplier = 1 - (discountPct / 100);
     
-    const originalTotal = shopCart.reduce((acc, item) => acc + item.finalPrice, 0);
+    const originalTotal = shopCart.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0);
     const discountAmount = Math.round(originalTotal * (discountPct / 100));
     const total = Math.round(originalTotal * discountMultiplier);
-    const cartText = shopCart.map(item => `- ${item.nom} (${Math.round(item.finalPrice * discountMultiplier)} F)`).join('\n');
+    const cartText = shopCart.map(item => `- ${item.quantity}x ${item.nom} (${(item.finalPrice * item.quantity).toLocaleString()} F)`).join('\n');
 
     // Sauvegarde en DB
     if (clientProfile) {
-       await supabase.from('nutrition_orders').insert({
+       const tenantIdToUse = shopCart[0]?.tenant_id || clientProfile.tenant_id || '';
+       const { data, error } = await supabase.from('nutrition_orders').insert({
           client_id: clientProfile.id,
           client_name: user?.full_name || 'Inconnu',
           phone: clientProfile.phone || '',
-          items: shopCart,
+          items: shopCart.map(p => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
           total: total,
           status: 'Nouveau',
           promo_code: isShopPromoApplied && appliedPromoData ? appliedPromoData.code : null,
-          discount_amount: discountAmount
-       });
+          discount_amount: discountAmount,
+          tenant_id: tenantIdToUse,
+          address: deliveryAddress
+       }).select();
+       
+       if (error) {
+           console.error("Erreur commande:", error);
+           alert("Oups, impossible de sauvegarder la commande dans l'historique.");
+       } else if (data && data.length > 0) {
+           setClientOrders([data[0], ...clientOrders]);
+           await supabase.from('clients').update({ address: deliveryAddress }).eq('id', clientProfile.id);
+       }
     }
 
     let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique Onyx Nutrition :\n\n${cartText}\n\n*Total : ${total} F*\n`;
     if (isShopPromoApplied && appliedPromoData) {
        msg += `\n🎁 *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
     }
-    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}`;
+    msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryAddress}`;
 
     window.open(`https://wa.me/221785338417?text=${encodeURIComponent(msg)}`, "_blank");
     setShopCart([]);
@@ -2162,6 +2275,63 @@ export default function NutritionDashboard() {
           </div>
         )}
 
+        {activeTab === 'orders' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
+             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><Package className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Mes Commandes</h2>
+                
+                <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl mb-8">
+                   <h3 className="font-black text-sm uppercase mb-4">Mes Coordonnées de livraison</h3>
+                   <div className="flex flex-col sm:flex-row items-end gap-4">
+                      <div className="flex-1 w-full">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">Adresse complète</label>
+                         <input type="text" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className="w-full p-3 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-[#39FF14] transition" placeholder="Ex: Dakar, Sicap Amitié 2..." />
+                      </div>
+                      <button onClick={async () => {
+                         if (clientProfile) {
+                            setIsSaving(true);
+                            await supabase.from('clients').update({ address: deliveryAddress }).eq('id', clientProfile.id);
+                            setIsSaving(false);
+                            alert("Adresse de facturation mise à jour !");
+                         }
+                      }} disabled={isSaving} className="w-full sm:w-auto bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black text-xs uppercase hover:scale-105 transition shadow-md h-[46px] flex items-center justify-center">
+                         {isSaving ? "En cours..." : "Sauvegarder"}
+                      </button>
+                   </div>
+                </div>
+
+                <div className="space-y-4">
+                   {clientOrders.map(order => (
+                      <div key={order.id} className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-black transition-colors">
+                         <div>
+                            <div className="flex items-center gap-3 mb-2">
+                               <span className="text-xs font-black text-zinc-500 uppercase">#{String(order.id).substring(0,8)}</span>
+                               <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${order.status === 'Nouveau' ? 'bg-blue-100 text-blue-700' : order.status === 'Livré' ? 'bg-green-100 text-green-700' : order.status === 'Annulé' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                                  {order.status}
+                               </span>
+                            </div>
+                            <p className="text-sm font-bold text-black mb-1">{new Date(order.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-xs font-medium text-zinc-500">
+                               {order.items?.length || 0} article(s) • Livré à : {order.address || 'Non spécifié'}
+                            </p>
+                         </div>
+                         <div className="text-left md:text-right">
+                            <p className="text-2xl font-black text-[#39FF14]">{order.total?.toLocaleString()} F</p>
+                            {order.promo_code && <p className="text-[10px] font-black uppercase text-zinc-400 mt-1">Code : {order.promo_code}</p>}
+                         </div>
+                      </div>
+                   ))}
+                   {clientOrders.length === 0 && (
+                      <div className="text-center py-12 border-2 border-dashed border-zinc-200 rounded-3xl bg-zinc-50">
+                         <Package size={40} className="mx-auto text-zinc-300 mb-4"/>
+                         <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Vous n'avez pas encore passé de commande.</p>
+                      </div>
+                   )}
+                </div>
+             </div>
+          </div>
+        )}
+
         {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
@@ -2745,13 +2915,157 @@ export default function NutritionDashboard() {
                <button onClick={() => setShowRedoDiagModal(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm">
                   Retour au Hub
                </button>
-               <button disabled={!redoReason} onClick={() => router.push('/solutions/onyx-nutritionafricaine/diagnostic')} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+               <button disabled={!redoReason} onClick={() => { setShowRedoDiagModal(false); setDiagStep(1); }} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                   Continuer <ArrowRight size={14} className="inline ml-1"/>
                </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* MODALE DIAGNOSTIC INTERNE (REDO) */}
+      {diagStep > 0 && (
+        <div id="diag-modal-overlay" onClick={(e: any) => e.target.id === 'diag-modal-overlay' && setDiagStep(0)} className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2rem] shadow-2xl flex flex-col my-8 relative animate-in zoom-in-95 text-black">
+            <button onClick={() => setDiagStep(0)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
+
+            <div className="bg-black text-white p-6 sm:p-8 text-center relative rounded-t-[2rem]">
+              <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800">
+                <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${(diagStep / 4) * 100}%` }}></div>
+              </div>
+              <Activity className="text-[#39FF14] mx-auto mb-2" size={28} />
+              <h2 className={`${spaceGrotesk.className} text-xl md:text-3xl font-black uppercase tracking-tighter`}>
+                {diagStep === 5 ? "Nouveau Plan Prêt !" : "Bilan Nutritionnel"}
+              </h2>
+            </div>
+
+            <div className="p-6 sm:p-8">
+              {diagStep !== 5 ? (
+                <form onSubmit={handleDiagSubmit} className="space-y-6">
+                  {diagStep === 1 && (
+                    <div className="space-y-4 animate-in slide-in-from-right-8">
+                      <div className="flex items-center gap-3 mb-4"><Scale className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Informations de base</h3></div>
+                      <div className="space-y-2 mt-4">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Votre sexe *</label>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div onClick={() => setDiagData({...diagData, gender: 'Femme'})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.gender === 'Femme' ? 'border-[#39FF14] shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_1_1_en_gardant_202606111043_unmonc.jpg" className="w-full aspect-square object-cover" alt="Femme" />
+                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-sm backdrop-blur-sm">Femme</div>
+                           </div>
+                           <div onClick={() => setDiagData({...diagData, gender: 'Homme'})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.gender === 'Homme' ? 'border-[#39FF14] shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_format_1_1_en_202606111044_rjknkg.jpg" className="w-full aspect-square object-cover" alt="Homme" />
+                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-sm backdrop-blur-sm">Homme</div>
+                           </div>
+                        </div>
+                      </div>
+                      <input type="number" required placeholder="Votre Âge *" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black mt-4" />
+                    </div>
+                  )}
+                  
+                  {diagStep === 2 && (
+                    <div className="space-y-4 animate-in slide-in-from-right-8">
+                      <div className="flex items-center gap-3 mb-4"><Target className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Vos Objectifs</h3></div>
+                      <div className="flex gap-4">
+                        <input type="number" required placeholder="Taille (cm) *" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                        <input type="number" required placeholder="Poids (kg) *" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                      </div>
+                      <div className="space-y-2 mt-6">
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Combien de pas faites-vous par jour ? *</label>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {["< 5 000 pas/jour (Sédentaire)", "5 000 à 7 499 pas/jour (Légèrement actif)", "7 500 à 9 999 pas/jour (Actif)", "10 000+ pas/jour (Très actif)"].map(steps => (
+                               <button type="button" key={steps} onClick={() => setDiagData({...diagData, dailySteps: steps})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${diagData.dailySteps === steps ? 'bg-black text-[#39FF14] border-black shadow-lg' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                                  {steps}
+                               </button>
+                            ))}
+                         </div>
+                      </div>
+                      
+                      <div className="space-y-2 mt-6 bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Rythme de perte de poids souhaité *</label>
+                        <div className="relative pt-4 pb-2 px-2">
+                           <input 
+                              type="range" min="1" max="3" step="1" 
+                              value={diagData.weightLossPace === 'Progressivement' ? 1 : diagData.weightLossPace === 'Normalement' ? 2 : 3}
+                              onChange={(e) => {
+                                 const val = e.target.value;
+                                 setDiagData({...diagData, weightLossPace: val === '1' ? 'Progressivement' : val === '2' ? 'Normalement' : 'Rapidement'});
+                              }}
+                              className="w-full accent-black h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                           />
+                           <div className="flex justify-between text-[10px] font-black uppercase text-zinc-400 mt-4">
+                              <span className={`w-1/3 text-left ${diagData.weightLossPace === 'Progressivement' ? 'text-[#39FF14] drop-shadow-md' : ''}`}>Progressif<br/>(-0.3kg/sem)</span>
+                              <span className={`w-1/3 text-center ${diagData.weightLossPace === 'Normalement' ? 'text-black' : ''}`}>Normal<br/>(-0.5kg/sem)</span>
+                              <span className={`w-1/3 text-right ${diagData.weightLossPace === 'Rapidement' ? 'text-red-500' : ''}`}>Rapide<br/>(-0.7kg/sem)</span>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {diagStep === 3 && (
+                    <div className="space-y-4 animate-in slide-in-from-right-8">
+                      <div className="flex items-center gap-3 mb-4"><Apple className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Habitudes Alimentaires</h3></div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Consommation de riz/plats en sauce ? *</label>
+                         <div className="grid grid-cols-1 gap-2">
+                            {["Tous les jours", "3-4 fois par semaine", "Rarement"].map(habit => (
+                               <button type="button" key={habit} onClick={() => setDiagData({...diagData, dietaryHabits: habit})} className={`p-4 rounded-2xl border-2 text-left font-bold text-sm transition-all ${diagData.dietaryHabits === habit ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
+                                  {habit}
+                               </button>
+                            ))}
+                         </div>
+                      </div>
+                      <div className="space-y-4 mt-6">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est ton défi principal au quotidien ? *</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                           {[
+                             { id: "Le Sel & la Tension", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781177365/A_studio_minimalist_close-up_shot_202606111128_iln7to.jpg", title: "Le Sel & la Tension" },
+                             { id: "Le Sucre & l'Attaya", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781177365/A_minimalist_close-up_shot_of_202606111128_cn0uom.jpg", title: "Le Sucre & l'Attaya" },
+                             { id: "Le Bol Familial", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781177435/A_high-angle_studio_shot_of_202606111129_rmwlo7.jpg", title: "Le Bol Familial" }
+                           ].map(challenge => (
+                              <div key={challenge.id} onClick={() => setDiagData({...diagData, mainChallenge: challenge.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.mainChallenge === challenge.id ? 'border-[#39FF14] shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                                 <img src={challenge.img} className="w-full aspect-square object-cover" alt={challenge.title} />
+                                 <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-[10px] backdrop-blur-sm">{challenge.title}</div>
+                              </div>
+                           ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {diagStep === 4 && (
+                    <div className="text-center py-6 animate-in zoom-in">
+                      <CheckCircle className="text-[#39FF14] w-16 h-16 mx-auto mb-4" />
+                      <h3 className="text-xl font-black uppercase mb-2 text-black">Analyse en cours...</h3>
+                      <p className="text-zinc-600 font-medium mb-6">Validez pour générer vos nouveaux objectifs caloriques et votre menu adapté.</p>
+                      <button type="submit" disabled={isSubmittingDiag} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase hover:scale-105 transition-transform flex justify-center items-center gap-2">
+                        {isSubmittingDiag ? "Recalcul en cours..." : "Mettre à jour mon plan"} <ArrowRight size={18}/>
+                      </button>
+                    </div>
+                  )}
+
+                  {diagStep < 4 && (
+                    <div className="flex gap-4 pt-4 border-t border-zinc-100">
+                      {diagStep > 1 && <button type="button" onClick={() => setDiagStep(diagStep - 1)} className="px-6 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black">Retour</button>}
+                      <button type="button" onClick={() => setDiagStep(diagStep + 1)} className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800">Suivant <ChevronRight size={18}/></button>
+                    </div>
+                  )}
+                </form>
+              ) : (
+                <div className="text-center py-6 animate-in zoom-in">
+                  <h3 className="text-2xl font-black uppercase mb-6 text-black">Votre Espace a été mis à jour !</h3>
+                  <p className="text-zinc-600 font-medium mb-8">Les nouveaux menus ont été générés selon vos nouveaux paramètres, vous pouvez reprendre le suivi dès maintenant.</p>
+                  
+                  <button onClick={() => setDiagStep(0)} type="button" className="w-full bg-[#39FF14] text-black py-5 rounded-xl font-black uppercase tracking-widest hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg flex justify-center items-center gap-2">
+                     Retourner au Tracker <ArrowRight size={18}/>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODALE DE PAIEMENT WAVE / OM */}
       {showPaymentModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowPaymentModal(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
@@ -2873,9 +3187,14 @@ export default function NutritionDashboard() {
                               <div className="w-20 h-20 rounded-xl bg-white dark:bg-zinc-950 overflow-hidden shrink-0 border border-zinc-100 dark:border-zinc-800">
                                  <img src={item.image_url} alt={item.nom} className="w-full h-full object-cover" />
                               </div>
-                              <div className="flex-1 flex flex-col justify-center">
+                              <div className="flex-1 flex flex-col justify-center min-w-0">
                                  <h4 className="font-bold text-sm text-black dark:text-white line-clamp-1">{item.nom}</h4>
-                                 <p className="text-[#39FF14] font-black text-sm mt-1">{item.finalPrice.toLocaleString()} F</p>
+                                 <p className="text-[#39FF14] font-black text-sm mt-1">{(item.finalPrice * item.quantity).toLocaleString()} F</p>
+                                 <div className="flex items-center gap-3 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 mt-2 w-max">
+                                     <button onClick={() => updateCartQuantity(item.id, -1)} className="p-1 text-zinc-500 hover:text-black dark:hover:text-white transition"><Minus size={14}/></button>
+                                     <span className="font-black text-sm w-6 text-center">{item.quantity}</span>
+                                     <button onClick={() => updateCartQuantity(item.id, 1)} className="p-1 text-zinc-500 hover:text-black dark:hover:text-white transition"><Plus size={14}/></button>
+                                 </div>
                               </div>
                               <button onClick={() => setShopCart(shopCart.filter((_, i) => i !== idx))} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors">
                                  <Trash2 size={16}/>
@@ -2887,10 +3206,14 @@ export default function NutritionDashboard() {
 
                   {shopCart.length > 0 && (
                      <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+                        <div className="mb-4">
+                           <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Adresse de livraison</label>
+                           <input type="text" placeholder="Ex: Cité Keur Gorgui, Villa 24B" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} className={`mt-1 w-full p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                        </div>
                         <div className="flex justify-between items-center mb-6">
                            <span className="font-black text-zinc-500 uppercase tracking-widest text-xs">Total Estimé</span>
                            <span className="font-black text-2xl text-black dark:text-white">
-                              {shopCart.reduce((acc, item) => acc + item.finalPrice, 0).toLocaleString()} F
+                              {shopCart.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0).toLocaleString()} F
                            </span>
                         </div>
                         <button onClick={() => { setShowCartModal(false); handleShopCheckout(); }} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2">

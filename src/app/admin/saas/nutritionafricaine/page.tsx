@@ -54,82 +54,75 @@ export default function AdminNutritionAfricaine() {
   const [isAutoReminderActive, setIsAutoReminderActive] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     supabase.auth.getSession().then(({data}) => {
-        setTenantId(data.session?.user?.user_metadata?.tenant_id || data.session?.user?.id || null);
+        const tId = data.session?.user?.user_metadata?.tenant_id || data.session?.user?.id || null;
+        if (isMounted) setTenantId(tId);
+
+        const fetchAll = async () => {
+            try {
+              let clientsQuery = supabase.from('clients').select('*').ilike('saas', '%utrition%').order('created_at', { ascending: false });
+              if (tId) clientsQuery = clientsQuery.eq('tenant_id', tId);
+              
+              const { data: clientsData, error: clientsError } = await clientsQuery;
+
+              if (!clientsError && clientsData && clientsData.length > 0 && isMounted) {
+                const clientIds = clientsData.map(c => c.id);
+
+                const [profilesRes, logsRes, weightLogsRes] = await Promise.all([
+                   supabase.from('nutrition_profiles').select('*').in('client_id', clientIds),
+                   supabase.from('nutrition_daily_logs').select('*').in('client_id', clientIds),
+                   supabase.from('nutrition_weight_logs').select('*').in('client_id', clientIds)
+                ]);
+
+                const profiles = profilesRes.data || [];
+                const logs = logsRes.data || [];
+                const weightLogs = weightLogsRes.data || [];
+
+                const mappedProfiles = clientsData.map(c => {
+                   const prof = profiles.find(p => p.client_id === c.id) || {};
+                   return {
+                      ...prof,
+                      id: prof.id || c.id,
+                      client: c,
+                      phone: c.phone || prof.phone,
+                      logs: logs.filter(l => l.client_id === c.id) || [],
+                      weight_logs: weightLogs.filter(w => w.client_id === c.id) || [],
+                      daily_calorie_goal: prof.daily_calorie_goal || 1500,
+                      protein_goal: prof.protein_goal || 80
+                   };
+                });
+                setClients(mappedProfiles);
+              } else if (isMounted) {
+                setClients([]);
+              }
+
+              if (tId && isMounted) {
+                  const [recipesRes, prodsRes, ordsRes, promosRes, settingsRes] = await Promise.all([
+                     supabase.from('nutrition_recipes').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
+                     supabase.from('nutrition_products').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
+                     supabase.from('nutrition_orders').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
+                     supabase.from('nutrition_promo_codes').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
+                     supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', tId).maybeSingle()
+                  ]);
+                  if (recipesRes.data) setRecipes(recipesRes.data);
+                  if (prodsRes.data) setProducts(prodsRes.data);
+                  if (ordsRes.data) setOrders(ordsRes.data);
+                  if (promosRes.data) setPromos(promosRes.data);
+                  if (settingsRes.data?.shop_banner_url) setVitrineBanner(settingsRes.data.shop_banner_url);
+              }
+            } catch (err) {
+                console.error("Erreur générale fetch admin:", err);
+            } finally {
+                if (isMounted) setLoading(false);
+            }
+        };
+        
+        fetchAll();
     });
 
-    const fetchClients = async () => {
-      // Fetch clients d'abord avec un ilike pour capturer toutes les variantes de "Nutrition"
-      const { data: clientsData, error: clientsError } = await supabase
-        .from('clients')
-        .select('*')
-        .ilike('saas', '%utrition%')
-        .order('created_at', { ascending: false });
-
-      if (clientsError) {
-        console.error("Error fetching clients:", clientsError);
-        setLoading(false);
-        return;
-      }
-
-      if (clientsData && clientsData.length > 0) {
-        const clientIds = clientsData.map(c => c.id);
-
-        // Fetch manuel pour éviter les problèmes de clés étrangères non définies côté postgREST
-        const [profilesRes, logsRes, weightLogsRes] = await Promise.all([
-           supabase.from('nutrition_profiles').select('*').in('client_id', clientIds),
-           supabase.from('nutrition_daily_logs').select('*').in('client_id', clientIds),
-           supabase.from('nutrition_weight_logs').select('*').in('client_id', clientIds)
-        ]);
-
-        const profiles = profilesRes.data || [];
-        const logs = logsRes.data || [];
-        const weightLogs = weightLogsRes.data || [];
-
-        const mappedProfiles = clientsData.map(c => {
-           const prof = profiles.find(p => p.client_id === c.id) || {};
-           const clientLogs = logs.filter(l => l.client_id === c.id) || [];
-           const clientWeightLogs = weightLogs.filter(w => w.client_id === c.id) || [];
-           
-           return {
-              ...prof,
-              id: prof.id || c.id,
-              client: c,
-              phone: c.phone || prof.phone,
-              logs: clientLogs,
-              weight_logs: clientWeightLogs,
-              daily_calorie_goal: prof.daily_calorie_goal || 1500,
-              protein_goal: prof.protein_goal || 80
-           };
-        });
-        setClients(mappedProfiles);
-      } else {
-        setClients([]);
-      }
-      setLoading(false);
-    };
-
-    const fetchRecipes = async () => {
-      const { data } = await supabase.from('nutrition_recipes').select('*').order('created_at', { ascending: false });
-      if (data) setRecipes(data);
-    };
-
-    const fetchShopAndOrders = async () => {
-      const [prods, ords, promosRes, settingsRes] = await Promise.all([
-         supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
-         supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
-         supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
-         supabase.from('crm_settings').select('shop_banner_url').maybeSingle()
-      ]);
-      if (prods.data) setProducts(prods.data);
-      if (ords.data) setOrders(ords.data);
-      if (promosRes.data) setPromos(promosRes.data);
-      if (settingsRes.data?.shop_banner_url) setVitrineBanner(settingsRes.data.shop_banner_url);
-    };
-
-    fetchClients();
-    fetchRecipes();
-    fetchShopAndOrders();
+    return () => { isMounted = false; };
   }, []);
 
   const filteredClients = clients.filter(c => 
