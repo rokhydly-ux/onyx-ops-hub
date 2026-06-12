@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
-  ChevronLeft, Download, Lock, CheckCircle, 
+  ChevronLeft, Download, Lock, CheckCircle, Sun, Moon,
   Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -194,6 +194,7 @@ export default function NutritionDashboard() {
   const [clientProfile, setClientProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [daysLeft, setDaysLeft] = useState(0);
+  const [theme, setTheme] = useState<'light'|'dark'>('light');
   
   // Nouveaux états de l'application Nutrition
   const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites' | 'coaching'>('today');
@@ -216,6 +217,8 @@ export default function NutritionDashboard() {
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [reportData, setReportData] = useState({ followedMenu: false, cravedRice: false, drankWater: false });
   const [consumedMeals, setConsumedMeals] = useState<any[]>([]);
+  const [mood, setMood] = useState<string>('');
+  const [moodNotes, setMoodNotes] = useState<string>('');
   const [selectedMealModal, setSelectedMealModal] = useState<any>(null);
   
   // Moteur de recherche et portions
@@ -1000,22 +1003,24 @@ export default function NutritionDashboard() {
         setProteins(currentProts);
     }
 
-    const { error } = await supabase.from('nutrition_daily_logs').upsert({
-      client_id: clientProfile.id,
-      log_date: todayStr,
-      report_data: { ...reportData, consumedMeals },
-      water_glasses: waterGlasses,
-      calories_consumed: currentCals,
-      proteins_consumed: currentProts
-    }, { onConflict: 'client_id, log_date' });
+    try {
+       const { error } = await supabase.from('nutrition_daily_logs').upsert({
+         client_id: clientProfile.id,
+         log_date: todayStr,
+         report_data: { ...reportData, consumedMeals, mood, moodNotes },
+         water_glasses: waterGlasses,
+         calories_consumed: currentCals || 0,
+         proteins_consumed: currentProts || 0
+       }, { onConflict: 'client_id, log_date' });
 
-    if (!error) {
+       if (error) throw error;
+
        alert("Bilan de la journée enregistré avec succès ! L'IA adaptera votre menu de demain.");
        setShowDailyReport(false);
-       const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: { ...reportData, consumedMeals }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
+       const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: { ...reportData, consumedMeals, mood, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), updatedLog]);
-    } else {
-       alert("Une erreur est survenue lors de l'enregistrement.");
+    } catch (err: any) {
+       alert("Erreur lors de l'enregistrement : " + err.message + "\nAssurez-vous que la structure de la table est à jour.");
     }
   };
 
@@ -1202,18 +1207,19 @@ export default function NutritionDashboard() {
     setAppliedPromoData(null);
   };
 
+  const logoSrc = theme === 'dark' 
+     ? 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png' 
+     : 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Keep_the_exact_logo_from_202606111709_xocxye.jpg';
+
   return (
-    <div className="flex min-h-screen bg-[#fafafa] font-sans selection:bg-[#39FF14]/30">
+    <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#fafafa] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300`}>
       {/* SIDEBAR VERTICAL */}
-      <aside className={`fixed inset-y-0 left-0 z-50 bg-black text-white transition-all duration-500 ease-in-out border-r border-zinc-800 lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
          <div className="p-6 flex items-center justify-between">
             <div className={`flex items-center gap-3 overflow-hidden ${!isSidebarOpen && 'lg:hidden'}`}>
-               <div className="w-10 h-10 bg-[#39FF14] rounded-xl flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(57,255,20,0.4)]">
-                  <HeartPulse className="text-black" size={24} />
-               </div>
-               <span className="font-black uppercase tracking-tighter text-xl whitespace-nowrap">Onyx<span className="text-[#39FF14]">Nutrition</span></span>
+               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-10 w-auto object-contain" />
             </div>
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden lg:flex p-2 hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400 hover:text-[#39FF14]">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'}`}>
                {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
             </button>
             <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-2 hover:bg-zinc-800 rounded-xl transition-colors">
@@ -1226,7 +1232,7 @@ export default function NutritionDashboard() {
                <button 
                   key={item.id} 
                   onClick={() => { setActiveTab(item.id); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}
-                  className={`w-full flex items-center gap-4 p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : 'text-zinc-500 hover:bg-zinc-900 hover:text-white'}`}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : (theme === 'dark' ? 'text-zinc-500 hover:bg-zinc-900 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black')}`}
                >
                   <item.icon size={20} className="shrink-0" />
                   <span className={`whitespace-nowrap transition-opacity duration-300 ${!isSidebarOpen && 'lg:opacity-0 lg:absolute lg:left-20'}`}>{item.label}</span>
@@ -1258,7 +1264,7 @@ export default function NutritionDashboard() {
       {/* Header */}
       <div className="lg:hidden p-4 bg-black flex justify-between items-center">
          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
-         <img src="https://i.ibb.co/1Gssqd2p/LOGO-SITE.png" className="h-8 w-auto grayscale invert" alt="Logo" />
+         <img src={logoSrc} className="h-8 w-auto object-contain" alt="Logo" />
          <div className="w-10"></div>
       </div>
 
@@ -1266,9 +1272,14 @@ export default function NutritionDashboard() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/20 blur-[100px] rounded-full pointer-events-none"></div>
         
         <div className="max-w-6xl mx-auto">
-          <button onClick={() => router.push('/hub')} className="flex items-center gap-2 text-zinc-400 hover:text-[#39FF14] transition-colors font-black uppercase text-xs tracking-widest mb-8 bg-zinc-900 w-max px-4 py-2 rounded-xl border border-zinc-800">
-            <ChevronLeft size={16}/> Retour au Hub
-          </button>
+          <div className="flex justify-between items-center mb-8">
+             <button onClick={() => router.push('/hub')} className="flex items-center gap-2 text-zinc-400 hover:text-[#39FF14] transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 w-max px-4 py-2 rounded-xl border border-zinc-800">
+               <ChevronLeft size={16}/> Retour au Hub
+             </button>
+             <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="flex items-center gap-2 text-zinc-400 hover:text-yellow-500 transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
+               {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>} {theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}
+             </button>
+          </div>
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
             <div>
@@ -1405,6 +1416,47 @@ export default function NutritionDashboard() {
                </div>
             </div>
 
+            {/* SUIVI DE L'EAU & HUMEUR */}
+            <div className="grid md:grid-cols-2 gap-6 mt-6">
+               <div className={`p-6 rounded-[2rem] border shadow-sm flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                  <h3 className="font-black text-lg uppercase mb-4 flex items-center gap-2"><Droplet className="text-blue-500"/> Suivi de l'eau</h3>
+                  <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
+                     {[...Array(8)].map((_, i) => (
+                        <button key={i} onClick={() => setWaterGlasses(i + 1)} className={`w-8 h-12 rounded-b-xl rounded-t-sm border-2 transition-all shrink-0 ${i < waterGlasses ? 'bg-blue-500 border-blue-600 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-blue-50 border-blue-200 hover:bg-blue-100'}`}></button>
+                     ))}
+                  </div>
+                  <p className="text-xs font-bold text-zinc-500">{waterGlasses} / 8 verres (2 Litres) - {waterGlasses >= 8 ? 'Objectif atteint ! 🎉' : 'Encore un petit effort !'}</p>
+               </div>
+
+               <div className={`p-6 rounded-[2rem] border shadow-sm flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                  <h3 className="font-black text-lg uppercase mb-4">Mon Humeur & Notes</h3>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                     {[{e:'😃',l:'Enjoué'}, {e:'🤩',l:'Motivé'}, {e:'🧘‍♀️',l:'Zen'}, {e:'🤔',l:'Pensif'}, {e:'😴',l:'Fatigué'}, {e:'😫',l:'Épuisé'}, {e:'😢',l:'Triste'}, {e:'😠',l:'Enervé'}, {e:'🤢',l:'Barbouillé'}, {e:'😭',l:'Critique'}].map(m => (
+                        <button key={m.l} onClick={() => setMood(m.l)} className={`p-2 text-2xl rounded-xl border-2 transition-all ${mood === m.l ? 'bg-zinc-100 border-[#39FF14] scale-110 shadow-md' : (theme === 'dark' ? 'bg-zinc-800 border-zinc-700 opacity-50 hover:opacity-100' : 'bg-white border-zinc-100 opacity-50 hover:opacity-100')}`} title={m.l}>{m.e}</button>
+                     ))}
+                  </div>
+                  <textarea value={moodNotes} onChange={e => setMoodNotes(e.target.value)} placeholder="Comment vous sentez-vous aujourd'hui ? (Optionnel)" className={`w-full border rounded-xl p-4 text-sm outline-none focus:border-[#39FF14] min-h-[80px] custom-scrollbar resize-none ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500' : 'bg-zinc-50 border-zinc-200 text-black placeholder-zinc-400'}`} />
+               </div>
+            </div>
+
+            {/* GRAPHIQUE ÉVOLUTION POIDS (MON JOUR) */}
+            {Array.isArray(weightLogs) && weightLogs.length > 0 && (
+               <div className={`p-6 rounded-[2rem] border shadow-sm mt-6 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                  <h3 className="font-black text-lg uppercase mb-4 flex items-center gap-2"><Scale className="text-[#39FF14]"/> Évolution de mon poids</h3>
+                  <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={weightLogs.filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime()))}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
+                        <XAxis dataKey="log_date" tickFormatter={(v) => new Date(v).toLocaleDateString('fr-FR', {day:'numeric', month:'short'})} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
+                        <YAxis domain={['auto', 'auto']} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
+                        <RechartsTooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                        <Line type="monotone" dataKey="weight" stroke="#39FF14" strokeWidth={3} dot={{ r: 4, fill: '#000', stroke: '#39FF14', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+               </div>
+            )}
+
             {/* CORPS : LES REPAS */}
             <div className="grid md:grid-cols-2 gap-4">
                 {['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner'].map((mealType) => {
@@ -1424,7 +1476,7 @@ export default function NutritionDashboard() {
                     const itemsForThisMeal = safeConsumedMeals.filter(m => m.type === mealType);
                     
                     return (
-                       <div key={mealType} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors flex flex-col">
+                       <div key={mealType} className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-500' : 'bg-white border-zinc-200 hover:border-black'} p-6 rounded-[2rem] border shadow-sm transition-colors flex flex-col`}>
                           <div className="flex justify-between items-center mb-4">
                              <span className="bg-zinc-100 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{mealType}</span>
                              {trackingMode === 'guided' && plannedMeal && (
@@ -1436,9 +1488,9 @@ export default function NutritionDashboard() {
                              {itemsForThisMeal.length > 0 ? (
                                 <div className="space-y-3 mb-4">
                                    {itemsForThisMeal.map((item, i) => (
-                                      <div key={item.id} className="flex items-center justify-between bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'}`}>
                                          <div>
-                                            <p className="font-bold text-sm text-black">{item.name}</p>
+                                            <p className={`font-bold text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{item.name}</p>
                                             <p className="text-[10px] font-black uppercase text-zinc-500">{item.cals} kcal • {item.prots}g prot</p>
                                          </div>
                                          <button onClick={() => deleteMealLog(item)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
@@ -1449,7 +1501,7 @@ export default function NutritionDashboard() {
                                 </div>
                              ) : trackingMode === 'guided' && plannedMeal ? (
                                 <div onClick={() => handleMealClick(mealType, plannedMeal)} className="cursor-pointer">
-                                   <p className="font-black text-lg text-black mb-2">{plannedMeal.meal}</p>
+                                   <p className={`font-black text-lg mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{plannedMeal.meal}</p>
                                    <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
                                       <span className="flex items-center gap-1 text-orange-500"><Flame size={14}/> {plannedMeal.cals} kcal</span>
                                       <span className="flex items-center gap-1 text-[#39FF14]"><Target size={14}/> {plannedMeal.proteins}g prot</span>
@@ -1459,7 +1511,7 @@ export default function NutritionDashboard() {
                           </div>
 
                           {(trackingMode === 'flexible' || (trackingMode === 'guided' && itemsForThisMeal.length === 0)) && (
-                             <div onClick={() => handleMealClick(mealType, plannedMeal)} className="mt-4 flex flex-col items-center justify-center py-4 border-2 border-dashed border-zinc-200 rounded-xl hover:border-black hover:bg-zinc-50 transition-colors cursor-pointer">
+                             <div onClick={() => handleMealClick(mealType, plannedMeal)} className={`mt-4 flex flex-col items-center justify-center py-4 border-2 border-dashed rounded-xl transition-colors cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-white hover:bg-zinc-800' : 'border-zinc-200 hover:border-black hover:bg-zinc-50'}`}>
                                 <span className="text-2xl mb-1 text-zinc-300 leading-none">+</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{itemsForThisMeal.length > 0 ? "Ajouter autre chose" : "Ajouter un aliment"}</span>
                              </div>
@@ -2152,8 +2204,8 @@ export default function NutritionDashboard() {
               <div className="bg-black text-white p-10 rounded-[3rem] relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 border-b-8 border-[#39FF14] shadow-2xl">
                  <div className="absolute top-0 right-0 w-80 h-80 bg-[#39FF14]/20 blur-[100px] rounded-full"></div>
                  <div className="relative z-10">
-                    <h2 className={`${spaceGrotesk.className} text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4`}>Boutique <span className="text-[#39FF14]">Nutrition</span></h2>
-                    <p className="text-zinc-400 font-bold max-w-md uppercase tracking-widest text-xs">Équipez votre transformation Jongoma.</p>
+                    <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter mb-2`}>Boutique <span className="text-[#39FF14]">Nutrition</span></h2>
+                    <p className="text-zinc-400 font-bold max-w-md uppercase tracking-widest text-[10px]">Équipez votre transformation Jongoma.</p>
                  </div>
                  {shopCart.length > 0 && (
                     <div className="flex flex-col items-end gap-3 z-10">
@@ -2178,10 +2230,10 @@ export default function NutritionDashboard() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                 <button onClick={() => setSelectedShopGoal('all')} className={`p-6 rounded-[2rem] border-2 font-black uppercase text-[10px] tracking-widest transition-all ${selectedShopGoal === 'all' ? 'bg-black text-[#39FF14] border-black' : 'bg-white border-zinc-100 text-zinc-400'}`}>Tous les produits</button>
+                 <button onClick={() => setSelectedShopGoal('all')} className={`p-4 rounded-2xl border-2 font-black uppercase text-[9px] tracking-widest transition-all ${selectedShopGoal === 'all' ? 'bg-black text-[#39FF14] border-black' : 'bg-white border-zinc-100 text-zinc-400'}`}>Tous les produits</button>
                  {SHOP_GOALS.map(goal => (
-                    <button key={goal.id} onClick={() => setSelectedShopGoal(goal.id)} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center justify-center gap-3 font-black uppercase text-[10px] tracking-widest transition-all ${selectedShopGoal === goal.id ? 'bg-black text-[#39FF14] border-black shadow-xl' : 'bg-white border-zinc-100 text-zinc-400'}`}>
-                       <span className="text-2xl">{goal.icon}</span> {goal.label}
+                    <button key={goal.id} onClick={() => setSelectedShopGoal(goal.id)} className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center gap-3 font-black uppercase text-[9px] tracking-widest transition-all ${selectedShopGoal === goal.id ? 'bg-black text-[#39FF14] border-black shadow-xl' : 'bg-white border-zinc-100 text-zinc-400'}`}>
+                       <span className="text-lg">{goal.icon}</span> {goal.label}
                     </button>
                  ))}
               </div>

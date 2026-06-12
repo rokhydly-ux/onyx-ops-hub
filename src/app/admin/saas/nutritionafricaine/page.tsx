@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2 } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 
@@ -448,6 +448,20 @@ export default function AdminNutritionAfricaine() {
       setShowPromoModal(true);
   };
 
+  const downloadRecipeCsvTemplate = () => {
+      const csv = "nom;type;calories;proteines;glucides;lipides;is_bol_commun;etapes_cuisson;description;image_url;galerie_photo;ingredients\nExemple Thieb;Déjeuner;600;30;70;15;oui;Cuire le riz...;Un plat sénégalais;https://...;https://...,https://...;[{\"nom\":\"Riz\",\"quantite\":100,\"unite\":\"g\",\"rayon\":\"Supermarché\"}]";
+      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'Modele_Recettes_Vierge.csv'; a.click();
+  };
+
+  const downloadProductCsvTemplate = () => {
+      const csv = "nom;categorie_nom;prix_standard;prix_premium;stock;description_courte;description_longue;image_url;badge;goal\nFonio Premium;Super-Aliments;2500;2100;100;Fonio précuit;Description complète;https://...;Best Seller;cooking";
+      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'Modele_Produits_Vierge.csv'; a.click();
+  };
+
   const handleSavePromo = async (e: React.FormEvent) => {
       e.preventDefault();
       const payload = { ...promoForm, code: promoForm.code.toUpperCase().replace(/\s+/g, '') };
@@ -506,8 +520,9 @@ export default function AdminNutritionAfricaine() {
           <button onClick={() => router.push('/admin')} className="flex items-center gap-2 text-zinc-400 hover:text-[#39FF14] transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
             <ChevronLeft size={16}/> Retour SaaS (Admin)
           </button>
-          <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter flex items-center gap-2">
-            <HeartPulse className="text-[#39FF14]"/> Coach <span className="text-[#39FF14]">Nutrition</span>
+          <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Nutrition" className="h-8 object-contain" />
+            Coach <span className="text-[#39FF14]">Nutrition</span>
           </h1>
         </div>
       </header>
@@ -543,6 +558,7 @@ export default function AdminNutritionAfricaine() {
                <div className="flex w-full md:w-auto gap-4">
                   <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleImportCSV} />
                   <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={16}/> Import CSV</button>
+                  <button onClick={downloadRecipeCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
                   <button onClick={() => handleOpenRecipeModal()} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={16}/> Nouvelle Recette</button>
                </div>
             )}
@@ -550,6 +566,7 @@ export default function AdminNutritionAfricaine() {
                <div className="flex w-full md:w-auto gap-4">
                   <input type="file" accept=".csv" className="hidden" ref={fileProductInputRef} onChange={handleImportProductCSV} />
                   <button onClick={() => fileProductInputRef.current?.click()} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={16}/> Import CSV</button>
+                  <button onClick={downloadProductCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
                   <button onClick={() => handleOpenProductModal()} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={16}/> Nouveau Produit</button>
                </div>
             )}
@@ -854,8 +871,9 @@ export default function AdminNutritionAfricaine() {
                                <option value="Annulé">Annulé</option>
                              </select>
                           </td>
-                          <td className="p-4 text-right flex justify-end gap-2">
-                             <button onClick={() => window.open(`https://wa.me/${o.phone?.replace('+', '')}`, '_blank')} className="px-3 py-2 bg-[#25D366] text-white hover:bg-[#1ebd58] rounded-lg transition-colors flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"><MessageSquare size={14}/> Relancer</button>
+                          <td className="p-4 text-right flex justify-end gap-1.5 flex-wrap">
+                             <button onClick={() => window.open(`https://wa.me/${o.phone?.replace('+', '')}`, '_blank')} className="px-2 py-2 bg-[#25D366] text-white hover:bg-[#1ebd58] rounded-lg transition-colors flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"><MessageSquare size={12}/> WhatsApp</button>
+                             <button onClick={() => window.open(`mailto:?subject=Relance Commande OnyxNutrition&body=Bonjour ${o.client_name}, nous avons remarqué que votre commande de ${o.total?.toLocaleString()} F n'a pas été finalisée. Souhaitez-vous de l'aide ?`, '_blank')} className="px-2 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"><Mail size={12}/> Email</button>
                           </td>
                        </tr>
                     ))}
