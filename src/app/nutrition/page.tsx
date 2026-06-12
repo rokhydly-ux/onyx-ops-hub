@@ -471,12 +471,17 @@ export default function NutritionDashboard() {
                  client: p.clients?.full_name || 'Membre'
               })));
           }
+
+          // Load banner from settings specific to the coach
+          if (profileData.tenant_id) {
+              supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', profileData.tenant_id).maybeSingle()
+                  .then(({data}) => { if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); });
+          } else {
+              supabase.from('crm_settings').select('shop_banner_url').maybeSingle()
+                  .then(({data}) => { if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); });
+          }
         }
       }
-
-      // Load banner from settings
-      supabase.from('crm_settings').select('shop_banner_url').maybeSingle()
-          .then(({data}) => { if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); });
 
       setLoading(false);
     };
@@ -1267,6 +1272,76 @@ export default function NutritionDashboard() {
      }
   };
 
+  const handleChangeAvatar = async () => {
+      const newUrl = prompt("Entrez l'URL de votre nouvelle photo de profil :");
+      if (newUrl && newUrl.trim() !== "") {
+          const updatedUser = { ...user, avatar_url: newUrl.trim() };
+          setUser(updatedUser);
+          setProfileForm(prev => ({ ...prev, avatar_url: newUrl.trim() }));
+          if (clientProfile) {
+              await supabase.from('clients').update({ avatar_url: newUrl.trim() }).eq('id', clientProfile.id);
+          }
+          await supabase.auth.updateUser({ data: { avatar_url: newUrl.trim() } });
+          const customSession = localStorage.getItem('onyx_custom_session');
+          if (customSession) localStorage.setItem('onyx_custom_session', JSON.stringify(updatedUser));
+          alert("Photo de profil mise à jour avec succès !");
+      }
+  };
+
+  const downloadHistoryPDF = () => {
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.text("Historique de Progression - Onyx", 14, 20);
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+      doc.text(`Client : ${user?.full_name || 'Membre'}`, 14, 38);
+
+      let y = 50;
+
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Évolution du Poids", 14, y);
+      y += 10;
+      if (weightLogs && weightLogs.length > 0) {
+          weightLogs.forEach(log => {
+              if (y > 270) { doc.addPage(); y = 20; }
+              doc.setFontSize(12);
+              doc.text(`• ${new Date(log.log_date).toLocaleDateString('fr-FR')} : ${log.weight} kg`, 20, y);
+              y += 8;
+          });
+      } else {
+          doc.setFontSize(12);
+          doc.text("Aucune donnée de poids.", 20, y);
+          y += 8;
+      }
+
+      y += 10;
+      if (y > 250) { doc.addPage(); y = 20; }
+
+      doc.setFontSize(16);
+      doc.text("Bilans Quotidiens", 14, y);
+      y += 10;
+      const sortedLogs = [...dailyLogs].sort((a,b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime());
+      if (sortedLogs.length > 0) {
+          sortedLogs.forEach(log => {
+              if (y > 270) { doc.addPage(); y = 20; }
+              doc.setFontSize(12);
+              doc.setFont("helvetica", "bold");
+              doc.text(`${new Date(log.log_date).toLocaleDateString('fr-FR')} :`, 20, y);
+              doc.setFont("helvetica", "normal");
+              doc.text(`${log.calories_consumed || 0} kcal, ${log.water_glasses || 0}/8 eau`, 60, y);
+              y += 8;
+          });
+      } else {
+          doc.setFontSize(12);
+          doc.text("Aucun bilan enregistré.", 20, y);
+          y += 8;
+      }
+
+      doc.save(`Historique_Progression_${user?.full_name?.replace(/\s+/g, '_') || 'Client'}.pdf`);
+  };
+
   const logoSrc = theme === 'dark' 
      ? 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png' 
      : 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Keep_the_exact_logo_from_202606111709_xocxye.jpg';
@@ -1274,10 +1349,10 @@ export default function NutritionDashboard() {
   return (
     <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#fafafa] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300`}>
       {/* SIDEBAR VERTICAL */}
-      <aside className={`fixed inset-y-0 left-0 z-50 ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
          <div className="p-6 flex items-center justify-between">
             <div className={`flex items-center gap-3 overflow-hidden ${!isSidebarOpen && 'lg:hidden'}`}>
-               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-16 md:h-20 w-auto object-contain transition-all" />
+               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-20 md:h-28 w-auto object-contain transition-all" />
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'}`}>
                {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
@@ -1287,7 +1362,7 @@ export default function NutritionDashboard() {
             </button>
          </div>
 
-         <nav className="mt-10 px-4 space-y-2">
+         <nav className="mt-6 px-4 space-y-2 flex-1 overflow-y-auto custom-scrollbar">
             {menuItems.map((item: any) => (
                <button 
                   key={item.id} 
@@ -1306,14 +1381,21 @@ export default function NutritionDashboard() {
             ))}
          </nav>
 
-         <div className={`absolute bottom-8 left-0 right-0 px-6 transition-opacity duration-300 ${!isSidebarOpen && 'lg:opacity-0'}`}>
-            <div className="bg-zinc-900 p-4 rounded-[1.5rem] border border-zinc-800">
-               <p className="text-[9px] font-black text-zinc-500 uppercase mb-2">XP Progression</p>
+         <div className={`mt-auto p-4 shrink-0 transition-all duration-300 overflow-hidden ${!isSidebarOpen ? 'lg:h-0 lg:p-0 lg:opacity-0' : 'lg:h-auto lg:opacity-100'}`}>
+            <div className="flex items-center gap-3 mb-4 px-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { setActiveTab('profile'); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}>
+               <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className={`w-10 h-10 rounded-full border-2 border-[#39FF14] object-cover ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'} shadow-sm shrink-0 cursor-pointer`} onClick={(e) => { e.stopPropagation(); handleChangeAvatar(); }} title="Changer l'avatar" />
+               <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black uppercase truncate text-black dark:text-white">{user?.full_name || 'Membre'}</p>
+                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest truncate">Mon Profil</p>
+               </div>
+            </div>
+            <div className={`p-4 rounded-[1.5rem] border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+               <p className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase mb-2">XP Progression</p>
                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-1.5 bg-black rounded-full overflow-hidden">
-                     <div className="h-full bg-[#39FF14]" style={{ width: `${(jongomaXP / 2000) * 100}%` }}></div>
+                  <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-black' : 'bg-zinc-200'}`}>
+                     <div className="h-full bg-[#39FF14]" style={{ width: `${Math.min((jongomaXP / 2000) * 100, 100)}%` }}></div>
                   </div>
-                  <span className="text-[10px] font-black">{jongomaXP}</span>
+                  <span className="text-[10px] font-black text-black dark:text-white">{jongomaXP}</span>
                </div>
             </div>
          </div>
@@ -1324,7 +1406,7 @@ export default function NutritionDashboard() {
       {/* Header */}
       <div className="lg:hidden p-4 bg-black flex justify-between items-center">
          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
-         <img src={logoSrc} className="h-20 w-auto object-contain" alt="Logo" />
+         <img src={logoSrc} className="h-24 w-auto object-contain" alt="Logo" />
          <div className="w-10"></div>
       </div>
 
@@ -1345,7 +1427,7 @@ export default function NutritionDashboard() {
             <div>
               <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
               <div className="flex items-center gap-4">
-                <img src={logoSrc} alt="Profil" className="w-32 h-auto object-contain hidden md:block mr-4" />
+                <img src={logoSrc} alt="Profil" className="w-40 h-auto object-contain hidden md:block mr-4" />
                 <div>
                   <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
                     {greetingText}, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
@@ -1893,7 +1975,12 @@ export default function NutritionDashboard() {
 
             {/* LISTE DES BILANS */}
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><ListChecks className="text-black"/> Historique des Bilans</h2>
+               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><ListChecks className="text-black"/> Historique des Bilans</h2>
+                 <button onClick={downloadHistoryPDF} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
+                    <Download size={14}/> Exporter (PDF)
+                 </button>
+               </div>
                <div className="space-y-4">
                   {[...(Array.isArray(dailyLogs) ? dailyLogs : [])].filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime())).sort((a,b) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime()).map((log, idx) => (
                      <div key={idx} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -2062,7 +2149,7 @@ export default function NutritionDashboard() {
                 
                 <form onSubmit={handleSaveProfile} className="space-y-6 max-w-xl">
                    <div className="flex items-center gap-6 mb-8">
-                      <img src={profileForm.avatar_url || "https://ui-avatars.com/api/?name=" + (profileForm.full_name || "M")} className="w-24 h-24 rounded-full object-cover border-4 border-zinc-100 shadow-sm" />
+                      <img src={profileForm.avatar_url || "https://ui-avatars.com/api/?name=" + (profileForm.full_name || "M")} className="w-24 h-24 rounded-full object-cover border-4 border-zinc-100 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" onClick={handleChangeAvatar} title="Changer l'avatar par URL" />
                       <div className="flex-1">
                          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 block">URL de la photo de profil</label>
                          <input type="url" value={profileForm.avatar_url} onChange={e => setProfileForm({...profileForm, avatar_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black transition" placeholder="https://..." />
