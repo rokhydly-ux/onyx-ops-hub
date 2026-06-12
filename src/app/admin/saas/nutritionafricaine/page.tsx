@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import Papa from 'papaparse';
 
 const spaceGrotesk = { className: "font-sans" };
 
@@ -32,6 +33,10 @@ export default function AdminNutritionAfricaine() {
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [editingPromo, setEditingPromo] = useState<any>(null);
   const [promoForm, setPromoForm] = useState({ id: '', code: '', discount_pct: 10, min_xp: 0, active: true });
+
+  const [pendingProductCsvFile, setPendingProductCsvFile] = useState<any>(null);
+  const [isImportingProductCsv, setIsImportingProductCsv] = useState(false);
+  const [productCsvImportProgress, setProductCsvImportProgress] = useState(0);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -219,41 +224,118 @@ export default function AdminNutritionAfricaine() {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-          const csvText = event.target?.result as string;
-          const rows = csvText.split('\n').filter(r => r.trim());
-          if (rows.length < 2) return;
-          const headers = rows[0].split(';').map(h => h.trim().toLowerCase());
+      setLoading(true);
+
+      Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+              try {
+                  const productsToImport: any[] = [];
+                  const uniqueCategories = new Set<string>();
+
+                  for (const row of results.data as any[]) {
+                      const r: any = {};
+                      Object.keys(row).forEach(k => {
+                          if (k && typeof k === 'string') r[k.toLowerCase().trim()] = row[k];
+                      });
+
+                      const nom = r['nom'] || r['name'] || r['produit'];
+                      if (!nom) continue;
+
+                      const categorie_nom = r['categorie_nom'] || r['catégorie'] || r['category'] || 'Général';
+                      
+                      let prix_standard = r['prix_standard'] || r['prix'] || 0;
+                      let prix_premium = r['prix_premium'] || r['prix premium'] || 0;
+                      let stock = r['stock'] || r['quantité'] || 0;
+
+                      productsToImport.push({
+                          nom,
+                          categorie_nom,
+                          description_courte: r['description_courte'] || r['description courte'] || '',
+                          description_longue: r['description_longue'] || r['description longue'] || '',
+                          prix_standard: Number(String(prix_standard).replace(/[^0-9.-]+/g, '')) || 0,
+                          prix_premium: Number(String(prix_premium).replace(/[^0-9.-]+/g, '')) || 0,
+                          stock: Number(String(stock).replace(/[^0-9.-]+/g, '')) || 0,
+                          image_url: r['image_url'] || r['image'] || '',
+                          badge: r['badge'] || '',
+                          goal: r['goal'] || r['objectif'] || 'all'
+                      });
+
+                      uniqueCategories.add(categorie_nom);
+                  }
+
+                  if (productsToImport.length === 0) {
+                      alert("Aucun produit valide trouvé dans le fichier CSV. Assurez-vous d'avoir une colonne 'nom'.");
+                      return;
+                  }
+
+                  setPendingProductCsvFile({
+                      filename: file.name,
+                      productsCount: productsToImport.length,
+                      categoriesCount: uniqueCategories.size,
+                      data: productsToImport
+                  });
+              } catch (err: any) {
+                  alert("Erreur lors de l'analyse du CSV : " + err.message);
+              } finally {
+                  setLoading(false);
+                  if (fileProductInputRef.current) fileProductInputRef.current.value = '';
+              }
+          },
+          error: (err) => {
+              alert("Erreur de lecture du fichier CSV.");
+              setLoading(false);
+              if (fileProductInputRef.current) fileProductInputRef.current.value = '';
+          }
+      });
+  };
+
+  const handleConfirmProductCsvImport = async () => {
+      if (!pendingProductCsvFile) return;
+      setIsImportingProductCsv(true);
+      setProductCsvImportProgress(0);
+
+      try {
+          const productsArray = pendingProductCsvFile.data;
+          const totalRows = productsArray.length;
+          const chunkSize = 100;
+          let importedCount = 0;
           
-          const newProducts = [];
-          for (let i = 1; i < rows.length; i++) {
-              const cols = rows[i].split(';');
-              const prod: any = {};
-              headers.forEach((h, index) => {
-                  prod[h] = cols[index]?.trim() || '';
+          for (let i = 0; i < totalRows; i += chunkSize) {
+              const chunk = productsArray.slice(i, i + chunkSize);
+              
+              const payload = chunk.map((p: any) => {
+                  const existingProd = products.find(ep => ep.nom.toLowerCase() === p.nom.toLowerCase());
+                  const item = { ...p };
+                  if (existingProd) {
+                      item.id = existingProd.id;
+                  }
+                  return item;
               });
 
-              if (prod.nom) {
-                  const existingProd = products.find(p => p.nom.toLowerCase() === prod.nom.toLowerCase());
-                  const pPayload: any = {
-                      nom: prod.nom, categorie_nom: prod.categorie_nom || 'Général', description_courte: prod.description_courte || '', description_longue: prod.description_longue || '',
-                      prix_standard: Number(prod.prix_standard) || 0, prix_premium: Number(prod.prix_premium) || 0, stock: Number(prod.stock) || 0, image_url: prod.image_url || '', badge: prod.badge || '', goal: prod.goal || 'all'
-                  };
-                  if (existingProd) pPayload.id = existingProd.id;
-                  newProducts.push(pPayload);
+              const { data, error } = await supabase.from('nutrition_products').upsert(payload).select();
+              if (error) throw new Error("Erreur insertion: " + error.message);
+
+              if (data) {
+                  importedCount += data.length;
               }
+
+              setProductCsvImportProgress(Math.round(((i + chunk.length) / totalRows) * 100));
           }
-          if (newProducts.length > 0) {
-              setLoading(true);
-              const { error } = await supabase.from('nutrition_products').upsert(newProducts);
-              if (error) alert("Erreur d'importation: " + error.message);
-              else { alert(`${newProducts.length} produits importés/mis à jour avec succès !`); const { data } = await supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }); if (data) setProducts(data); }
-              setLoading(false);
-          }
-      };
-      reader.readAsText(file);
-      if (fileProductInputRef.current) fileProductInputRef.current.value = '';
+
+          alert(`Importation réussie ! ${importedCount} produits ajoutés/mis à jour.`);
+          setPendingProductCsvFile(null);
+
+          const { data } = await supabase.from('nutrition_products').select('*').order('created_at', { ascending: false });
+          if (data) setProducts(data);
+
+      } catch (err: any) {
+          alert("Erreur lors de l'importation : " + err.message);
+      } finally {
+          setIsImportingProductCsv(false);
+          setProductCsvImportProgress(0);
+      }
   };
 
   const handleOpenProductModal = (prod?: any) => {
@@ -949,6 +1031,45 @@ export default function AdminNutritionAfricaine() {
                </form>
             </div>
          </div>
+      )}
+
+      {/* MODALE CONFIRMATION IMPORT CSV BOUTIQUE */}
+      {pendingProductCsvFile && (
+        <div id="csv-modal-overlay" onClick={(e: any) => e.target.id === 'csv-modal-overlay' && !isImportingProductCsv && setPendingProductCsvFile(null)} className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative border-t-8 border-[#39FF14] animate-in zoom-in-95 text-center text-black">
+            <button onClick={() => !isImportingProductCsv && setPendingProductCsvFile(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors"><X size={16}/></button>
+            <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"><Database size={24}/></div>
+            <h3 className="text-xl font-black uppercase mb-2 text-black">Confirmer l'import (Boutique)</h3>
+            <p className="text-sm font-bold text-zinc-500 mb-6">Fichier : {pendingProductCsvFile.filename}</p>
+            
+            <div className="grid grid-cols-2 gap-2 mb-8">
+               <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                  <p className="text-2xl font-black text-[#39FF14]">{pendingProductCsvFile.productsCount}</p>
+                  <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest mt-1">Produits</p>
+               </div>
+               <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                  <p className="text-2xl font-black text-black">{pendingProductCsvFile.categoriesCount}</p>
+                  <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest mt-1">Catégories</p>
+               </div>
+            </div>
+
+            {isImportingProductCsv && (
+               <div className="mb-6 w-full text-left animate-in fade-in">
+                  <div className="w-full bg-zinc-200 rounded-full h-2.5 overflow-hidden shadow-inner">
+                     <div className="bg-[#39FF14] h-2.5 rounded-full transition-all duration-300" style={{ width: `${productCsvImportProgress}%` }}></div>
+                  </div>
+                  <p className="text-xs font-bold text-zinc-500 mt-2 tracking-widest uppercase text-center">Importation... {productCsvImportProgress}%</p>
+               </div>
+            )}
+
+            <div className="flex gap-3">
+               <button onClick={() => setPendingProductCsvFile(null)} disabled={isImportingProductCsv} className="flex-1 py-4 bg-zinc-100 text-zinc-500 rounded-xl font-black uppercase text-xs hover:bg-zinc-200 transition disabled:opacity-50">Annuler</button>
+               <button onClick={handleConfirmProductCsvImport} disabled={isImportingProductCsv} className="flex-[2] py-4 bg-black text-[#39FF14] rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100">
+                  {isImportingProductCsv ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>} {isImportingProductCsv ? 'En cours...' : 'Valider'}
+               </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
