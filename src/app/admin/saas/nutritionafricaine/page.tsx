@@ -41,8 +41,13 @@ export default function AdminNutritionAfricaine() {
   const [pendingRecipeCsvFile, setPendingRecipeCsvFile] = useState<any>(null);
   const [isImportingRecipeCsv, setIsImportingRecipeCsv] = useState(false);
   const [recipeCsvImportProgress, setRecipeCsvImportProgress] = useState(0);
+  const [tenantId, setTenantId] = useState<string | null>(null);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({data}) => {
+        setTenantId(data.session?.user?.user_metadata?.tenant_id || data.session?.user?.id || null);
+    });
+
     const fetchClients = async () => {
       // Fetch clients d'abord avec un ilike pour capturer toutes les variantes de "Nutrition"
       const { data: clientsData, error: clientsError } = await supabase
@@ -133,7 +138,7 @@ export default function AdminNutritionAfricaine() {
 
   const handleSaveRecipe = async (e: React.FormEvent) => {
       e.preventDefault();
-      const payload = { ...recipeForm };
+      const payload = { ...recipeForm, tenant_id: tenantId };
       delete payload.id;
       if (editingRecipe) {
           const { error } = await supabase.from('nutrition_recipes').update(payload).eq('id', recipeForm.id);
@@ -256,7 +261,7 @@ export default function AdminNutritionAfricaine() {
               
               const payload = chunk.map((r: any) => {
                   const existingRecipe = recipes.find(er => er.nom.toLowerCase() === r.nom.toLowerCase());
-                  const item = { ...r };
+                  const item = { ...r, tenant_id: tenantId };
                   if (existingRecipe) {
                       item.id = existingRecipe.id;
                   }
@@ -374,9 +379,12 @@ export default function AdminNutritionAfricaine() {
               
               const payload = chunk.map((p: any) => {
                   const existingProd = products.find(ep => ep.nom.toLowerCase() === p.nom.toLowerCase());
-                  const item = { ...p };
+                  const item = { ...p, tenant_id: tenantId };
                   if (existingProd) {
                       item.id = existingProd.id;
+                      item.produit_id = existingProd.produit_id || `prod_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+                  } else {
+                      item.produit_id = `prod_${Date.now()}_${Math.floor(Math.random()*1000)}`;
                   }
                   return item;
               });
@@ -418,7 +426,7 @@ export default function AdminNutritionAfricaine() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
       e.preventDefault();
-      const payload = { ...productForm };
+      const payload = { ...productForm, tenant_id: tenantId };
       delete payload.id;
       if (editingProduct) {
           const { error } = await supabase.from('nutrition_products').update(payload).eq('id', productForm.id);
@@ -464,7 +472,7 @@ export default function AdminNutritionAfricaine() {
 
   const handleSavePromo = async (e: React.FormEvent) => {
       e.preventDefault();
-      const payload = { ...promoForm, code: promoForm.code.toUpperCase().replace(/\s+/g, '') };
+      const payload = { ...promoForm, code: promoForm.code.toUpperCase().replace(/\s+/g, ''), tenant_id: tenantId };
       delete payload.id;
       let res;
       if (editingPromo) res = await supabase.from('nutrition_promo_codes').update(payload).eq('id', promoForm.id).select().single();

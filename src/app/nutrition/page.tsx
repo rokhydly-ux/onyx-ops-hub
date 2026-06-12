@@ -1010,7 +1010,9 @@ export default function NutritionDashboard() {
          report_data: { ...reportData, consumedMeals, mood, moodNotes },
          water_glasses: waterGlasses,
          calories_consumed: currentCals || 0,
-         proteins_consumed: currentProts || 0
+         proteins_consumed: currentProts || 0,
+         carbs_consumed: carbs || 0,
+         fats_consumed: fats || 0
        }, { onConflict: 'client_id, log_date' });
 
        if (error) throw error;
@@ -1020,7 +1022,7 @@ export default function NutritionDashboard() {
        const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: { ...reportData, consumedMeals, mood, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), updatedLog]);
     } catch (err: any) {
-       alert("Erreur lors de l'enregistrement : " + err.message + "\nAssurez-vous que la structure de la table est à jour.");
+       alert("Erreur lors de l'enregistrement : " + err.message + "\nVeuillez vérifier que les colonnes carbs_consumed et fats_consumed existent dans nutrition_daily_logs.");
     }
   };
 
@@ -2204,8 +2206,8 @@ export default function NutritionDashboard() {
               <div className="bg-black text-white p-10 rounded-[3rem] relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 border-b-8 border-[#39FF14] shadow-2xl">
                  <div className="absolute top-0 right-0 w-80 h-80 bg-[#39FF14]/20 blur-[100px] rounded-full"></div>
                  <div className="relative z-10">
-                    <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter mb-2`}>Boutique <span className="text-[#39FF14]">Nutrition</span></h2>
-                    <p className="text-zinc-400 font-bold max-w-md uppercase tracking-widest text-[10px]">Équipez votre transformation Jongoma.</p>
+                    <h2 className={`${spaceGrotesk.className} text-xl md:text-2xl font-black uppercase tracking-tighter mb-1`}>Boutique <span className="text-[#39FF14]">Nutrition</span></h2>
+                    <p className="text-zinc-400 font-bold max-w-md uppercase tracking-widest text-[8px]">Équipez votre transformation Jongoma.</p>
                  </div>
                  {shopCart.length > 0 && (
                     <div className="flex flex-col items-end gap-3 z-10">
@@ -2230,10 +2232,10 @@ export default function NutritionDashboard() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                 <button onClick={() => setSelectedShopGoal('all')} className={`p-4 rounded-2xl border-2 font-black uppercase text-[9px] tracking-widest transition-all ${selectedShopGoal === 'all' ? 'bg-black text-[#39FF14] border-black' : 'bg-white border-zinc-100 text-zinc-400'}`}>Tous les produits</button>
+                 <button onClick={() => setSelectedShopGoal('all')} className={`p-2 rounded-xl border-2 font-black uppercase text-[8px] tracking-widest transition-all ${selectedShopGoal === 'all' ? 'bg-black text-[#39FF14] border-black' : 'bg-white border-zinc-100 text-zinc-400'}`}>Tous</button>
                  {SHOP_GOALS.map(goal => (
-                    <button key={goal.id} onClick={() => setSelectedShopGoal(goal.id)} className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center gap-3 font-black uppercase text-[9px] tracking-widest transition-all ${selectedShopGoal === goal.id ? 'bg-black text-[#39FF14] border-black shadow-xl' : 'bg-white border-zinc-100 text-zinc-400'}`}>
-                       <span className="text-lg">{goal.icon}</span> {goal.label}
+                    <button key={goal.id} onClick={() => setSelectedShopGoal(goal.id)} className={`p-2 rounded-xl border-2 flex flex-col items-center justify-center gap-1.5 font-black uppercase text-[8px] tracking-widest transition-all ${selectedShopGoal === goal.id ? 'bg-black text-[#39FF14] border-black shadow-xl' : 'bg-white border-zinc-100 text-zinc-400'}`}>
+                       <span className="text-base">{goal.icon}</span> {goal.label}
                     </button>
                  ))}
               </div>
@@ -2322,21 +2324,21 @@ export default function NutritionDashboard() {
         {/* VUE TRACKER DE POIDS */}
         {activeTab === 'weight' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
-             <div className="bg-white p-8 sm:p-12 rounded-[2rem] border border-zinc-200 shadow-sm text-center relative overflow-hidden">
+             <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 sm:p-12 rounded-[2rem] border shadow-sm text-center relative overflow-hidden`}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 blur-[50px] rounded-full pointer-events-none"></div>
-                <Scale size={48} className="mx-auto mb-6 text-[#39FF14]" />
-                <h2 className={`${spaceGrotesk.className} text-4xl font-black uppercase tracking-tighter text-black mb-2`}>Tracker de Poids</h2>
-                <p className="text-zinc-500 font-bold mb-10 max-w-md mx-auto">Une pesée par semaine, pas plus. La constance bat l'obsession. Ajustez le curseur et validez.</p>
+                <Scale size={32} className="mx-auto mb-4 text-[#39FF14]" />
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} mb-2`}>Tracker de Poids</h2>
+                <p className="text-zinc-500 font-bold mb-6 text-xs max-w-sm mx-auto">Une pesée par semaine, pas plus. La constance bat l'obsession. Ajustez le curseur et validez.</p>
                 
-                <div className="max-w-md mx-auto bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-100 mb-10 shadow-inner">
-                   <p className="text-7xl font-black text-black mb-8 tracking-tighter">{currentWeightInput} <span className="text-2xl text-zinc-400">kg</span></p>
+                <div className={`max-w-md mx-auto ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'} p-8 rounded-[2.5rem] border mb-10 shadow-inner`}>
+                   <p className={`text-7xl font-black ${theme === 'dark' ? 'text-white' : 'text-black'} mb-8 tracking-tighter`}>{currentWeightInput} <span className="text-2xl text-zinc-400">kg</span></p>
                    <input 
                       type="range" min="40" max="150" step="0.5" 
                       value={currentWeightInput} 
                       onChange={e => setCurrentWeightInput(parseFloat(e.target.value))}
-                      className="w-full accent-black h-3 bg-zinc-200 rounded-full appearance-none cursor-pointer mb-8"
+                      className="w-full accent-[#39FF14] h-3 bg-zinc-300 dark:bg-zinc-600 rounded-full appearance-none cursor-pointer mb-8"
                    />
-                   <button onClick={handleSaveWeight} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-xl">
+                   <button onClick={handleSaveWeight} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-xl">
                        Enregistrer ma pesée
                    </button>
                 </div>
