@@ -217,7 +217,7 @@ export default function NutritionDashboard() {
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [reportData, setReportData] = useState({ followedMenu: false, cravedRice: false, drankWater: false });
   const [consumedMeals, setConsumedMeals] = useState<any[]>([]);
-  const [mood, setMood] = useState<string>('');
+  const [moods, setMoods] = useState<string[]>([]);
   const [moodNotes, setMoodNotes] = useState<string>('');
   const [selectedMealModal, setSelectedMealModal] = useState<any>(null);
   
@@ -272,6 +272,7 @@ export default function NutritionDashboard() {
   // Smart Planner (Générateur)
   const [weeklyGeneratedMenu, setWeeklyGeneratedMenu] = useState<any[]>([]);
   const [showGroceryList, setShowGroceryList] = useState(false);
+  const [excludedIngredients, setExcludedIngredients] = useState<string[]>([]);
 
   const [profileForm, setProfileForm] = useState({ full_name: "", avatar_url: "", password: "" });
   const [showReminder, setShowReminder] = useState(false);
@@ -289,6 +290,12 @@ export default function NutritionDashboard() {
   const [isShopPromoApplied, setIsShopPromoApplied] = useState(false);
   const [shopPromoCodesDB, setShopPromoCodesDB] = useState<any[]>([]);
   const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
+
+  // Shop dynamic additions
+  const [shopBannerUrl, setShopBannerUrl] = useState("https://placehold.co/1200x300/111/39FF14?text=OFFRES+EXCLUSIVES");
+  const [shopSearchQuery, setShopSearchQuery] = useState("");
+  const [shopMinPrice, setShopMinPrice] = useState<number | "">("");
+  const [shopMaxPrice, setShopMaxPrice] = useState<number | "">("");
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -366,6 +373,10 @@ export default function NutritionDashboard() {
               if (todayLog.report_data?.consumedMeals && Array.isArray(todayLog.report_data.consumedMeals)) {
                   setConsumedMeals(todayLog.report_data.consumedMeals);
               }
+              if (todayLog.report_data?.moods && Array.isArray(todayLog.report_data.moods)) {
+                  setMoods(todayLog.report_data.moods);
+              }
+              if (todayLog.report_data?.moodNotes) setMoodNotes(todayLog.report_data.moodNotes);
             }
           }
 
@@ -429,6 +440,14 @@ export default function NutritionDashboard() {
              } catch(e) {}
           }
 
+          const savedExcluded = localStorage.getItem(`onyx_nutrition_excluded_ings_${profileData.id}`);
+          if (savedExcluded) {
+             try { 
+                const parsed = JSON.parse(savedExcluded);
+                if (Array.isArray(parsed)) setExcludedIngredients(parsed);
+             } catch(e) {}
+          }
+
           // Fetch DB Products
           const { data: dbProds } = await supabase.from('nutrition_products').select('*');
           if (dbProds && dbProds.length > 0) {
@@ -454,6 +473,10 @@ export default function NutritionDashboard() {
           }
         }
       }
+
+      // Load banner from settings
+      supabase.from('crm_settings').select('shop_banner_url').maybeSingle()
+          .then(({data}) => { if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); });
 
       setLoading(false);
     };
@@ -650,6 +673,16 @@ export default function NutritionDashboard() {
       return list;
   };
 
+  const toggleExcludeIngredient = (nom: string) => {
+      setExcludedIngredients(prev => {
+          const newEx = prev.includes(nom) ? prev.filter(i => i !== nom) : [...prev, nom];
+          if (clientProfile) {
+              localStorage.setItem(`onyx_nutrition_excluded_ings_${clientProfile.id}`, JSON.stringify(newEx));
+          }
+          return newEx;
+      });
+  };
+
   const openProductModal = async (product: any) => {
       const newViews = (product.views || 0) + 1;
       setSelectedProduct({ ...product, views: newViews });
@@ -681,7 +714,8 @@ export default function NutritionDashboard() {
           const list = getGroceryList();
           
           Object.entries(list).forEach(([rayon, items]: any) => {
-              if (Object.keys(items).length === 0) return;
+              const activeItems = Object.entries(items).filter(([nom]) => !excludedIngredients.includes(nom));
+              if (activeItems.length === 0) return;
               if (y > 260) { doc.addPage(); y = 20; }
               doc.setFontSize(14);
               doc.setTextColor(0, 0, 0);
@@ -690,7 +724,7 @@ export default function NutritionDashboard() {
               y += 8;
               doc.setFont("helvetica", "normal");
               doc.setFontSize(12);
-              Object.entries(items).forEach(([nom, data]: any) => {
+              activeItems.forEach(([nom, data]: any) => {
                   if (y > 280) { doc.addPage(); y = 20; }
                   doc.text(`• ${nom}`, 20, y);
                   doc.text(`${data.quantite} ${data.unite}`, 190, y, { align: 'right' });
@@ -733,7 +767,8 @@ export default function NutritionDashboard() {
       const list = getGroceryList();
       
       Object.entries(list).forEach(([rayon, items]: any) => {
-          if (Object.keys(items).length === 0) return;
+          const activeItems = Object.entries(items).filter(([nom]) => !excludedIngredients.includes(nom));
+          if (activeItems.length === 0) return;
           if (y > 260) { doc.addPage(); y = 20; }
           doc.setFontSize(14);
           doc.setTextColor(0, 0, 0);
@@ -742,7 +777,7 @@ export default function NutritionDashboard() {
           y += 8;
           doc.setFont("helvetica", "normal");
           doc.setFontSize(12);
-          Object.entries(items).forEach(([nom, data]: any) => {
+          activeItems.forEach(([nom, data]: any) => {
               if (y > 280) { doc.addPage(); y = 20; }
               doc.text(`• ${nom}`, 20, y);
               doc.text(`${data.quantite} ${data.unite}`, 190, y, { align: 'right' });
@@ -1007,7 +1042,7 @@ export default function NutritionDashboard() {
        const { error } = await supabase.from('nutrition_daily_logs').upsert({
          client_id: clientProfile.id,
          log_date: todayStr,
-         report_data: { ...reportData, consumedMeals, mood, moodNotes },
+         report_data: { ...reportData, consumedMeals, moods, moodNotes },
          water_glasses: waterGlasses,
          calories_consumed: currentCals || 0,
          proteins_consumed: currentProts || 0,
@@ -1019,7 +1054,7 @@ export default function NutritionDashboard() {
 
        alert("Bilan de la journée enregistré avec succès ! L'IA adaptera votre menu de demain.");
        setShowDailyReport(false);
-       const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: { ...reportData, consumedMeals, mood, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
+       const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), updatedLog]);
     } catch (err: any) {
        alert("Erreur lors de l'enregistrement : " + err.message + "\nVeuillez vérifier que les colonnes carbs_consumed et fats_consumed existent dans nutrition_daily_logs.");
@@ -1266,7 +1301,7 @@ export default function NutritionDashboard() {
       {/* Header */}
       <div className="lg:hidden p-4 bg-black flex justify-between items-center">
          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
-         <img src={logoSrc} className="h-8 w-auto object-contain" alt="Logo" />
+         <img src={logoSrc} className="h-12 w-auto object-contain" alt="Logo" />
          <div className="w-10"></div>
       </div>
 
@@ -1287,7 +1322,7 @@ export default function NutritionDashboard() {
             <div>
               <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
               <div className="flex items-center gap-4">
-                <img src={user?.avatar_url || "https://ui-avatars.com/api/?name=" + (user?.full_name || "Membre")} alt="Profil" className="w-16 h-16 rounded-full border-4 border-[#39FF14] object-cover bg-zinc-800" />
+                <img src={logoSrc} alt="Profil" className="w-20 h-auto object-contain hidden md:block mr-4" />
                 <div>
                   <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
                     {greetingText}, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
@@ -1433,11 +1468,18 @@ export default function NutritionDashboard() {
                <div className={`p-6 rounded-[2rem] border shadow-sm flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
                   <h3 className="font-black text-lg uppercase mb-4">Mon Humeur & Notes</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
-                     {[{e:'😃',l:'Enjoué'}, {e:'🤩',l:'Motivé'}, {e:'🧘‍♀️',l:'Zen'}, {e:'🤔',l:'Pensif'}, {e:'😴',l:'Fatigué'}, {e:'😫',l:'Épuisé'}, {e:'😢',l:'Triste'}, {e:'😠',l:'Enervé'}, {e:'🤢',l:'Barbouillé'}, {e:'😭',l:'Critique'}].map(m => (
-                        <button key={m.l} onClick={() => setMood(m.l)} className={`p-2 text-2xl rounded-xl border-2 transition-all ${mood === m.l ? 'bg-zinc-100 border-[#39FF14] scale-110 shadow-md' : (theme === 'dark' ? 'bg-zinc-800 border-zinc-700 opacity-50 hover:opacity-100' : 'bg-white border-zinc-100 opacity-50 hover:opacity-100')}`} title={m.l}>{m.e}</button>
-                     ))}
+                     {[{e:'😃',l:'Enjoué'}, {e:'🤩',l:'Motivé'}, {e:'🧘‍♀️',l:'Zen'}, {e:'🤔',l:'Pensif'}, {e:'😴',l:'Fatigué'}, {e:'😫',l:'Épuisé'}, {e:'😢',l:'Triste'}, {e:'😠',l:'Enervé'}, {e:'🤢',l:'Barbouillé'}, {e:'😭',l:'Critique'}].map(m => {
+                        const isSelected = moods.includes(m.l);
+                        return (
+                        <button key={m.l} onClick={() => {
+                           if (isSelected) setMoods(moods.filter(x => x !== m.l));
+                           else if (moods.length < 3) setMoods([...moods, m.l]);
+                           else { const newM = [...moods]; newM.shift(); newM.push(m.l); setMoods(newM); }
+                        }} className={`p-2 text-2xl rounded-xl border-2 transition-all ${isSelected ? 'bg-zinc-100 border-[#39FF14] scale-110 shadow-md' : (theme === 'dark' ? 'bg-zinc-800 border-zinc-700 opacity-50 hover:opacity-100' : 'bg-white border-zinc-100 opacity-50 hover:opacity-100')}`} title={m.l}>{m.e}</button>
+                     )})}
                   </div>
                   <textarea value={moodNotes} onChange={e => setMoodNotes(e.target.value)} placeholder="Comment vous sentez-vous aujourd'hui ? (Optionnel)" className={`w-full border rounded-xl p-4 text-sm outline-none focus:border-[#39FF14] min-h-[80px] custom-scrollbar resize-none ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500' : 'bg-zinc-50 border-zinc-200 text-black placeholder-zinc-400'}`} />
+                  <button onClick={handleSaveMoodNotes} disabled={isSaving} className="mt-3 w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex justify-center items-center gap-2 shadow-lg disabled:opacity-50"><Save size={14}/> {isSaving ? 'En cours...' : 'Enregistrer Notes'}</button>
                </div>
             </div>
 
@@ -2113,12 +2155,20 @@ export default function NutritionDashboard() {
                         <div key={rayon}>
                            <h4 className="font-black uppercase text-sm mb-3 text-black bg-zinc-100 p-3 rounded-xl border border-zinc-200">{rayon}</h4>
                            <ul className="grid md:grid-cols-2 gap-x-6 gap-y-3 px-2">
-                              {Object.entries(items).map(([nom, data]: any) => (
+                              {Object.entries(items).map(([nom, data]: any) => {
+                                 const isExcluded = excludedIngredients.includes(nom);
+                                 return (
                                  <li key={nom} className="flex items-center justify-between text-sm font-medium border-b border-zinc-100 pb-2">
-                                    <span className="text-zinc-700">{nom}</span>
-                                    <span className="font-black text-black">{data.quantite} {data.unite}</span>
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                       <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${isExcluded ? 'bg-[#39FF14] border-[#39FF14]' : 'bg-white border-zinc-300 group-hover:border-black'}`}>
+                                          {isExcluded && <CheckCircle size={14} className="text-black" />}
+                                       </div>
+                                       <input type="checkbox" className="hidden" checked={isExcluded} onChange={() => toggleExcludeIngredient(nom)} />
+                                       <span className={isExcluded ? 'text-zinc-400 line-through' : 'text-zinc-700 dark:text-zinc-300'}>{nom}</span>
+                                    </label>
+                                    <span className={`font-black ${isExcluded ? 'text-zinc-400 line-through' : 'text-black dark:text-white'}`}>{data.quantite} {data.unite}</span>
                                  </li>
-                              ))}
+                              )})}
                            </ul>
                         </div>
                      );
@@ -2203,32 +2253,49 @@ export default function NutritionDashboard() {
         {/* VUE BOUTIQUE */}
         {activeTab === 'shop' && (
            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
-              <div className="bg-black text-white p-10 rounded-[3rem] relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 border-b-8 border-[#39FF14] shadow-2xl">
-                 <div className="absolute top-0 right-0 w-80 h-80 bg-[#39FF14]/20 blur-[100px] rounded-full"></div>
-                 <div className="relative z-10">
-                    <h2 className={`${spaceGrotesk.className} text-xl md:text-2xl font-black uppercase tracking-tighter mb-1`}>Boutique <span className="text-[#39FF14]">Nutrition</span></h2>
-                    <p className="text-zinc-400 font-bold max-w-md uppercase tracking-widest text-[8px]">Équipez votre transformation Jongoma.</p>
+              {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
+              <div className="w-full h-48 md:h-64 rounded-[2.5rem] overflow-hidden mb-12 shadow-xl relative border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                 <img src={shopBannerUrl} alt="Bannière Boutique" className="absolute inset-0 w-full h-full object-cover" />
+                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-center p-10">
+                     <h2 className={`${spaceGrotesk.className} text-white text-3xl md:text-5xl font-black uppercase tracking-tighter shadow-sm mb-2`}>Essentiels <span className="text-[#39FF14]">Nutrition</span></h2>
+                     <p className="text-zinc-300 font-bold uppercase tracking-widest text-[10px] md:text-xs">Atteignez vos objectifs plus vite.</p>
                  </div>
                  {shopCart.length > 0 && (
-                    <div className="flex flex-col items-end gap-3 z-10">
-                       <div className="flex items-center gap-2">
-                          <input 
-                              type="text" 
-                              value={shopPromoCode} 
-                              onChange={e => setShopPromoCode(e.target.value)} 
-                              placeholder="Code Promo" 
-                              className="px-4 py-2 rounded-xl text-black font-bold text-xs outline-none"
-                              disabled={isShopPromoApplied}
-                          />
-                          <button onClick={applyShopPromo} disabled={isShopPromoApplied} className="bg-white text-black px-4 py-2 rounded-xl font-black text-xs hover:bg-zinc-200 transition disabled:opacity-50">
-                             {isShopPromoApplied ? 'Appliqué' : 'OK'}
-                          </button>
-                       </div>
-                       <button onClick={handleShopCheckout} className="bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition shadow-[0_0_40px_#39FF14] flex items-center gap-3">
-                          <ShoppingCart size={24}/> Commander ({shopCart.length})
-                       </button>
-                    </div>
+                     <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-end gap-3 z-10 bg-black/60 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+                        <button onClick={handleShopCheckout} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-[0_0_40px_#39FF14] flex items-center gap-3">
+                           <ShoppingCart size={20}/> Commander ({shopCart.length})
+                        </button>
+                     </div>
                  )}
+              </div>
+
+              {/* CAROUSEL NOUVEAUTÉS */}
+              <div className="mb-16">
+                 <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-2 text-black dark:text-white`}><Sparkles className="text-[#39FF14]"/> Nouveautés de la semaine</h3>
+                 <div className="flex gap-4 overflow-x-auto pb-6 snap-x custom-scrollbar">
+                    {(Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 6).map(product => (
+                       <div key={product.id} onClick={() => openProductModal(product)} className={`snap-start shrink-0 w-64 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2rem] p-4 cursor-pointer hover:border-[#39FF14] transition-all group shadow-sm`}>
+                           <div className="aspect-square rounded-2xl bg-zinc-50 dark:bg-zinc-950 overflow-hidden mb-4 relative">
+                              <img src={product.image_url} alt={product.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              <span className="absolute top-2 right-2 bg-black text-[#39FF14] px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-lg">New</span>
+                           </div>
+                           <h4 className="font-black text-sm uppercase text-black dark:text-white line-clamp-1">{product.nom}</h4>
+                           <p className="text-[#39FF14] font-black text-lg mt-2">{product.prix_premium.toLocaleString()} F</p>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+
+              {/* FILTRES & RECHERCHE */}
+              <div className="flex flex-col md:flex-row gap-4 mb-8">
+                 <div className="relative flex-1">
+                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                     <input type="text" placeholder="Rechercher (ex: Fonio, Détox)..." value={shopSearchQuery} onChange={e=>setShopSearchQuery(e.target.value)} className={`w-full p-4 pl-12 rounded-2xl font-bold text-sm outline-none transition-colors border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-white focus:border-[#39FF14]' : 'bg-white border-zinc-200 text-black focus:border-black'}`} />
+                 </div>
+                 <div className="flex gap-2">
+                     <input type="number" placeholder="Min (F CFA)" value={shopMinPrice} onChange={e=>setShopMinPrice(e.target.value?Number(e.target.value):"")} className={`w-32 p-4 rounded-2xl font-bold text-sm outline-none transition-colors border text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-white focus:border-[#39FF14]' : 'bg-white border-zinc-200 text-black focus:border-black'}`} />
+                     <input type="number" placeholder="Max (F CFA)" value={shopMaxPrice} onChange={e=>setShopMaxPrice(e.target.value?Number(e.target.value):"")} className={`w-32 p-4 rounded-2xl font-bold text-sm outline-none transition-colors border text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-white focus:border-[#39FF14]' : 'bg-white border-zinc-200 text-black focus:border-black'}`} />
+                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -2242,9 +2309,15 @@ export default function NutritionDashboard() {
 
               <div id="shop-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                  {(Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || [])
-                    .filter(p => selectedShopGoal === 'all' || (selectedShopGoal === 'saved' ? savedShopProducts.some((sp: any) => sp.id === p.id) : p.goal === selectedShopGoal))
+                    .filter(p => {
+                        const matchSearch = !shopSearchQuery || p.nom?.toLowerCase().includes(shopSearchQuery.toLowerCase());
+                        const matchMin = shopMinPrice === "" || p.prix_standard >= shopMinPrice;
+                        const matchMax = shopMaxPrice === "" || p.prix_standard <= shopMaxPrice;
+                        const matchGoal = selectedShopGoal === 'all' || (selectedShopGoal === 'saved' ? savedShopProducts.some((sp: any) => sp.id === p.id) : p.goal === selectedShopGoal);
+                        return matchSearch && matchMin && matchMax && matchGoal;
+                    })
                     .map(product => (
-                       <div key={product.id} className="bg-white border border-zinc-100 rounded-[2.5rem] p-6 flex flex-col hover:border-[#39FF14] transition-all hover:shadow-2xl group">
+                       <div key={product.id} className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2.5rem] p-6 flex flex-col hover:border-[#39FF14] transition-all hover:shadow-2xl group`}>
                           <div className="relative aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 cursor-pointer" onClick={() => openProductModal(product)}>
                              <img src={product.image_url} alt={product.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                              {product.badge && <span className="absolute top-4 left-4 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">{product.badge}</span>}

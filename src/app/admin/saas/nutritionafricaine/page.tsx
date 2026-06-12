@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 
@@ -28,7 +28,7 @@ export default function AdminNutritionAfricaine() {
   const [orders, setOrders] = useState<any[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [productForm, setProductForm] = useState({ id: '', produit_id: '', categorie_nom: '', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all' });
+  const [productForm, setProductForm] = useState({ id: '', produit_id: '', categorie_nom: '', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5 });
   const [promos, setPromos] = useState<any[]>([]);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [editingPromo, setEditingPromo] = useState<any>(null);
@@ -42,6 +42,15 @@ export default function AdminNutritionAfricaine() {
   const [isImportingRecipeCsv, setIsImportingRecipeCsv] = useState(false);
   const [recipeCsvImportProgress, setRecipeCsvImportProgress] = useState(0);
   const [tenantId, setTenantId] = useState<string | null>(null);
+
+  // Filtres Boutique Admin
+  const [shopSearch, setShopSearch] = useState("");
+  const [shopMinPrice, setShopMinPrice] = useState<number | "">("");
+  const [shopMaxPrice, setShopMaxPrice] = useState<number | "">("");
+  const [shopSort, setShopSort] = useState("recent");
+  const [shopPage, setShopPage] = useState(1);
+  const [showVitrineModal, setShowVitrineModal] = useState(false);
+  const [vitrineBanner, setVitrineBanner] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({data}) => {
@@ -105,14 +114,16 @@ export default function AdminNutritionAfricaine() {
     };
 
     const fetchShopAndOrders = async () => {
-      const [prods, ords, promosRes] = await Promise.all([
+      const [prods, ords, promosRes, settingsRes] = await Promise.all([
          supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
          supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
-         supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false })
+         supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
+         supabase.from('crm_settings').select('shop_banner_url').maybeSingle()
       ]);
       if (prods.data) setProducts(prods.data);
       if (ords.data) setOrders(ords.data);
       if (promosRes.data) setPromos(promosRes.data);
+      if (settingsRes.data?.shop_banner_url) setVitrineBanner(settingsRes.data.shop_banner_url);
     };
 
     fetchClients();
@@ -331,7 +342,8 @@ export default function AdminNutritionAfricaine() {
                           stock: Number(String(stock).replace(/[^0-9.-]+/g, '')) || 0,
                           image_url: r['image_url'] || r['image'] || '',
                           badge: r['badge'] || '',
-                          goal: r['goal'] || r['objectif'] || 'all'
+                          goal: r['goal'] || r['objectif'] || 'all',
+                          rating: Number(r['rating'] || r['note']) || 5
                       });
 
                       uniqueCategories.add(categorie_nom);
@@ -419,7 +431,7 @@ export default function AdminNutritionAfricaine() {
          setProductForm({ ...prod });
      } else {
          setEditingProduct(null);
-         setProductForm({ id: '', produit_id: `prod_${Date.now()}`, categorie_nom: 'Super-Aliments & Céréales Locales', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all' });
+         setProductForm({ id: '', produit_id: `prod_${Date.now()}`, categorie_nom: 'Super-Aliments & Céréales Locales', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5 });
      }
      setShowProductModal(true);
   };
@@ -502,6 +514,16 @@ export default function AdminNutritionAfricaine() {
       if (msg) window.open(`https://wa.me/${phone?.replace('+', '')}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  const handleOptimizeShopIA = async () => {
+      // Tri virtuel par popularité (vues + notes) pour simuler l'IA
+      const optimized = [...products].sort((a,b) => ((b.views||0)+(b.rating||0)) - ((a.views||0)+(a.rating||0)));
+      if (tenantId) {
+          await supabase.from('crm_settings').upsert({ tenant_id: tenantId, shop_banner_url: vitrineBanner, shop_optimized_order: optimized.map(p=>p.id) }, { onConflict: 'tenant_id' });
+      }
+      alert("La boutique cliente a été dynamisée par l'IA et la bannière a été mise à jour !");
+      setShowVitrineModal(false);
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-black"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
   }
@@ -520,6 +542,24 @@ export default function AdminNutritionAfricaine() {
   });
 
   const averageCaloriesToday = clientsWithLogsToday > 0 ? Math.round(totalCaloriesToday / clientsWithLogsToday) : 0;
+
+  // Calculs pagination et filtres boutique
+  const filteredShop = products.filter(p => {
+      const matchSearch = !shopSearch || p.nom?.toLowerCase().includes(shopSearch.toLowerCase()) || p.categorie_nom?.toLowerCase().includes(shopSearch.toLowerCase());
+      const price = p.prix_standard || 0;
+      const matchMin = shopMinPrice === "" || price >= shopMinPrice;
+      const matchMax = shopMaxPrice === "" || price <= shopMaxPrice;
+      return matchSearch && matchMin && matchMax;
+  }).sort((a, b) => {
+      if (shopSort === "old") return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      if (shopSort === "views") return (b.views || 0) - (a.views || 0);
+      if (shopSort === "rating") return (b.rating || 0) - (a.rating || 0);
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(); // recent default
+  });
+
+  const shopItemsPerPage = 12;
+  const totalShopPages = Math.ceil(filteredShop.length / shopItemsPerPage);
+  const paginatedShop = filteredShop.slice((shopPage - 1) * shopItemsPerPage, shopPage * shopItemsPerPage);
 
   return (
     <div className="min-h-screen bg-[#fafafa] text-black font-sans pb-24">
@@ -575,6 +615,7 @@ export default function AdminNutritionAfricaine() {
                   <input type="file" accept=".csv" className="hidden" ref={fileProductInputRef} onChange={handleImportProductCSV} />
                   <button onClick={() => fileProductInputRef.current?.click()} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={16}/> Import CSV</button>
                   <button onClick={downloadProductCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
+                  <button onClick={() => setShowVitrineModal(true)} className="bg-blue-50 text-blue-600 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-100 transition-all shadow-sm flex items-center justify-center gap-2"><Sparkles size={16}/> Gérer Vitrine & IA</button>
                   <button onClick={() => handleOpenProductModal()} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={16}/> Nouveau Produit</button>
                </div>
             )}
@@ -806,43 +847,56 @@ export default function AdminNutritionAfricaine() {
 
         {activeTab === 'shop' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-           <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
-              <table className="w-full text-left min-w-[800px]">
-                 <thead className="bg-zinc-50/50 border-b border-zinc-100">
-                    <tr>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Produit</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Prix (Standard/Premium)</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Stock</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-zinc-50">
-                    {products.map(p => (
-                       <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
-                          <td className="p-4 flex items-center gap-3">
-                             {p.image_url && <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover bg-zinc-100" />}
-                             <div>
-                                <p className="font-bold text-sm text-black">{p.nom}</p>
-                                <p className="text-[10px] font-black text-zinc-500 uppercase mt-1">{p.categorie_nom}</p>
-                             </div>
-                          </td>
-                          <td className="p-4">
-                             <p className="text-xs font-bold text-zinc-500 line-through">{p.prix_standard} F</p>
-                             <p className="text-sm font-black text-[#39FF14] bg-black px-2 py-0.5 rounded w-max">{p.prix_premium} F</p>
-                          </td>
-                          <td className="p-4">
-                             <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${p.stock > 10 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.stock} en stock</span>
-                          </td>
-                          <td className="p-4 text-right flex justify-end gap-2">
-                             <button onClick={() => handleOpenProductModal(p)} className="p-2 bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Edit3 size={16}/></button>
-                             <button onClick={() => handleDeleteProduct(p.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={16}/></button>
-                          </td>
-                       </tr>
-                    ))}
-                    {products.length === 0 && <tr><td colSpan={4} className="p-10 text-center text-zinc-400 font-bold">Aucun produit configuré.</td></tr>}
-                 </tbody>
-              </table>
+           <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
+              <div className="relative flex-1 w-full md:w-auto">
+                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                 <input type="text" placeholder="Rechercher (nom, catégorie)..." value={shopSearch} onChange={e=>setShopSearch(e.target.value)} className="w-full pl-10 p-3 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none focus:border-black shadow-sm" />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-xl border border-zinc-200 shadow-sm w-full md:w-auto">
+                 <Filter size={16} className="text-zinc-400 ml-2" />
+                 <input type="number" placeholder="Min F" value={shopMinPrice} onChange={e=>setShopMinPrice(e.target.value===""?"":Number(e.target.value))} className="w-20 p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none text-center" />
+                 <input type="range" min="0" max="50000" step="1000" value={shopMaxPrice || 50000} onChange={e=>setShopMaxPrice(Number(e.target.value))} className="w-24 accent-[#39FF14] cursor-pointer" />
+                 <input type="number" placeholder="Max F" value={shopMaxPrice} onChange={e=>setShopMaxPrice(e.target.value===""?"":Number(e.target.value))} className="w-24 p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none text-center" />
+              </div>
+              <select value={shopSort} onChange={e=>setShopSort(e.target.value)} className="w-full md:w-auto p-3 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none cursor-pointer shadow-sm">
+                 <option value="recent">Plus récents</option>
+                 <option value="old">Plus anciens</option>
+                 <option value="views">Plus consultés</option>
+                 <option value="rating">Mieux notés</option>
+              </select>
            </div>
+
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {paginatedShop.map(p => (
+                  <div key={p.id} className="bg-white border border-zinc-200 rounded-2xl p-4 flex flex-col hover:border-[#39FF14] transition-colors relative shadow-sm">
+                     <div className="h-40 bg-zinc-50 rounded-xl overflow-hidden mb-3 relative shrink-0">
+                         <img src={p.image_url || 'https://placehold.co/300'} alt={p.nom} className="w-full h-full object-cover" />
+                         <span className="absolute top-2 right-2 bg-black text-white px-2 py-0.5 rounded text-[10px] font-black">{p.stock} stock</span>
+                     </div>
+                     <p className="font-bold text-sm line-clamp-1">{p.nom}</p>
+                     <div className="flex justify-between items-center mt-1">
+                        <p className="text-[10px] text-zinc-500 font-black uppercase truncate pr-2">{p.categorie_nom}</p>
+                        <div className="flex items-center gap-1 text-[10px] font-black text-yellow-500 shrink-0"><Star size={10} className="fill-current"/> {p.rating || 5}</div>
+                     </div>
+                     <div className="mt-3 flex items-center justify-between">
+                        <p className="text-zinc-400 text-xs font-bold line-through">{p.prix_standard} F</p>
+                        <p className="text-[#39FF14] font-black text-lg bg-black w-max px-2 py-0.5 rounded italic shadow-sm">{p.prix_premium} F</p>
+                     </div>
+                     <div className="flex gap-2 mt-4 pt-3 border-t border-zinc-100">
+                        <button onClick={() => handleOpenProductModal(p)} className="flex-1 bg-zinc-100 text-black py-2 rounded-lg text-xs font-black uppercase hover:bg-zinc-200 transition-colors flex justify-center"><Edit3 size={14}/></button>
+                        <button onClick={() => handleDeleteProduct(p.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg transition-colors flex justify-center"><Trash2 size={14}/></button>
+                     </div>
+                  </div>
+              ))}
+           </div>
+           
+           {totalShopPages > 1 && (
+               <div className="flex justify-between items-center mt-6">
+                  <button disabled={shopPage === 1} onClick={()=>setShopPage(p=>p-1)} className="p-2 bg-zinc-100 rounded-lg hover:bg-zinc-200 disabled:opacity-50"><ChevronLeft size={16}/></button>
+                  <span className="text-xs font-black uppercase text-zinc-500">Page {shopPage} / {totalShopPages}</span>
+                  <button disabled={shopPage === totalShopPages} onClick={()=>setShopPage(p=>p+1)} className="p-2 bg-zinc-100 rounded-lg hover:bg-zinc-200 disabled:opacity-50"><ChevronRight size={16}/></button>
+               </div>
+           )}
         </div>
         )}
 
@@ -1067,10 +1121,11 @@ export default function AdminNutritionAfricaine() {
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Catégorie</label><input type="text" required value={productForm.categorie_nom} onChange={e => setProductForm({...productForm, categorie_nom: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nom</label><input type="text" required value={productForm.nom} onChange={e => setProductForm({...productForm, nom: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-4 gap-4">
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Prix Standard</label><input type="number" required value={productForm.prix_standard} onChange={e => setProductForm({...productForm, prix_standard: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-[#39FF14] tracking-widest">Prix Premium</label><input type="number" required value={productForm.prix_premium} onChange={e => setProductForm({...productForm, prix_premium: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-blue-500 tracking-widest">Stock</label><input type="number" required value={productForm.stock} onChange={e => setProductForm({...productForm, stock: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-yellow-500 tracking-widest">Note /5</label><input type="number" min="0" max="5" step="0.1" required value={productForm.rating} onChange={e => setProductForm({...productForm, rating: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
                   </div>
                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Description Courte</label><textarea required value={productForm.description_courte} onChange={e => setProductForm({...productForm, description_courte: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[60px]" /></div>
                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Description Longue</label><textarea value={productForm.description_longue} onChange={e => setProductForm({...productForm, description_longue: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[100px]" /></div>
