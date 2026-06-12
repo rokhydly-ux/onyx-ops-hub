@@ -826,6 +826,8 @@ export default function OnyxJaayShop() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false);
+  const [showCartExitIntent, setShowCartExitIntent] = useState(false);
+  const [hasTriggeredCartExit, setHasTriggeredCartExit] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '' });
   const [customerAddress, setCustomerAddress] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
@@ -1337,6 +1339,17 @@ export default function OnyxJaayShop() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    const handleMouseLeave = (e: MouseEvent) => {
+        if (e.clientY <= 0 && cart.length > 0 && !hasTriggeredCartExit && !isShopOwner) {
+            setShowCartExitIntent(true);
+            setHasTriggeredCartExit(true);
+        }
+    };
+    document.addEventListener("mouseleave", handleMouseLeave);
+    return () => document.removeEventListener("mouseleave", handleMouseLeave);
+  }, [cart.length, hasTriggeredCartExit, isShopOwner]);
+
   // New useEffect for QR code deep linking
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -1418,6 +1431,11 @@ export default function OnyxJaayShop() {
   };
 
   const subTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  
+  const freeShippingThreshold = 20000;
+  const progressPct = Math.min((subTotal / freeShippingThreshold) * 100, 100);
+  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subTotal);
+  const crossSellProducts = products.filter(p => !cart.some(c => c.id === p.id) && p.stock !== 0).slice(0, 2);
   
   // Calcul dynamique des frais de livraison basé sur la zone (avec override admin)
   const defaultDeliveryCost = deliveryMethod === 'delivery' 
@@ -3180,6 +3198,17 @@ export default function OnyxJaayShop() {
                 </h2>
                 <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-zinc-800 rounded-full transition"><X size={20}/></button>
              </div>
+
+             <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+                {remainingForFreeShipping > 0 ? (
+                    <p className="text-xs font-bold text-black dark:text-white mb-2 text-center">Plus que <span className="text-[#39FF14] font-black">{displayPrice(remainingForFreeShipping, shopInfo.currency)}</span> pour la livraison gratuite !</p>
+                ) : (
+                    <p className="text-xs font-bold text-[#39FF14] mb-2 text-center flex items-center justify-center gap-1"><CheckCircle size={14}/> Livraison gratuite débloquée !</p>
+                )}
+                <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner">
+                    <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
+                </div>
+             </div>
              
              <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar">
                {isShopOwner && (
@@ -3229,6 +3258,26 @@ export default function OnyxJaayShop() {
                     </div>
                   ))
                 )}
+
+               {crossSellProducts.length > 0 && cart.length > 0 && (
+                   <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Souvent acheté ensemble</p>
+                       <div className="space-y-2">
+                           {crossSellProducts.map(p => (
+                               <div key={p.id} className="flex items-center gap-3 bg-white dark:bg-zinc-950 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                   <img src={p.image} className="w-10 h-10 rounded-lg object-cover" />
+                                   <div className="flex-1 min-w-0">
+                                       <p className="font-bold text-xs truncate text-black dark:text-white">{p.name}</p>
+                                       <p className="text-[#39FF14] font-black text-xs">{displayPrice(p.price, shopInfo.currency)}</p>
+                                   </div>
+                                   <button onClick={() => addToCart(p, undefined, false)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors">
+                                       <Plus size={14}/>
+                                   </button>
+                               </div>
+                           ))}
+                       </div>
+                   </div>
+               )}
                </div>
 
                <div className="p-6 bg-zinc-100 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
@@ -3367,6 +3416,28 @@ export default function OnyxJaayShop() {
                         className="w-full bg-transparent border-2 border-black dark:border-white text-black dark:text-white py-3 rounded-xl font-bold uppercase text-sm hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all flex items-center justify-center"
                     >
                         Continuer mes achats
+                    </button>
+                    <button 
+                        onClick={async () => {
+                            let shareMsg = `👋 Bonjour ! Je souhaite sauvegarder mon panier pour plus tard sur *${shopInfo.name}* :\n\n`;
+                            cart.forEach(item => { shareMsg += `- ${item.name} (x${item.quantity}) : ${displayPrice(item.price * item.quantity, shopInfo.currency)}\n`; });
+                            shareMsg += `\n*Total provisoire : ${displayPrice(cartTotal, shopInfo.currency)}*\n\nPouvez-vous me garder ces articles au chaud ? 🙏`;
+                            
+                            try {
+                                await supabase.from('leads').insert([{
+                                    source: 'Panier Onyx Jaay',
+                                    intent: 'Sauvegarde Panier WhatsApp',
+                                    message: shareMsg,
+                                    status: 'Nouveau',
+                                    saas: 'Onyx Jaay'
+                                }]);
+                            } catch (e) {}
+
+                            window.open(`https://wa.me/${String(shopInfo.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(shareMsg)}`, '_blank');
+                        }}
+                        className="w-full bg-[#25D366] text-white py-3 rounded-xl font-bold uppercase text-xs hover:bg-[#1ebd58] transition-all flex items-center justify-center gap-2 mt-3 shadow-sm"
+                    >
+                        <MessageSquare size={16}/> M'envoyer mon panier (WhatsApp)
                     </button>
                 </div>
                </div>
@@ -3664,6 +3735,37 @@ export default function OnyxJaayShop() {
             <button onClick={() => setIsOrderSuccessOpen(false)} className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-xl">
                 C&apos;est noté, à tout de suite !
             </button>
+            </div>
+        </div>
+      )}
+
+      {/* --- EXIT INTENT PANIER --- */}
+      {showCartExitIntent && (
+        <div id="cart-exit-overlay" onClick={(e: any) => e.target.id === 'cart-exit-overlay' && setShowCartExitIntent(false)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 border-t-8 border-[#39FF14] rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95 text-center">
+                <button onClick={() => setShowCartExitIntent(false)} className="absolute top-4 right-4 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+                <div className="w-20 h-20 bg-black text-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl animate-bounce">
+                    <Gift size={32} />
+                </div>
+                <h3 className="text-3xl font-black uppercase tracking-tighter mb-4 text-black dark:text-white">Attendez !</h3>
+                <p className="text-zinc-600 dark:text-zinc-400 font-medium mb-6">Vous allez laisser vos articles ? Voici <span className="font-black text-black dark:text-white">10% de réduction immédiate</span> pour valider votre panier maintenant.</p>
+                <div className="bg-zinc-100 dark:bg-zinc-900 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-4 mb-6">
+                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Votre code promo</p>
+                    <p className="text-2xl font-black text-[#39FF14] tracking-widest">CODE10</p>
+                </div>
+                <button onClick={() => {
+                    setPromoInput('CODE10');
+                    if (!promoCodes.some(c => c.code === 'CODE10')) {
+                        setPromoCodes(prev => [...prev, { id: 999, code: 'CODE10', discount: 10, type: 'percentage', active: true }]);
+                    }
+                    setShowCartExitIntent(false);
+                    setIsCartOpen(true);
+                    setAppliedPromo({ id: 999, code: 'CODE10', discount: 10, type: 'percentage', active: true } as any);
+                    alert("Code promo de 10% appliqué avec succès !");
+                }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-lg">
+                    Appliquer le code & Commander
+                </button>
+                <button onClick={() => setShowCartExitIntent(false)} className="mt-4 text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-black dark:hover:text-white transition">Non merci, je quitte</button>
             </div>
         </div>
       )}

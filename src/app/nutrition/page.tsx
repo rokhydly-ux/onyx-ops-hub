@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, Sun, Moon,
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
@@ -311,6 +311,8 @@ export default function NutritionDashboard() {
   const [clientOrders, setClientOrders] = useState<any[]>([]);
   const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
   const [showCartModal, setShowCartModal] = useState(false);
+  const [showCartExitIntent, setShowCartExitIntent] = useState(false);
+  const [hasTriggeredCartExit, setHasTriggeredCartExit] = useState(false);
 
   // Shop dynamic additions
   const [shopBannerUrl, setShopBannerUrl] = useState("https://placehold.co/1200x300/111/39FF14?text=OFFRES+EXCLUSIVES");
@@ -528,6 +530,17 @@ export default function NutritionDashboard() {
     }
 
   }, [router, searchParams]);
+
+  useEffect(() => {
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0 && shopCart.length > 0 && !hasTriggeredCartExit) {
+        setShowCartExitIntent(true);
+        setHasTriggeredCartExit(true);
+      }
+    };
+    document.addEventListener("mouseleave", handleMouseLeave);
+    return () => document.removeEventListener("mouseleave", handleMouseLeave);
+  }, [shopCart.length, hasTriggeredCartExit]);
 
   // S'assurer que le menu est généré si l'utilisateur vient d'arriver
   useEffect(() => {
@@ -1248,6 +1261,12 @@ export default function NutritionDashboard() {
   const currentHour = new Date().getHours();
   const greetingText = currentHour < 18 ? "Bonjour" : "Bonsoir";
   const greetingSubtext = currentHour < 18 ? "Prête pour ta journée ?" : "Pense à t'hydrater ce soir.";
+
+  const subTotal = shopCart.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0);
+  const freeShippingThreshold = 20000;
+  const progressPct = Math.min((subTotal / freeShippingThreshold) * 100, 100);
+  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subTotal);
+  const crossSellProducts = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).filter((p: any) => !shopCart.some((c: any) => c.id === p.id)).slice(0, 2);
 
   // Calcul pour le badge de coaching (3 premiers jours)
   const createdDate = clientProfile?.created_at ? new Date(clientProfile.created_at) : new Date();
@@ -3172,6 +3191,17 @@ export default function NutritionDashboard() {
                      </button>
                   </div>
 
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+                     {remainingForFreeShipping > 0 ? (
+                         <p className="text-xs font-bold text-black dark:text-white mb-2 text-center">Plus que <span className="text-[#39FF14] font-black">{remainingForFreeShipping.toLocaleString()} F</span> pour la livraison gratuite !</p>
+                     ) : (
+                         <p className="text-xs font-bold text-[#39FF14] mb-2 text-center flex items-center justify-center gap-1"><CheckCircle size={14}/> Livraison gratuite débloquée !</p>
+                     )}
+                     <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner">
+                         <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${progressPct}%` }}></div>
+                     </div>
+                  </div>
+
                   <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                      {shopCart.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-zinc-500">
@@ -3202,6 +3232,26 @@ export default function NutritionDashboard() {
                            </div>
                         ))
                      )}
+
+                     {crossSellProducts.length > 0 && shopCart.length > 0 && (
+                         <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Souvent acheté ensemble</p>
+                             <div className="space-y-2">
+                                 {crossSellProducts.map((p: any) => (
+                                     <div key={p.id} className="flex items-center gap-3 bg-white dark:bg-zinc-950 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                         <img src={p.image_url} className="w-10 h-10 rounded-lg object-cover" />
+                                         <div className="flex-1 min-w-0">
+                                             <p className="font-bold text-xs truncate text-black dark:text-white">{p.nom}</p>
+                                             <p className="text-[#39FF14] font-black text-xs">{p.prix_standard.toLocaleString()} F</p>
+                                         </div>
+                                         <button onClick={() => addToCart(p)} className="p-2 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-lg hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors">
+                                             <Plus size={14}/>
+                                         </button>
+                                     </div>
+                                 ))}
+                             </div>
+                         </div>
+                     )}
                   </div>
 
                   {shopCart.length > 0 && (
@@ -3219,6 +3269,30 @@ export default function NutritionDashboard() {
                         <button onClick={() => { setShowCartModal(false); handleShopCheckout(); }} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2">
                            <ShoppingCart size={16}/> Commander via WhatsApp
                         </button>
+
+                        <button 
+                           onClick={async () => {
+                               let shareMsg = `👋 Bonjour ! Je souhaite sauvegarder mon panier pour plus tard sur Onyx Nutrition :\n\n`;
+                               shopCart.forEach(item => { shareMsg += `- ${item.nom} (x${item.quantity}) : ${(item.finalPrice * item.quantity).toLocaleString()} F\n`; });
+                               shareMsg += `\n*Total provisoire : ${subTotal.toLocaleString()} F*\n\nPouvez-vous me garder ces articles au chaud ? 🙏`;
+                               
+                               try {
+                                   await supabase.from('leads').insert([{
+                                       source: 'Panier Onyx Nutrition',
+                                       intent: 'Sauvegarde Panier WhatsApp',
+                                       message: shareMsg,
+                                       status: 'Nouveau',
+                                       saas: 'Onyx Nutrition'
+                                   }]);
+                               } catch (e) {}
+
+                               window.open(`https://wa.me/221785338417?text=${encodeURIComponent(shareMsg)}`, '_blank');
+                           }}
+                           className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 mt-3 shadow-lg"
+                        >
+                           <MessageSquare size={16}/> M'envoyer mon panier (WhatsApp)
+                        </button>
+
                         {isShopPromoApplied && appliedPromoData ? (
                            <p className="text-center text-[#39FF14] font-black uppercase tracking-widest text-[10px] mt-4">Code {appliedPromoData.code} appliqué !</p>
                         ) : (
@@ -3235,6 +3309,38 @@ export default function NutritionDashboard() {
             </div>
          )}
       </AnimatePresence>
+
+      {/* --- EXIT INTENT PANIER --- */}
+      {showCartExitIntent && (
+        <div id="cart-exit-overlay" onClick={(e: any) => e.target.id === 'cart-exit-overlay' && setShowCartExitIntent(false)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white dark:bg-zinc-950 border-t-8 border-[#39FF14] rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative animate-in zoom-in-95 text-center">
+                <button onClick={() => setShowCartExitIntent(false)} className="absolute top-4 right-4 text-zinc-400 hover:text-black dark:hover:text-white transition"><X size={20}/></button>
+                <div className="w-20 h-20 bg-black text-[#39FF14] rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl animate-bounce">
+                    <Gift size={32} />
+                </div>
+                <h3 className="text-3xl font-black uppercase tracking-tighter mb-4 text-black dark:text-white">Attendez !</h3>
+                <p className="text-zinc-600 dark:text-zinc-400 font-medium mb-6">Vous allez laisser vos articles ? Voici <span className="font-black text-black dark:text-white">10% de réduction immédiate</span> pour valider votre panier maintenant.</p>
+                <div className="bg-zinc-100 dark:bg-zinc-900 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-4 mb-6">
+                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Votre code promo</p>
+                    <p className="text-2xl font-black text-[#39FF14] tracking-widest">CODE10</p>
+                </div>
+                <button onClick={() => {
+                    setShopPromoCode('CODE10');
+                    if (!shopPromoCodesDB.some(c => c.code === 'CODE10')) {
+                        setShopPromoCodesDB(prev => [...prev, { id: 999, code: 'CODE10', discount_pct: 10, min_xp: 0, active: true }]);
+                    }
+                    setShowCartExitIntent(false);
+                    setShowCartModal(true);
+                    setAppliedPromoData({ id: 999, code: 'CODE10', discount_pct: 10, min_xp: 0, active: true } as any);
+                    setIsShopPromoApplied(true);
+                    alert("Code promo de 10% appliqué avec succès !");
+                }} className="w-full bg-[#39FF14] text-black py-4 rounded-xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-lg">
+                    Appliquer le code & Commander
+                </button>
+                <button onClick={() => setShowCartExitIntent(false)} className="mt-4 text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-black dark:hover:text-white transition">Non merci, je quitte</button>
+            </div>
+        </div>
+      )}
     </main>
     </div>
   );

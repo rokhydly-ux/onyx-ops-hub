@@ -63,7 +63,6 @@ export default function AdminNutritionAfricaine() {
         const fetchAll = async () => {
             try {
               let clientsQuery = supabase.from('clients').select('*').ilike('saas', '%utrition%').order('created_at', { ascending: false });
-              if (tId) clientsQuery = clientsQuery.eq('tenant_id', tId);
               
               const { data: clientsData, error: clientsError } = await clientsQuery;
 
@@ -100,10 +99,10 @@ export default function AdminNutritionAfricaine() {
 
               if (tId && isMounted) {
                   const [recipesRes, prodsRes, ordsRes, promosRes, settingsRes] = await Promise.all([
-                     supabase.from('nutrition_recipes').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
-                     supabase.from('nutrition_products').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
-                     supabase.from('nutrition_orders').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
-                     supabase.from('nutrition_promo_codes').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
+                     supabase.from('nutrition_recipes').select('*').order('created_at', { ascending: false }),
+                     supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
+                     supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
+                     supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
                      supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', tId).maybeSingle()
                   ]);
                   if (recipesRes.data) setRecipes(recipesRes.data);
@@ -143,8 +142,9 @@ export default function AdminNutritionAfricaine() {
 
   const handleSaveRecipe = async (e: React.FormEvent) => {
       e.preventDefault();
-      const payload = { ...recipeForm, tenant_id: tenantId };
+      const payload = { ...recipeForm };
       delete payload.id;
+      delete (payload as any).tenant_id;
       if (editingRecipe) {
           const { error } = await supabase.from('nutrition_recipes').update(payload).eq('id', recipeForm.id);
           if (!error) { setRecipes(recipes.map(r => r.id === recipeForm.id ? { ...payload, id: recipeForm.id } : r)); setShowRecipeModal(false); }
@@ -266,14 +266,15 @@ export default function AdminNutritionAfricaine() {
               
               const payload = chunk.map((r: any) => {
                   const existingRecipe = recipes.find(er => er.nom.toLowerCase() === r.nom.toLowerCase());
-                  const item = { ...r, tenant_id: tenantId };
+                  const item = { ...r };
+                  delete item.tenant_id;
                   if (existingRecipe) {
                       item.id = existingRecipe.id;
                   }
                   return item;
               });
 
-              const { data, error } = await supabase.from('nutrition_recipes').upsert(payload).select();
+              const { data, error } = await supabase.from('nutrition_recipes').upsert(payload, { onConflict: 'id' }).select();
               if (error) throw new Error("Erreur insertion: " + error.message);
 
               if (data) {
@@ -385,7 +386,8 @@ export default function AdminNutritionAfricaine() {
               
               const payload = chunk.map((p: any) => {
                   const existingProd = products.find(ep => ep.nom.toLowerCase() === p.nom.toLowerCase());
-                  const item = { ...p, tenant_id: tenantId };
+                  const item = { ...p };
+                  delete item.tenant_id;
                   if (existingProd) {
                       item.id = existingProd.id;
                       item.produit_id = existingProd.produit_id || `prod_${Date.now()}_${Math.floor(Math.random()*1000)}`;
@@ -395,7 +397,7 @@ export default function AdminNutritionAfricaine() {
                   return item;
               });
 
-              const { data, error } = await supabase.from('nutrition_products').upsert(payload).select();
+              const { data, error } = await supabase.from('nutrition_products').upsert(payload, { onConflict: 'id' }).select();
               if (error) throw new Error("Erreur insertion: " + error.message);
 
               if (data) {
@@ -432,8 +434,9 @@ export default function AdminNutritionAfricaine() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
       e.preventDefault();
-      const payload = { ...productForm, tenant_id: tenantId };
+      const payload = { ...productForm };
       delete payload.id;
+      delete (payload as any).tenant_id;
       if (editingProduct) {
           const { error } = await supabase.from('nutrition_products').update(payload).eq('id', productForm.id);
           if (!error) { setProducts(products.map(p => p.id === productForm.id ? { ...payload, id: productForm.id } : p)); setShowProductModal(false); }
@@ -478,8 +481,9 @@ export default function AdminNutritionAfricaine() {
 
   const handleSavePromo = async (e: React.FormEvent) => {
       e.preventDefault();
-      const payload = { ...promoForm, code: promoForm.code.toUpperCase().replace(/\s+/g, ''), tenant_id: tenantId };
+      const payload = { ...promoForm, code: promoForm.code.toUpperCase().replace(/\s+/g, '') };
       delete payload.id;
+      delete (payload as any).tenant_id;
       let res;
       if (editingPromo) res = await supabase.from('nutrition_promo_codes').update(payload).eq('id', promoForm.id).select().single();
       else res = await supabase.from('nutrition_promo_codes').insert([payload]).select().single();
