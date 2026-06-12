@@ -38,6 +38,10 @@ export default function AdminNutritionAfricaine() {
   const [isImportingProductCsv, setIsImportingProductCsv] = useState(false);
   const [productCsvImportProgress, setProductCsvImportProgress] = useState(0);
 
+  const [pendingRecipeCsvFile, setPendingRecipeCsvFile] = useState<any>(null);
+  const [isImportingRecipeCsv, setIsImportingRecipeCsv] = useState(false);
+  const [recipeCsvImportProgress, setRecipeCsvImportProgress] = useState(0);
+
   useEffect(() => {
     const fetchClients = async () => {
       // Fetch clients d'abord avec un ilike pour capturer toutes les variantes de "Nutrition"
@@ -174,50 +178,113 @@ export default function AdminNutritionAfricaine() {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-          const csvText = event.target?.result as string;
-          const rows = csvText.split('\n').filter(r => r.trim());
-          if (rows.length < 2) return;
-          const headers = rows[0].split(';').map(h => h.trim().toLowerCase());
+      setLoading(true);
+
+      Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+              try {
+                  const recipesToImport: any[] = [];
+
+                  for (const row of results.data as any[]) {
+                      const r: any = {};
+                      Object.keys(row).forEach(k => {
+                          if (k && typeof k === 'string') r[k.toLowerCase().trim()] = row[k];
+                      });
+
+                      const nom = r['nom'] || r['name'] || r['recette'];
+                      if (!nom) continue;
+
+                      let parsedIngredients = [];
+                      try { parsedIngredients = r['ingredients'] ? JSON.parse(r['ingredients']) : []; } catch (e) {}
+
+                      recipesToImport.push({
+                          nom: nom,
+                          type: r['type'] || 'Déjeuner',
+                          calories: Number(r['calories']) || 0,
+                          proteins: Number(r['proteins'] || r['protéines']) || 0,
+                          carbs: Number(r['carbs'] || r['glucides']) || 0,
+                          fats: Number(r['fats'] || r['lipides']) || 0,
+                          is_bol_commun: r['is_bol_commun']?.toLowerCase() === 'oui' || String(r['is_bol_commun']) === 'true',
+                          recipe: r['etapes_cuisson'] || r['recipe'] || r['recette_details'] || '',
+                          description: r['description'] || '',
+                          image_url: r['photo'] || r['image_url'] || r['image'] || '',
+                          gallery: r['galerie_photo'] ? String(r['galerie_photo']).split(',').map((s:string) => s.trim()) : [],
+                          ingredients: parsedIngredients
+                      });
+                  }
+
+                  if (recipesToImport.length === 0) {
+                      alert("Aucune recette valide trouvée dans le fichier CSV. Assurez-vous d'avoir une colonne 'nom'.");
+                      return;
+                  }
+
+                  setPendingRecipeCsvFile({
+                      filename: file.name,
+                      recipesCount: recipesToImport.length,
+                      data: recipesToImport
+                  });
+              } catch (err: any) {
+                  alert("Erreur lors de l'analyse du CSV : " + err.message);
+              } finally {
+                  setLoading(false);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+              }
+          },
+          error: (err) => {
+              alert("Erreur de lecture du fichier CSV.");
+              setLoading(false);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+          }
+      });
+  };
+
+  const handleConfirmRecipeCsvImport = async () => {
+      if (!pendingRecipeCsvFile) return;
+      setIsImportingRecipeCsv(true);
+      setRecipeCsvImportProgress(0);
+
+      try {
+          const recipesArray = pendingRecipeCsvFile.data;
+          const totalRows = recipesArray.length;
+          const chunkSize = 100;
+          let importedCount = 0;
           
-          const newRecipes = [];
-          for (let i = 1; i < rows.length; i++) {
-              const cols = rows[i].split(';');
-              const recipe: any = {};
-              headers.forEach((h, index) => {
-                  recipe[h] = cols[index]?.trim() || '';
+          for (let i = 0; i < totalRows; i += chunkSize) {
+              const chunk = recipesArray.slice(i, i + chunkSize);
+              
+              const payload = chunk.map((r: any) => {
+                  const existingRecipe = recipes.find(er => er.nom.toLowerCase() === r.nom.toLowerCase());
+                  const item = { ...r };
+                  if (existingRecipe) {
+                      item.id = existingRecipe.id;
+                  }
+                  return item;
               });
 
-              if (recipe.nom) {
-                  let parsedIngredients = [];
-                  try { parsedIngredients = recipe.ingredients ? JSON.parse(recipe.ingredients) : []; } catch (e) {}
-                  
-                  const existingRecipe = recipes.find(r => r.nom.toLowerCase() === recipe.nom.toLowerCase());
-                  
-                  const rPayload: any = {
-                      nom: recipe.nom, type: recipe.type || 'Déjeuner', calories: Number(recipe.calories) || 0, proteins: Number(recipe.proteins) || 0, carbs: Number(recipe.carbs) || 0, fats: Number(recipe.fats) || 0, is_bol_commun: recipe.is_bol_commun?.toLowerCase() === 'oui' || recipe.is_bol_commun === 'true', recipe: recipe.etapes_cuisson || recipe.recipe || '', description: recipe.description || '', image_url: recipe.photo || recipe.image_url || '', gallery: recipe.galerie_photo ? recipe.galerie_photo.split(',').map((s:string) => s.trim()) : [], ingredients: parsedIngredients
-                  };
+              const { data, error } = await supabase.from('nutrition_recipes').upsert(payload).select();
+              if (error) throw new Error("Erreur insertion: " + error.message);
 
-                  if (existingRecipe) rPayload.id = existingRecipe.id;
-                  newRecipes.push(rPayload);
+              if (data) {
+                  importedCount += data.length;
               }
+
+              setRecipeCsvImportProgress(Math.round(((i + chunk.length) / totalRows) * 100));
           }
 
-          if (newRecipes.length > 0) {
-              setLoading(true);
-              const { error } = await supabase.from('nutrition_recipes').upsert(newRecipes);
-              if (error) alert("Erreur d'importation: " + error.message);
-              else {
-                  alert(`${newRecipes.length} recettes importées/mises à jour avec succès !`);
-                  const { data: updatedRecipes } = await supabase.from('nutrition_recipes').select('*').order('created_at', { ascending: false });
-                  if (updatedRecipes) setRecipes(updatedRecipes);
-              }
-              setLoading(false);
-          }
-      };
-      reader.readAsText(file);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+          alert(`Importation réussie ! ${importedCount} recettes ajoutées/mises à jour.`);
+          setPendingRecipeCsvFile(null);
+
+          const { data: updatedRecipes } = await supabase.from('nutrition_recipes').select('*').order('created_at', { ascending: false });
+          if (updatedRecipes) setRecipes(updatedRecipes);
+
+      } catch (err: any) {
+          alert("Erreur lors de l'importation : " + err.message);
+      } finally {
+          setIsImportingRecipeCsv(false);
+          setRecipeCsvImportProgress(0);
+      }
   };
 
   const handleImportProductCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1031,6 +1098,39 @@ export default function AdminNutritionAfricaine() {
                </form>
             </div>
          </div>
+      )}
+
+      {/* MODALE CONFIRMATION IMPORT CSV RECETTES */}
+      {pendingRecipeCsvFile && (
+        <div id="recipe-csv-modal-overlay" onClick={(e: any) => e.target.id === 'recipe-csv-modal-overlay' && !isImportingRecipeCsv && setPendingRecipeCsvFile(null)} className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative border-t-8 border-[#39FF14] animate-in zoom-in-95 text-center text-black">
+            <button onClick={() => !isImportingRecipeCsv && setPendingRecipeCsvFile(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors"><X size={16}/></button>
+            <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"><Utensils size={24}/></div>
+            <h3 className="text-xl font-black uppercase mb-2 text-black">Confirmer l'import (Recettes)</h3>
+            <p className="text-sm font-bold text-zinc-500 mb-6">Fichier : {pendingRecipeCsvFile.filename}</p>
+            
+            <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 mb-8">
+               <p className="text-3xl font-black text-[#39FF14]">{pendingRecipeCsvFile.recipesCount}</p>
+               <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mt-1">Recettes trouvées</p>
+            </div>
+
+            {isImportingRecipeCsv && (
+               <div className="mb-6 w-full text-left animate-in fade-in">
+                  <div className="w-full bg-zinc-200 rounded-full h-2.5 overflow-hidden shadow-inner">
+                     <div className="bg-[#39FF14] h-2.5 rounded-full transition-all duration-300" style={{ width: `${recipeCsvImportProgress}%` }}></div>
+                  </div>
+                  <p className="text-xs font-bold text-zinc-500 mt-2 tracking-widest uppercase text-center">Importation... {recipeCsvImportProgress}%</p>
+               </div>
+            )}
+
+            <div className="flex gap-3">
+               <button onClick={() => setPendingRecipeCsvFile(null)} disabled={isImportingRecipeCsv} className="flex-1 py-4 bg-zinc-100 text-zinc-500 rounded-xl font-black uppercase text-xs hover:bg-zinc-200 transition disabled:opacity-50">Annuler</button>
+               <button onClick={handleConfirmRecipeCsvImport} disabled={isImportingRecipeCsv} className="flex-[2] py-4 bg-black text-[#39FF14] rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100">
+                  {isImportingRecipeCsv ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>} {isImportingRecipeCsv ? 'En cours...' : 'Valider'}
+               </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODALE CONFIRMATION IMPORT CSV BOUTIQUE */}
