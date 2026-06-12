@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
+import useEmblaCarousel from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
 import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -290,12 +292,15 @@ export default function NutritionDashboard() {
   const [isShopPromoApplied, setIsShopPromoApplied] = useState(false);
   const [shopPromoCodesDB, setShopPromoCodesDB] = useState<any[]>([]);
   const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
+  const [showCartModal, setShowCartModal] = useState(false);
 
   // Shop dynamic additions
   const [shopBannerUrl, setShopBannerUrl] = useState("https://placehold.co/1200x300/111/39FF14?text=OFFRES+EXCLUSIVES");
   const [shopSearchQuery, setShopSearchQuery] = useState("");
   const [shopMinPrice, setShopMinPrice] = useState<number | "">("");
   const [shopMaxPrice, setShopMaxPrice] = useState<number | "">("");
+
+  const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })]);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -475,9 +480,12 @@ export default function NutritionDashboard() {
           // Load banner from settings specific to the coach
           if (profileData.tenant_id) {
               supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', profileData.tenant_id).maybeSingle()
-                  .then(({data}) => { if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); });
+                  .then(async ({data}) => { 
+                      if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); 
+                      else { const { data: fallback } = await supabase.from('crm_settings').select('shop_banner_url').not('shop_banner_url', 'is', null).maybeSingle(); if (fallback?.shop_banner_url) setShopBannerUrl(fallback.shop_banner_url); }
+                  });
           } else {
-              supabase.from('crm_settings').select('shop_banner_url').maybeSingle()
+              supabase.from('crm_settings').select('shop_banner_url').not('shop_banner_url', 'is', null).maybeSingle()
                   .then(({data}) => { if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); });
           }
         }
@@ -1418,16 +1426,28 @@ export default function NutritionDashboard() {
              <button onClick={() => router.push('/hub')} className="flex items-center gap-2 text-zinc-400 hover:text-[#39FF14] transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 w-max px-4 py-2 rounded-xl border border-zinc-800">
                <ChevronLeft size={16}/> Retour au Hub
              </button>
-             <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="flex items-center gap-2 text-zinc-400 hover:text-yellow-500 transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
-               {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>} {theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}
-             </button>
+             
+             <div className="flex items-center gap-3">
+                 <button onClick={() => setShowCartModal(true)} className="relative flex items-center gap-2 text-zinc-400 hover:text-white transition-colors bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
+                    <ShoppingCart size={16} /> 
+                    <span className="text-xs font-black uppercase hidden sm:block">Panier</span>
+                    {shopCart.length > 0 && (
+                       <span className="absolute -top-2 -right-2 bg-[#39FF14] text-black w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-black animate-pulse shadow-md">
+                          {shopCart.length}
+                       </span>
+                    )}
+                 </button>
+                 <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="flex items-center gap-2 text-zinc-400 hover:text-yellow-500 transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
+                   {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>} <span className="hidden sm:block">{theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}</span>
+                 </button>
+             </div>
           </div>
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
             <div>
               <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
               <div className="flex items-center gap-4">
-                <img src={logoSrc} alt="Profil" className="w-40 h-auto object-contain hidden md:block mr-4" />
+                <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-20 h-20 rounded-full object-cover hidden md:block mr-4 border-2 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.3)] bg-zinc-800" />
                 <div>
                   <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
                     {greetingText}, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
@@ -2372,8 +2392,8 @@ export default function NutritionDashboard() {
                  </div>
                  {shopCart.length > 0 && (
                      <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-end gap-3 z-10 bg-black/60 backdrop-blur-md p-6 rounded-3xl border border-white/10">
-                        <button onClick={handleShopCheckout} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-[0_0_40px_#39FF14] flex items-center gap-3">
-                           <ShoppingCart size={20}/> Commander ({shopCart.length})
+                        <button onClick={() => setShowCartModal(true)} className="bg-[#39FF14] text-black px-8 py-4 rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-[0_0_40px_#39FF14] flex items-center gap-3">
+                           <ShoppingCart size={20}/> Voir mon Panier ({shopCart.length})
                         </button>
                      </div>
                  )}
@@ -2382,9 +2402,10 @@ export default function NutritionDashboard() {
               {/* CAROUSEL NOUVEAUTÉS */}
               <div className="mb-16">
                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-2 text-black dark:text-white`}><Sparkles className="text-[#39FF14]"/> Nouveautés de la semaine</h3>
-                 <div className="flex gap-4 overflow-x-auto pb-6 snap-x custom-scrollbar">
-                    {(Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 6).map(product => (
-                       <div key={product.id} onClick={() => openProductModal(product)} className={`snap-start shrink-0 w-64 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2rem] p-4 cursor-pointer hover:border-[#39FF14] transition-all group shadow-sm`}>
+                 <div className="overflow-hidden" ref={emblaShopRef}>
+                    <div className="flex gap-4">
+                       {(Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 6).map(product => (
+                          <div key={product.id} onClick={() => openProductModal(product)} className={`flex-[0_0_auto] w-64 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2rem] p-4 cursor-pointer hover:border-[#39FF14] transition-all group shadow-sm mr-4`}>
                            <div className="aspect-square rounded-2xl bg-zinc-50 dark:bg-zinc-950 overflow-hidden mb-4 relative">
                               <img src={product.image_url} alt={product.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                               <span className="absolute top-2 right-2 bg-black text-[#39FF14] px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-lg">New</span>
@@ -2392,7 +2413,8 @@ export default function NutritionDashboard() {
                            <h4 className="font-black text-sm uppercase text-black dark:text-white line-clamp-1">{product.nom}</h4>
                            <p className="text-[#39FF14] font-black text-lg mt-2">{product.prix_premium.toLocaleString()} F</p>
                        </div>
-                    ))}
+                       ))}
+                    </div>
                  </div>
               </div>
 
@@ -2813,6 +2835,81 @@ export default function NutritionDashboard() {
             © 2026 Onyx Ops Elite
          </p>
       </footer>
+
+      {/* MODALE PANIER */}
+      <AnimatePresence>
+         {showCartModal && (
+            <div id="cart-modal-overlay" onClick={(e: any) => e.target.id === 'cart-modal-overlay' && setShowCartModal(false)} className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-md flex justify-end animate-in fade-in">
+               <motion.div 
+                 initial={{ x: '100%' }} 
+                 animate={{ x: 0 }} 
+                 exit={{ x: '100%' }} 
+                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                 className={`w-full max-w-md h-full ${theme === 'dark' ? 'bg-zinc-950 border-l border-zinc-800' : 'bg-white border-l border-zinc-200'} flex flex-col shadow-2xl relative`}
+               >
+                  <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+                     <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
+                        <ShoppingCart className="text-[#39FF14]" size={24}/> Mon Panier
+                     </h2>
+                     <button onClick={() => setShowCartModal(false)} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors">
+                        <X size={16}/>
+                     </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                     {shopCart.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-zinc-500">
+                           <ShoppingBag size={48} className="mb-4 opacity-50"/>
+                           <p className="font-bold uppercase tracking-widest text-xs">Votre panier est vide.</p>
+                           <button onClick={() => { setShowCartModal(false); setActiveTab('shop'); }} className="mt-6 bg-[#39FF14] text-black px-6 py-3 rounded-xl font-black uppercase text-xs hover:scale-105 transition-transform shadow-md">
+                              Découvrir la boutique
+                           </button>
+                        </div>
+                     ) : (
+                        shopCart.map((item, idx) => (
+                           <div key={idx} className={`flex gap-4 p-4 rounded-2xl border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-100'} relative`}>
+                              <div className="w-20 h-20 rounded-xl bg-white dark:bg-zinc-950 overflow-hidden shrink-0 border border-zinc-100 dark:border-zinc-800">
+                                 <img src={item.image_url} alt={item.nom} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1 flex flex-col justify-center">
+                                 <h4 className="font-bold text-sm text-black dark:text-white line-clamp-1">{item.nom}</h4>
+                                 <p className="text-[#39FF14] font-black text-sm mt-1">{item.finalPrice.toLocaleString()} F</p>
+                              </div>
+                              <button onClick={() => setShopCart(shopCart.filter((_, i) => i !== idx))} className="absolute top-4 right-4 text-zinc-400 hover:text-red-500 transition-colors">
+                                 <Trash2 size={16}/>
+                              </button>
+                           </div>
+                        ))
+                     )}
+                  </div>
+
+                  {shopCart.length > 0 && (
+                     <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+                        <div className="flex justify-between items-center mb-6">
+                           <span className="font-black text-zinc-500 uppercase tracking-widest text-xs">Total Estimé</span>
+                           <span className="font-black text-2xl text-black dark:text-white">
+                              {shopCart.reduce((acc, item) => acc + item.finalPrice, 0).toLocaleString()} F
+                           </span>
+                        </div>
+                        <button onClick={() => { setShowCartModal(false); handleShopCheckout(); }} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                           <ShoppingCart size={16}/> Commander via WhatsApp
+                        </button>
+                        {isShopPromoApplied && appliedPromoData ? (
+                           <p className="text-center text-[#39FF14] font-black uppercase tracking-widest text-[10px] mt-4">Code {appliedPromoData.code} appliqué !</p>
+                        ) : (
+                           <div className="mt-4 flex gap-2">
+                              <input type="text" placeholder="Code Promo" value={shopPromoCode} onChange={e => setShopPromoCode(e.target.value)} className={`flex-1 p-3 rounded-xl border font-bold text-xs outline-none focus:border-[#39FF14] ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'}`} />
+                              <button onClick={applyShopPromo} className="bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] hover:bg-[#39FF14] hover:text-black transition-colors">
+                                 Appliquer
+                              </button>
+                           </div>
+                        )}
+                     </div>
+                  )}
+               </motion.div>
+            </div>
+         )}
+      </AnimatePresence>
     </main>
     </div>
   );

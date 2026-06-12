@@ -51,6 +51,7 @@ export default function AdminNutritionAfricaine() {
   const [shopPage, setShopPage] = useState(1);
   const [showVitrineModal, setShowVitrineModal] = useState(false);
   const [vitrineBanner, setVitrineBanner] = useState("");
+  const [isAutoReminderActive, setIsAutoReminderActive] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({data}) => {
@@ -518,7 +519,12 @@ export default function AdminNutritionAfricaine() {
       // Tri virtuel par popularité (vues + notes) pour simuler l'IA
       const optimized = [...products].sort((a,b) => ((b.views||0)+(b.rating||0)) - ((a.views||0)+(a.rating||0)));
       if (tenantId) {
-          await supabase.from('crm_settings').upsert({ tenant_id: tenantId, shop_banner_url: vitrineBanner, shop_optimized_order: optimized.map(p=>p.id) }, { onConflict: 'tenant_id' });
+          const { data: existing } = await supabase.from('crm_settings').select('id').eq('tenant_id', tenantId).maybeSingle();
+          if (existing) {
+              await supabase.from('crm_settings').update({ shop_banner_url: vitrineBanner, shop_optimized_order: optimized.map(p=>p.id) }).eq('id', existing.id);
+          } else {
+              await supabase.from('crm_settings').insert({ tenant_id: tenantId, shop_banner_url: vitrineBanner, shop_optimized_order: optimized.map(p=>p.id) });
+          }
       }
       alert("La boutique cliente a été dynamisée par l'IA et la bannière a été mise à jour !");
       setShowVitrineModal(false);
@@ -750,10 +756,18 @@ export default function AdminNutritionAfricaine() {
                     )}
 
                     {/* ZONES D'ALERTES */}
-                    {(isOverCalories || isMissingLogs) && (
+                    {(isOverCalories || isMissingLogs || (!todayLog && new Date().getHours() >= 20)) && (
                        <div className="flex flex-col gap-2 mb-4">
                           {isOverCalories && <div className="bg-red-50 text-red-600 px-3 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2"><AlertTriangle size={14}/> Dépassement Calorique</div>}
                           {isMissingLogs && <div className="bg-orange-50 text-orange-600 px-3 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2"><Clock size={14}/> Inactif depuis +3 jours</div>}
+                          {!todayLog && new Date().getHours() >= 20 && (
+                             <div className="bg-[#25D366]/10 text-[#25D366] px-3 py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-between gap-2 border border-[#25D366]/20">
+                                <div className="flex items-center gap-2"><MessageSquare size={14}/> Bilan oublié (20h)</div>
+                                <button onClick={() => window.open(`https://wa.me/${phone.replace('+', '')}?text=${encodeURIComponent(`Coucou ${clientName} 👋\n\nN'oublie pas d'enregistrer ton bilan de la journée sur ton espace Onyx Nutrition pour qu'on puisse adapter ton menu de demain !\n\nÀ très vite !`)}`, '_blank')} className="bg-[#25D366] text-white px-2 py-1 rounded hover:bg-[#1ebd58] transition shadow-sm">
+                                   Relancer
+                                </button>
+                             </div>
+                          )}
                        </div>
                     )}
 
@@ -800,6 +814,24 @@ export default function AdminNutritionAfricaine() {
                  <p className="text-zinc-500 font-bold">Aucun profil client trouvé.</p>
               </div>
            )}
+        </div>
+        
+        {/* AUTOMATISATION WHATSAPP */}
+        <div className="mt-12 pt-8 border-t-2 border-dashed border-zinc-200">
+           <h3 className="font-black uppercase text-xl mb-4 flex items-center gap-3"><MessageSquare size={20} className="text-[#25D366]" /> Notifications Push WhatsApp</h3>
+           <div className="bg-white border border-zinc-200 p-8 rounded-3xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                 <p className="font-black text-black mb-1 text-lg">Relance automatique des bilans (20h00)</p>
+                 <p className="text-xs text-zinc-500 font-bold leading-relaxed max-w-2xl">L'IA détectera les clients qui n'ont pas rempli leur bilan journalier (Calories / Hydratation) et leur enverra un rappel amical sur WhatsApp automatiquement via l'API officielle.</p>
+              </div>
+              <label className="cursor-pointer relative flex items-center gap-3 shrink-0">
+                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{isAutoReminderActive ? 'Activé' : 'Inactif'}</span>
+                 <div className={`w-14 h-8 rounded-full p-1 transition-colors border ${isAutoReminderActive ? 'bg-[#25D366] border-[#25D366]' : 'bg-zinc-200 border-zinc-300'}`}>
+                    <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${isAutoReminderActive ? 'translate-x-6' : ''}`}></div>
+                 </div>
+                 <input type="checkbox" className="hidden" checked={isAutoReminderActive} onChange={() => setIsAutoReminderActive(!isAutoReminderActive)} />
+              </label>
+           </div>
         </div>
         </>
         ) : (
