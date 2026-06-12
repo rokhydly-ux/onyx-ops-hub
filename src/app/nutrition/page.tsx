@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, Download, Lock, CheckCircle, Sun, Moon,
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
@@ -482,10 +482,10 @@ export default function NutritionDashboard() {
               supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', profileData.tenant_id).maybeSingle()
                   .then(async ({data}) => { 
                       if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); 
-                      else { const { data: fallback } = await supabase.from('crm_settings').select('shop_banner_url').not('shop_banner_url', 'is', null).order('created_at', { ascending: false }).limit(1).maybeSingle(); if (fallback?.shop_banner_url) setShopBannerUrl(fallback.shop_banner_url); }
+                      else { const { data: fallback } = await supabase.from('crm_settings').select('shop_banner_url').neq('shop_banner_url', null).order('created_at', { ascending: false }).limit(1).maybeSingle(); if (fallback?.shop_banner_url) setShopBannerUrl(fallback.shop_banner_url); }
                   });
           } else {
-              supabase.from('crm_settings').select('shop_banner_url').not('shop_banner_url', 'is', null).order('created_at', { ascending: false }).limit(1).maybeSingle()
+              supabase.from('crm_settings').select('shop_banner_url').neq('shop_banner_url', null).order('created_at', { ascending: false }).limit(1).maybeSingle()
                   .then(({data}) => { if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); });
           }
         }
