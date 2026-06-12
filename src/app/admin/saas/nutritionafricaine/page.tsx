@@ -1252,6 +1252,27 @@ export default function AdminNutritionAfricaine() {
           </div>
         </div>
       )}
+
+      {/* MODALE VITRINE IA */}
+      {showVitrineModal && (
+        <div id="vitrine-modal-overlay" onClick={(e: any) => e.target.id === 'vitrine-modal-overlay' && setShowVitrineModal(false)} className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative border-t-8 border-blue-500 animate-in zoom-in-95 text-black">
+            <button onClick={() => setShowVitrineModal(false)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-colors"><X size={16}/></button>
+            <h3 className="text-2xl font-black uppercase mb-6 flex items-center gap-2"><Sparkles className="text-blue-500"/> Vitrine & IA</h3>
+            
+            <div className="space-y-4">
+               <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Image de la Bannière (URL)</label>
+                  <input type="url" value={vitrineBanner} onChange={e => setVitrineBanner(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl mt-1 outline-none focus:border-black" placeholder="https://image-banner.com/..." />
+               </div>
+               <button onClick={handleOptimizeShopIA} className="w-full bg-black text-[#39FF14] py-5 rounded-2xl font-black uppercase text-sm shadow-xl hover:scale-105 transition-transform flex justify-center items-center gap-2">
+                  <Bot size={18}/> Organiser via IA
+               </button>
+               <p className="text-[10px] font-bold text-zinc-500 text-center uppercase tracking-widest">L'IA va trier vos produits par popularité et notes pour maintenir une boutique dynamique côté client.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
