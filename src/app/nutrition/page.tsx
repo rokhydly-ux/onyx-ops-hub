@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
-  ChevronLeft, Download, Lock, CheckCircle, Sun, Moon,
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift
+  ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon,
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
@@ -508,10 +508,10 @@ export default function NutritionDashboard() {
               supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', profileData.tenant_id).maybeSingle()
                   .then(async ({data}) => { 
                       if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); 
-                      else { const { data: fallback } = await supabase.from('crm_settings').select('shop_banner_url').neq('shop_banner_url', null).order('created_at', { ascending: false }).limit(1).maybeSingle(); if (fallback?.shop_banner_url) setShopBannerUrl(fallback.shop_banner_url); }
+                      else { const { data: fallback } = await supabase.from('crm_settings').select('shop_banner_url').not('shop_banner_url', 'is', null).order('created_at', { ascending: false }).limit(1).maybeSingle(); if (fallback?.shop_banner_url) setShopBannerUrl(fallback.shop_banner_url); }
                   });
           } else {
-              supabase.from('crm_settings').select('shop_banner_url').neq('shop_banner_url', null).order('created_at', { ascending: false }).limit(1).maybeSingle()
+              supabase.from('crm_settings').select('shop_banner_url').not('shop_banner_url', 'is', null).order('created_at', { ascending: false }).limit(1).maybeSingle()
                   .then(({data}) => { if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url); });
           }
         }
@@ -909,6 +909,7 @@ export default function NutritionDashboard() {
     
     await supabase.from('nutrition_daily_logs').upsert({
       client_id: clientProfile.id,
+      tenant_id: clientProfile.tenant_id,
       log_date: todayStr,
       water_glasses: newAmount,
       calories_consumed: calories,
@@ -978,6 +979,7 @@ export default function NutritionDashboard() {
           const todayStr = new Date().toISOString().split('T')[0];
           await supabase.from('nutrition_daily_logs').upsert({
             client_id: clientProfile.id,
+            tenant_id: clientProfile.tenant_id,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
@@ -1006,6 +1008,7 @@ export default function NutritionDashboard() {
           const todayStr = new Date().toISOString().split('T')[0];
           await supabase.from('nutrition_daily_logs').upsert({
             client_id: clientProfile.id,
+            tenant_id: clientProfile.tenant_id,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
@@ -1094,7 +1097,7 @@ export default function NutritionDashboard() {
       setWeightLogs(updatedLogs);
       
       if (clientProfile) {
-          await supabase.from('nutrition_weight_logs').upsert({ client_id: clientProfile.id, log_date: todayStr, weight: newWeight }, { onConflict: 'client_id, log_date' });
+          await supabase.from('nutrition_weight_logs').upsert({ client_id: clientProfile.id, tenant_id: clientProfile.tenant_id, log_date: todayStr, weight: newWeight }, { onConflict: 'client_id, log_date' });
       }
   };
 
@@ -1143,6 +1146,7 @@ export default function NutritionDashboard() {
     try {
        const { error } = await supabase.from('nutrition_daily_logs').upsert({
          client_id: clientProfile.id,
+         tenant_id: clientProfile.tenant_id,
          log_date: todayStr,
          report_data: { ...reportData, consumedMeals, moods, moodNotes },
          water_glasses: waterGlasses,
@@ -1396,6 +1400,7 @@ export default function NutritionDashboard() {
          const todayStr = new Date().toISOString().split('T')[0];
          await supabase.from('nutrition_daily_logs').upsert({
            client_id: clientProfile.id,
+           tenant_id: clientProfile.tenant_id,
            log_date: todayStr,
            report_data: { ...reportData, consumedMeals, moods, moodNotes },
            water_glasses: waterGlasses,
