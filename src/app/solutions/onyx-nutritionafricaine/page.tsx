@@ -9,6 +9,8 @@ import {
   ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown, ChevronRight,
   Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare, FileText, ShoppingBag
 } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -197,6 +199,8 @@ export default function NutritionAfricaineLanding() {
   const [isCalcLeadCaptured, setIsCalcLeadCaptured] = useState(false);
   const [pendingDish, setPendingDish] = useState<string>("");
   const [storeProducts, setStoreProducts] = useState<any[]>([]);
+  
+  const [emblaStoreRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
   const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
   const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
@@ -219,7 +223,7 @@ export default function NutritionAfricaineLanding() {
 
   useEffect(() => {
       const fetchStore = async () => {
-          const { data } = await supabase.from('nutrition_products').select('*').limit(3);
+          const { data } = await supabase.from('nutrition_products').select('*').limit(6);
           if (data && data.length > 0) setStoreProducts(data);
       };
       fetchStore();
@@ -884,27 +888,32 @@ export default function NutritionAfricaineLanding() {
                <p className="text-zinc-500 font-bold text-lg max-w-2xl mx-auto">Nos super-aliments et accessoires exclusifs pour faciliter votre rééquilibrage.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-               {storeProducts.length > 0 ? storeProducts.map((p, idx) => (
-                  <div key={idx} className="bg-white border border-zinc-200 rounded-[2.5rem] p-6 hover:border-[#39FF14] transition-all hover:shadow-2xl group flex flex-col">
-                     <div className="aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 relative">
-                        <img src={p.image_url} alt={p.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                        <span className="absolute top-4 left-4 bg-black text-[#39FF14] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">{p.badge}</span>
-                     </div>
-                     <div className="flex-1">
-                        <h3 className="font-black text-xl uppercase tracking-tighter text-black mb-2">{p.nom}</h3>
-                        <div className="flex flex-col gap-1 mb-8">
-                           <p className="text-zinc-400 text-sm font-bold line-through">{p.prix_standard} F (Standard)</p>
-                           <p className="text-2xl font-black text-black">
-                              {p.prix_premium} F <span className="text-[10px] font-bold text-[#39FF14] bg-black px-2 py-0.5 rounded ml-2 uppercase">Premium</span>
-                           </p>
-                        </div>
-                     </div>
-                     <button onClick={() => window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour ! Je souhaite commander " + p.nom + " sur la boutique Onyx Nutrition.")}`, "_blank")} className="w-full bg-black text-white hover:bg-[#39FF14] hover:text-black py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl flex items-center justify-center gap-2">
-                        Commander via WhatsApp <ArrowRight size={16}/>
-                     </button>
-                  </div>
-               )) : <p className="text-zinc-500 col-span-full text-center py-10">Boutique en cours de mise à jour...</p>}
+            <div className="overflow-hidden mb-8" ref={emblaStoreRef}>
+               <div className="flex">
+                   {storeProducts.length > 0 ? storeProducts.map((p, idx) => (
+                      <div key={idx} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] min-w-0 px-4">
+                          <div className="bg-white border border-zinc-200 rounded-[2.5rem] p-6 hover:border-[#39FF14] transition-all hover:shadow-2xl group flex flex-col h-full">
+                              <div className="aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 relative">
+                                 <img src={p.image_url} alt={p.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                 <span className="absolute top-4 right-4 bg-black text-[#39FF14] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">{p.badge || 'Nouveau'}</span>
+                                 {p.stock <= 10 && <span className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg animate-pulse">Quantité Limitée</span>}
+                              </div>
+                              <div className="flex-1">
+                                 <h3 className="font-black text-xl uppercase tracking-tighter text-black mb-2">{p.nom}</h3>
+                                 <div className="flex flex-col gap-1 mb-8">
+                                    <p className="text-zinc-400 text-sm font-bold line-through">{p.prix_standard} F (Standard)</p>
+                                    <p className="text-2xl font-black text-black">
+                                       {p.prix_premium} F <span className="text-[10px] font-bold text-[#39FF14] bg-black px-2 py-0.5 rounded ml-2 uppercase">Premium</span>
+                                    </p>
+                                 </div>
+                              </div>
+                              <button onClick={() => window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent("Bonjour ! Je souhaite commander " + p.nom + " sur la boutique Onyx Nutrition.")}`, "_blank")} className="w-full bg-black text-white hover:bg-[#39FF14] hover:text-black py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl flex items-center justify-center gap-2">
+                                 Commander via WhatsApp <ArrowRight size={16}/>
+                              </button>
+                          </div>
+                      </div>
+                   )) : <p className="text-zinc-500 text-center py-10 w-full">Boutique en cours de mise à jour...</p>}
+               </div>
             </div>
 
             <div className="mt-16 text-center">
