@@ -1244,6 +1244,29 @@ export default function NutritionDashboard() {
     setAppliedPromoData(null);
   };
 
+  const handleSaveMoodNotes = async () => {
+     if (!clientProfile) return;
+     setIsSaving(true);
+     try {
+         const todayStr = new Date().toISOString().split('T')[0];
+         await supabase.from('nutrition_daily_logs').upsert({
+           client_id: clientProfile.id,
+           log_date: todayStr,
+           report_data: { ...reportData, consumedMeals, moods, moodNotes },
+           water_glasses: waterGlasses,
+           calories_consumed: calories,
+           proteins_consumed: proteins,
+           carbs_consumed: carbs,
+           fats_consumed: fats
+         }, { onConflict: 'client_id, log_date' });
+         alert("Notes et humeurs du jour sauvegardées !");
+     } catch(e) {
+         alert("Erreur de sauvegarde.");
+     } finally {
+         setIsSaving(false);
+     }
+  };
+
   const logoSrc = theme === 'dark' 
      ? 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png' 
      : 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Keep_the_exact_logo_from_202606111709_xocxye.jpg';
@@ -1254,7 +1277,7 @@ export default function NutritionDashboard() {
       <aside className={`fixed inset-y-0 left-0 z-50 ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
          <div className="p-6 flex items-center justify-between">
             <div className={`flex items-center gap-3 overflow-hidden ${!isSidebarOpen && 'lg:hidden'}`}>
-               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-10 w-auto object-contain" />
+               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-16 md:h-20 w-auto object-contain transition-all" />
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'}`}>
                {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
@@ -1301,7 +1324,7 @@ export default function NutritionDashboard() {
       {/* Header */}
       <div className="lg:hidden p-4 bg-black flex justify-between items-center">
          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
-         <img src={logoSrc} className="h-12 w-auto object-contain" alt="Logo" />
+         <img src={logoSrc} className="h-20 w-auto object-contain" alt="Logo" />
          <div className="w-10"></div>
       </div>
 
@@ -1322,7 +1345,7 @@ export default function NutritionDashboard() {
             <div>
               <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
               <div className="flex items-center gap-4">
-                <img src={logoSrc} alt="Profil" className="w-20 h-auto object-contain hidden md:block mr-4" />
+                <img src={logoSrc} alt="Profil" className="w-32 h-auto object-contain hidden md:block mr-4" />
                 <div>
                   <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase tracking-tighter`}>
                     {greetingText}, <span className="text-white">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
@@ -2287,14 +2310,15 @@ export default function NutritionDashboard() {
               </div>
 
               {/* FILTRES & RECHERCHE */}
-              <div className="flex flex-col md:flex-row gap-4 mb-8">
-                 <div className="relative flex-1">
+              <div className="flex flex-col md:flex-row gap-4 mb-8 items-center">
+                 <div className="relative flex-1 w-full">
                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
-                     <input type="text" placeholder="Rechercher (ex: Fonio, Détox)..." value={shopSearchQuery} onChange={e=>setShopSearchQuery(e.target.value)} className={`w-full p-4 pl-12 rounded-2xl font-bold text-sm outline-none transition-colors border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-white focus:border-[#39FF14]' : 'bg-white border-zinc-200 text-black focus:border-black'}`} />
+                     <input type="text" placeholder="Rechercher un produit..." value={shopSearchQuery} onChange={e=>setShopSearchQuery(e.target.value)} className={`w-full p-4 pl-12 rounded-2xl font-bold text-sm outline-none transition-colors border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-white focus:border-[#39FF14]' : 'bg-white border-zinc-200 text-black focus:border-black'}`} />
                  </div>
-                 <div className="flex gap-2">
-                     <input type="number" placeholder="Min (F CFA)" value={shopMinPrice} onChange={e=>setShopMinPrice(e.target.value?Number(e.target.value):"")} className={`w-32 p-4 rounded-2xl font-bold text-sm outline-none transition-colors border text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-white focus:border-[#39FF14]' : 'bg-white border-zinc-200 text-black focus:border-black'}`} />
-                     <input type="number" placeholder="Max (F CFA)" value={shopMaxPrice} onChange={e=>setShopMaxPrice(e.target.value?Number(e.target.value):"")} className={`w-32 p-4 rounded-2xl font-bold text-sm outline-none transition-colors border text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-white focus:border-[#39FF14]' : 'bg-white border-zinc-200 text-black focus:border-black'}`} />
+                 <div className={`flex gap-3 items-center p-2 px-4 rounded-2xl border w-full md:w-auto ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                     <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest whitespace-nowrap">Prix Max:</span>
+                     <input type="range" min="0" max="50000" step="1000" value={shopMaxPrice || 50000} onChange={e=>setShopMaxPrice(Number(e.target.value))} className="w-24 md:w-32 accent-[#39FF14] cursor-pointer" />
+                     <input type="number" placeholder="Max" value={shopMaxPrice} onChange={e=>setShopMaxPrice(e.target.value?Number(e.target.value):"")} className={`w-20 p-2 rounded-lg text-sm font-bold outline-none text-center ${theme === 'dark' ? 'bg-zinc-800 text-white' : 'bg-zinc-100 text-black'}`} />
                  </div>
               </div>
 
@@ -2674,6 +2698,34 @@ export default function NutritionDashboard() {
             </div>
          </div>
       )}
+      
+      {/* FOOTER ESPACE CLIENT */}
+      <footer className="bg-black text-white py-12 px-6 mt-20 text-center border-t border-zinc-800">
+         <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8 mb-8 text-left">
+            <div className="md:col-span-2">
+               <div className="flex items-center gap-3 mb-6">
+                  <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Logo" className="h-12 w-auto object-contain opacity-80" />
+               </div>
+               <p className="text-zinc-500 text-sm max-w-sm mb-6">
+                  Le premier écosystème digital pour votre santé. Rééquilibrez votre alimentation selon nos réalités africaines.
+               </p>
+               <div className="flex items-center gap-4">
+                  <MessageCircle size={20} onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="text-zinc-400 hover:text-[#39FF14] cursor-pointer transition-colors"/>
+               </div>
+            </div>
+            <div>
+               <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Liens Utiles</h4>
+               <ul className="space-y-4 text-sm text-zinc-500 font-bold">
+                  <li><button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-[#39FF14] transition-colors">Haut de page</button></li>
+                  <li><button onClick={() => setActiveTab('shop')} className="hover:text-[#39FF14] transition-colors">Boutique</button></li>
+               </ul>
+            </div>
+         </div>
+         <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest leading-relaxed border-t border-zinc-800 pt-8">
+            Onyx Hub - Nutrition<br/>
+            © 2026 Onyx Ops Elite
+         </p>
+      </footer>
     </main>
     </div>
   );
