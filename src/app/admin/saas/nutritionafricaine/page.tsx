@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
@@ -109,7 +109,7 @@ export default function AdminNutritionAfricaine() {
                      supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
-                     supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', tId).maybeSingle()
+                     supabase.from('crm_settings').select('*').eq('tenant_id', tId).maybeSingle()
                   ]);
                   if (recipesRes.data) setRecipes(recipesRes.data);
                   if (prodsRes.data) setProducts(prodsRes.data);

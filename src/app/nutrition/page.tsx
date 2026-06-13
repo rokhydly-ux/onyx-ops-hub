@@ -643,9 +643,13 @@ export default function NutritionDashboard() {
   // --- LOGIQUE SMART PLANNER ---
   const generateWeeklyMenu = async () => {
       let currentRecipes = RECIPES_DB;
+      let currentRecipes = [...RECIPES_DB];
       try {
           const { data } = await supabase.from('nutrition_recipes').select('*');
           if (data && data.length > 0) currentRecipes = data;
+          if (data && data.length > 0) {
+              currentRecipes = [...data, ...RECIPES_DB.filter(fallback => !data.some(d => d.nom === fallback.nom))];
+          }
       } catch(e) {}
       
       let newMenu: any[] = [];
@@ -688,9 +692,13 @@ export default function NutritionDashboard() {
 
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
       let currentRecipes = RECIPES_DB;
+      let currentRecipes = [...RECIPES_DB];
       try {
           const { data } = await supabase.from('nutrition_recipes').select('*');
           if (data && data.length > 0) currentRecipes = data;
+          if (data && data.length > 0) {
+              currentRecipes = [...data, ...RECIPES_DB.filter(fallback => !data.some(d => d.nom === fallback.nom))];
+          }
       } catch(e) {}
       
       const alternatives = currentRecipes.filter(r => r.type === mealType && r.id !== currentRecipeId);
@@ -766,6 +774,7 @@ export default function NutritionDashboard() {
       safeWeeklyMenu.forEach(dayInfo => {
           Object.values(dayInfo?.meals || {}).forEach((recipe: any) => {
               if (!recipe || !recipe.ingredients) return;
+              if (!recipe || !Array.isArray(recipe.ingredients)) return;
               recipe.ingredients.forEach((ing: any) => {
                   const rayon = ing.rayon || 'Supermarché';
                   if (!list[rayon]) list[rayon] = {};
