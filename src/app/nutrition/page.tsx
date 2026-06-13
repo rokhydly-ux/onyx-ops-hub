@@ -1419,6 +1419,26 @@ export default function NutritionDashboard() {
     setAppliedPromoData(null);
   };
 
+  const handleReorder = (order: any) => {
+     let updatedCart = [...shopCart];
+     const itemsToAdd = order.items || [];
+     
+     itemsToAdd.forEach((item: any) => {
+        const fullProduct = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).find((p: any) => p.id === item.id) || item;
+        const existing = updatedCart.find(c => c.id === item.id);
+        if (existing) {
+           existing.quantity += (item.quantity || 1);
+        } else {
+           updatedCart.push({ ...fullProduct, quantity: item.quantity || 1, finalPrice: item.finalPrice || item.price || fullProduct.prix_standard });
+        }
+     });
+     
+     setShopCart(updatedCart);
+     setShowCartModal(true);
+     setToastMessage("Commande ajoutée au panier !");
+     setTimeout(() => setToastMessage(null), 3000);
+  };
+
   const handleSaveMoodNotes = async () => {
      if (!clientProfile) return;
      setIsSaving(true);
@@ -2443,9 +2463,12 @@ export default function NutritionDashboard() {
                                {order.items?.length || 0} article(s) • Livré à : {order.address || 'Non spécifié'}
                             </p>
                          </div>
-                         <div className="text-left md:text-right">
+                         <div className="text-left md:text-right flex flex-col items-start md:items-end">
                             <p className="text-2xl font-black text-[#39FF14]">{order.total?.toLocaleString()} F</p>
                             {order.promo_code && <p className="text-[10px] font-black uppercase text-zinc-400 mt-1">Code : {order.promo_code}</p>}
+                            <button onClick={() => handleReorder(order)} className="mt-3 bg-zinc-100 text-black px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#39FF14] transition-colors flex items-center justify-center gap-1 shadow-sm w-full md:w-auto">
+                               <RefreshCcw size={12}/> Recommander
+                            </button>
                          </div>
                       </div>
                    ))}

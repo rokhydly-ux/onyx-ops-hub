@@ -294,6 +294,7 @@ export default function AdminNutritionAfricaine() {
   const handleSaveRecipe = async (e: React.FormEvent) => {
       e.preventDefault();
       const payload = { ...recipeForm };
+      payload.gallery = payload.gallery.map((url: string) => url.trim()).filter(Boolean);
       delete payload.id;
       delete (payload as any).tenant_id;
       if (editingRecipe) {
@@ -471,6 +472,7 @@ export default function AdminNutritionAfricaine() {
   const handleSaveProduct = async (e: React.FormEvent) => {
       e.preventDefault();
       const payload = { ...productForm };
+      payload.gallery = payload.gallery.map((url: string) => url.trim()).filter(Boolean);
       delete payload.id;
       delete (payload as any).tenant_id;
       if (editingProduct) {
@@ -1291,10 +1293,10 @@ export default function AdminNutritionAfricaine() {
                   </div>
 
                   <div className="grid grid-cols-4 gap-4">
-                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-orange-500 tracking-widest ml-1">Kcal</label><input type="number" required value={recipeForm.calories} onChange={e => setRecipeForm({...recipeForm, calories: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
-                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-green-500 tracking-widest ml-1">Prot(g)</label><input type="number" required value={recipeForm.proteins} onChange={e => setRecipeForm({...recipeForm, proteins: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
-                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-yellow-600 tracking-widest ml-1">Gluc(g)</label><input type="number" required value={recipeForm.carbs} onChange={e => setRecipeForm({...recipeForm, carbs: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
-                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-1">Lip(g)</label><input type="number" required value={recipeForm.fats} onChange={e => setRecipeForm({...recipeForm, fats: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-orange-500 tracking-widest ml-1">Kcal</label><input type="number" required value={recipeForm.calories === 0 ? '' : recipeForm.calories} onChange={e => setRecipeForm({...recipeForm, calories: e.target.value ? Number(e.target.value) : 0})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-green-500 tracking-widest ml-1">Prot(g)</label><input type="number" required value={recipeForm.proteins === 0 ? '' : recipeForm.proteins} onChange={e => setRecipeForm({...recipeForm, proteins: e.target.value ? Number(e.target.value) : 0})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-yellow-600 tracking-widest ml-1">Gluc(g)</label><input type="number" required value={recipeForm.carbs === 0 ? '' : recipeForm.carbs} onChange={e => setRecipeForm({...recipeForm, carbs: e.target.value ? Number(e.target.value) : 0})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-1">Lip(g)</label><input type="number" required value={recipeForm.fats === 0 ? '' : recipeForm.fats} onChange={e => setRecipeForm({...recipeForm, fats: e.target.value ? Number(e.target.value) : 0})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
                   </div>
 
                   <label className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl cursor-pointer hover:bg-blue-100 transition-colors">
@@ -1321,8 +1323,8 @@ export default function AdminNutritionAfricaine() {
                   </div>
                   
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Galerie Photos (URLs séparées par virgule)</label>
-                     <input type="text" value={recipeForm.gallery.join(', ')} onChange={e => setRecipeForm({...recipeForm, gallery: e.target.value.split(',').map(url => url.trim()).filter(Boolean)})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black" placeholder="https://img1.jpg, https://img2.jpg" />
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Galerie Photos (1 URL par ligne)</label>
+                     <textarea value={recipeForm.gallery.join('\n')} onChange={e => setRecipeForm({...recipeForm, gallery: e.target.value.split('\n')})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black min-h-[80px]" placeholder="https://img1.jpg&#10;https://img2.jpg"></textarea>
                   </div>
 
                   <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-200">
@@ -1416,7 +1418,7 @@ export default function AdminNutritionAfricaine() {
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Image URL</label><input type="text" required value={productForm.image_url} onChange={e => setProductForm({...productForm, image_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   </div>
                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Vidéo URL (YouTube ou Direct)</label><input type="url" value={productForm.video_url} onChange={e => setProductForm({...productForm, video_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="https://www.youtube.com/watch?v=..." /></div>
-                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Galerie Images (URLs séparées par virgule ou ligne)</label><textarea value={productForm.gallery.join(',\n')} onChange={e => setProductForm({...productForm, gallery: e.target.value.split(/[\n,]+/).map(url => url.trim()).filter(Boolean)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[80px]" placeholder="https://img1.jpg, https://img2.jpg..." /></div>
+                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Galerie Images (1 URL par ligne)</label><textarea value={productForm.gallery.join('\n')} onChange={e => setProductForm({...productForm, gallery: e.target.value.split('\n')})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[80px]" placeholder="https://img1.jpg&#10;https://img2.jpg..." /></div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Objectif (Goal)</label>
                      <select value={productForm.goal} onChange={e => setProductForm({...productForm, goal: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">
