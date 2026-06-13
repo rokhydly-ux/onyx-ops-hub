@@ -14,6 +14,12 @@ import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
 
+const FATS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375735/A_cute__highly_detailed_3D_202606131826_jbhb58.jpg";
+const WATER_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375733/A_cute__highly_detailed_3D_202606131825_3_jyrhrd.jpg";
+const PROTEINS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375734/A_cute__highly_detailed_3D_202606131825_2_roav76.jpg";
+const CARBS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375738/A_cute__highly_detailed_3D_202606131825_1_epyark.jpg";
+const CALS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375768/A_cute__highly_detailed_3D_202606131825_mxabkm.jpg";
+
 const SHOP_DATA = [
   {
     "categorie_nom": "Super-Aliments & Céréales Locales",
@@ -176,6 +182,8 @@ const buildDynamicRecipes = async () => {
                     proteins: 15,
                     carbs: 40,
                     fats: 10,
+                    is_boutique: true,
+                    image_url: p.image_url,
                     is_bol_commun: false,
                     recipe: `Préparez une portion de ${p.nom}. ${p.description_courte || ''}`,
                     ingredients: [{ nom: p.nom, quantite: 1, unite: "portion", rayon: "Boutique Onyx" }]
@@ -366,6 +374,13 @@ export default function NutritionDashboard() {
   const [shopSearchQuery, setShopSearchQuery] = useState("");
   const [shopMinPrice, setShopMinPrice] = useState<number | "">("");
   const [shopMaxPrice, setShopMaxPrice] = useState<number | "">("");
+
+  const imcValue = clientProfile?.diagnostic_data ? (() => {
+      const h = parseFloat(clientProfile.diagnostic_data.height) / 100;
+      const w = parseFloat(clientProfile.diagnostic_data.currentWeight);
+      if (h > 0 && w > 0) return (w / (h * h)).toFixed(1);
+      return "0";
+  })() : 0;
 
   const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
@@ -1622,7 +1637,7 @@ export default function NutritionDashboard() {
   const logoSrc = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111717_kftori.jpg';
 
   return (
-    <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#fafafa] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300`}>
+    <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300`}>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes gentle-pulse {
           0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
@@ -1770,6 +1785,21 @@ export default function NutritionDashboard() {
         {activeTab === 'today' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
             
+            {/* BANNIÈRE WELCOME BENTO */}
+            <div className="bg-zinc-950 rounded-[24px] p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/20 blur-[100px] rounded-full pointer-events-none"></div>
+               <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
+                  <span className="text-[#39FF14] font-black uppercase tracking-widest text-[10px] mb-2 block">Espace Personnel</span>
+                  <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase text-white mb-2`}>
+                     {greetingText}, <span className="text-[#39FF14]">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
+                  </h1>
+                  <p className="text-zinc-400 font-medium text-sm">{greetingSubtext}</p>
+               </div>
+               <button onClick={() => setActiveTab('weight')} className="relative z-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-6 py-3 rounded-full font-bold text-sm transition-all backdrop-blur-md w-full md:w-auto">
+                  <Scale size={16} /> Mettre à jour mon poids
+               </button>
+            </div>
+            
             {/* SÉLECTEUR DE MODE & ACTIONS */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                <div className="bg-white border border-zinc-200 p-2 rounded-2xl flex items-center shadow-sm w-full md:w-auto">
@@ -1803,10 +1833,9 @@ export default function NutritionDashboard() {
         )}
 
             {/* JAUGES DU JOUR */}
-            <div className="bg-black p-8 rounded-[2rem] border border-zinc-800 shadow-2xl text-center relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 blur-[50px] rounded-full"></div>
+            <div className={`p-8 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center relative overflow-hidden ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
                
-               <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter text-white flex items-center justify-center gap-3 mb-6`}><Activity className="text-[#39FF14]"/> Synthèse Journalière</h2>
+               <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter flex items-center justify-center gap-3 mb-6`}><Activity className="text-[#39FF14]"/> Synthèse Journalière</h2>
                
                {/* JAUGE CENTRALE (CALORIES) */}
                <div className="relative w-48 h-48 mx-auto mb-8">
@@ -1823,7 +1852,7 @@ export default function NutritionDashboard() {
                          strokeLinecap="round"
                       />
                    </svg>
-                   <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <span className="text-4xl font-black">{remainingCalories}</span>
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Kcal Restantes</span>
                    </div>
@@ -1833,30 +1862,39 @@ export default function NutritionDashboard() {
                <div className="grid md:grid-cols-2 gap-8 items-center max-w-md mx-auto mt-6">
                   <div className="space-y-4">
                      <div className="text-left">
-                        <div className="flex justify-between text-[10px] font-black uppercase mb-1">
-                           <span className="text-yellow-600">Glucides</span>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase mb-2">
+                           <div className="flex items-center gap-2">
+                              <img src={CARBS_ICON} alt="Glucides" className="w-6 h-6 rounded-full shadow-sm object-cover" />
+                              <span className="text-zinc-500">Glucides</span>
+                           </div>
                            <span className="text-zinc-400">{carbs} / {carbsGoal}g</span>
                         </div>
-                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                        <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
                            <div className="bg-yellow-600 h-full" style={{ width: `${Math.min((carbs/targetCarbs)*100, 100)}%` }}></div>
                         </div>
                      </div>
                      <div className="text-left">
-                        <div className="flex justify-between text-[10px] font-black uppercase mb-1">
-                           <span className="text-[#39FF14]">Protéines</span>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase mb-2">
+                           <div className="flex items-center gap-2">
+                              <img src={PROTEINS_ICON} alt="Protéines" className="w-6 h-6 rounded-full shadow-sm object-cover" />
+                              <span className="text-zinc-500">Protéines</span>
+                           </div>
                            <span className="text-zinc-400">{proteins} / {proteinGoal}g</span>
                         </div>
-                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                        <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
                            <div className="bg-[#39FF14] h-full" style={{ width: `${Math.min((proteins/targetProtein)*100, 100)}%` }}></div>
                         </div>
                      </div>
                      <div className="text-left">
-                        <div className="flex justify-between text-[10px] font-black uppercase mb-1">
-                           <span className="text-zinc-300">Lipides</span>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase mb-2">
+                           <div className="flex items-center gap-2">
+                              <img src={FATS_ICON} alt="Lipides" className="w-6 h-6 rounded-full shadow-sm object-cover" />
+                              <span className="text-zinc-500">Lipides</span>
+                           </div>
                            <span className="text-zinc-400">{fats} / {fatsGoal}g</span>
                         </div>
-                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                           <div className="bg-zinc-300 h-full" style={{ width: `${Math.min((fats/targetFats)*100, 100)}%` }}></div>
+                        <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
+                           <div className="bg-blue-400 h-full" style={{ width: `${Math.min((fats/targetFats)*100, 100)}%` }}></div>
                         </div>
                      </div>
                   </div>
@@ -1888,27 +1926,27 @@ export default function NutritionDashboard() {
 
             {/* SUIVI DE L'EAU & HUMEUR */}
             <div className="grid md:grid-cols-2 gap-6 mt-6">
-               <div className={`p-6 rounded-[2rem] border shadow-sm flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
-                  <h3 className="font-black text-lg uppercase mb-4 flex items-center gap-2"><Droplet className="text-blue-500"/> Suivi de l'eau</h3>
-                  <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
-                     {[...Array(8)].map((_, i) => (
-                        <button key={i} onClick={() => setWaterGlasses(i + 1)} className={`w-8 h-12 rounded-b-xl rounded-t-sm border-2 transition-all shrink-0 ${i < waterGlasses ? 'bg-blue-500 border-blue-600 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-blue-50 border-blue-200 hover:bg-blue-100'}`}></button>
-                     ))}
+               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
+                  <img src={WATER_ICON} className="w-16 h-16 rounded-full mb-4 shadow-sm object-cover" alt="Eau" />
+                  <h3 className="font-black text-lg uppercase mb-1">Hydratation</h3>
+                  <p className="text-xs font-bold text-zinc-500 mb-4">{waterGlasses} / 8 verres</p>
+                  <div className="flex items-center gap-4">
+                     <button onClick={() => setWaterGlasses(Math.max(0, waterGlasses - 1))} className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center font-black text-xl text-zinc-500 hover:bg-zinc-200 transition-colors">-</button>
+                     <button onClick={handleAddWater} className="bg-blue-50 text-blue-600 px-6 py-3 rounded-full font-black uppercase text-xs tracking-widest hover:bg-blue-100 transition-colors flex items-center gap-2 shadow-sm">
+                        <Plus size={16}/> Ajouter un verre
+                     </button>
                   </div>
-                  <p className="text-xs font-bold text-zinc-500">{waterGlasses} / 8 verres (2 Litres) - {waterGlasses >= 8 ? 'Objectif atteint ! 🎉' : 'Encore un petit effort !'}</p>
                </div>
 
-               <div className={`p-6 rounded-[2rem] border shadow-sm flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
                   <h3 className="font-black text-lg uppercase mb-4">Mon Humeur & Notes</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
                      {[{e:'😃',l:'Enjoué'}, {e:'🤩',l:'Motivé'}, {e:'🧘‍♀️',l:'Zen'}, {e:'🤔',l:'Pensif'}, {e:'😴',l:'Fatigué'}, {e:'😫',l:'Épuisé'}, {e:'😢',l:'Triste'}, {e:'😠',l:'Enervé'}, {e:'🤢',l:'Barbouillé'}, {e:'😭',l:'Critique'}].map(m => {
                         const isSelected = moods.includes(m.l);
                         return (
-                        <button key={m.l} onClick={() => {
-                           if (isSelected) setMoods(moods.filter(x => x !== m.l));
-                           else if (moods.length < 3) setMoods([...moods, m.l]);
-                           else { const newM = [...moods]; newM.shift(); newM.push(m.l); setMoods(newM); }
-                        }} className={`p-2 text-2xl rounded-xl border-2 transition-all ${isSelected ? 'bg-zinc-100 border-[#39FF14] scale-110 shadow-md' : (theme === 'dark' ? 'bg-zinc-800 border-zinc-700 opacity-50 hover:opacity-100' : 'bg-white border-zinc-100 opacity-50 hover:opacity-100')}`} title={m.l}>{m.e}</button>
+                        <button key={m.l} onClick={() => { setMoods([m.l]); }} className={`w-16 h-20 rounded-2xl text-3xl flex items-center justify-center transition-all shadow-sm ${isSelected ? 'border-2 border-[#39FF14] bg-[#39FF14]/10 scale-110' : (theme === 'dark' ? 'border border-zinc-700 bg-zinc-800 opacity-60 hover:opacity-100' : 'border border-zinc-100 bg-zinc-50 opacity-60 hover:opacity-100 grayscale hover:grayscale-0')}`} title={m.l}>
+                           {m.e}
+                        </button>
                      )})}
                   </div>
                   <textarea value={moodNotes} onChange={e => setMoodNotes(e.target.value)} placeholder="Comment vous sentez-vous aujourd'hui ? (Optionnel)" className={`w-full border rounded-xl p-4 text-sm outline-none focus:border-[#39FF14] min-h-[80px] custom-scrollbar resize-none ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500' : 'bg-zinc-50 border-zinc-200 text-black placeholder-zinc-400'}`} />
@@ -1918,7 +1956,7 @@ export default function NutritionDashboard() {
 
             {/* GRAPHIQUE ÉVOLUTION POIDS (MON JOUR) */}
             {Array.isArray(weightLogs) && weightLogs.length > 0 && (
-               <div className={`p-6 rounded-[2rem] border shadow-sm mt-6 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+               <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-6 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
                   <h3 className="font-black text-lg uppercase mb-4 flex items-center gap-2"><Scale className="text-[#39FF14]"/> Évolution de mon poids</h3>
                   <div className="h-48 w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -1953,7 +1991,7 @@ export default function NutritionDashboard() {
                     const itemsForThisMeal = safeConsumedMeals.filter(m => m.type === mealType);
                     
                     return (
-                       <div key={mealType} className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-500' : 'bg-white border-zinc-200 hover:border-black'} p-6 rounded-[2rem] border shadow-sm transition-colors flex flex-col`}>
+                       <div key={mealType} className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-500' : 'bg-white border-zinc-100 hover:border-zinc-300'} p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-colors flex flex-col`}>
                           <div className="flex justify-between items-center mb-4">
                              <span className="bg-zinc-100 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{mealType}</span>
                              {trackingMode === 'guided' && plannedMeal && (
@@ -1967,7 +2005,7 @@ export default function NutritionDashboard() {
                                    {itemsForThisMeal.map((item, i) => (
                                       <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'}`}>
                                          <div>
-                                            <p className={`font-bold text-sm ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{item.name}</p>
+                                            <p className={`font-bold text-sm ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-2`}>{item.name} {item.is_boutique && <span className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}</p>
                                             <p className="text-[10px] font-black uppercase text-zinc-500">{item.cals} kcal • {item.prots}g prot</p>
                                          </div>
                                          <button onClick={() => deleteMealLog(item)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
@@ -2129,15 +2167,11 @@ export default function NutritionDashboard() {
                                    </div>
                                    
                                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Quantité consommée</label>
-                                   <div className="flex items-center gap-4 mb-6">
-                                      <select value={foodQuantity} onChange={e => setFoodQuantity(parseFloat(e.target.value))} className="w-24 p-3 bg-white border border-zinc-200 rounded-xl font-bold outline-none">
-                                         <option value={0.5}>0.5</option>
-                                         <option value={1}>1</option>
-                                         <option value={1.5}>1.5</option>
-                                         <option value={2}>2</option>
-                                         <option value={3}>3</option>
-                                      </select>
-                                      <span className="text-sm font-bold text-zinc-600 flex-1">x {selectedFoodDB.portion_standard_nom} <br/><span className="text-xs text-zinc-400">({selectedFoodDB.portion_standard_grammes * foodQuantity}g)</span></span>
+                                   <div className="flex items-center gap-4 mb-6 bg-zinc-100 p-2 rounded-2xl w-max">
+                                      <button onClick={() => setFoodQuantity(Math.max(0.5, foodQuantity - 0.5))} className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center font-black text-xl hover:bg-zinc-50 transition-colors">-</button>
+                                      <span className="w-12 text-center font-black text-lg">{foodQuantity}</span>
+                                      <button onClick={() => setFoodQuantity(foodQuantity + 0.5)} className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center font-black text-xl hover:bg-zinc-50 transition-colors">+</button>
+                                      <span className="text-xs font-bold text-zinc-500 ml-4">x {selectedFoodDB.portion_standard_nom}</span>
                                    </div>
 
                                    <div className="grid grid-cols-4 gap-2 text-center">
@@ -2366,26 +2400,38 @@ export default function NutritionDashboard() {
                      </button>
                   </div>
                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      {weeklyGeneratedMenu.map((dayPlan, dIdx) => (
-                        <div key={`${dIdx}-${dayPlan.meals?.['Déjeuner']?.id || 'empty'}`} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors group animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500" style={{ animationFillMode: 'both', animationDelay: `${dIdx * 100}ms` }}>
-                           <h3 className="font-black uppercase tracking-widest text-sm mb-4 border-b border-zinc-100 pb-2 text-zinc-600">{dayPlan.day}</h3>
-                           <div className="space-y-3">
-                              {Object.entries(dayPlan?.meals || {}).map(([mealType, recipe]: any) => {
-                                 if (!recipe) return null;
+                        <div key={`${dIdx}-${dayPlan.meals?.['Déjeuner']?.id || 'empty'}`} className="bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden flex flex-col group relative animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500" style={{ animationFillMode: 'both', animationDelay: `${dIdx * 100}ms` }}>
+                           <div className="absolute top-4 left-4 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest z-10 shadow-lg">
+                              {dayPlan.day}
+                           </div>
+                           
+                           <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
+                              <img src={dayPlan.meals?.['Déjeuner']?.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop'} alt="Repas" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-5">
+                                 <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest mb-1">Déjeuner</p>
+                                 <p className="text-white font-bold text-lg leading-tight line-clamp-1">{dayPlan.meals?.['Déjeuner']?.nom || 'Repas'}</p>
+                                 {dayPlan.meals?.['Déjeuner']?.is_boutique && <span className="absolute top-4 right-4 bg-[#39FF14] text-black px-2 py-1 rounded text-[9px] font-black uppercase shadow-md">Boutique</span>}
+                              </div>
+                           </div>
+                           
+                           <div className="p-5 flex-1 flex flex-col gap-3">
+                              {['Petit-déjeuner', 'Collation', 'Dîner'].map(mealType => {
+                                 const recipe = dayPlan.meals?.[mealType];
+                                 if(!recipe) return null;
                                  return (
-                                    <div key={`${mealType}-${recipe.id}`} className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 relative pr-10 hover:border-[#39FF14] transition-colors animate-in fade-in zoom-in-95 duration-300">
-                                       <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
-                                       <p className="text-xs font-bold text-black leading-tight mb-1">{recipe.nom}</p>
-                                       <div className="flex gap-2 items-center">
-                                          <span className="text-[10px] font-bold text-orange-500">{recipe.calories} kcal</span>
-                                          {recipe.is_bol_commun && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Bol Commun</span>}
+                                    <div key={mealType} className="flex justify-between items-center bg-zinc-50 p-3 rounded-xl hover:border-black border border-transparent transition-colors cursor-pointer" onClick={() => handleSwapMeal(dIdx, mealType, recipe.id)} title="Changer ce repas">
+                                       <div className="flex-1 min-w-0 pr-2">
+                                          <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
+                                          <p className="text-xs font-bold text-black truncate">{recipe.nom}</p>
                                        </div>
-                                       <button onClick={() => handleSwapMeal(dIdx, mealType, recipe.id)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-black transition-colors p-1" title="Changer ce repas">
-                                          <RefreshCcw size={14}/>
-                                       </button>
+                                       <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                                          <span className="text-[10px] font-bold text-zinc-500">{recipe.calories} kcal</span>
+                                          {recipe.is_boutique && <span className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}
+                                       </div>
                                     </div>
-                                 );
+                                 )
                               })}
                            </div>
                         </div>
@@ -2532,7 +2578,7 @@ export default function NutritionDashboard() {
 
         {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+             <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}><Settings className="text-black"/> Profil & Réglages</h2>
                 
                 <form onSubmit={handleSaveProfile} className="space-y-6 max-w-xl">
@@ -2562,26 +2608,25 @@ export default function NutritionDashboard() {
                 </form>
              </div>
 
-             <div className="grid md:grid-cols-2 gap-8">
-                <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-                   <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Target className="text-[#39FF14]"/> Mes Objectifs</h3>
-                   <div className="space-y-4">
-                      <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
-                         <span className="text-sm font-bold text-zinc-500">Objectif Calories</span>
-                         <span className="font-black text-black">{calorieGoal} kcal / jour</span>
-                      </div>
-                      <div className="flex justify-between items-center border-b border-zinc-100 pb-3">
-                         <span className="text-sm font-bold text-zinc-500">Objectif Protéines</span>
-                         <span className="font-black text-black">{proteinGoal} g / jour</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                         <span className="text-sm font-bold text-zinc-500">Hydratation</span>
-                         <span className="font-black text-black">8 verres / jour</span>
-                      </div>
-                   </div>
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="col-span-2 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center">
+                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Métabolisme de base (BMR)</span>
+                  <div className="text-4xl font-black text-black">{clientProfile?.bmr || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
                 </div>
 
-                <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
+                <div className="col-span-1 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
+                  <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest mb-1">Mon IMC</span>
+                  <div className="text-3xl font-black text-green-700">{imcValue}</div>
+                </div>
+                
+                <div className="col-span-1 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center items-center text-center">
+                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Score XP</span>
+                  <div className="text-3xl font-black text-yellow-500">{jongomaXP}</div>
+                </div>
+             </div>
+
+             <div className="grid md:grid-cols-2 gap-8">
+                <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                    <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><MessageCircle className="text-blue-500"/> Échange & Support</h3>
                    <p className="text-sm font-medium text-zinc-600 mb-6">Rejoignez notre communauté bienveillante pour partager vos repas, vos victoires et vos questions avec les coachs.</p>
                    <div className="space-y-3">
@@ -2595,7 +2640,7 @@ export default function NutritionDashboard() {
                 </div>
              </div>
 
-             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm mt-8">
+             <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
                 <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Download className="text-[#39FF14]"/> Historique des Téléchargements PDF</h3>
                 {Array.isArray(pdfHistory) && pdfHistory.length > 0 ? (
                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
