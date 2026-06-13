@@ -24,7 +24,7 @@ export default function AdminNutritionAfricaine() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
-  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [] as any[], image_url: '', description: '', gallery: [] as string[] });
+  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', description: '', gallery: [] as string[] });
   const fileProductInputRef = useRef<HTMLInputElement>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -200,6 +200,7 @@ export default function AdminNutritionAfricaine() {
                           fats: Number(r['fats'] || r['lipides']) || 0,
                           is_bol_commun: r['is_bol_commun']?.toLowerCase() === 'oui' || String(r['is_bol_commun']) === 'true',
                           recipe: r['etapes_cuisson'] || r['recipe'] || r['recette_details'] || '',
+                          bienfaits: r['bienfaits'] || r['benefits'] || '',
                           description: r['description'] || '',
                           image_url: r['photo'] || r['image_url'] || r['image'] || '',
                           gallery: r['galerie_photo'] ? String(r['galerie_photo']).split(',').map((s:string) => s.trim()) : [],
@@ -283,10 +284,10 @@ export default function AdminNutritionAfricaine() {
   const handleOpenRecipeModal = (recipe?: any) => {
      if (recipe) {
          setEditingRecipe(recipe);
-         setRecipeForm({ ...recipe, ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', description: recipe.description || '' });
+         setRecipeForm({ ...recipe, bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', description: recipe.description || '' });
      } else {
          setEditingRecipe(null);
-         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [], image_url: '', description: '', gallery: [] });
+         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [], image_url: '', description: '', gallery: [] });
      }
      setShowRecipeModal(true);
   };
@@ -511,7 +512,7 @@ export default function AdminNutritionAfricaine() {
   };
 
   const downloadRecipeCsvTemplate = () => {
-      const csv = "nom;type;calories;proteines;glucides;lipides;is_bol_commun;etapes_cuisson;description;image_url;galerie_photo;ingredients\nExemple Thieb;Déjeuner;600;30;70;15;oui;Cuire le riz...;Un plat sénégalais;https://...;https://...,https://...;[{\"nom\":\"Riz\",\"quantite\":100,\"unite\":\"g\",\"rayon\":\"Supermarché\"}]";
+      const csv = "nom;type;calories;proteines;glucides;lipides;is_bol_commun;etapes_cuisson;bienfaits;description;image_url;galerie_photo;ingredients\nExemple Thieb;Déjeuner;600;30;70;15;oui;Cuire le riz...;Riche en oméga-3;Un plat sénégalais;https://...;https://...,https://...;[{\"nom\":\"Riz\",\"quantite\":100,\"unite\":\"g\",\"rayon\":\"Supermarché\"}]";
       const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = 'Modele_Recettes_Vierge.csv'; a.click();
@@ -1310,6 +1311,11 @@ export default function AdminNutritionAfricaine() {
                   <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Instructions / Recette</label>
                      <textarea value={recipeForm.recipe} onChange={e => setRecipeForm({...recipeForm, recipe: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black min-h-[100px]" placeholder="Astuces de cuisson, remplacement d'ingrédients..."></textarea>
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-[#39FF14] tracking-widest ml-2">Bienfaits Santé (Animés côté client)</label>
+                     <textarea value={recipeForm.bienfaits} onChange={e => setRecipeForm({...recipeForm, bienfaits: e.target.value})} className="w-full p-4 bg-zinc-50 border border-[#39FF14]/50 rounded-2xl font-bold text-sm outline-none focus:border-[#39FF14] min-h-[60px]" placeholder="Ex: Apporte de l'énergie durable sans pic d'insuline. Parfait pour la digestion..."></textarea>
                   </div>
 
                   <div className="space-y-2">
