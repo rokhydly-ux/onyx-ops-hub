@@ -49,6 +49,7 @@ export default function AdminNutritionAfricaine() {
   const [shopSearch, setShopSearch] = useState("");
   const [shopMinPrice, setShopMinPrice] = useState<number | "">("");
   const [shopMaxPrice, setShopMaxPrice] = useState<number | "">("");
+  const [shopOutOfStock, setShopOutOfStock] = useState(false);
   const [shopSort, setShopSort] = useState("recent");
   const [shopPage, setShopPage] = useState(1);
   const [showVitrineModal, setShowVitrineModal] = useState(false);
@@ -658,7 +659,8 @@ export default function AdminNutritionAfricaine() {
       const price = p.prix_standard || 0;
       const matchMin = shopMinPrice === "" || price >= shopMinPrice;
       const matchMax = shopMaxPrice === "" || price <= shopMaxPrice;
-      return matchSearch && matchMin && matchMax;
+      const matchStock = shopOutOfStock ? p.stock === 0 : true;
+      return matchSearch && matchMin && matchMax && matchStock;
   }).sort((a, b) => {
       if (shopSort === "old") return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
       if (shopSort === "views") return (b.views || 0) - (a.views || 0);
@@ -1075,6 +1077,11 @@ export default function AdminNutritionAfricaine() {
                  <input type="number" placeholder="Min F" value={shopMinPrice} onChange={e=>setShopMinPrice(e.target.value===""?"":Number(e.target.value))} className="w-20 p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none text-center" />
                  <input type="range" min="0" max="50000" step="1000" value={shopMaxPrice || 50000} onChange={e=>setShopMaxPrice(Number(e.target.value))} className="w-24 accent-[#39FF14] cursor-pointer" />
                  <input type="number" placeholder="Max F" value={shopMaxPrice} onChange={e=>setShopMaxPrice(e.target.value===""?"":Number(e.target.value))} className="w-24 p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none text-center" />
+                 <div className="w-px h-6 bg-zinc-200 mx-2"></div>
+                 <label className="flex items-center gap-2 cursor-pointer pr-2">
+                    <input type="checkbox" checked={shopOutOfStock} onChange={e => setShopOutOfStock(e.target.checked)} className="w-4 h-4 accent-black" />
+                    <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">Rupture</span>
+                 </label>
               </div>
               <select value={shopSort} onChange={e=>setShopSort(e.target.value)} className="w-full md:w-auto p-3 bg-white border border-zinc-200 rounded-xl text-sm font-bold outline-none cursor-pointer shadow-sm">
                  <option value="recent">Plus récents</option>
