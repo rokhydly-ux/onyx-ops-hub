@@ -490,56 +490,20 @@ export default function NutritionDashboard() {
           if (wLogs) {
               setWeightLogs(wLogs);
               if (wLogs.length > 0) setCurrentWeightInput(wLogs[wLogs.length - 1].weight);
-          } else {
-             const localGoals = localStorage.getItem('onyx_nutrition_goals');
-             if (localGoals) {
-                try {
-                   const parsed = JSON.parse(localGoals);
-                   if (parsed && parsed.calories) setCalorieGoal(Math.round(parsed.calories));
-                   if (parsed && parsed.protein) setProteinGoal(Math.round(parsed.protein));
-                   if (parsed && parsed.carbs) setCarbsGoal(Math.round(parsed.carbs));
-                   if (parsed && parsed.fats) setFatsGoal(Math.round(parsed.fats));
-                } catch (e) {}
-             }
-          }
-
-          const savedFavs = localStorage.getItem(`onyx_nutrition_favs_${profileData.id}`);
-          if (savedFavs) {
-             try { 
-                const parsed = JSON.parse(savedFavs);
-                if (Array.isArray(parsed)) setFavoriteMeals(parsed);
-             } catch(e) {}
           }
           
-          const savedPdfs = localStorage.getItem(`onyx_nutrition_pdfs_${profileData.id}`);
-          if (savedPdfs) {
-             try { 
-                const parsed = JSON.parse(savedPdfs);
-                if (Array.isArray(parsed)) setPdfHistory(parsed);
-             } catch(e) {}
+          if (nutritionData) {
+              setFavoriteMeals(nutritionData.favorite_meals || []);
+              setPdfHistory(nutritionData.pdf_history || []);
+              setSavedShopProducts(nutritionData.saved_shop_products || []);
+              setExcludedIngredients(nutritionData.excluded_ingredients || []);
           }
 
-          const savedShop = localStorage.getItem(`onyx_nutrition_saved_products_${profileData.id}`);
-          if (savedShop) {
-             try { 
-                const parsed = JSON.parse(savedShop);
-                if (Array.isArray(parsed)) setSavedShopProducts(parsed);
-             } catch(e) {}
-          }
-          
           if (profileData.address) setDeliveryAddress(profileData.address);
 
           // Fetch des commandes du client
           const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', profileData.id).order('created_at', { ascending: false });
           if (ordersData) setClientOrders(ordersData);
-
-          const savedExcluded = localStorage.getItem(`onyx_nutrition_excluded_ings_${profileData.id}`);
-          if (savedExcluded) {
-             try { 
-                const parsed = JSON.parse(savedExcluded);
-                if (Array.isArray(parsed)) setExcludedIngredients(parsed);
-             } catch(e) {}
-          }
 
           // Fetch DB Products
           const { data: dbProds } = await supabase.from('nutrition_products').select('*');
@@ -846,7 +810,7 @@ export default function NutritionDashboard() {
       setExcludedIngredients(prev => {
           const newEx = prev.includes(nom) ? prev.filter(i => i !== nom) : [...prev, nom];
           if (clientProfile) {
-              localStorage.setItem(`onyx_nutrition_excluded_ings_${clientProfile.id}`, JSON.stringify(newEx));
+              supabase.from('nutrition_profiles').update({ excluded_ingredients: newEx }).eq('client_id', clientProfile.id);
           }
           return newEx;
       });
@@ -915,7 +879,7 @@ export default function NutritionDashboard() {
 
           const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: fileUrl }, ...pdfHistory];
           setPdfHistory(newHistory);
-          localStorage.setItem(`onyx_nutrition_pdfs_${clientProfile.id}`, JSON.stringify(newHistory));
+          await supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('client_id', clientProfile.id);
 
           const text = `Bonjour ! Voici ma liste de courses de la semaine générée par OnyxNutrition 🛒🥦 :\n\n${fileUrl}`;
           window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -961,13 +925,15 @@ export default function NutritionDashboard() {
       const newHistory = [{ date: new Date().toISOString(), type: 'Liste de Courses', url: null }, ...pdfHistory];
       setPdfHistory(newHistory);
       if (clientProfile) {
-          localStorage.setItem(`onyx_nutrition_pdfs_${clientProfile.id}`, JSON.stringify(newHistory));
+          supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('client_id', clientProfile.id);
       }
   };
 
-  const handleAddWater = async () => {
+  const handleUpdateWater = async (delta: number) => {
     if (!clientProfile) return;
-    const newAmount = Math.min(waterGlasses + 1, 8);
+    const newAmount = Math.max(0, Math.min(waterGlasses + delta, 8));
+    if (newAmount === waterGlasses) return; // Pas de changement
+    
     setWaterGlasses(newAmount);
     
     if (waterGlasses === 7 && newAmount === 8) {
@@ -989,7 +955,7 @@ export default function NutritionDashboard() {
     setDailyLogs(prev => {
       const filtered = prev.filter(l => l.log_date !== todayStr);
       const existing = prev.find(l => l.log_date === todayStr) || {};
-      return [...filtered, { ...existing, client_id: clientProfile.id, log_date: todayStr, water_glasses: newAmount, calories_consumed: calories, proteins_consumed: proteins }];
+      return [...filtered, { ...existing, client_id: clientProfile.id, log_date: todayStr, water_glasses: newAmount, calories_consumed: calories, proteins_consumed: proteins, carbs_consumed: carbs, fats_consumed: fats }];
     });
   };
   
@@ -1331,7 +1297,7 @@ export default function NutritionDashboard() {
       }
       setFavoriteMeals(newFavs);
       if (clientProfile) {
-          localStorage.setItem(`onyx_nutrition_favs_${clientProfile.id}`, JSON.stringify(newFavs));
+          await supabase.from('nutrition_profiles').update({ favorite_meals: newFavs }).eq('client_id', clientProfile.id);
       }
   };
 
@@ -1931,8 +1897,8 @@ export default function NutritionDashboard() {
                   <h3 className="font-black text-lg uppercase mb-1">Hydratation</h3>
                   <p className="text-xs font-bold text-zinc-500 mb-4">{waterGlasses} / 8 verres</p>
                   <div className="flex items-center gap-4">
-                     <button onClick={() => setWaterGlasses(Math.max(0, waterGlasses - 1))} className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center font-black text-xl text-zinc-500 hover:bg-zinc-200 transition-colors">-</button>
-                     <button onClick={handleAddWater} className="bg-blue-50 text-blue-600 px-6 py-3 rounded-full font-black uppercase text-xs tracking-widest hover:bg-blue-100 transition-colors flex items-center gap-2 shadow-sm">
+                     <button onClick={() => handleUpdateWater(-1)} className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center font-black text-xl text-zinc-500 hover:bg-zinc-200 transition-colors">-</button>
+                     <button onClick={() => handleUpdateWater(1)} className="bg-blue-50 text-blue-600 px-6 py-3 rounded-full font-black uppercase text-xs tracking-widest hover:bg-blue-100 transition-colors flex items-center gap-2 shadow-sm">
                         <Plus size={16}/> Ajouter un verre
                      </button>
                   </div>
@@ -2003,32 +1969,43 @@ export default function NutritionDashboard() {
                              {itemsForThisMeal.length > 0 ? (
                                 <div className="space-y-3 mb-4">
                                    {itemsForThisMeal.map((item, i) => (
-                                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'}`}>
-                                         <div>
-                                            <p className={`font-bold text-sm ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-2`}>{item.name} {item.is_boutique && <span className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}</p>
-                                            <p className="text-[10px] font-black uppercase text-zinc-500">{item.cals} kcal • {item.prots}g prot</p>
+                                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-2xl border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700/50' : 'bg-zinc-50 border-zinc-100'} group`}>
+                                         <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center text-lg">🍲</div>
+                                            <div>
+                                               <p className={`font-black text-sm ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-2`}>{item.name} {item.is_boutique && <span className="bg-[#39FF14]/10 text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}</p>
+                                               <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-2 mt-0.5">
+                                                  <span className="flex items-center gap-1 text-orange-500"><Flame size={10}/> {item.cals} kcal</span>
+                                                  <span className="flex items-center gap-1 text-[#39FF14]"><Target size={10}/> {item.prots}g prot</span>
+                                               </p>
+                                            </div>
                                          </div>
-                                         <button onClick={() => deleteMealLog(item)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                         <button onClick={() => deleteMealLog(item)} className="p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
                                             <Trash2 size={16}/>
                                          </button>
                                       </div>
                                    ))}
                                 </div>
                              ) : trackingMode === 'guided' && plannedMeal ? (
-                                <div onClick={() => handleMealClick(mealType, plannedMeal)} className="cursor-pointer">
+                                <div onClick={() => handleMealClick(mealType, plannedMeal)} className={`cursor-pointer p-4 rounded-2xl border-2 border-dashed transition-all group ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
                                    <p className={`font-black text-lg mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{plannedMeal.meal}</p>
                                    <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
                                       <span className="flex items-center gap-1 text-orange-500"><Flame size={14}/> {plannedMeal.cals} kcal</span>
                                       <span className="flex items-center gap-1 text-[#39FF14]"><Target size={14}/> {plannedMeal.proteins}g prot</span>
+                                   </div>
+                                   <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#39FF14] opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Plus size={14}/> Enregistrer ce repas
                                    </div>
                                 </div>
                              ) : null}
                           </div>
 
                           {(trackingMode === 'flexible' || (trackingMode === 'guided' && itemsForThisMeal.length === 0)) && (
-                             <div onClick={() => handleMealClick(mealType, plannedMeal)} className={`mt-4 flex flex-col items-center justify-center py-4 border-2 border-dashed rounded-xl transition-colors cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-white hover:bg-zinc-800' : 'border-zinc-200 hover:border-black hover:bg-zinc-50'}`}>
-                                <span className="text-2xl mb-1 text-zinc-300 leading-none">+</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{itemsForThisMeal.length > 0 ? "Ajouter autre chose" : "Ajouter un aliment"}</span>
+                             <div onClick={() => handleMealClick(mealType, plannedMeal)} className={`mt-4 flex flex-col items-center justify-center py-5 border-2 border-dashed rounded-2xl transition-all cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
+                                <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 text-zinc-400">
+                                   <Plus size={16} />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{itemsForThisMeal.length > 0 ? "Ajouter un autre plat" : "Enregistrer mon repas"}</span>
                              </div>
                           )}
                        </div>
