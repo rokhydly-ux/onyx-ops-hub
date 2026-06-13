@@ -2030,14 +2030,15 @@ export default function NutritionDashboard() {
                                    ))}
                                 </div>
                              ) : trackingMode === 'guided' && plannedMeal ? (
-                                <div onClick={() => handleMealClick(mealType, plannedMeal)} className={`cursor-pointer p-4 rounded-2xl border-2 border-dashed transition-all group ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
+                              <div className={`p-4 rounded-2xl border-2 border-dashed transition-all group ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
                                    <p className={`font-black text-lg mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{plannedMeal.meal}</p>
                                    <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
                                       <span className="flex items-center gap-1 text-orange-500"><Flame size={14}/> {plannedMeal.cals} kcal</span>
                                       <span className="flex items-center gap-1 text-[#39FF14]"><Target size={14}/> {plannedMeal.proteins}g prot</span>
                                    </div>
-                                   <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#39FF14] opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Plus size={14}/> Enregistrer ce repas
+                                 <div className="mt-4 flex gap-2">
+                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, plannedMeal); }} className="px-4 bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center hover:bg-zinc-300 transition-colors">Recette</button>
                                    </div>
                                 </div>
                              ) : null}
@@ -2410,9 +2411,14 @@ export default function NutritionDashboard() {
             {/* SECTION SMART PLANNER (Générateur) */}
             <section>
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                  <div className="flex items-center gap-3">
-                     <Calendar className="text-[#39FF14] bg-black p-2 rounded-lg" size={36} />
-                     <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Smart Planner</h2>
+                  <div className="flex items-start gap-3">
+                     <Calendar className="text-[#39FF14] bg-black p-2 rounded-lg shrink-0" size={36} />
+                     <div>
+                        <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Sama Menu</h2>
+                        <p className="text-zinc-500 font-bold text-xs mt-1 max-w-lg leading-relaxed">
+                          Votre programme quotidien visuel. Suivez ces recommandations sans tracas. Loguez vos plats ici.
+                        </p>
+                     </div>
                   </div>
                   <div className="flex gap-4">
                      <button onClick={generateWeeklyMenu} className="bg-white border border-zinc-200 text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-50 transition shadow-sm flex items-center gap-2">
@@ -2456,15 +2462,21 @@ export default function NutritionDashboard() {
                               {['Petit-déjeuner', 'Collation', 'Dîner'].map(mealType => {
                                  const recipe = dayPlan.meals?.[mealType];
                                  if(!recipe) return null;
+                                 const isToday = dayPlan.day === formattedCurrentDay;
                                  return (
-                                    <div key={mealType} className="flex justify-between items-center bg-zinc-50 p-3 rounded-xl hover:border-black border border-transparent transition-colors cursor-pointer" onClick={() => handleSwapMeal(dIdx, mealType, recipe.id)} title="Changer ce repas">
-                                       <div className="flex-1 min-w-0 pr-2">
+                                    <div key={mealType} className="flex justify-between items-center bg-zinc-50 p-3 rounded-xl hover:border-black border border-transparent transition-colors">
+                                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits })} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                           <p className="text-xs font-bold text-black truncate">{recipe.nom}</p>
                                        </div>
                                        <div className="text-right shrink-0 flex flex-col items-end gap-1">
                                           <span className="text-[10px] font-bold text-zinc-500">{recipe.calories} kcal</span>
-                                          {recipe.is_boutique && <span className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}
+                                          <div className="flex items-center gap-1 mt-0.5">
+                                             {isToday && (
+                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9)); setToastMessage('Repas validé !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Valider ce repas">✅</button>
+                                             )}
+                                             <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors" title="Changer ce repas">🔄</button>
+                                          </div>
                                        </div>
                                     </div>
                                  )
@@ -3336,9 +3348,13 @@ export default function NutritionDashboard() {
                </button>
                <button disabled={!redoReason} onClick={() => { 
                    setShowRedoDiagModal(false); 
-                   if (clientProfile?.diagnostic_data?.gender && clientProfile?.diagnostic_data?.age) {
+                   if (clientProfile?.diagnostic_data) {
                        setDiagData(prev => ({...prev, ...clientProfile.diagnostic_data}));
-                       setDiagStep(2);
+                       if (clientProfile.diagnostic_data.gender === 'Femme') {
+                           setDiagStep(1); // Permet la modification du profil hormonal/santé
+                       } else {
+                           setDiagStep(2); // Les hommes passent l'étape 1 directement
+                       }
                    } else {
                        setDiagStep(1); 
                    }
@@ -3373,7 +3389,7 @@ export default function NutritionDashboard() {
                     <div className="space-y-4 animate-in slide-in-from-right-8">
                       <div className="flex items-center gap-3 mb-4"><Scale className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Informations de base</h3></div>
                       
-                      {(!diagData.gender) && (
+                      {(!clientProfile?.diagnostic_data?.gender) && (
                         <div className="space-y-2 mt-4">
                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Votre sexe *</label>
                         <div className="grid grid-cols-2 gap-4">
@@ -3404,7 +3420,9 @@ export default function NutritionDashboard() {
                          </div>
                       )}
 
-                      <input type="number" required placeholder="Votre Âge *" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black mt-4" />
+                      {(!clientProfile?.diagnostic_data?.age) && (
+                         <input type="number" required placeholder="Votre Âge *" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black mt-4" />
+                      )}
                     </div>
                   )}
                   
