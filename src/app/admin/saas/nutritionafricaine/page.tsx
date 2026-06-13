@@ -271,6 +271,27 @@ export default function AdminNutritionAfricaine() {
       }
   };
 
+  const handleRelanceInactifs = () => {
+      const inactifs = clients.filter(c => {
+         const todayLog = c.logs?.find((l: any) => l.log_date === todayStr);
+         return !todayLog;
+      });
+
+      if (inactifs.length === 0) {
+          alert("Tous vos clients ont rempli leur bilan aujourd'hui !");
+          return;
+      }
+
+      if (confirm(`Voulez-vous relancer manuellement ${inactifs.length} clients inactifs sur WhatsApp ? (Note: Autorisez les pop-ups sur votre navigateur)`)) {
+          inactifs.forEach((client, index) => {
+              const msg = `Coucou ${client.client?.full_name || ''} 👋\n\nJe n'ai pas encore reçu ton bilan d'aujourd'hui sur ton espace Onyx Nutrition.\nN'oublie pas de le remplir pour qu'on puisse adapter ton menu de demain !\n\nÀ très vite !`;
+              setTimeout(() => {
+                  window.open(`https://wa.me/${(client.phone || '').replace('+', '')}?text=${encodeURIComponent(msg)}`, '_blank');
+              }, index * 1000);
+          });
+      }
+  };
+
   const handleImportProductCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -615,6 +636,9 @@ export default function AdminNutritionAfricaine() {
                      <p className="text-4xl font-black">{averageCaloriesToday} <span className="text-sm font-bold text-zinc-500">kcal</span></p>
                      <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold">Sur {clientsWithLogsToday} clients ayant logué</p>
                    </div>
+              <button onClick={handleRelanceInactifs} className="mt-6 w-full md:w-auto bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-md flex justify-center items-center gap-2">
+                 <MessageSquare size={16}/> Relancer inactifs du jour ({clients.length - clientsWithLogsToday})
+              </button>
                 </div>
              </div>
              
@@ -1022,7 +1046,7 @@ export default function AdminNutritionAfricaine() {
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Image URL</label><input type="text" required value={productForm.image_url} onChange={e => setProductForm({...productForm, image_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   </div>
                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Vidéo URL (YouTube ou Direct)</label><input type="url" value={productForm.video_url} onChange={e => setProductForm({...productForm, video_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="https://www.youtube.com/watch?v=..." /></div>
-                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Galerie Images (URLs séparées par virgules)</label><input type="text" value={productForm.gallery.join(', ')} onChange={e => setProductForm({...productForm, gallery: e.target.value.split(',').map(url => url.trim()).filter(Boolean)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="https://img1.jpg, https://img2.jpg..." /></div>
+                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Galerie Images (1 URL par ligne)</label><textarea value={productForm.gallery.join('\n')} onChange={e => setProductForm({...productForm, gallery: e.target.value.split('\n').map(url => url.trim()).filter(Boolean)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[80px]" placeholder="https://img1.jpg&#10;https://img2.jpg..." /></div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Objectif (Goal)</label>
                      <select value={productForm.goal} onChange={e => setProductForm({...productForm, goal: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">

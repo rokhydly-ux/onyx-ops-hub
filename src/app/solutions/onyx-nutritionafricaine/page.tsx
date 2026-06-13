@@ -652,6 +652,13 @@ export default function NutritionAfricaineLanding() {
         .fomo-shake-active {
           animation: fomo-shake 0.4s ease-in-out infinite;
         }
+        @keyframes gentle-pulse {
+          0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
+          50% { opacity: 0.85; filter: drop-shadow(0 0 25px rgba(57,255,20,0.4)); transform: scale(1.02); }
+        }
+        .animate-gentle-pulse {
+          animation: gentle-pulse 4s ease-in-out infinite;
+        }
       `}} />
       
       {/* ANIMATION LUDIQUE DE CONFETTIS */}
@@ -683,7 +690,7 @@ export default function NutritionAfricaineLanding() {
       {/* NAVBAR */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
          <button onClick={() => window.location.href = '/'} className="flex items-center hover:opacity-90 transition-opacity">
-            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224303/NOIR_VERT_k8px4q.png" alt="Nutrition à l'Africaine" className="h-28 md:h-32 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-pulse drop-shadow-2xl" />
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224303/NOIR_VERT_k8px4q.png" alt="Nutrition à l'Africaine" className="h-28 md:h-32 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" />
          </button>
          
          <div className="flex items-center gap-4">

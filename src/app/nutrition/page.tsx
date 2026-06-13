@@ -1534,11 +1534,20 @@ export default function NutritionDashboard() {
 
   return (
     <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#fafafa] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300`}>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes gentle-pulse {
+          0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
+          50% { opacity: 0.85; filter: drop-shadow(0 0 25px rgba(57,255,20,0.4)); transform: scale(1.02); }
+        }
+        .animate-gentle-pulse {
+          animation: gentle-pulse 4s ease-in-out infinite;
+        }
+      `}} />
       {/* SIDEBAR VERTICAL */}
       <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
          <div className="p-6 flex items-center justify-between">
             <div className={`flex items-center gap-3 overflow-hidden ${!isSidebarOpen && 'lg:hidden'}`}>
-               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-pulse drop-shadow-2xl" />
+               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" />
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'}`}>
                {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
@@ -1592,7 +1601,7 @@ export default function NutritionDashboard() {
       {/* Header */}
       <div className="lg:hidden p-4 bg-black flex justify-between items-center">
          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
-         <img src={logoSrc} className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-pulse drop-shadow-2xl" alt="Logo" />
+         <img src={logoSrc} className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" alt="Logo" />
          <div className="w-10"></div>
       </div>
 
@@ -2772,7 +2781,27 @@ export default function NutritionDashboard() {
                     <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
                     <div className="w-full md:w-1/2 bg-zinc-50 flex flex-col items-center justify-center p-6 relative">
                        {productMediaView === 'image' || !selectedProduct.video_url ? (
-                           <img src={productActiveImage || selectedProduct.image_url} alt={selectedProduct.nom} className="max-w-full h-auto object-contain drop-shadow-2xl rounded-2xl" />
+                           <div className="relative w-full h-full flex items-center justify-center group/mainimg">
+                               <img src={productActiveImage || selectedProduct.image_url} alt={selectedProduct.nom} className="max-w-full h-auto max-h-[60vh] object-contain drop-shadow-2xl rounded-2xl" />
+                               {selectedProduct.gallery?.length > 0 && (
+                                  <>
+                                     <button onClick={(e) => {
+                                         e.stopPropagation();
+                                         const images = [selectedProduct.image_url, ...(selectedProduct.gallery || [])].filter(Boolean);
+                                         const currentIndex = images.indexOf(productActiveImage || selectedProduct.image_url);
+                                         const prevIndex = (currentIndex - 1 + images.length) % images.length;
+                                         setProductActiveImage(images[prevIndex]);
+                                     }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black transition-colors opacity-0 group-hover/mainimg:opacity-100"><ChevronLeft size={20}/></button>
+                                     <button onClick={(e) => {
+                                         e.stopPropagation();
+                                         const images = [selectedProduct.image_url, ...(selectedProduct.gallery || [])].filter(Boolean);
+                                         const currentIndex = images.indexOf(productActiveImage || selectedProduct.image_url);
+                                         const nextIndex = (currentIndex + 1) % images.length;
+                                         setProductActiveImage(images[nextIndex]);
+                                     }} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black transition-colors opacity-0 group-hover/mainimg:opacity-100"><ChevronRight size={20}/></button>
+                                  </>
+                               )}
+                           </div>
                        ) : (
                            <iframe src={getEmbedUrl(selectedProduct.video_url)} className="w-full aspect-video rounded-2xl shadow-xl" allowFullScreen></iframe>
                        )}
@@ -3515,4 +3544,4 @@ export default function NutritionDashboard() {
 
     </div>
   );
-}
+} 
