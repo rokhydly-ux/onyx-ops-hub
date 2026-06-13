@@ -493,10 +493,6 @@ export default function AdminNutritionAfricaine() {
       setShowVitrineModal(false);
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-black"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
-  }
-
   // Calcul moyenne globale des calories consommées aujourd'hui
   const todayStr = new Date().toISOString().split('T')[0];
   let totalCaloriesToday = 0;
@@ -547,6 +543,10 @@ export default function AdminNutritionAfricaine() {
       });
       return Object.values(stats).sort((a,b) => b.qty - a.qty).slice(0, 5);
   }, [orders, products]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-black"><Activity className="animate-spin text-[#39FF14]" size={40} /></div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa] text-black font-sans pb-24">

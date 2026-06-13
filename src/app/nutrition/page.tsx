@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon,
   Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple
 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
@@ -1724,35 +1724,60 @@ export default function NutritionDashboard() {
                    </div>
                </div>
 
-               {/* MINI-JAUGES MACROS */}
-               <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
-                   <div className="text-left">
-                      <div className="flex justify-between text-[10px] font-black uppercase mb-1">
-                         <span className="text-yellow-600">Glucides</span>
-                         <span className="text-zinc-400">{carbs} / {carbsGoal}g</span>
-                      </div>
-                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-yellow-600 h-full" style={{ width: `${Math.min((carbs/targetCarbs)*100, 100)}%` }}></div>
-                      </div>
-                   </div>
-                   <div className="text-left">
-                      <div className="flex justify-between text-[10px] font-black uppercase mb-1">
-                         <span className="text-[#39FF14]">Protéines</span>
-                         <span className="text-zinc-400">{proteins} / {proteinGoal}g</span>
-                      </div>
-                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-[#39FF14] h-full" style={{ width: `${Math.min((proteins/targetProtein)*100, 100)}%` }}></div>
-                      </div>
-                   </div>
-                   <div className="text-left">
-                      <div className="flex justify-between text-[10px] font-black uppercase mb-1">
-                         <span className="text-zinc-300">Lipides</span>
-                         <span className="text-zinc-400">{fats} / {fatsGoal}g</span>
-                      </div>
-                      <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-zinc-300 h-full" style={{ width: `${Math.min((fats/targetFats)*100, 100)}%` }}></div>
-                      </div>
-                   </div>
+               {/* MINI-JAUGES MACROS & PIE CHART */}
+               <div className="grid md:grid-cols-2 gap-8 items-center max-w-md mx-auto mt-6">
+                  <div className="space-y-4">
+                     <div className="text-left">
+                        <div className="flex justify-between text-[10px] font-black uppercase mb-1">
+                           <span className="text-yellow-600">Glucides</span>
+                           <span className="text-zinc-400">{carbs} / {carbsGoal}g</span>
+                        </div>
+                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                           <div className="bg-yellow-600 h-full" style={{ width: `${Math.min((carbs/targetCarbs)*100, 100)}%` }}></div>
+                        </div>
+                     </div>
+                     <div className="text-left">
+                        <div className="flex justify-between text-[10px] font-black uppercase mb-1">
+                           <span className="text-[#39FF14]">Protéines</span>
+                           <span className="text-zinc-400">{proteins} / {proteinGoal}g</span>
+                        </div>
+                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                           <div className="bg-[#39FF14] h-full" style={{ width: `${Math.min((proteins/targetProtein)*100, 100)}%` }}></div>
+                        </div>
+                     </div>
+                     <div className="text-left">
+                        <div className="flex justify-between text-[10px] font-black uppercase mb-1">
+                           <span className="text-zinc-300">Lipides</span>
+                           <span className="text-zinc-400">{fats} / {fatsGoal}g</span>
+                        </div>
+                        <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                           <div className="bg-zinc-300 h-full" style={{ width: `${Math.min((fats/targetFats)*100, 100)}%` }}></div>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="h-32 flex justify-center items-center">
+                     {carbs === 0 && proteins === 0 && fats === 0 ? (
+                        <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest text-center leading-relaxed">Aucune donnée<br/>Aujourd'hui</p>
+                     ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                           <PieChart>
+                               <Pie
+                                   data={[
+                                       { name: 'Protéines', value: proteins * 4, fill: '#39FF14' },
+                                       { name: 'Glucides', value: carbs * 4, fill: '#ca8a04' },
+                                       { name: 'Lipides', value: fats * 9, fill: '#d4d4d8' },
+                                   ].filter(d => d.value > 0)}
+                                   cx="50%" cy="50%" innerRadius={40} outerRadius={55} paddingAngle={5} dataKey="value" stroke="none"
+                               >
+                                   {[{ name: 'Protéines', value: proteins * 4, fill: '#39FF14' }, { name: 'Glucides', value: carbs * 4, fill: '#ca8a04' }, { name: 'Lipides', value: fats * 9, fill: '#d4d4d8' }].filter(d => d.value > 0).map((entry, index) => (
+                                       <Cell key={`cell-${index}`} fill={entry.fill} />
+                                   ))}
+                               </Pie>
+                               <RechartsTooltip formatter={(value: any) => [`${Math.round(value)} kcal`, 'Énergie']} contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '10px' }} />
+                           </PieChart>
+                        </ResponsiveContainer>
+                     )}
+                  </div>
                </div>
             </div>
 

@@ -683,7 +683,7 @@ export default function NutritionAfricaineLanding() {
       {/* NAVBAR */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
          <button onClick={() => window.location.href = '/'} className="flex items-center hover:opacity-90 transition-opacity">
-            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111717_kftori.jpg" alt="Nutrition à l'Africaine" className="h-40 md:h-48 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-pulse drop-shadow-2xl" />
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224303/NOIR_VERT_k8px4q.png" alt="Nutrition à l'Africaine" className="h-28 md:h-32 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-pulse drop-shadow-2xl" />
          </button>
          
          <div className="flex items-center gap-4">
