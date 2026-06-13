@@ -2301,13 +2301,13 @@ export default function NutritionDashboard() {
                ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                      {weeklyGeneratedMenu.map((dayPlan, dIdx) => (
-                        <div key={dIdx} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors group">
+                        <div key={`${dIdx}-${dayPlan.meals?.['Déjeuner']?.id || 'empty'}`} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm hover:border-black transition-colors group animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500" style={{ animationFillMode: 'both', animationDelay: `${dIdx * 100}ms` }}>
                            <h3 className="font-black uppercase tracking-widest text-sm mb-4 border-b border-zinc-100 pb-2 text-zinc-600">{dayPlan.day}</h3>
                            <div className="space-y-3">
                               {Object.entries(dayPlan?.meals || {}).map(([mealType, recipe]: any) => {
                                  if (!recipe) return null;
                                  return (
-                                    <div key={mealType} className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 relative pr-10 hover:border-[#39FF14] transition-colors">
+                                    <div key={`${mealType}-${recipe.id}`} className="bg-zinc-50 p-3 rounded-xl border border-zinc-100 relative pr-10 hover:border-[#39FF14] transition-colors animate-in fade-in zoom-in-95 duration-300">
                                        <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                        <p className="text-xs font-bold text-black leading-tight mb-1">{recipe.nom}</p>
                                        <div className="flex gap-2 items-center">

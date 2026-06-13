@@ -225,14 +225,19 @@ export default function NutritionAfricaineLanding() {
   
   const [emblaStoreRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
-  const heroRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const yFonio = useTransform(scrollYProgress, [0, 1], [0, 500]);
-  const rotateFonio = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const yBissap = useTransform(scrollYProgress, [0, 1], [0, -300]);
-  const rotateBissap = useTransform(scrollYProgress, [0, 1], [0, -90]);
-  const yMoringa = useTransform(scrollYProgress, [0, 1], [0, -200]);
-  const rotateBouye = useTransform(scrollYProgress, [0, 1], [0, 45]);
+  // Nouvelle logique Parallax globale liée au scroll de la page
+  const { scrollYProgress } = useScroll(); 
+  
+  // 1. Fonio (en haut à droite, monte très lentement)
+  const yFonio = useTransform(scrollYProgress, [0, 1], [0, -400]);
+  // 2. Bissap (milieu gauche, descend légèrement avec très lente rotation)
+  const yBissap = useTransform(scrollYProgress, [0, 1], [0, 300]);
+  const rotateBissap = useTransform(scrollYProgress, [0, 1], [0, 15]);
+  // 3. Moringa (3/4 droite, Y statique, s'éloigne/se réduit)
+  const scaleMoringa = useTransform(scrollYProgress, [0, 1], [1, 0.6]);
+  // 4. Bouye (en bas à gauche, remonte délicatement en tournant)
+  const yBouye = useTransform(scrollYProgress, [0, 1], [0, -800]);
+  const rotateBouye = useTransform(scrollYProgress, [0, 1], [0, 90]);
 
   const [heroSlide, setHeroSlide] = useState(0);
   useEffect(() => {
@@ -681,6 +686,35 @@ export default function NutritionAfricaineLanding() {
   return (
     <main className="min-h-screen bg-[#fafafa] text-zinc-900 overflow-x-hidden selection:bg-[#39FF14]/30 pb-24 font-sans">
       {/* SHAKE CSS POUR LE FOMO */}
+      
+      {/* CONTENEUR GLOBAL PARALLAX (Arrière-plan) */}
+      <div className="fixed inset-0 w-[100vw] h-[100vh] z-0 pointer-events-none overflow-hidden">
+         {/* 1. Grains de Fonio */}
+         <motion.img 
+            style={{ y: yFonio }}
+            src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781360871/6_zj9w38.png"
+            className="absolute top-[-5%] right-[-10%] md:right-[-5%] w-64 md:w-96 lg:w-[32rem] blur-[6px] opacity-40"
+         />
+         {/* 2. Fleurs de Bissap */}
+         <motion.img 
+            style={{ y: yBissap, rotate: rotateBissap }}
+            src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361433/fleur_bissap_esyz83.png"
+            className="absolute top-[40%] left-[-10%] md:left-[-5%] w-32 md:w-48 lg:w-56 blur-[2px] opacity-50"
+         />
+         {/* 3. Poudre de Moringa */}
+         <motion.img 
+            style={{ scale: scaleMoringa }}
+            src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781360870/8_ofyjyv.png"
+            className="absolute top-[75%] right-[-5%] md:right-[-2%] w-24 md:w-36 lg:w-44 blur-[4px] opacity-30"
+         />
+         {/* 4. Le Bouye */}
+         <motion.img 
+            style={{ y: yBouye, rotate: rotateBouye }}
+            src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781360868/7_lug1gg.png"
+            className="absolute bottom-[5%] left-[-10%] md:left-[-5%] w-32 md:w-48 lg:w-56 blur-[3px] opacity-20 brightness-75"
+         />
+      </div>
+
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes fomo-shake {
           0%, 100% { transform: translateX(0) scale(1.05); }
@@ -747,7 +781,7 @@ export default function NutritionAfricaineLanding() {
       </nav>
 
       {/* 1. HERO SECTION (NOUVEAU) */}
-      <section ref={heroRef} className="relative w-full min-h-[90vh] md:min-h-[100vh] flex flex-col items-center justify-center overflow-hidden -mt-32 pt-32">
+      <section className="relative w-full min-h-[90vh] md:min-h-[100vh] flex flex-col items-center justify-center overflow-hidden -mt-32 pt-32 z-10">
         <AnimatePresence mode="wait">
            <motion.div
               key={heroSlide}
@@ -761,30 +795,6 @@ export default function NutritionAfricaineLanding() {
               <div className="absolute inset-0 bg-black/50"></div>
            </motion.div>
         </AnimatePresence>
-
-        {/* Parallax Ingredients */}
-        <motion.img 
-           style={{ y: yFonio, rotate: rotateFonio }}
-           src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781360871/6_zj9w38.png"
-           className="absolute top-[10%] left-[-5%] md:left-[5%] w-40 md:w-64 lg:w-80 z-10 blur-[3px] opacity-90 drop-shadow-2xl"
-        />
-        <motion.img 
-           style={{ y: yBissap, rotate: rotateBissap }}
-           src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361433/fleur_bissap_esyz83.png"
-           className="absolute top-[45%] right-[-5%] md:right-[5%] w-24 md:w-40 z-10 opacity-90 drop-shadow-2xl"
-        />
-        <motion.img 
-           style={{ y: yMoringa }}
-           animate={{ x: [-15, 15, -15] }}
-           transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-           src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781360870/8_ofyjyv.png"
-           className="absolute bottom-[15%] left-[5%] md:left-[10%] w-16 md:w-28 z-10 opacity-80 drop-shadow-xl"
-        />
-        <motion.img 
-           style={{ rotate: rotateBouye }}
-           src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781360868/7_lug1gg.png"
-           className="absolute bottom-[10%] right-[10%] md:right-[15%] w-24 md:w-36 z-0 opacity-50 drop-shadow-xl filter brightness-75"
-        />
 
         {/* Content */}
         <div className="relative z-20 text-center px-6 max-w-5xl mx-auto flex flex-col items-center">
