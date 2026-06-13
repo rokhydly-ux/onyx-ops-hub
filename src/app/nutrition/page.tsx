@@ -157,6 +157,49 @@ const RECIPES_DB = [
   { id: "r9", type: "Collation", nom: "Fruit de saison", calories: 100, is_bol_commun: false, ingredients: [{nom: "Fruit au choix (Mangue, etc)", quantite: 1, unite: "pièce", rayon: "Marché local"}] }
 ];
 
+const buildDynamicRecipes = async () => {
+    let dynamicRecipes: any[] = [];
+    try {
+        const { data: products } = await supabase.from('nutrition_products').select('*');
+        if (products && products.length > 0) {
+            dynamicRecipes = products.map((p: any) => {
+                let mType = 'Déjeuner';
+                if (p.goal === 'snacks') mType = 'Collation';
+                else if (p.goal === 'energy' || p.categorie_nom?.toLowerCase().includes('infusion')) mType = 'Petit-déjeuner';
+                else if (p.goal === 'detox') mType = 'Dîner';
+
+                return {
+                    id: `gen_prod_${p.id}`,
+                    type: mType,
+                    nom: `Recette : ${p.nom}`,
+                    calories: 350,
+                    proteins: 15,
+                    carbs: 40,
+                    fats: 10,
+                    is_bol_commun: false,
+                    recipe: `Préparez une portion de ${p.nom}. ${p.description_courte || ''}`,
+                    ingredients: [{ nom: p.nom, quantite: 1, unite: "portion", rayon: "Boutique Onyx" }]
+                };
+            });
+        }
+    } catch(e) {}
+
+    const foodDbRecipes = FOOD_DATABASE.map((f: any) => ({
+        id: `gen_food_${f.id}`,
+        type: f.categorie === 'Boissons' ? 'Collation' : f.categorie === 'Protéines' ? 'Dîner' : 'Déjeuner',
+        nom: `Préparation de ${f.nom}`,
+        calories: f.valeurs_pour_100g.calories,
+        proteins: f.valeurs_pour_100g.proteines,
+        carbs: f.valeurs_pour_100g.glucides,
+        fats: f.valeurs_pour_100g.lipides,
+        is_bol_commun: false,
+        recipe: `Cuisinez ${f.portion_standard_grammes}g de ${f.nom} avec un minimum d'huile.`,
+        ingredients: [{ nom: f.nom, quantite: f.portion_standard_grammes, unite: "g", rayon: "Marché / Supermarché" }]
+    }));
+
+    return [...dynamicRecipes, ...foodDbRecipes, ...RECIPES_DB];
+};
+
 const CircularProgress = ({ value, max, colorClass, label, icon: Icon, unit }: any) => {
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
@@ -642,13 +685,11 @@ export default function NutritionDashboard() {
 
   // --- LOGIQUE SMART PLANNER ---
   const generateWeeklyMenu = async () => {
-      let currentRecipes = RECIPES_DB;
-      let currentRecipes = [...RECIPES_DB];
+      let currentRecipes = await buildDynamicRecipes();
       try {
           const { data } = await supabase.from('nutrition_recipes').select('*');
-          if (data && data.length > 0) currentRecipes = data;
           if (data && data.length > 0) {
-              currentRecipes = [...data, ...RECIPES_DB.filter(fallback => !data.some(d => d.nom === fallback.nom))];
+              currentRecipes = [...data, ...currentRecipes.filter(fallback => !data.some(d => d.nom === fallback.nom))];
           }
       } catch(e) {}
       
@@ -691,13 +732,11 @@ export default function NutritionDashboard() {
   };
 
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
-      let currentRecipes = RECIPES_DB;
-      let currentRecipes = [...RECIPES_DB];
+      let currentRecipes = await buildDynamicRecipes();
       try {
           const { data } = await supabase.from('nutrition_recipes').select('*');
-          if (data && data.length > 0) currentRecipes = data;
           if (data && data.length > 0) {
-              currentRecipes = [...data, ...RECIPES_DB.filter(fallback => !data.some(d => d.nom === fallback.nom))];
+              currentRecipes = [...data, ...currentRecipes.filter(fallback => !data.some(d => d.nom === fallback.nom))];
           }
       } catch(e) {}
       
@@ -773,7 +812,6 @@ export default function NutritionDashboard() {
       const safeWeeklyMenu = Array.isArray(weeklyGeneratedMenu) ? weeklyGeneratedMenu : [];
       safeWeeklyMenu.forEach(dayInfo => {
           Object.values(dayInfo?.meals || {}).forEach((recipe: any) => {
-              if (!recipe || !recipe.ingredients) return;
               if (!recipe || !Array.isArray(recipe.ingredients)) return;
               recipe.ingredients.forEach((ing: any) => {
                   const rayon = ing.rayon || 'Supermarché';
