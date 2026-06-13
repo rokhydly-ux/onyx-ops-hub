@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
@@ -156,6 +156,27 @@ const FAMILY_APPROACH_POINTS_NEW = [
   }
 ];
 
+const HERO_SLIDES = [
+  {
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361007/A_cinematic__ultra-realistic_wide_shot._202606131429_xhaaiu.jpg",
+    title: "PERDEZ JUSQU'À 8 KG CE MOIS-CI.",
+    highlight: "SANS RÉGIME TOUBAB.",
+    sub: "Affinez vos bras et retrouvez un ventre plat tout en mangeant du Yassa et du Thieb. Le rééquilibrage 100% sénégalais."
+  },
+  {
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361008/A_cinematic_16_9_wide_shot_202606131426_deadb8.jpg",
+    title: "ADIEU LE GROS VENTRE.",
+    highlight: "BONJOUR L'ÉNERGIE.",
+    sub: "Fini les ballonnements de l'après-midi. Apprenez à doser l'huile et remplacez le riz blanc pour une silhouette harmonieuse."
+  },
+  {
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361008/remplace_ses_vetements_avec_la_202606131429_l6inum.jpg",
+    title: "LA SANTÉ AVANT TOUT.",
+    highlight: "UNE LIGNE AFFINÉE.",
+    sub: "Régulez votre tension et traversez la ménopause avec légèreté grâce aux super-aliments de nos marchés."
+  }
+];
+
 export default function NutritionAfricaineLanding() {
   const router = useRouter();
   const waNumber = "221785338417";
@@ -203,6 +224,23 @@ export default function NutritionAfricaineLanding() {
   const [storeProducts, setStoreProducts] = useState<any[]>([]);
   
   const [emblaStoreRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const yFonio = useTransform(scrollYProgress, [0, 1], [0, 500]);
+  const rotateFonio = useTransform(scrollYProgress, [0, 1], [0, 120]);
+  const yBissap = useTransform(scrollYProgress, [0, 1], [0, -300]);
+  const rotateBissap = useTransform(scrollYProgress, [0, 1], [0, -90]);
+  const yMoringa = useTransform(scrollYProgress, [0, 1], [0, -200]);
+  const rotateBouye = useTransform(scrollYProgress, [0, 1], [0, 45]);
+
+  const [heroSlide, setHeroSlide] = useState(0);
+  useEffect(() => {
+      const interval = setInterval(() => {
+          setHeroSlide(prev => (prev + 1) % HERO_SLIDES.length);
+      }, 5000);
+      return () => clearInterval(interval);
+  }, []);
 
   const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
   const prevTestimonial = () => setActiveTestimonial((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
@@ -708,31 +746,80 @@ export default function NutritionAfricaineLanding() {
          </div>
       </nav>
 
-      {/* 1. HERO SECTION */}
-      <section className="pt-16 pb-16 px-6 text-center max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-         <div className="inline-flex items-center gap-2 bg-green-100 border border-green-200 text-green-700 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-8 shadow-sm">
-             <Activity size={14} /> Santé & Bien-être
-         </div>
-         <h1 className={`${spaceGrotesk.className} text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-6 text-black`}>
-            MANGEZ NOTRE TERROIR. <br/>
-            RETROUVEZ VOTRE SILHOUETTE DE <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-[#2bd40d] drop-shadow-sm">JONGOMA.</span>
-         </h1>
-         <p className="text-zinc-600 text-lg md:text-xl font-medium max-w-3xl mx-auto mb-4 leading-relaxed">
-            Perdez jusqu'à 8 kg par mois sans vous isoler du bol familial. Oubliez les thés miracles importés et les régimes à la toubab. Ceebu jën, Yassa, Maffé : le Dr Thierno Ly et Rokhy rééquilibrent votre alimentation selon NOS réalités sénégalaises. Votre santé n’attend pas.
-         </p>
-         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-12">* Les résultats varient selon votre métabolisme et votre point de départ.</p>
-         
-         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-6">
-           <button onClick={handleWaClick} className={`bg-black text-[#39FF14] px-8 md:px-12 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.3)] flex items-center justify-center gap-3 relative overflow-hidden group w-full sm:w-auto ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
-              <HeartPulse size={24} className="relative z-10" /> <span className="relative z-10">Démarrer à 2.900 F</span>
+      {/* 1. HERO SECTION (NOUVEAU) */}
+      <section ref={heroRef} className="relative w-full min-h-[90vh] md:min-h-[100vh] flex flex-col items-center justify-center overflow-hidden -mt-32 pt-32">
+        <AnimatePresence mode="wait">
+           <motion.div
+              key={heroSlide}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2 }}
+              className="absolute inset-0 w-full h-full z-0"
+           >
+              <img src={HERO_SLIDES[heroSlide].image} alt="Hero Nutrition" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/50"></div>
+           </motion.div>
+        </AnimatePresence>
+
+        {/* Parallax Ingredients */}
+        <motion.img 
+           style={{ y: yFonio, rotate: rotateFonio }}
+           src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781360871/6_zj9w38.png"
+           className="absolute top-[10%] left-[-5%] md:left-[5%] w-40 md:w-64 lg:w-80 z-10 blur-[3px] opacity-90 drop-shadow-2xl"
+        />
+        <motion.img 
+           style={{ y: yBissap, rotate: rotateBissap }}
+           src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361433/fleur_bissap_esyz83.png"
+           className="absolute top-[45%] right-[-5%] md:right-[5%] w-24 md:w-40 z-10 opacity-90 drop-shadow-2xl"
+        />
+        <motion.img 
+           style={{ y: yMoringa }}
+           animate={{ x: [-15, 15, -15] }}
+           transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+           src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781360870/8_ofyjyv.png"
+           className="absolute bottom-[15%] left-[5%] md:left-[10%] w-16 md:w-28 z-10 opacity-80 drop-shadow-xl"
+        />
+        <motion.img 
+           style={{ rotate: rotateBouye }}
+           src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781360868/7_lug1gg.png"
+           className="absolute bottom-[10%] right-[10%] md:right-[15%] w-24 md:w-36 z-0 opacity-50 drop-shadow-xl filter brightness-75"
+        />
+
+        {/* Content */}
+        <div className="relative z-20 text-center px-6 max-w-5xl mx-auto flex flex-col items-center">
+           <AnimatePresence mode="wait">
+              <motion.div
+                 key={heroSlide}
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -20 }}
+                 transition={{ duration: 0.8 }}
+                 className="mb-8"
+              >
+                 <h1 className={`${spaceGrotesk.className} text-5xl md:text-7xl lg:text-[5rem] font-black uppercase tracking-tighter leading-[1.05] mb-4 text-white drop-shadow-2xl`}>
+                    {HERO_SLIDES[heroSlide].title} <br/>
+                    <span className="text-[#39FF14] drop-shadow-sm">{HERO_SLIDES[heroSlide].highlight}</span>
+                 </h1>
+                 <p className="text-zinc-200 text-lg md:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
+                    {HERO_SLIDES[heroSlide].sub}
+                 </p>
+              </motion.div>
+           </AnimatePresence>
+
+           {/* Fixed CTAs */}
+           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full mt-2">
+             <button onClick={handleWaClick} className={`bg-[#39FF14] text-black px-8 md:px-12 py-5 md:py-6 rounded-full font-black md:text-lg uppercase tracking-widest hover:scale-105 transition-all shadow-[0_20px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 w-full sm:w-auto ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
+                <HeartPulse size={24} className="animate-pulse" /> DÉMARRER À 2.900 F
+             </button>
+             <button onClick={() => setShowDiagnosticModal(true)} className="bg-black/50 backdrop-blur-md border-2 border-[#39FF14] text-white px-8 md:px-12 py-5 md:py-6 rounded-full font-black md:text-lg uppercase tracking-widest hover:bg-[#39FF14] hover:text-black transition-all shadow-[0_0_20px_rgba(57,255,20,0.2)] flex items-center justify-center gap-3 w-full sm:w-auto">
+                <Activity size={24} /> MON DIAGNOSTIC GRATUIT
+             </button>
+           </div>
+           <button onClick={() => setShowFreeMenuModal(true)} className="mt-8 text-xs font-bold text-zinc-300 hover:text-white uppercase tracking-widest underline decoration-zinc-400 underline-offset-4 transition-colors">
+              Ou téléchargez un menu type gratuit (PDF)
            </button>
-           <button onClick={() => setShowDiagnosticModal(true)} className="bg-white text-black border-2 border-black px-8 py-5 md:py-6 rounded-2xl font-black md:text-lg uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-lg flex items-center justify-center gap-3 w-full sm:w-auto">
-              Commencer mon diagnostic gratuit <Activity size={20} />
-           </button>
-         </div>
-         <button onClick={() => setShowFreeMenuModal(true)} className="mt-8 text-xs font-bold text-zinc-500 hover:text-black uppercase tracking-widest underline decoration-zinc-300 underline-offset-4 transition-colors">
-            Ou téléchargez un menu type gratuit (PDF)
-         </button>
+        </div>
       </section>
 
       {/* 2. LA RÉASSURANCE "BOL FAMILIAL" (Nouvelle Position Haute) */}
