@@ -188,6 +188,8 @@ export default function NutritionAfricaineLanding() {
   // Carousel & FAQ State
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [showFreeMenuModal, setShowFreeMenuModal] = useState(false);
+  const [freeMenuData, setFreeMenuData] = useState({ name: '', contact: '' });
 
   // Calorie Calculator State
   const [selectedDish, setSelectedDish] = useState<string>("");
@@ -387,6 +389,62 @@ export default function NutritionAfricaineLanding() {
       if (val < 35) return "Obésité modérée";
       return "Obésité sévère";
    };
+
+  const handleDownloadFreeMenu = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!freeMenuData.name || !freeMenuData.contact) return;
+    
+    try {
+      await supabase.from('leads').insert([{
+        full_name: freeMenuData.name,
+        phone: freeMenuData.contact.includes('@') ? '' : freeMenuData.contact,
+        email: freeMenuData.contact.includes('@') ? freeMenuData.contact : '',
+        source: "Landing Page - Menu Gratuit",
+        intent: "Téléchargement Menu Gratuit PDF",
+        status: "Nouveau",
+        saas: "Nutrition à l'Africaine",
+        message: "A téléchargé le menu type gratuit."
+      }]);
+    } catch (err) {}
+
+    setShowFreeMenuModal(false);
+
+    const doc = new jsPDF();
+    doc.setFontSize(22);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Menu Type Gratuit - Onyx Nutrition", 20, 20);
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Préparé pour : ${freeMenuData.name}`, 20, 30);
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Exemple de Journée Type (1500 kcal)", 20, 45);
+    doc.setFontSize(12);
+    doc.text("• Petit-déjeuner :", 20, 60);
+    doc.setFont("helvetica", "normal");
+    doc.text("Lakh allégé (Mil + Lait demi-écrémé) - 300 kcal", 30, 70);
+    doc.setFont("helvetica", "bold");
+    doc.text("• Déjeuner :", 20, 85);
+    doc.setFont("helvetica", "normal");
+    doc.text("Thieboudienne diététique (Moins d'huile, 1/4 Fonio) - 550 kcal", 30, 95);
+    doc.setFont("helvetica", "bold");
+    doc.text("• Collation :", 20, 110);
+    doc.setFont("helvetica", "normal");
+    doc.text("Une poignée d'arachides grillées sans sel - 150 kcal", 30, 120);
+    doc.setFont("helvetica", "bold");
+    doc.text("• Dîner :", 20, 135);
+    doc.setFont("helvetica", "normal");
+    doc.text("Salade de Niébé fraîcheur avec vinaigrette légère - 400 kcal", 30, 145);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 160, 190, 160);
+    doc.setFont("helvetica", "bold");
+    doc.text("Pour obtenir un menu 100% personnalisé sur 30 jours, effectuez", 20, 175);
+    doc.text("notre diagnostic en ligne sur onyxlinks.com/nutrition", 20, 185);
+
+    doc.save(`Menu_Gratuit_Onyx_${freeMenuData.name.replace(/\s+/g, '_')}.pdf`);
+    alert("Merci ! Le menu type a été téléchargé.");
+    setFreeMenuData({ name: '', contact: '' });
+  };
 
   // --- MOTEUR DE CALCUL NUTRITIONNEL (Pour le résultat Choc) ---
   const heightCm = parseFloat(diagData.height) || 0;
@@ -624,8 +682,8 @@ export default function NutritionAfricaineLanding() {
 
       {/* NAVBAR */}
       <nav className="p-6 flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto gap-4 relative z-50">
-         <button onClick={() => window.location.href = '/'} className={`${spaceGrotesk.className} text-xl md:text-2xl font-black uppercase tracking-tighter flex items-center gap-2 text-black hover:scale-105 transition-transform`}>
-            NUTRITION <span className="text-black drop-shadow-sm border-b-4 border-[#39FF14]">À L'AFRICAINE</span>
+         <button onClick={() => window.location.href = '/'} className="flex items-center hover:opacity-90 transition-opacity">
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111717_kftori.jpg" alt="Nutrition à l'Africaine" className="h-40 md:h-48 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-pulse drop-shadow-2xl" />
          </button>
          
          <div className="flex items-center gap-4">
@@ -665,6 +723,9 @@ export default function NutritionAfricaineLanding() {
               Commencer mon diagnostic gratuit <Activity size={20} />
            </button>
          </div>
+         <button onClick={() => setShowFreeMenuModal(true)} className="mt-8 text-xs font-bold text-zinc-500 hover:text-black uppercase tracking-widest underline decoration-zinc-300 underline-offset-4 transition-colors">
+            Ou téléchargez un menu type gratuit (PDF)
+         </button>
       </section>
 
       {/* 2. LA RÉASSURANCE "BOL FAMILIAL" (Nouvelle Position Haute) */}
@@ -1170,6 +1231,33 @@ export default function NutritionAfricaineLanding() {
            </div>
         )}
       </div>
+
+      {/* MODALE MENU GRATUIT */}
+      {showFreeMenuModal && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={(e: any) => e.target === e.currentTarget && setShowFreeMenuModal(false)}>
+          <div className="bg-white border border-zinc-200 rounded-[2rem] shadow-2xl p-8 max-w-md w-full relative animate-in zoom-in-95">
+            <button onClick={() => setShowFreeMenuModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+            <div className="text-center mb-6">
+               <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mx-auto mb-4"><Download size={32}/></div>
+               <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter`}>Menu Type <span className="text-[#39FF14]">Gratuit</span></h3>
+               <p className="text-sm font-medium text-zinc-500 mt-2">Recevez un exemple de journée type (1500 kcal) avec nos plats locaux pour commencer dès maintenant.</p>
+            </div>
+            <form onSubmit={handleDownloadFreeMenu} className="space-y-4">
+               <div>
+                 <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-1 block mb-1">Votre Prénom</label>
+                 <input type="text" required value={freeMenuData.name} onChange={e => setFreeMenuData({...freeMenuData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition" placeholder="Ex: Aïssatou" />
+               </div>
+               <div>
+                 <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-1 block mb-1">WhatsApp ou Email</label>
+                 <input type="text" required value={freeMenuData.contact} onChange={e => setFreeMenuData({...freeMenuData, contact: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition" placeholder="Ex: 77 123 45 67 ou email@..." />
+               </div>
+               <button type="submit" className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2 mt-2">
+                 <Download size={18}/> Télécharger (PDF)
+               </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* STICKY BOTTOM BAR */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom-full">

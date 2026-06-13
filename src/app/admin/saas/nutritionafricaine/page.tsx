@@ -14,11 +14,8 @@ export default function AdminNutritionAfricaine() {
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients'|'shop'|'orders'|'promos'>('clients');
   const [recipes, setRecipes] = useState<any[]>([]);
-  const [showRecipeModal, setShowRecipeModal] = useState(false);
-  const [editingRecipe, setEditingRecipe] = useState<any>(null);
-  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [] as any[], image_url: '', description: '', gallery: [] as string[] });
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [clientForm, setClientForm] = useState({ id: '', daily_calorie_goal: 0, protein_goal: 0, carbs_goal: 0, fats_goal: 0, tracking_mode: 'guided' });
@@ -128,39 +125,6 @@ export default function AdminNutritionAfricaine() {
     c.client?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.phone?.includes(searchQuery)
   );
-
-  const handleOpenRecipeModal = (recipe?: any) => {
-     if (recipe) {
-         setEditingRecipe(recipe);
-         setRecipeForm({ ...recipe, ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', description: recipe.description || '' });
-     } else {
-         setEditingRecipe(null);
-         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', ingredients: [], image_url: '', description: '', gallery: [] });
-     }
-     setShowRecipeModal(true);
-  };
-
-  const handleSaveRecipe = async (e: React.FormEvent) => {
-      e.preventDefault();
-      const payload = { ...recipeForm };
-      delete payload.id;
-      delete (payload as any).tenant_id;
-      if (editingRecipe) {
-          const { error } = await supabase.from('nutrition_recipes').update(payload).eq('id', recipeForm.id);
-          if (!error) { setRecipes(recipes.map(r => r.id === recipeForm.id ? { ...payload, id: recipeForm.id } : r)); setShowRecipeModal(false); }
-          else alert(error.message);
-      } else {
-          const { data, error } = await supabase.from('nutrition_recipes').insert([payload]).select().single();
-          if (!error && data) { setRecipes([data, ...recipes]); setShowRecipeModal(false); }
-          else alert(error?.message);
-      }
-  };
-
-  const handleDeleteRecipe = async (id: string) => {
-      if (!confirm("Supprimer cette recette ?")) return;
-      await supabase.from('nutrition_recipes').delete().eq('id', id);
-      setRecipes(recipes.filter(r => r.id !== id));
-  };
 
   const handleOpenClientModal = (profile: any) => {
     setEditingClient(profile);
@@ -474,13 +438,6 @@ export default function AdminNutritionAfricaine() {
       setShowPromoModal(true);
   };
 
-  const downloadRecipeCsvTemplate = () => {
-      const csv = "nom;type;calories;proteines;glucides;lipides;is_bol_commun;etapes_cuisson;description;image_url;galerie_photo;ingredients\nExemple Thieb;Déjeuner;600;30;70;15;oui;Cuire le riz...;Un plat sénégalais;https://...;https://...,https://...;[{\"nom\":\"Riz\",\"quantite\":100,\"unite\":\"g\",\"rayon\":\"Supermarché\"}]";
-      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'Modele_Recettes_Vierge.csv'; a.click();
-  };
-
   const downloadProductCsvTemplate = () => {
       const csv = "nom;categorie_nom;prix_standard;prix_premium;stock;description_courte;description_longue;image_url;badge;goal\nFonio Premium;Super-Aliments;2500;2100;100;Fonio précuit;Description complète;https://...;Best Seller;cooking";
       const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
@@ -614,7 +571,6 @@ export default function AdminNutritionAfricaine() {
             
             <div className="flex bg-white border border-zinc-200 p-1.5 rounded-2xl w-full md:w-auto shadow-sm">
                <button onClick={() => setActiveTab('clients')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'clients' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Suivi Clients</button>
-               <button onClick={() => setActiveTab('recipes')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'recipes' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Menus & Recettes</button>
                <button onClick={() => setActiveTab('shop')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'shop' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Boutique</button>
                <button onClick={() => setActiveTab('orders')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'orders' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Commandes</button>
                <button onClick={() => setActiveTab('promos')} className={`flex-1 md:flex-none px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'promos' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black'}`}>Codes Promo</button>
@@ -632,14 +588,6 @@ export default function AdminNutritionAfricaine() {
                />
             </div>
             )}
-            {activeTab === 'recipes' && (
-               <div className="flex w-full md:w-auto gap-4">
-                  <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleImportCSV} />
-                  <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={16}/> Import CSV</button>
-                  <button onClick={downloadRecipeCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
-                  <button onClick={() => handleOpenRecipeModal()} className="bg-black text-[#39FF14] px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={16}/> Nouvelle Recette</button>
-               </div>
-            )}
             {activeTab === 'shop' && (
                <div className="flex w-full md:w-auto gap-4">
                   <input type="file" accept=".csv" className="hidden" ref={fileProductInputRef} onChange={handleImportProductCSV} />
@@ -656,7 +604,7 @@ export default function AdminNutritionAfricaine() {
             )}
         </div>
 
-        {activeTab === 'clients' ? (
+        {activeTab === 'clients' && (
         <>
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              <div className="bg-black text-[#39FF14] p-6 rounded-2xl shadow-sm border border-zinc-800 flex flex-col justify-center">
@@ -677,17 +625,6 @@ export default function AdminNutritionAfricaine() {
                    <div>
                      <p className="text-4xl font-black">{clientsWithLogsToday} <span className="text-sm font-bold text-zinc-500">/ {clients.length}</span></p>
                      <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold">Taux d'activité journalier</p>
-                   </div>
-                </div>
-             </div>
-             
-             <div className="bg-white text-black p-6 rounded-2xl shadow-sm border border-zinc-200 flex flex-col justify-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Base de Recettes</p>
-                <div className="flex items-center gap-4">
-                   <div className="bg-orange-50 p-4 rounded-xl"><Utensils size={28} className="text-orange-500"/></div>
-                   <div>
-                     <p className="text-4xl font-black">{recipes.length}</p>
-                     <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold">Plats configurés dans l'app</p>
                    </div>
                 </div>
              </div>
@@ -858,47 +795,6 @@ export default function AdminNutritionAfricaine() {
            </div>
         </div>
         </>
-        ) : (
-        <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-           <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
-              <table className="w-full text-left min-w-[800px]">
-                 <thead className="bg-zinc-50/50 border-b border-zinc-100">
-                    <tr>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Type & Nom</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Macros</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Bol Commun</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-zinc-50">
-                    {recipes.map(r => (
-                       <tr key={r.id} className="hover:bg-zinc-50 transition-colors">
-                          <td className="p-4">
-                             <p className="font-bold text-sm text-black">{r.nom}</p>
-                             <p className="text-[10px] font-black text-zinc-500 uppercase mt-1">{r.type}</p>
-                          </td>
-                          <td className="p-4">
-                             <div className="flex gap-3 text-xs font-bold">
-                                <span className="text-orange-500 flex items-center gap-1"><Flame size={12}/> {r.calories} kcal</span>
-                                <span className="text-green-500">P:{r.proteins}g</span>
-                                <span className="text-yellow-600">G:{r.carbs}g</span>
-                                <span className="text-zinc-500">L:{r.fats}g</span>
-                             </div>
-                          </td>
-                          <td className="p-4">
-                             {r.is_bol_commun ? <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">Oui</span> : <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">Non</span>}
-                          </td>
-                          <td className="p-4 text-right flex justify-end gap-2">
-                             <button onClick={() => handleOpenRecipeModal(r)} className="p-2 bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Edit3 size={16}/></button>
-                             <button onClick={() => handleDeleteRecipe(r.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={16}/></button>
-                          </td>
-                       </tr>
-                    ))}
-                    {recipes.length === 0 && <tr><td colSpan={4} className="p-10 text-center text-zinc-400 font-bold">Aucune recette configurée.</td></tr>}
-                 </tbody>
-              </table>
-           </div>
-        </div>
         )}
 
         {activeTab === 'shop' && (
@@ -1066,98 +962,6 @@ export default function AdminNutritionAfricaine() {
         )}
       </main>
 
-      {/* MODALE RECETTE */}
-      {showRecipeModal && (
-         <div id="recipe-modal-overlay" onClick={(e: any) => e.target.id === 'recipe-modal-overlay' && setShowRecipeModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto max-h-[90vh] overflow-y-auto custom-scrollbar text-black">
-               <button onClick={() => setShowRecipeModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
-               <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter mb-8 flex items-center gap-3`}>
-                  <Utensils className="text-[#39FF14]" size={28}/> {editingRecipe ? 'Modifier Recette' : 'Nouvelle Recette'}
-               </h2>
-               
-               <form onSubmit={handleSaveRecipe} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Type de Repas</label>
-                        <select value={recipeForm.type} onChange={e => setRecipeForm({...recipeForm, type: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black cursor-pointer">
-                           <option value="Petit-déjeuner">Petit-déjeuner</option>
-                           <option value="Déjeuner">Déjeuner</option>
-                           <option value="Collation">Collation</option>
-                           <option value="Dîner">Dîner</option>
-                        </select>
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Nom du Plat</label>
-                        <input type="text" required value={recipeForm.nom} onChange={e => setRecipeForm({...recipeForm, nom: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black" placeholder="Ex: Thieboudienne Diététique" />
-                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-4">
-                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-orange-500 tracking-widest ml-1">Kcal</label><input type="number" required value={recipeForm.calories} onChange={e => setRecipeForm({...recipeForm, calories: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
-                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-green-500 tracking-widest ml-1">Prot(g)</label><input type="number" required value={recipeForm.proteins} onChange={e => setRecipeForm({...recipeForm, proteins: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
-                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-yellow-600 tracking-widest ml-1">Gluc(g)</label><input type="number" required value={recipeForm.carbs} onChange={e => setRecipeForm({...recipeForm, carbs: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
-                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-1">Lip(g)</label><input type="number" required value={recipeForm.fats} onChange={e => setRecipeForm({...recipeForm, fats: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
-                  </div>
-
-                  <label className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl cursor-pointer hover:bg-blue-100 transition-colors">
-                     <input type="checkbox" checked={recipeForm.is_bol_commun} onChange={e => setRecipeForm({...recipeForm, is_bol_commun: e.target.checked})} className="w-5 h-5 accent-blue-600" />
-                     <div>
-                        <p className="font-black text-sm uppercase text-blue-800">C'est un "Bol Commun"</p>
-                        <p className="text-[10px] font-bold text-blue-600">Repas partagé en famille (le Smart Planner en intègre 2-3 / sem).</p>
-                     </div>
-                  </label>
-
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Instructions / Recette</label>
-                     <textarea value={recipeForm.recipe} onChange={e => setRecipeForm({...recipeForm, recipe: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black min-h-[100px]" placeholder="Astuces de cuisson, remplacement d'ingrédients..."></textarea>
-                  </div>
-
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Description</label>
-                     <textarea value={recipeForm.description} onChange={e => setRecipeForm({...recipeForm, description: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black min-h-[60px]" placeholder="Courte description de la recette..."></textarea>
-                  </div>
-                  
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">URL Image Principale</label>
-                     <input type="text" value={recipeForm.image_url} onChange={e => setRecipeForm({...recipeForm, image_url: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black" placeholder="https://..." />
-                  </div>
-                  
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Galerie Photos (URLs séparées par virgule)</label>
-                     <input type="text" value={recipeForm.gallery.join(', ')} onChange={e => setRecipeForm({...recipeForm, gallery: e.target.value.split(',').map(url => url.trim()).filter(Boolean)})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black" placeholder="https://img1.jpg, https://img2.jpg" />
-                  </div>
-
-                  <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-200">
-                     <div className="flex justify-between items-center mb-4">
-                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Ingrédients (Liste de courses)</label>
-                        <button type="button" onClick={() => setRecipeForm({...recipeForm, ingredients: [...recipeForm.ingredients, { nom: '', quantite: 1, unite: 'g', rayon: 'Supermarché' }]})} className="bg-black text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1 hover:scale-105 transition-transform"><Plus size={12}/> Ajouter</button>
-                     </div>
-                     <div className="space-y-3">
-                        {recipeForm.ingredients.map((ing, i) => (
-                           <div key={i} className="flex flex-wrap sm:flex-nowrap gap-2 items-center bg-white p-2 rounded-xl border border-zinc-100">
-                              <input type="text" placeholder="Nom" required value={ing.nom} onChange={e => { const newI = [...recipeForm.ingredients]; newI[i].nom = e.target.value; setRecipeForm({...recipeForm, ingredients: newI}); }} className="flex-1 min-w-[100px] p-2 bg-zinc-50 rounded-lg text-xs font-bold outline-none border border-transparent focus:border-black" />
-                              <input type="number" placeholder="Qté" required value={ing.quantite} onChange={e => { const newI = [...recipeForm.ingredients]; newI[i].quantite = Number(e.target.value); setRecipeForm({...recipeForm, ingredients: newI}); }} className="w-16 p-2 bg-zinc-50 rounded-lg text-xs font-bold outline-none border border-transparent focus:border-black text-center" />
-                              <input type="text" placeholder="Unité" required value={ing.unite} onChange={e => { const newI = [...recipeForm.ingredients]; newI[i].unite = e.target.value; setRecipeForm({...recipeForm, ingredients: newI}); }} className="w-16 p-2 bg-zinc-50 rounded-lg text-xs font-bold outline-none border border-transparent focus:border-black text-center" />
-                              <select value={ing.rayon} onChange={e => { const newI = [...recipeForm.ingredients]; newI[i].rayon = e.target.value; setRecipeForm({...recipeForm, ingredients: newI}); }} className="w-32 p-2 bg-zinc-50 rounded-lg text-[10px] font-black uppercase outline-none border border-transparent focus:border-black cursor-pointer">
-                                 <option value="Supermarché">Supermarché</option>
-                                 <option value="Marché local">Marché local</option>
-                                 <option value="Boucherie / Pêche">Boucherie / Pêche</option>
-                              </select>
-                              <button type="button" onClick={() => { const newI = [...recipeForm.ingredients]; newI.splice(i, 1); setRecipeForm({...recipeForm, ingredients: newI}); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14}/></button>
-                           </div>
-                        ))}
-                        {recipeForm.ingredients.length === 0 && <p className="text-xs text-zinc-400 italic text-center py-2">Aucun ingrédient ajouté.</p>}
-                     </div>
-                  </div>
-
-                  <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
-                     <CheckCircle size={20}/> Enregistrer la recette
-                  </button>
-               </form>
-            </div>
-         </div>
-      )}
-
       {/* MODALE CLIENT */}
       {editingClient && (
          <div id="client-modal-overlay" onClick={(e: any) => e.target.id === 'client-modal-overlay' && setEditingClient(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
@@ -1265,39 +1069,6 @@ export default function AdminNutritionAfricaine() {
                </form>
             </div>
          </div>
-      )}
-
-      {/* MODALE CONFIRMATION IMPORT CSV RECETTES */}
-      {pendingRecipeCsvFile && (
-        <div id="recipe-csv-modal-overlay" onClick={(e: any) => e.target.id === 'recipe-csv-modal-overlay' && !isImportingRecipeCsv && setPendingRecipeCsvFile(null)} className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative border-t-8 border-[#39FF14] animate-in zoom-in-95 text-center text-black">
-            <button onClick={() => !isImportingRecipeCsv && setPendingRecipeCsvFile(null)} className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors"><X size={16}/></button>
-            <div className="w-16 h-16 bg-black text-[#39FF14] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"><Utensils size={24}/></div>
-            <h3 className="text-xl font-black uppercase mb-2 text-black">Confirmer l'import (Recettes)</h3>
-            <p className="text-sm font-bold text-zinc-500 mb-6">Fichier : {pendingRecipeCsvFile.filename}</p>
-            
-            <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 mb-8">
-               <p className="text-3xl font-black text-[#39FF14]">{pendingRecipeCsvFile.recipesCount}</p>
-               <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mt-1">Recettes trouvées</p>
-            </div>
-
-            {isImportingRecipeCsv && (
-               <div className="mb-6 w-full text-left animate-in fade-in">
-                  <div className="w-full bg-zinc-200 rounded-full h-2.5 overflow-hidden shadow-inner">
-                     <div className="bg-[#39FF14] h-2.5 rounded-full transition-all duration-300" style={{ width: `${recipeCsvImportProgress}%` }}></div>
-                  </div>
-                  <p className="text-xs font-bold text-zinc-500 mt-2 tracking-widest uppercase text-center">Importation... {recipeCsvImportProgress}%</p>
-               </div>
-            )}
-
-            <div className="flex gap-3">
-               <button onClick={() => setPendingRecipeCsvFile(null)} disabled={isImportingRecipeCsv} className="flex-1 py-4 bg-zinc-100 text-zinc-500 rounded-xl font-black uppercase text-xs hover:bg-zinc-200 transition disabled:opacity-50">Annuler</button>
-               <button onClick={handleConfirmRecipeCsvImport} disabled={isImportingRecipeCsv} className="flex-[2] py-4 bg-black text-[#39FF14] rounded-xl font-black uppercase text-xs hover:scale-105 transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100">
-                  {isImportingRecipeCsv ? <Loader2 size={16} className="animate-spin"/> : <CheckCircle size={16}/>} {isImportingRecipeCsv ? 'En cours...' : 'Valider'}
-               </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* MODALE CONFIRMATION IMPORT CSV BOUTIQUE */}

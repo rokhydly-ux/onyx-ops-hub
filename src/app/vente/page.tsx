@@ -3270,7 +3270,7 @@ export default function OnyxJaayShop() {
 
                {crossSellProducts.length > 0 && cart.length > 0 && (
                    <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                       <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Souvent acheté ensemble</p>
+                       <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2"><Sparkles size={14} className="text-yellow-500"/> Complétez votre commande</p>
                        <div className="space-y-2">
                            {crossSellProducts.map(p => (
                                <div key={p.id} className="flex items-center gap-3 bg-white dark:bg-zinc-950 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
