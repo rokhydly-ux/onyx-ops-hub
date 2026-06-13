@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon,
-  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple
+  Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
@@ -316,6 +316,8 @@ export default function NutritionDashboard() {
   const [showCartModal, setShowCartModal] = useState(false);
   const [showCartExitIntent, setShowCartExitIntent] = useState(false);
   const [hasTriggeredCartExit, setHasTriggeredCartExit] = useState(false);
+  const [isCartBouncing, setIsCartBouncing] = useState(false);
+  const [scratchedBlocks, setScratchedBlocks] = useState<number[]>([]);
 
   // Shop dynamic additions
   const [shopBannerUrl, setShopBannerUrl] = useState("https://placehold.co/1200x300/111/39FF14?text=OFFRES+EXCLUSIVES");
@@ -509,13 +511,13 @@ export default function NutritionDashboard() {
           // Load banner from settings specific to the coach
           if (profileData.tenant_id) {
               try {
-                  const { data } = await supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', profileData.tenant_id).maybeSingle();
-                  if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url);
+                  const { data } = await supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', profileData.tenant_id).limit(1);
+                  if (data && data.length > 0 && data[0].shop_banner_url) setShopBannerUrl(data[0].shop_banner_url);
               } catch (e) {}
           } else {
               try {
-                  const { data } = await supabase.from('crm_settings').select('shop_banner_url').order('created_at', { ascending: false }).limit(1).maybeSingle();
-                  if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url);
+                  const { data } = await supabase.from('crm_settings').select('shop_banner_url').order('created_at', { ascending: false }).limit(1);
+                  if (data && data.length > 0 && data[0].shop_banner_url) setShopBannerUrl(data[0].shop_banner_url);
               } catch (e) {}
           }
         }
@@ -930,11 +932,21 @@ export default function NutritionDashboard() {
     });
   };
   
-  const handleMealClick = (mealType: string, plannedMeal: any) => {
+  const handleMealClick = async (mealType: string, plannedMeal: any) => {
       setFoodSearchQuery("");
       setSelectedFoodDB(null);
       setFoodQuantity(1);
       setSelectedMealModal({ type: mealType, meal: plannedMeal, mode: trackingMode });
+      
+      // Log analytics (Incrémenter le compteur de vues de la recette)
+      if (plannedMeal && plannedMeal.meal) {
+         try {
+            const { data: rec } = await supabase.from('nutrition_recipes').select('id, views').eq('nom', plannedMeal.meal).maybeSingle();
+            if (rec) {
+                await supabase.from('nutrition_recipes').update({ views: (rec.views || 0) + 1 }).eq('id', rec.id);
+            }
+         } catch(e) {}
+      }
   };
 
   const confirmMealLog = async (mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
@@ -1163,6 +1175,10 @@ export default function NutritionDashboard() {
        if (error) throw error;
 
        alert("Bilan de la journée enregistré avec succès ! L'IA adaptera votre menu de demain.");
+       // Effet sonore de succès (Level Up)
+       const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3");
+       audio.volume = 0.5;
+       audio.play().catch(()=>{});
        setShowDailyReport(false);
        const updatedLog = { client_id: clientProfile.id, log_date: todayStr, report_data: { ...reportData, consumedMeals, moods, moodNotes }, water_glasses: waterGlasses, calories_consumed: currentCals, proteins_consumed: currentProts };
        setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), updatedLog]);
@@ -1301,8 +1317,15 @@ export default function NutritionDashboard() {
         const price = isPremium ? product.prix_premium : product.prix_standard;
         setShopCart([...shopCart, { ...product, finalPrice: price, quantity: 1 }]);
     }
+    setIsCartBouncing(true);
+    setTimeout(() => setIsCartBouncing(false), 400);
     setToastMessage(`Ajouté au panier : ${product.nom}`);
     setTimeout(() => setToastMessage(null), 3000);
+    
+    // Effet sonore (Pop)
+    const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3");
+    audio.volume = 0.5;
+    audio.play().catch(()=>{});
   };
 
   const updateCartQuantity = (productId: string, delta: number) => {
@@ -1599,10 +1622,17 @@ export default function NutritionDashboard() {
       {/* MAIN CONTENT AREA */}
       <main className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
       {/* Header */}
-      <div className="lg:hidden p-4 bg-black flex justify-between items-center">
+      <div className="lg:hidden p-4 bg-black flex justify-between items-center sticky top-0 z-40 shadow-md">
          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
-         <img src={logoSrc} className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" alt="Logo" />
-         <div className="w-10"></div>
+         <img src={logoSrc} className="h-14 md:h-20 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" alt="Logo" />
+         <button onClick={() => setShowCartModal(true)} className={`relative p-2 text-zinc-400 hover:text-white transition-all ${isCartBouncing ? 'scale-125 text-[#39FF14] drop-shadow-[0_0_10px_#39FF14]' : ''}`}>
+            <ShoppingCart size={24} />
+            {shopCart.length > 0 && (
+               <span className="absolute top-0 right-0 bg-[#39FF14] text-black w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black shadow-md">
+                  {shopCart.length}
+               </span>
+            )}
+         </button>
       </div>
 
       <header className="bg-black text-white px-6 py-8 border-b-4 border-[#39FF14] relative overflow-hidden">
@@ -1615,7 +1645,7 @@ export default function NutritionDashboard() {
              </button>
              
              <div className="flex items-center gap-3">
-                 <button onClick={() => setShowCartModal(true)} className="relative flex items-center gap-2 text-zinc-400 hover:text-white transition-colors bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
+                 <button onClick={() => setShowCartModal(true)} className={`relative flex items-center gap-2 hover:text-white transition-all bg-zinc-900 px-4 py-2 rounded-xl border ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-20' : 'text-zinc-400 border-zinc-800'}`}>
                     <ShoppingCart size={16} /> 
                     <span className="text-xs font-black uppercase hidden sm:block">Panier</span>
                     {shopCart.length > 0 && (
@@ -2668,6 +2698,61 @@ export default function NutritionDashboard() {
                  )}
               </div>
 
+              {/* TICKET À GRATTER (SCRATCH CARD) */}
+              <div className={`flex flex-col md:flex-row items-center justify-between gap-6 p-8 rounded-[2.5rem] mb-12 shadow-sm border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                 <div>
+                    <h3 className="text-2xl font-black uppercase text-black dark:text-white mb-2 flex items-center gap-2"><Sparkles className="text-yellow-500"/> Ticket Surprise</h3>
+                    <p className="text-sm font-medium text-zinc-500 max-w-sm mb-4">Grattez la zone grise ci-contre (survolez ou touchez) pour révéler votre code promo exclusif du jour.</p>
+                 </div>
+                 <div className="shrink-0 relative w-64 h-32 rounded-2xl overflow-hidden shadow-inner border-4 border-[#39FF14] bg-black select-none touch-none">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-0 p-4">
+                       <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">Code Promo</p>
+                       <p className="text-3xl font-black text-[#39FF14] tracking-widest">CODE10</p>
+                       <p className="text-[9px] text-zinc-500 uppercase mt-1">-10% de réduction immédiate</p>
+                    </div>
+                    <div className={`absolute inset-0 grid grid-cols-8 grid-rows-4 z-10 transition-opacity duration-1000 ${scratchedBlocks.length > 16 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                        {Array.from({ length: 32 }).map((_, i) => (
+                           <div 
+                              key={i} 
+                              onMouseEnter={() => {
+                                 if (!scratchedBlocks.includes(i)) {
+                                    setScratchedBlocks(prev => {
+                                       const next = [...prev, i];
+                                       if (next.length === 17) {
+                                          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3");
+                                          audio.volume = 0.6;
+                                          audio.play().catch(()=>{});
+                                       }
+                                       return next;
+                                    });
+                                 }
+                              }}
+                              onTouchStart={() => {
+                                 if (!scratchedBlocks.includes(i)) {
+                                    setScratchedBlocks(prev => {
+                                       const next = [...prev, i];
+                                       if (next.length === 17) {
+                                          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3");
+                                          audio.volume = 0.6;
+                                          audio.play().catch(()=>{});
+                                       }
+                                       return next;
+                                    });
+                                 }
+                              }}
+                              className={`bg-zinc-300 dark:bg-zinc-600 transition-opacity duration-300 border-[0.5px] border-zinc-400 dark:border-zinc-500 ${scratchedBlocks.includes(i) ? 'opacity-0' : 'opacity-100'}`}
+                              style={{ cursor: "crosshair" }}
+                           ></div>
+                        ))}
+                    </div>
+                    {scratchedBlocks.length <= 16 && (
+                        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center opacity-90">
+                           <p className="font-black text-white uppercase text-lg rotate-[-10deg] drop-shadow-lg bg-black/40 px-3 py-1 rounded-xl border border-white/20 backdrop-blur-sm">Grattez-moi !</p>
+                        </div>
+                    )}
+                 </div>
+              </div>
+
               {/* CAROUSEL NOUVEAUTÉS */}
               <div className="mb-16">
                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-2 text-black dark:text-white`}><Sparkles className="text-[#39FF14]"/> Nouveautés de la semaine</h3>
@@ -2715,7 +2800,7 @@ export default function NutritionDashboard() {
                  ))}
               </div>
 
-              <div id="shop-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div id="shop-grid" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                  {(Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || [])
                     .filter(p => {
                         const matchSearch = !shopSearchQuery || p.nom?.toLowerCase().includes(shopSearchQuery.toLowerCase());
@@ -2725,29 +2810,26 @@ export default function NutritionDashboard() {
                         return matchSearch && matchMin && matchMax && matchGoal;
                     })
                     .map((product, index) => (
-                       <div key={product.id} className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2.5rem] p-6 flex flex-col hover:border-[#39FF14] transition-all hover:shadow-2xl group animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-700`} style={{ animationFillMode: 'both', animationDelay: `${index * 100}ms` }}>
-                          <div className="relative aspect-square rounded-[2rem] bg-zinc-50 overflow-hidden mb-6 cursor-pointer" onClick={() => openProductModal(product)}>
+                       <div key={product.id} className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-3xl p-4 flex flex-col hover:border-[#39FF14] transition-all hover:shadow-2xl group animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-700`} style={{ animationFillMode: 'both', animationDelay: `${index * 100}ms` }}>
+                          <div className="relative aspect-square rounded-2xl bg-zinc-50 overflow-hidden mb-4 cursor-pointer" onClick={() => openProductModal(product)}>
                             <img src={product.image_url || 'https://placehold.co/400x400/111/39FF14?text=Produit'} alt={product.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" onError={(e: any) => e.target.src = 'https://placehold.co/400x400/111/39FF14?text=Produit'} />
-                             {product.badge && <span className="absolute top-4 right-4 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">{product.badge}</span>}
-                             {product.stock <= 10 && <span className="absolute top-4 left-4 bg-red-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl animate-pulse">Quantité Limitée</span>}
+                             {product.badge && <span className="absolute top-2 right-2 bg-black text-[#39FF14] px-2 py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl">{product.badge}</span>}
+                             {product.stock <= 10 && <span className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl animate-pulse">Qté Limitée</span>}
                           </div>
-                          <h4 className="font-black text-lg uppercase text-black mb-4 line-clamp-1">{product.nom}</h4>
-                          <div className="flex items-center gap-1 mb-4">
+                          <h4 className="font-black text-xs sm:text-sm uppercase text-black mb-2 line-clamp-2 leading-tight">{product.nom}</h4>
+                          <div className="flex items-center gap-1 mb-3">
                              {[...Array(5)].map((_, i) => <Star key={i} size={14} className={i < (product.rating || 5) ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-300'} />)}
                              <span className="text-[10px] font-bold text-zinc-500 ml-1">({product.reviews || 0} avis)</span>
                           </div>
-                          <div className="flex flex-col gap-1 mb-8">
+                          <div className="flex flex-col gap-1 mb-4 mt-auto">
                              <p className="text-zinc-400 text-sm font-bold line-through">{product.prix_standard.toLocaleString()} F</p>
-                             <p className="text-2xl font-black text-[#39FF14] bg-black px-4 py-1 rounded-xl w-max italic">{product.prix_premium.toLocaleString()} F</p>
+                             <p className="text-sm sm:text-lg font-black text-[#39FF14] bg-black px-3 py-1 rounded-lg w-max italic">{product.prix_premium.toLocaleString()} F</p>
                           </div>
                           <div className="flex gap-2">
-                             <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                             <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-2.5 rounded-xl font-black uppercase text-[9px] sm:text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
                                 <Plus size={14}/> Ajouter
                              </button>
-                             <button onClick={() => setShowCartModal(true)} className="flex-1 bg-zinc-100 text-black hover:bg-zinc-200 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                                <ShoppingCart size={14}/> Panier
-                             </button>
-                             <button onClick={(e) => { e.stopPropagation(); toggleSaveProduct(product); }} className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
+                             <button onClick={(e) => { e.stopPropagation(); toggleSaveProduct(product); }} className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
                                 <Heart size={16} className={savedShopProducts.some((sp: any) => sp.id === product.id) ? 'fill-current' : ''} />
                              </button>
                           </div>
@@ -2776,10 +2858,10 @@ export default function NutritionDashboard() {
         {/* MODALE PRODUIT DÉTAILLÉ */}
         <AnimatePresence>
            {selectedProduct && (
-              <div id="product-overlay" onClick={(e: any) => e.target.id === 'product-overlay' && setSelectedProduct(null)} className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
-                 <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-[3rem] w-full max-w-4xl overflow-hidden flex flex-col md:flex-row relative shadow-2xl">
+              <div id="product-overlay" onClick={(e: any) => e.target.id === 'product-overlay' && setSelectedProduct(null)} className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in overflow-y-auto">
+                 <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col md:flex-row relative shadow-2xl my-auto">
                     <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
-                    <div className="w-full md:w-1/2 bg-zinc-50 flex flex-col items-center justify-center p-6 relative">
+                    <div className="w-full md:w-1/2 bg-zinc-50 flex flex-col items-center justify-center p-6 relative shrink-0 min-h-[300px]">
                        {productMediaView === 'image' || !selectedProduct.video_url ? (
                            <div className="relative w-full h-full flex items-center justify-center group/mainimg">
                                <img src={productActiveImage || selectedProduct.image_url} alt={selectedProduct.nom} className="max-w-full h-auto max-h-[60vh] object-contain drop-shadow-2xl rounded-2xl" />
@@ -2824,7 +2906,7 @@ export default function NutritionDashboard() {
                            </div>
                        )}
                     </div>
-                    <div className="flex-1 p-10 flex flex-col text-black">
+                    <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col text-black shrink-0">
                        <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 w-max">Zoom Produit</span>
                        <h2 className="text-3xl font-black uppercase tracking-tighter mb-4 leading-tight">{selectedProduct.nom}</h2>
                        <div className="flex items-center gap-1 mb-4">
@@ -3102,7 +3184,15 @@ export default function NutritionDashboard() {
                <button onClick={() => setShowRedoDiagModal(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm">
                   Retour au Hub
                </button>
-               <button disabled={!redoReason} onClick={() => { setShowRedoDiagModal(false); setDiagStep(1); }} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+               <button disabled={!redoReason} onClick={() => { 
+                   setShowRedoDiagModal(false); 
+                   if (clientProfile?.diagnostic_data?.gender && clientProfile?.diagnostic_data?.age) {
+                       setDiagData(prev => ({...prev, ...clientProfile.diagnostic_data}));
+                       setDiagStep(2);
+                   } else {
+                       setDiagStep(1); 
+                   }
+               }} className="flex-1 bg-[#39FF14] text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                   Continuer <ArrowRight size={14} className="inline ml-1"/>
                </button>
             </div>
