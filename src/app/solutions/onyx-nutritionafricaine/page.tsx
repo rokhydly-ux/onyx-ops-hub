@@ -158,7 +158,7 @@ const FAMILY_APPROACH_POINTS_NEW = [
 
 const HERO_SLIDES = [
   {
-    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781361007/A_cinematic__ultra-realistic_wide_shot._202606131429_xhaaiu.jpg",
+    image: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781371355/A_cinematic_16_9_split-screen_before-and-after_202606131604_id9wzx.jpg",
     title: "PERDEZ JUSQU'À 8 KG CE MOIS-CI.",
     highlight: "SANS RÉGIME TOUBAB.",
     sub: "Affinez vos bras et retrouvez un ventre plat tout en mangeant du Yassa et du Thieb. Le rééquilibrage 100% sénégalais."

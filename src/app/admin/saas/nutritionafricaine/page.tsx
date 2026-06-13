@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
@@ -57,6 +57,7 @@ export default function AdminNutritionAfricaine() {
   const [isAutoReminderActive, setIsAutoReminderActive] = useState(false);
   const [showReportModal, setShowReportModal] = useState<any>(null);
   const [reportCoachNotes, setReportCoachNotes] = useState("");
+  const [showGroceryModal, setShowGroceryModal] = useState<any>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -108,13 +109,13 @@ export default function AdminNutritionAfricaine() {
                      supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
-                     supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', tId).limit(1)
+                     supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', tId).maybeSingle()
                   ]);
                   if (recipesRes.data) setRecipes(recipesRes.data);
                   if (prodsRes.data) setProducts(prodsRes.data);
                   if (ordsRes.data) setOrders(ordsRes.data);
                   if (promosRes.data) setPromos(promosRes.data);
-                  if (settingsRes.data && settingsRes.data.length > 0 && settingsRes.data[0].shop_banner_url) setVitrineBanner(settingsRes.data[0].shop_banner_url);
+                  if (settingsRes.data && settingsRes.data.shop_banner_url) setVitrineBanner(settingsRes.data.shop_banner_url);
               }
             } catch (err) {
                 console.error("Erreur générale fetch admin:", err);
@@ -562,6 +563,26 @@ export default function AdminNutritionAfricaine() {
       setShowVitrineModal(false);
   };
 
+  const getGroceryListForAdmin = (profile: any) => {
+      const list: any = { 'Supermarché': {}, 'Marché local': {}, 'Boucherie / Pêche': {} };
+      const weeklyMenu = Array.isArray(profile.weekly_menu) ? profile.weekly_menu : [];
+      weeklyMenu.forEach((dayInfo: any) => {
+          Object.values(dayInfo?.meals || {}).forEach((recipe: any) => {
+              if (!recipe || !recipe.ingredients) return;
+              recipe.ingredients.forEach((ing: any) => {
+                  const rayon = ing.rayon || 'Supermarché';
+                  if (!list[rayon]) list[rayon] = {};
+                  if (list[rayon][ing.nom]) {
+                      list[rayon][ing.nom].quantite += ing.quantite;
+                  } else {
+                      list[rayon][ing.nom] = { quantite: ing.quantite, unite: ing.unite };
+                  }
+              });
+          });
+      });
+      return list;
+  };
+
   // Calcul moyenne globale des calories consommées aujourd'hui
   const todayStr = new Date().toISOString().split('T')[0];
   let totalCaloriesToday = 0;
@@ -931,14 +952,17 @@ export default function AdminNutritionAfricaine() {
                     <button onClick={() => window.open(`https://wa.me/${phone.replace('+', '')}`, '_blank')} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform flex justify-center items-center gap-2">
                        Contacter sur WhatsApp <ExternalLink size={14}/>
                     </button>
-                    <div className="flex gap-2 mt-2">
-                       <button onClick={() => handleOpenClientModal(profile)} className="flex-1 bg-zinc-100 text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2">
-                          <Edit3 size={14}/> Objectifs
-                       </button>
-                       <button onClick={() => setShowReportModal(profile)} className="flex-1 bg-blue-50 text-blue-600 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-100 transition-colors flex justify-center items-center gap-2 shadow-sm">
-                          <FileText size={14}/> Rapport Mensuel
-                       </button>
-                    </div>
+                 <div className="grid grid-cols-3 gap-2 mt-2">
+                    <button onClick={() => handleOpenClientModal(profile)} className="bg-zinc-100 text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2" title="Objectifs">
+                       <Edit3 size={14}/> Obj.
+                    </button>
+                    <button onClick={() => setShowReportModal(profile)} className="bg-blue-50 text-blue-600 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-100 transition-colors flex justify-center items-center gap-2 shadow-sm" title="Rapport Mensuel">
+                       <FileText size={14}/> Rapp.
+                    </button>
+                    <button onClick={() => setShowGroceryModal(profile)} className="bg-green-50 text-green-600 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-100 transition-colors flex justify-center items-center gap-2 shadow-sm" title="Liste de Courses">
+                       <ShoppingCart size={14}/> Courses
+                    </button>
+                 </div>
                  </div>
               );
            })}
@@ -1036,6 +1060,39 @@ export default function AdminNutritionAfricaine() {
            </div>
         </div>
         )}
+
+      {/* MODALE LISTE COURSES ADMIN */}
+      {showGroceryModal && (
+         <div id="grocery-modal-overlay" onClick={(e: any) => e.target.id === 'grocery-modal-overlay' && setShowGroceryModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-lg w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-green-500 my-auto text-black max-h-[90vh] overflow-y-auto custom-scrollbar">
+               <button onClick={() => setShowGroceryModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-2 flex items-center gap-3`}><ShoppingCart className="text-green-500"/> Liste de Courses</h2>
+               <p className="text-zinc-500 font-bold text-xs mb-6">Client : {showGroceryModal.client?.full_name}</p>
+
+               <div className="space-y-6">
+                  {(() => {
+                      const list = getGroceryListForAdmin(showGroceryModal);
+                      return Object.entries(list).map(([rayon, items]: any) => {
+                          if (Object.keys(items).length === 0) return null;
+                          return (
+                              <div key={rayon}>
+                                  <h4 className="font-black uppercase text-sm mb-3 text-black bg-zinc-100 p-3 rounded-xl border border-zinc-200">{rayon}</h4>
+                                  <ul className="space-y-2 px-2">
+                                      {Object.entries(items).map(([nom, data]: any) => (
+                                          <li key={nom} className="flex justify-between text-sm font-medium border-b border-zinc-100 pb-2">
+                                              <span className="text-zinc-700">{nom}</span>
+                                              <span className="font-black text-black">{data.quantite} {data.unite}</span>
+                                          </li>
+                                      ))}
+                                  </ul>
+                              </div>
+                          );
+                      });
+                  })()}
+               </div>
+            </div>
+         </div>
+      )}
 
         {activeTab === 'shop' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">

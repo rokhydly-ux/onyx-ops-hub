@@ -510,13 +510,13 @@ export default function NutritionDashboard() {
           // Load banner from settings specific to the coach
           if (profileData.tenant_id) {
               try {
-                  const { data } = await supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', profileData.tenant_id).limit(1);
-                  if (data && data.length > 0 && data[0].shop_banner_url) setShopBannerUrl(data[0].shop_banner_url);
+                      const { data } = await supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', profileData.tenant_id).maybeSingle();
+                      if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url);
               } catch (e) {}
           } else {
               try {
-                  const { data } = await supabase.from('crm_settings').select('shop_banner_url').limit(1);
-                  if (data && data.length > 0 && data[0].shop_banner_url) setShopBannerUrl(data[0].shop_banner_url);
+                      const { data } = await supabase.from('crm_settings').select('shop_banner_url').limit(1).maybeSingle();
+                      if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url);
               } catch (e) {}
           }
         }
@@ -3467,9 +3467,16 @@ export default function NutritionDashboard() {
                      <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase flex items-center gap-2 text-black dark:text-white`}>
                         <ShoppingCart className="text-[#39FF14]" size={24}/> Mon Panier
                      </h2>
-                     <button onClick={() => setShowCartModal(false)} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors">
-                        <X size={16}/>
-                     </button>
+                     <div className="flex items-center gap-4">
+                        {shopCart.length > 0 && (
+                            <button onClick={() => { if(confirm("Voulez-vous vraiment vider votre panier ?")) setShopCart([]); }} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors flex items-center gap-1">
+                               <Trash2 size={14}/> Vider
+                            </button>
+                        )}
+                        <button onClick={() => setShowCartModal(false)} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-colors">
+                           <X size={16}/>
+                        </button>
+                     </div>
                   </div>
 
                   <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
