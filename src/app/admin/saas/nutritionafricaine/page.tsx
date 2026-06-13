@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
@@ -107,13 +107,13 @@ export default function AdminNutritionAfricaine() {
                      supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
-                     supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', tId).maybeSingle()
+                     supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', tId).limit(1)
                   ]);
                   if (recipesRes.data) setRecipes(recipesRes.data);
                   if (prodsRes.data) setProducts(prodsRes.data);
                   if (ordsRes.data) setOrders(ordsRes.data);
                   if (promosRes.data) setPromos(promosRes.data);
-                  if (settingsRes.data?.shop_banner_url) setVitrineBanner(settingsRes.data.shop_banner_url);
+                  if (settingsRes.data && settingsRes.data.length > 0 && settingsRes.data[0].shop_banner_url) setVitrineBanner(settingsRes.data[0].shop_banner_url);
               }
             } catch (err) {
                 console.error("Erreur générale fetch admin:", err);
@@ -1352,7 +1352,7 @@ export default function AdminNutritionAfricaine() {
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Image URL</label><input type="text" required value={productForm.image_url} onChange={e => setProductForm({...productForm, image_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   </div>
                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Vidéo URL (YouTube ou Direct)</label><input type="url" value={productForm.video_url} onChange={e => setProductForm({...productForm, video_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="https://www.youtube.com/watch?v=..." /></div>
-                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Galerie Images (1 URL par ligne)</label><textarea value={productForm.gallery.join('\n')} onChange={e => setProductForm({...productForm, gallery: e.target.value.split('\n').map(url => url.trim()).filter(Boolean)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[80px]" placeholder="https://img1.jpg&#10;https://img2.jpg..." /></div>
+                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Galerie Images (URLs séparées par virgule ou ligne)</label><textarea value={productForm.gallery.join(',\n')} onChange={e => setProductForm({...productForm, gallery: e.target.value.split(/[\n,]+/).map(url => url.trim()).filter(Boolean)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[80px]" placeholder="https://img1.jpg, https://img2.jpg..." /></div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Objectif (Goal)</label>
                      <select value={productForm.goal} onChange={e => setProductForm({...productForm, goal: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">
