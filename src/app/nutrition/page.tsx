@@ -307,6 +307,8 @@ export default function NutritionDashboard() {
   const [shopPromoCode, setShopPromoCode] = useState("");
   const [isShopPromoApplied, setIsShopPromoApplied] = useState(false);
   const [shopPromoCodesDB, setShopPromoCodesDB] = useState<any[]>([]);
+  const [productMediaView, setProductMediaView] = useState<'image' | 'video'>('image');
+  const [productActiveImage, setProductActiveImage] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [clientOrders, setClientOrders] = useState<any[]>([]);
   const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
@@ -788,6 +790,8 @@ export default function NutritionDashboard() {
   const openProductModal = async (product: any) => {
       const newViews = (product.views || 0) + 1;
       setSelectedProduct({ ...product, views: newViews });
+      setProductActiveImage(product.image_url);
+      setProductMediaView('image');
       setShopDataDB(prev => prev.map(cat => ({
           ...cat,
           produits: cat.produits.map((p: any) => p.id === product.id ? { ...p, views: newViews } : p)
@@ -909,11 +913,12 @@ export default function NutritionDashboard() {
     
     await supabase.from('nutrition_daily_logs').upsert({
       client_id: clientProfile.id,
-      tenant_id: clientProfile.tenant_id,
       log_date: todayStr,
       water_glasses: newAmount,
       calories_consumed: calories,
-      proteins_consumed: proteins
+      proteins_consumed: proteins,
+      carbs_consumed: carbs,
+      fats_consumed: fats
     }, { onConflict: 'client_id, log_date' });
     
     setDailyLogs(prev => {
@@ -979,12 +984,11 @@ export default function NutritionDashboard() {
           const todayStr = new Date().toISOString().split('T')[0];
           await supabase.from('nutrition_daily_logs').upsert({
             client_id: clientProfile.id,
-            tenant_id: clientProfile.tenant_id,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
-            carbs_consumed: newCarbs,
-            fats_consumed: newFats,
+           carbs_consumed: newCarbs,
+           fats_consumed: newFats,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals }
           }, { onConflict: 'client_id, log_date' });
       }
@@ -1008,12 +1012,11 @@ export default function NutritionDashboard() {
           const todayStr = new Date().toISOString().split('T')[0];
           await supabase.from('nutrition_daily_logs').upsert({
             client_id: clientProfile.id,
-            tenant_id: clientProfile.tenant_id,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
-            carbs_consumed: newCarbs,
-            fats_consumed: newFats,
+           carbs_consumed: newCarbs,
+           fats_consumed: newFats,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals }
           }, { onConflict: 'client_id, log_date' });
       }
@@ -1146,7 +1149,6 @@ export default function NutritionDashboard() {
     try {
        const { error } = await supabase.from('nutrition_daily_logs').upsert({
          client_id: clientProfile.id,
-         tenant_id: clientProfile.tenant_id,
          log_date: todayStr,
          report_data: { ...reportData, consumedMeals, moods, moodNotes },
          water_glasses: waterGlasses,
@@ -1400,7 +1402,6 @@ export default function NutritionDashboard() {
          const todayStr = new Date().toISOString().split('T')[0];
          await supabase.from('nutrition_daily_logs').upsert({
            client_id: clientProfile.id,
-           tenant_id: clientProfile.tenant_id,
            log_date: todayStr,
            report_data: { ...reportData, consumedMeals, moods, moodNotes },
            water_glasses: waterGlasses,
@@ -1527,9 +1528,7 @@ export default function NutritionDashboard() {
       }
   };
 
-  const logoSrc = theme === 'dark' 
-     ? 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png' 
-     : 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Keep_the_exact_logo_from_202606111709_xocxye.jpg';
+  const logoSrc = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111717_kftori.jpg';
 
   return (
     <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#fafafa] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300`}>
@@ -1537,7 +1536,7 @@ export default function NutritionDashboard() {
       <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
          <div className="p-6 flex items-center justify-between">
             <div className={`flex items-center gap-3 overflow-hidden ${!isSidebarOpen && 'lg:hidden'}`}>
-               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-20 md:h-28 w-auto object-contain transition-all" />
+               <img src={logoSrc} alt="OnyxNutrition Logo" className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-pulse drop-shadow-2xl" />
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'}`}>
                {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
@@ -1591,7 +1590,7 @@ export default function NutritionDashboard() {
       {/* Header */}
       <div className="lg:hidden p-4 bg-black flex justify-between items-center">
          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-[#39FF14]"><MenuIcon size={28}/></button>
-         <img src={logoSrc} className="h-24 w-auto object-contain" alt="Logo" />
+         <img src={logoSrc} className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-pulse drop-shadow-2xl" alt="Logo" />
          <div className="w-10"></div>
       </div>
 
@@ -2697,6 +2696,10 @@ export default function NutritionDashboard() {
                              {product.stock <= 10 && <span className="absolute top-4 left-4 bg-red-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl animate-pulse">Quantité Limitée</span>}
                           </div>
                           <h4 className="font-black text-lg uppercase text-black mb-4 line-clamp-1">{product.nom}</h4>
+                          <div className="flex items-center gap-1 mb-4">
+                             {[...Array(5)].map((_, i) => <Star key={i} size={14} className={i < (product.rating || 5) ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-300'} />)}
+                             <span className="text-[10px] font-bold text-zinc-500 ml-1">({product.reviews || 0} avis)</span>
+                          </div>
                           <div className="flex flex-col gap-1 mb-8">
                              <p className="text-zinc-400 text-sm font-bold line-through">{product.prix_standard.toLocaleString()} F</p>
                              <p className="text-2xl font-black text-[#39FF14] bg-black px-4 py-1 rounded-xl w-max italic">{product.prix_premium.toLocaleString()} F</p>
@@ -2740,14 +2743,39 @@ export default function NutritionDashboard() {
               <div id="product-overlay" onClick={(e: any) => e.target.id === 'product-overlay' && setSelectedProduct(null)} className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
                  <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-[3rem] w-full max-w-4xl overflow-hidden flex flex-col md:flex-row relative shadow-2xl">
                     <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
-                    <div className="w-full md:w-1/2 bg-zinc-50 flex items-center justify-center p-12">
-                       <img src={selectedProduct.image_url} alt={selectedProduct.nom} className="max-w-full h-auto object-contain drop-shadow-2xl" />
+                    <div className="w-full md:w-1/2 bg-zinc-50 flex flex-col items-center justify-center p-6 relative">
+                       {productMediaView === 'image' || !selectedProduct.video_url ? (
+                           <img src={productActiveImage || selectedProduct.image_url} alt={selectedProduct.nom} className="max-w-full h-auto object-contain drop-shadow-2xl rounded-2xl" />
+                       ) : (
+                           <iframe src={getEmbedUrl(selectedProduct.video_url)} className="w-full aspect-video rounded-2xl shadow-xl" allowFullScreen></iframe>
+                       )}
+                       
+                       {(selectedProduct.gallery?.length > 0 || selectedProduct.video_url) && (
+                           <div className="flex gap-2 mt-4 overflow-x-auto custom-scrollbar w-full pb-2">
+                               <button onClick={() => { setProductMediaView('image'); setProductActiveImage(selectedProduct.image_url); }} className={`w-16 h-16 rounded-xl border-2 shrink-0 ${productMediaView === 'image' && (productActiveImage === selectedProduct.image_url || !productActiveImage) ? 'border-[#39FF14]' : 'border-transparent'}`}>
+                                   <img src={selectedProduct.image_url} className="w-full h-full object-cover rounded-lg bg-zinc-200" />
+                               </button>
+                               {selectedProduct.gallery?.map((img: string, idx: number) => (
+                                   <button key={idx} onClick={() => { setProductMediaView('image'); setProductActiveImage(img); }} className={`w-16 h-16 rounded-xl border-2 shrink-0 ${productMediaView === 'image' && productActiveImage === img ? 'border-[#39FF14]' : 'border-transparent'}`}>
+                                       <img src={img} className="w-full h-full object-cover rounded-lg bg-zinc-200" />
+                                   </button>
+                               ))}
+                               {selectedProduct.video_url && (
+                                   <button onClick={() => setProductMediaView('video')} className={`w-16 h-16 rounded-xl border-2 shrink-0 flex items-center justify-center bg-zinc-200 transition-colors ${productMediaView === 'video' ? 'border-[#39FF14]' : 'border-transparent hover:bg-zinc-300'}`}>
+                                       <Video size={20} className="text-zinc-500" />
+                                   </button>
+                               )}
+                           </div>
+                       )}
                     </div>
                     <div className="flex-1 p-10 flex flex-col text-black">
                        <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 w-max">Zoom Produit</span>
                        <h2 className="text-3xl font-black uppercase tracking-tighter mb-4 leading-tight">{selectedProduct.nom}</h2>
-                       <div className="flex items-center gap-4 mb-4 text-zinc-500 font-bold text-sm">
-                           <span className="flex items-center gap-1"><Eye size={16}/> {selectedProduct.views || 0} vues</span>
+                       <div className="flex items-center gap-1 mb-4">
+                           {[...Array(5)].map((_, i) => (
+                               <Star key={i} size={16} className={i < (selectedProduct.rating || 5) ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-300'} />
+                           ))}
+                           <span className="text-xs font-bold text-zinc-500 ml-2">({selectedProduct.rating || 5}/5) - {selectedProduct.views || 0} vues</span>
                        </div>
                        <p className="text-zinc-500 font-medium leading-relaxed mb-8">{selectedProduct.description_longue}</p>
                        <div className="space-y-3 mb-10">
@@ -2774,7 +2802,7 @@ export default function NutritionDashboard() {
                           </div>
                           
                           {(() => {
-                              const similarShopProducts = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).filter((p: any) => p.categorie_nom === selectedProduct.categorie_nom && p.id !== selectedProduct.id).slice(0, 3);
+                              const similarShopProducts = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).filter((p: any) => p.categorie_nom === selectedProduct.categorie_nom && p.id !== selectedProduct.id && p.stock !== 0).slice(0, 3);
                               if (similarShopProducts.length > 0) {
                                   return (
                                      <div className="pt-6 border-t border-zinc-100">
@@ -3061,6 +3089,22 @@ export default function NutritionDashboard() {
                            </div>
                         </div>
                       </div>
+                      
+                      {diagData.gender === 'Femme' && (
+                         <div className="space-y-2 mt-4 animate-in slide-in-from-top-2">
+                            <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Profil de santé spécifique (Femme)</label>
+                            <select value={diagData.healthProfile} onChange={(e) => setDiagData({...diagData, healthProfile: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black cursor-pointer appearance-none">
+                               <option value="">Aucun / RAS</option>
+                               <option value="Allaitement">Allaitement</option>
+                               <option value="Grossesse">Grossesse</option>
+                               <option value="Péri-ménopause">Péri-ménopause</option>
+                               <option value="Ménopause">Ménopause</option>
+                               <option value="SOPK">SOPK (Syndrome des Ovaires Polykystiques)</option>
+                               <option value="Endométriose">Endométriose</option>
+                            </select>
+                         </div>
+                      )}
+
                       <input type="number" required placeholder="Votre Âge *" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black mt-4" />
                     </div>
                   )}

@@ -28,7 +28,7 @@ export default function AdminNutritionAfricaine() {
   const [orders, setOrders] = useState<any[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [productForm, setProductForm] = useState({ id: '', produit_id: '', categorie_nom: '', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5 });
+  const [productForm, setProductForm] = useState({ id: '', produit_id: '', categorie_nom: '', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5, gallery: [] as string[], video_url: '' });
   const [promos, setPromos] = useState<any[]>([]);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [editingPromo, setEditingPromo] = useState<any>(null);
@@ -176,7 +176,16 @@ export default function AdminNutritionAfricaine() {
 
   const handleSaveClient = async (e: React.FormEvent) => {
       e.preventDefault();
-      const payload = { client_id: editingClient.client.id, daily_calorie_goal: clientForm.daily_calorie_goal, protein_goal: clientForm.protein_goal, carbs_goal: clientForm.carbs_goal, fats_goal: clientForm.fats_goal, tracking_mode: clientForm.tracking_mode };
+      const payload: any = { 
+          client_id: editingClient.client.id, 
+          daily_calorie_goal: clientForm.daily_calorie_goal, 
+          protein_goal: clientForm.protein_goal, 
+          carbs_goal: clientForm.carbs_goal, 
+          fats_goal: clientForm.fats_goal, 
+          tracking_mode: clientForm.tracking_mode 
+      };
+      if (editingClient.id) payload.id = editingClient.id;
+      if (tenantId) (payload as any).tenant_id = tenantId;
       const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
       if (!error) {
           setClients(clients.map(c => c.client.id === editingClient.client.id ? { ...c, ...payload } : c));
@@ -424,10 +433,10 @@ export default function AdminNutritionAfricaine() {
   const handleOpenProductModal = (prod?: any) => {
      if (prod) {
          setEditingProduct(prod);
-         setProductForm({ ...prod });
+         setProductForm({ ...prod, gallery: prod.gallery || [], video_url: prod.video_url || '' });
      } else {
          setEditingProduct(null);
-         setProductForm({ id: '', produit_id: `prod_${Date.now()}`, categorie_nom: 'Super-Aliments & Céréales Locales', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5 });
+         setProductForm({ id: '', produit_id: `prod_${Date.now()}`, categorie_nom: 'Super-Aliments & Céréales Locales', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5, gallery: [], video_url: '' });
      }
      setShowProductModal(true);
   };
@@ -563,6 +572,24 @@ export default function AdminNutritionAfricaine() {
   const shopItemsPerPage = 12;
   const totalShopPages = Math.ceil(filteredShop.length / shopItemsPerPage);
   const paginatedShop = filteredShop.slice((shopPage - 1) * shopItemsPerPage, shopPage * shopItemsPerPage);
+  
+  const salesStats = React.useMemo(() => {
+      const stats: Record<string, { qty: number, revenue: number, name: string, image: string }> = {};
+      orders.forEach(o => {
+          let items = o.items || [];
+          if (typeof items === 'string') { try { items = JSON.parse(items); } catch(e) { items = []; } }
+          items.forEach((i: any) => {
+              const pid = i.id;
+              if (!stats[pid]) {
+                  const prod = products.find(p => p.id === pid);
+                  stats[pid] = { qty: 0, revenue: 0, name: i.nom || i.name || 'Produit inconnu', image: prod?.image_url || '' };
+              }
+              stats[pid].qty += (i.quantity || 1);
+              stats[pid].revenue += (i.finalPrice || i.price || 0) * (i.quantity || 1);
+          });
+      });
+      return Object.values(stats).sort((a,b) => b.qty - a.qty).slice(0, 5);
+  }, [orders, products]);
 
   return (
     <div className="min-h-screen bg-[#fafafa] text-black font-sans pb-24">
@@ -876,6 +903,34 @@ export default function AdminNutritionAfricaine() {
 
         {activeTab === 'shop' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+           {salesStats.length > 0 && (
+               <div className="mb-8 bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+                   <h3 className="text-lg font-black uppercase tracking-tighter mb-6 flex items-center gap-2"><TrendingUp className="text-[#39FF14]"/> Tendance des Ventes</h3>
+                   <div className="overflow-x-auto">
+                       <table className="w-full text-left">
+                           <thead className="bg-zinc-50 border-b border-zinc-100 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                               <tr>
+                                   <th className="p-4">Produit</th>
+                                   <th className="p-4 text-center">Qté Vendue</th>
+                                   <th className="p-4 text-right">CA Généré</th>
+                               </tr>
+                           </thead>
+                           <tbody className="divide-y divide-zinc-50">
+                               {salesStats.map((s, idx) => (
+                                   <tr key={idx} className="hover:bg-zinc-50 transition-colors">
+                                       <td className="p-4 flex items-center gap-4">
+                                           <img src={s.image || 'https://placehold.co/100'} alt={s.name} className="w-12 h-12 rounded-xl object-cover bg-zinc-100 border border-zinc-200" />
+                                           <span className="font-bold text-sm text-black">{s.name}</span>
+                                       </td>
+                                       <td className="p-4 text-center font-black text-lg">{s.qty}</td>
+                                       <td className="p-4 text-right font-black text-[#39FF14] text-lg">{s.revenue.toLocaleString()} F</td>
+                                   </tr>
+                               ))}
+                           </tbody>
+                       </table>
+                   </div>
+               </div>
+           )}
            <div className="flex flex-col md:flex-row gap-4 mb-6 items-center">
               <div className="relative flex-1 w-full md:w-auto">
                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -1162,6 +1217,8 @@ export default function AdminNutritionAfricaine() {
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Badge (Optionnel)</label><input type="text" value={productForm.badge} onChange={e => setProductForm({...productForm, badge: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="Ex: Best Seller" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Image URL</label><input type="text" required value={productForm.image_url} onChange={e => setProductForm({...productForm, image_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   </div>
+                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Vidéo URL (YouTube ou Direct)</label><input type="url" value={productForm.video_url} onChange={e => setProductForm({...productForm, video_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="https://www.youtube.com/watch?v=..." /></div>
+                   <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Galerie Images (URLs séparées par virgules)</label><input type="text" value={productForm.gallery.join(', ')} onChange={e => setProductForm({...productForm, gallery: e.target.value.split(',').map(url => url.trim()).filter(Boolean)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="https://img1.jpg, https://img2.jpg..." /></div>
                   <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Objectif (Goal)</label>
                      <select value={productForm.goal} onChange={e => setProductForm({...productForm, goal: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">
