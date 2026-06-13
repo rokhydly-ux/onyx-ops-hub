@@ -1399,7 +1399,7 @@ export default function NutritionDashboard() {
        
        if (error) {
            console.error("Erreur commande:", error);
-           alert("Oups, impossible de sauvegarder la commande dans l'historique.");
+           alert("Oups, impossible de sauvegarder la commande dans l'historique. Erreur : " + error.message);
        } else if (data && data.length > 0) {
            setClientOrders([data[0], ...clientOrders]);
            await supabase.from('clients').update({ address: deliveryAddress }).eq('id', clientProfile.id);
@@ -1408,7 +1408,7 @@ export default function NutritionDashboard() {
 
     let msg = `Bonjour ! Je souhaite commander les produits suivants sur la boutique Onyx Nutrition :\n\n${cartText}\n\n*Total : ${total} F*\n`;
     if (isShopPromoApplied && appliedPromoData) {
-       msg += `\n🎁 *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
+       msg += `\n *Promo VIP ${appliedPromoData.code} (-${appliedPromoData.discount_pct}%) appliquée !*\n`;
     }
     msg += `\nMon nom : ${user?.full_name}\nTéléphone : ${clientProfile?.phone || ''}\n\n*Adresse de livraison :* ${deliveryAddress}`;
 
@@ -3579,6 +3579,13 @@ export default function NutritionDashboard() {
                            className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 mt-3 shadow-lg"
                         >
                            <MessageSquare size={16}/> M'envoyer mon panier (WhatsApp)
+                        </button>
+
+                        <button 
+                           onClick={() => { if(confirm("Voulez-vous vraiment vider votre panier ?")) { setShopCart([]); setIsShopPromoApplied(false); setAppliedPromoData(null); setShopPromoCode(""); setShowCartModal(false); } }} 
+                           className="w-full bg-red-50 text-red-500 border border-red-100 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-2 mt-3 shadow-sm"
+                        >
+                           <Trash2 size={14}/> Vider mon panier
                         </button>
 
                         {isShopPromoApplied && appliedPromoData ? (
