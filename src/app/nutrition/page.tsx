@@ -1360,6 +1360,7 @@ export default function NutritionDashboard() {
        const tenantIdToUse = shopCart[0]?.tenant_id || clientProfile.tenant_id || '';
        const { data, error } = await supabase.from('nutrition_orders').insert({
           client_id: clientProfile.id,
+          tenant_id: tenantIdToUse || null,
           client_name: user?.full_name || 'Inconnu',
           phone: clientProfile.phone || '',
           items: shopCart.map(p => ({ id: p.id, nom: p.nom, quantity: p.quantity, finalPrice: p.finalPrice })),
@@ -1367,7 +1368,6 @@ export default function NutritionDashboard() {
           status: 'Nouveau',
           promo_code: isShopPromoApplied && appliedPromoData ? appliedPromoData.code : null,
           discount_amount: discountAmount,
-          tenant_id: tenantIdToUse,
           address: deliveryAddress
        }).select();
        
@@ -1485,6 +1485,46 @@ export default function NutritionDashboard() {
       }
 
       doc.save(`Historique_Progression_${user?.full_name?.replace(/\s+/g, '_') || 'Client'}.pdf`);
+  };
+
+  const handleDownloadDiagnosticPDF = async (sendWhatsApp: boolean = false) => {
+      setIsSharingPDF(true);
+      try {
+          const doc = new jsPDF();
+          doc.setFontSize(22);
+          doc.text("Bilan Nutritionnel - Onyx", 14, 20);
+          doc.setFontSize(12);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`Client : ${user?.full_name || 'Membre'}`, 14, 30);
+          doc.text(`Date : ${new Date().toLocaleDateString('fr-FR')}`, 14, 38);
+
+          doc.setFontSize(16);
+          doc.setTextColor(0, 0, 0);
+          doc.text("Vos Nouveaux Objectifs", 14, 55);
+          
+          doc.setFontSize(12);
+          doc.text(`• Calories : ${calorieGoal} kcal/jour`, 20, 65);
+          doc.text(`• Protéines : ${proteinGoal} g`, 20, 73);
+          doc.text(`• Glucides : ${carbsGoal} g`, 20, 81);
+          doc.text(`• Lipides : ${fatsGoal} g`, 20, 89);
+
+          if (sendWhatsApp) {
+              const pdfBlob = doc.output('blob');
+              const fileName = `Diagnostic_${user?.full_name?.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+              const { error: uploadError } = await supabase.storage.from('tontines').upload(fileName, pdfBlob, { contentType: 'application/pdf' });
+              if (uploadError) throw uploadError;
+              const { data: urlData } = supabase.storage.from('tontines').getPublicUrl(fileName);
+              
+              const text = `Bonjour le coach ! 👋\nVoici mon nouveau bilan nutritionnel Onyx Nutrition 🍏 :\n\n${urlData.publicUrl}\n\nPouvons-nous en discuter pour adapter mon programme ?`;
+              window.open(`https://wa.me/221785338417?text=${encodeURIComponent(text)}`, '_blank');
+          } else {
+              doc.save(`Diagnostic_Nutrition_${user?.full_name?.replace(/\s+/g, '_') || 'Client'}.pdf`);
+          }
+      } catch (err: any) {
+          alert("Erreur lors de la génération du PDF : " + err.message);
+      } finally {
+          setIsSharingPDF(false);
+      }
   };
 
   const logoSrc = theme === 'dark' 
@@ -2606,7 +2646,12 @@ export default function NutritionDashboard() {
                                  {product.stock <= 10 && <span className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-lg animate-pulse">Quantité Limitée</span>}
                            </div>
                            <h4 className="font-black text-sm uppercase text-black dark:text-white line-clamp-1">{product.nom}</h4>
-                           <p className="text-[#39FF14] font-black text-lg mt-2">{product.prix_premium.toLocaleString()} F</p>
+                           <div className="flex items-center justify-between mt-2">
+                               <p className="text-[#39FF14] font-black text-lg">{product.prix_premium.toLocaleString()} F</p>
+                               <button onClick={(e) => { e.stopPropagation(); addToCart(product); }} className="bg-black text-[#39FF14] p-2 rounded-xl hover:bg-[#39FF14] hover:text-black transition-colors shadow-sm" title="Ajouter au panier">
+                                   <Plus size={16} />
+                               </button>
+                           </div>
                        </div>
                        ))}
                     </div>
@@ -2657,11 +2702,14 @@ export default function NutritionDashboard() {
                              <p className="text-2xl font-black text-[#39FF14] bg-black px-4 py-1 rounded-xl w-max italic">{product.prix_premium.toLocaleString()} F</p>
                           </div>
                           <div className="flex gap-2">
-                             <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2">
-                                <ShoppingCart size={16}/> Au panier
+                             <button onClick={() => addToCart(product)} className="flex-1 bg-black text-white hover:bg-[#39FF14] hover:text-black py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                <Plus size={14}/> Ajouter
                              </button>
-                             <button onClick={(e) => { e.stopPropagation(); toggleSaveProduct(product); }} className={`p-4 rounded-2xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
-                                <Heart size={18} className={savedShopProducts.some((sp: any) => sp.id === product.id) ? 'fill-current' : ''} />
+                             <button onClick={() => setShowCartModal(true)} className="flex-1 bg-zinc-100 text-black hover:bg-zinc-200 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                <ShoppingCart size={14}/> Panier
+                             </button>
+                             <button onClick={(e) => { e.stopPropagation(); toggleSaveProduct(product); }} className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center ${savedShopProducts.some((sp: any) => sp.id === product.id) ? 'border-red-500 bg-red-50 text-red-500' : 'border-zinc-200 bg-white text-zinc-400 hover:border-red-500 hover:text-red-500'}`}>
+                                <Heart size={16} className={savedShopProducts.some((sp: any) => sp.id === product.id) ? 'fill-current' : ''} />
                              </button>
                           </div>
                        </div>
@@ -2713,8 +2761,9 @@ export default function NutritionDashboard() {
                              <p className="text-4xl font-black text-black">{selectedProduct.prix_premium.toLocaleString()} F</p>
                           </div>
                           <div className="flex items-center gap-2 w-full sm:w-auto">
-                             <button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="flex-1 sm:flex-none bg-[#39FF14] text-black px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={18}/> Ajouter au panier</button>
-                             <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-5 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm"><Share2 size={18}/></button>
+                             <button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="flex-1 sm:flex-none bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter</button>
+                             <button onClick={() => { setShowCartModal(true); setSelectedProduct(null); }} className="flex-1 sm:flex-none bg-black text-white px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={18}/> Panier</button>
+                             <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
                           </div>
                        </div>
                     </div>
@@ -3080,9 +3129,14 @@ export default function NutritionDashboard() {
                   <h3 className="text-2xl font-black uppercase mb-6 text-black">Votre Espace a été mis à jour !</h3>
                   <p className="text-zinc-600 font-medium mb-8">Les nouveaux menus ont été générés selon vos nouveaux paramètres, vous pouvez reprendre le suivi dès maintenant.</p>
                   
-                  <button onClick={() => setDiagStep(0)} type="button" className="w-full bg-[#39FF14] text-black py-5 rounded-xl font-black uppercase tracking-widest hover:bg-black hover:text-[#39FF14] transition-colors shadow-lg flex justify-center items-center gap-2">
-                     Retourner au Tracker <ArrowRight size={18}/>
-                  </button>
+                  <div className="flex flex-col gap-3 mt-4">
+                     <button onClick={() => handleDownloadDiagnosticPDF(true)} disabled={isSharingPDF} type="button" className="w-full bg-[#25D366] text-white py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2 disabled:opacity-50">
+                        {isSharingPDF ? <Loader2 size={18} className="animate-spin"/> : <MessageCircle size={18}/>} Partager mon bilan sur WhatsApp
+                     </button>
+                     <button onClick={() => setDiagStep(0)} type="button" className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors shadow-lg flex justify-center items-center gap-2">
+                        Retourner au Tracker <ArrowRight size={18}/>
+                     </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -3035,20 +3035,29 @@ export default function OnyxJaayShop() {
                              {product.oldPrice && product.oldPrice > product.price && <p className="text-sm text-zinc-400 line-through mb-1">{displayPrice(product.oldPrice, shopInfo.currency)}</p>}
                           </div>
                         </div>
-                        <button 
-                          onClick={(e) => { 
-                              e.stopPropagation(); 
-                              if ((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) {
-                                  handleViewProduct(product);
-                              } else {
-                                  addToCart(product, undefined, false); 
-                              }
-                          }} 
-                          disabled={product.stock === 0 || (product.stock !== undefined && cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)}
-                          className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
-                        >
-                          <Plus size={16} /> {((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? 'Options' : 'Ajouter'}
-                        </button>
+                        <div className="flex gap-2">
+                            <button 
+                              onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  if ((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) {
+                                      handleViewProduct(product);
+                                  } else {
+                                      addToCart(product, undefined, false); 
+                                  }
+                              }} 
+                              disabled={product.stock === 0 || (product.stock !== undefined && cart.filter(i => i.id === product.id).reduce((sum, i) => sum + i.quantity, 0) >= product.stock)}
+                              className="flex-1 bg-black dark:bg-white text-white dark:text-black px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#39FF14] hover:text-black dark:hover:text-black transition-colors flex items-center justify-center gap-2 shadow-lg disabled:bg-zinc-300 dark:disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed"
+                            >
+                              <Plus size={16} /> {((Array.isArray(product.variants?.sizes) && product.variants.sizes.length > 0) || (Array.isArray(product.variants?.colors) && product.variants.colors.length > 0)) ? 'Options' : 'Ajouter'}
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setIsCartOpen(true); }}
+                              className="p-3 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors shadow-sm"
+                              title="Voir le panier"
+                            >
+                              <ShoppingCart size={16} />
+                            </button>
+                        </div>
                       </div>
                     </div>
                   </div>
