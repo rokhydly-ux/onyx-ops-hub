@@ -2755,16 +2755,46 @@ export default function NutritionDashboard() {
                           <div className="flex items-center gap-3 text-sm font-bold"><CheckCircle size={18} className="text-[#39FF14]"/> 🇸🇳 Fabrication locale : Coopératives de femmes.</div>
                           <div className="flex items-center gap-3 text-sm font-bold"><CheckCircle size={18} className="text-[#39FF14]"/> 📦 Livraison rapide : Dakar en 24h.</div>
                        </div>
-                       <div className="mt-auto pt-8 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-6">
-                          <div>
-                             <p className="text-[10px] font-black uppercase text-zinc-400 mb-1">Prix Premium</p>
-                             <p className="text-4xl font-black text-black">{selectedProduct.prix_premium.toLocaleString()} F</p>
+                       <div className="mt-auto pt-8 border-t border-zinc-100 flex flex-col gap-6">
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                              <div>
+                                 <p className="text-[10px] font-black uppercase text-zinc-400 mb-1">Prix Premium</p>
+                                 <p className="text-4xl font-black text-black">{selectedProduct.prix_premium.toLocaleString()} F</p>
+                              </div>
+                              <div className="flex flex-col gap-2 w-full sm:w-auto">
+                                 <div className="flex items-center gap-2">
+                                   <button onClick={() => addToCart(selectedProduct)} className="flex-1 bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter au panier</button>
+                                   <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
+                                 </div>
+                                 <div className="flex gap-2">
+                                    <button onClick={() => { setShowCartModal(true); setSelectedProduct(null); }} className="flex-1 bg-black text-white px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={16}/> Mon panier</button>
+                                    <button onClick={() => setSelectedProduct(null)} className="flex-1 bg-zinc-100 text-black px-4 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-sm hover:bg-zinc-200 transition-colors flex items-center justify-center">Continuer</button>
+                                 </div>
+                              </div>
                           </div>
-                          <div className="flex items-center gap-2 w-full sm:w-auto">
-                             <button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="flex-1 sm:flex-none bg-[#39FF14] text-black px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><Plus size={18}/> Ajouter</button>
-                             <button onClick={() => { setShowCartModal(true); setSelectedProduct(null); }} className="flex-1 sm:flex-none bg-black text-white px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"><ShoppingCart size={18}/> Panier</button>
-                             <button onClick={() => handleShareProduct(selectedProduct)} className="bg-zinc-100 text-black p-4 rounded-2xl hover:bg-zinc-200 transition-colors shadow-sm shrink-0"><Share2 size={18}/></button>
-                          </div>
+                          
+                          {(() => {
+                              const similarShopProducts = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).filter((p: any) => p.categorie_nom === selectedProduct.categorie_nom && p.id !== selectedProduct.id).slice(0, 3);
+                              if (similarShopProducts.length > 0) {
+                                  return (
+                                     <div className="pt-6 border-t border-zinc-100">
+                                         <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-4">Souvent acheté ensemble</p>
+                                         <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+                                             {similarShopProducts.map((simProd: any) => (
+                                                 <div key={simProd.id} onClick={() => setSelectedProduct(simProd)} className="flex items-center gap-3 bg-zinc-50 p-2 rounded-xl border border-zinc-100 cursor-pointer hover:border-[#39FF14] transition-colors shrink-0 w-64">
+                                                     <img src={simProd.image_url} alt={simProd.nom} className="w-12 h-12 rounded-lg object-cover bg-zinc-200" />
+                                                     <div className="flex-1 min-w-0">
+                                                         <p className="font-bold text-xs truncate text-black">{simProd.nom}</p>
+                                                         <p className="text-[#39FF14] font-black text-xs mt-0.5">{simProd.prix_premium.toLocaleString()} F</p>
+                                                     </div>
+                                                 </div>
+                                             ))}
+                                         </div>
+                                     </div>
+                                  );
+                              }
+                              return null;
+                          })()}
                        </div>
                     </div>
                  </motion.div>
