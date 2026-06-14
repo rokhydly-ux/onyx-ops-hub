@@ -1104,11 +1104,19 @@ export default function NutritionAfricaineLanding() {
                   <div className="text-4xl font-black mb-6 italic text-white flex items-center">
                      2 900 F <span className="text-sm text-zinc-400 not-italic font-normal ml-2">/ mois</span>
                   </div>
-                  <ul className="space-y-3 mb-10 text-zinc-400 text-sm font-bold flex-1">
+                  <ul className="space-y-3 mb-6 text-zinc-400 text-sm font-bold flex-1">
                      <li className="flex gap-2">✔ Plan alimentaire personnalisé</li>
                      <li className="flex gap-2">✔ Intégration des repas locaux</li>
                      <li className="flex gap-2">✔ Suivi WhatsApp (Hebdo)</li>
                   </ul>
+                  <div className="mb-8 p-4 bg-zinc-950 border border-zinc-800 rounded-2xl">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-3">Plus de 50+ recettes filtrées :</p>
+                     <div className="flex flex-wrap gap-2">
+                         <span className="bg-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[9px] font-black uppercase border border-zinc-700">📉 Low Carb</span>
+                         <span className="bg-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[9px] font-black uppercase border border-zinc-700">💪 Protéinés</span>
+                         <span className="bg-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[9px] font-black uppercase border border-zinc-700">🔥 Peu Calorique</span>
+                     </div>
+                  </div>
                   <button onClick={handleWaClick} className={`w-full bg-zinc-800 text-white py-4 rounded-2xl font-black uppercase text-xs hover:bg-zinc-700 transition-transform`}>
                      Commencer l'essai
                   </button>
@@ -1125,11 +1133,21 @@ export default function NutritionAfricaineLanding() {
                      7 500 F <span className="text-sm text-zinc-400 not-italic font-normal">/ trimestre</span>
                   </div>
                   <p className="text-sm font-bold text-red-400 line-through mb-6">au lieu de 8 700 F</p>
-                  <ul className="space-y-3 mb-10 text-zinc-300 text-sm font-bold flex-1">
+                  <ul className="space-y-3 mb-6 text-zinc-300 text-sm font-bold flex-1">
                      <li className="flex gap-2 text-white">✔ <strong className="text-white">Tout le programme de base</strong></li>
                      <li className="flex gap-2 text-white">✔ <strong className="text-white">Accès au Guide PDF Complet (10 pages)</strong></li>
                      <li className="flex gap-2 text-white">✔ <strong className="text-white">Suivi renforcé pour ancrer les habitudes</strong></li>
                   </ul>
+                  <div className="mb-8 p-4 bg-black/50 border border-[#39FF14]/20 rounded-2xl">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-[#39FF14] mb-3 flex items-center gap-1"><Sparkles size={12}/> Galerie Recettes VIP :</p>
+                     <div className="flex flex-wrap gap-2">
+                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">📉 Low Carb</span>
+                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">💪 Protéinés</span>
+                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">🔥 Peu Calorique</span>
+                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">🌅 Ndekki</span>
+                         <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">⚡ Low Fat</span>
+                     </div>
+                  </div>
                   <button onClick={handleWaClick} className={`w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>
                      COMMENCER MON PROGRAMME <ArrowRight size={18}/>
                   </button>

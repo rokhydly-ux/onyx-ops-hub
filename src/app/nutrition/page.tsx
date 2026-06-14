@@ -3788,14 +3788,24 @@ export default function NutritionDashboard() {
                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2">Paiement sécurisé via PayDunya</p>
             </div>
             
-            <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 mb-8">
+            <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100 mb-6">
                <div className="flex justify-between items-center mb-4">
                   <span className="font-bold text-sm">Abonnement Mensuel</span>
                   <span className="font-black text-xl">2 900 F</span>
                </div>
-               <p className="text-xs text-zinc-500 font-medium leading-relaxed">
+               <p className="text-xs text-zinc-500 font-medium leading-relaxed mb-4">
                   Prolongez votre accès au Smart Planner, au générateur de listes de courses, et au réseau communautaire privé OnyxNutrition.
                </p>
+               <div className="pt-4 border-t border-zinc-200">
+                  <p className="text-[10px] font-black uppercase text-green-600 tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Débloquez la Galerie Complète :</p>
+                  <div className="flex flex-wrap gap-2">
+                      <span className="bg-[#39FF14]/20 text-green-800 border border-[#39FF14]/50 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">📉 Low Carb</span>
+                      <span className="bg-[#39FF14]/20 text-green-800 border border-[#39FF14]/50 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">💪 Protéinés</span>
+                      <span className="bg-[#39FF14]/20 text-green-800 border border-[#39FF14]/50 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">⚡ Low Fat</span>
+                      <span className="bg-[#39FF14]/20 text-green-800 border border-[#39FF14]/50 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">🔥 Peu Calorique</span>
+                      <span className="bg-[#39FF14]/20 text-green-800 border border-[#39FF14]/50 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">🌅 Ndekki Santé</span>
+                  </div>
+               </div>
             </div>
 
             <div className="space-y-3">
