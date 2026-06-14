@@ -163,6 +163,10 @@ export default function AdminNutritionAfricaine() {
                      supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
+                     supabase.from('nutrition_recipes').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
+                     supabase.from('nutrition_products').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
+                     supabase.from('nutrition_orders').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
+                     supabase.from('nutrition_promo_codes').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
                      supabase.from('crm_settings').select('*').eq('tenant_id', tId).maybeSingle(),
                      supabase.from('nutrition_foods').select('*')
                   ]);
@@ -309,7 +313,7 @@ export default function AdminNutritionAfricaine() {
       if (!confirm("Voulez-vous ajouter les 40 recettes par défaut à la base de données ?")) return;
       setIsImportingRecipeCsv(true);
       try {
-          const { data: existing } = await supabase.from('nutrition_recipes').select('nom');
+          const { data: existing } = await supabase.from('nutrition_recipes').select('nom').eq('tenant_id', tenantId);
           const existingNames = existing?.map(e => e.nom) || [];
 
           const toInsert = DEFAULT_RECIPES.filter(r => !existingNames.includes(r.nom)).map(r => ({
@@ -485,6 +489,7 @@ export default function AdminNutritionAfricaine() {
       payload.gallery = payload.gallery.map((url: string) => url.trim()).filter(Boolean);
       delete payload.id;
       delete (payload as any).tenant_id;
+      if (tenantId) (payload as any).tenant_id = tenantId;
       if (editingRecipe) {
           const { error } = await supabase.from('nutrition_recipes').update(payload).eq('id', recipeForm.id);
           if (!error) { setRecipes(recipes.map(r => r.id === recipeForm.id ? { ...payload, id: recipeForm.id } : r)); setShowRecipeModal(false); }
@@ -709,6 +714,7 @@ export default function AdminNutritionAfricaine() {
       payload.gallery = payload.gallery.map((url: string) => url.trim()).filter(Boolean);
       delete payload.id;
       delete (payload as any).tenant_id;
+      if (tenantId) (payload as any).tenant_id = tenantId;
       if (editingProduct) {
           const { error } = await supabase.from('nutrition_products').update(payload).eq('id', productForm.id);
           if (!error) { setProducts(products.map(p => p.id === productForm.id ? { ...payload, id: productForm.id } : p)); setShowProductModal(false); }
@@ -756,6 +762,7 @@ export default function AdminNutritionAfricaine() {
       const payload = { ...promoForm, code: promoForm.code.toUpperCase().replace(/\s+/g, '') };
       delete payload.id;
       delete (payload as any).tenant_id;
+      if (tenantId) (payload as any).tenant_id = tenantId;
       let res;
       if (editingPromo) res = await supabase.from('nutrition_promo_codes').update(payload).eq('id', promoForm.id).select().single();
       else res = await supabase.from('nutrition_promo_codes').insert([payload]).select().single();
@@ -1268,20 +1275,41 @@ export default function AdminNutritionAfricaine() {
         {activeTab === 'recipes' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
            {recipes.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                 <div className="col-span-full mb-2 flex items-center gap-2">
-                    <BarChartIcon className="text-[#39FF14]" size={20}/> 
-                    <h3 className="text-lg font-black uppercase tracking-tighter">Recettes les plus populaires</h3>
-                 </div>
-                 {recipes.sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 3).map((r, idx) => (
-                    <div key={r.id} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex items-center gap-4 hover:border-[#39FF14] transition-colors">
-                       <div className="w-12 h-12 rounded-xl bg-black text-[#39FF14] flex items-center justify-center font-black text-lg shadow-md shrink-0">#{idx + 1}</div>
-                       <div className="flex-1 min-w-0">
-                          <p className="font-black text-sm uppercase text-black line-clamp-1" title={r.nom}>{r.nom}</p>
-                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1 flex items-center gap-1"><Eye size={12}/> {r.views || 0} consultations</p>
-                       </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                 <div className="lg:col-span-2 bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
+                    <div className="flex items-center gap-2 mb-6">
+                       <BarChartIcon className="text-[#39FF14]" size={20}/> 
+                       <h3 className="text-lg font-black uppercase tracking-tighter">Vues par recette (Top 5)</h3>
                     </div>
-                 ))}
+                    <div className="h-48 w-full">
+                       <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={[...recipes].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5)} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
+                             <XAxis dataKey="nom" tickFormatter={(val) => val.substring(0, 10) + '...'} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
+                             <YAxis stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
+                             <RechartsTooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} cursor={{ fill: '#f4f4f5' }} />
+                             <Bar dataKey="views" name="Vues" fill="#39FF14" radius={[4, 4, 0, 0]} barSize={32} />
+                          </BarChart>
+                       </ResponsiveContainer>
+                    </div>
+                 </div>
+                 <div className="lg:col-span-1 bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col">
+                    <div className="flex items-center gap-2 mb-4">
+                       <Flame className="text-orange-500" size={20}/> 
+                       <h3 className="text-lg font-black uppercase tracking-tighter">Podium</h3>
+                    </div>
+                    <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                       {[...recipes].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 3).map((r, idx) => (
+                          <div key={r.id} className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 flex items-center gap-4 hover:border-[#39FF14] transition-colors">
+                             <div className="w-10 h-10 rounded-xl bg-black text-[#39FF14] flex items-center justify-center font-black shadow-md shrink-0">#{idx + 1}</div>
+                             <div className="flex-1 min-w-0">
+                                <p className="font-black text-xs uppercase text-black line-clamp-1" title={r.nom}>{r.nom}</p>
+                                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1 flex items-center gap-1"><Eye size={12}/> {r.views || 0} vues</p>
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
               </div>
            )}
            
