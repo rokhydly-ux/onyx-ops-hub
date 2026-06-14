@@ -1040,18 +1040,21 @@ export default function NutritionDashboard() {
   };
 
   const getGroceryList = () => {
-      const list: any = { 'Supermarché': {}, 'Marché local': {}, 'Boucherie / Pêche': {} };
+      const list: any = { 'Produits Locaux / Épices': {}, 'Glucides & Laitages': {}, 'Protéines Fraîches': {} };
       const safeWeeklyMenu = Array.isArray(weeklyGeneratedMenu) ? weeklyGeneratedMenu : [];
       safeWeeklyMenu.forEach(dayInfo => {
           Object.values(dayInfo?.meals || {}).forEach((recipe: any) => {
               if (!recipe || !Array.isArray(recipe.ingredients)) return;
               recipe.ingredients.forEach((ing: any) => {
-                  const rayon = ing.rayon || 'Supermarché';
-                  if (!list[rayon]) list[rayon] = {};
-                  if (list[rayon][ing.nom]) {
-                      list[rayon][ing.nom].quantite += ing.quantite;
+                  let finalRayon = 'Glucides & Laitages';
+                  if (ing.rayon === 'Boutique Onyx' || ing.rayon === 'Marché local') finalRayon = 'Produits Locaux / Épices';
+                  if (ing.rayon === 'Boucherie / Pêche') finalRayon = 'Protéines Fraîches';
+                  
+                  if (!list[finalRayon]) list[finalRayon] = {};
+                  if (list[finalRayon][ing.nom]) {
+                      list[finalRayon][ing.nom].quantite += ing.quantite;
                   } else {
-                      list[rayon][ing.nom] = { quantite: ing.quantite, unite: ing.unite };
+                      list[finalRayon][ing.nom] = { quantite: ing.quantite, unite: ing.unite };
                   }
               });
           });
@@ -1230,7 +1233,7 @@ export default function NutritionDashboard() {
       }
   };
 
-  const confirmMealLog = async (mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
+  const confirmMealLog = async (mealType: string, mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
       const calsRounded = Math.round(cals);
       const protsRounded = Math.round(prots);
       const carbsRounded = Math.round(mealCarbs);
@@ -1243,7 +1246,7 @@ export default function NutritionDashboard() {
       
       const newConsumedItem = {
          id: Date.now(),
-         type: selectedMealModal.type,
+         type: mealType,
          name: mealName,
          cals: calsRounded,
          prots: protsRounded,
@@ -2327,7 +2330,7 @@ export default function NutritionDashboard() {
                     const itemsForThisMeal = safeConsumedMeals.filter(m => m.type === mealType);
                     
                     return (
-                       <div key={mealType} className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-500' : 'bg-white border-zinc-100 hover:border-zinc-300'} p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-colors flex flex-col`}>
+                       <div key={mealType} className={`${theme === 'dark' ? 'bg-zinc-900 shadow-2xl' : 'bg-white shadow-[0_15px_40px_rgba(0,0,0,0.06)]'} p-6 rounded-[2.5rem] border-0 transition-all hover:scale-[1.01] flex flex-col`}>
                           <div className="flex justify-between items-center mb-4">
                              <span className="bg-zinc-100 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{mealType}</span>
                              {trackingMode === 'guided' && plannedMeal && (
@@ -2339,7 +2342,7 @@ export default function NutritionDashboard() {
                              {itemsForThisMeal.length > 0 && (
                                 <div className="space-y-3 mb-4">
                                    {itemsForThisMeal.map((item, i) => (
-                                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-2xl border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700/50' : 'bg-zinc-50 border-zinc-100'} group`}>
+                                      <div key={item.id} className={`flex items-center justify-between p-4 rounded-3xl ${theme === 'dark' ? 'bg-zinc-800/80' : 'bg-zinc-50'} group shadow-sm hover:shadow-md transition-shadow`}>
                                          <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center text-lg">🍲</div>
                                             <div>
@@ -2359,7 +2362,7 @@ export default function NutritionDashboard() {
                              )}
 
                            {plannedMeal && !itemsForThisMeal.some(m => m.name === plannedMeal.meal) && (
-                                <div className={`p-4 rounded-2xl border-2 border-dashed transition-all group mb-4 ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
+                                <div className={`p-5 rounded-3xl transition-all group mb-4 shadow-inner ${theme === 'dark' ? 'bg-zinc-800/50 hover:bg-[#39FF14]/5' : 'bg-zinc-50 hover:bg-[#39FF14]/5'}`}>
                                  <div className="flex justify-between items-start mb-2">
                                     <p className={`font-black text-lg ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{plannedMeal.meal}</p>
                                     {trackingMode === 'flexible' && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[8px] font-black uppercase shrink-0">Suggestion Sama Menu</span>}
@@ -2371,7 +2374,7 @@ export default function NutritionDashboard() {
                                      <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {plannedMeal.fats}g</span>
                                   </div>
                                  <div className="mt-4 flex gap-2">
-                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
+                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
                                     <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, plannedMeal, 'guided'); }} className="px-4 bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center hover:bg-zinc-300 transition-colors">Recette</button>
                                    </div>
                                 </div>
@@ -2379,7 +2382,7 @@ export default function NutritionDashboard() {
                           </div>
 
                           {(trackingMode === 'flexible' || (trackingMode === 'guided' && itemsForThisMeal.length === 0)) && (
-                             <div onClick={() => handleMealClick(mealType, plannedMeal, 'flexible')} className={`mt-4 flex flex-col items-center justify-center py-5 border-2 border-dashed rounded-2xl transition-all cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
+                             <div onClick={() => handleMealClick(mealType, plannedMeal, 'flexible')} className={`mt-4 flex flex-col items-center justify-center py-5 border-2 border-dashed rounded-3xl transition-all cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
                                 <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 text-zinc-400">
                                    <Plus size={16} />
                                 </div>
@@ -2470,7 +2473,7 @@ export default function NutritionDashboard() {
                                    <p className="text-sm font-medium text-zinc-700 leading-relaxed">{selectedMealModal.meal.bienfaits}</p>
                                 </div>
                              )}
-                             <button onClick={() => confirmMealLog(selectedMealModal.meal.meal, selectedMealModal.meal.cals, selectedMealModal.meal.proteins, selectedMealModal.meal.carbs, selectedMealModal.meal.fats)} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
+                             <button onClick={() => confirmMealLog(selectedMealModal.type, selectedMealModal.meal.meal, selectedMealModal.meal.cals, selectedMealModal.meal.proteins, selectedMealModal.meal.carbs, selectedMealModal.meal.fats)} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
                                 <CheckCircle size={20} /> J'ai mangé ça !
                              </button>
                          </>
@@ -2589,9 +2592,50 @@ export default function NutritionDashboard() {
                                                    <p className="text-xs font-medium text-zinc-700">{selectedFoodDB.message_coach_ia}</p>
                                                 </div>
                                              )}
-                                             <button onClick={() => confirmMealLog(selectedFoodDB.nom, calcCals, calcProt, calcGluc, calcLip, selectedFoodDB)} className={`w-full py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl flex justify-center items-center gap-2 transition-all mt-6 ${selectedFoodDB ? 'bg-black text-[#00E5FF] hover:scale-[1.02]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+                                             <button onClick={() => confirmMealLog(selectedMealModal.type, selectedFoodDB.nom, calcCals, calcProt, calcGluc, calcLip, selectedFoodDB)} className={`w-full py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl flex justify-center items-center gap-2 transition-all mt-6 ${selectedFoodDB ? 'bg-black text-[#00E5FF] hover:scale-[1.02]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
                                                 <CheckCircle size={20} /> Ajouter au tracker
                                              </button>
+
+                                             {/* SWAP SANTÉ / L'Alternative Woyof */}
+                                             {(() => {
+                                                if (!selectedFoodDB.is_from_off && !selectedFoodDB.flags_ia?.ultra_transforme) return null;
+                                                
+                                                const lowerName = selectedFoodDB.nom.toLowerCase();
+                                                let altProduct = null;
+                                                const allProducts = (Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(c => c.produits || []);
+                                                
+                                                if (lowerName.includes('riz') || lowerName.includes('pâtes') || lowerName.includes('pain') || lowerName.includes('blé')) {
+                                                    altProduct = allProducts.find(p => p.nom.toLowerCase().includes('fonio'));
+                                                } else if (lowerName.includes('bouillon') || lowerName.includes('cube') || lowerName.includes('maggi') || lowerName.includes('sel')) {
+                                                    altProduct = allProducts.find(p => p.nom.toLowerCase().includes('soumbala') || p.nom.toLowerCase().includes('nététou'));
+                                                } else if (lowerName.includes('chocolat') || lowerName.includes('tartiner') || lowerName.includes('confiture') || lowerName.includes('sucre')) {
+                                                    altProduct = allProducts.find(p => p.nom.toLowerCase().includes('arachide') || p.nom.toLowerCase().includes('cajou'));
+                                                } else if (lowerName.includes('thé') || lowerName.includes('infusion') || lowerName.includes('jus')) {
+                                                    altProduct = allProducts.find(p => p.nom.toLowerCase().includes('bissap') || p.nom.toLowerCase().includes('ataya') || p.nom.toLowerCase().includes('djar'));
+                                                }
+
+                                                if (!altProduct) return null;
+
+                                                return (
+                                                    <div className="mt-6 bg-[#39FF14]/10 p-5 rounded-3xl border-2 border-[#39FF14]/30 animate-in slide-in-from-bottom-2 flex flex-col gap-3 shadow-inner">
+                                                       <div className="flex items-start gap-3">
+                                                           <div className="bg-[#39FF14] text-black p-2.5 rounded-2xl shrink-0 shadow-md"><Sparkles size={24}/></div>
+                                                           <div>
+                                                               <p className="font-black text-sm uppercase text-[#39FF14] tracking-widest">L'Alternative Woyof 🌱</p>
+                                                               <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mt-1 leading-relaxed">Au lieu de consommer ce produit industriel, pourquoi ne pas essayer une alternative locale, saine et à index glycémique bas ?</p>
+                                                           </div>
+                                                       </div>
+                                                       <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl flex items-center gap-4 border border-transparent cursor-pointer hover:border-[#39FF14] hover:shadow-lg transition-all" onClick={() => { setSelectedMealModal(null); setSelectedFoodDB(null); openProductModal(altProduct); setActiveTab('shop'); }}>
+                                                           <img src={altProduct.image_url} alt={altProduct.nom} className="w-14 h-14 rounded-xl object-cover shadow-sm" />
+                                                           <div className="flex-1">
+                                                               <p className="font-black text-sm text-black dark:text-white uppercase">{altProduct.nom}</p>
+                                                               <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">{altProduct.prix_premium} F</p>
+                                                           </div>
+                                                           <button className="bg-black text-[#39FF14] p-3 rounded-xl hover:scale-105 transition-transform"><ShoppingCart size={18}/></button>
+                                                       </div>
+                                                    </div>
+                                                );
+                                             })()}
                                           </>
                                        )
                                    })()}
@@ -2808,7 +2852,7 @@ export default function NutritionDashboard() {
                          return displayMenu.map((dayPlan, dIdx) => {
                              const isToday = dayPlan.day === formattedCurrentDay;
                              return (
-                        <div key={`${dIdx}-${dayPlan.meals?.['Déjeuner']?.id || 'empty'}`} className={`bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border overflow-hidden flex flex-col group relative animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500 ${isToday ? 'border-[#39FF14] ring-2 ring-[#39FF14]/20' : 'border-zinc-100 opacity-60 grayscale-[30%] hover:grayscale-0 hover:opacity-100 transition-all'}`} style={{ animationFillMode: 'both', animationDelay: `${dIdx * 100}ms` }}>
+                        <div key={`${dIdx}-${dayPlan.meals?.['Déjeuner']?.id || 'empty'}`} className={`bg-white rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.06)] border-0 overflow-hidden flex flex-col group relative animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500 ${isToday ? 'ring-4 ring-[#39FF14]' : 'opacity-80 grayscale-[20%] hover:grayscale-0 hover:opacity-100 transition-all'}`} style={{ animationFillMode: 'both', animationDelay: `${dIdx * 100}ms` }}>
                            <div className={`absolute top-4 left-4 ${isToday ? 'bg-[#39FF14] text-black' : 'bg-black text-white'} px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest z-10 shadow-lg`}>
                               {dayPlan.day} {isToday && '(Auj.)'}
                            </div>
@@ -2830,7 +2874,7 @@ export default function NutritionDashboard() {
                                  const isConsumed = consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
 
                                  return (
-                                    <div key={mealType} className={`flex justify-between items-center p-3 rounded-xl border-2 transition-colors ${isConsumed ? 'bg-[#39FF14]/10 border-[#39FF14] opacity-75' : 'bg-zinc-50 border-transparent hover:border-black'}`}>
+                                    <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
                                        <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
@@ -2839,7 +2883,7 @@ export default function NutritionDashboard() {
                                           <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{recipe.calories} kcal</span>
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
-                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9)); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
+                                               <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9)); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
                                              )}
                                              {isConsumed && (
                                                 <span className="bg-[#39FF14] text-black px-2 py-0.5 rounded text-[8px] font-black uppercase shadow-sm">Validé ✅</span>
@@ -2860,6 +2904,15 @@ export default function NutritionDashboard() {
                      )
                  })
              })()}
+                  </div>
+               )}
+               {/* BOUTON GÉNÉRER LISTE COURSES EN BAS */}
+               {(clientProfile?.plan_type === 'premium' || daysLeft > 0) && weeklyGeneratedMenu.length > 0 ? (
+                  <div className="mt-12 text-center">
+                     <button onClick={() => setShowGroceryList(true)} className="bg-black text-[#39FF14] px-10 py-5 rounded-[2.5rem] font-black uppercase text-sm md:text-base tracking-widest hover:scale-105 transition-transform shadow-[0_15px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto">
+                        <ShoppingCart size={24}/> Générer ma liste de courses
+                     </button>
+                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-4">Calculée automatiquement d'après votre Sama Menu</p>
                   </div>
                )}
             </section>
@@ -3134,16 +3187,22 @@ export default function NutritionDashboard() {
                <div className="space-y-8">
                   {Object.entries(getGroceryList()).map(([rayon, items]: any) => {
                      if (Object.keys(items).length === 0) return null;
+                     let subtitle = "";
+                     if (rayon === 'Produits Locaux / Épices') subtitle = "Acheter au marché ou commander sur la boutique Onyx";
+                     else if (rayon === 'Glucides & Laitages') subtitle = "Acheter au supermarché (Auchan, Casino)";
+                     else if (rayon === 'Protéines Fraîches') subtitle = "Acheter chez le boucher / poissonnier";
+
                      return (
-                        <div key={rayon}>
-                           <h4 className="font-black uppercase text-sm mb-3 text-black bg-zinc-100 p-3 rounded-xl border border-zinc-200">{rayon}</h4>
-                           <ul className="grid md:grid-cols-2 gap-x-6 gap-y-3 px-2">
+                        <div key={rayon} className="bg-zinc-50 p-6 rounded-3xl border border-zinc-100">
+                           <h4 className="font-black uppercase text-sm text-black mb-1">{rayon}</h4>
+                           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">{subtitle}</p>
+                           <ul className="grid md:grid-cols-2 gap-x-6 gap-y-3">
                               {Object.entries(items).map(([nom, data]: any) => {
                                  const isExcluded = excludedIngredients.includes(nom);
                                  return (
-                                 <li key={nom} className="flex items-center justify-between text-sm font-medium border-b border-zinc-100 pb-2">
+                                 <li key={nom} className="flex items-center justify-between text-sm font-medium border-b border-zinc-200 pb-2">
                                     <label className="flex items-center gap-3 cursor-pointer group">
-                                       <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${isExcluded ? 'bg-[#39FF14] border-[#39FF14]' : 'bg-white border-zinc-300 group-hover:border-black'}`}>
+                                       <div className={`w-6 h-6 rounded-xl flex items-center justify-center border-2 transition-colors ${isExcluded ? 'bg-[#39FF14] border-[#39FF14]' : 'bg-white border-zinc-300 group-hover:border-black'}`}>
                                           {isExcluded && <CheckCircle size={14} className="text-black" />}
                                        </div>
                                        <input type="checkbox" className="hidden" checked={isExcluded} onChange={() => toggleExcludeIngredient(nom)} />
@@ -3238,7 +3297,7 @@ export default function NutritionDashboard() {
                                    <div className="flex flex-col">
                                        <p className="font-bold text-sm text-black line-clamp-1" title={name}>{name}</p>
                                        <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Eye size={12}/> {fav.views || 0} vues</p>
-                                       <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Clock size={12}/> {fav.preparation_time || '0'} min</p>
+                                       <p className={`text-[10px] font-bold flex items-center gap-1 mt-0.5 ${(fav.preparation_time || 15) > 45 ? 'text-red-500' : 'text-zinc-500'}`}><Clock size={12}/> {fav.preparation_time || 15} min</p>
                                    </div>
                                    <button onClick={() => toggleFavorite(fav)} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 hover:text-red-500'} shrink-0`}><HeartPulse size={18} className={isFav ? "fill-current" : ""}/></button>
                                </div>
@@ -3254,7 +3313,7 @@ export default function NutritionDashboard() {
                                </div>
                            </div>
                            <button onClick={() => {
-                               confirmMealLog(name, cals, prots, fav.carbs || 0, fav.fats || 0, fav);
+                               confirmMealLog(fav.type || 'Déjeuner', name, cals, prots, fav.carbs || 0, fav.fats || 0, fav);
                                alert("Ajouté au tracker du jour !");
                            }} className="w-full bg-zinc-200 text-black py-3 rounded-xl text-[10px] font-black uppercase hover:bg-black hover:text-[#39FF14] transition-all flex justify-center items-center gap-2">
                                <CheckCircle size={14}/> Ajouter au menu du jour

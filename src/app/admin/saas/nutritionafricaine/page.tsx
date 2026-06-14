@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
@@ -72,6 +72,9 @@ export default function AdminNutritionAfricaine() {
   const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', video_url: '', description: '', gallery: [] as string[] });
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [recipeFilterFast, setRecipeFilterFast] = useState(false);
+  const [recipeSearch, setRecipeSearch] = useState("");
+  const [recipeViewMode, setRecipeViewMode] = useState<'list' | 'grid'>('grid');
+  const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
   const fileProductInputRef = useRef<HTMLInputElement>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -479,6 +482,19 @@ export default function AdminNutritionAfricaine() {
       if (!confirm("Supprimer cette recette ?")) return;
       await supabase.from('nutrition_recipes').delete().eq('id', id);
       setRecipes(recipes.filter(r => r.id !== id));
+      setSelectedRecipes(prev => prev.filter(rId => rId !== id));
+  };
+
+  const handleBulkDeleteRecipes = async () => {
+      if (selectedRecipes.length === 0) return;
+      if (!confirm(`Voulez-vous vraiment supprimer les ${selectedRecipes.length} recettes sélectionnées ?`)) return;
+      try {
+          const { error } = await supabase.from('nutrition_recipes').delete().in('id', selectedRecipes);
+          if (error) throw error;
+          setRecipes(recipes.filter(r => !selectedRecipes.includes(r.id)));
+          setSelectedRecipes([]);
+          alert("Recettes supprimées avec succès !");
+      } catch(e: any) { alert("Erreur lors de la suppression: " + e.message); }
   };
 
   const handleRelanceInactifs = () => {
@@ -985,6 +1001,9 @@ export default function AdminNutritionAfricaine() {
                         <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={14}/> Import CSV</button>
                         <button onClick={downloadRecipeCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
                         <button onClick={() => setRecipeFilterFast(!recipeFilterFast)} className={`px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-sm flex items-center justify-center gap-2 ${recipeFilterFast ? 'bg-[#39FF14] text-black border border-[#39FF14]' : 'bg-zinc-100 text-black hover:bg-zinc-200'}`} title="Filtrer les recettes de moins de 30 min"><Clock size={14}/> {recipeFilterFast ? 'Toutes' : '< 30 Min'}</button>
+                        {selectedRecipes.length > 0 && (
+                           <button onClick={handleBulkDeleteRecipes} className="bg-red-50 text-red-500 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-100 transition-all shadow-sm flex items-center justify-center gap-2"><Trash2 size={14}/> Supprimer ({selectedRecipes.length})</button>
+                        )}
                         <button onClick={handleInitDefaultRecipes} className="bg-blue-50 text-blue-600 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-100 transition-all shadow-sm flex items-center justify-center gap-2"><Sparkles size={14}/> Init 40 Recettes</button>
                         <button onClick={handleAIGenerateRecipe} className="bg-[#39FF14]/20 text-green-700 border border-[#39FF14]/50 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#39FF14]/30 transition-all shadow-sm flex items-center justify-center gap-2"><Bot size={14}/> Générer via IA</button>
                         <button onClick={() => handleOpenRecipeModal()} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={14}/> Nouvelle Recette</button>
@@ -1241,20 +1260,93 @@ export default function AdminNutritionAfricaine() {
                  ))}
               </div>
            )}
+           
+           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-2">
+              <div className="relative w-full md:w-96">
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                 <input type="text" placeholder="Rechercher une recette..." value={recipeSearch} onChange={e => setRecipeSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black shadow-sm" />
+              </div>
+              <div className="flex items-center gap-2 bg-white border border-zinc-200 p-1.5 rounded-xl shadow-sm">
+                 <button onClick={() => setRecipeViewMode('list')} className={`p-2 rounded-lg transition-colors ${recipeViewMode === 'list' ? 'bg-black text-[#39FF14] shadow' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`} title="Vue Liste"><Menu size={16}/></button>
+                 <button onClick={() => setRecipeViewMode('grid')} className={`p-2 rounded-lg transition-colors ${recipeViewMode === 'grid' ? 'bg-black text-[#39FF14] shadow' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`} title="Vue Grille"><LayoutDashboard size={16}/></button>
+              </div>
+           </div>
+
+           {recipeViewMode === 'grid' ? (
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {recipes.filter(r => {
+                     if (recipeFilterFast && (r.preparation_time || 15) >= 30) return false;
+                     if (recipeSearch && !r.nom.toLowerCase().includes(recipeSearch.toLowerCase())) return false;
+                     return true;
+                  }).map(r => (
+                     <div key={r.id} className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden hover:border-[#39FF14] hover:shadow-xl transition-all flex flex-col relative group">
+                        <div className="absolute top-4 left-4 z-10">
+                           <input type="checkbox" checked={selectedRecipes.includes(r.id)} onChange={() => {
+                              setSelectedRecipes(prev => prev.includes(r.id) ? prev.filter(id => id !== r.id) : [...prev, r.id]);
+                           }} className="w-4 h-4 accent-black cursor-pointer shadow-sm" />
+                        </div>
+                        <div className="h-40 bg-zinc-100 relative overflow-hidden">
+                           <img src={r.image_url || 'https://placehold.co/400x300/111/39FF14?text=Recette'} alt={r.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e: any) => e.target.src = 'https://placehold.co/400x300/111/39FF14?text=Recette'} />
+                           <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm text-[#39FF14] px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{r.type}</div>
+                           {r.is_bol_commun && <div className="absolute bottom-4 left-4 bg-blue-500/90 text-white px-2 py-1 rounded-md text-[9px] font-black uppercase shadow-sm">Bol Commun</div>}
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col">
+                           <h3 className="font-black text-sm uppercase text-black leading-tight mb-3 line-clamp-2" title={r.nom}>{r.nom}</h3>
+                           <div className="flex flex-wrap gap-2 text-[10px] font-bold text-zinc-500 mb-4">
+                              <span className="flex items-center gap-1 text-orange-500 bg-orange-50 px-2 py-1 rounded-md"><Flame size={12}/> {r.calories} kcal</span>
+                              <span className="flex items-center gap-1 text-green-500 bg-green-50 px-2 py-1 rounded-md">P:{r.proteins}g</span>
+                              <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-1 rounded-md">G:{r.carbs}g</span>
+                              <span className="flex items-center gap-1 text-zinc-500 bg-zinc-100 px-2 py-1 rounded-md">L:{r.fats}g</span>
+                           </div>
+                           <div className="flex items-center justify-between mt-auto pt-4 border-t border-zinc-100">
+                              <div className="flex items-center gap-3 text-zinc-400 text-xs font-bold">
+                                 <span className="flex items-center gap-1" title="Vues"><Eye size={14} className="text-blue-500"/> {r.views || 0}</span>
+                                 <span className={`flex items-center gap-1 ${(r.preparation_time || 15) > 45 ? 'text-red-500 font-black' : 'text-orange-500'}`} title="Temps de préparation"><Clock size={14}/> {r.preparation_time || 15}m</span>
+                              </div>
+                              <div className="flex gap-1">
+                                 <button onClick={() => handleDuplicateRecipe(r)} className="p-2 bg-zinc-50 text-zinc-400 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Copy size={14}/></button>
+                                 <button onClick={() => handleOpenRecipeModal(r)} className="p-2 bg-zinc-50 text-zinc-400 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Edit3 size={14}/></button>
+                                 <button onClick={() => handleDeleteRecipe(r.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"><Trash2 size={14}/></button>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  ))}
+                  {recipes.filter(r => {
+                     if (recipeFilterFast && (r.preparation_time || 15) >= 30) return false;
+                     if (recipeSearch && !r.nom.toLowerCase().includes(recipeSearch.toLowerCase())) return false;
+                     return true;
+                  }).length === 0 && <div className="col-span-full py-12 text-center text-zinc-400 font-bold">Aucune recette trouvée.</div>}
+               </div>
+           ) : (
            <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
               <table className="w-full text-left min-w-[800px]">
                  <thead className="bg-zinc-50/50 border-b border-zinc-100">
                     <tr>
+                       <th className="p-4 w-12 text-center">
+                          <input type="checkbox" checked={selectedRecipes.length > 0 && selectedRecipes.length === recipes.filter(r => recipeFilterFast ? ((r.preparation_time || 15) < 30) : true).filter(r => recipeSearch ? r.nom.toLowerCase().includes(recipeSearch.toLowerCase()) : true).length} onChange={(e) => {
+                             if (e.target.checked) {
+                                setSelectedRecipes(recipes.filter(r => recipeFilterFast ? ((r.preparation_time || 15) < 30) : true).filter(r => recipeSearch ? r.nom.toLowerCase().includes(recipeSearch.toLowerCase()) : true).map(r => r.id));
+                             } else {
+                                setSelectedRecipes([]);
+                             }
+                          }} className="w-4 h-4 accent-black cursor-pointer" />
+                       </th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Type & Nom</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Macros</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Popularité</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Pop. & Temps</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Bol Commun</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-zinc-50">
-                    {recipes.filter(r => recipeFilterFast ? ((r.preparation_time || 15) < 30) : true).map(r => (
+                    {recipes.filter(r => recipeFilterFast ? ((r.preparation_time || 15) < 30) : true).filter(r => recipeSearch ? r.nom.toLowerCase().includes(recipeSearch.toLowerCase()) : true).map(r => (
                        <tr key={r.id} className="hover:bg-zinc-50 transition-colors">
+                          <td className="p-4 text-center">
+                             <input type="checkbox" checked={selectedRecipes.includes(r.id)} onChange={() => {
+                                setSelectedRecipes(prev => prev.includes(r.id) ? prev.filter(id => id !== r.id) : [...prev, r.id]);
+                             }} className="w-4 h-4 accent-black cursor-pointer" />
+                          </td>
                           <td className="p-4">
                              <div className="flex items-center gap-3">
                                 <img src={r.image_url || 'https://placehold.co/100x100/111/39FF14?text=Recette'} alt="" className="w-10 h-10 rounded-lg object-cover bg-zinc-100" onError={(e: any) => e.target.src = 'https://placehold.co/100x100/111/39FF14?text=Recette'} />
@@ -1273,8 +1365,9 @@ export default function AdminNutritionAfricaine() {
                              </div>
                           </td>
                           <td className="p-4">
-                             <div className="flex items-center gap-1 text-zinc-500 font-bold text-xs">
-                                <Eye size={14} className="text-blue-500"/> {r.views || 0} vues
+                             <div className="flex items-center gap-3 text-zinc-500 font-bold text-xs">
+                                <span className="flex items-center gap-1" title="Vues"><Eye size={14} className="text-blue-500"/> {r.views || 0}</span>
+                                <span className={`flex items-center gap-1 ${(r.preparation_time || 15) > 45 ? 'text-red-500 font-black' : ''}`} title="Temps de préparation"><Clock size={14} className={(r.preparation_time || 15) > 45 ? 'text-red-500' : 'text-orange-500'}/> {r.preparation_time || 15} min</span>
                              </div>
                           </td>
                           <td className="p-4">
@@ -1287,10 +1380,11 @@ export default function AdminNutritionAfricaine() {
                           </td>
                        </tr>
                     ))}
-                    {recipes.filter(r => recipeFilterFast ? ((r.preparation_time || 15) < 30) : true).length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-400 font-bold">Aucune recette trouvée.</td></tr>}
+                    {recipes.filter(r => recipeFilterFast ? ((r.preparation_time || 15) < 30) : true).filter(r => recipeSearch ? r.nom.toLowerCase().includes(recipeSearch.toLowerCase()) : true).length === 0 && <tr><td colSpan={6} className="p-10 text-center text-zinc-400 font-bold">Aucune recette trouvée.</td></tr>}
                  </tbody>
               </table>
            </div>
+           )}
         </div>
         )}
 
