@@ -13,16 +13,11 @@ const spaceGrotesk = { className: "font-sans" };
 
 const DEFAULT_RECIPES = [
   // --- PETITS-DÉJEUNERS ---
-  { type: "Petit-déjeuner", nom: "Lakh allégé (Mil & Lait)", calories: 300, is_bol_commun: false, bienfaits: "Riche en calcium et en sucres lents pour éviter le coup de barre de 11h.", ingredients: [{nom: "Mil", quantite: 50, unite: "g", rayon: "Marché local"}, {nom: "Lait demi-écrémé", quantite: 50, unite: "ml", rayon: "Supermarché"}, {nom: "Noix de muscade", quantite: 1, unite: "pincée", rayon: "Supermarché"}] },
-  { type: "Petit-déjeuner", nom: "Flocons d'avoine & Banane", calories: 320, is_bol_commun: false, bienfaits: "Les fibres solubles de l'avoine gonflent dans l'estomac pour une satiété longue durée.", ingredients: [{nom: "Flocons d'avoine", quantite: 40, unite: "g", rayon: "Supermarché"}, {nom: "Banane", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
-  { type: "Petit-déjeuner", nom: "Tartines de Seigle & Sardines", calories: 310, is_bol_commun: false, bienfaits: "Plein d'Oméga-3 excellents pour le cœur et le cerveau, avec un pain à IG très bas.", ingredients: [{nom: "Pain de seigle", quantite: 2, unite: "tranche", rayon: "Supermarché"}, {nom: "Sardines à l'huile (égouttées)", quantite: 50, unite: "g", rayon: "Supermarché"}, {nom: "Jus de citron", quantite: 1, unite: "càc", rayon: "Marché local"}] },
-  { type: "Petit-déjeuner", nom: "Omelette aux Légumes & Pain Complet", calories: 280, is_bol_commun: false, bienfaits: "Des protéines de haute qualité dès le matin pour nourrir vos muscles.", ingredients: [{nom: "Oeufs", quantite: 2, unite: "pièce", rayon: "Supermarché"}, {nom: "Pain complet", quantite: 1, unite: "tranche", rayon: "Supermarché"}, {nom: "Tomate", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
+  { type: "Petit-déjeuner", nom: "Lakh allégé (Mil & Lait) + Kinkeliba", calories: 300, is_bol_commun: false, bienfaits: "Riche en calcium et en sucres lents pour éviter le coup de barre de 11h.", ingredients: [{nom: "Mil", quantite: 50, unite: "g", rayon: "Marché local"}, {nom: "Lait demi-écrémé", quantite: 50, unite: "ml", rayon: "Supermarché"}, {nom: "Kinkeliba sans sucre", quantite: 1, unite: "tasse", rayon: "Marché local"}] },
+  { type: "Petit-déjeuner", nom: "Flocons d'avoine, Banane & Café Touba", calories: 320, is_bol_commun: false, bienfaits: "Les fibres solubles de l'avoine gonflent dans l'estomac pour une satiété longue durée.", ingredients: [{nom: "Flocons d'avoine", quantite: 40, unite: "g", rayon: "Supermarché"}, {nom: "Banane", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Café Touba allégé", quantite: 1, unite: "tasse", rayon: "Marché local"}] },
+  { type: "Petit-déjeuner", nom: "Tartines de Seigle, Sardines & Thé Vert", calories: 310, is_bol_commun: false, bienfaits: "Plein d'Oméga-3 excellents pour le cœur et le cerveau, avec un pain à IG très bas.", ingredients: [{nom: "Pain de seigle", quantite: 2, unite: "tranche", rayon: "Supermarché"}, {nom: "Sardines à l'huile", quantite: 50, unite: "g", rayon: "Supermarché"}, {nom: "Thé vert menthe", quantite: 1, unite: "tasse", rayon: "Supermarché"}] },
+  { type: "Petit-déjeuner", nom: "Omelette aux Légumes & Infusion de Djar", calories: 280, is_bol_commun: false, bienfaits: "Des protéines de haute qualité dès le matin pour nourrir vos muscles.", ingredients: [{nom: "Oeufs", quantite: 2, unite: "pièce", rayon: "Supermarché"}, {nom: "Pain complet", quantite: 1, unite: "tranche", rayon: "Supermarché"}, {nom: "Infusion de Djar", quantite: 1, unite: "tasse", rayon: "Marché local"}] },
   { type: "Petit-déjeuner", nom: "Arraw (Bouillie de Mil) sans sucre & Kinkeliba", calories: 280, is_bol_commun: false, bienfaits: "Une infusion détoxifiante pour le foie associée à l'énergie douce du mil.", ingredients: [{nom: "Boules de mil (Arraw)", quantite: 50, unite: "g", rayon: "Marché local"}, {nom: "Lait écrémé", quantite: 150, unite: "ml", rayon: "Supermarché"}, {nom: "Feuilles de Kinkeliba", quantite: 1, unite: "poignée", rayon: "Marché local"}] },
-  { type: "Petit-déjeuner", nom: "Tartines de Pain de Son & Thon Nature", calories: 330, is_bol_commun: false, bienfaits: "Des protéines maigres et un maximum de fibres pour nettoyer le tube digestif.", ingredients: [{nom: "Pain de Son", quantite: 2, unite: "tranche", rayon: "Supermarché"}, {nom: "Thon au naturel", quantite: 50, unite: "g", rayon: "Supermarché"}, {nom: "Concombre", quantite: 0.5, unite: "pièce", rayon: "Marché local"}] },
-  { type: "Petit-déjeuner", nom: "Café au Lait Écrémé & Œufs Durs", calories: 260, is_bol_commun: false, bienfaits: "Un boost d'énergie immédiat sans les matières grasses du lait entier.", ingredients: [{nom: "Oeufs durs", quantite: 2, unite: "pièce", rayon: "Supermarché"}, {nom: "Café soluble", quantite: 1, unite: "càc", rayon: "Supermarché"}, {nom: "Lait écrémé", quantite: 100, unite: "ml", rayon: "Supermarché"}] },
-  { type: "Petit-déjeuner", nom: "Thé Vert Ataya & Tartine Avocat", calories: 290, is_bol_commun: false, bienfaits: "Des antioxydants puissants et de bonnes graisses végétales pour l'équilibre hormonal.", ingredients: [{nom: "Thé Vert (Ataya)", quantite: 1, unite: "tasse", rayon: "Marché local"}, {nom: "Avocat", quantite: 0.5, unite: "pièce", rayon: "Marché local"}, {nom: "Pain Complet", quantite: 1, unite: "tranche", rayon: "Supermarché"}] },
-  { type: "Petit-déjeuner", nom: "Bouillie d'Avoine au Bouye (Baobab)", calories: 290, is_bol_commun: false, bienfaits: "Une dose de Vitamine C explosive pour renforcer le système immunitaire dès le réveil.", ingredients: [{nom: "Flocons d'avoine", quantite: 40, unite: "g", rayon: "Supermarché"}, {nom: "Poudre de Bouye", quantite: 1, unite: "càs", rayon: "Boutique Onyx"}] },
-  { type: "Petit-déjeuner", nom: "Pain Complet, Fromage Blanc & Kinkeliba", calories: 270, is_bol_commun: false, bienfaits: "Un apport en probiotiques parfait pour une digestion facilitée.", ingredients: [{nom: "Fromage blanc", quantite: 100, unite: "g", rayon: "Supermarché"}, {nom: "Pain complet", quantite: 1, unite: "tranche", rayon: "Supermarché"}, {nom: "Kinkeliba", quantite: 1, unite: "tasse", rayon: "Marché local"}] },
   // --- DÉJEUNERS ---
   { type: "Déjeuner", nom: "Thieboudienne (Option Fonio)", calories: 600, is_bol_commun: true, bienfaits: "Le plat national allégé : riche en fibres et minéraux grâce à l'incorporation du Fonio.", ingredients: [{nom: "Thiof (Poisson)", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Fonio", quantite: 80, unite: "g", rayon: "Boutique Onyx"}, {nom: "Chou", quantite: 0.5, unite: "pièce", rayon: "Marché local"}, {nom: "Huile d'olive ou colza", quantite: 1, unite: "càs", rayon: "Supermarché"}, {nom: "Carotte", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
   { type: "Déjeuner", nom: "Mafé allégé au Poulet (Beurre d'arachide)", calories: 550, is_bol_commun: true, bienfaits: "L'énergie durable des bonnes graisses de l'arachide pure, sans exploser les calories.", ingredients: [{nom: "Blanc de Poulet", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Pâte d'arachide pure", quantite: 30, unite: "g", rayon: "Boutique Onyx"}, {nom: "Fonio ou Riz", quantite: 60, unite: "g", rayon: "Marché local"}, {nom: "Oignon", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
@@ -50,15 +45,15 @@ const DEFAULT_RECIPES = [
   { type: "Dîner", nom: "Brochettes de Poisson et Tomates", calories: 350, is_bol_commun: false, bienfaits: "Apporte des protéines pures et du lycopène, un puissant antioxydant issu de la tomate cuite.", ingredients: [{nom: "Poisson blanc", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Tomates cerises", quantite: 100, unite: "g", rayon: "Marché local"}, {nom: "Huile d'olive", quantite: 1, unite: "càc", rayon: "Supermarché"}] },
   { type: "Dîner", nom: "Steak de Viande Maigre & Salade Verte", calories: 390, is_bol_commun: false, bienfaits: "Recharge votre corps en fer assimilable, idéal pour la récupération cellulaire nocturne.", ingredients: [{nom: "Viande de Bœuf Maigre", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"}, {nom: "Salade Verte", quantite: 1, unite: "portion", rayon: "Marché local"}, {nom: "Vinaigrette", quantite: 1, unite: "càs", rayon: "Supermarché"}] },
   // --- COLLATIONS ---
-  { type: "Collation", nom: "Poignée d'Arachides Grillées", calories: 150, is_bol_commun: false, bienfaits: "Coupe-faim riche en bonnes graisses pour relancer le cerveau à 16h.", ingredients: [{nom: "Arachides grillées", quantite: 30, unite: "g", rayon: "Marché local"}] },
-  { type: "Collation", nom: "Fruit de Saison (Mangue, Papaye...)", calories: 100, is_bol_commun: false, bienfaits: "Apporte du sucre 100% naturel et des vitamines pour un coup de boost.", ingredients: [{nom: "Fruit au choix", quantite: 1, unite: "pièce", rayon: "Marché local"}] },
-  { type: "Collation", nom: "Infusion Bissap Pur & Noix de Cajou", calories: 160, is_bol_commun: false, bienfaits: "Apport en Magnésium anti-stress et effet jambes légères grâce au Bissap.", ingredients: [{nom: "Bissap rouge séché", quantite: 10, unite: "g", rayon: "Boutique Onyx"}, {nom: "Noix de cajou", quantite: 15, unite: "g", rayon: "Boutique Onyx"}] },
+  { type: "Collation", nom: "Yaourt Nature & Éclats d'Arachides", calories: 150, is_bol_commun: false, bienfaits: "Protéines du yaourt relevées par les bonnes graisses de l'arachide.", ingredients: [{nom: "Yaourt nature", quantite: 1, unite: "pot", rayon: "Supermarché"}, {nom: "Arachides grillées", quantite: 10, unite: "g", rayon: "Marché local"}] },
+  { type: "Collation", nom: "Fruit de Saison & Lait Caillé (Sow)", calories: 180, is_bol_commun: false, bienfaits: "Un mix parfait entre vitamines et ferments lactiques.", ingredients: [{nom: "Fruit au choix", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Sow Nature", quantite: 100, unite: "ml", rayon: "Marché local"}] },
+  { type: "Collation", nom: "Infusion Bissap Pur & Noix de Cajou", calories: 160, is_bol_commun: false, bienfaits: "Apport en Magnésium anti-stress et effet jambes légères grâce au Bissap.", ingredients: [{nom: "Bissap rouge séché", quantite: 1, unite: "tasse", rayon: "Boutique Onyx"}, {nom: "Noix de cajou", quantite: 15, unite: "g", rayon: "Boutique Onyx"}] },
   { type: "Collation", nom: "Yaourt Nature à la Poudre de Bouye", calories: 140, is_bol_commun: false, bienfaits: "Probiotiques du yaourt alliés aux fibres du baobab pour une flore intestinale en béton.", ingredients: [{nom: "Yaourt nature", quantite: 1, unite: "pot", rayon: "Supermarché"}, {nom: "Poudre de Baobab", quantite: 1, unite: "càc", rayon: "Boutique Onyx"}] },
   { type: "Collation", nom: "Bâtonnets de Carotte & Concombre", calories: 80, is_bol_commun: false, bienfaits: "Une option zéro culpabilité, ultra-croquante et hydratante.", ingredients: [{nom: "Carotte", quantite: 1, unite: "pièce", rayon: "Marché local"}, {nom: "Concombre", quantite: 0.5, unite: "pièce", rayon: "Marché local"}] },
-  { type: "Collation", nom: "Graines de Courge Grillées", calories: 150, is_bol_commun: false, bienfaits: "Une excellente source de zinc pour fortifier l'immunité et embellir la peau.", ingredients: [{nom: "Graines de courge", quantite: 25, unite: "g", rayon: "Boutique Onyx"}] },
+  { type: "Collation", nom: "Fromage Blanc & Graines de Courge", calories: 150, is_bol_commun: false, bienfaits: "Excellente source de protéines et de zinc pour embellir la peau.", ingredients: [{nom: "Fromage blanc", quantite: 100, unite: "g", rayon: "Supermarché"}, {nom: "Graines de courge", quantite: 15, unite: "g", rayon: "Boutique Onyx"}] },
   { type: "Collation", nom: "Infusion Kinkeliba & Chocolat Noir", calories: 120, is_bol_commun: false, bienfaits: "Gourmandise antioxydante couplée au nettoyage hépatique du Kinkeliba.", ingredients: [{nom: "Kinkeliba", quantite: 1, unite: "tasse", rayon: "Marché local"}, {nom: "Chocolat noir 70%", quantite: 1, unite: "carré", rayon: "Supermarché"}] },
   { type: "Collation", nom: "Lait Caillé (Sow) Nature", calories: 130, is_bol_commun: false, bienfaits: "Riche en calcium et ferments lactiques indispensables pour une bonne digestion.", ingredients: [{nom: "Sow Nature", quantite: 150, unite: "ml", rayon: "Marché local"}] },
-  { type: "Collation", nom: "2 Dattes & Amandes", calories: 160, is_bol_commun: false, bienfaits: "L'énergie rapide absolue pour contrer une fringale ou avant une session de sport.", ingredients: [{nom: "Dattes", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Amandes", quantite: 10, unite: "g", rayon: "Supermarché"}] }
+  { type: "Collation", nom: "Dattes & Thé Vert Menthe", calories: 110, is_bol_commun: false, bienfaits: "L'énergie rapide absolue associée aux antioxydants du thé.", ingredients: [{nom: "Dattes", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Thé vert menthe", quantite: 1, unite: "tasse", rayon: "Supermarché"}] }
 ];
 
 export default function AdminNutritionAfricaine() {
@@ -366,6 +361,49 @@ export default function AdminNutritionAfricaine() {
           setIsImportingRecipeCsv(false);
           setRecipeCsvImportProgress(0);
       }
+  };
+
+  const handleAIGenerateRecipe = () => {
+    const bases = ["Fonio (Boutique Onyx)", "Riz Étuvé (Marché)", "Pain Complet (Supermarché)", "Spaghetti Complet (Supermarché)"];
+    const proteins = ["Blanc de Poulet", "Thiof (Poisson)", "Viande Maigre", "Niébé"];
+    const veggies = ["Gombo", "Carottes", "Chou", "Jaxatu"];
+    const condiments = ["Soumbala", "Grains de Djar", "Pâte d'arachide pure", "Poudre de Moringa"];
+    const hotDrinks = ["Kinkeliba sans sucre", "Thé vert menthe", "Infusion de Djar", "Café Touba allégé"];
+
+    const isBreakfast = Math.random() > 0.5;
+    const type = isBreakfast ? 'Petit-déjeuner' : 'Déjeuner';
+    
+    let generatedName = "";
+    let ingredients = [];
+
+    if (isBreakfast) {
+      const drink = hotDrinks[Math.floor(Math.random()*hotDrinks.length)];
+      generatedName = `Tartines de Pain Complet & Œufs + ${drink}`;
+      ingredients = [
+        {nom: "Pain Complet", quantite: 2, unite: "tranche", rayon: "Supermarché"},
+        {nom: "Oeufs", quantite: 2, unite: "pièce", rayon: "Supermarché"},
+        {nom: drink, quantite: 1, unite: "tasse", rayon: "Marché local"}
+      ];
+    } else {
+      const selectedProtein = proteins[Math.floor(Math.random()*proteins.length)];
+      const selectedBase = bases[Math.floor(Math.random()*bases.length)];
+      generatedName = `${selectedProtein} aux légumes et ${selectedBase.split(' (')[0]}`;
+      ingredients = [
+         {nom: selectedProtein, quantite: 150, unite: "g", rayon: "Boucherie / Pêche"},
+         {nom: selectedBase.split(' (')[0], quantite: 80, unite: "g", rayon: selectedBase.includes("Supermarché") ? "Supermarché" : "Marché local"},
+         {nom: veggies[Math.floor(Math.random()*veggies.length)], quantite: 100, unite: "g", rayon: "Marché local"},
+         {nom: condiments[Math.floor(Math.random()*condiments.length)], quantite: 1, unite: "càc", rayon: "Boutique Onyx"}
+      ];
+    }
+
+    setRecipeForm({
+       id: '', type, nom: generatedName, calories: 450, proteins: 30, carbs: 45, fats: 15, is_bol_commun: false,
+       recipe: "Recette générée par IA respectant le mix Sénégalais-Moderne. Assurez-vous d'utiliser le condiment uniquement pour relever le goût.",
+       bienfaits: "Équilibre parfait entre fibres, protéines maigres et index glycémique contrôlé.",
+       ingredients, image_url: '', description: '', gallery: []
+    });
+    setEditingRecipe(null);
+    setShowRecipeModal(true);
   };
 
   const handleOpenRecipeModal = (recipe?: any) => {
@@ -859,6 +897,7 @@ export default function AdminNutritionAfricaine() {
                         <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={14}/> Import CSV</button>
                         <button onClick={downloadRecipeCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
                         <button onClick={handleInitDefaultRecipes} className="bg-blue-50 text-blue-600 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-100 transition-all shadow-sm flex items-center justify-center gap-2"><Sparkles size={14}/> Init 40 Recettes</button>
+                        <button onClick={handleAIGenerateRecipe} className="bg-[#39FF14]/20 text-green-700 border border-[#39FF14]/50 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#39FF14]/30 transition-all shadow-sm flex items-center justify-center gap-2"><Bot size={14}/> Générer via IA</button>
                         <button onClick={() => handleOpenRecipeModal()} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={14}/> Nouvelle Recette</button>
                      </>
                   )}
