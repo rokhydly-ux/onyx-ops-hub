@@ -20,6 +20,16 @@ const PROTEINS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v178137
 const CARBS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375738/A_cute__highly_detailed_3D_202606131825_1_epyark.jpg";
 const CALS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375768/A_cute__highly_detailed_3D_202606131825_mxabkm.jpg";
 
+const RECIPE_FILTERS = [
+  { id: 'Tous', label: 'Toutes les Recettes', icon: null },
+  { id: 'Favoris', label: 'Mes Favoris', icon: null },
+  { id: 'Populaire', label: 'Top Recettes', icon: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781443964/A_cute__highly_detailed_3D_202606141332_ggiubt.jpg' },
+  { id: 'Low Calories', label: 'Ventre Plat / Woyof', icon: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444369/A_cute__highly_detailed_3D_202606141339_gqzmei.jpg' },
+  { id: 'Desserts', label: 'Collations Saines', icon: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg' },
+  { id: 'Healthy', label: 'Fraîcheur / Détox', icon: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444564/A_cute__highly_detailed_3D_202606141342_yn2v23.jpg' },
+  { id: 'Main Course', label: 'Plats de Résistance', icon: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444638/A_cute__highly_detailed_3D_202606141343_zsz5mp.jpg' }
+];
+
 const SHOP_DATA = [
   {
     "categorie_nom": "Super-Aliments & Céréales Locales",
@@ -258,6 +268,8 @@ export default function NutritionDashboard() {
   
   // Moteur de recherche et portions
   const [foodSearchQuery, setFoodSearchQuery] = useState("");
+  const [offResults, setOffResults] = useState<any[]>([]);
+  const [isSearchingOFF, setIsSearchingOFF] = useState(false);
   const [selectedFoodDB, setSelectedFoodDB] = useState<any>(null);
   const [foodQuantity, setFoodQuantity] = useState(1);
   const [foodDatabaseDB, setFoodDatabaseDB] = useState<any[]>([]);
@@ -757,6 +769,39 @@ export default function NutritionDashboard() {
     return () => clearInterval(interval);
   }, [dailyLogs]);
 
+  // Moteur de recherche hybride (Local + OpenFoodFacts)
+  useEffect(() => {
+     if (foodSearchQuery.length >= 3) {
+        const fetchOFF = async () => {
+           setIsSearchingOFF(true);
+           try {
+              const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(foodSearchQuery)}&search_simple=1&action=process&json=1&page_size=5`);
+              const data = await res.json();
+              if (data && data.products) {
+                 const mapped = data.products.map((p:any) => ({
+                    id: p._id,
+                    nom: p.product_name || "Produit inconnu",
+                    categorie: "Produit Industriel (OpenFoodFacts)",
+                    portion_standard_nom: "100g",
+                    portion_standard_grammes: 100,
+                    valeurs_pour_100g: { calories: p.nutriments?.['energy-kcal_100g'] || 0, glucides: p.nutriments?.carbohydrates_100g || 0, lipides: p.nutriments?.fat_100g || 0, proteines: p.nutriments?.proteins_100g || 0, fibres: p.nutriments?.fiber_100g || 0 },
+                    flags_ia: { ultra_transforme: true },
+                    isFood: true,
+                    is_from_off: true,
+                    message_coach_ia: "Ce produit industriel contient souvent des sucres et additifs cachés. Essaie de trouver une alternative brute (ex: fruits frais, oléagineux locaux)."
+                 })).filter((p:any) => p.nom !== "Produit inconnu");
+                 setOffResults(mapped);
+              }
+           } catch(e) { console.error(e); }
+           setIsSearchingOFF(false);
+        };
+        const delay = setTimeout(fetchOFF, 800);
+        return () => clearTimeout(delay);
+     } else {
+        setOffResults([]);
+     }
+  }, [foodSearchQuery]);
+
   // Hook de relance d'hydratation
   useEffect(() => {
      const waterInterval = setInterval(() => {
@@ -1221,14 +1266,49 @@ export default function NutritionDashboard() {
 
       setSelectedMealModal(null);
       
-      // --- L'Intervention de l'Avatar IA (Rokhy) ---
-      if (foodObj?.flags_ia?.high_sodium) {
-         setRokhyMessage({ title: "Attention au sel !", text: foodObj.message_coach_ia, type: 'warning' });
-      } else if (newFats > fatsGoal) {
-         setRokhyMessage({ title: "Quota de lipides atteint", text: "Attention à l'huile pour le reste de la journée ! Privilégie une cuisson vapeur ou au four ce soir.", type: 'warning' });
-      } else if (foodObj?.message_coach_ia) {
-         setRokhyMessage({ title: "Bon choix", text: foodObj.message_coach_ia, type: 'success' });
+      // Sauvegarde des produits OpenFoodFacts validés dans la DB locale Onyx (Auto-apprentissage)
+      if (foodObj?.is_from_off) {
+         const newFoodDB = {
+             nom: foodObj.nom,
+             categorie: foodObj.categorie,
+             portion_standard_nom: foodObj.portion_standard_nom,
+             portion_standard_grammes: foodObj.portion_standard_grammes,
+             valeurs_pour_100g: foodObj.valeurs_pour_100g,
+             message_coach_ia: foodObj.message_coach_ia
+         };
+         supabase.from('nutrition_foods').insert([newFoodDB]).then(({error}) => {
+             if (!error) setFoodDatabaseDB(prev => [...prev, { ...foodObj, is_from_off: false }]);
+         });
       }
+
+      // --- L'Intervention de l'Avatar IA (Rokhy) Évoluée ---
+      let alertTitle = "Conseil Nutrition 🍏";
+      let alertText = foodObj?.message_coach_ia || "Bon choix ! N'oublie pas de bien t'hydrater pendant le repas.";
+      let alertType: 'warning' | 'success' | 'info' = 'success';
+
+      if (foodObj?.flags_ia?.ultra_transforme) {
+         alertTitle = "Produit Ultra-Transformé ⚠️";
+         alertText = foodObj.message_coach_ia || "Ce produit industriel contient souvent des additifs et du sucre caché. Essaie de privilégier des alternatives brutes (ex: fruits frais, oléagineux).";
+         alertType = 'warning';
+      } else if (calsRounded > 600) {
+         alertTitle = "Repas très calorique 🔥";
+         alertText = "Oula ! Ce repas est très riche en énergie. Assure-toi de faire un peu d'exercice aujourd'hui et d'alléger le repas suivant (ex: salade ou soupe légère).";
+         alertType = 'warning';
+      } else if (carbsRounded > 60) {
+         alertTitle = "Alerte Glucides (Sucre) 🍞";
+         alertText = "Ce plat va provoquer un pic d'insuline et te donner faim plus tard. La prochaine fois, limite la portion à 1/4 d'assiette et ajoute plus de légumes locaux !";
+         alertType = 'warning';
+      } else if (foodObj?.flags_ia?.high_sodium) {
+         alertTitle = "Attention au sel ! 🧂";
+         alertText = foodObj.message_coach_ia || "Ce plat est très salé. Pense à boire beaucoup d'eau pour éviter la rétention et protéger ta tension.";
+         alertType = 'warning';
+      } else if (newFats > fatsGoal) {
+         alertTitle = "Quota de lipides atteint 🥑";
+         alertText = "Attention à l'huile pour le reste de la journée ! Privilégie une cuisson vapeur ou grillée sans huile pour le prochain repas.";
+         alertType = 'warning';
+      }
+
+      setRokhyMessage({ title: alertTitle, text: alertText, type: alertType });
 
       if (clientProfile) {
           const todayStr = new Date().toISOString().split('T')[0];
@@ -2303,7 +2383,7 @@ export default function NutritionDashboard() {
                                 <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 text-zinc-400">
                                    <Plus size={16} />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{itemsForThisMeal.length > 0 ? "Ajouter un autre plat" : "Rechercher un plat"}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">{itemsForThisMeal.length > 0 ? "Ajouter un autre plat ou produit" : "Recherche un plat ou un produit à ajouter à ma journée"}</span>
                              </div>
                           )}
                        </div>
@@ -2401,7 +2481,7 @@ export default function NutritionDashboard() {
                                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18}/>
                                      <input 
                                         type="text" 
-                                        placeholder="Rechercher (ex: Fonio, Thiof)..." 
+                                        placeholder="Rechercher un plat ou produit..." 
                                         value={foodSearchQuery}
                                         onChange={e => { setFoodSearchQuery(e.target.value); setSelectedFoodDB(null); setIsScanning(false); }}
                                         className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black"
@@ -2426,18 +2506,24 @@ export default function NutritionDashboard() {
                              
                              {!selectedFoodDB && foodSearchQuery && (
                                 <div className="max-h-60 overflow-y-auto space-y-2 mb-6 border border-zinc-100 rounded-xl p-2">
-                                   {[...allRecipesDB.map(r => ({ ...r, isRecipe: true })), ...foodDatabaseDB.map(f => ({ ...f, isFood: true }))]
-                                      .filter(item => item.nom.toLowerCase().includes(foodSearchQuery.toLowerCase()))
-                                      .map(item => (
-                                      <div key={item.id} onClick={() => { setSelectedFoodDB(item); setFoodQuantity(1); setFoodUnit("portion"); }} className="p-3 bg-white hover:bg-zinc-50 rounded-lg cursor-pointer flex justify-between items-center transition-colors">
+                                   {(() => {
+                                      const localMatches = [...allRecipesDB.map(r => ({ ...r, isRecipe: true })), ...foodDatabaseDB.map(f => ({ ...f, isFood: true }))]
+                                         .filter(item => item.nom.toLowerCase().includes(foodSearchQuery.toLowerCase()));
+                                      const combinedResults = [...localMatches, ...offResults];
+                                      return combinedResults.map((item, index) => (
+                                      <div key={item.id || index} onClick={() => { setSelectedFoodDB(item); setFoodQuantity(1); setFoodUnit("portion"); }} className="p-3 bg-white hover:bg-zinc-50 rounded-lg cursor-pointer flex justify-between items-center transition-colors">
                                          <div>
                                             <p className="font-bold text-sm">{item.nom}</p>
                                             <p className="text-[10px] text-zinc-500 uppercase font-black">{item.isRecipe ? item.type : item.categorie}</p>
                                          </div>
                                          <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{item.isRecipe ? item.calories : item.valeurs_pour_100g?.calories} kcal</span>
                                       </div>
-                                   ))}
-                                   {[...allRecipesDB.map(r => ({ ...r, isRecipe: true })), ...foodDatabaseDB.map(f => ({ ...f, isFood: true }))].filter(item => item.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).length === 0 && (
+                                      ));
+                                   })()}
+                                   {isSearchingOFF && (
+                                      <p className="text-xs text-zinc-400 text-center p-4 font-bold flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin"/> Recherche étendue en cours...</p>
+                                   )}
+                                   {!isSearchingOFF && [...allRecipesDB.map(r => ({ ...r, isRecipe: true })), ...foodDatabaseDB.map(f => ({ ...f, isFood: true }))].filter(item => item.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).length === 0 && offResults.length === 0 && (
                                       <p className="text-xs text-zinc-400 text-center p-4 font-bold">Aucun résultat trouvé. Essayez autre chose.</p>
                                    )}
                                 </div>
@@ -3099,32 +3185,38 @@ export default function NutritionDashboard() {
                    />
                 </div>
                 
-                <div className="flex gap-2 overflow-x-auto pb-4 mb-4 custom-scrollbar">
-                   {['Tous', 'Favoris', 'Ndekki', 'Déjeuner', 'Dîner', 'Protéinés', 'Low Carb', 'Low Fat', 'Peu Calorique'].map(filter => (
+                <div className="flex gap-4 overflow-x-auto pb-6 mb-4 custom-scrollbar">
+                   {RECIPE_FILTERS.map(filter => (
                       <button 
-                         key={filter} 
-                         onClick={() => setRecipeFilter(filter)} 
-                         className={`shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${recipeFilter === filter ? 'bg-black text-[#39FF14] shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-black'}`}
+                         key={filter.id} 
+                         onClick={() => setRecipeFilter(filter.id)} 
+                         className={`shrink-0 px-5 py-2.5 rounded-[2rem] text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 border-2 ${recipeFilter === filter.id ? 'bg-black text-[#39FF14] border-black shadow-xl scale-105 opacity-100' : 'bg-zinc-50 text-zinc-500 border-zinc-200 opacity-60 hover:opacity-100 hover:bg-zinc-100 hover:scale-105'}`}
                       >
-                         {filter}
+                         {filter.icon && <img src={filter.icon} alt={filter.label} className="w-8 h-8 rounded-full object-cover shadow-sm" />}
+                         {filter.label}
                       </button>
                    ))}
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
-                   {allRecipesDB.filter(r => {
+                   {(() => {
+                      let filteredRecipes = allRecipesDB.filter(r => {
                          const matchSearch = r.nom?.toLowerCase().includes(favoriteSearchQuery.toLowerCase());
                          if (!matchSearch) return false;
                          if (recipeFilter === 'Favoris') return favoriteMeals.some(f => (f.meal || f.nom) === r.nom);
-                         if (recipeFilter === 'Ndekki') return r.type === 'Petit-déjeuner';
-                         if (recipeFilter === 'Déjeuner') return r.type === 'Déjeuner';
-                         if (recipeFilter === 'Dîner') return r.type === 'Dîner';
-                         if (recipeFilter === 'Protéinés') return r.proteins >= 20;
-                         if (recipeFilter === 'Low Carb') return r.carbs <= 30;
-                         if (recipeFilter === 'Low Fat') return r.fats <= 15;
-                         if (recipeFilter === 'Peu Calorique') return r.calories <= 350;
+                         if (recipeFilter === 'Populaire') return true;
+                         if (recipeFilter === 'Main Course') return r.type === 'Déjeuner' || r.type === 'Dîner';
+                         if (recipeFilter === 'Healthy') return r.carbs <= 40 && r.fats <= 15;
+                         if (recipeFilter === 'Low Calories') return r.calories <= 350;
+                         if (recipeFilter === 'Desserts') return r.type === 'Collation' || r.type === 'Petit-déjeuner';
                          return true;
-                      }).map((fav, i) => {
+                      });
+                      
+                      if (recipeFilter === 'Populaire') {
+                         filteredRecipes = filteredRecipes.sort((a, b) => (b.views || 0) - (a.views || 0));
+                      }
+                      
+                      return filteredRecipes.map((fav, i) => {
                        const name = fav.nom;
                        const cals = fav.calories;
                        const prots = fav.proteins;
@@ -3161,7 +3253,8 @@ export default function NutritionDashboard() {
                                <CheckCircle size={14}/> Ajouter au menu du jour
                            </button>
                        </div>
-                   )})}
+                   )});
+                   })()}
                    {allRecipesDB.length === 0 && (
                       <div className="col-span-full py-8 text-center text-zinc-500 font-bold">Aucune recette disponible.</div>
                    )}
@@ -3946,12 +4039,6 @@ export default function NutritionDashboard() {
                   <MessageCircle size={20} onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="text-zinc-400 hover:text-[#39FF14] cursor-pointer transition-colors"/>
                </div>
                
-               <button onClick={handleToggleFasting} className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2 border w-full md:w-auto justify-center ${isFastingMode ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-zinc-100 text-zinc-500 border-zinc-200 hover:bg-zinc-200'}`}>
-                 <Moon size={14}/> Jeûne 16/8
-               </button>
-               <button onClick={() => { handleMealClick('Collation', null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-md flex items-center gap-2">
-                 <ScanLine size={14}/> Scanner un Code-Barres
-               </button>
             </div>
             <div>
                <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Liens Utiles</h4>
