@@ -22,12 +22,10 @@ export default function ClientLogin() {
       const { data: { user } } = await supabase.auth.getUser();
       const customSession = localStorage.getItem('onyx_custom_session');
       
-      if ((user && user.email !== 'rokhydly@gmail.com') || customSession) {
-        let role = user?.user_metadata?.role;
-        if (!role && customSession) {
-            const parsed = JSON.parse(customSession);
-            role = parsed.type === 'Commercial' || parsed.role === 'commercial' ? 'commercial' : 'Client';
-        }
+      // On empêche la redirection automatique si seule la session locale existe.
+      // Cela casse la BOUCLE INFINIE causée par le rejet du Middleware / AuthContext.
+      if (user && user.email !== 'rokhydly@gmail.com') {
+        const role = user?.user_metadata?.role;
         if (role === 'commercial') {
           router.replace('/crm/leads');
         } else {
@@ -124,9 +122,9 @@ export default function ClientLogin() {
 
       // 5. Redirection vers son espace personnel ou CRM
       if (isCommercial) {
-         router.push('/crm/leads');
+         window.location.href = '/crm/leads';
       } else {
-         router.push('/hub');
+         window.location.href = '/hub';
       }
       
     } catch (err: any) {

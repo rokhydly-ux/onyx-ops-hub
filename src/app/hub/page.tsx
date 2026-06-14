@@ -51,6 +51,7 @@ export default function OnyxHubPortal() {
 
   useEffect(() => {
     const verifyAuth = async () => {
+      try {
       // 1. Récupération de l'utilisateur authentifié (Supabase ou Session Locale)
       const { data: { user: authUser } } = await supabase.auth.getUser();
       const customSessionStr = localStorage.getItem('onyx_custom_session');
@@ -69,7 +70,7 @@ export default function OnyxHubPortal() {
       let profileData: any = null;
 
       // 2. Vérification s'il s'agit d'un super administrateur
-      if (user.id) {
+      if (user.id && String(user.id).includes('-')) { // Sécurité UUID
         const { data: userData } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
         if (userData) {
           role = userData.role;
@@ -85,7 +86,7 @@ export default function OnyxHubPortal() {
         let query = supabase.from('clients').select('*');
         if (userPhone) {
           query = query.eq('phone', userPhone);
-        } else if (user.id) {
+        } else if (user.id && String(user.id).includes('-')) {
           query = query.eq('id', user.id);
         }
         
@@ -138,7 +139,11 @@ export default function OnyxHubPortal() {
       console.log("Modules achetés trouvés :", purchasedModuleIds);
       setPurchasedModuleIds(purchasedModuleIds);
 
-      setLoading(false);
+      } catch (err) {
+        console.error('Erreur critique de vérification:', err);
+      } finally {
+        setLoading(false);
+      }
     };
     verifyAuth();
   }, []);
