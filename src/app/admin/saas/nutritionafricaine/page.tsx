@@ -364,6 +364,7 @@ export default function AdminNutritionAfricaine() {
                   if (existingRecipe) {
                       item.id = existingRecipe.id;
                   }
+                  if (tenantId) item.tenant_id = tenantId;
                   return item;
               });
 
@@ -663,6 +664,7 @@ export default function AdminNutritionAfricaine() {
                   } else {
                       item.produit_id = `prod_${Date.now()}_${Math.floor(Math.random()*1000)}`;
                   }
+                      if (tenantId) item.tenant_id = tenantId;
                   return item;
               });
 
