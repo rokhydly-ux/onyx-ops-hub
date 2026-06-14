@@ -3200,6 +3200,7 @@ export default function NutritionDashboard() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                    {(() => {
+                      const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
                          const matchSearch = r.nom?.toLowerCase().includes(favoriteSearchQuery.toLowerCase());
                          if (!matchSearch) return false;
@@ -3221,6 +3222,7 @@ export default function NutritionDashboard() {
                        const cals = fav.calories;
                        const prots = fav.proteins;
                        const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
+                       const isTop10 = top10RecipeIds.includes(fav.id);
                        
                        const tags = [];
                        if (prots >= 20) tags.push("Protéiné");
@@ -3233,10 +3235,15 @@ export default function NutritionDashboard() {
                            <div>
                                {fav.image_url && <img src={fav.image_url} alt={name} className="w-full h-32 object-cover rounded-xl mb-3" />}
                                <div className="flex justify-between items-start mb-2">
-                                   <p className="font-bold text-sm text-black">{name}</p>
-                                   <button onClick={() => toggleFavorite(fav)} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 hover:text-red-500'}`}><HeartPulse size={18} className={isFav ? "fill-current" : ""}/></button>
+                                   <div className="flex flex-col">
+                                       <p className="font-bold text-sm text-black line-clamp-1" title={name}>{name}</p>
+                                       <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Eye size={12}/> {fav.views || 0} vues</p>
+                                       <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Clock size={12}/> {fav.preparation_time || '0'} min</p>
+                                   </div>
+                                   <button onClick={() => toggleFavorite(fav)} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 hover:text-red-500'} shrink-0`}><HeartPulse size={18} className={isFav ? "fill-current" : ""}/></button>
                                </div>
                                <div className="flex flex-wrap gap-1 mb-3">
+                                   {isTop10 && <span className="bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"><Trophy size={10}/> Top 10</span>}
                                    {tags.map(t => <span key={t} className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">{t}</span>)}
                                </div>
                                <div className="flex flex-wrap gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
@@ -69,8 +69,9 @@ export default function AdminNutritionAfricaine() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
-  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', video_url: '', description: '', gallery: [] as string[] });
+  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', video_url: '', description: '', gallery: [] as string[] });
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [recipeFilterFast, setRecipeFilterFast] = useState(false);
   const fileProductInputRef = useRef<HTMLInputElement>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -248,6 +249,7 @@ export default function AdminNutritionAfricaine() {
                           proteins: Number(r['proteins'] || r['protéines']) || 0,
                           carbs: Number(r['carbs'] || r['glucides']) || 0,
                           fats: Number(r['fats'] || r['lipides']) || 0,
+                          preparation_time: Number(r['preparation_time'] || r['temps']) || 15,
                           is_bol_commun: r['is_bol_commun']?.toLowerCase() === 'oui' || String(r['is_bol_commun']) === 'true',
                           recipe: r['etapes_cuisson'] || r['recipe'] || r['recette_details'] || '',
                           bienfaits: r['bienfaits'] || r['benefits'] || '',
@@ -297,6 +299,7 @@ export default function AdminNutritionAfricaine() {
               proteins: Math.round((r.calories * 0.2) / 4),
               carbs: Math.round((r.calories * 0.5) / 4),
               fats: Math.round((r.calories * 0.3) / 9),
+              preparation_time: 15,
               is_bol_commun: r.is_bol_commun,
               bienfaits: r.bienfaits,
               recipe: `Préparation :\n${r.ingredients.map((i: any) => `- ${i.quantite}${i.unite} ${i.nom}`).join('\n')}`,
@@ -402,7 +405,7 @@ export default function AdminNutritionAfricaine() {
     }
 
     setRecipeForm({
-       id: '', type, nom: generatedName, calories: 450, proteins: 30, carbs: 45, fats: 15, is_bol_commun: false,
+       id: '', type, nom: generatedName, calories: 450, proteins: 30, carbs: 45, fats: 15, preparation_time: 20, is_bol_commun: false,
        recipe: "Recette générée par IA respectant le mix Sénégalais-Moderne. Assurez-vous d'utiliser le condiment uniquement pour relever le goût.",
        bienfaits: "Équilibre parfait entre fibres, protéines maigres et index glycémique contrôlé.",
       ingredients, image_url: '', video_url: '', description: '', gallery: []
@@ -414,11 +417,29 @@ export default function AdminNutritionAfricaine() {
   const handleOpenRecipeModal = (recipe?: any) => {
      if (recipe) {
          setEditingRecipe(recipe);
-         setRecipeForm({ ...recipe, bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', video_url: recipe.video_url || '', description: recipe.description || '' });
+         setRecipeForm({ ...recipe, preparation_time: recipe.preparation_time || 15, bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', video_url: recipe.video_url || '', description: recipe.description || '' });
      } else {
          setEditingRecipe(null);
-         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [], image_url: '', video_url: '', description: '', gallery: [] });
+         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [], image_url: '', video_url: '', description: '', gallery: [] });
      }
+     setShowRecipeModal(true);
+  };
+
+  const handleDuplicateRecipe = (recipe: any) => {
+     const duplicated = { 
+         ...recipe, 
+         id: '', 
+         nom: `${recipe.nom} (Copie)`,
+         preparation_time: recipe.preparation_time || 15,
+         bienfaits: recipe.bienfaits || '',
+         ingredients: recipe.ingredients || [],
+         gallery: recipe.gallery || [],
+         image_url: recipe.image_url || '',
+         video_url: recipe.video_url || '',
+         description: recipe.description || '' 
+     };
+     setEditingRecipe(null);
+     setRecipeForm(duplicated);
      setShowRecipeModal(true);
   };
 
@@ -689,7 +710,7 @@ export default function AdminNutritionAfricaine() {
   };
 
   const downloadRecipeCsvTemplate = () => {
-      const csv = "nom;type;calories;proteines;glucides;lipides;is_bol_commun;etapes_cuisson;bienfaits;description;image_url;galerie_photo;ingredients\nExemple Thieb;Déjeuner;600;30;70;15;oui;Cuire le riz...;Riche en oméga-3;Un plat sénégalais;https://...;https://...,https://...;[{\"nom\":\"Riz\",\"quantite\":100,\"unite\":\"g\",\"rayon\":\"Supermarché\"}]";
+      const csv = "nom;type;calories;proteines;glucides;lipides;preparation_time;is_bol_commun;etapes_cuisson;bienfaits;description;image_url;galerie_photo;ingredients\nExemple Thieb;Déjeuner;600;30;70;15;45;oui;Cuire le riz...;Riche en oméga-3;Un plat sénégalais;https://...;https://...,https://...;[{\"nom\":\"Riz\",\"quantite\":100,\"unite\":\"g\",\"rayon\":\"Supermarché\"}]";
       const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = 'Modele_Recettes_Vierge.csv'; a.click();
@@ -825,14 +846,28 @@ export default function AdminNutritionAfricaine() {
       
       const finalY2 = (doc as any).lastAutoTable.finalY || finalY + 30;
       
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text("4. Humeur & Notes (7 derniers jours)", 14, finalY2 + 15);
+      
+      const moodRows = logs.length > 0 ? logs.map((l: any) => [
+          new Date(l.log_date).toLocaleDateString('fr-FR'),
+          l.report_data?.moods?.join(', ') || '-',
+          l.report_data?.moodNotes || '-'
+      ]) : [['Aucune donnée', '-', '-']];
+
+      autoTable(doc, { startY: finalY2 + 20, head: [['Date', 'Humeur', 'Notes du client']], body: moodRows, theme: 'grid', headStyles: { fillColor: [0, 0, 0], textColor: [57, 255, 20] } });
+
+      const finalY3 = (doc as any).lastAutoTable.finalY || finalY2 + 30;
+
       if (reportCoachNotes) {
          doc.setFontSize(14);
          doc.setTextColor(0, 0, 0);
-         doc.text("4. Notes du Coach", 14, finalY2 + 15);
+         doc.text("5. Notes du Coach", 14, finalY3 + 15);
          doc.setFontSize(11);
          doc.setTextColor(80, 80, 80);
          const splitNotes = doc.splitTextToSize(reportCoachNotes, 180);
-         doc.text(splitNotes, 14, finalY2 + 25);
+         doc.text(splitNotes, 14, finalY3 + 25);
       }
 
       if (sendWhatsApp) {
@@ -949,6 +984,7 @@ export default function AdminNutritionAfricaine() {
                         <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleImportCSV} />
                         <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-100 text-black px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={14}/> Import CSV</button>
                         <button onClick={downloadRecipeCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
+                        <button onClick={() => setRecipeFilterFast(!recipeFilterFast)} className={`px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-sm flex items-center justify-center gap-2 ${recipeFilterFast ? 'bg-[#39FF14] text-black border border-[#39FF14]' : 'bg-zinc-100 text-black hover:bg-zinc-200'}`} title="Filtrer les recettes de moins de 30 min"><Clock size={14}/> {recipeFilterFast ? 'Toutes' : '< 30 Min'}</button>
                         <button onClick={handleInitDefaultRecipes} className="bg-blue-50 text-blue-600 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-100 transition-all shadow-sm flex items-center justify-center gap-2"><Sparkles size={14}/> Init 40 Recettes</button>
                         <button onClick={handleAIGenerateRecipe} className="bg-[#39FF14]/20 text-green-700 border border-[#39FF14]/50 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#39FF14]/30 transition-all shadow-sm flex items-center justify-center gap-2"><Bot size={14}/> Générer via IA</button>
                         <button onClick={() => handleOpenRecipeModal()} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={14}/> Nouvelle Recette</button>
@@ -1217,7 +1253,7 @@ export default function AdminNutritionAfricaine() {
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-zinc-50">
-                    {recipes.map(r => (
+                    {recipes.filter(r => recipeFilterFast ? ((r.preparation_time || 15) < 30) : true).map(r => (
                        <tr key={r.id} className="hover:bg-zinc-50 transition-colors">
                           <td className="p-4">
                              <div className="flex items-center gap-3">
@@ -1245,12 +1281,13 @@ export default function AdminNutritionAfricaine() {
                              {r.is_bol_commun ? <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">Oui</span> : <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">Non</span>}
                           </td>
                           <td className="p-4 text-right flex justify-end gap-2">
+                             <button onClick={() => handleDuplicateRecipe(r)} className="p-2 bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors" title="Dupliquer la recette"><Copy size={16}/></button>
                              <button onClick={() => handleOpenRecipeModal(r)} className="p-2 bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Edit3 size={16}/></button>
                              <button onClick={() => handleDeleteRecipe(r.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={16}/></button>
                           </td>
                        </tr>
                     ))}
-                    {recipes.length === 0 && <tr><td colSpan={4} className="p-10 text-center text-zinc-400 font-bold">Aucune recette configurée.</td></tr>}
+                    {recipes.filter(r => recipeFilterFast ? ((r.preparation_time || 15) < 30) : true).length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-400 font-bold">Aucune recette trouvée.</td></tr>}
                  </tbody>
               </table>
            </div>
@@ -1517,11 +1554,12 @@ export default function AdminNutritionAfricaine() {
                      </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-orange-500 tracking-widest ml-1">Kcal</label><input type="number" required value={recipeForm.calories === 0 ? '' : recipeForm.calories} onChange={e => setRecipeForm({...recipeForm, calories: e.target.value ? Number(e.target.value) : 0})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-green-500 tracking-widest ml-1">Prot(g)</label><input type="number" required value={recipeForm.proteins === 0 ? '' : recipeForm.proteins} onChange={e => setRecipeForm({...recipeForm, proteins: e.target.value ? Number(e.target.value) : 0})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-yellow-600 tracking-widest ml-1">Gluc(g)</label><input type="number" required value={recipeForm.carbs === 0 ? '' : recipeForm.carbs} onChange={e => setRecipeForm({...recipeForm, carbs: e.target.value ? Number(e.target.value) : 0})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-1">Lip(g)</label><input type="number" required value={recipeForm.fats === 0 ? '' : recipeForm.fats} onChange={e => setRecipeForm({...recipeForm, fats: e.target.value ? Number(e.target.value) : 0})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2 col-span-2 sm:col-span-1"><label className="text-[10px] font-black uppercase text-blue-500 tracking-widest ml-1">Temps(m)</label><input type="number" required value={recipeForm.preparation_time === 0 ? '' : recipeForm.preparation_time} onChange={e => setRecipeForm({...recipeForm, preparation_time: e.target.value ? Number(e.target.value) : 0})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" placeholder="Min." /></div>
                   </div>
 
                   <label className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl cursor-pointer hover:bg-blue-100 transition-colors">
