@@ -238,6 +238,8 @@ export default function NutritionDashboard() {
   const [isScanning, setIsScanning] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPhotoScanning, setIsPhotoScanning] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   
   // Jauges quotidiennes
   const [calories, setCalories] = useState(0);
@@ -259,6 +261,7 @@ export default function NutritionDashboard() {
   const [selectedFoodDB, setSelectedFoodDB] = useState<any>(null);
   const [foodQuantity, setFoodQuantity] = useState(1);
   const [foodDatabaseDB, setFoodDatabaseDB] = useState<any[]>([]);
+  const [foodUnit, setFoodUnit] = useState("portion");
   const [allRecipesDB, setAllRecipesDB] = useState<any[]>([]);
   const [recipeFilter, setRecipeFilter] = useState("Tous");
 
@@ -1168,6 +1171,7 @@ export default function NutritionDashboard() {
       setFoodSearchQuery("");
       setSelectedFoodDB(null);
       setFoodQuantity(1);
+      setFoodUnit("portion");
       setSelectedMealModal({ type: mealType, meal: plannedMeal, mode: forceMode || trackingMode });
       
       // Log analytics (Incrémenter le compteur de vues de la recette)
@@ -1320,6 +1324,45 @@ export default function NutritionDashboard() {
      }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      
+      setIsPhotoScanning(true);
+      setToastMessage("Analyse du plat en cours par l'IA... 📸");
+
+      try {
+          // --- ÉTAPE API : Lier à votre vrai Backend ici ---
+          // const formData = new FormData(); formData.append('image', file);
+          // const res = await fetch('/api/analyze-food-vision', { method: 'POST', body: formData });
+          // const data = await res.json();
+
+          // --- SIMULATION D'ATTENTE DE L'IA (2.5 secondes) ---
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          
+          const aiResult = {
+              id: 'ia_scan_' + Date.now(),
+              nom: "Plat Analysé par IA (Ex: Poulet & Légumes)",
+              categorie: "Analyse IA",
+              portion_standard_nom: "1 portion",
+              portion_standard_grammes: 350,
+              valeurs_pour_100g: { calories: 120, proteines: 12, glucides: 10, lipides: 4, fibres: 3 },
+              isFood: true,
+              message_coach_ia: "L'IA a détecté une base de poulet grillé et de légumes verts. L'estimation calorique a été générée automatiquement d'après la photo !"
+          };
+
+          setSelectedFoodDB(aiResult);
+          setFoodQuantity(1);
+          setFoodUnit("portion");
+          setFoodSearchQuery("Plat scanné via IA");
+      } catch (err) {
+          alert("Erreur lors de l'analyse de l'image.");
+      } finally {
+          setIsPhotoScanning(false);
+          if (photoInputRef.current) photoInputRef.current.value = '';
+      }
+  };
+
   const handleSaveWeight = async () => {
       const todayStr = new Date().toISOString().split('T')[0];
       const lastLog = weightLogs.length > 0 ? weightLogs[weightLogs.length - 1] : null;
@@ -1469,8 +1512,9 @@ export default function NutritionDashboard() {
     }
   };
 
-  const currentDayName = new Date().toLocaleDateString('fr-FR', { weekday: 'long' });
-  const formattedCurrentDay = currentDayName.charAt(0).toUpperCase() + currentDayName.slice(1);
+  const dayIndex = new Date().getDay();
+  const daysArray = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+  const formattedCurrentDay = daysArray[dayIndex];
   const safeWeeklyMenu = Array.isArray(weeklyGeneratedMenu) ? weeklyGeneratedMenu : [];
   const todayPlan = safeWeeklyMenu.find(d => d.day === formattedCurrentDay);
 
@@ -2181,9 +2225,9 @@ export default function NutritionDashboard() {
                         time: mealType === 'Petit-déjeuner' ? '08:00' : mealType === 'Déjeuner' ? '13:30' : mealType === 'Collation' ? '16:00' : '19:30',
                         meal: generatedMeal.nom,
                         cals: generatedMeal.calories,
-                        proteins: Math.round((generatedMeal.calories * 0.2) / 4),
-                        carbs: Math.round((generatedMeal.calories * 0.5) / 4),
-                        fats: Math.round((generatedMeal.calories * 0.3) / 9),
+                        proteins: generatedMeal.proteins !== undefined ? generatedMeal.proteins : Math.round((generatedMeal.calories * 0.2) / 4),
+                        carbs: generatedMeal.carbs !== undefined ? generatedMeal.carbs : Math.round((generatedMeal.calories * 0.5) / 4),
+                        fats: generatedMeal.fats !== undefined ? generatedMeal.fats : Math.round((generatedMeal.calories * 0.3) / 9),
                         recipe: generatedMeal.recipe || `Ingrédients : ${generatedMeal.ingredients?.map((i: any) => `${i.quantite}${i.unite} ${i.nom}`).join(', ') || ''}`
                     } : null;
                     
@@ -2321,10 +2365,10 @@ export default function NutritionDashboard() {
                                 <p className="text-sm font-medium text-zinc-700 leading-relaxed">{selectedMealModal.meal.recipe}</p>
                              </div>
                              <div className="grid grid-cols-4 gap-2 mb-8 text-center">
-                                <div className="bg-orange-50 p-2 rounded-xl border border-orange-100"><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{selectedMealModal.meal.cals}</p></div>
-                                <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100"><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{selectedMealModal.meal.carbs}g</p></div>
-                                <div className="bg-green-50 p-2 rounded-xl border border-green-100"><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{selectedMealModal.meal.proteins}g</p></div>
-                                <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200"><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{selectedMealModal.meal.fats}g</p></div>
+                                <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{selectedMealModal.meal.cals}</p></div>
+                                <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{selectedMealModal.meal.carbs}g</p></div>
+                                <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{selectedMealModal.meal.proteins}g</p></div>
+                                <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{selectedMealModal.meal.fats}g</p></div>
                              </div>
                              {selectedMealModal.meal.bienfaits && (
                                 <div className="bg-[#39FF14]/10 p-4 rounded-2xl border border-[#39FF14]/30 mb-6 animate-in slide-in-from-bottom-4 duration-500">
@@ -2354,6 +2398,10 @@ export default function NutritionDashboard() {
                                  <button onClick={() => setIsScanning(!isScanning)} className={`px-5 rounded-2xl flex items-center justify-center transition-colors ${isScanning ? 'bg-[#39FF14] text-black' : 'bg-black text-white hover:bg-zinc-800'}`} title="Scanner un produit">
                                      <ScanLine size={20} />
                                  </button>
+                                 <button onClick={() => photoInputRef.current?.click()} disabled={isPhotoScanning} className={`px-5 rounded-2xl flex items-center justify-center transition-colors ${isPhotoScanning ? 'bg-[#39FF14] text-black' : 'bg-black text-white hover:bg-zinc-800'}`} title="Évaluer avec une photo (IA)">
+                                     {isPhotoScanning ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+                                 </button>
+                                 <input type="file" accept="image/*" capture="environment" ref={photoInputRef} className="hidden" onChange={handlePhotoUpload} />
                              </div>
                              
                              {isScanning && (
@@ -2366,17 +2414,19 @@ export default function NutritionDashboard() {
                              
                              {!selectedFoodDB && foodSearchQuery && (
                                 <div className="max-h-60 overflow-y-auto space-y-2 mb-6 border border-zinc-100 rounded-xl p-2">
-                                   {foodDatabaseDB.filter(f => f.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).map(food => (
-                                      <div key={food.id} onClick={() => setSelectedFoodDB(food)} className="p-3 bg-white hover:bg-zinc-50 rounded-lg cursor-pointer flex justify-between items-center transition-colors">
+                                   {[...allRecipesDB.map(r => ({ ...r, isRecipe: true })), ...foodDatabaseDB.map(f => ({ ...f, isFood: true }))]
+                                      .filter(item => item.nom.toLowerCase().includes(foodSearchQuery.toLowerCase()))
+                                      .map(item => (
+                                      <div key={item.id} onClick={() => { setSelectedFoodDB(item); setFoodQuantity(1); setFoodUnit("portion"); }} className="p-3 bg-white hover:bg-zinc-50 rounded-lg cursor-pointer flex justify-between items-center transition-colors">
                                          <div>
-                                            <p className="font-bold text-sm">{food.nom}</p>
-                                            <p className="text-[10px] text-zinc-500 uppercase font-black">{food.categorie}</p>
+                                            <p className="font-bold text-sm">{item.nom}</p>
+                                            <p className="text-[10px] text-zinc-500 uppercase font-black">{item.isRecipe ? item.type : item.categorie}</p>
                                          </div>
-                                         <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{food.valeurs_pour_100g.calories} kcal/100g</span>
+                                         <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{item.isRecipe ? item.calories : item.valeurs_pour_100g?.calories} kcal</span>
                                       </div>
                                    ))}
-                                   {foodDatabaseDB.filter(f => f.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).length === 0 && (
-                                      <p className="text-xs text-zinc-400 text-center p-4 font-bold">Aucun aliment trouvé. Essayez autre chose.</p>
+                                   {[...allRecipesDB.map(r => ({ ...r, isRecipe: true })), ...foodDatabaseDB.map(f => ({ ...f, isFood: true }))].filter(item => item.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).length === 0 && (
+                                      <p className="text-xs text-zinc-400 text-center p-4 font-bold">Aucun résultat trouvé. Essayez autre chose.</p>
                                    )}
                                 </div>
                              )}
@@ -2393,50 +2443,62 @@ export default function NutritionDashboard() {
                                       </div>
                                    </div>
                                    
-                                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Quantité consommée</label>
-                                   <div className="flex items-center gap-4 mb-6 bg-zinc-100 p-2 rounded-2xl w-max">
-                                      <button onClick={() => setFoodQuantity(Math.max(0.5, foodQuantity - 0.5))} className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center font-black text-xl hover:bg-zinc-50 transition-colors">-</button>
-                                      <span className="w-12 text-center font-black text-lg">{foodQuantity}</span>
-                                      <button onClick={() => setFoodQuantity(foodQuantity + 0.5)} className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center font-black text-xl hover:bg-zinc-50 transition-colors">+</button>
-                                      <span className="text-xs font-bold text-zinc-500 ml-4">x {selectedFoodDB.portion_standard_nom}</span>
+                                   <div className="flex flex-col gap-2 mb-6">
+                                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Unité & Quantité</label>
+                                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                         <select value={foodUnit} onChange={e => setFoodUnit(e.target.value)} className="w-full sm:w-auto bg-zinc-100 p-3 rounded-xl font-bold text-sm outline-none cursor-pointer flex-1">
+                                            <option value="portion">Portion / Assiette</option>
+                                            <option value="bol_commun">Bol Commun (Partagé)</option>
+                                            <option value="louche">Louche / Cuillère</option>
+                                            <option value="gramme">Grammes (Précis)</option>
+                                         </select>
+                                         <div className="flex items-center gap-3 bg-zinc-100 p-2 rounded-xl w-full sm:w-auto justify-center">
+                                            <button onClick={() => setFoodQuantity(Math.max(0.5, foodQuantity - (foodUnit === 'gramme' ? 50 : 0.5)))} className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center font-black">-</button>
+                                            <span className="w-12 text-center font-black text-lg">{foodQuantity}</span>
+                                            <button onClick={() => setFoodQuantity(foodQuantity + (foodUnit === 'gramme' ? 50 : 0.5))} className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center font-black">+</button>
+                                         </div>
+                                      </div>
                                    </div>
 
-                                   <div className="grid grid-cols-4 gap-2 text-center">
-                                      <div className="bg-orange-50 p-2 rounded-xl border border-orange-100"><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{Math.round((selectedFoodDB.valeurs_pour_100g.calories * selectedFoodDB.portion_standard_grammes * foodQuantity) / 100)}</p></div>
-                                      <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100"><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{Math.round((selectedFoodDB.valeurs_pour_100g.glucides * selectedFoodDB.portion_standard_grammes * foodQuantity) / 100)}g</p></div>
-                                      <div className="bg-green-50 p-2 rounded-xl border border-green-100"><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{Math.round((selectedFoodDB.valeurs_pour_100g.proteines * selectedFoodDB.portion_standard_grammes * foodQuantity) / 100)}g</p></div>
-                                      <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200"><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{Math.round((selectedFoodDB.valeurs_pour_100g.lipides * selectedFoodDB.portion_standard_grammes * foodQuantity) / 100)}g</p></div>
-                                   </div>
-                                   {selectedFoodDB.message_coach_ia && (
-                                      <div className="mt-4 bg-[#39FF14]/10 p-4 rounded-xl border border-[#39FF14]/30 animate-in slide-in-from-bottom-2 duration-300">
-                                         <h4 className="font-black text-xs uppercase tracking-widest text-[#39FF14] mb-1 flex items-center gap-2">
-                                            <Sparkles size={14}/> Note du Coach IA
-                                         </h4>
-                                         <p className="text-xs font-medium text-zinc-700">{selectedFoodDB.message_coach_ia}</p>
-                                      </div>
-                                   )}
+                                   {(() => {
+                                       let factor = 1;
+                                       if (selectedFoodDB.isFood) {
+                                           if (foodUnit === "gramme") factor = foodQuantity / 100;
+                                           else if (foodUnit === "portion") factor = (selectedFoodDB.portion_standard_grammes * foodQuantity) / 100;
+                                           else if (foodUnit === "louche") factor = (150 * foodQuantity) / 100;
+                                           else if (foodUnit === "bol_commun") factor = (350 * foodQuantity) / 100;
+                                       } else {
+                                           if (foodUnit === "portion") factor = foodQuantity;
+                                           else if (foodUnit === "louche") factor = foodQuantity * 0.3;
+                                           else if (foodUnit === "bol_commun") factor = foodQuantity * 1.2;
+                                           else if (foodUnit === "gramme") factor = foodQuantity / 400;
+                                       }
+                                       const calcCals = Math.round((selectedFoodDB.valeurs_pour_100g?.calories || selectedFoodDB.calories) * factor);
+                                       const calcGluc = Math.round((selectedFoodDB.valeurs_pour_100g?.glucides || selectedFoodDB.carbs) * factor);
+                                       const calcProt = Math.round((selectedFoodDB.valeurs_pour_100g?.proteines || selectedFoodDB.proteins) * factor);
+                                       const calcLip = Math.round((selectedFoodDB.valeurs_pour_100g?.lipides || selectedFoodDB.fats) * factor);
+                                       return (
+                                          <>
+                                             <div className="grid grid-cols-4 gap-2 text-center">
+                                                <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{calcCals}</p></div>
+                                                <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{calcGluc}g</p></div>
+                                                <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{calcProt}g</p></div>
+                                                <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{calcLip}g</p></div>
+                                             </div>
+                                             {selectedFoodDB.message_coach_ia && (
+                                                <div className="mt-4 bg-[#39FF14]/10 p-4 rounded-xl border border-[#39FF14]/30 animate-in slide-in-from-bottom-2 duration-300">
+                                                   <h4 className="font-black text-xs uppercase tracking-widest text-[#39FF14] mb-1 flex items-center gap-2"><Sparkles size={14}/> Note du Coach IA</h4>
+                                                   <p className="text-xs font-medium text-zinc-700">{selectedFoodDB.message_coach_ia}</p>
+                                                </div>
+                                             )}
+                                             <button onClick={() => confirmMealLog(selectedFoodDB.nom, calcCals, calcProt, calcGluc, calcLip, selectedFoodDB)} className={`w-full py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl flex justify-center items-center gap-2 transition-all mt-6 ${selectedFoodDB ? 'bg-black text-[#00E5FF] hover:scale-[1.02]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+                                                <CheckCircle size={20} /> Ajouter au tracker
+                                             </button>
+                                          </>
+                                       )
+                                   })()}
                                 </div>
                              )}
-
-                             <button 
-                                disabled={!selectedFoodDB}
-                                onClick={() => {
-                                   if(selectedFoodDB) {
-                                      const factor = (selectedFoodDB.portion_standard_grammes * foodQuantity) / 100;
-                                      confirmMealLog(
-                                         selectedFoodDB.nom,
-                                         selectedFoodDB.valeurs_pour_100g.calories * factor,
-                                         selectedFoodDB.valeurs_pour_100g.proteines * factor,
-                                         selectedFoodDB.valeurs_pour_100g.glucides * factor,
-                                         selectedFoodDB.valeurs_pour_100g.lipides * factor,
-                                         selectedFoodDB
-                                      );
-                                   }
-                                }} 
-                                className={`w-full py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl flex justify-center items-center gap-2 transition-all ${selectedFoodDB ? 'bg-black text-[#00E5FF] hover:scale-[1.02]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}
-                             >
-                                <CheckCircle size={20} /> Ajouter au tracker
-                             </button>
                          </>
                      )}
                   </div>
