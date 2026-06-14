@@ -203,7 +203,8 @@ export default function NutritionAfricaineLanding() {
     healthProfile: "",
     mainChallenge: "",
     dietaryHabits: "",
-    allergies: ""
+    allergies: "",
+    saas: ""
   });
 
   // Carousel & FAQ State
@@ -211,6 +212,8 @@ export default function NutritionAfricaineLanding() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [showFreeMenuModal, setShowFreeMenuModal] = useState(false);
   const [freeMenuData, setFreeMenuData] = useState({ name: '', contact: '' });
+  
+  const [recentRecipe, setRecentRecipe] = useState<string | null>(null);
 
   // Calorie Calculator State
   const [selectedDish, setSelectedDish] = useState<string>("");
@@ -245,6 +248,14 @@ export default function NutritionAfricaineLanding() {
           setHeroSlide(prev => (prev + 1) % HERO_SLIDES.length);
       }, 5000);
       return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+      const fetchRecentRecipe = async () => {
+          const { data } = await supabase.from('nutrition_recipes').select('nom').order('created_at', { ascending: false }).limit(1);
+          if (data && data.length > 0) setRecentRecipe(data[0].nom);
+      };
+      fetchRecentRecipe();
   }, []);
 
   const nextTestimonial = () => setActiveTestimonial((prev) => (prev + 1) % TESTIMONIALS.length);
@@ -1146,6 +1157,9 @@ export default function NutritionAfricaineLanding() {
                          <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">🔥 Peu Calorique</span>
                          <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">🌅 Ndekki</span>
                          <span className="bg-[#39FF14]/10 text-[#39FF14] px-2.5 py-1 rounded text-[9px] font-black uppercase border border-[#39FF14]/30 shadow-sm">⚡ Low Fat</span>
+                         {recentRecipe && (
+                             <span className="bg-red-500/20 text-red-500 px-2.5 py-1 rounded text-[9px] font-black uppercase border border-red-500/50 shadow-sm animate-pulse">🔥 Nouveau: {recentRecipe}</span>
+                         )}
                      </div>
                   </div>
                   <button onClick={handleWaClick} className={`w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-[0_10px_20px_rgba(57,255,20,0.3)] flex justify-center items-center gap-2 ${fomoTime <= 120 ? 'fomo-shake-active' : ''}`}>

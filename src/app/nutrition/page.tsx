@@ -3860,6 +3860,9 @@ export default function NutritionDashboard() {
                <button onClick={handleToggleFasting} className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2 border w-full md:w-auto justify-center ${isFastingMode ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-zinc-100 text-zinc-500 border-zinc-200 hover:bg-zinc-200'}`}>
                  <Moon size={14}/> Jeûne 16/8
                </button>
+               <button onClick={() => { handleMealClick('Collation', null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-md flex items-center gap-2">
+                 <ScanLine size={14}/> Scanner un Code-Barres
+               </button>
             </div>
             <div>
                <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Liens Utiles</h4>

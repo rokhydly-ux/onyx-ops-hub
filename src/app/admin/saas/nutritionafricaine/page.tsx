@@ -89,6 +89,8 @@ export default function AdminNutritionAfricaine() {
   const [isImportingRecipeCsv, setIsImportingRecipeCsv] = useState(false);
   const [recipeCsvImportProgress, setRecipeCsvImportProgress] = useState(0);
   const [foods, setFoods] = useState<any[]>([]);
+  const fileFoodInputRef = useRef<HTMLInputElement>(null);
+
   const [tenantId, setTenantId] = useState<string | null>(null);
 
   // Filtres Boutique Admin
@@ -461,6 +463,38 @@ export default function AdminNutritionAfricaine() {
               }, index * 1000);
           });
       }
+  };
+
+  const downloadFoodCsvTemplate = () => {
+      const csv = "nom;categorie;portion_standard_nom;portion_standard_grammes;calories;proteines;glucides;lipides;fibres;message_coach_ia\nFonio;Céréales locales;100g;100;350;8;75;1;3;Excellent choix à index glycémique bas.";
+      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'Modele_Aliments_Vierge.csv'; a.click();
+  };
+
+  const handleImportFoodCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      Papa.parse(file, {
+          header: true, skipEmptyLines: true,
+          complete: async (results) => {
+              const payload = (results.data as any[]).map(r => ({
+                  nom: r.nom, 
+                  categorie: r.categorie || 'Autre',
+                  portion_standard_nom: r.portion_standard_nom || '100g',
+                  portion_standard_grammes: Number(r.portion_standard_grammes) || 100,
+                  valeurs_pour_100g: { calories: Number(r.calories)||0, proteines: Number(r.proteines)||0, glucides: Number(r.glucides)||0, lipides: Number(r.lipides)||0, fibres: Number(r.fibres)||0 },
+                  message_coach_ia: r.message_coach_ia || ''
+              })).filter(f => f.nom);
+              if(payload.length > 0) {
+                  await supabase.from('nutrition_foods').insert(payload);
+                  alert(`${payload.length} aliments importés avec succès !`);
+                  const { data } = await supabase.from('nutrition_foods').select('*');
+                  if (data) setFoods(data);
+              }
+              if (fileFoodInputRef.current) fileFoodInputRef.current.value = '';
+          }
+      });
   };
 
   const handleImportProductCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -918,6 +952,9 @@ export default function AdminNutritionAfricaine() {
                   )}
                   {activeTab === 'foods' && (
                      <>
+                        <input type="file" accept=".csv" className="hidden" ref={fileFoodInputRef} onChange={handleImportFoodCSV} />
+                        <button onClick={() => fileFoodInputRef.current?.click()} className="bg-zinc-100 text-black px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={14}/> Import CSV</button>
+                        <button onClick={downloadFoodCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
                         <button className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={14}/> Nouvel Aliment</button>
                      </>
                   )}
