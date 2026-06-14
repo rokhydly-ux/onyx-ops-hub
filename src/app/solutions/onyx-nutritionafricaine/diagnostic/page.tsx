@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale, Flame, Lock, Download } from "lucide-react";
 import { motion } from "framer-motion";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import jsPDF from "jspdf";
 
 const spaceGrotesk = { className: "font-sans" };
@@ -14,6 +15,7 @@ export default function NutritionDiagnostic() {
   const waNumber = "221785338417";
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [forceTarget, setForceTarget] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -22,6 +24,7 @@ export default function NutritionDiagnostic() {
     age: "",
     height: "",
     currentWeight: "",
+    targetWeight: "",
     dailySteps: "",
     weightLossPace: "Normalement",
     healthProfile: "",
@@ -77,6 +80,7 @@ export default function NutritionDiagnostic() {
     doc.setFontSize(12);
     doc.text(`Taille : ${formData.height} cm`, 20, 90);
     doc.text(`Poids Actuel : ${formData.currentWeight} kg`, 20, 98);
+    doc.text(`Poids Cible : ${formData.targetWeight} kg`, 100, 98);
     const imc = calculateIMC();
     const category = getIMCCategory(imc);
     doc.setFontSize(14);
@@ -113,7 +117,9 @@ export default function NutritionDiagnostic() {
   if (formData.weightLossPace === 'Progressivement') { deficit = 300; lossPerWeek = 0.3; }
   else if (formData.weightLossPace === 'Rapidement') { deficit = 700; lossPerWeek = 0.7; }
   
-  const weightToLose = currentWeight - idealWeight;
+  const targetW = parseFloat(formData.targetWeight);
+  const finalTargetWeight = targetW > 0 ? targetW : idealWeight;
+  const weightToLose = currentWeight - finalTargetWeight;
   const estimatedWeeks = weightToLose > 0 ? Math.ceil(weightToLose / lossPerWeek) : 0; 
   const estimatedMonths = estimatedWeeks > 0 ? (estimatedWeeks / 4).toFixed(1) : 0; 
 
@@ -146,8 +152,26 @@ export default function NutritionDiagnostic() {
   const protein = (dailyCalories * proteinRatio) / 4;
   const fats = (dailyCalories * 0.30) / 9;    // 1g de lipides = 9 kcal
 
+  // Pour le graphique interactif (IMC Santé = 22)
+  const heightM = heightCm / 100;
+  const currentW = parseFloat(formData.currentWeight) || 0;
+  const targetWInput = parseFloat(formData.targetWeight) || 0;
+  const idealW = heightM > 0 ? 22 * (heightM * heightM) : 0;
+
+  const chartData = [
+    { name: 'Poids Actuel', poids: currentW },
+    { name: 'Objectif', poids: targetWInput }
+  ];
+
+  const diffIdealTarget = Math.abs(targetWInput - idealW);
+  const showWarning = targetWInput > 0 && idealW > 0 && diffIdealTarget > 5;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (step === 2 && showWarning && !forceTarget) {
+      alert("Veuillez confirmer votre objectif de poids avant de continuer.");
+      return;
+    }
     if (step < 4) {
       setStep(step + 1);
       return;
@@ -273,10 +297,37 @@ export default function NutritionDiagnostic() {
               {step === 2 && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                   <div className="flex items-center gap-3 mb-6"><Target className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Mensurations & Objectifs</h2></div>
-                  <div className="flex gap-4">
-                    <input type="number" name="height" required placeholder="Taille (cm) *" value={formData.height} onChange={handleChange} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
-                    <input type="number" name="currentWeight" required placeholder="Poids Actuel (kg) *" value={formData.currentWeight} onChange={handleChange} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  <div className="flex flex-wrap md:flex-nowrap gap-4">
+                    <input type="number" name="height" required placeholder="Taille (cm) *" value={formData.height} onChange={handleChange} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                    <input type="number" name="currentWeight" required placeholder="Poids Actuel (kg) *" value={formData.currentWeight} onChange={handleChange} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                    <input type="number" name="targetWeight" required placeholder="Poids Cible (kg) *" value={formData.targetWeight} onChange={handleChange} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   </div>
+
+                  {currentW > 0 && targetWInput > 0 && heightM > 0 && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 bg-zinc-50 p-6 rounded-[2rem] border border-zinc-200 shadow-inner">
+                      <h4 className="text-sm font-black uppercase text-center mb-6 text-zinc-500">Projection de votre objectif</h4>
+                      <div className="h-56 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" />
+                            <XAxis dataKey="name" stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis domain={['auto', 'auto']} stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
+                            <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                            <ReferenceLine y={idealW} stroke="#39FF14" strokeDasharray="3 3" label={{ position: 'top', value: `Idéal Santé (${idealW.toFixed(1)}kg)`, fill: '#39FF14', fontSize: 12, fontWeight: 'bold' }} />
+                            <Line type="monotone" dataKey="poids" stroke="#000" strokeWidth={4} dot={{ r: 8, fill: '#000', stroke: '#39FF14', strokeWidth: 3 }} animationDuration={1500} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                      
+                      {showWarning && !forceTarget && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 bg-orange-50 border border-orange-200 p-5 rounded-2xl">
+                           <p className="text-orange-800 text-sm font-bold mb-4 leading-relaxed">Votre poids cible (<span className="font-black">{targetWInput}kg</span>) est assez éloigné de votre poids idéal de santé (<span className="font-black">{idealW.toFixed(1)}kg</span>). Un objectif trop drastique peut être difficile à maintenir sur le long terme.</p>
+                           <button type="button" onClick={() => setForceTarget(true)} className="w-full bg-orange-500 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-md flex justify-center items-center gap-2">Je maintiens mon objectif</button>
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )}
+
                   <div className="space-y-2 mt-6">
                     <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Combien de pas faites-vous par jour ? *</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

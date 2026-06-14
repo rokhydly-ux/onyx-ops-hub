@@ -815,14 +815,24 @@ export default function NutritionDashboard() {
   // --- LOGIQUE SMART PLANNER ---
   const generateWeeklyMenu = async (fastingOverride?: boolean) => {
       const activeFastingMode = fastingOverride !== undefined ? fastingOverride : isFastingMode;
-      let currentRecipes = await buildDynamicRecipes(foodDatabaseDB);
+      let currentRecipes: any[] = [];
       try {
           const { data } = await supabase.from('nutrition_recipes').select('*');
           if (data && data.length > 0) {
-              currentRecipes = [...data, ...currentRecipes.filter(fallback => !data.some(d => d.nom === fallback.nom))];
+              currentRecipes = data;
           }
       } catch(e) {}
       
+      // RÈGLES DES CONDIMENTS (Exclusion stricte des produits non-complets)
+      currentRecipes = currentRecipes.filter(r => {
+          const cat = r.categorie?.toLowerCase() || '';
+          const nom = r.nom?.toLowerCase() || '';
+          if (cat.includes('équipement') || cat.includes('accessoire') || cat.includes('pack')) return false;
+          if (nom.includes('gourde') || nom.includes('blender') || nom.includes('t-shirt') || nom.includes('tote bag')) return false;
+          if (nom.includes('pâte d\'arachide pure') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('épice')) return false;
+          return true;
+      });
+
       let newMenu: any[] = [];
       let bolCommunCount = 0;
       const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
@@ -886,21 +896,37 @@ export default function NutritionDashboard() {
           let dinners = getAvailable('Dîner');
           let snacks = getAvailable('Collation');
 
-          let lunch;
-          // S'assure d'intégrer 2-3 déjeuners "Bol Commun" dans la semaine
-          if (bolCommunCount < 3 && Math.random() > 0.4) {
-              const bcLunches = lunches.filter(r => r.is_bol_commun);
-              lunch = bcLunches.length > 0 ? bcLunches[Math.floor(Math.random() * bcLunches.length)] : lunches[Math.floor(Math.random() * lunches.length)];
-              if (bcLunches.length > 0) bolCommunCount++;
-          } else {
-              const normalLunches = lunches.filter(r => !r.is_bol_commun);
-              lunch = normalLunches.length > 0 ? normalLunches[Math.floor(Math.random() * normalLunches.length)] : lunches[Math.floor(Math.random() * lunches.length)];
+          let bestCombination: any = null;
+          let minDiff = Infinity;
+          const bcLunches = lunches.filter(r => r.is_bol_commun);
+          const normalLunches = lunches.filter(r => !r.is_bol_commun);
+
+          // Recherche intelligente d'une combinaison approchant le quota dynamique (+/- 50 kcal)
+          for (let i = 0; i < 30; i++) {
+              let lunchCandidate;
+              if (bolCommunCount < 3 && Math.random() > 0.4 && bcLunches.length > 0) {
+                  lunchCandidate = bcLunches[Math.floor(Math.random() * bcLunches.length)];
+              } else {
+                  lunchCandidate = normalLunches.length > 0 ? normalLunches[Math.floor(Math.random() * normalLunches.length)] : lunches[Math.floor(Math.random() * lunches.length)];
+              }
+              
+              const cBf = breakfasts.length > 0 ? breakfasts[Math.floor(Math.random() * breakfasts.length)] : null;
+              const cL = lunchCandidate || null;
+              const cSn = snacks.length > 0 ? snacks[Math.floor(Math.random() * snacks.length)] : null;
+              const cD = dinners.length > 0 ? dinners[Math.floor(Math.random() * dinners.length)] : null;
+              
+              const totalCals = (cBf?.calories || 0) + (cL?.calories || 0) + (cSn?.calories || 0) + (cD?.calories || 0);
+              const diff = Math.abs(totalCals - targetDailyCals);
+              
+              if (diff < minDiff) {
+                  minDiff = diff;
+                  bestCombination = { rawBf: cBf, rawL: cL, rawSn: cSn, rawD: cD, isBc: cL?.is_bol_commun };
+              }
+              if (diff <= 50) break;
           }
 
-          const rawBf = breakfasts.length > 0 ? breakfasts[Math.floor(Math.random() * breakfasts.length)] : null;
-          const rawL = lunch || null;
-          const rawSn = snacks.length > 0 ? snacks[Math.floor(Math.random() * snacks.length)] : null;
-          const rawD = dinners.length > 0 ? dinners[Math.floor(Math.random() * dinners.length)] : null;
+          if (bestCombination?.isBc) bolCommunCount++;
+          const { rawBf, rawL, rawSn, rawD } = bestCombination || {};
 
           const dayMeals: any = {
               'Déjeuner': trackingMode === 'guided' ? scaleRecipe(rawL, mealTargets['Déjeuner']) : rawL,
@@ -927,14 +953,23 @@ export default function NutritionDashboard() {
   };
 
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
-      let currentRecipes = await buildDynamicRecipes(foodDatabaseDB);
+      let currentRecipes: any[] = [];
       try {
           const { data } = await supabase.from('nutrition_recipes').select('*');
           if (data && data.length > 0) {
-              currentRecipes = [...data, ...currentRecipes.filter(fallback => !data.some(d => d.nom === fallback.nom))];
+              currentRecipes = data;
           }
       } catch(e) {}
       
+      currentRecipes = currentRecipes.filter(r => {
+          const cat = r.categorie?.toLowerCase() || '';
+          const nom = r.nom?.toLowerCase() || '';
+          if (cat.includes('équipement') || cat.includes('accessoire') || cat.includes('pack')) return false;
+          if (nom.includes('gourde') || nom.includes('blender') || nom.includes('t-shirt') || nom.includes('tote bag')) return false;
+          if (nom.includes('pâte d\'arachide pure') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('épice')) return false;
+          return true;
+      });
+
       const allergies = clientProfile?.diagnostic_data?.allergies?.toLowerCase() || '';
       if (allergies && allergies !== 'aucune' && allergies !== 'non') {
           const allergyList = allergies.split(/[,;\s]+/).filter(Boolean);

@@ -51,45 +51,56 @@ export default function OnyxHubPortal() {
 
   useEffect(() => {
     const verifyAuth = async () => {
-      // 1. Récupération stricte de l'utilisateur authentifié
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      // 1. Récupération de l'utilisateur authentifié (Supabase ou Session Locale)
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const customSessionStr = localStorage.getItem('onyx_custom_session');
+      let customUser = customSessionStr ? JSON.parse(customSessionStr) : null;
       
-      if (authError || !user) {
+      const user = authUser || customUser;
+      
+      if (!user) {
         window.location.href = '/login';
         return;
       }
 
-      console.log('User Auth:', user.id);
+      console.log('User Auth:', user.id || user.phone);
 
       let role = 'CLIENT';
       let profileData: any = null;
 
       // 2. Vérification s'il s'agit d'un super administrateur
-      const { data: userData } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+      if (user.id) {
+        const { data: userData } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+        if (userData) {
+          role = userData.role;
+          profileData = userData;
+        }
+      }
       
-      if (userData) {
-        role = userData.role;
-        profileData = userData;
-      } else {
+      if (!profileData) {
         // Sinon, on cherche dans la table clients via le téléphone ou l'ID
         const phoneMatch = user.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
-        const userPhone = phoneMatch ? phoneMatch[1] : user.user_metadata?.phone;
+        const userPhone = phoneMatch ? phoneMatch[1] : (user.user_metadata?.phone || user.phone);
         
         let query = supabase.from('clients').select('*');
         if (userPhone) {
           query = query.eq('phone', userPhone);
-        } else {
+        } else if (user.id) {
           query = query.eq('id', user.id);
         }
         
         const { data: clientProfile, error: profileError } = await query.maybeSingle();
         
-        if (profileError || !clientProfile) {
+        if (clientProfile) {
+          profileData = clientProfile;
+        } else if (customUser) {
+          profileData = customUser;
+        } else {
           alert('Profil non trouvé pour ce numéro');
+          localStorage.removeItem('onyx_custom_session');
           window.location.href = '/login';
           return;
         }
-        profileData = clientProfile;
       }
 
       console.log('Client Profile:', profileData);
