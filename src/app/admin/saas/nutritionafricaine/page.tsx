@@ -61,7 +61,7 @@ export default function AdminNutritionAfricaine() {
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'|'foods'>('clients');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
@@ -88,6 +88,7 @@ export default function AdminNutritionAfricaine() {
   const [pendingRecipeCsvFile, setPendingRecipeCsvFile] = useState<any>(null);
   const [isImportingRecipeCsv, setIsImportingRecipeCsv] = useState(false);
   const [recipeCsvImportProgress, setRecipeCsvImportProgress] = useState(0);
+  const [foods, setFoods] = useState<any[]>([]);
   const [tenantId, setTenantId] = useState<string | null>(null);
 
   // Filtres Boutique Admin
@@ -161,6 +162,7 @@ export default function AdminNutritionAfricaine() {
                   if (ordsRes.data) setOrders(ordsRes.data);
                   if (promosRes.data) setPromos(promosRes.data);
                   if (settingsRes.data && settingsRes.data.shop_banner_url) setVitrineBanner(settingsRes.data.shop_banner_url);
+                  if (foodsRes.data) setFoods(foodsRes.data);
               }
             } catch (err) {
                 console.error("Erreur générale fetch admin:", err);
@@ -864,6 +866,7 @@ export default function AdminNutritionAfricaine() {
                <div className="flex flex-wrap bg-white border border-zinc-200 p-1.5 rounded-2xl shadow-sm w-full lg:w-auto gap-1">
                    <button onClick={() => setActiveTab('clients')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'clients' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Users size={14}/> Clients</button>
                    <button onClick={() => setActiveTab('recipes')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'recipes' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Utensils size={14}/> Recettes</button>
+                   <button onClick={() => setActiveTab('foods')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'foods' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Database size={14}/> Aliments (BDD)</button>
                    
                    <div className="relative group">
                        <button className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${['shop', 'orders', 'promos'].includes(activeTab) ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
@@ -912,6 +915,11 @@ export default function AdminNutritionAfricaine() {
                   )}
                   {activeTab === 'promos' && (
                      <button onClick={() => handleOpenPromoModal()} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2"><Plus size={14}/> Créer un Code Promo</button>
+                  )}
+                  {activeTab === 'foods' && (
+                     <>
+                        <button className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={14}/> Nouvel Aliment</button>
+                     </>
                   )}
                </div>
             </div>
@@ -1387,6 +1395,37 @@ export default function AdminNutritionAfricaine() {
                        </tr>
                     ))}
                     {promos.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-400 font-bold">Aucun code promo créé.</td></tr>}
+                 </tbody>
+              </table>
+           </div>
+        </div>
+        )}
+
+        {activeTab === 'foods' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+           <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
+              <table className="w-full text-left min-w-[800px]">
+                 <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                    <tr>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom & Catégorie</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Portion</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Valeurs (100g)</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-zinc-50">
+                    {foods.map(f => (
+                       <tr key={f.id} className="hover:bg-zinc-50 transition-colors">
+                          <td className="p-4"><p className="font-bold text-sm text-black">{f.nom}</p><p className="text-[10px] font-black text-zinc-500 uppercase mt-1">{f.categorie}</p></td>
+                          <td className="p-4"><p className="text-xs font-bold text-zinc-600">{f.portion_standard_nom}</p><p className="text-[10px] text-zinc-400">{f.portion_standard_grammes}g</p></td>
+                          <td className="p-4"><div className="flex gap-2 text-[10px] font-bold"><span className="text-orange-500">{f.valeurs_pour_100g?.calories} kcal</span><span className="text-green-500">P:{f.valeurs_pour_100g?.proteines}g</span></div></td>
+                          <td className="p-4 text-right flex justify-end gap-2">
+                             <button className="p-2 bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Edit3 size={16}/></button>
+                             <button className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                          </td>
+                       </tr>
+                    ))}
+                    {foods.length === 0 && <tr><td colSpan={4} className="p-10 text-center text-zinc-400 font-bold">Aucun aliment configuré dans la base de données.</td></tr>}
                  </tbody>
               </table>
            </div>

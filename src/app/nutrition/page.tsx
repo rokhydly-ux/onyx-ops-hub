@@ -104,58 +104,24 @@ const DAILY_MENU = {
    ]
 };
 
-// ÉTAPE 3 : Base de données JSON (Aliments Locaux & Flags IA)
-const FOOD_DATABASE = [
-  {
-    id: "food_001", nom: "Fonio entier (sec)", categorie: "Céréales & Féculents",
-    portion_standard_nom: "1 Bol (cuit)", portion_standard_grammes: 150,
-    valeurs_pour_100g: { calories: 345, glucides: 75, lipides: 1.2, proteines: 7, fibres: 3.8, sodium_mg: 5 },
-    flags_ia: { is_local_senegal: true, ig_bas: true, high_sodium: false, ultra_transforme: false },
-    message_coach_ia: "Excellent choix ! Le fonio ne fera pas exploser ton insuline."
-  },
-  {
-    id: "food_002", nom: "Riz brisé local (Non étuvé)", categorie: "Céréales & Féculents",
-    portion_standard_nom: "1 Louche", portion_standard_grammes: 80,
-    valeurs_pour_100g: { calories: 350, glucides: 78, lipides: 0.6, proteines: 7, fibres: 1, sodium_mg: 2 },
-    flags_ia: { is_local_senegal: true, ig_bas: false, high_sodium: false, ultra_transforme: false },
-    message_coach_ia: "Le riz brisé est digéré très vite. Assure-toi d'avoir beaucoup de légumes (fibres) dans ton assiette pour compenser."
-  },
-  {
-    id: "food_003", nom: "Cube de bouillon (Type Maggi/Jumbo)", categorie: "Condiments & Sauces",
-    portion_standard_nom: "1/2 Cube", portion_standard_grammes: 5,
-    valeurs_pour_100g: { calories: 170, glucides: 15, lipides: 5, proteines: 10, fibres: 0, sodium_mg: 52000 },
-    flags_ia: { is_local_senegal: false, ig_bas: null, high_sodium: true, ultra_transforme: true },
-    message_coach_ia: "Alerte ! Ces cubes favorisent la rétention d'eau et gonflent le ventre. Essaie les épices pures ou le Soumbala (Nététou)."
-  },
-  {
-    id: "food_004", nom: "Thiof (Mérou blanc frais)", categorie: "Protéines",
-    portion_standard_nom: "1 Tranche moyenne", portion_standard_grammes: 120,
-    valeurs_pour_100g: { calories: 92, glucides: 0, lipides: 1, proteines: 20.5, fibres: 0, sodium_mg: 60 },
-    flags_ia: { is_local_senegal: true, ig_bas: true, high_sodium: false, ultra_transforme: false },
-    message_coach_ia: "Une protéine parfaite et ultra-maigre. Idéal pour construire du muscle sans stocker de gras."
-  },
-  {
-    id: "food_005", nom: "Soumbala / Nététou", categorie: "Condiments & Sauces",
-    portion_standard_nom: "1 Cuillère à café", portion_standard_grammes: 5,
-    valeurs_pour_100g: { calories: 300, glucides: 16, lipides: 18, proteines: 35, fibres: 5, sodium_mg: 150 },
-    flags_ia: { is_local_senegal: true, ig_bas: true, high_sodium: false, ultra_transforme: false },
-    message_coach_ia: "Le secret de nos grands-mères ! Un exhausteur de goût naturel qui protège ton cœur."
-  },
-  {
-    id: "food_006", nom: "Fleurs de Bissap Rouge (Infusion sans sucre)", categorie: "Boissons",
-    portion_standard_nom: "1 Grand Verre", portion_standard_grammes: 250,
-    valeurs_pour_100g: { calories: 0, glucides: 0, lipides: 0, proteines: 0, fibres: 0, sodium_mg: 2 },
-    flags_ia: { is_local_senegal: true, ig_bas: true, high_sodium: false, ultra_transforme: false },
-    message_coach_ia: "Excellent diurétique naturel. Parfait pour dégonfler, à condition de ne pas y ajouter de sucre blanc !"
-  }
-];
-
-const buildDynamicRecipes = async () => {
+const buildDynamicRecipes = async (foodDatabase: any[]) => {
     let dynamicRecipes: any[] = [];
     try {
         const { data: products } = await supabase.from('nutrition_products').select('*');
         if (products && products.length > 0) {
-            dynamicRecipes = products.map((p: any) => {
+                const validStandaloneProducts = products.filter((p: any) => {
+                    const cat = p.categorie_nom?.toLowerCase() || '';
+                    const nom = p.nom?.toLowerCase() || '';
+                    
+                    // RÈGLE 2 : Exclusion Totale (Non-Alimentaire, Packs & Condiments purs isolés)
+                    if (cat.includes('équipement') || cat.includes('accessoire') || cat.includes('pack')) return false;
+                    if (nom.includes('gourde') || nom.includes('blender') || nom.includes('t-shirt') || nom.includes('tote bag')) return false;
+                    if (nom.includes('pâte') || nom.includes('beurre de cajou') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('djar') || nom.includes('gingembre') || nom.includes('moringa') || nom.includes('bouye') || nom.includes('bissap')) return false;
+                    
+                    return true;
+                });
+
+                dynamicRecipes = validStandaloneProducts.map((p: any) => {
                 let mType = 'Déjeuner';
                 if (p.goal === 'snacks') mType = 'Collation';
                 else if (p.goal === 'energy' || p.categorie_nom?.toLowerCase().includes('infusion')) mType = 'Petit-déjeuner';
@@ -180,7 +146,15 @@ const buildDynamicRecipes = async () => {
         }
     } catch(e) {}
 
-    const foodDbRecipes = FOOD_DATABASE.map((f: any) => ({
+    const validStandaloneFoods = foodDatabase.filter((f: any) => {
+        const cat = f.categorie?.toLowerCase() || '';
+        const nom = f.nom?.toLowerCase() || '';
+        if (cat.includes('condiment') || cat.includes('pâte')) return false;
+        if (nom.includes('pâte d\'arachide') || nom.includes('beurre de cajou') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('djar') || nom.includes('gingembre') || nom.includes('moringa') || nom.includes('bouye') || nom.includes('bissap')) return false;
+        return true;
+    });
+
+    const foodDbRecipes = validStandaloneFoods.map((f: any) => ({
         id: `gen_food_${f.id}`,
         type: f.categorie === 'Boissons' ? 'Collation' : f.categorie === 'Protéines' ? 'Dîner' : 'Déjeuner',
         nom: `Préparation de ${f.nom}`,
@@ -267,9 +241,48 @@ export default function NutritionDashboard() {
   const [foodSearchQuery, setFoodSearchQuery] = useState("");
   const [selectedFoodDB, setSelectedFoodDB] = useState<any>(null);
   const [foodQuantity, setFoodQuantity] = useState(1);
+  const [foodDatabaseDB, setFoodDatabaseDB] = useState<any[]>([]);
 
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
+
+  // Coach IA "Thierno" (Médecin)
+  const [isThiernoChatOpen, setIsThiernoChatOpen] = useState(false);
+  const [isThiernoDismissed, setIsThiernoDismissed] = useState(false);
+  const [thiernoUserReply, setThiernoUserReply] = useState("");
+  const thiernoChatEndRef = useRef<HTMLDivElement>(null);
+  const [thiernoMessages, setThiernoMessages] = useState<any[]>([
+    { sender: 'bot', text: "Bonjour ! Je suis le Dr. Thierno. As-tu des questions sur la nutrition, tes portions ou comment adapter tes plats locaux (Mix Sénégalo-Moderne) ?" }
+  ]);
+  
+  useEffect(() => {
+    thiernoChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [thiernoMessages, isThiernoChatOpen]);
+
+  const processThiernoReply = (reply: string) => {
+    if (!reply.trim()) return;
+    setThiernoMessages(prev => [...prev, { sender: 'client', text: reply }]);
+    setThiernoUserReply("");
+
+    setTimeout(() => {
+        let botResponse = "C'est une très bonne question. N'oublie pas le principe du Mix Sénégalo-Moderne : on garde nos bases locales (comme le Fonio ou le Thiof) et on contrôle les glucides et l'huile. Si tu as un doute médical, n'hésite pas à consulter !";
+        const lowerReply = reply.toLowerCase();
+        
+        if (lowerReply.includes('riz') || lowerReply.includes('thieb')) {
+            botResponse = "Le riz brisé a un index glycémique élevé. Essaye de le remplacer par du riz étuvé ou limite ta portion à 1/4 de l'assiette. Ajoute plus de légumes (chou, carottes) pour les fibres !";
+        } else if (lowerReply.includes('sucre') || lowerReply.includes('fatigue')) {
+            botResponse = "La fatigue après le repas vient souvent des pics de sucre (insuline). Évite d'ajouter du sucre dans le Kinkeliba ou l'Attaya, et choisis des glucides lents comme le pain complet ou le mil sans sucre.";
+        } else if (lowerReply.includes('huile') || lowerReply.includes('mafé') || lowerReply.includes('yassa')) {
+            botResponse = "L'arachide pure du Mafé est saine, mais c'est l'excès d'huile ajoutée qui pose problème. Pour le Yassa, essaye de cuire tes oignons avec juste une cuillère à soupe d'huile. Le goût y sera toujours !";
+        } else if (lowerReply.includes('jeûne') || lowerReply.includes('matin')) {
+            botResponse = "Le jeûne intermittent est très efficace. Assure-toi de bien t'hydrater le matin (eau, infusion Kinkeliba ou Djar) sans ajouter de calories pour prolonger la détoxification de ton foie.";
+        } else if (lowerReply.includes('arachide') || lowerReply.includes('cajou')) {
+            botResponse = "Si tu as une allergie à l'arachide, nous la retirons automatiquement de tes menus générés. Tu peux utiliser d'autres sources de bons lipides comme l'avocat ou le beurre de sésame si toléré.";
+        }
+        
+        setThiernoMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
+    }, 1000);
+  };
 
   // Diagnostic Interne (Redo)
   const [diagStep, setDiagStep] = useState(0);
@@ -322,6 +335,7 @@ export default function NutritionDashboard() {
   const [proteinGoal, setProteinGoal] = useState(80);
   const [carbsGoal, setCarbsGoal] = useState(150);
   const [fatsGoal, setFatsGoal] = useState(50);
+  const [isFastingMode, setIsFastingMode] = useState(false);
   
   // Smart Planner (Générateur)
   const [weeklyGeneratedMenu, setWeeklyGeneratedMenu] = useState<any[]>([]);
@@ -492,6 +506,7 @@ export default function NutritionDashboard() {
              setCarbsGoal(nutritionData.carbs_goal || 150);
              setFatsGoal(nutritionData.fats_goal || 50);
              setJongomaXP(nutritionData.jongoma_xp || 0);
+             setIsFastingMode(nutritionData.diagnostic_data?.fasting_mode || false);
              if (nutritionData.weekly_menu && Array.isArray(nutritionData.weekly_menu) && nutritionData.weekly_menu.length > 0) {
                  setWeeklyGeneratedMenu(nutritionData.weekly_menu);
              }
@@ -540,6 +555,10 @@ export default function NutritionDashboard() {
                  client: p.clients?.full_name || 'Membre'
               })));
           }
+
+          // Fetch Foods
+          const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
+          if (dbFoods) setFoodDatabaseDB(dbFoods);
 
           // Load banner from settings specific to the coach
           if (profileData.tenant_id) {
@@ -675,8 +694,9 @@ export default function NutritionDashboard() {
   }, [waterGlasses]);
 
   // --- LOGIQUE SMART PLANNER ---
-  const generateWeeklyMenu = async () => {
-      let currentRecipes = await buildDynamicRecipes();
+  const generateWeeklyMenu = async (fastingOverride?: boolean) => {
+      const activeFastingMode = fastingOverride !== undefined ? fastingOverride : isFastingMode;
+      let currentRecipes = await buildDynamicRecipes(foodDatabaseDB);
       try {
           const { data } = await supabase.from('nutrition_recipes').select('*');
           if (data && data.length > 0) {
@@ -688,6 +708,45 @@ export default function NutritionDashboard() {
       let bolCommunCount = 0;
       const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
       
+      // FILTRAGE ALLERGIES (RULE 5)
+      const allergies = clientProfile?.diagnostic_data?.allergies?.toLowerCase() || '';
+      let safeRecipes = currentRecipes;
+      if (allergies && allergies !== 'aucune' && allergies !== 'non') {
+          const allergyList = allergies.split(/[,;\s]+/).filter(Boolean);
+          safeRecipes = currentRecipes.filter(r => {
+             return !r.ingredients?.some((ing: any) => allergyList.some(al => ing.nom.toLowerCase().includes(al)));
+          });
+      }
+
+      // RATIOS CALORIQUES MODE GUIDÉ (RULE 4)
+      const targetDailyCals = calorieGoal || 1500;
+      const mealTargets: Record<string, number> = activeFastingMode ? {
+         'Déjeuner': targetDailyCals * 0.45,
+         'Collation': targetDailyCals * 0.20,
+         'Dîner': targetDailyCals * 0.35
+      } : {
+         'Petit-déjeuner': targetDailyCals * 0.25,
+         'Déjeuner': targetDailyCals * 0.40,
+         'Collation': targetDailyCals * 0.10,
+         'Dîner': targetDailyCals * 0.25
+      };
+
+      const scaleRecipe = (recipe: any, targetCals: number) => {
+          if (!recipe) return null;
+          const ratio = targetCals / (recipe.calories || targetCals);
+          return {
+              ...recipe,
+              calories: Math.round(targetCals),
+              proteins: Math.round((recipe.proteins || 0) * ratio),
+              carbs: Math.round((recipe.carbs || 0) * ratio),
+              fats: Math.round((recipe.fats || 0) * ratio),
+              ingredients: recipe.ingredients?.map((ing: any) => ({
+                  ...ing,
+                  quantite: typeof ing.quantite === 'number' ? Number((ing.quantite * ratio).toFixed(1)) : ing.quantite
+              })) || []
+          };
+      };
+
       const recentMeals: Record<string, string[]> = {
           'Petit-déjeuner': [],
           'Déjeuner': [],
@@ -697,13 +756,13 @@ export default function NutritionDashboard() {
       
       days.forEach(day => {
           const getAvailable = (type: string) => {
-              let available = currentRecipes.filter(r => r.type === type && !recentMeals[type].slice(-2).includes(r.id));
-              if (available.length === 0) available = currentRecipes.filter(r => r.type === type && !recentMeals[type].slice(-1).includes(r.id));
-              if (available.length === 0) available = currentRecipes.filter(r => r.type === type);
+              let available = safeRecipes.filter(r => r.type === type && !recentMeals[type].slice(-2).includes(r.id));
+              if (available.length === 0) available = safeRecipes.filter(r => r.type === type && !recentMeals[type].slice(-1).includes(r.id));
+              if (available.length === 0) available = safeRecipes.filter(r => r.type === type);
               return available;
           };
 
-          let breakfasts = getAvailable('Petit-déjeuner');
+          let breakfasts = activeFastingMode ? [] : getAvailable('Petit-déjeuner');
           let lunches = getAvailable('Déjeuner');
           let dinners = getAvailable('Dîner');
           let snacks = getAvailable('Collation');
@@ -719,12 +778,20 @@ export default function NutritionDashboard() {
               lunch = normalLunches.length > 0 ? normalLunches[Math.floor(Math.random() * normalLunches.length)] : lunches[Math.floor(Math.random() * lunches.length)];
           }
 
-          const dayMeals = {
-              'Petit-déjeuner': breakfasts.length > 0 ? breakfasts[Math.floor(Math.random() * breakfasts.length)] : null,
-              'Déjeuner': lunch || null,
-              'Collation': snacks.length > 0 ? snacks[Math.floor(Math.random() * snacks.length)] : null,
-              'Dîner': dinners.length > 0 ? dinners[Math.floor(Math.random() * dinners.length)] : null
+          const rawBf = breakfasts.length > 0 ? breakfasts[Math.floor(Math.random() * breakfasts.length)] : null;
+          const rawL = lunch || null;
+          const rawSn = snacks.length > 0 ? snacks[Math.floor(Math.random() * snacks.length)] : null;
+          const rawD = dinners.length > 0 ? dinners[Math.floor(Math.random() * dinners.length)] : null;
+
+          const dayMeals: any = {
+              'Déjeuner': trackingMode === 'guided' ? scaleRecipe(rawL, mealTargets['Déjeuner']) : rawL,
+              'Collation': trackingMode === 'guided' ? scaleRecipe(rawSn, mealTargets['Collation']) : rawSn,
+              'Dîner': trackingMode === 'guided' ? scaleRecipe(rawD, mealTargets['Dîner']) : rawD
           };
+
+          if (!activeFastingMode) {
+              dayMeals['Petit-déjeuner'] = trackingMode === 'guided' ? scaleRecipe(rawBf, mealTargets['Petit-déjeuner']) : rawBf;
+          }
 
           if (dayMeals['Petit-déjeuner']) recentMeals['Petit-déjeuner'].push(dayMeals['Petit-déjeuner'].id);
           if (dayMeals['Déjeuner']) recentMeals['Déjeuner'].push(dayMeals['Déjeuner'].id);
@@ -741,7 +808,7 @@ export default function NutritionDashboard() {
   };
 
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
-      let currentRecipes = await buildDynamicRecipes();
+      let currentRecipes = await buildDynamicRecipes(foodDatabaseDB);
       try {
           const { data } = await supabase.from('nutrition_recipes').select('*');
           if (data && data.length > 0) {
@@ -749,6 +816,12 @@ export default function NutritionDashboard() {
           }
       } catch(e) {}
       
+      const allergies = clientProfile?.diagnostic_data?.allergies?.toLowerCase() || '';
+      if (allergies && allergies !== 'aucune' && allergies !== 'non') {
+          const allergyList = allergies.split(/[,;\s]+/).filter(Boolean);
+          currentRecipes = currentRecipes.filter(r => !r.ingredients?.some((ing: any) => allergyList.some(al => ing.nom.toLowerCase().includes(al))));
+      }
+
       const prevDayRecipeId = dayIndex > 0 ? weeklyGeneratedMenu[dayIndex - 1].meals[mealType]?.id : null;
       const nextDayRecipeId = dayIndex < 6 ? weeklyGeneratedMenu[dayIndex + 1].meals[mealType]?.id : null;
 
@@ -759,7 +832,30 @@ export default function NutritionDashboard() {
       }
 
       if (alternatives.length > 0) {
-          const newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
+          let newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
+          
+          if (trackingMode === 'guided') {
+              const targetDailyCals = calorieGoal || 1500;
+              const mealTargets: Record<string, number> = isFastingMode ? {
+                 'Déjeuner': targetDailyCals * 0.45,
+                 'Collation': targetDailyCals * 0.20,
+                 'Dîner': targetDailyCals * 0.35
+              } : { 
+                 'Petit-déjeuner': targetDailyCals * 0.25, 'Déjeuner': targetDailyCals * 0.40, 'Collation': targetDailyCals * 0.10, 'Dîner': targetDailyCals * 0.25 
+              };
+              const ratio = mealTargets[mealType] / (newRecipe.calories || mealTargets[mealType]);
+              newRecipe = {
+                  ...newRecipe,
+                  calories: Math.round(mealTargets[mealType]),
+                  proteins: Math.round((newRecipe.proteins || 0) * ratio),
+                  carbs: Math.round((newRecipe.carbs || 0) * ratio),
+                  fats: Math.round((newRecipe.fats || 0) * ratio),
+                  ingredients: newRecipe.ingredients?.map((ing: any) => ({
+                      ...ing, quantite: typeof ing.quantite === 'number' ? Number((ing.quantite * ratio).toFixed(1)) : ing.quantite
+                  })) || []
+              };
+          }
+
           const updatedMenu = [...weeklyGeneratedMenu];
           updatedMenu[dayIndex].meals[mealType] = newRecipe;
           setWeeklyGeneratedMenu(updatedMenu);
@@ -1318,6 +1414,17 @@ export default function NutritionDashboard() {
         const phone = user?.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/)?.[1] || user?.phone;
         if (phone) await supabase.from('nutrition_profiles').update({ tracking_mode: mode }).eq('phone', phone);
      }
+  };
+
+  const handleToggleFasting = async () => {
+     const newMode = !isFastingMode;
+     setIsFastingMode(newMode);
+     if (clientProfile) {
+         const newDiag = { ...clientProfile.diagnostic_data, fasting_mode: newMode };
+         await supabase.from('nutrition_profiles').update({ diagnostic_data: newDiag }).eq('client_id', clientProfile.id);
+     }
+     alert(newMode ? "Mode Jeûne Intermittent activé. Votre menu va être recalculé sans petit-déjeuner." : "Mode Jeûne désactivé. Le petit-déjeuner est de retour !");
+     generateWeeklyMenu(newMode);
   };
 
   if (loading) {
@@ -1978,7 +2085,7 @@ export default function NutritionDashboard() {
 
             {/* CORPS : LES REPAS */}
             <div className="grid md:grid-cols-2 gap-4">
-                {['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner'].map((mealType) => {
+                {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map((mealType) => {
                     const generatedMeal = todayPlan?.meals ? todayPlan.meals[mealType] : null;
                     const plannedMeal = generatedMeal ? {
                         type: mealType,
@@ -2168,7 +2275,7 @@ export default function NutritionDashboard() {
                              
                              {!selectedFoodDB && foodSearchQuery && (
                                 <div className="max-h-60 overflow-y-auto space-y-2 mb-6 border border-zinc-100 rounded-xl p-2">
-                                   {FOOD_DATABASE.filter(f => f.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).map(food => (
+                                   {foodDatabaseDB.filter(f => f.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).map(food => (
                                       <div key={food.id} onClick={() => setSelectedFoodDB(food)} className="p-3 bg-white hover:bg-zinc-50 rounded-lg cursor-pointer flex justify-between items-center transition-colors">
                                          <div>
                                             <p className="font-bold text-sm">{food.nom}</p>
@@ -2177,7 +2284,7 @@ export default function NutritionDashboard() {
                                          <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{food.valeurs_pour_100g.calories} kcal/100g</span>
                                       </div>
                                    ))}
-                                   {FOOD_DATABASE.filter(f => f.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).length === 0 && (
+                                   {foodDatabaseDB.filter(f => f.nom.toLowerCase().includes(foodSearchQuery.toLowerCase())).length === 0 && (
                                       <p className="text-xs text-zinc-400 text-center p-4 font-bold">Aucun aliment trouvé. Essayez autre chose.</p>
                                    )}
                                 </div>
@@ -2421,7 +2528,7 @@ export default function NutritionDashboard() {
                      </div>
                   </div>
                   <div className="flex gap-4">
-                     <button onClick={generateWeeklyMenu} className="bg-white border border-zinc-200 text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-50 transition shadow-sm flex items-center gap-2">
+                     <button onClick={() => generateWeeklyMenu()} className="bg-white border border-zinc-200 text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-50 transition shadow-sm flex items-center gap-2">
                         <RefreshCcw size={14}/> Regénérer
                      </button>
                      <button onClick={() => setShowGroceryList(true)} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition shadow-sm flex items-center gap-2">
@@ -2459,23 +2566,30 @@ export default function NutritionDashboard() {
                            </div>
                            
                            <div className="p-5 flex-1 flex flex-col gap-3">
-                              {['Petit-déjeuner', 'Collation', 'Dîner'].map(mealType => {
+                              {(isFastingMode ? ['Collation', 'Dîner'] : ['Petit-déjeuner', 'Collation', 'Dîner']).map(mealType => {
                                  const recipe = dayPlan.meals?.[mealType];
                                  if(!recipe) return null;
                                  const isToday = dayPlan.day === formattedCurrentDay;
+                                 const isConsumed = consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
+
                                  return (
-                                    <div key={mealType} className="flex justify-between items-center bg-zinc-50 p-3 rounded-xl hover:border-black border border-transparent transition-colors">
+                                    <div key={mealType} className={`flex justify-between items-center p-3 rounded-xl border-2 transition-colors ${isConsumed ? 'bg-[#39FF14]/10 border-[#39FF14] opacity-75' : 'bg-zinc-50 border-transparent hover:border-black'}`}>
                                        <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
-                                          <p className="text-xs font-bold text-black truncate">{recipe.nom}</p>
+                                          <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
                                        <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                                          <span className="text-[10px] font-bold text-zinc-500">{recipe.calories} kcal</span>
+                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{recipe.calories} kcal</span>
                                           <div className="flex items-center gap-1 mt-0.5">
-                                             {isToday && (
-                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9)); setToastMessage('Repas validé !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Valider ce repas">✅</button>
+                                             {isToday && !isConsumed && (
+                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9)); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
                                              )}
-                                             <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors" title="Changer ce repas">🔄</button>
+                                             {isConsumed && (
+                                                <span className="bg-[#39FF14] text-black px-2 py-0.5 rounded text-[8px] font-black uppercase shadow-sm">Validé ✅</span>
+                                             )}
+                                             {!isConsumed && (
+                                                <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors" title="Changer ce repas">🔄</button>
+                                             )}
                                           </div>
                                        </div>
                                     </div>
@@ -3622,6 +3736,10 @@ export default function NutritionDashboard() {
                <div className="flex items-center gap-4">
                   <MessageCircle size={20} onClick={() => window.open('https://wa.me/221785338417', '_blank')} className="text-zinc-400 hover:text-[#39FF14] cursor-pointer transition-colors"/>
                </div>
+               
+               <button onClick={handleToggleFasting} className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2 border w-full md:w-auto justify-center ${isFastingMode ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-zinc-100 text-zinc-500 border-zinc-200 hover:bg-zinc-200'}`}>
+                 <Moon size={14}/> Jeûne 16/8
+               </button>
             </div>
             <div>
                <h4 className="font-black uppercase text-sm tracking-widest text-zinc-300 mb-6">Liens Utiles</h4>
@@ -3822,6 +3940,55 @@ export default function NutritionDashboard() {
         </div>
       )}
     </main>
+
+      {/* BOT THIERNO (COACH MÉDECIN) */}
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
+        {isThiernoChatOpen && (
+          <div className={`rounded-[2rem] shadow-2xl border-2 border-[#39FF14] p-0 mb-4 w-[calc(100vw-2rem)] md:w-[340px] h-[450px] max-h-[70vh] flex flex-col animate-in zoom-in duration-300 overflow-hidden ${theme === 'dark' ? 'bg-zinc-950' : 'bg-white'}`}>
+             <div className="bg-black p-4 flex justify-between items-center border-b border-zinc-800">
+                <div className="flex items-center gap-3">
+                   <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl">👨🏿‍⚕️</div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
+                   </div>
+                   <div><p className="text-[#39FF14] font-black uppercase text-xs">Dr. Thierno</p><p className="text-zinc-400 text-[9px] uppercase font-bold tracking-widest">Coach Nutrition</p></div>
+                </div>
+                <button onClick={() => setIsThiernoChatOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
+             </div>
+             
+             <div className={`flex-1 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar ${theme === 'dark' ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+                {thiernoMessages.map((msg, i) => (
+                   <div key={i} className={`flex flex-col ${msg.sender === 'bot' ? 'items-start' : 'items-end'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[90%] text-sm font-medium whitespace-pre-wrap ${msg.sender === 'bot' ? (theme === 'dark' ? 'bg-zinc-800 text-white border-zinc-700' : 'bg-white text-zinc-800 border-zinc-200') + ' border rounded-tl-none shadow-sm' : 'bg-black text-[#39FF14] rounded-tr-none shadow-md'}`}>
+                         {msg.text}
+                      </div>
+                   </div>
+                ))}
+                <div ref={thiernoChatEndRef} />
+             </div>
+
+             <div className={`p-3 border-t flex gap-2 ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                <input type="text" value={thiernoUserReply} onChange={e => setThiernoUserReply(e.target.value)} onKeyDown={e => e.key === 'Enter' && processThiernoReply(thiernoUserReply)} placeholder="Poser une question..." className={`flex-1 rounded-xl px-4 outline-none text-sm font-bold focus:ring-1 focus:ring-black ${theme === 'dark' ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-black'}`} />
+                <button onClick={() => processThiernoReply(thiernoUserReply)} className="bg-black p-3 rounded-xl text-[#39FF14] hover:scale-105 transition"><Send size={18}/></button>
+             </div>
+          </div>
+        )}
+        
+        {!isThiernoChatOpen && !isThiernoDismissed && (
+           <div className="relative group animate-bounce flex items-center justify-center">
+             <button 
+               onClick={(e) => { e.stopPropagation(); setIsThiernoDismissed(true); }} 
+               className="absolute -top-1 -right-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-black p-1 rounded-full z-10 transition-colors shadow-sm"
+               aria-label="Fermer l'assistant"
+             >
+               <X size={14} />
+             </button>
+             <button onClick={() => setIsThiernoChatOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative flex items-center justify-center text-3xl">
+               👨🏿‍⚕️
+             </button>
+           </div>
+        )}
+      </div>
 
       {/* TOAST NOTIFICATION */}
       {toastMessage && (
