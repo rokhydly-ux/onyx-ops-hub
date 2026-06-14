@@ -118,6 +118,12 @@ const buildDynamicRecipes = async (foodDatabase: any[]) => {
                     if (nom.includes('gourde') || nom.includes('blender') || nom.includes('t-shirt') || nom.includes('tote bag')) return false;
                     if (nom.includes('pâte') || nom.includes('beurre de cajou') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('djar') || nom.includes('gingembre') || nom.includes('moringa') || nom.includes('bouye') || nom.includes('bissap')) return false;
                     
+                    // Exclusion stricte des ingrédients seuls (graines, feuilles, céréales)
+                    const exclNames = ['fonio', 'riz', 'pain', 'mil', 'avoine', 'quinoa', 'graine', 'feuille', 'farine', 'couscous', 'thiéré', 'arraw'];
+                    if (exclNames.some(e => nom === e || nom.startsWith(e + ' '))) {
+                        if (!nom.includes('salade') && !nom.includes('poulet') && !nom.includes('viande') && !nom.includes('poisson')) return false;
+                    }
+                    
                     return true;
                 });
 
@@ -150,7 +156,10 @@ const buildDynamicRecipes = async (foodDatabase: any[]) => {
         const cat = f.categorie?.toLowerCase() || '';
         const nom = f.nom?.toLowerCase() || '';
         if (cat.includes('condiment') || cat.includes('pâte')) return false;
+        if (cat.includes('céréale') || cat.includes('graine') || cat.includes('féculent')) return false;
         if (nom.includes('pâte d\'arachide') || nom.includes('beurre de cajou') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('djar') || nom.includes('gingembre') || nom.includes('moringa') || nom.includes('bouye') || nom.includes('bissap')) return false;
+        const exclNames = ['fonio', 'riz', 'pain', 'mil', 'avoine', 'quinoa', 'graine', 'feuille', 'farine', 'couscous', 'thiéré', 'arraw'];
+        if (exclNames.some(e => nom.includes(e))) return false;
         return true;
     });
 
@@ -202,6 +211,14 @@ const CircularProgress = ({ value, max, colorClass, label, icon: Icon, unit }: a
   );
 };
 
+const getEmbedUrl = (url: string) => {
+  if (!url) return '';
+  // Convertit automatiquement un lien YouTube classique en lien "embed" lisible dans une iframe
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
+};
+
 export default function NutritionDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -242,6 +259,8 @@ export default function NutritionDashboard() {
   const [selectedFoodDB, setSelectedFoodDB] = useState<any>(null);
   const [foodQuantity, setFoodQuantity] = useState(1);
   const [foodDatabaseDB, setFoodDatabaseDB] = useState<any[]>([]);
+  const [allRecipesDB, setAllRecipesDB] = useState<any[]>([]);
+  const [recipeFilter, setRecipeFilter] = useState("Tous");
 
   // Coach IA "Rokhy"
   const [rokhyMessage, setRokhyMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
@@ -602,6 +621,10 @@ export default function NutritionDashboard() {
           // Fetch Foods
           const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
           if (dbFoods) setFoodDatabaseDB(dbFoods);
+
+          // Fetch All Recipes for Gallery
+          const { data: dbRecipes } = await supabase.from('nutrition_recipes').select('*');
+          if (dbRecipes) setAllRecipesDB(dbRecipes);
 
           // Load banner from settings specific to the coach
           if (profileData.tenant_id) {
@@ -2632,7 +2655,7 @@ export default function NutritionDashboard() {
                            </div>
                            
                            <div className="p-5 flex-1 flex flex-col gap-3">
-                              {(isFastingMode ? ['Collation', 'Dîner'] : ['Petit-déjeuner', 'Collation', 'Dîner']).map(mealType => {
+                              {(isFastingMode ? ['Déjeuner', 'Collation', 'Dîner'] : ['Petit-déjeuner', 'Déjeuner', 'Collation', 'Dîner']).map(mealType => {
                                  const recipe = dayPlan.meals?.[mealType];
                                  if(!recipe) return null;
                                  const isToday = dayPlan.day === formattedCurrentDay;
@@ -2976,33 +2999,66 @@ export default function NutritionDashboard() {
         {activeTab === 'favorites' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-4xl mx-auto">
              <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><HeartPulse className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Recettes Enregistrées</h2>
+                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-6`}><BookOpen className="text-[#39FF14] bg-black p-2 rounded-xl" size={36}/> Galerie de Recettes</h2>
                 
                 <div className="relative mb-6">
                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                    <input 
                       type="text" 
-                      placeholder="Rechercher une recette sauvegardée..." 
+                      placeholder="Rechercher une recette (ex: Thieboudienne, Fonio)..." 
                       value={favoriteSearchQuery}
                       onChange={e => setFavoriteSearchQuery(e.target.value)}
                       className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition-colors"
                    />
                 </div>
+                
+                <div className="flex gap-2 overflow-x-auto pb-4 mb-4 custom-scrollbar">
+                   {['Tous', 'Favoris', 'Ndekki', 'Déjeuner', 'Dîner', 'Protéinés', 'Low Carb', 'Low Fat', 'Peu Calorique'].map(filter => (
+                      <button 
+                         key={filter} 
+                         onClick={() => setRecipeFilter(filter)} 
+                         className={`shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${recipeFilter === filter ? 'bg-black text-[#39FF14] shadow-md' : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-black'}`}
+                      >
+                         {filter}
+                      </button>
+                   ))}
+                </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
-                   {(Array.isArray(favoriteMeals) ? favoriteMeals : [])
-                      .filter(fav => (fav.meal || fav.nom || '').toLowerCase().includes(favoriteSearchQuery.toLowerCase()))
-                      .map((fav, i) => {
-                       const isDBFood = !!fav.valeurs_pour_100g;
-                       const name = fav.meal || fav.nom;
-                       const cals = fav.cals || fav.calories || (isDBFood ? fav.valeurs_pour_100g.calories : 0);
-                       const prots = fav.proteins || (isDBFood ? fav.valeurs_pour_100g.proteines : 0);
+                   {allRecipesDB.filter(r => {
+                         const matchSearch = r.nom?.toLowerCase().includes(favoriteSearchQuery.toLowerCase());
+                         if (!matchSearch) return false;
+                         if (recipeFilter === 'Favoris') return favoriteMeals.some(f => (f.meal || f.nom) === r.nom);
+                         if (recipeFilter === 'Ndekki') return r.type === 'Petit-déjeuner';
+                         if (recipeFilter === 'Déjeuner') return r.type === 'Déjeuner';
+                         if (recipeFilter === 'Dîner') return r.type === 'Dîner';
+                         if (recipeFilter === 'Protéinés') return r.proteins >= 20;
+                         if (recipeFilter === 'Low Carb') return r.carbs <= 30;
+                         if (recipeFilter === 'Low Fat') return r.fats <= 15;
+                         if (recipeFilter === 'Peu Calorique') return r.calories <= 350;
+                         return true;
+                      }).map((fav, i) => {
+                       const name = fav.nom;
+                       const cals = fav.calories;
+                       const prots = fav.proteins;
+                       const isFav = favoriteMeals.some(f => (f.meal || f.nom) === name);
+                       
+                       const tags = [];
+                       if (prots >= 20) tags.push("Protéiné");
+                       if (fav.carbs <= 30) tags.push("Low Carb");
+                       if (cals <= 350) tags.push("Léger");
+                       if (fav.fats <= 15) tags.push("Low Fat");
+                       
                        return (
-                       <div key={i} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col justify-between hover:border-[#39FF14] transition-colors group">
+                       <div key={fav.id || i} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-100 flex flex-col justify-between hover:border-[#39FF14] transition-colors group">
                            <div>
+                               {fav.image_url && <img src={fav.image_url} alt={name} className="w-full h-32 object-cover rounded-xl mb-3" />}
                                <div className="flex justify-between items-start mb-2">
                                    <p className="font-bold text-sm text-black">{name}</p>
-                                   <button onClick={() => toggleFavorite(fav)} className="text-red-500 hover:text-red-700 transition-colors"><Trash2 size={16}/></button>
+                                   <button onClick={() => toggleFavorite(fav)} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 hover:text-red-500'}`}><HeartPulse size={18} className={isFav ? "fill-current" : ""}/></button>
+                               </div>
+                               <div className="flex flex-wrap gap-1 mb-3">
+                                   {tags.map(t => <span key={t} className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">{t}</span>)}
                                </div>
                                <div className="flex gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
                                    <span className="flex items-center gap-1"><Flame size={12} className="text-orange-500"/> {cals} kcal</span>
@@ -3010,27 +3066,15 @@ export default function NutritionDashboard() {
                                </div>
                            </div>
                            <button onClick={() => {
-                               if(isDBFood) {
-                                   setSelectedFoodDB(fav);
-                                   setFoodSearchQuery(fav.nom);
-                                   setActiveTab('today');
-                                   setSelectedMealModal({ type: 'Collation', mode: 'flexible' });
-                               } else {
-                                   confirmMealLog(name, cals, prots, fav.carbs || 0, fav.fats || 0, fav);
-                                   alert("Ajouté au tracker du jour !");
-                               }
+                               confirmMealLog(name, cals, prots, fav.carbs || 0, fav.fats || 0, fav);
+                               alert("Ajouté au tracker du jour !");
                            }} className="w-full bg-zinc-200 text-black py-3 rounded-xl text-[10px] font-black uppercase hover:bg-black hover:text-[#39FF14] transition-all flex justify-center items-center gap-2">
                                <CheckCircle size={14}/> Ajouter au menu du jour
                            </button>
                        </div>
                    )})}
-                   {(!Array.isArray(favoriteMeals) || favoriteMeals.length === 0) ? (
-                      <div className="col-span-full py-12 text-center border-2 border-dashed border-zinc-200 rounded-3xl">
-                         <p className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Aucune recette sauvegardée.</p>
-                         <p className="text-zinc-400 text-xs mt-1">Utilisez le bouton "Cœur" sur un plat pour le retrouver ici.</p>
-                      </div>
-                   ) : (favoriteMeals.filter(fav => (fav.meal || fav.nom || '').toLowerCase().includes(favoriteSearchQuery.toLowerCase())).length === 0) && (
-                      <div className="col-span-full py-8 text-center text-zinc-500 font-bold">Aucune recette ne correspond à votre recherche.</div>
+                   {allRecipesDB.length === 0 && (
+                      <div className="col-span-full py-8 text-center text-zinc-500 font-bold">Aucune recette disponible.</div>
                    )}
                 </div>
              </div>

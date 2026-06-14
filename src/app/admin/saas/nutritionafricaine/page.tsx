@@ -1167,8 +1167,13 @@ export default function AdminNutritionAfricaine() {
                     {recipes.map(r => (
                        <tr key={r.id} className="hover:bg-zinc-50 transition-colors">
                           <td className="p-4">
-                             <p className="font-bold text-sm text-black">{r.nom}</p>
-                             <p className="text-[10px] font-black text-zinc-500 uppercase mt-1">{r.type}</p>
+                             <div className="flex items-center gap-3">
+                                <img src={r.image_url || 'https://placehold.co/100x100/111/39FF14?text=Recette'} alt="" className="w-10 h-10 rounded-lg object-cover bg-zinc-100" onError={(e: any) => e.target.src = 'https://placehold.co/100x100/111/39FF14?text=Recette'} />
+                                <div>
+                                   <p className="font-bold text-sm text-black">{r.nom}</p>
+                                   <p className="text-[10px] font-black text-zinc-500 uppercase mt-1">{r.type}</p>
+                                </div>
+                             </div>
                           </td>
                           <td className="p-4">
                              <div className="flex gap-3 text-xs font-bold">
