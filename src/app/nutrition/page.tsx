@@ -719,32 +719,50 @@ export default function NutritionDashboard() {
       let bolCommunCount = 0;
       const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
       
+      const recentMeals: Record<string, string[]> = {
+          'Petit-déjeuner': [],
+          'Déjeuner': [],
+          'Collation': [],
+          'Dîner': []
+      };
+      
       days.forEach(day => {
-          const breakfasts = currentRecipes.filter(r => r.type === 'Petit-déjeuner');
-          const lunches = currentRecipes.filter(r => r.type === 'Déjeuner');
-          const dinners = currentRecipes.filter(r => r.type === 'Dîner');
-          const snacks = currentRecipes.filter(r => r.type === 'Collation');
+          const getAvailable = (type: string) => {
+              let available = currentRecipes.filter(r => r.type === type && !recentMeals[type].slice(-2).includes(r.id));
+              if (available.length === 0) available = currentRecipes.filter(r => r.type === type && !recentMeals[type].slice(-1).includes(r.id));
+              if (available.length === 0) available = currentRecipes.filter(r => r.type === type);
+              return available;
+          };
+
+          let breakfasts = getAvailable('Petit-déjeuner');
+          let lunches = getAvailable('Déjeuner');
+          let dinners = getAvailable('Dîner');
+          let snacks = getAvailable('Collation');
 
           let lunch;
           // S'assure d'intégrer 2-3 déjeuners "Bol Commun" dans la semaine
           if (bolCommunCount < 3 && Math.random() > 0.4) {
               const bcLunches = lunches.filter(r => r.is_bol_commun);
-              lunch = bcLunches.length > 0 ? bcLunches[Math.floor(Math.random() * bcLunches.length)] : lunches[0];
+              lunch = bcLunches.length > 0 ? bcLunches[Math.floor(Math.random() * bcLunches.length)] : lunches[Math.floor(Math.random() * lunches.length)];
               if (bcLunches.length > 0) bolCommunCount++;
           } else {
               const normalLunches = lunches.filter(r => !r.is_bol_commun);
-              lunch = normalLunches.length > 0 ? normalLunches[Math.floor(Math.random() * normalLunches.length)] : lunches[0];
+              lunch = normalLunches.length > 0 ? normalLunches[Math.floor(Math.random() * normalLunches.length)] : lunches[Math.floor(Math.random() * lunches.length)];
           }
 
-          newMenu.push({
-              day,
-              meals: {
-                  'Petit-déjeuner': breakfasts.length > 0 ? breakfasts[Math.floor(Math.random() * breakfasts.length)] : null,
-                  'Déjeuner': lunch || null,
-                  'Collation': snacks.length > 0 ? snacks[Math.floor(Math.random() * snacks.length)] : null,
-                  'Dîner': dinners.length > 0 ? dinners[Math.floor(Math.random() * dinners.length)] : null
-              }
-          });
+          const dayMeals = {
+              'Petit-déjeuner': breakfasts.length > 0 ? breakfasts[Math.floor(Math.random() * breakfasts.length)] : null,
+              'Déjeuner': lunch || null,
+              'Collation': snacks.length > 0 ? snacks[Math.floor(Math.random() * snacks.length)] : null,
+              'Dîner': dinners.length > 0 ? dinners[Math.floor(Math.random() * dinners.length)] : null
+          };
+
+          if (dayMeals['Petit-déjeuner']) recentMeals['Petit-déjeuner'].push(dayMeals['Petit-déjeuner'].id);
+          if (dayMeals['Déjeuner']) recentMeals['Déjeuner'].push(dayMeals['Déjeuner'].id);
+          if (dayMeals['Collation']) recentMeals['Collation'].push(dayMeals['Collation'].id);
+          if (dayMeals['Dîner']) recentMeals['Dîner'].push(dayMeals['Dîner'].id);
+
+          newMenu.push({ day, meals: dayMeals });
       });
       setWeeklyGeneratedMenu(newMenu);
       if (clientProfile) {
@@ -762,7 +780,15 @@ export default function NutritionDashboard() {
           }
       } catch(e) {}
       
-      const alternatives = currentRecipes.filter(r => r.type === mealType && r.id !== currentRecipeId);
+      const prevDayRecipeId = dayIndex > 0 ? weeklyGeneratedMenu[dayIndex - 1].meals[mealType]?.id : null;
+      const nextDayRecipeId = dayIndex < 6 ? weeklyGeneratedMenu[dayIndex + 1].meals[mealType]?.id : null;
+
+      let alternatives = currentRecipes.filter(r => r.type === mealType && r.id !== currentRecipeId && r.id !== prevDayRecipeId && r.id !== nextDayRecipeId);
+      
+      if (alternatives.length === 0) {
+           alternatives = currentRecipes.filter(r => r.type === mealType && r.id !== currentRecipeId);
+      }
+
       if (alternatives.length > 0) {
           const newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
           const updatedMenu = [...weeklyGeneratedMenu];
@@ -1002,11 +1028,11 @@ export default function NutritionDashboard() {
     });
   };
   
-  const handleMealClick = async (mealType: string, plannedMeal: any) => {
+  const handleMealClick = async (mealType: string, plannedMeal: any, forceMode?: string) => {
       setFoodSearchQuery("");
       setSelectedFoodDB(null);
       setFoodQuantity(1);
-      setSelectedMealModal({ type: mealType, meal: plannedMeal, mode: trackingMode });
+      setSelectedMealModal({ type: mealType, meal: plannedMeal, mode: forceMode || trackingMode });
       
       // Log analytics (Incrémenter le compteur de vues de la recette)
       if (plannedMeal && plannedMeal.meal) {
@@ -2009,7 +2035,7 @@ export default function NutritionDashboard() {
                           </div>
                           
                           <div className="flex-1">
-                             {itemsForThisMeal.length > 0 ? (
+                             {itemsForThisMeal.length > 0 && (
                                 <div className="space-y-3 mb-4">
                                    {itemsForThisMeal.map((item, i) => (
                                       <div key={item.id} className={`flex items-center justify-between p-3 rounded-2xl border ${theme === 'dark' ? 'bg-zinc-800/50 border-zinc-700/50' : 'bg-zinc-50 border-zinc-100'} group`}>
@@ -2029,27 +2055,32 @@ export default function NutritionDashboard() {
                                       </div>
                                    ))}
                                 </div>
-                             ) : trackingMode === 'guided' && plannedMeal ? (
-                              <div className={`p-4 rounded-2xl border-2 border-dashed transition-all group ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
-                                   <p className={`font-black text-lg mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{plannedMeal.meal}</p>
+                             )}
+
+                           {plannedMeal && !itemsForThisMeal.some(m => m.name === plannedMeal.meal) && (
+                                <div className={`p-4 rounded-2xl border-2 border-dashed transition-all group mb-4 ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
+                                 <div className="flex justify-between items-start mb-2">
+                                    <p className={`font-black text-lg ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{plannedMeal.meal}</p>
+                                    {trackingMode === 'flexible' && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[8px] font-black uppercase shrink-0">Suggestion Sama Menu</span>}
+                                 </div>
                                    <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
                                       <span className="flex items-center gap-1 text-orange-500"><Flame size={14}/> {plannedMeal.cals} kcal</span>
                                       <span className="flex items-center gap-1 text-[#39FF14]"><Target size={14}/> {plannedMeal.proteins}g prot</span>
                                    </div>
                                  <div className="mt-4 flex gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); confirmMealLog(plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, plannedMeal); }} className="px-4 bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center hover:bg-zinc-300 transition-colors">Recette</button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, plannedMeal, 'guided'); }} className="px-4 bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center hover:bg-zinc-300 transition-colors">Recette</button>
                                    </div>
                                 </div>
-                             ) : null}
+                             )}
                           </div>
 
                           {(trackingMode === 'flexible' || (trackingMode === 'guided' && itemsForThisMeal.length === 0)) && (
-                             <div onClick={() => handleMealClick(mealType, plannedMeal)} className={`mt-4 flex flex-col items-center justify-center py-5 border-2 border-dashed rounded-2xl transition-all cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
+                             <div onClick={() => handleMealClick(mealType, plannedMeal, 'flexible')} className={`mt-4 flex flex-col items-center justify-center py-5 border-2 border-dashed rounded-2xl transition-all cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
                                 <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 text-zinc-400">
                                    <Plus size={16} />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{itemsForThisMeal.length > 0 ? "Ajouter un autre plat" : "Enregistrer mon repas"}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{itemsForThisMeal.length > 0 ? "Ajouter un autre plat" : "Rechercher un plat"}</span>
                              </div>
                           )}
                        </div>
@@ -2465,7 +2496,7 @@ export default function NutritionDashboard() {
                                  const isToday = dayPlan.day === formattedCurrentDay;
                                  return (
                                     <div key={mealType} className="flex justify-between items-center bg-zinc-50 p-3 rounded-xl hover:border-black border border-transparent transition-colors">
-                                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits })} title="Voir la recette">
+                                       <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                           <p className="text-xs font-bold text-black truncate">{recipe.nom}</p>
                                        </div>
