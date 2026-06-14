@@ -159,10 +159,10 @@ export default function AdminNutritionAfricaine() {
 
               if (tId && isMounted) {
                   const [recipesRes, prodsRes, ordsRes, promosRes, settingsRes, foodsRes] = await Promise.all([
-                     supabase.from('nutrition_recipes').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
-                     supabase.from('nutrition_products').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
-                     supabase.from('nutrition_orders').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
-                     supabase.from('nutrition_promo_codes').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
+                     supabase.from('nutrition_recipes').select('*').order('created_at', { ascending: false }),
+                     supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
+                     supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
+                     supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
                      supabase.from('crm_settings').select('*').eq('tenant_id', tId).maybeSingle(),
                      supabase.from('nutrition_foods').select('*')
                   ]);
@@ -309,7 +309,7 @@ export default function AdminNutritionAfricaine() {
       if (!confirm("Voulez-vous ajouter les 40 recettes par défaut à la base de données ?")) return;
       setIsImportingRecipeCsv(true);
       try {
-          const { data: existing } = await supabase.from('nutrition_recipes').select('nom').eq('tenant_id', tenantId);
+          const { data: existing } = await supabase.from('nutrition_recipes').select('nom');
           const existingNames = existing?.map(e => e.nom) || [];
 
           const toInsert = DEFAULT_RECIPES.filter(r => !existingNames.includes(r.nom)).map(r => ({
