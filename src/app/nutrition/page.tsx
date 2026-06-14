@@ -1265,6 +1265,7 @@ export default function NutritionDashboard() {
     
     await supabase.from('nutrition_daily_logs').upsert({
       client_id: clientProfile.id,
+      tenant_id: clientProfile.tenant_id,
       log_date: todayStr,
       water_glasses: newAmount,
       calories_consumed: calories,
