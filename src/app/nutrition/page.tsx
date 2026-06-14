@@ -613,7 +613,9 @@ export default function NutritionDashboard() {
           if (ordersData) setClientOrders(ordersData);
 
           // Fetch DB Products
-          const { data: dbProds } = await supabase.from('nutrition_products').select('*');
+          let prodQuery = supabase.from('nutrition_products').select('*');
+          if (profileData.tenant_id) prodQuery = prodQuery.eq('tenant_id', profileData.tenant_id);
+          const { data: dbProds } = await prodQuery;
           if (dbProds && dbProds.length > 0) {
              const grouped = dbProds.reduce((acc: any, p: any) => {
                 if (!acc[p.categorie_nom]) acc[p.categorie_nom] = { categorie_nom: p.categorie_nom, slug: p.slug || 'cat', produits: [] };
@@ -624,7 +626,9 @@ export default function NutritionDashboard() {
           }
 
           // Fetch Promo Codes
-          const { data: dbPromos } = await supabase.from('nutrition_promo_codes').select('*').eq('active', true);
+          let promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
+          if (profileData.tenant_id) promoQuery = promoQuery.eq('tenant_id', profileData.tenant_id);
+          const { data: dbPromos } = await promoQuery;
           if (dbPromos) setShopPromoCodesDB(dbPromos);
           
           // Fetch Community Posts
@@ -641,7 +645,9 @@ export default function NutritionDashboard() {
           if (dbFoods) setFoodDatabaseDB(dbFoods);
 
           // Fetch All Recipes for Gallery
-          const { data: dbRecipes } = await supabase.from('nutrition_recipes').select('*');
+          let recipeQuery = supabase.from('nutrition_recipes').select('*');
+          if (profileData.tenant_id) recipeQuery = recipeQuery.eq('tenant_id', profileData.tenant_id);
+          const { data: dbRecipes } = await recipeQuery;
           if (dbRecipes) setAllRecipesDB(dbRecipes);
 
           // Load banner from settings specific to the coach
@@ -820,7 +826,9 @@ export default function NutritionDashboard() {
       const activeFastingMode = fastingOverride !== undefined ? fastingOverride : isFastingMode;
       let currentRecipes: any[] = [];
       try {
-          const { data } = await supabase.from('nutrition_recipes').select('*');
+          let recipeQuery = supabase.from('nutrition_recipes').select('*');
+          if (clientProfile?.tenant_id) recipeQuery = recipeQuery.eq('tenant_id', clientProfile.tenant_id);
+          const { data } = await recipeQuery;
           if (data && data.length > 0) {
               currentRecipes = data;
           }
@@ -958,7 +966,9 @@ export default function NutritionDashboard() {
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
       let currentRecipes: any[] = [];
       try {
-          const { data } = await supabase.from('nutrition_recipes').select('*');
+          let recipeQuery = supabase.from('nutrition_recipes').select('*');
+          if (clientProfile?.tenant_id) recipeQuery = recipeQuery.eq('tenant_id', clientProfile.tenant_id);
+          const { data } = await recipeQuery;
           if (data && data.length > 0) {
               currentRecipes = data;
           }

@@ -159,10 +159,6 @@ export default function AdminNutritionAfricaine() {
 
               if (tId && isMounted) {
                   const [recipesRes, prodsRes, ordsRes, promosRes, settingsRes, foodsRes] = await Promise.all([
-                     supabase.from('nutrition_recipes').select('*').order('created_at', { ascending: false }),
-                     supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
-                     supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
-                     supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_recipes').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
                      supabase.from('nutrition_products').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
                      supabase.from('nutrition_orders').select('*').eq('tenant_id', tId).order('created_at', { ascending: false }),
