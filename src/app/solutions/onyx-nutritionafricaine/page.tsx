@@ -10,6 +10,7 @@ import {
   Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare, FileText, ShoppingBag
 } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import Autoplay from "embla-carousel-autoplay";
 import jsPDF from "jspdf";
 
@@ -198,6 +199,7 @@ export default function NutritionAfricaineLanding() {
     age: "",
     height: "",
     currentWeight: "",
+    targetWeight: "",
     dailySteps: "",
     weightLossPace: "Normalement",
     healthProfile: "",
@@ -206,6 +208,7 @@ export default function NutritionAfricaineLanding() {
     allergies: "",
     saas: ""
   });
+  const [forceTarget, setForceTarget] = useState(false);
 
   // Carousel & FAQ State
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -328,6 +331,10 @@ export default function NutritionAfricaineLanding() {
   // Diagnostic Modal Handlers
   const handleDiagSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (diagStep === 2 && showWarning && !forceTarget) {
+      alert("Veuillez confirmer votre objectif de poids avant de continuer.");
+      return;
+    }
     if (diagStep < 4) {
       setDiagStep(diagStep + 1);
       return;
@@ -505,9 +512,13 @@ export default function NutritionAfricaineLanding() {
   const currentWeight = parseFloat(diagData.currentWeight) || 0;
   const age = parseFloat(diagData.age) || 0;
   const isMale = diagData.gender === "Homme";
+  
   const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
-  const weightToLose = currentWeight - idealWeight;
-  const estimatedWeeks = weightToLose > 0 ? Math.ceil(weightToLose / 0.5) : 0; 
+  const targetW = parseFloat(diagData.targetWeight);
+  const finalTargetWeight = targetW > 0 ? targetW : idealWeight;
+  const weightToLose = currentWeight - finalTargetWeight;
+  
+  const estimatedWeeks = weightToLose > 0 ? Math.ceil(weightToLose / 0.5) : 0;
   const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
   let nap = 1.2;
   if (diagData.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
@@ -516,6 +527,13 @@ export default function NutritionAfricaineLanding() {
   const tdee = bmr * nap;
   let rawCalories = weightToLose > 0 ? tdee - 500 : (weightToLose < 0 ? tdee + 300 : tdee);
   const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
+
+  const heightM = heightCm / 100;
+  const currentW = parseFloat(diagData.currentWeight) || 0;
+  const targetWInput = parseFloat(diagData.targetWeight) || 0;
+  const idealW = heightM > 0 ? 22 * (heightM * heightM) : 0;
+  const diffIdealTarget = Math.abs(targetWInput - idealW);
+  const showWarning = targetWInput > 0 && idealW > 0 && diffIdealTarget > 5;
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
@@ -588,7 +606,7 @@ export default function NutritionAfricaineLanding() {
   const [botData, setBotData] = useState({ name: '', phone: '', city: '', business: '', question: '' });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [botMessages, setBotMessages] = useState<any[]>([
-    { sender: 'bot', text: "👋 Bonjour ! Je suis Fanta. Prêt(e) à transformer votre corps tout en mangeant nos plats locaux ? Que voulez-vous savoir ?", options: ["Comment ça marche ?", "C'est quoi les tarifs ?", "Je veux m'inscrire 🚀"] }
+    { sender: 'bot', text: "👋 Nanga def ! Je suis Fanta, ton coach nutrition. Prêt(e) à retrouver un ventre plat et une belle énergie sans arrêter le Thieb ou le Yassa ? 😋", options: ["Comment ça marche ? 🤔", "Combien ça coûte ? 💰", "Je veux mon plan ! 🚀"] }
   ]);
 
   useEffect(() => {
@@ -642,33 +660,33 @@ export default function NutritionAfricaineLanding() {
         if (botStep === 0) {
             const lowerReply = reply.toLowerCase();
             if (lowerReply.includes('marche') || lowerReply.includes('comment')) {
-                botResponse = "C'est simple : on analyse votre profil et vous recevez un plan alimentaire incluant nos plats locaux (Thieb, Mafé...). Ensuite, on vous suit chaque semaine sur WhatsApp ! Prêt(e) à tester ?";
-                botOptions = ["Je veux m'inscrire 🚀", "J'ai une autre question"];
+                botResponse = "C'est magique et sans frustration ! 🌟 Tu fais ton diagnostic gratuit, on calcule tes besoins, et tu reçois un plan sur-mesure avec tes plats locaux préférés. En plus, on te suit sur WhatsApp chaque semaine. On commence ?";
+                botOptions = ["Je veux mon plan ! 🚀", "J'ai une autre question"];
             } else if (lowerReply.includes('tarifs') || lowerReply.includes('prix') || lowerReply.includes('combien')) {
-                botResponse = "Le programme coûte seulement 2 900 F / mois ! À ce prix, vous avez le plan complet et le suivi WhatsApp de nos experts. On se lance ?";
-                botOptions = ["Je veux m'inscrire 🚀", "J'ai une autre question"];
-            } else if (lowerReply.includes('inscrire') || lowerReply.includes('lance') || lowerReply.includes('oui')) {
-                botResponse = "Génial ! 🚀 Pour préparer votre profil, quel est votre prénom et nom ?";
+                botResponse = "Juste 2.900 F pour le premier mois d'essai ! 🎉 À ce prix, tu as ton plan personnalisé, la liste de courses et le suivi WhatsApp de nos experts. C'est moins cher qu'un fast-food. On s'y met ?";
+                botOptions = ["Je veux mon plan ! 🚀", "J'ai une autre question"];
+            } else if (lowerReply.includes('plan') || lowerReply.includes('inscrire') || lowerReply.includes('lance') || lowerReply.includes('oui')) {
+                botResponse = "Génial ! 🚀 Pour préparer ton profil, quel est ton prénom et nom ?";
                 nextStep = 1;
             } else {
-                botResponse = "Je vois ! (⚠️ Attention, les places pour ce mois se remplissent vite). Pour vous aider au mieux, quel est votre prénom et nom ?";
+                botResponse = "Je vois ! (⚠️ Attention, les places pour ce mois se remplissent très vite). Pour t'aider au mieux, quel est ton prénom et nom ?";
                 currentData.question = reply;
                 nextStep = 1;
             }
         }
         else if (botStep === 1) {
             currentData.name = reply;
-            botResponse = `Enchantée ${reply.split(' ')[0]} ! Quel est votre numéro WhatsApp (ex: 77 123 45 67) ?`;
+            botResponse = `Enchantée ${reply.split(' ')[0]} ! 🌸 Quel est ton numéro WhatsApp (ex: 77 123 45 67) ?`;
             nextStep = 2;
         }
         else if (botStep === 2) {
             currentData.phone = reply;
-            botResponse = "Super. Dans quelle ville vous trouvez-vous ?";
+            botResponse = "Super. Dans quelle ville te trouves-tu ?";
             nextStep = 3;
         }
         else if (botStep === 3) {
             currentData.city = reply;
-            botResponse = "Parfait ! J'ai toutes les infos. Je vous redirige vers notre équipe sur WhatsApp pour démarrer votre programme ! 🚀";
+            botResponse = "Parfait ! J'ai toutes les infos. Je te redirige vers notre équipe sur WhatsApp pour valider ton inscription. Prépare-toi à une belle transformation ! ✨";
             nextStep = 4;
             
             try {
@@ -679,7 +697,7 @@ export default function NutritionAfricaineLanding() {
                 }]);
             } catch (err) {}
 
-            const waMsg = `🚀 *Démarrage Nutrition à l'Africaine*\n\nJe veux commencer mon rééquilibrage !\n\n*Nom:* ${currentData.name}\n*Ville:* ${currentData.city}\n\nComment on procède pour le paiement de 2.900 F ?`;
+            const waMsg = `🚀 *Démarrage Nutrition à l'Africaine*\n\nJe veux commencer mon rééquilibrage !\n\n*Nom:* ${currentData.name}\n*Ville:* ${currentData.city}\n*Numéro:* ${currentData.phone}\n\nComment on procède pour valider mon 1er mois à 2.900 F ?`;
             setTimeout(() => { window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`, "_blank"); }, 1500);
         }
 
@@ -1322,7 +1340,7 @@ export default function NutritionAfricaineLanding() {
                       <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl">👩🏾‍💻</div>
                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
                    </div>
-                   <div><p className="text-[#39FF14] font-black uppercase text-xs">Fanta - Conseillère</p></div>
+                   <div><p className="text-[#39FF14] font-black uppercase text-xs">Fanta - Coach Nutrition</p></div>
                 </div>
                 <button onClick={() => setIsBotOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
              </div>
@@ -1453,10 +1471,40 @@ export default function NutritionAfricaineLanding() {
                   {diagStep === 2 && (
                     <div className="space-y-4 animate-in slide-in-from-right-8">
                       <div className="flex items-center gap-3 mb-4"><Target className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Vos Objectifs</h3></div>
-                      <div className="flex gap-4">
-                        <input type="number" required placeholder="Taille (cm) *" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
-                        <input type="number" required placeholder="Poids (kg) *" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-1/2 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                      <div className="flex flex-wrap md:flex-nowrap gap-4">
+                        <input type="number" required placeholder="Taille (cm) *" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                        <input type="number" required placeholder="Poids Actuel (kg) *" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                        <input type="number" required placeholder="Poids Cible (kg) *" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
                       </div>
+
+                      {currentW > 0 && targetWInput > 0 && heightM > 0 && (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 bg-zinc-50 p-6 rounded-[2rem] border border-zinc-200 shadow-inner">
+                          <div className="flex justify-center items-center gap-6 mb-6">
+                             <div className="flex flex-col items-center">
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" alt="Cible" className="w-12 h-12 rounded-xl object-cover shadow-sm mb-2" />
+                                <span className="text-[10px] font-black uppercase text-zinc-500">Objectif</span>
+                             </div>
+                             <div className="flex flex-col items-center">
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458359/A_cute__highly_detailed_3D_202606141731_wog3pz.jpg" alt="Idéal" className="w-12 h-12 rounded-xl object-cover shadow-sm mb-2" />
+                                <span className="text-[10px] font-black uppercase text-[#39FF14]">Santé</span>
+                             </div>
+                          </div>
+                          
+                          <div className="h-56 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={[{name: 'Poids Actuel', poids: currentW}, {name: 'Objectif', poids: targetWInput}]} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" />
+                                <XAxis dataKey="name" stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis domain={['auto', 'auto']} stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
+                                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                                <ReferenceLine y={idealW} stroke="#39FF14" strokeDasharray="3 3" label={{ position: 'top', value: 'Idéal Santé', fill: '#39FF14', fontSize: 12, fontWeight: 'bold' }} />
+                                <Line type="monotone" dataKey="poids" stroke="#000" strokeWidth={4} dot={{ r: 8, fill: '#000', stroke: '#39FF14', strokeWidth: 3 }} animationDuration={1500} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </motion.div>
+                      )}
+
                       <div className="space-y-2 mt-6">
                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Combien de pas faites-vous par jour ? *</label>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

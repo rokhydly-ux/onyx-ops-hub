@@ -1294,19 +1294,19 @@ export default function AdminNutritionAfricaine() {
            </div>
 
            {recipeViewMode === 'grid' ? (
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {recipes.filter(r => {
                      if (recipeFilterFast && (r.preparation_time || 15) >= 30) return false;
                      if (recipeSearch && !r.nom.toLowerCase().includes(recipeSearch.toLowerCase())) return false;
                      return true;
                   }).map(r => (
-                     <div key={r.id} className="bg-white border border-zinc-200 rounded-[2rem] overflow-hidden hover:border-[#39FF14] hover:shadow-xl transition-all flex flex-col relative group">
+                     <div key={r.id} className="bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden hover:border-[#39FF14] hover:shadow-xl transition-all flex flex-col relative group border border-transparent">
                         <div className="absolute top-4 left-4 z-10">
                            <input type="checkbox" checked={selectedRecipes.includes(r.id)} onChange={() => {
                               setSelectedRecipes(prev => prev.includes(r.id) ? prev.filter(id => id !== r.id) : [...prev, r.id]);
                            }} className="w-4 h-4 accent-black cursor-pointer shadow-sm" />
                         </div>
-                        <div className="h-40 bg-zinc-100 relative overflow-hidden">
+                        <div className="h-56 bg-zinc-100 relative overflow-hidden">
                            <img src={r.image_url || 'https://placehold.co/400x300/111/39FF14?text=Recette'} alt={r.nom} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e: any) => e.target.src = 'https://placehold.co/400x300/111/39FF14?text=Recette'} />
                            <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm text-[#39FF14] px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{r.type}</div>
                            {r.is_bol_commun && <div className="absolute bottom-4 left-4 bg-blue-500/90 text-white px-2 py-1 rounded-md text-[9px] font-black uppercase shadow-sm">Bol Commun</div>}

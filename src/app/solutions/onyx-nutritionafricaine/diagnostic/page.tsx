@@ -305,7 +305,16 @@ export default function NutritionDiagnostic() {
 
                   {currentW > 0 && targetWInput > 0 && heightM > 0 && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 bg-zinc-50 p-6 rounded-[2rem] border border-zinc-200 shadow-inner">
-                      <h4 className="text-sm font-black uppercase text-center mb-6 text-zinc-500">Projection de votre objectif</h4>
+                          <div className="flex justify-center items-center gap-6 mb-6">
+                             <div className="flex flex-col items-center">
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" alt="Cible" className="w-12 h-12 rounded-xl object-cover shadow-sm mb-2" />
+                                <span className="text-[10px] font-black uppercase text-zinc-500">Objectif</span>
+                             </div>
+                             <div className="flex flex-col items-center">
+                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458359/A_cute__highly_detailed_3D_202606141731_wog3pz.jpg" alt="Idéal" className="w-12 h-12 rounded-xl object-cover shadow-sm mb-2" />
+                                <span className="text-[10px] font-black uppercase text-[#39FF14]">Santé</span>
+                             </div>
+                          </div>
                       <div className="h-56 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
