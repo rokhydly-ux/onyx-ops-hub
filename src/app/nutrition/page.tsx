@@ -1332,23 +1332,31 @@ export default function NutritionDashboard() {
       setToastMessage("Analyse du plat en cours par l'IA... 📸");
 
       try {
-          // --- ÉTAPE API : Lier à votre vrai Backend ici ---
-          // const formData = new FormData(); formData.append('image', file);
-          // const res = await fetch('/api/analyze-food-vision', { method: 'POST', body: formData });
-          // const data = await res.json();
+          // --- APPEL RÉEL À L'EDGE FUNCTION SUPABASE ---
+          const formData = new FormData(); 
+          formData.append('image', file);
 
-          // --- SIMULATION D'ATTENTE DE L'IA (2.5 secondes) ---
-          await new Promise(resolve => setTimeout(resolve, 2500));
+          const { data, error } = await supabase.functions.invoke('analyze-food-vision', {
+              body: formData,
+          });
           
+          if (error || data.error) throw new Error(error?.message || data.error);
+
           const aiResult = {
               id: 'ia_scan_' + Date.now(),
-              nom: "Plat Analysé par IA (Ex: Poulet & Légumes)",
+              nom: data.nom || "Plat Analysé par IA",
               categorie: "Analyse IA",
               portion_standard_nom: "1 portion",
               portion_standard_grammes: 350,
-              valeurs_pour_100g: { calories: 120, proteines: 12, glucides: 10, lipides: 4, fibres: 3 },
+              valeurs_pour_100g: { 
+                 calories: data.calories || 0, 
+                 proteines: data.proteines || 0, 
+                 glucides: data.glucides || 0, 
+                 lipides: data.lipides || 0, 
+                 fibres: 0 
+              },
               isFood: true,
-              message_coach_ia: "L'IA a détecté une base de poulet grillé et de légumes verts. L'estimation calorique a été générée automatiquement d'après la photo !"
+              message_coach_ia: data.message_coach_ia || "Estimation générée automatiquement d'après la photo."
           };
 
           setSelectedFoodDB(aiResult);
