@@ -27,25 +27,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check for session on initial load
     try {
-      const session = localStorage.getItem('onyx_session');
+      const session = localStorage.getItem('onyx_custom_session') || localStorage.getItem('onyx_session');
       if (session) {
         setUser(JSON.parse(session));
       }
     } catch (error) {
       console.error('Failed to parse session from localStorage', error);
       localStorage.removeItem('onyx_session');
+      localStorage.removeItem('onyx_custom_session');
     }
     setLoading(false);
   }, []);
 
   const login = (userData: User) => {
     localStorage.setItem('onyx_session', JSON.stringify(userData));
+    localStorage.setItem('onyx_custom_session', JSON.stringify(userData));
     setUser(userData);
     router.push('/hub');
   };
 
   const logout = () => {
     localStorage.removeItem('onyx_session');
+    localStorage.removeItem('onyx_custom_session');
     setUser(null);
     router.push('/login');
   };
@@ -54,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(prevUser => {
       const updatedUser = { ...prevUser, ...newUserData };
       localStorage.setItem('onyx_session', JSON.stringify(updatedUser));
+      localStorage.setItem('onyx_custom_session', JSON.stringify(updatedUser));
       return updatedUser;
     });
   };
