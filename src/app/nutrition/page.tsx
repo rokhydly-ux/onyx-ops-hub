@@ -2209,8 +2209,8 @@ export default function NutritionDashboard() {
                                             <div>
                                                <p className={`font-black text-sm ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-2`}>{item.name} {item.is_boutique && <span className="bg-[#39FF14]/10 text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}</p>
                                                <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-2 mt-0.5">
-                                                  <span className="flex items-center gap-1 text-orange-500"><Flame size={10}/> {item.cals} kcal</span>
-                                                  <span className="flex items-center gap-1 text-[#39FF14]"><Target size={10}/> {item.prots}g prot</span>
+                                                  <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.cals} kcal</span>
+                                                  <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.prots}g prot</span>
                                                </p>
                                             </div>
                                          </div>
@@ -2228,10 +2228,12 @@ export default function NutritionDashboard() {
                                     <p className={`font-black text-lg ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{plannedMeal.meal}</p>
                                     {trackingMode === 'flexible' && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[8px] font-black uppercase shrink-0">Suggestion Sama Menu</span>}
                                  </div>
-                                   <div className="flex items-center gap-4 text-xs font-bold text-zinc-500">
-                                      <span className="flex items-center gap-1 text-orange-500"><Flame size={14}/> {plannedMeal.cals} kcal</span>
-                                      <span className="flex items-center gap-1 text-[#39FF14]"><Target size={14}/> {plannedMeal.proteins}g prot</span>
-                                   </div>
+                                  <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-zinc-500">
+                                     <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {plannedMeal.cals} kcal</span>
+                                     <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {plannedMeal.proteins}g</span>
+                                     <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {plannedMeal.carbs}g</span>
+                                     <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {plannedMeal.fats}g</span>
+                                  </div>
                                  <div className="mt-4 flex gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); confirmMealLog(plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
                                     <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, plannedMeal, 'guided'); }} className="px-4 bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center hover:bg-zinc-300 transition-colors">Recette</button>
@@ -2588,8 +2590,8 @@ export default function NutritionDashboard() {
                            </div>
                         </div>
                         <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
-                           <span className="flex items-center gap-1"><Flame size={14}/> {log.calories_consumed || 0} kcal</span>
-                           <span className="flex items-center gap-1"><Droplet size={14}/> {log.water_glasses || 0}/8</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.calories_consumed || 0} kcal</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.water_glasses || 0}/8</span>
                         </div>
                      </div>
                   ))}
@@ -3060,9 +3062,11 @@ export default function NutritionDashboard() {
                                <div className="flex flex-wrap gap-1 mb-3">
                                    {tags.map(t => <span key={t} className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">{t}</span>)}
                                </div>
-                               <div className="flex gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
-                                   <span className="flex items-center gap-1"><Flame size={12} className="text-orange-500"/> {cals} kcal</span>
-                                   <span className="flex items-center gap-1"><Target size={12} className="text-[#39FF14]"/> {prots}g prot</span>
+                               <div className="flex flex-wrap gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {cals} kcal</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {prots}g prot</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.carbs || 0}g</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.fats || 0}g</span>
                                </div>
                            </div>
                            <button onClick={() => {
