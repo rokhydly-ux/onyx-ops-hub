@@ -61,6 +61,7 @@ export default function AdminNutritionAfricaine() {
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterInactive, setFilterInactive] = useState(false);
   const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'|'foods'>('clients');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
@@ -184,10 +185,25 @@ export default function AdminNutritionAfricaine() {
     return () => { isMounted = false; };
   }, []);
 
-  const filteredClients = clients.filter(c => 
-    c.client?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone?.includes(searchQuery)
-  );
+  const filteredClients = clients.filter(c => {
+    const matchSearch = c.client?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone?.includes(searchQuery);
+    if (!matchSearch) return false;
+    
+    if (filterInactive) {
+       const threeDaysAgo = new Date();
+       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+       
+       if (c.logs && c.logs.length > 0) {
+          const sortedLogs = [...c.logs].sort((a: any, b: any) => new Date(b.log_date).getTime() - new Date(a.log_date).getTime());
+          const latestLogDate = new Date(sortedLogs[0].log_date);
+          return latestLogDate.getTime() < threeDaysAgo.getTime();
+       } else {
+          const createdAt = new Date(c.created_at || new Date());
+          return createdAt.getTime() < threeDaysAgo.getTime();
+       }
+    }
+    return true;
+  });
 
   const handleOpenClientModal = (profile: any) => {
     setEditingClient(profile);
@@ -984,15 +1000,20 @@ export default function AdminNutritionAfricaine() {
                {/* Actions spécifiques */}
                <div className="flex flex-wrap w-full lg:w-auto gap-3">
                   {activeTab === 'clients' && (
-                    <div className="relative w-full lg:w-80">
-                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                       <input 
-                          type="text" 
-                          placeholder="Rechercher un client..." 
-                          value={searchQuery}
-                          onChange={e => setSearchQuery(e.target.value)}
-                          className="w-full p-3 pl-12 bg-white border border-zinc-200 rounded-xl font-bold text-xs outline-none focus:border-black shadow-sm"
-                       />
+                    <div className="flex gap-2 w-full lg:w-auto">
+                       <div className="relative w-full lg:w-80">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                          <input 
+                             type="text" 
+                             placeholder="Rechercher un client..." 
+                             value={searchQuery}
+                             onChange={e => setSearchQuery(e.target.value)}
+                             className="w-full p-3 pl-12 bg-white border border-zinc-200 rounded-xl font-bold text-xs outline-none focus:border-black shadow-sm"
+                          />
+                       </div>
+                       <button onClick={() => setFilterInactive(!filterInactive)} className={`px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-sm flex items-center justify-center gap-2 ${filterInactive ? 'bg-orange-500 text-white border-transparent' : 'bg-white text-zinc-500 hover:text-black border border-zinc-200'}`} title="Inactifs depuis plus de 3 jours">
+                          <Clock size={14}/> Inactifs
+                       </button>
                     </div>
                   )}
                   {activeTab === 'recipes' && (

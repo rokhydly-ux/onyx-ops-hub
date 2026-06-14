@@ -2267,14 +2267,22 @@ export default function NutritionDashboard() {
             <div className="grid md:grid-cols-2 gap-6 mt-6">
                <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
                   <img src={WATER_ICON} className="w-16 h-16 rounded-full mb-4 shadow-sm object-cover" alt="Eau" />
+                  <img src={WATER_ICON} className="w-16 h-16 rounded-full mb-3 shadow-sm object-cover" alt="Eau" />
                   <h3 className="font-black text-lg uppercase mb-1">Hydratation</h3>
                   <p className="text-xs font-bold text-zinc-500 mb-4">{waterGlasses} / 8 verres</p>
+                  <p className="text-xs font-bold text-zinc-500 mb-1">{waterGlasses} / 8 verres (Env. 2 Litres)</p>
+                  <p className="text-[10px] font-medium text-blue-500 mb-4 italic px-4">L'eau draine les toxines et accélère ton métabolisme ! 💧</p>
                   <div className="flex items-center gap-4">
                      <button onClick={() => handleUpdateWater(-1)} className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center font-black text-xl text-zinc-500 hover:bg-zinc-200 transition-colors">-</button>
                      <button onClick={() => handleUpdateWater(1)} className="bg-blue-50 text-blue-600 px-6 py-3 rounded-full font-black uppercase text-xs tracking-widest hover:bg-blue-100 transition-colors flex items-center gap-2 shadow-sm">
                         <Plus size={16}/> Ajouter un verre
                      </button>
                   </div>
+                  {waterGlasses >= 8 && (
+                     <div className="mt-4 bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm border border-[#39FF14]/30">
+                        <Award size={14}/> +5 XP (Hydratation Max)
+                     </div>
+                  )}
                </div>
 
                <div className={`p-6 rounded-[24px] border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
@@ -2907,7 +2915,7 @@ export default function NutritionDashboard() {
                   </div>
                )}
                {/* BOUTON GÉNÉRER LISTE COURSES EN BAS */}
-               {(clientProfile?.plan_type === 'premium' || daysLeft > 0) && weeklyGeneratedMenu.length > 0 ? (
+               {(clientProfile?.plan_type === 'premium' || daysLeft > 0) && weeklyGeneratedMenu.length > 0 && (
                   <div className="mt-12 text-center">
                      <button onClick={() => setShowGroceryList(true)} className="bg-black text-[#39FF14] px-10 py-5 rounded-[2.5rem] font-black uppercase text-sm md:text-base tracking-widest hover:scale-105 transition-transform shadow-[0_15px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto">
                         <ShoppingCart size={24}/> Générer ma liste de courses
