@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
-  ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell
+  ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
@@ -255,9 +255,27 @@ export default function NutritionDashboard() {
     { sender: 'bot', text: "Bonjour ! Je suis le Dr. Thierno. As-tu des questions sur la nutrition, tes portions ou comment adapter tes plats locaux (Mix Sénégalo-Moderne) ?" }
   ]);
   
+  // Voice Integration Coach Thierno
+  const [isThiernoVoiceEnabled, setIsThiernoVoiceEnabled] = useState(false);
+  const thiernoVoiceRef = useRef(false);
+  
   useEffect(() => {
     thiernoChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [thiernoMessages, isThiernoChatOpen]);
+
+  const toggleThiernoVoice = () => {
+     const newVal = !isThiernoVoiceEnabled;
+     setIsThiernoVoiceEnabled(newVal);
+     thiernoVoiceRef.current = newVal;
+  };
+
+  const speakText = (text: string) => {
+     if (!thiernoVoiceRef.current || !('speechSynthesis' in window)) return;
+     window.speechSynthesis.cancel();
+     const utterance = new SpeechSynthesisUtterance(text);
+     utterance.lang = 'fr-FR';
+     window.speechSynthesis.speak(utterance);
+  };
 
   const processThiernoReply = (reply: string) => {
     if (!reply.trim()) return;
@@ -281,6 +299,7 @@ export default function NutritionDashboard() {
         }
         
         setThiernoMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
+        speakText(botResponse);
     }, 1000);
   };
 
@@ -411,6 +430,29 @@ export default function NutritionDashboard() {
   const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
   useEffect(() => {
+    // Gestion PWA Hors-Ligne & Sync
+    const handleOnline = async () => {
+       setIsOffline(false);
+       const offlineLogs = JSON.parse(localStorage.getItem('onyx_offline_daily_logs') || '[]');
+       if (offlineLogs.length > 0) {
+           for (const log of offlineLogs) {
+              await supabase.from('nutrition_daily_logs').upsert(log, { onConflict: 'client_id, log_date' });
+           }
+           localStorage.removeItem('onyx_offline_daily_logs');
+           setToastMessage("Mode PWA : Vos bilans hors-ligne ont été synchronisés !");
+           setTimeout(() => setToastMessage(null), 4000);
+       }
+    };
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    setIsOffline(!navigator.onLine);
+
+    if (navigator.onLine) {
+       handleOnline();
+    }
+
     const verifyAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       let finalUser = session?.user;
@@ -579,6 +621,11 @@ export default function NutritionDashboard() {
     };
 
     verifyAuth();
+
+    return () => {
+       window.removeEventListener('online', handleOnline);
+       window.removeEventListener('offline', handleOffline);
+    };
 
     // Afficher un message de bienvenue après le diagnostic
     if (searchParams.get('from') === 'diagnostic') {
@@ -1321,17 +1368,32 @@ export default function NutritionDashboard() {
         setProteins(currentProts);
     }
 
+    const payload = {
+       client_id: clientProfile.id,
+       log_date: todayStr,
+       report_data: { ...reportData, consumedMeals, moods, moodNotes },
+       water_glasses: waterGlasses,
+       calories_consumed: currentCals || 0,
+       proteins_consumed: currentProts || 0,
+       carbs_consumed: carbs || 0,
+       fats_consumed: fats || 0
+    };
+
+    if (!navigator.onLine) {
+       const offlineLogs = JSON.parse(localStorage.getItem('onyx_offline_daily_logs') || '[]');
+       offlineLogs.push(payload);
+       localStorage.setItem('onyx_offline_daily_logs', JSON.stringify(offlineLogs));
+       if ('serviceWorker' in navigator && 'SyncManager' in window) {
+          navigator.serviceWorker.ready.then(reg => { (reg as any).sync.register('sync-daily-logs').catch(()=>console.log('Sync err')); });
+       }
+       alert("Mode hors-ligne : Votre bilan a été sauvegardé localement. Il sera synchronisé dès le retour d'Internet.");
+       setShowDailyReport(false);
+       setDailyLogs(prev => [...prev.filter(l => l.log_date !== todayStr), payload]);
+       return;
+    }
+
     try {
-       const { error } = await supabase.from('nutrition_daily_logs').upsert({
-         client_id: clientProfile.id,
-         log_date: todayStr,
-         report_data: { ...reportData, consumedMeals, moods, moodNotes },
-         water_glasses: waterGlasses,
-         calories_consumed: currentCals || 0,
-         proteins_consumed: currentProts || 0,
-         carbs_consumed: carbs || 0,
-         fats_consumed: fats || 0
-       }, { onConflict: 'client_id, log_date' });
+       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload, { onConflict: 'client_id, log_date' });
 
        if (error) throw error;
 
@@ -1854,6 +1916,9 @@ export default function NutritionDashboard() {
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
             <div>
+              {isOffline && (
+                 <span className="bg-orange-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-md w-max mb-2"><WifiOff size={10}/> Mode Hors-ligne</span>
+              )}
               <p className="text-[#39FF14] font-black tracking-widest text-xs uppercase mb-2">Espace Personnel</p>
               <div className="flex items-center gap-4">
                 <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className="w-20 h-20 rounded-full object-cover hidden md:block mr-4 border-2 border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.3)] bg-zinc-800" />
@@ -3953,7 +4018,10 @@ export default function NutritionDashboard() {
                    </div>
                    <div><p className="text-[#39FF14] font-black uppercase text-xs">Dr. Thierno</p><p className="text-zinc-400 text-[9px] uppercase font-bold tracking-widest">Coach Nutrition</p></div>
                 </div>
-                <button onClick={() => setIsThiernoChatOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
+                <div className="flex items-center gap-3">
+                   <button onClick={toggleThiernoVoice} className={`p-2 rounded-full transition ${isThiernoVoiceEnabled ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'bg-zinc-800 text-zinc-500 hover:text-white'}`} title="Activer/Désactiver la voix">{isThiernoVoiceEnabled ? <Volume2 size={16}/> : <VolumeX size={16}/>}</button>
+                   <button onClick={() => setIsThiernoChatOpen(false)} className="text-zinc-400 hover:text-white transition"><X size={18}/></button>
+                </div>
              </div>
              
              <div className={`flex-1 p-4 overflow-y-auto flex flex-col space-y-4 custom-scrollbar ${theme === 'dark' ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
