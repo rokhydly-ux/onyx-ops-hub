@@ -119,7 +119,7 @@ const buildDynamicRecipes = async (foodDatabase: any[]) => {
                     if (nom.includes('pâte') || nom.includes('beurre de cajou') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('djar') || nom.includes('gingembre') || nom.includes('moringa') || nom.includes('bouye') || nom.includes('bissap')) return false;
                     
                     // Exclusion stricte des ingrédients seuls (graines, feuilles, céréales)
-                    const exclNames = ['fonio', 'riz', 'pain', 'mil', 'avoine', 'quinoa', 'graine', 'feuille', 'farine', 'couscous', 'thiéré', 'arraw'];
+                    const exclNames = ['fonio', 'riz', 'pain', 'mil', 'avoine', 'quinoa', 'graine', 'graines', 'feuille', 'feuilles', 'farine', 'couscous', 'thiéré', 'arraw', 'poudre', 'kinkeliba', 'bissap', 'moringa', 'djar'];
                     if (exclNames.some(e => nom === e || nom.startsWith(e + ' '))) {
                         if (!nom.includes('salade') && !nom.includes('poulet') && !nom.includes('viande') && !nom.includes('poisson')) return false;
                     }
@@ -158,7 +158,7 @@ const buildDynamicRecipes = async (foodDatabase: any[]) => {
         if (cat.includes('condiment') || cat.includes('pâte')) return false;
         if (cat.includes('céréale') || cat.includes('graine') || cat.includes('féculent')) return false;
         if (nom.includes('pâte d\'arachide') || nom.includes('beurre de cajou') || nom.includes('soumbala') || nom.includes('nététou') || nom.includes('djar') || nom.includes('gingembre') || nom.includes('moringa') || nom.includes('bouye') || nom.includes('bissap')) return false;
-        const exclNames = ['fonio', 'riz', 'pain', 'mil', 'avoine', 'quinoa', 'graine', 'feuille', 'farine', 'couscous', 'thiéré', 'arraw'];
+        const exclNames = ['fonio', 'riz', 'pain', 'mil', 'avoine', 'quinoa', 'graine', 'graines', 'feuille', 'feuilles', 'farine', 'couscous', 'thiéré', 'arraw', 'poudre', 'kinkeliba', 'bissap', 'moringa', 'djar'];
         if (exclNames.some(e => nom.includes(e))) return false;
         return true;
     });
@@ -229,7 +229,7 @@ export default function NutritionDashboard() {
   const [theme, setTheme] = useState<'light'|'dark'>('light');
   
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites' | 'coaching'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites' | 'coaching'>('week');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   const [showRedoDiagModal, setShowRedoDiagModal] = useState(false);
@@ -386,7 +386,7 @@ export default function NutritionDashboard() {
   const [profileForm, setProfileForm] = useState({ full_name: "", avatar_url: "", password: "" });
   const [showReminder, setShowReminder] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState<string | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Boutique states
@@ -1607,12 +1607,12 @@ export default function NutritionDashboard() {
   const isNewUser = (new Date().getTime() - createdDate.getTime()) / (1000 * 3600 * 24) <= 3;
 
   const menuItems = [
+    { id: 'week', label: 'Sama Menu', icon: ListChecks },
     { id: 'today', label: 'Mon Jour', icon: Calendar },
+    { id: 'favorites', label: 'Galerie Recettes', icon: BookOpen },
     { id: 'weight', label: 'Mon Poids', icon: Scale },
-    { id: 'orders', label: 'Mes Commandes', icon: Package },
     { id: 'shop', label: 'Boutique', icon: ShoppingBag },
-    { id: 'week', label: 'Programme', icon: ListChecks },
-    { id: 'favorites', label: 'Recettes', icon: HeartPulse },
+    { id: 'orders', label: 'Mes Commandes', icon: Package },
     { id: 'coaching', label: 'Coaching', icon: Activity, dot: isNewUser },
     { id: 'history', label: 'Historique', icon: BarChart },
     { id: 'profile', label: 'Réglages', icon: Settings },
@@ -1886,7 +1886,7 @@ export default function NutritionDashboard() {
   const logoSrc = 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198743/Modify_the_logo_from_the_202606111717_kftori.jpg';
 
   return (
-    <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300`}>
+    <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-zinc-950 text-white' : 'bg-[#f4f4f5] text-zinc-900'} font-sans selection:bg-[#39FF14]/30 transition-colors duration-300 pb-20 lg:pb-0`}>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes gentle-pulse {
           0%, 100% { opacity: 1; filter: drop-shadow(0 0 15px rgba(57,255,20,0.1)); transform: scale(1); }
@@ -1897,7 +1897,11 @@ export default function NutritionDashboard() {
         }
       `}} />
       {/* SIDEBAR VERTICAL */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside 
+         onMouseEnter={() => { if(window.innerWidth >= 1024) setIsSidebarOpen(true); }}
+         onMouseLeave={() => { if(window.innerWidth >= 1024) setIsSidebarOpen(false); }}
+         className={`fixed inset-y-0 left-0 z-50 flex flex-col ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+      >
          <div className="p-6 flex items-center justify-between">
             <div className={`flex items-center gap-3 overflow-hidden ${!isSidebarOpen && 'lg:hidden'}`}>
                <img src={logoSrc} alt="OnyxNutrition Logo" className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" />
@@ -2711,10 +2715,16 @@ export default function NutritionDashboard() {
                   </div>
                ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                     {weeklyGeneratedMenu.map((dayPlan, dIdx) => (
-                        <div key={`${dIdx}-${dayPlan.meals?.['Déjeuner']?.id || 'empty'}`} className="bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden flex flex-col group relative animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500" style={{ animationFillMode: 'both', animationDelay: `${dIdx * 100}ms` }}>
-                           <div className="absolute top-4 left-4 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest z-10 shadow-lg">
-                              {dayPlan.day}
+                     {(() => {
+                         const today = weeklyGeneratedMenu.find(d => d.day === formattedCurrentDay);
+                         const others = weeklyGeneratedMenu.filter(d => d.day !== formattedCurrentDay);
+                         const displayMenu = today ? [today, ...others] : weeklyGeneratedMenu;
+                         return displayMenu.map((dayPlan, dIdx) => {
+                             const isToday = dayPlan.day === formattedCurrentDay;
+                             return (
+                        <div key={`${dIdx}-${dayPlan.meals?.['Déjeuner']?.id || 'empty'}`} className={`bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border overflow-hidden flex flex-col group relative animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500 ${isToday ? 'border-[#39FF14] ring-2 ring-[#39FF14]/20' : 'border-zinc-100 opacity-60 grayscale-[30%] hover:grayscale-0 hover:opacity-100 transition-all'}`} style={{ animationFillMode: 'both', animationDelay: `${dIdx * 100}ms` }}>
+                           <div className={`absolute top-4 left-4 ${isToday ? 'bg-[#39FF14] text-black' : 'bg-black text-white'} px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest z-10 shadow-lg`}>
+                              {dayPlan.day} {isToday && '(Auj.)'}
                            </div>
                            
                            <div className="h-48 w-full bg-zinc-100 relative overflow-hidden">
@@ -2748,7 +2758,10 @@ export default function NutritionDashboard() {
                                              {isConsumed && (
                                                 <span className="bg-[#39FF14] text-black px-2 py-0.5 rounded text-[8px] font-black uppercase shadow-sm">Validé ✅</span>
                                              )}
-                                             {!isConsumed && (
+                                             {!isConsumed && !isToday && (
+                                                <span className="bg-zinc-200 text-zinc-500 px-2 py-0.5 rounded text-[8px] font-black uppercase">Prévu</span>
+                                             )}
+                                             {!isConsumed && isToday && (
                                                 <button onClick={(e) => { e.stopPropagation(); handleSwapMeal(dIdx, mealType, recipe.id); }} className="bg-zinc-200 text-zinc-600 px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-white transition-colors" title="Changer ce repas">🔄</button>
                                              )}
                                           </div>
@@ -2758,7 +2771,9 @@ export default function NutritionDashboard() {
                               })}
                            </div>
                         </div>
-                     ))}
+                     )
+                 })
+             })()}
                   </div>
                )}
             </section>
@@ -4196,6 +4211,17 @@ export default function NutritionDashboard() {
              <CheckCircle size={16}/> {toastMessage}
          </div>
       )}
+
+      {/* BOTTOM NAVIGATION MOBILE */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center px-4 py-2 z-[100] pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
+         <button onClick={() => { setActiveTab('week'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'week' ? 'text-[#39FF14]' : 'text-zinc-500'}`}><ListChecks size={20}/><span className="text-[8px] font-black uppercase tracking-widest">Sama Menu</span></button>
+         <button onClick={() => { setActiveTab('today'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'today' ? 'text-[#39FF14]' : 'text-zinc-500'}`}><Calendar size={20}/><span className="text-[8px] font-black uppercase tracking-widest">Mon Jour</span></button>
+         <div className="flex-1 flex justify-center -mt-6">
+            <button onClick={() => { handleMealClick('Collation', null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }} className="bg-black text-[#39FF14] w-14 h-14 rounded-full shadow-[0_10px_20px_rgba(57,255,20,0.3)] border-4 border-[#f4f4f5] dark:border-zinc-950 flex items-center justify-center hover:scale-110 transition-transform"><ScanLine size={24}/></button>
+         </div>
+         <button onClick={() => { setActiveTab('shop'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'shop' ? 'text-[#39FF14]' : 'text-zinc-500'}`}><ShoppingBag size={20}/><span className="text-[8px] font-black uppercase tracking-widest">Boutique</span></button>
+         <button onClick={() => setIsMobileMenuOpen(true)} className={`flex flex-col items-center gap-1 flex-1 text-zinc-500`}><MenuIcon size={20}/><span className="text-[8px] font-black uppercase tracking-widest">Menu</span></button>
+      </div>
 
     </div>
   );

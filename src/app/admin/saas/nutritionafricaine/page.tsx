@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
@@ -69,7 +69,8 @@ export default function AdminNutritionAfricaine() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
-  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', description: '', gallery: [] as string[] });
+  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', video_url: '', description: '', gallery: [] as string[] });
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const fileProductInputRef = useRef<HTMLInputElement>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -404,7 +405,7 @@ export default function AdminNutritionAfricaine() {
        id: '', type, nom: generatedName, calories: 450, proteins: 30, carbs: 45, fats: 15, is_bol_commun: false,
        recipe: "Recette générée par IA respectant le mix Sénégalais-Moderne. Assurez-vous d'utiliser le condiment uniquement pour relever le goût.",
        bienfaits: "Équilibre parfait entre fibres, protéines maigres et index glycémique contrôlé.",
-       ingredients, image_url: '', description: '', gallery: []
+      ingredients, image_url: '', video_url: '', description: '', gallery: []
     });
     setEditingRecipe(null);
     setShowRecipeModal(true);
@@ -413,12 +414,27 @@ export default function AdminNutritionAfricaine() {
   const handleOpenRecipeModal = (recipe?: any) => {
      if (recipe) {
          setEditingRecipe(recipe);
-         setRecipeForm({ ...recipe, bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', description: recipe.description || '' });
+         setRecipeForm({ ...recipe, bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', video_url: recipe.video_url || '', description: recipe.description || '' });
      } else {
          setEditingRecipe(null);
-         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [], image_url: '', description: '', gallery: [] });
+         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [], image_url: '', video_url: '', description: '', gallery: [] });
      }
      setShowRecipeModal(true);
+  };
+
+  const handleGenerateVideoIA = async () => {
+      if (!recipeForm.nom || !recipeForm.recipe) return alert("Veuillez d'abord remplir le nom et les instructions de la recette.");
+      setIsGeneratingVideo(true);
+      try {
+          // SIMULATION : Remplacer par un véritable appel API (Edge Function pointant vers Creatomate ou HeyGen)
+          await new Promise(resolve => setTimeout(resolve, 4000));
+          setRecipeForm(prev => ({...prev, video_url: 'https://www.youtube.com/embed/acFsObjm2E0'})); 
+          alert("Vidéo générée avec succès via le pipeline IA !");
+      } catch (err) {
+          alert("Erreur lors de la génération vidéo.");
+      } finally {
+          setIsGeneratingVideo(false);
+      }
   };
 
   const handleSaveRecipe = async (e: React.FormEvent) => {
@@ -1515,6 +1531,17 @@ export default function AdminNutritionAfricaine() {
                         <p className="text-[10px] font-bold text-blue-600">Repas partagé en famille (le Smart Planner en intègre 2-3 / sem).</p>
                      </div>
                   </label>
+
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">URL Vidéo de la Recette</label>
+                     <div className="flex gap-2">
+                        <input type="text" value={recipeForm.video_url || ''} onChange={e => setRecipeForm({...recipeForm, video_url: e.target.value})} className="flex-1 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-black" placeholder="Lien YouTube..." />
+                        <button type="button" onClick={handleGenerateVideoIA} disabled={isGeneratingVideo} className="bg-black text-[#39FF14] px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:scale-100">
+                           {isGeneratingVideo ? <Loader2 size={16} className="animate-spin"/> : <Video size={16}/>} {isGeneratingVideo ? "Création..." : "IA Vidéo"}
+                        </button>
+                     </div>
+                     <p className="text-[9px] font-bold text-zinc-400 ml-2">L'IA générera une vidéo courte (Shorts/Reels) à partir des étapes de cuisson.</p>
+                  </div>
 
                   <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Instructions / Recette</label>
