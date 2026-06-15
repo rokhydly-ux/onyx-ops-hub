@@ -56,6 +56,17 @@ const DEFAULT_RECIPES = [
   { type: "Collation", nom: "Dattes & Thé Vert Menthe", calories: 110, is_bol_commun: false, bienfaits: "L'énergie rapide absolue associée aux antioxydants du thé.", ingredients: [{nom: "Dattes", quantite: 2, unite: "pièce", rayon: "Marché local"}, {nom: "Thé vert menthe", quantite: 1, unite: "tasse", rayon: "Supermarché"}] }
 ];
 
+const DEFAULT_PRODUCTS = [
+  { id: "prod_001", categorie_nom: "Super-Aliments & Céréales Locales", slug: "super-aliments", nom: "Fonio Premium Pré-lavé (500g)", description_courte: "Le miracle sans gluten à IG bas, prêt à cuire en 5 minutes.", description_longue: "Issu de coopératives locales, notre Fonio est soigneusement lavé et débarrassé de tout résidu sableux. L'alternative parfaite au riz blanc pour vos déjeuners.", prix_standard: 2500, prix_premium: 2100, stock: 100, rating: 4.8, image_url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781199255/A_premium_studio_shot_of_202606111733_kaohlz.jpg", badge: "Best Seller", goal: "cooking" },
+  { id: "prod_002", categorie_nom: "Super-Aliments & Céréales Locales", nom: "Poudre de Moringa Bio (150g)", description_courte: "La multivitamine naturelle d'Afrique pour booster votre métabolisme.", description_longue: "Riche en fer, calcium et vitamines. Saupoudrez 1 cuillère par jour sur vos plats en fin de cuisson pour une énergie décuplée.", prix_standard: 3500, prix_premium: 2900, stock: 50, rating: 4.9, image_url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563486/A_high-end_modern_cosmetic_promotional_202604301537_qqhvht.jpg", badge: "Santé", goal: "energy" },
+  { id: "prod_005", categorie_nom: "Super-Aliments & Céréales Locales", nom: "Soumbala / Nététou Pur (100g)", description_courte: "L'exhausteur de goût santé qui protège votre cœur.", description_longue: "Le remplaçant idéal de vos bouillons cubes industriels. Donne une saveur profonde à vos plats tout en régulant la tension.", prix_standard: 1500, prix_premium: 1200, stock: 120, rating: 4.5, image_url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563481/A_vibrant_and_appetizing_food_202604301533_dmp5uw.jpg", badge: "Cuisine Saine", goal: "cooking" },
+  { id: "prod_006", categorie_nom: "Infusions & Détox (Zéro Sucre)", slug: "infusions-detox", nom: "Bissap Rouge Séché (250g)", description_courte: "Le diurétique naturel par excellence. Grandes fleurs de qualité.", description_longue: "Infusez à froid ou à chaud sans sucre. Aide à combattre la rétention d'eau et à dégonfler le ventre rapidement.", prix_standard: 2000, prix_premium: 1600, stock: 200, rating: 4.9, image_url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563472/A_high-end_modern_promotional_poster_202604301536_c7cpzr.jpg", badge: "Détox", goal: "detox" },
+  { id: "prod_009", categorie_nom: "Infusions & Détox (Zéro Sucre)", nom: "Thé Vert Ataya Spécial (200g)", description_courte: "Les feuilles pures pour un Ataya brûle-graisse.", description_longue: "Remplacez le thé bas de gamme. Un thé vert riche en antioxydants (EGCG) conçu pour être bu sans sucre.", prix_standard: 3500, prix_premium: 2900, stock: 90, rating: 4.6, image_url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563485/A_futuristic_and_modern_graphic_202604301528_kon2vz.jpg", badge: "Ventre Plat", goal: "detox" },
+  { id: "prod_011", categorie_nom: "Snacks & Oléagineux", slug: "snacks", nom: "Pâte d'Arachide Pure (300g)", description_courte: "100% arachide torréfiée. Zéro huile ajoutée, zéro sucre.", description_longue: "Le goût de l'enfance, version saine. Idéale pour vos mafés diététiques ou sur vos pancakes d'avoine.", prix_standard: 3000, prix_premium: 2500, stock: 70, rating: 4.9, image_url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563481/A_vibrant_and_appetizing_food_202604301533_dmp5uw.jpg", badge: "Best Seller", goal: "snacks" },
+  { id: "prod_012", categorie_nom: "Snacks & Oléagineux", nom: "Noix de Cajou Grillées (250g)", description_courte: "Le snack parfait pour calmer le stress du bureau.", description_longue: "Riches en magnésium. Croquez-en une petite poignée à 16h pour éviter le piège des biscuits industriels.", prix_standard: 5000, prix_premium: 4200, stock: 80, rating: 4.8, image_url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563489/A_luxurious_corporate_promotional_poster._202604301529_docu21.jpg", badge: "Énergie", goal: "snacks" },
+  { id: "prod_016", categorie_nom: "Équipements", slug: "equipements", nom: "Gourde Motivante 'Jongoma'", description_courte: "Atteignez votre quota d'eau avec style (1.5L).", description_longue: "Marqueurs de temps imprimés pour vous rappeler de boire de l'eau fraîche toute la journée. Design Vert Néon.", prix_standard: 7000, prix_premium: 5500, stock: 150, rating: 4.9, image_url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563498/A_moody__high-end_luxury_promotional_202604301516_zoftg0.jpg", badge: "Best Seller", goal: "cooking" }
+];
+
 export default function AdminNutritionAfricaine() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -166,8 +177,10 @@ export default function AdminNutritionAfricaine() {
                      supabase.from('crm_settings').select('*').eq('tenant_id', tId).maybeSingle(),
                      supabase.from('nutrition_foods').select('*')
                   ]);
-                  if (recipesRes.data) setRecipes(recipesRes.data);
-                  if (prodsRes.data) setProducts(prodsRes.data);
+                  if (recipesRes.data && recipesRes.data.length > 0) setRecipes(recipesRes.data);
+                  else setRecipes(DEFAULT_RECIPES);
+                  if (prodsRes.data && prodsRes.data.length > 0) setProducts(prodsRes.data);
+                  else setProducts(DEFAULT_PRODUCTS);
                   if (ordsRes.data) setOrders(ordsRes.data);
                   if (promosRes.data) setPromos(promosRes.data);
                   if (settingsRes.data && settingsRes.data.shop_banner_url) setVitrineBanner(settingsRes.data.shop_banner_url);
