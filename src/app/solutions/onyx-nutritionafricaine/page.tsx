@@ -345,7 +345,7 @@ export default function NutritionAfricaineLanding() {
       const trialEnds = new Date();
       trialEnds.setDate(trialEnds.getDate() + 14);
 
-      const { data: clientData } = await supabase.from('clients').upsert({
+      const { data: clientData, error: clientErr } = await supabase.from('clients').upsert({
         full_name: diagData.name,
         phone: diagData.phone,
         password_temp: diagData.pin || "0000",
@@ -354,11 +354,15 @@ export default function NutritionAfricaineLanding() {
         status: "Essai",
         trial_ends_at: trialEnds.toISOString(),
       }, { onConflict: 'phone' }).select().single();
-
-      if (clientData) {
-        localStorage.setItem('onyx_custom_session', JSON.stringify(clientData));
-        setTimeout(() => router.push('/nutrition?from=diagnostic'), 3000);
+      
+      if (clientErr) {
+         console.warn("Erreur Création Client (RLS bloqué) :", clientErr);
       }
+
+      const sessionData = clientData || { id: crypto.randomUUID(), full_name: diagData.name, phone: diagData.phone, plan_type: 'essai' };
+
+      localStorage.setItem('onyx_custom_session', JSON.stringify(sessionData));
+      setTimeout(() => router.push('/nutrition?from=diagnostic'), 3000);
 
           const heightCm = parseFloat(diagData.height) || 0;
           const currentWeight = parseFloat(diagData.currentWeight) || 0;

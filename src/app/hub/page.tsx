@@ -69,39 +69,38 @@ export default function OnyxHubPortal() {
       let role = 'CLIENT';
       let profileData: any = null;
 
-      // 2. Vérification s'il s'agit d'un super administrateur
-      if (user.id && String(user.id).includes('-')) { // Sécurité UUID
-        const { data: userData } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
-        if (userData) {
-          role = userData.role;
-          profileData = userData;
-        }
+      const phoneMatch = user.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
+      const userPhone = phoneMatch ? phoneMatch[1] : (user.user_metadata?.phone || user.phone);
+      
+      let query = supabase.from('clients').select('*');
+      if (userPhone) {
+        query = query.eq('phone', userPhone);
+      } else if (user.id && String(user.id).includes('-')) {
+        query = query.eq('id', user.id);
       }
       
-      if (!profileData) {
-        // Sinon, on cherche dans la table clients via le téléphone ou l'ID
-        const phoneMatch = user.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
-        const userPhone = phoneMatch ? phoneMatch[1] : (user.user_metadata?.phone || user.phone);
-        
-        let query = supabase.from('clients').select('*');
-        if (userPhone) {
-          query = query.eq('phone', userPhone);
-        } else if (user.id && String(user.id).includes('-')) {
-          query = query.eq('id', user.id);
-        }
-        
-        const { data: clientProfile, error: profileError } = await query.maybeSingle();
-        
-        if (clientProfile) {
-          profileData = clientProfile;
-        } else if (customUser) {
-          profileData = customUser;
-        } else {
-          alert('Profil non trouvé pour ce numéro');
-          localStorage.removeItem('onyx_custom_session');
-          window.location.href = '/login';
-          return;
-        }
+      const { data: clientProfile } = await query.maybeSingle();
+
+      let adminProfile = null;
+      if (user.id && String(user.id).includes('-')) { // Sécurité UUID
+        const { data: userData } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+        adminProfile = userData;
+      }
+      
+      if (user.email === 'rokhydly@gmail.com' || (adminProfile && !clientProfile)) {
+        profileData = adminProfile;
+        role = adminProfile?.role || 'SUPER_ADMIN';
+      } else if (clientProfile) {
+        profileData = clientProfile;
+        role = 'CLIENT';
+      } else if (customUser) {
+        profileData = customUser;
+        role = 'CLIENT';
+      } else {
+        alert('Profil non trouvé pour ce compte');
+        localStorage.removeItem('onyx_custom_session');
+        window.location.href = '/login';
+        return;
       }
 
       console.log('Client Profile:', profileData);
@@ -241,9 +240,9 @@ export default function OnyxHubPortal() {
           
           <div className="relative" ref={profileMenuRef}>
             <div className="flex items-center gap-3">
-              {user?.email === 'rokhydly@gmail.com' && (
+              {user?.role === 'SUPER_ADMIN' && (
                  <div className="hidden sm:flex items-center gap-2 bg-zinc-900 p-1.5 pr-4 rounded-full border border-zinc-800 shadow-sm mr-2">
-                    <img src={user.user_metadata?.avatar_url || "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"} alt="Super Admin" className="w-7 h-7 rounded-full object-cover border border-[#39FF14]" />
+                    <img src={user?.avatar_url || user.user_metadata?.avatar_url || "https://i.ibb.co/tpLcRY30/639970592-10237151082048963-3571335441411123882-n.jpg"} alt="Super Admin" className="w-7 h-7 rounded-full object-cover border border-[#39FF14]" />
                     <span className="text-[10px] font-black uppercase text-[#39FF14]">Super Admin</span>
                  </div>
               )}

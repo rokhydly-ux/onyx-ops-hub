@@ -364,19 +364,19 @@ export default function NutritionDashboard() {
     setThiernoUserReply("");
 
     setTimeout(() => {
-        let botResponse = "C'est une très bonne question. N'oublie pas le principe du Mix Sénégalo-Moderne : on garde nos bases locales (comme le Fonio ou le Thiof) et on contrôle les glucides et l'huile. Si tu as un doute médical, n'hésite pas à consulter !";
+        let botResponse = "C'est une très bonne question. N'oublie pas de consulter notre boutique pour découvrir nos super-aliments (Fonio, Moringa, Soumbala) qui t'aideront à atteindre ton objectif plus vite !";
         const lowerReply = reply.toLowerCase();
         
         if (lowerReply.includes('riz') || lowerReply.includes('thieb')) {
-            botResponse = "Le riz brisé a un index glycémique élevé. Essaye de le remplacer par du riz étuvé ou limite ta portion à 1/4 de l'assiette. Ajoute plus de légumes (chou, carottes) pour les fibres !";
-        } else if (lowerReply.includes('sucre') || lowerReply.includes('fatigue')) {
-            botResponse = "La fatigue après le repas vient souvent des pics de sucre (insuline). Évite d'ajouter du sucre dans le Kinkeliba ou l'Attaya, et choisis des glucides lents comme le pain complet ou le mil sans sucre.";
-        } else if (lowerReply.includes('huile') || lowerReply.includes('mafé') || lowerReply.includes('yassa')) {
-            botResponse = "L'arachide pure du Mafé est saine, mais c'est l'excès d'huile ajoutée qui pose problème. Pour le Yassa, essaye de cuire tes oignons avec juste une cuillère à soupe d'huile. Le goût y sera toujours !";
-        } else if (lowerReply.includes('jeûne') || lowerReply.includes('matin')) {
-            botResponse = "Le jeûne intermittent est très efficace. Assure-toi de bien t'hydrater le matin (eau, infusion Kinkeliba ou Djar) sans ajouter de calories pour prolonger la détoxification de ton foie.";
-        } else if (lowerReply.includes('arachide') || lowerReply.includes('cajou')) {
-            botResponse = "Si tu as une allergie à l'arachide, nous la retirons automatiquement de tes menus générés. Tu peux utiliser d'autres sources de bons lipides comme l'avocat ou le beurre de sésame si toléré.";
+            botResponse = "Le riz brisé a un index glycémique élevé. Je te recommande fortement notre Fonio Premium disponible dans la boutique. Il est parfait pour remplacer le riz tout en gardant le ventre plat !";
+        } else if (lowerReply.includes('sucre') || lowerReply.includes('fatigue') || lowerReply.includes('boost')) {
+            botResponse = "La fatigue vient souvent des pics de sucre. Essaye notre Poudre de Moringa Bio ou notre Thé Vert Ataya Spécial pour une énergie décuplée sans calorie !";
+        } else if (lowerReply.includes('huile') || lowerReply.includes('mafé') || lowerReply.includes('yassa') || lowerReply.includes('bouillon')) {
+            botResponse = "Attention aux bouillons industriels et à l'excès d'huile. Je te conseille d'utiliser notre Soumbala pur comme exhausteur de goût santé, et notre Pâte d'Arachide 100% pure pour tes mafés !";
+        } else if (lowerReply.includes('jeûne') || lowerReply.includes('matin') || lowerReply.includes('boire') || lowerReply.includes('eau')) {
+            botResponse = "Pour bien t'hydrater, notre Gourde Motivante 'Jongoma' (1.5L) est un must. Tu peux aussi infuser notre Bissap Rouge Séché sans sucre pour un effet détox garanti dès le matin !";
+        } else if (lowerReply.includes('faim') || lowerReply.includes('snack') || lowerReply.includes('arachide') || lowerReply.includes('cajou')) {
+            botResponse = "En cas de petite faim, évite les biscuits industriels. Nos Noix de Cajou Grillées sont le snack sain idéal pour te caler jusqu'au prochain repas !";
         }
         
         setThiernoMessages(prev => [...prev, { sender: 'bot', text: botResponse }]);
@@ -561,21 +561,28 @@ export default function NutritionDashboard() {
 
       // Récupérer le profil client complet depuis la table 'clients'
       const phoneMatch = finalUser.email?.match(/^(\+?\d+)@clients\.onyxcrm\.com$/);
-      const userPhone = phoneMatch ? phoneMatch[1] : finalUser.phone;
+      const userPhone = phoneMatch ? phoneMatch[1] : (finalUser.user_metadata?.phone || finalUser.phone);
 
+      let query = supabase.from('clients').select('*');
       if (userPhone) {
-        const welcome = localStorage.getItem(`onyx_nutrition_welcome_${userPhone}`);
-        if (welcome) setWelcomeMessage(welcome);
+        query = query.eq('phone', userPhone);
+      } else if (finalUser.id && String(finalUser.id).includes('-')) {
+        query = query.eq('id', finalUser.id);
+      } else {
+        setLoading(false);
+        return;
+      }
 
-        const { data: profileData, error } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('phone', userPhone)
-          .single();
+      const { data: profileData, error } = await query.maybeSingle();
 
-        if (profileData) {
-          setClientProfile(profileData);
-          const trialEnds = profileData.trial_ends_at ? new Date(profileData.trial_ends_at).getTime() : (new Date(profileData.created_at || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000);
+      const activeProfile = profileData || finalUser;
+      if (activeProfile) {
+        if (userPhone) {
+          const welcome = localStorage.getItem(`onyx_nutrition_welcome_${userPhone}`);
+          if (welcome) setWelcomeMessage(welcome);
+        }
+          setClientProfile(activeProfile);
+          const trialEnds = activeProfile.trial_ends_at ? new Date(activeProfile.trial_ends_at).getTime() : (new Date(activeProfile.created_at || new Date()).getTime() + 14 * 24 * 60 * 60 * 1000);
           const now = new Date().getTime();
           
           if (window.innerWidth < 1024) setIsSidebarOpen(false);
@@ -585,16 +592,17 @@ export default function NutritionDashboard() {
               diffDays = Math.max(0, Math.ceil((trialEnds - now) / (1000 * 60 * 60 * 24)));
           }
           
-          if (profileData.plan_type === 'premium') {
+          if (activeProfile.plan_type === 'premium') {
              diffDays = 999;
           }
           setDaysLeft(diffDays);
 
           // Récupération de l'historique des logs journaliers
+          if (activeProfile.id) {
           const { data: logsData } = await supabase
             .from('nutrition_daily_logs')
             .select('*')
-            .eq('client_id', profileData.id)
+            .eq('client_id', activeProfile.id)
             .order('log_date', { ascending: true });
 
           if (logsData) {
@@ -623,7 +631,7 @@ export default function NutritionDashboard() {
           const { data: nutritionData } = await supabase
             .from('nutrition_profiles')
             .select('*')
-            .eq('client_id', profileData.id)
+            .eq('client_id', activeProfile.id)
             .maybeSingle();
 
           if (nutritionData) {
@@ -639,7 +647,7 @@ export default function NutritionDashboard() {
           }
           
           // Récupérer le poids
-          const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('client_id', profileData.id).order('log_date', { ascending: true });
+          const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('client_id', activeProfile.id).order('log_date', { ascending: true });
           if (wLogs) {
               setWeightLogs(wLogs);
               if (wLogs.length > 0) setCurrentWeightInput(wLogs[wLogs.length - 1].weight);
@@ -652,11 +660,12 @@ export default function NutritionDashboard() {
               setExcludedIngredients(nutritionData.excluded_ingredients || []);
           }
 
-          if (profileData.address) setDeliveryAddress(profileData.address);
+          if (activeProfile.address) setDeliveryAddress(activeProfile.address);
 
           // Fetch des commandes du client
-          const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', profileData.id).order('created_at', { ascending: false });
+          const { data: ordersData } = await supabase.from('nutrition_orders').select('*').eq('client_id', activeProfile.id).order('created_at', { ascending: false });
           if (ordersData) setClientOrders(ordersData);
+          } // Fin if (activeProfile.id)
 
           // Fetch DB Products
           let prodQuery = supabase.from('nutrition_products').select('*');
@@ -702,9 +711,9 @@ export default function NutritionDashboard() {
           else setAllRecipesDB(DEFAULT_RECIPES);
 
           // Load banner from settings specific to the coach
-          if (profileData.tenant_id) {
+          if (activeProfile.tenant_id) {
               try {
-                      const { data } = await supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', profileData.tenant_id).maybeSingle();
+                      const { data } = await supabase.from('crm_settings').select('shop_banner_url').eq('tenant_id', activeProfile.tenant_id).maybeSingle();
                       if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url);
               } catch (e) {}
           } else {
@@ -713,7 +722,6 @@ export default function NutritionDashboard() {
                       if (data?.shop_banner_url) setShopBannerUrl(data.shop_banner_url);
               } catch (e) {}
           }
-        }
       }
 
       setLoading(false);
@@ -1412,28 +1420,28 @@ export default function NutritionDashboard() {
 
       // --- L'Intervention de l'Avatar IA (Rokhy) Évoluée ---
       let alertTitle = "Conseil Nutrition 🍏";
-      let alertText = foodObj?.message_coach_ia || "Bon choix ! N'oublie pas de bien t'hydrater pendant le repas.";
+      let alertText = foodObj?.message_coach_ia || "Excellent choix ! Tu peux accompagner ça de notre Poudre de Moringa pour booster encore plus ton métabolisme !";
       let alertType: 'warning' | 'success' | 'info' = 'success';
 
       if (foodObj?.flags_ia?.ultra_transforme) {
          alertTitle = "Produit Ultra-Transformé ⚠️";
-         alertText = foodObj.message_coach_ia || "Ce produit industriel contient souvent des additifs et du sucre caché. Essaie de privilégier des alternatives brutes (ex: fruits frais, oléagineux).";
+         alertText = foodObj.message_coach_ia || "Ce produit industriel contient souvent des additifs. Remplaçons-le par nos super-aliments naturels (Fonio, Moringa) disponibles dans la boutique Onyx !";
          alertType = 'warning';
       } else if (calsRounded > 600) {
          alertTitle = "Repas très calorique 🔥";
-         alertText = "Oula ! Ce repas est très riche en énergie. Assure-toi de faire un peu d'exercice aujourd'hui et d'alléger le repas suivant (ex: salade ou soupe légère).";
+         alertText = "Oula ! Ce repas est très riche en énergie. Pense à boire notre infusion de Bissap Rouge ou Thé Vert Ataya pour accélérer la digestion !";
          alertType = 'warning';
       } else if (carbsRounded > 60) {
          alertTitle = "Alerte Glucides (Sucre) 🍞";
-         alertText = "Ce plat va provoquer un pic d'insuline et te donner faim plus tard. La prochaine fois, limite la portion à 1/4 d'assiette et ajoute plus de légumes locaux !";
+         alertText = "Ce plat va provoquer un pic d'insuline. La prochaine fois, remplace le riz par notre Fonio Premium à IG bas pour un ventre plat !";
          alertType = 'warning';
       } else if (foodObj?.flags_ia?.high_sodium) {
          alertTitle = "Attention au sel ! 🧂";
-         alertText = foodObj.message_coach_ia || "Ce plat est très salé. Pense à boire beaucoup d'eau pour éviter la rétention et protéger ta tension.";
+         alertText = foodObj.message_coach_ia || "Ce plat est très salé ! Remplace tes bouillons industriels par notre Soumbala / Nététou pur pour donner du goût tout en protégeant ton cœur.";
          alertType = 'warning';
       } else if (newFats > fatsGoal) {
          alertTitle = "Quota de lipides atteint 🥑";
-         alertText = "Attention à l'huile pour le reste de la journée ! Privilégie une cuisson vapeur ou grillée sans huile pour le prochain repas.";
+         alertText = "Attention aux huiles ! Pour tes besoins en bonnes graisses sans excès, nos Noix de Cajou ou notre Pâte d'Arachide Pure sont parfaites. N'en rajoute plus aujourd'hui.";
          alertType = 'warning';
       }
 
@@ -1596,9 +1604,9 @@ export default function NutritionDashboard() {
       const isLoss = lastLog ? newWeight < lastLog.weight : true;
       
       if (isLoss) {
-          setRokhyMessage({ title: "Perte validée !", text: "Bravo ! Les efforts payent. On a brûlé la graisse, on continue sur cette lancée !", type: 'success' });
+          setRokhyMessage({ title: "Perte validée !", text: "Bravo ! Les efforts payent. Continue sur cette lancée et n'oublie pas tes infusions Détox de la boutique pour accélérer les résultats !", type: 'success' });
       } else {
-          setRokhyMessage({ title: "Ne panique pas.", text: "Stop, ne panique pas. Le poids fluctue à cause de l'eau, du cycle hormonal ou du stress. Reste focus sur ton menu cette semaine, le processus fonctionne.", type: 'warning' });
+          setRokhyMessage({ title: "Ne panique pas.", text: "Stop, ne panique pas. Le poids fluctue. Reste focus sur ton menu et pense à notre Fonio Premium pour réguler ta glycémie cette semaine.", type: 'warning' });
       }
       
       const newLog = { log_date: todayStr, weight: newWeight };
