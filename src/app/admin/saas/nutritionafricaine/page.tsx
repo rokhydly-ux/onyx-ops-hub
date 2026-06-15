@@ -1059,10 +1059,12 @@ export default function AdminNutritionAfricaine() {
                        <button className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${['shop', 'orders', 'promos'].includes(activeTab) ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
                           <ShoppingBag size={14}/> E-Commerce <ChevronDown size={14} className="ml-1"/>
                        </button>
-                       <div className="absolute top-full left-0 mt-2 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 min-w-[160px] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-50 flex flex-col gap-1">
-                           <button onClick={() => setActiveTab('shop')} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'shop' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><ShoppingCart size={14}/> Boutique</button>
-                           <button onClick={() => setActiveTab('orders')} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'orders' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><Package size={14}/> Commandes</button>
-                           <button onClick={() => setActiveTab('promos')} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'promos' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><Ticket size={14}/> Codes Promo</button>
+                       <div className="absolute top-full left-0 pt-2 min-w-[160px] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 delay-100 hover:delay-0 z-50">
+                           <div className="bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 flex flex-col gap-1">
+                               <button onClick={() => setActiveTab('shop')} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'shop' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><ShoppingCart size={14}/> Boutique</button>
+                               <button onClick={() => setActiveTab('orders')} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'orders' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><Package size={14}/> Commandes</button>
+                               <button onClick={() => setActiveTab('promos')} className={`text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-zinc-100 flex items-center gap-2 ${activeTab === 'promos' ? 'text-[#39FF14] bg-black hover:bg-black' : 'text-zinc-600'}`}><Ticket size={14}/> Codes Promo</button>
+                           </div>
                        </div>
                    </div>
                </div>

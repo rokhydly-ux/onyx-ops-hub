@@ -348,6 +348,7 @@ export default function NutritionDashboard() {
   // Voice Integration Coach Thierno
   const [isThiernoVoiceEnabled, setIsThiernoVoiceEnabled] = useState(false);
   const thiernoVoiceRef = useRef(false);
+  const sidebarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     thiernoChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -873,10 +874,14 @@ export default function NutritionDashboard() {
                     portion_standard_nom: "100g",
                     portion_standard_grammes: 100,
                     valeurs_pour_100g: { calories: p.nutriments?.['energy-kcal_100g'] || 0, glucides: p.nutriments?.carbohydrates_100g || 0, lipides: p.nutriments?.fat_100g || 0, proteines: p.nutriments?.proteins_100g || 0, fibres: p.nutriments?.fiber_100g || 0 },
-                    flags_ia: { ultra_transforme: true },
+                    flags_ia: { ultra_transforme: p.nova_group === 4 || true },
                     isFood: true,
                     is_from_off: true,
-                    message_coach_ia: "Ce produit industriel contient souvent des sucres et additifs cachés. Essaie de trouver une alternative brute (ex: fruits frais, oléagineux locaux)."
+                    message_coach_ia: (p.nutriments?.sugars_100g > 15) ? `Alerte Sucre (${p.nutriments.sugars_100g}g/100g) ! Attention aux pics d'insuline. Privilégiez des alternatives naturelles.` :
+                                      (p.nutriments?.sodium_100g > 0.6) ? `Trop salé ! Risque de rétention d'eau. Remplacez-le par du Soumbala brut.` :
+                                      (p.nova_group === 4) ? `Produit ultra-transformé. À limiter fortement pour garder un ventre plat.` :
+                                      (p.nutriments?.proteins_100g > 15) ? `Excellente source de protéines (${p.nutriments.proteins_100g}g) pour la satiété !` :
+                                      `Produit industriel. Essaie de trouver une alternative brute (ex: fruits frais, oléagineux locaux).`
                  })).filter((p:any) => p.nom !== "Produit inconnu");
                  setOffResults(mapped);
               }
@@ -1552,8 +1557,12 @@ export default function NutritionDashboard() {
                  fibres: nutriments.fiber_100g || 0,
                  sodium_mg: (nutriments.sodium_100g || 0) * 1000
               },
-              flags_ia: { is_local_senegal: false, ig_bas: null, high_sodium: false, ultra_transforme: true },
-              message_coach_ia: "Produit industriel scanné via l'API OpenFoodFacts. Ajoutez-le à votre journal."
+              flags_ia: { is_local_senegal: false, ig_bas: (nutriments.carbohydrates_100g < 15), high_sodium: (nutriments.sodium_100g > 0.6), ultra_transforme: product.nova_group === 4 || true },
+              message_coach_ia: (nutriments.sugars_100g > 15) ? `Alerte Sucre (${nutriments.sugars_100g}g/100g) ! Attention aux pics d'insuline. Privilégiez des alternatives naturelles.` :
+                                (nutriments.sodium_100g > 0.6) ? `Trop salé ! Risque de rétention d'eau. Remplacez-le par du Soumbala brut.` :
+                                (product.nova_group === 4) ? `Produit ultra-transformé. À limiter fortement pour garder un ventre plat.` :
+                                (nutriments.proteins_100g > 15) ? `Excellente source de protéines (${nutriments.proteins_100g}g) pour la satiété !` :
+                                `Produit industriel scanné via OpenFoodFacts. Ajoutez-le à votre journal.`
            };
            setSelectedFoodDB(newFood);
            setFoodSearchQuery(product.product_name);
@@ -2155,18 +2164,29 @@ export default function NutritionDashboard() {
       `}} />
       {/* SIDEBAR VERTICAL */}
       <aside 
-         onMouseEnter={() => { if(window.innerWidth >= 1024) setIsSidebarOpen(true); }}
-         onMouseLeave={() => { if(window.innerWidth >= 1024) setIsSidebarOpen(false); }}
+         onMouseEnter={() => { 
+            if (window.innerWidth >= 1024) {
+               if (sidebarTimeoutRef.current) clearTimeout(sidebarTimeoutRef.current);
+               setIsSidebarOpen(true);
+            }
+         }}
+         onMouseLeave={() => { 
+            if (window.innerWidth >= 1024) {
+               sidebarTimeoutRef.current = setTimeout(() => {
+                  setIsSidebarOpen(false);
+               }, 400);
+            }
+         }}
          className={`fixed inset-y-0 left-0 z-50 flex flex-col ${theme === 'dark' ? 'bg-black border-zinc-800 text-white' : 'bg-white border-zinc-200 text-black'} transition-all duration-500 ease-in-out border-r lg:translate-x-0 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
          <div className="p-6 flex items-center justify-between">
-            <div className={`flex items-center gap-3 overflow-hidden ${!isSidebarOpen && 'lg:hidden'}`}>
+            <div className={`flex items-center gap-3 overflow-hidden transition-all duration-500 ${!isSidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`}>
                <img src={logoSrc} alt="OnyxNutrition Logo" className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" />
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'}`}>
                {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
             </button>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-2 hover:bg-zinc-800 rounded-xl transition-colors">
+            <button onClick={() => setIsMobileMenuOpen(false)} className={`lg:hidden p-2 hover:bg-zinc-800 rounded-xl transition-colors ${!isSidebarOpen ? 'mx-auto' : ''}`}>
                <X size={24}/>
             </button>
          </div>
@@ -2175,11 +2195,12 @@ export default function NutritionDashboard() {
             {menuItems.map((item: any) => (
                <button 
                   key={item.id} 
+                  title={item.label}
                   onClick={() => { setActiveTab(item.id); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}
-                  className={`w-full flex items-center p-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : (theme === 'dark' ? 'text-zinc-500 hover:bg-zinc-900 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black')} ${!isSidebarOpen ? 'justify-center lg:justify-center' : 'justify-start lg:justify-start'}`}
+                  className={`w-full flex items-center p-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : (theme === 'dark' ? 'text-zinc-500 hover:bg-zinc-900 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black')} ${!isSidebarOpen ? 'justify-center' : 'justify-start'}`}
                >
                   {typeof item.icon === 'string' ? <img src={item.icon} className="w-6 h-6 rounded-xl object-cover shrink-0" alt="" /> : <item.icon size={20} className="shrink-0" />}
-                  <span className={`whitespace-nowrap ml-4 transition-opacity duration-300 ${!isSidebarOpen ? 'lg:hidden' : 'lg:block'}`}>{item.label}</span>
+                  <span className={`whitespace-nowrap ml-4 transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`}>{item.label}</span>
                   {item.dot && (
                      <span className="absolute top-4 right-4 flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -2190,15 +2211,15 @@ export default function NutritionDashboard() {
             ))}
          </nav>
 
-         <div className={`mt-auto p-4 shrink-0 transition-all duration-300 overflow-hidden ${!isSidebarOpen ? 'lg:h-0 lg:p-0 lg:opacity-0' : 'lg:h-auto lg:opacity-100'}`}>
-            <div className="flex items-center gap-3 mb-4 px-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { setActiveTab('profile'); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}>
+         <div className={`mt-auto p-4 shrink-0 transition-all duration-300 overflow-hidden`}>
+            <div className={`flex items-center gap-3 px-2 cursor-pointer hover:opacity-80 transition-opacity ${isSidebarOpen ? 'mb-4' : 'mb-0 justify-center'}`} onClick={() => { setActiveTab('profile'); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }} title="Mon Profil">
                <img src={user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'Membre')}&background=random`} alt="Profil" className={`w-10 h-10 rounded-full border-2 border-[#39FF14] object-cover ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'} shadow-sm shrink-0 cursor-pointer`} onClick={(e) => { e.stopPropagation(); handleChangeAvatar(); }} title="Changer l'avatar" />
-               <div className="flex-1 min-w-0">
+               <div className={`flex-1 min-w-0 transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`}>
                   <p className="text-xs font-black uppercase truncate text-black dark:text-white">{user?.full_name || 'Membre'}</p>
                   <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest truncate">Mon Profil</p>
                </div>
             </div>
-            <div className={`p-4 rounded-[1.5rem] border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
+            <div className={`rounded-[1.5rem] border ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-50 border-zinc-200'} transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-h-0 opacity-0 border-transparent m-0 p-0' : 'max-h-[200px] opacity-100 mt-4 p-4'}`}>
                <p className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase mb-2">XP Progression</p>
                <div className="flex items-center gap-3">
                   <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-black' : 'bg-zinc-200'}`}>
