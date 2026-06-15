@@ -126,6 +126,7 @@ export default function AdminDashboard() {
 
   // 👇 AJOUTE CES DEUX LIGNES JUSTE ICI 👇
   const [editingArticle, setEditingArticle] = useState<any>(null);
+  const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
   
   const [scannedLeadIds, setScannedLeadIds] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
@@ -1858,12 +1859,38 @@ export default function AdminDashboard() {
    ];
    
    const randomIdea = suggestions[Math.floor(Math.random() * suggestions.length)];
-   const newArt = { id: Date.now().toString(), ...randomIdea };
+   const newArt = { 
+     id: Date.now().toString(), 
+     ...randomIdea,
+     image_url: 'https://placehold.co/800x400/111/39FF14?text=Article+IA',
+     content: 'Voici un article détaillé généré par notre IA pour vous aider à atteindre vos objectifs. Dans cet article, nous explorerons des méthodes concrètes pour maximiser votre visibilité et votre rentabilité en utilisant les bons outils...',
+     gallery: ['https://placehold.co/400x300/111/39FF14?text=Image+1', 'https://placehold.co/400x300/222/39FF14?text=Image+2'],
+     suggested_products: ['Pack Tekki', 'Onyx Jaay']
+   };
    
    await supabase.from('marketing_articles').insert([newArt]);
    setMarketingArticles(prev => [newArt, ...prev]);
    alert("Intelligence Artificielle : Nouvel article suggéré et ajouté au pipeline.");
 };
+
+  const handleGenerateArticleIA = async () => {
+     if (!editingArticle?.title) {
+        return alert("Veuillez d'abord saisir un titre pour que l'IA puisse générer l'article.");
+     }
+     setIsGeneratingArticle(true);
+     try {
+        // Simulation du temps de génération de l'IA
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const generatedContent = `Dans le monde numérique d'aujourd'hui, maîtriser l'art de "${editingArticle.title}" est devenu incontournable pour votre entreprise.\n\n### 1. Pourquoi c'est important ?\nIgnorer cette tendance, c'est laisser vos concurrents prendre l'avantage. En adoptant les bonnes stratégies, vous pouvez non seulement optimiser votre gestion quotidienne, mais aussi maximiser vos revenus de manière exponentielle.\n\n### 2. Comment passer à l'action ?\n- Automatisez vos processus récurrents pour gagner de précieuses heures chaque semaine.\n- Utilisez des outils digitaux adaptés aux réalités de votre marché.\n- Analysez vos résultats pour ajuster votre stratégie en continu.\n\nN'attendez plus pour transformer votre approche. Avec les bons outils comme OnyxOps et une méthode claire, les résultats ne se feront pas attendre !`;
+        
+        setEditingArticle({ ...editingArticle, content: generatedContent });
+     } catch (e) {
+        alert("Erreur lors de la génération IA.");
+     } finally {
+        setIsGeneratingArticle(false);
+     }
+  };
 
   const scheduleMarketingDiffusion = async () => {
       if(selectedContactsForDiffusion.length === 0) return alert("Sélectionnez au moins un contact pour la diffusion.");
@@ -5121,9 +5148,44 @@ export default function AdminDashboard() {
                 className="w-full p-5 bg-zinc-50 border border-zinc-200 rounded-[1.75rem] font-black text-sm outline-none focus:border-black" 
               />
               <textarea 
-                value={editingArticle.desc} 
+                value={editingArticle.desc || ''} 
                 onChange={e => setEditingArticle({...editingArticle, desc: e.target.value})} 
-                className="w-full p-5 bg-zinc-50 border border-zinc-200 rounded-[1.75rem] font-bold text-sm outline-none focus:border-black min-h-[200px]"
+                className="w-full p-5 bg-zinc-50 border border-zinc-200 rounded-[1.75rem] font-bold text-sm outline-none focus:border-black min-h-[80px]"
+                placeholder="Description courte..."
+              />
+              <div className="bg-zinc-50 border border-zinc-200 rounded-[1.75rem] overflow-hidden focus-within:border-black transition-colors">
+                <div className="flex justify-between items-center bg-zinc-100 p-3 border-b border-zinc-200">
+                   <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest pl-2">Contenu Complet</span>
+                   <button type="button" onClick={handleGenerateArticleIA} disabled={isGeneratingArticle} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 hover:scale-105 transition-transform disabled:opacity-50">
+                      <Sparkles size={12}/> {isGeneratingArticle ? 'Génération...' : 'Générer avec IA'}
+                   </button>
+                </div>
+                <textarea 
+                  value={editingArticle.content || ''} 
+                  onChange={e => setEditingArticle({...editingArticle, content: e.target.value})} 
+                  className="w-full p-5 bg-transparent font-medium text-sm outline-none min-h-[200px] resize-y"
+                  placeholder="Contenu complet de l'article..."
+                />
+              </div>
+              <input 
+                type="url" 
+                placeholder="URL de l'image principale" 
+                value={editingArticle.image_url || ''} 
+                onChange={e => setEditingArticle({...editingArticle, image_url: e.target.value})} 
+                className="w-full p-5 bg-zinc-50 border border-zinc-200 rounded-[1.75rem] font-bold text-sm outline-none focus:border-black" 
+              />
+              <textarea 
+                value={(editingArticle.gallery || []).join('\n')} 
+                onChange={e => setEditingArticle({...editingArticle, gallery: e.target.value.split('\n').filter(Boolean)})} 
+                className="w-full p-5 bg-zinc-50 border border-zinc-200 rounded-[1.75rem] font-bold text-sm outline-none focus:border-black min-h-[80px]"
+                placeholder="Galerie d'images (1 URL par ligne)..."
+              />
+              <input 
+                type="text" 
+                placeholder="Produits recommandés (séparés par des virgules)" 
+                value={(editingArticle.suggested_products || []).join(', ')} 
+                onChange={e => setEditingArticle({...editingArticle, suggested_products: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean)})} 
+                className="w-full p-5 bg-zinc-50 border border-zinc-200 rounded-[1.75rem] font-bold text-sm outline-none focus:border-black" 
               />
             </div>
 

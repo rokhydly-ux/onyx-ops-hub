@@ -1541,6 +1541,9 @@ export default function OnyxOpsElite() {
                      <button onClick={(e) => toggleFavoriteArticle(e, article.id)} className="absolute top-6 right-6 p-3 bg-zinc-50 hover:bg-zinc-100 rounded-full transition-colors z-10 border border-transparent group-hover:border-zinc-200 shadow-sm" title="Ajouter aux favoris">
                         <Heart size={18} className={`transition-colors ${favoriteArticles.includes(article.id) ? 'text-red-500 fill-red-500' : 'text-zinc-300 group-hover:text-red-400'}`} />
                      </button>
+                     {article.image_url && (
+                        <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover rounded-2xl mb-6" />
+                     )}
                      <div className="flex gap-2 mb-6">
                         <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">{article.category}</span>
                         <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || '5 min'}</span>
@@ -1565,12 +1568,31 @@ export default function OnyxOpsElite() {
                    <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-10"><X size={20}/></button>
                    <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block">{selectedArticle.category}</span>
                    <h2 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase mb-6 leading-tight`}>{selectedArticle.title}</h2>
+                   {selectedArticle.image_url && (
+                     <img src={selectedArticle.image_url} alt="" className="w-full h-64 md:h-80 object-cover rounded-[2rem] mb-8" />
+                   )}
                    <div className="prose prose-zinc max-w-none font-medium">
-                      <p className="text-lg text-zinc-600 mb-6">{selectedArticle.desc || selectedArticle.content}</p>
-                      <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 mb-6">
-                         <h3 className="font-black text-xl mb-4">L'ère de l'automatisation est là.</h3>
-                         <p>Vous avez un restaurant, une boutique ou un prestataire sur le marché, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire.</p>
-                      </div>
+                      <p className="text-lg text-zinc-600 mb-6 font-bold">{selectedArticle.desc}</p>
+                      <div className="text-base text-zinc-800 mb-8 whitespace-pre-wrap">{selectedArticle.content || "L'ère de l'automatisation est là. Vous avez un restaurant, une boutique ou un prestataire sur le marché, ignorer WhatsApp comme canal de vente automatisé en 2026 est une erreur stratégique majeure. L'utilisation d'outils comme OnyxOps permet de centraliser la prise de commande, l'inventaire et la livraison sans effort humain supplémentaire."}</div>
+
+                      {selectedArticle.gallery && selectedArticle.gallery.length > 0 && (
+                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                            {selectedArticle.gallery.map((img: string, i: number) => (
+                               <img key={i} src={img} className="w-full h-32 object-cover rounded-xl shadow-sm" alt="Galerie" />
+                            ))}
+                         </div>
+                      )}
+
+                      {selectedArticle.suggested_products && selectedArticle.suggested_products.length > 0 && (
+                         <div className="bg-[#39FF14]/10 p-6 rounded-3xl border border-[#39FF14]/30 mb-8">
+                            <h3 className="font-black text-lg mb-4 flex items-center gap-2"><Package size={20}/> Produits Recommandés</h3>
+                            <div className="flex flex-wrap gap-2">
+                               {selectedArticle.suggested_products.map((prod: string, i: number) => (
+                                  <span key={i} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-xs font-black uppercase cursor-pointer hover:scale-105 transition-transform" onClick={() => { setSelectedArticle(null); document.getElementById('tarifs')?.scrollIntoView({behavior:'smooth'}); }}>{prod}</span>
+                               ))}
+                            </div>
+                         </div>
+                      )}
 
                       <div className="mb-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1 mb-2 block">Votre Email (Optionnel)</label>
