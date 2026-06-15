@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu, ScanLine, Camera, Image as ImageIcon, Scale, Apple, Trophy, CreditCard, PanelLeftClose, PanelLeftOpen, Briefcase, Lock, Award, Volume2, VolumeX, WifiOff, BookOpen, Heart, Box, Share2, Minus, Gift, ArrowRight, ListChecks, Compass, RefreshCcw, PartyPopper } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
@@ -1889,11 +1889,17 @@ export default function AdminNutritionAfricaine() {
             <button onClick={async () => {
                 const isNew = !editingArticle.id;
                 const payload = { ...editingArticle };
-                if (isNew) delete payload.id;
+                if (isNew) {
+                   payload.id = Date.now().toString();
+                }
                 if (tenantId) payload.tenant_id = tenantId;
-                if (isNew) { const { data, error } = await supabase.from('marketing_articles').insert([payload]).select().single(); if (!error && data) setArticles([data, ...articles]); } 
-                else { await supabase.from('marketing_articles').update(payload).eq('id', editingArticle.id); setArticles(articles.map(a => a.id === editingArticle.id ? editingArticle : a)); }
-                setEditingArticle(null);
+                if (isNew) { 
+                   const { data, error } = await supabase.from('marketing_articles').insert([payload]).select().single(); 
+                   if (!error && data) { setArticles([data, ...articles]); setEditingArticle(null); } else alert("Erreur : " + error?.message);
+                } else { 
+                   const { error } = await supabase.from('marketing_articles').update(payload).eq('id', editingArticle.id); 
+                   if (!error) { setArticles(articles.map(a => a.id === editingArticle.id ? payload : a)); setEditingArticle(null); } else alert("Erreur : " + error.message);
+                }
               }} className="w-full mt-6 bg-black dark:bg-white text-[#39FF14] dark:text-black py-5 rounded-[2rem] font-black uppercase text-xs hover:scale-[1.03] transition-all shadow-lg flex justify-center items-center gap-2">
               <CheckCircle size={18}/> Sauvegarder l'article
             </button>

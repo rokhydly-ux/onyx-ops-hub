@@ -4,9 +4,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
-  ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff
+  ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
@@ -19,6 +19,15 @@ const WATER_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v178137573
 const PROTEINS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375734/A_cute__highly_detailed_3D_202606131825_2_roav76.jpg";
 const CARBS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375738/A_cute__highly_detailed_3D_202606131825_1_epyark.jpg";
 const CALS_ICON = "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781375768/A_cute__highly_detailed_3D_202606131825_mxabkm.jpg";
+
+const MENU_ICONS = {
+  dashboard: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_ytie6s.jpg",
+  samaMenu: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg",
+  monJour: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg",
+  fitness: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg",
+  shop: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_4_erkmnd.jpg",
+  profile: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg"
+};
 
 const RECIPE_FILTERS = [
   { id: 'Tous', label: 'Toutes les Recettes', icon: null },
@@ -1837,16 +1846,16 @@ export default function NutritionDashboard() {
   const isNewUser = (new Date().getTime() - createdDate.getTime()) / (1000 * 3600 * 24) <= 3;
 
   const menuItems = [
-    { id: 'week', label: 'Sama Menu', icon: ListChecks },
-    { id: 'today', label: 'Mon Jour', icon: Calendar },
+    { id: 'week', label: 'Sama Menu', icon: MENU_ICONS.samaMenu },
+    { id: 'today', label: 'Mon Jour', icon: MENU_ICONS.monJour },
     { id: 'favorites', label: 'Galerie Recettes', icon: BookOpen },
-    { id: 'weight', label: 'Mon Poids', icon: Scale },
-    { id: 'shop', label: 'Boutique', icon: ShoppingBag },
+    { id: 'weight', label: 'Mon Poids / Fitness', icon: MENU_ICONS.fitness },
+    { id: 'shop', label: 'Boutique', icon: MENU_ICONS.shop },
     { id: 'orders', label: 'Mes Commandes', icon: Package },
     { id: 'blog', label: 'Blog & Conseils', icon: FileText },
     { id: 'coaching', label: 'Coaching', icon: Activity, dot: isNewUser },
-    { id: 'history', label: 'Historique', icon: BarChart },
-    { id: 'profile', label: 'Réglages', icon: Settings },
+    { id: 'history', label: 'Historique', icon: MENU_ICONS.dashboard },
+    { id: 'profile', label: 'Réglages', icon: MENU_ICONS.profile },
   ];
 
   const addToCart = (product: any) => {
@@ -2153,7 +2162,7 @@ export default function NutritionDashboard() {
                   onClick={() => { setActiveTab(item.id); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}
                   className={`w-full flex items-center gap-4 p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : (theme === 'dark' ? 'text-zinc-500 hover:bg-zinc-900 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black')}`}
                >
-                  <item.icon size={20} className="shrink-0" />
+                  {typeof item.icon === 'string' ? <img src={item.icon} className="w-6 h-6 rounded-xl object-cover shrink-0" alt="" /> : <item.icon size={20} className="shrink-0" />}
                   <span className={`whitespace-nowrap transition-opacity duration-300 ${!isSidebarOpen && 'lg:opacity-0 lg:absolute lg:left-20'}`}>{item.label}</span>
                   {item.dot && (
                      <span className="absolute top-4 right-4 flex h-2 w-2">
@@ -2211,7 +2220,7 @@ export default function NutritionDashboard() {
              </button>
              
              <div className="flex items-center gap-3">
-                 <button onClick={() => setShowCartModal(true)} className={`relative flex items-center gap-2 hover:text-white transition-all bg-zinc-900 px-4 py-2 rounded-xl border ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-20' : 'text-zinc-400 border-zinc-800'}`}>
+                 <button onClick={() => setShowCartModal(true)} className={`relative flex items-center gap-2 hover:text-white transition-all bg-zinc-900 px-4 py-2 rounded-xl border ${isCartBouncing ? 'scale-125 border-[#39FF14] text-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.5)] z-[100]' : 'text-zinc-400 border-zinc-800'}`}>
                     <ShoppingCart size={16} /> 
                     <span className="text-xs font-black uppercase hidden sm:block">Panier</span>
                     {shopCart.length > 0 && (
@@ -2277,7 +2286,7 @@ export default function NutritionDashboard() {
             <div className={`flex flex-col md:flex-row md:items-center justify-between pb-4 border-b ${theme === 'dark' ? 'border-zinc-800' : 'border-zinc-200'} gap-4`}>
                <div>
                   <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-3`}>
-                     <Calendar className="text-[#39FF14]" size={28} /> Mon Journal
+                     <img src={MENU_ICONS.monJour} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Mon Jour" /> Mon Journal
                   </h2>
                   <p className="text-zinc-500 font-bold text-xs mt-1 uppercase tracking-widest">Suivi nutritionnel du {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                </div>
@@ -2920,8 +2929,11 @@ export default function NutritionDashboard() {
 
         {/* MODALE LECTURE ARTICLE */}
         {selectedArticle && (
-           <div id="article-overlay" onClick={(e: any) => e.target.id === 'article-overlay' && setSelectedArticle(null)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
-             <div className="bg-white dark:bg-zinc-950 text-black dark:text-white p-8 md:p-12 rounded-[3.5rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-auto border-t-8 border-[#39FF14]">
+           <div id="article-overlay" onClick={(e: any) => e.target.id === 'article-overlay' && setSelectedArticle(null)} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+             <div className="bg-white dark:bg-zinc-950 text-black dark:text-white p-8 md:p-12 rounded-[3rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-auto border-t-[8px] border-[#39FF14]">
+               <div className="absolute top-6 right-20 z-10">
+                 <button onClick={() => { const text = `Découvrez cet article intéressant sur Onyx Nutrition : ${selectedArticle.title}\n\nLisez-le en vous connectant sur le hub !`; window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank'); }} className="p-3 bg-[#25D366] text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur WhatsApp"><Share2 size={20}/></button>
+               </div>
                <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
                
                <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
@@ -2983,7 +2995,7 @@ export default function NutritionDashboard() {
             
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}>
-                  <BarChart className="text-[#39FF14]" /> Évolution sur 7 jours
+                  <BarChartIcon className="text-[#39FF14]" /> Évolution sur 7 jours
                </h2>
                
                <div className="grid md:grid-cols-2 gap-8">
@@ -3042,8 +3054,8 @@ export default function NutritionDashboard() {
 
             {/* LISTE DES BILANS */}
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm">
-               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><ListChecks className="text-black"/> Historique des Bilans</h2>
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                 <h2 className={`${spaceGrotesk.className} text-2xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4`}><img src={MENU_ICONS.dashboard} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Historique" /> Historique des Bilans</h2>
                  <button onClick={downloadHistoryPDF} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md flex items-center gap-2">
                     <Download size={14}/> Exporter (PDF)
                  </button>
@@ -3079,8 +3091,8 @@ export default function NutritionDashboard() {
             {/* SECTION SMART PLANNER (Générateur) */}
             <section>
                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                  <div className="flex items-start gap-3">
-                     <Calendar className="text-[#39FF14] bg-black p-2 rounded-lg shrink-0" size={36} />
+                  <div className="flex items-center gap-4">
+                     <img src={MENU_ICONS.samaMenu} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Sama Menu" />
                      <div>
                         <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Sama Menu</h2>
                         <p className="text-zinc-500 font-bold text-xs mt-1 max-w-lg leading-relaxed">
@@ -3186,7 +3198,7 @@ export default function NutritionDashboard() {
             {/* SECTION MENUS DE LA SEMAINE */}
             <section className="mt-12">
                <div className="flex items-center gap-3 mb-8">
-                  <Calendar className="text-[#39FF14] bg-black p-2 rounded-lg" size={36} />
+                  <img src={MENU_ICONS.samaMenu} className="w-12 h-12 rounded-xl object-cover shrink-0" alt="Sama Menu" />
                   <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black`}>Vos Menus Sur-Mesure</h2>
                </div>
 
@@ -3322,7 +3334,7 @@ export default function NutritionDashboard() {
         {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
              <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3 mb-8`}><Settings className="text-black"/> Profil & Réglages</h2>
+                <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black flex items-center gap-4 mb-8`}><img src={MENU_ICONS.profile} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Profil" /> Profil & Réglages</h2>
                 
                 <form onSubmit={handleSaveProfile} className="space-y-6 max-w-xl">
                    <div className="flex items-center gap-6 mb-8">
@@ -3599,6 +3611,14 @@ export default function NutritionDashboard() {
         {activeTab === 'shop' && (
            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4">
               {/* BANNIÈRE HORIZONTALE DYNAMIQUE */}
+              <div className="flex items-center gap-4 mb-8">
+                 <img src={MENU_ICONS.shop} className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover shrink-0 shadow-lg" alt="Boutique" />
+                 <div>
+                    <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white`}>Boutique Onyx</h2>
+                    <p className="text-zinc-500 font-bold text-sm mt-1">Super-aliments & Équipements</p>
+                 </div>
+              </div>
+
               <div className="w-full h-48 md:h-64 rounded-[2.5rem] overflow-hidden mb-12 shadow-xl relative border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
                  <img src={shopBannerUrl} alt="Bannière Boutique" className="absolute inset-0 w-full h-full object-cover" />
                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-center p-10">
@@ -3888,8 +3908,8 @@ export default function NutritionDashboard() {
         {activeTab === 'weight' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
              <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 sm:p-12 rounded-[2rem] border shadow-sm text-center relative overflow-hidden`}>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 blur-[50px] rounded-full pointer-events-none"></div>
-                <Scale size={32} className="mx-auto mb-4 text-[#39FF14]" />
+                <div className="absolute top-0 right-0 w-48 h-48 bg-[#39FF14]/10 blur-[60px] rounded-full pointer-events-none"></div>
+                <img src={MENU_ICONS.fitness} className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shadow-lg mb-6 relative z-10" alt="Fitness" />
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} mb-2`}>Tracker de Poids</h2>
                 <p className="text-zinc-500 font-bold mb-6 text-xs max-w-sm mx-auto">Une pesée par semaine, pas plus. La constance bat l'obsession. Ajustez le curseur et validez.</p>
                 
@@ -4060,10 +4080,11 @@ export default function NutritionDashboard() {
 
       {/* MODALE REFAIRE LE DIAGNOSTIC (ROKHY) */}
       {showRedoDiagModal && (
-        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowRedoDiagModal(false)} className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white p-8 rounded-[3rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95">
-            <button onClick={() => setShowRedoDiagModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowRedoDiagModal(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white p-6 sm:p-8 rounded-[2rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.3)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 max-h-[90vh] flex flex-col overflow-hidden">
+            <button onClick={() => setShowRedoDiagModal(false)} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-50"><X size={20}/></button>
             
+            <div className="overflow-y-auto custom-scrollbar flex-1 pb-4 pr-2 mt-4 sm:mt-0">
             <div className="flex items-center gap-4 mb-6 border-b border-zinc-100 pb-6">
               <div className="relative">
                 <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781176401/A_portrait_of_the_character_202606111113_jfaetc.jpg" alt="Rokhy" className="w-16 h-16 rounded-full border-2 border-[#39FF14]" />
@@ -4095,6 +4116,7 @@ export default function NutritionDashboard() {
                   </p>
                </div>
             )}
+            </div>
 
             <div className="flex gap-3">
                <button onClick={() => setShowRedoDiagModal(false)} className="flex-1 bg-zinc-100 text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm">
@@ -4122,11 +4144,11 @@ export default function NutritionDashboard() {
 
       {/* MODALE DIAGNOSTIC INTERNE (REDO) */}
       {diagStep > 0 && (
-        <div id="diag-modal-overlay" onClick={(e: any) => e.target.id === 'diag-modal-overlay' && setDiagStep(0)} className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2rem] shadow-2xl flex flex-col my-8 relative animate-in zoom-in-95 text-black">
-            <button onClick={() => setDiagStep(0)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
+        <div id="diag-modal-overlay" onClick={(e: any) => e.target.id === 'diag-modal-overlay' && setDiagStep(0)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2rem] shadow-2xl flex flex-col relative animate-in zoom-in-95 text-black max-h-[90vh] overflow-hidden">
+            <button onClick={() => setDiagStep(0)} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-white/20 text-white rounded-full hover:bg-black hover:text-[#39FF14] transition z-50"><X size={20}/></button>
 
-            <div className="bg-black text-white p-6 sm:p-8 text-center relative rounded-t-[2rem]">
+            <div className="bg-black text-white p-6 sm:p-8 text-center relative rounded-t-[2rem] shrink-0">
               <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800">
                 <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${(diagStep / 4) * 100}%` }}></div>
               </div>
@@ -4136,7 +4158,7 @@ export default function NutritionDashboard() {
               </h2>
             </div>
 
-            <div className="p-6 sm:p-8">
+            <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pb-10">
               {diagStep !== 5 ? (
                 <form onSubmit={handleDiagSubmit} className="space-y-6">
                   {diagStep === 1 && (
@@ -4321,7 +4343,7 @@ export default function NutritionDashboard() {
 
       {/* MODALE DE PAIEMENT WAVE / OM */}
       {showPaymentModal && (
-        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowPaymentModal(false)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowPaymentModal(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white p-8 rounded-[3rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.15)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto flex flex-col overflow-hidden">
             <button onClick={() => setShowPaymentModal(false)} className="absolute top-6 right-6 p-3 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all text-zinc-500 z-[60]">
               <X size={20} />
@@ -4663,13 +4685,13 @@ export default function NutritionDashboard() {
 
       {/* BOTTOM NAVIGATION MOBILE */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex justify-between items-center px-4 py-2 z-[100] pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-         <button onClick={() => { setActiveTab('week'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'week' ? 'text-[#39FF14]' : 'text-zinc-500'}`}><ListChecks size={20}/><span className="text-[8px] font-black uppercase tracking-widest">Sama Menu</span></button>
-         <button onClick={() => { setActiveTab('today'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'today' ? 'text-[#39FF14]' : 'text-zinc-500'}`}><Calendar size={20}/><span className="text-[8px] font-black uppercase tracking-widest">Mon Jour</span></button>
+         <button onClick={() => { setActiveTab('week'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'week' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.samaMenu} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Sama Menu</span></button>
+         <button onClick={() => { setActiveTab('today'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'today' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.monJour} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Mon Jour</span></button>
          <div className="flex-1 flex justify-center -mt-6">
             <button onClick={() => { handleMealClick('Collation', null, 'flexible'); setTimeout(() => setIsScanning(true), 300); }} className="bg-black text-[#39FF14] w-14 h-14 rounded-full shadow-[0_10px_20px_rgba(57,255,20,0.3)] border-4 border-[#f4f4f5] dark:border-zinc-950 flex items-center justify-center hover:scale-110 transition-transform"><ScanLine size={24}/></button>
          </div>
-         <button onClick={() => { setActiveTab('shop'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'shop' ? 'text-[#39FF14]' : 'text-zinc-500'}`}><ShoppingBag size={20}/><span className="text-[8px] font-black uppercase tracking-widest">Boutique</span></button>
-         <button onClick={() => setIsMobileMenuOpen(true)} className={`flex flex-col items-center gap-1 flex-1 text-zinc-500`}><MenuIcon size={20}/><span className="text-[8px] font-black uppercase tracking-widest">Menu</span></button>
+         <button onClick={() => { setActiveTab('shop'); setIsMobileMenuOpen(false); }} className={`flex flex-col items-center gap-1 flex-1 ${activeTab === 'shop' ? 'opacity-100' : 'opacity-50'}`}><img src={MENU_ICONS.shop} className="w-5 h-5 rounded-md object-cover"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5">Boutique</span></button>
+         <button onClick={() => setIsMobileMenuOpen(true)} className={`flex flex-col items-center gap-1 flex-1 opacity-50`}><MenuIcon size={20} className="text-zinc-500"/><span className="text-[8px] font-black uppercase tracking-widest mt-0.5 text-zinc-500">Menu</span></button>
       </div>
 
     </div>

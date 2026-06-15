@@ -1432,11 +1432,11 @@ export default function NutritionAfricaineLanding() {
 
       {/* MODALE DIAGNOSTIC */}
       {showDiagnosticModal && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto" onClick={(e: any) => e.target === e.currentTarget && setShowDiagnosticModal(false)}>
-          <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2rem] shadow-2xl flex flex-col my-8 relative animate-in zoom-in-95">
-            <button onClick={() => setShowDiagnosticModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition z-20"><X size={20}/></button>
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={(e: any) => e.target === e.currentTarget && setShowDiagnosticModal(false)}>
+          <div className="w-full max-w-2xl bg-white border border-zinc-200 rounded-[2rem] shadow-2xl flex flex-col relative animate-in zoom-in-95 max-h-[95vh] overflow-hidden">
+            <button onClick={() => setShowDiagnosticModal(false)} className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-white/20 text-white rounded-full hover:bg-black hover:text-[#39FF14] transition z-50"><X size={20}/></button>
 
-            <div className="bg-black text-white p-6 sm:p-8 text-center relative rounded-t-[2rem]">
+            <div className="bg-black text-white p-6 sm:p-8 text-center relative rounded-t-[2rem] shrink-0">
               <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800">
                 <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${(diagStep / 4) * 100}%` }}></div>
               </div>
@@ -1446,7 +1446,7 @@ export default function NutritionAfricaineLanding() {
               </h2>
             </div>
 
-            <div className="p-6 sm:p-8">
+            <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pb-10">
               {diagStep !== 5 ? (
                 <form onSubmit={handleDiagSubmit} className="space-y-6">
                   {diagStep === 1 && (

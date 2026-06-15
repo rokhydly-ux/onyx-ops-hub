@@ -7,11 +7,12 @@ import {
   CheckCircle, AlertCircle, Wallet, Calendar, 
   History, Users, X, ChevronRight, ShieldCheck, 
   ArrowRight, Lock, Bell, LogOut, Shuffle, Trophy, Medal, MessageCircle,
-  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload, Download, Send, Archive, FileText, Wand2, PartyPopper, Clock
+  Camera, Save, Loader2, Phone, KeyRound, AlertTriangle, Eye, Upload, Download, Send, Archive, FileText, Wand2, PartyPopper, Clock, ChevronLeft, Droplet, Flame, BarChart as BarChartIcon, LineChart as LineChartIcon, Scale, ShoppingCart
 } from "lucide-react";
 import InteractiveParticles from '@/components/InteractiveParticles';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 const spaceGrotesk = { className: "font-sans" };
 
