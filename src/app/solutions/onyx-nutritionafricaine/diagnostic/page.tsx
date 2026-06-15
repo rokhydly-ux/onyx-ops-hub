@@ -22,9 +22,11 @@ export default function NutritionDiagnostic() {
     pin: "",
     gender: "",
     age: "",
+    birthDate: "",
     height: "",
     currentWeight: "",
     targetWeight: "",
+    goalType: "Perte de poids",
     dailySteps: "",
     weightLossPace: "Normalement",
     healthProfile: "",
@@ -137,7 +139,15 @@ export default function NutritionDiagnostic() {
   const tdee = bmr * nap;
 
   // 4. Application du déficit calorique
-  let rawCalories = weightToLose > 0 ? tdee - deficit : (weightToLose < 0 ? tdee + 300 : tdee);
+  let rawCalories = tdee;
+  if (formData.goalType === 'Perte de poids') {
+     rawCalories = tdee - deficit;
+  } else if (formData.goalType === 'Prise de masse') {
+     rawCalories = tdee + 300;
+  } else if (formData.goalType === 'Maintien') {
+     rawCalories = tdee;
+  }
+  
   if (formData.healthProfile === "Allaitement") {
       rawCalories += 500;
   }
@@ -290,13 +300,48 @@ export default function NutritionDiagnostic() {
                        </div>
                     </div>
                   </div>
-                  <input type="number" name="age" required placeholder="Votre Âge *" value={formData.age} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black mt-4" />
+                  <div className="space-y-2 mt-4">
+                     <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Date de naissance *</label>
+                     <input type="date" required value={formData.birthDate} onChange={(e) => {
+                        const birthDate = e.target.value;
+                        let age = "";
+                        if (birthDate) {
+                           const today = new Date();
+                           const birth = new Date(birthDate);
+                           let calculatedAge = today.getFullYear() - birth.getFullYear();
+                           const m = today.getMonth() - birth.getMonth();
+                           if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) calculatedAge--;
+                           age = calculatedAge.toString();
+                        }
+                        setFormData({...formData, birthDate, age});
+                     }} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  </div>
                 </motion.div>
               )}
 
               {step === 2 && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                   <div className="flex items-center gap-3 mb-6"><Target className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Mensurations & Objectifs</h2></div>
+                  
+                  <div className="space-y-2 mb-6">
+                     <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est votre objectif principal ? *</label>
+                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[
+                           { id: "Perte de poids", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg", desc: "Déficit calorique" },
+                           { id: "Maintien", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg", desc: "TDEE exact" },
+                           { id: "Prise de masse", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg", desc: "Surplus calorique" }
+                        ].map(goal => (
+                           <div key={goal.id} onClick={() => setFormData({...formData, goalType: goal.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${formData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                              <img src={goal.img} className="w-full aspect-square object-cover" alt={goal.id} />
+                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 backdrop-blur-sm h-14 flex flex-col items-center justify-center leading-tight">
+                                 <span className="font-black uppercase tracking-widest text-xs">{goal.id}</span>
+                                 <span className="text-[9px] uppercase mt-0.5 opacity-70 tracking-widest">{goal.desc}</span>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+
                   <div className="flex flex-wrap md:flex-nowrap gap-4">
                     <input type="number" name="height" required placeholder="Taille (cm) *" value={formData.height} onChange={handleChange} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                     <input type="number" name="currentWeight" required placeholder="Poids Actuel (kg) *" value={formData.currentWeight} onChange={handleChange} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
@@ -348,6 +393,7 @@ export default function NutritionDiagnostic() {
                     </div>
                   </div>
                   
+                  {formData.goalType === 'Perte de poids' && (
                   <div className="space-y-2 mt-6 bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
                     <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Rythme de perte de poids souhaité *</label>
                     <div className="relative pt-4 pb-2 px-2">
@@ -368,6 +414,7 @@ export default function NutritionDiagnostic() {
                        </div>
                     </div>
                   </div>
+                  )}
                   
                   {formData.gender === 'Femme' && (
                     <div className="space-y-4 mt-6">
@@ -528,29 +575,23 @@ export default function NutritionDiagnostic() {
                  <div className="relative">
                     <div className="filter blur-[6px] opacity-60 pointer-events-none select-none space-y-2">
                        <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Matin</span><span className="text-sm font-medium">Bouillie de Mil allégée</span></div>
-                       <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Midi</span><span className="text-sm font-medium">Yassa Poulet Diététique</span></div>
+                       <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Midi</span><span className="text-sm font-medium">Thieboudienne Diététique</span></div>
                        <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Soir</span><span className="text-sm font-medium">Salade de Niébé</span></div>
                     </div>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                       <Lock className="text-black mb-3 w-12 h-12 bg-white p-3 rounded-full shadow-lg" />
-                       <span className="bg-black text-[#39FF14] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl border border-[#39FF14]/30">Menu Verrouillé</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/40 backdrop-blur-[2px] rounded-2xl">
+                       <div className="bg-black text-[#39FF14] p-3 rounded-full mb-3 shadow-xl"><Lock size={24} /></div>
+                       <p className="font-black uppercase text-sm text-black tracking-widest text-center">Menu complet verrouillé</p>
                     </div>
                  </div>
               </div>
 
-              {/* Le CTA Magnétique */}
-              <div className="flex flex-col gap-3 mt-4">
-                <button onClick={() => router.push('/nutrition?from=diagnostic')} className="w-full bg-[#1b74e4] text-white py-6 rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest hover:bg-[#155fc0] transition-colors shadow-[0_15px_30px_rgba(27,116,228,0.3)] flex justify-center items-center gap-3 hover:scale-105 active:scale-95 animate-in slide-in-from-bottom-4">
-                  <CheckCircle size={20} /> Créer mon compte & Débloquer mon Yassa Léger de Midi
-                </button>
-                <button onClick={() => window.open('https://res.cloudinary.com/dtr2wtoty/image/upload/v1781201195/Design_sans_titre_avgfad.png', '_blank')} className="w-full bg-[#39FF14] text-black py-5 rounded-2xl font-black uppercase text-xs md:text-sm tracking-widest hover:bg-white transition-all shadow-xl flex justify-center items-center gap-2">
-                  <Download size={20} /> Télécharger le Guide Complet (PDF)
-                </button>
-                <p className="text-[10px] text-zinc-500 font-bold mt-2 uppercase tracking-widest">Rejoins les 25 000 membres de la communauté. Inscription gratuite en 10 secondes via Google ou Téléphone.</p>
-                
-                <button onClick={handleWaRedirect} className="w-full mt-4 bg-zinc-100 text-black py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-colors shadow-sm flex justify-center items-center gap-2 border border-zinc-200">
-                  Poser une question sur WhatsApp
-                </button>
+              <div className="flex flex-col gap-3">
+                 <button onClick={handleWaRedirect} className="w-full bg-black text-[#39FF14] py-5 rounded-xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-transform shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex justify-center items-center gap-2">
+                    Débloquer mon plan (14 jours d'essai) <ArrowRight size={18}/>
+                 </button>
+                 <button onClick={handleDownloadPDF} type="button" className="w-full bg-zinc-100 text-black py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-200 transition-colors shadow-sm flex justify-center items-center gap-2 border border-zinc-200">
+                    <Download size={18}/> Télécharger mon bilan PDF
+                 </button>
               </div>
             </motion.div>
           )}

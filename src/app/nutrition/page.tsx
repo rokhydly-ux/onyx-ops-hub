@@ -399,9 +399,11 @@ export default function NutritionDashboard() {
   const [diagData, setDiagData] = useState({
     gender: "",
     age: "",
+    birthDate: "",
     height: "",
     currentWeight: "",
     targetWeight: "",
+    goalType: "Perte de poids",
     dailySteps: "",
     weightLossPace: "Normalement",
     healthProfile: "",
@@ -1163,7 +1165,14 @@ export default function NutritionDashboard() {
           else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
           else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
           const tdee = bmr * nap;
-          let rawCalories = weightToLose > 0 ? tdee - deficit : (weightToLose < 0 ? tdee + 300 : tdee);
+          let rawCalories = tdee;
+          if (diagData.goalType === 'Perte de poids') {
+             rawCalories = tdee - deficit;
+          } else if (diagData.goalType === 'Prise de masse') {
+             rawCalories = tdee + 300;
+          } else if (diagData.goalType === 'Maintien') {
+             rawCalories = tdee;
+          }
           if (diagData.healthProfile === "Allaitement") rawCalories += 500;
           
           const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
@@ -1844,6 +1853,11 @@ export default function NutritionDashboard() {
   // Calcul pour le badge de coaching (3 premiers jours)
   const createdDate = clientProfile?.created_at ? new Date(clientProfile.created_at) : new Date();
   const isNewUser = (new Date().getTime() - createdDate.getTime()) / (1000 * 3600 * 24) <= 3;
+
+  // Variables pour simplifier les conditions liées aux données de diagnostic
+  const missingDiagGender = !clientProfile?.diagnostic_data?.gender;
+  const missingDiagAge = !clientProfile?.diagnostic_data?.age;
+  const missingDiagBirthDate = !clientProfile?.diagnostic_data?.birthDate;
 
   const menuItems = [
     { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
@@ -4220,7 +4234,7 @@ export default function NutritionDashboard() {
                     <div className="space-y-4 animate-in slide-in-from-right-8">
                       <div className="flex items-center gap-3 mb-4"><Scale className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Informations de base</h3></div>
                       
-                      {(!clientProfile?.diagnostic_data?.gender) && (
+                      {missingDiagGender && (
                         <div className="space-y-2 mt-4">
                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Votre sexe *</label>
                         <div className="grid grid-cols-2 gap-4">
@@ -4251,8 +4265,26 @@ export default function NutritionDashboard() {
                          </div>
                       )}
 
-                      {(!clientProfile?.diagnostic_data?.age) && (
+                      {missingDiagAge && (
                          <input type="number" required placeholder="Votre Âge *" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black mt-4" />
+                      )}
+                      {(missingDiagBirthDate && missingDiagAge) && (
+                         <div className="space-y-2 mt-4 animate-in slide-in-from-top-2">
+                            <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Date de naissance *</label>
+                            <input type="date" required value={diagData.birthDate} onChange={(e) => {
+                               const birthDate = e.target.value;
+                               let age = "";
+                               if (birthDate) {
+                                  const today = new Date();
+                                  const birth = new Date(birthDate);
+                                  let calculatedAge = today.getFullYear() - birth.getFullYear();
+                                  const m = today.getMonth() - birth.getMonth();
+                                  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) calculatedAge--;
+                                  age = calculatedAge.toString();
+                               }
+                               setDiagData({...diagData, birthDate, age});
+                            }} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
+                         </div>
                       )}
                     </div>
                   )}
@@ -4260,6 +4292,26 @@ export default function NutritionDashboard() {
                   {diagStep === 2 && (
                     <div className="space-y-4 animate-in slide-in-from-right-8">
                       <div className="flex items-center gap-3 mb-4"><Target className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Vos Objectifs</h3></div>
+                      
+                      <div className="space-y-2 mb-6">
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est votre objectif principal ? *</label>
+                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {[
+                           { id: "Perte de poids", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg", desc: "Déficit calorique" },
+                           { id: "Maintien", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg", desc: "TDEE exact" },
+                           { id: "Prise de masse", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg", desc: "Surplus calorique" }
+                            ].map(goal => (
+                           <div key={goal.id} onClick={() => setDiagData({...diagData, goalType: goal.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                              <img src={goal.img} className="w-full aspect-square object-cover" alt={goal.id} />
+                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 backdrop-blur-sm h-14 flex flex-col items-center justify-center leading-tight">
+                                 <span className="font-black uppercase tracking-widest text-xs">{goal.id}</span>
+                                 <span className="text-[9px] uppercase mt-0.5 opacity-70 tracking-widest">{goal.desc}</span>
+                              </div>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+
                       <div className="flex flex-wrap md:flex-nowrap gap-4">
                         <input type="number" required placeholder="Taille (cm) *" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
                         <input type="number" required placeholder="Poids Actuel (kg) *" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
@@ -4305,6 +4357,7 @@ export default function NutritionDashboard() {
                          </div>
                       </div>
                       
+                      {diagData.goalType === 'Perte de poids' && (
                       <div className="space-y-2 mt-6 bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Rythme de perte de poids souhaité *</label>
                         <div className="relative pt-4 pb-2 px-2">
@@ -4324,6 +4377,7 @@ export default function NutritionDashboard() {
                            </div>
                         </div>
                       </div>
+                      )}
                     </div>
                   )}
 
