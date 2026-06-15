@@ -1884,7 +1884,9 @@ export default function AdminDashboard() {
         
         const generatedContent = `Dans le monde numérique d'aujourd'hui, maîtriser l'art de "${editingArticle.title}" est devenu incontournable pour votre entreprise.\n\n### 1. Pourquoi c'est important ?\nIgnorer cette tendance, c'est laisser vos concurrents prendre l'avantage. En adoptant les bonnes stratégies, vous pouvez non seulement optimiser votre gestion quotidienne, mais aussi maximiser vos revenus de manière exponentielle.\n\n### 2. Comment passer à l'action ?\n- Automatisez vos processus récurrents pour gagner de précieuses heures chaque semaine.\n- Utilisez des outils digitaux adaptés aux réalités de votre marché.\n- Analysez vos résultats pour ajuster votre stratégie en continu.\n\nN'attendez plus pour transformer votre approche. Avec les bons outils comme OnyxOps et une méthode claire, les résultats ne se feront pas attendre !`;
         
-        setEditingArticle({ ...editingArticle, content: generatedContent });
+        // Génération intelligente des produits suggérés selon le titre
+        const generatedProducts = editingArticle.title.toLowerCase().includes('resto') ? ['Onyx Menu', 'Pack Tekki'] : ['Onyx Jaay', 'Onyx Boost', 'Onyx CRM'];
+        setEditingArticle({ ...editingArticle, content: generatedContent, suggested_products: generatedProducts });
      } catch (e) {
         alert("Erreur lors de la génération IA.");
      } finally {

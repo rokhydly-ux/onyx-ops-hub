@@ -1546,7 +1546,7 @@ export default function OnyxOpsElite() {
                      )}
                      <div className="flex gap-2 mb-6">
                         <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">{article.category}</span>
-                        <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || '5 min'}</span>
+                    <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
                      </div>
                      <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase mb-4 leading-tight`}>{article.title}</h2>
                      <p className="text-zinc-500 text-sm font-medium mb-8 flex-1">{article.desc || article.content}</p>
