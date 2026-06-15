@@ -1454,6 +1454,12 @@ export default function NutritionDashboard() {
   };
 
   const confirmMealLog = async (mealType: string, mealName: string, cals: number, prots: number, mealCarbs: number, mealFats: number, foodObj?: any) => {
+      // Éviter les doublons exacts si l'utilisateur clique plusieurs fois rapidement
+      if (consumedMeals.some(m => m.name === mealName && m.type === mealType)) {
+          setSelectedMealModal(null);
+          return;
+      }
+
       const calsRounded = Math.round(cals);
       const protsRounded = Math.round(prots);
       const carbsRounded = Math.round(mealCarbs);
@@ -2618,7 +2624,7 @@ export default function NutritionDashboard() {
                                 </div>
                              )}
 
-                           {plannedMeal && !itemsForThisMeal.some(m => m.name === plannedMeal.meal) && (
+                           {plannedMeal && itemsForThisMeal.length === 0 && (
                                 <div className={`p-3 sm:p-4 rounded-2xl transition-all group mb-3 shadow-inner ${theme === 'dark' ? 'bg-zinc-800/50 hover:bg-[#39FF14]/5' : 'bg-zinc-50 hover:bg-[#39FF14]/5'}`}>
                                  <div className="flex justify-between items-start mb-2">
                                     <p className={`font-black text-sm sm:text-base ${theme === 'dark' ? 'text-white' : 'text-black'} leading-tight`}>{plannedMeal.meal}</p>
