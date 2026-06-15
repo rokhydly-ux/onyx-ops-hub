@@ -1424,7 +1424,8 @@ export default function NutritionDashboard() {
       calories_consumed: calories,
       proteins_consumed: proteins,
       carbs_consumed: carbs,
-      fats_consumed: fats
+      fats_consumed: fats,
+      report_data: { ...reportData, consumedMeals, moods, moodNotes }
     }, { onConflict: 'client_id, log_date' });
     
     setDailyLogs(prev => {
@@ -1542,7 +1543,8 @@ export default function NutritionDashboard() {
             proteins_consumed: newProts,
             carbs_consumed: newCarbs,
             fats_consumed: newFats,
-            report_data: { ...reportData, consumedMeals: updatedConsumedMeals }
+            water_glasses: waterGlasses,
+            report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
           }, { onConflict: 'client_id, log_date' });
       }
   };
@@ -1571,7 +1573,8 @@ export default function NutritionDashboard() {
             proteins_consumed: newProts,
             carbs_consumed: newCarbs,
             fats_consumed: newFats,
-            report_data: { ...reportData, consumedMeals: updatedConsumedMeals }
+            water_glasses: waterGlasses,
+            report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
           }, { onConflict: 'client_id, log_date' });
       }
   };
@@ -3295,7 +3298,7 @@ export default function NutritionDashboard() {
                                  const recipe = dayPlan.meals?.[mealType];
                                  if(!recipe) return null;
                                  const isToday = dayPlan.day === formattedCurrentDay;
-                                 const isConsumed = consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
+                                 const isConsumed = isToday && consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
 
                                  return (
                                     <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
