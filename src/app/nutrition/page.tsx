@@ -641,6 +641,16 @@ export default function NutritionDashboard() {
                   setMoods(todayLog.report_data.moods);
               }
               if (todayLog.report_data?.moodNotes) setMoodNotes(todayLog.report_data.moodNotes);
+            } else { // Si aucun log n'est trouvé pour aujourd'hui, réinitialiser les états
+                setCalories(0);
+                setWaterGlasses(0);
+                setProteins(0);
+                setCarbs(0);
+                setFats(0);
+                setConsumedMeals([]);
+                setReportData({ followedMenu: false, cravedRice: false, drankWater: false });
+                setMoods([]);
+                setMoodNotes('');
             }
           }
 
@@ -777,10 +787,52 @@ export default function NutritionDashboard() {
 
   // S'assurer que le menu est généré si l'utilisateur vient d'arriver
   useEffect(() => {
-      if (clientProfile && weeklyGeneratedMenu.length === 0) {
+      if (!loading && clientProfile && weeklyGeneratedMenu.length === 0) {
           generateWeeklyMenu();
       }
-  }, [clientProfile, weeklyGeneratedMenu.length]);
+  }, [loading, clientProfile, weeklyGeneratedMenu.length]);
+
+  // Synchronisation en temps réel (Supabase Realtime) des données journalières
+  useEffect(() => {
+    if (!clientProfile?.id) return;
+
+    const channel = supabase
+      .channel(`realtime_logs_${clientProfile.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'nutrition_daily_logs',
+        filter: `client_id=eq.${clientProfile.id}`
+      }, (payload) => {
+        const newLog = payload.new as any;
+        if (!newLog || Object.keys(newLog).length === 0) return;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // Mettre à jour l'état si le log concerne aujourd'hui
+        if (newLog.log_date === todayStr) {
+          setCalories(newLog.calories_consumed || 0);
+          setWaterGlasses(newLog.water_glasses || 0);
+          setProteins(newLog.proteins_consumed || 0);
+          setCarbs(newLog.carbs_consumed || 0);
+          setFats(newLog.fats_consumed || 0);
+          setReportData(newLog.report_data || { followedMenu: false, cravedRice: false, drankWater: false });
+          setConsumedMeals(newLog.report_data?.consumedMeals || []);
+          setMoods(newLog.report_data?.moods || []);
+          setMoodNotes(newLog.report_data?.moodNotes || '');
+        }
+        
+        setDailyLogs(prev => {
+          const filtered = prev.filter(l => l.log_date !== newLog.log_date);
+          return [...filtered, newLog].sort((a,b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime());
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clientProfile?.id]);
 
   const updateXP = async (amount: number, reason: string) => {
       const newXP = jongomaXP + amount;
@@ -1366,6 +1418,7 @@ export default function NutritionDashboard() {
     
     await supabase.from('nutrition_daily_logs').upsert({
       client_id: clientProfile.id,
+      tenant_id: clientProfile.tenant_id || null,
       log_date: todayStr,
       water_glasses: newAmount,
       calories_consumed: calories,
@@ -1483,11 +1536,12 @@ export default function NutritionDashboard() {
           const todayStr = new Date().toISOString().split('T')[0];
           await supabase.from('nutrition_daily_logs').upsert({
             client_id: clientProfile.id,
+            tenant_id: clientProfile.tenant_id || null,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
-           carbs_consumed: newCarbs,
-           fats_consumed: newFats,
+            carbs_consumed: newCarbs,
+            fats_consumed: newFats,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals }
           }, { onConflict: 'client_id, log_date' });
       }
@@ -1511,11 +1565,12 @@ export default function NutritionDashboard() {
           const todayStr = new Date().toISOString().split('T')[0];
           await supabase.from('nutrition_daily_logs').upsert({
             client_id: clientProfile.id,
+            tenant_id: clientProfile.tenant_id || null,
             log_date: todayStr,
             calories_consumed: newCals,
             proteins_consumed: newProts,
-           carbs_consumed: newCarbs,
-           fats_consumed: newFats,
+            carbs_consumed: newCarbs,
+            fats_consumed: newFats,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals }
           }, { onConflict: 'client_id, log_date' });
       }
@@ -1699,6 +1754,7 @@ export default function NutritionDashboard() {
 
     const payload = {
        client_id: clientProfile.id,
+       tenant_id: clientProfile.tenant_id || null,
        log_date: todayStr,
        report_data: { ...reportData, consumedMeals, moods, moodNotes },
        water_glasses: waterGlasses,
@@ -2022,7 +2078,7 @@ export default function NutritionDashboard() {
          const todayStr = new Date().toISOString().split('T')[0];
          await supabase.from('nutrition_daily_logs').upsert({
            client_id: clientProfile.id,
-           tenant_id: clientProfile.tenant_id,
+           tenant_id: clientProfile.tenant_id || null,
            log_date: todayStr,
            report_data: { ...reportData, consumedMeals, moods, moodNotes },
            water_glasses: waterGlasses,
