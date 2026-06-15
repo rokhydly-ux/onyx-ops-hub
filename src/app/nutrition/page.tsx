@@ -285,7 +285,7 @@ export default function NutritionDashboard() {
   const [theme, setTheme] = useState<'light'|'dark'>('light');
   
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites' | 'coaching'>('week');
+  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites' | 'coaching' | 'blog'>('week');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   const [showRedoDiagModal, setShowRedoDiagModal] = useState(false);
@@ -476,6 +476,10 @@ export default function NutritionDashboard() {
   const [shopSearchQuery, setShopSearchQuery] = useState("");
   const [shopMinPrice, setShopMinPrice] = useState<number | "">("");
   const [shopMaxPrice, setShopMaxPrice] = useState<number | "">("");
+
+  // Blog States
+  const [articles, setArticles] = useState<any[]>([]);
+  const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
@@ -710,6 +714,10 @@ export default function NutritionDashboard() {
           const { data: dbRecipes } = await recipeQuery;
           if (dbRecipes && dbRecipes.length > 0) setAllRecipesDB(dbRecipes);
           else setAllRecipesDB(DEFAULT_RECIPES);
+
+          // Fetch Articles
+          const { data: articlesData } = await supabase.from('marketing_articles').select('*').order('created_at', { ascending: false });
+          if (articlesData) setArticles(articlesData);
 
           // Load banner from settings specific to the coach
           if (activeProfile.tenant_id) {
@@ -1835,6 +1843,7 @@ export default function NutritionDashboard() {
     { id: 'weight', label: 'Mon Poids', icon: Scale },
     { id: 'shop', label: 'Boutique', icon: ShoppingBag },
     { id: 'orders', label: 'Mes Commandes', icon: Package },
+    { id: 'blog', label: 'Blog & Conseils', icon: FileText },
     { id: 'coaching', label: 'Coaching', icon: Activity, dot: isNewUser },
     { id: 'history', label: 'Historique', icon: BarChart },
     { id: 'profile', label: 'Réglages', icon: Settings },
@@ -2872,6 +2881,73 @@ export default function NutritionDashboard() {
                 </div>
              </div>
           </div>
+        )}
+
+        {activeTab === 'blog' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
+             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center mb-8">
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex justify-center items-center gap-3 mb-2`}><FileText className="text-[#39FF14] bg-black p-2 rounded-xl" size={40}/> Blog & Conseils</h2>
+                <p className="text-zinc-500 font-bold text-sm">Découvrez nos astuces nutrition, nos conseils bien-être et les bienfaits de nos produits locaux.</p>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {articles.map((article: any) => (
+                  <div key={article.id} onClick={() => setSelectedArticle(article)} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-6 shadow-sm hover:shadow-xl hover:border-[#39FF14] transition-all cursor-pointer flex flex-col h-full group">
+                     {article.image_url && (
+                        <div className="overflow-hidden rounded-2xl mb-6">
+                           <img src={article.image_url} alt={article.title} className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                     )}
+                     <div className="flex gap-2 mb-4">
+                        <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{article.category || 'Nutrition'}</span>
+                        <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || `${Math.max(1, Math.ceil(((article.content || article.desc || '').split(' ').length) / 200))} min`}</span>
+                     </div>
+                     <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase mb-3 leading-tight text-black dark:text-white group-hover:text-[#39FF14] transition-colors`}>{article.title}</h2>
+                     <p className="text-zinc-500 text-xs font-medium mb-6 flex-1 line-clamp-3">{article.desc}</p>
+                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-black dark:text-white mt-auto">
+                        LIRE L'ARTICLE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform text-[#39FF14]"/>
+                     </div>
+                  </div>
+               ))}
+               {articles.length === 0 && (
+                  <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
+                     Aucun article publié pour le moment.
+                  </div>
+               )}
+             </div>
+          </div>
+        )}
+
+        {/* MODALE LECTURE ARTICLE */}
+        {selectedArticle && (
+           <div id="article-overlay" onClick={(e: any) => e.target.id === 'article-overlay' && setSelectedArticle(null)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+             <div className="bg-white dark:bg-zinc-950 text-black dark:text-white p-8 md:p-12 rounded-[3.5rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-auto border-t-8 border-[#39FF14]">
+               <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
+               
+               <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
+               
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-8 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
+               
+               {selectedArticle.image_url && <img src={selectedArticle.image_url} alt="" className="w-full h-64 md:h-96 object-cover rounded-[2rem] mb-10 shadow-lg" />}
+               
+               <div className="prose prose-zinc dark:prose-invert max-w-none">
+                  <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-8 font-bold leading-relaxed">{selectedArticle.desc}</p>
+                  
+                  <div className="text-sm md:text-base text-zinc-800 dark:text-zinc-200 mb-10 whitespace-pre-wrap leading-loose font-medium">{selectedArticle.content}</div>
+
+                  {selectedArticle.gallery && selectedArticle.gallery.length > 0 && (
+                     <div className="mb-10">
+                        <h3 className="font-black text-lg mb-4 uppercase tracking-widest text-zinc-400">Galerie</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                           {selectedArticle.gallery.map((img: string, i: number) => (
+                              <img key={i} src={img} className="w-full h-40 object-cover rounded-2xl shadow-sm hover:scale-105 transition-transform cursor-pointer" alt="Galerie" />
+                           ))}
+                        </div>
+                     </div>
+                  )}
+               </div>
+             </div>
+           </div>
         )}
 
         {activeTab === 'history' && (

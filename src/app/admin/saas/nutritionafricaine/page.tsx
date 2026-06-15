@@ -73,7 +73,7 @@ export default function AdminNutritionAfricaine() {
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterInactive, setFilterInactive] = useState(false);
-  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'|'foods'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients'|'recipes'|'shop'|'orders'|'promos'|'foods'|'blog'>('clients');
   const [recipes, setRecipes] = useState<any[]>([]);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
@@ -124,6 +124,11 @@ export default function AdminNutritionAfricaine() {
   const [reportCoachNotes, setReportCoachNotes] = useState("");
   const [showGroceryModal, setShowGroceryModal] = useState<any>(null);
 
+  // Blog Admin States
+  const [articles, setArticles] = useState<any[]>([]);
+  const [editingArticle, setEditingArticle] = useState<any>(null);
+  const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -169,13 +174,14 @@ export default function AdminNutritionAfricaine() {
               }
 
               if (tId && isMounted) {
-                  const [recipesRes, prodsRes, ordsRes, promosRes, settingsRes, foodsRes] = await Promise.all([
+                  const [recipesRes, prodsRes, ordsRes, promosRes, settingsRes, foodsRes, articlesRes] = await Promise.all([
                      supabase.from('nutrition_recipes').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_products').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_orders').select('*').order('created_at', { ascending: false }),
                      supabase.from('nutrition_promo_codes').select('*').order('created_at', { ascending: false }),
                      supabase.from('crm_settings').select('*').eq('tenant_id', tId).maybeSingle(),
-                     supabase.from('nutrition_foods').select('*')
+                     supabase.from('nutrition_foods').select('*'),
+                     supabase.from('marketing_articles').select('*').order('created_at', { ascending: false })
                   ]);
                   if (recipesRes.data && recipesRes.data.length > 0) setRecipes(recipesRes.data);
                   else setRecipes(DEFAULT_RECIPES);
@@ -185,6 +191,7 @@ export default function AdminNutritionAfricaine() {
                   if (promosRes.data) setPromos(promosRes.data);
                   if (settingsRes.data && settingsRes.data.shop_banner_url) setVitrineBanner(settingsRes.data.shop_banner_url);
                   if (foodsRes.data) setFoods(foodsRes.data);
+                  if (articlesRes.data) setArticles(articlesRes.data);
               }
             } catch (err) {
                 console.error("Erreur générale fetch admin:", err);
@@ -1003,6 +1010,7 @@ export default function AdminNutritionAfricaine() {
                    <button onClick={() => setActiveTab('clients')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'clients' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Users size={14}/> Clients</button>
                    <button onClick={() => setActiveTab('recipes')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'recipes' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Utensils size={14}/> Recettes</button>
                    <button onClick={() => setActiveTab('foods')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'foods' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><Database size={14}/> Aliments (BDD)</button>
+                   <button onClick={() => setActiveTab('blog')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${activeTab === 'blog' ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}><FileText size={14}/> Blog</button>
                    
                    <div className="relative group">
                        <button className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${['shop', 'orders', 'promos'].includes(activeTab) ? 'bg-black text-[#39FF14] shadow-md' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`}>
@@ -1681,6 +1689,42 @@ export default function AdminNutritionAfricaine() {
            </div>
         </div>
         )}
+
+        {activeTab === 'blog' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+             <div className="flex flex-col md:flex-row justify-between md:items-center bg-white dark:bg-zinc-900 p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden group gap-4 mb-6">
+                <div className="flex items-center gap-4 lg:gap-5 relative z-10">
+                   <div className="w-14 lg:w-16 h-14 lg:h-16 bg-black rounded-[1.25rem] lg:rounded-[1.5rem] flex items-center justify-center text-[#39FF14] shadow-2xl group-hover:rotate-12 transition-all shrink-0"><FileText size={28} className="lg:w-[32px] lg:h-[32px]"/></div>
+                   <div>
+                      <h2 className={`font-sans text-2xl lg:text-3xl font-black uppercase tracking-tighter text-black dark:text-white`}>Hub Blog & Contenu</h2>
+                      <p className="text-[10px] lg:text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Articles & Recommandations de produits</p>
+                   </div>
+                </div>
+                <button onClick={() => setEditingArticle({ id: '', title: '', desc: '', content: '', image_url: '', gallery: [], suggested_products: [], category: 'Nutrition' })} className="w-full md:w-auto bg-black text-[#39FF14] px-6 lg:px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-2xl hover:scale-105 transition-all relative z-10 active:scale-95">
+                   <Plus size={16} /> Rédiger un Article
+                </button>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {articles.map((article: any) => (
+                   <div key={article.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 flex flex-col shadow-sm">
+                      {article.image_url && <img src={article.image_url} alt="" className="w-full h-40 object-cover rounded-2xl mb-4" />}
+                      <span className="bg-[#39FF14]/10 text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest w-max mb-3 border border-[#39FF14]/20">{article.category}</span>
+                      <h3 className="font-black text-lg uppercase text-black dark:text-white mb-2 leading-tight line-clamp-2">{article.title}</h3>
+                      <p className="text-zinc-500 text-sm font-medium mb-4 line-clamp-3">{article.desc}</p>
+                      <div className="mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800 flex gap-2">
+                         <button onClick={() => setEditingArticle(article)} className="flex-1 bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white py-2 rounded-xl text-xs font-black uppercase hover:bg-zinc-200 dark:hover:bg-zinc-700 transition flex justify-center items-center gap-1.5"><Edit3 size={14}/> Modifier</button>
+                         <button onClick={async () => {
+                             if(!confirm("Supprimer cet article ?")) return;
+                             await supabase.from('marketing_articles').delete().eq('id', article.id);
+                             setArticles(prev => prev.filter(a => a.id !== article.id));
+                         }} className="p-2 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl hover:bg-red-100 dark:hover:bg-red-500/20 transition"><Trash2 size={16}/></button>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </div>
+        )}
       </main>
 
       {/* MODALE RECETTE */}
@@ -1792,6 +1836,70 @@ export default function AdminNutritionAfricaine() {
          </div>
       )}
 
+      {/* MODALE ÉDITION ARTICLE BLOG */}
+      {editingArticle && (
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setEditingArticle(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <button onClick={() => setEditingArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+            
+            <h3 className="text-2xl font-black uppercase text-black dark:text-white tracking-tighter mb-6">Éditer l'Article</h3>
+            
+            <div className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="Titre de l'article"
+                value={editingArticle.title || ''} 
+                onChange={e => setEditingArticle({...editingArticle, title: e.target.value})} 
+                className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-black text-sm outline-none focus:border-[#39FF14]" 
+              />
+              <textarea 
+                value={editingArticle.desc || ''} 
+                onChange={e => setEditingArticle({...editingArticle, desc: e.target.value})} 
+                className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14] min-h-[80px]"
+                placeholder="Description courte..."
+              />
+              <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] overflow-hidden focus-within:border-[#39FF14] transition-colors">
+                <div className="flex justify-between items-center bg-zinc-100 dark:bg-zinc-800 p-3 border-b border-zinc-200 dark:border-zinc-700">
+                   <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest pl-2">Contenu Complet</span>
+                   <button type="button" onClick={async () => {
+                       if (!editingArticle.title) return alert("Saisir un titre d'abord.");
+                       setIsGeneratingArticle(true);
+                       await new Promise(r => setTimeout(r, 2000));
+                       setEditingArticle({...editingArticle, 
+                           content: `Découvrez les bienfaits et l'importance de maîtriser l'art de la thématique : "${editingArticle.title}".\n\nDans cet article, nous vous expliquons comment intégrer ces conseils dans votre routine quotidienne pour des résultats visibles.\n\nPrivilégiez une alimentation riche et locale, réduisez le sucre, et complétez avec nos super-aliments pour atteindre vos objectifs sans frustration.`,
+                           suggested_products: products.slice(0, 2).map(p => p.nom)
+                       });
+                       setIsGeneratingArticle(false);
+                   }} disabled={isGeneratingArticle} className="bg-black text-[#39FF14] px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 hover:scale-105 transition-transform disabled:opacity-50">
+                      <Sparkles size={12}/> {isGeneratingArticle ? 'Génération...' : 'Générer avec IA'}
+                   </button>
+                </div>
+                <textarea 
+                  value={editingArticle.content || ''} 
+                  onChange={e => setEditingArticle({...editingArticle, content: e.target.value})} 
+                  className="w-full p-5 bg-transparent font-medium text-sm outline-none min-h-[200px] resize-y"
+                  placeholder="Contenu complet de l'article..."
+                />
+              </div>
+              <input type="url" placeholder="URL de l'image principale" value={editingArticle.image_url || ''} onChange={e => setEditingArticle({...editingArticle, image_url: e.target.value})} className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14]" />
+              <textarea value={(editingArticle.gallery || []).join('\n')} onChange={e => setEditingArticle({...editingArticle, gallery: e.target.value.split('\n').filter(Boolean)})} className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14] min-h-[80px]" placeholder="Galerie d'images (1 URL par ligne)..." />
+              <input type="text" placeholder="Produits recommandés (séparés par des virgules)" value={(editingArticle.suggested_products || []).join(', ')} onChange={e => setEditingArticle({...editingArticle, suggested_products: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean)})} className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14]" />
+            </div>
+
+            <button onClick={async () => {
+                const isNew = !editingArticle.id;
+                const payload = { ...editingArticle };
+                if (isNew) delete payload.id;
+                if (tenantId) payload.tenant_id = tenantId;
+                if (isNew) { const { data, error } = await supabase.from('marketing_articles').insert([payload]).select().single(); if (!error && data) setArticles([data, ...articles]); } 
+                else { await supabase.from('marketing_articles').update(payload).eq('id', editingArticle.id); setArticles(articles.map(a => a.id === editingArticle.id ? editingArticle : a)); }
+                setEditingArticle(null);
+              }} className="w-full mt-6 bg-black dark:bg-white text-[#39FF14] dark:text-black py-5 rounded-[2rem] font-black uppercase text-xs hover:scale-[1.03] transition-all shadow-lg flex justify-center items-center gap-2">
+              <CheckCircle size={18}/> Sauvegarder l'article
+            </button>
+          </div>
+        </div>
+      )}
       {/* MODALE CLIENT */}
       {editingClient && (
          <div id="client-modal-overlay" onClick={(e: any) => e.target.id === 'client-modal-overlay' && setEditingClient(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
