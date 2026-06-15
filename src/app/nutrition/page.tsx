@@ -294,7 +294,7 @@ export default function NutritionDashboard() {
   const [theme, setTheme] = useState<'light'|'dark'>('light');
   
   // Nouveaux états de l'application Nutrition
-  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'community' | 'favorites' | 'coaching' | 'blog'>('week');
+  const [activeTab, setActiveTab] = useState<'today' | 'week' | 'history' | 'profile' | 'weight' | 'fitness' | 'minute-doc' | 'community' | 'favorites' | 'coaching' | 'blog' | 'shop' | 'orders'>('week');
   const [trackingMode, setTrackingMode] = useState<'guided' | 'flexible'>('guided');
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   const [showRedoDiagModal, setShowRedoDiagModal] = useState(false);
@@ -1849,7 +1849,9 @@ export default function NutritionDashboard() {
     { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
     { id: 'today', label: 'Mon Jour', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" },
     { id: 'favorites', label: 'Galerie Recettes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" },
-    { id: 'weight', label: 'Mon Poids / Fitness', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" },
+    { id: 'weight', label: 'Mon Poids', icon: Scale },
+    { id: 'fitness', label: 'Fitness', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" },
+    { id: 'minute-doc', label: 'La Minute Doc', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" },
     { id: 'shop', label: 'Boutique', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_4_erkmnd.jpg" },
     { id: 'orders', label: 'Mes Commandes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540553/A_cute__highly_detailed_3D_202606151621_l47tzv.jpg" },
     { id: 'blog', label: 'Blog & Conseils', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540516/remplacer_tittle_par_CONSEILS_NUTRITION_202606151619_tb8clu.jpg" },
@@ -2160,10 +2162,10 @@ export default function NutritionDashboard() {
                <button 
                   key={item.id} 
                   onClick={() => { setActiveTab(item.id); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}
-                  className={`w-full flex items-center gap-4 p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : (theme === 'dark' ? 'text-zinc-500 hover:bg-zinc-900 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black')}`}
+                  className={`w-full flex items-center p-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : (theme === 'dark' ? 'text-zinc-500 hover:bg-zinc-900 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black')} ${!isSidebarOpen ? 'justify-center lg:justify-center' : 'justify-start lg:justify-start'}`}
                >
                   {typeof item.icon === 'string' ? <img src={item.icon} className="w-6 h-6 rounded-xl object-cover shrink-0" alt="" /> : <item.icon size={20} className="shrink-0" />}
-                  <span className={`whitespace-nowrap transition-opacity duration-300 ${!isSidebarOpen && 'lg:opacity-0 lg:absolute lg:left-20'}`}>{item.label}</span>
+                  <span className={`whitespace-nowrap ml-4 transition-opacity duration-300 ${!isSidebarOpen ? 'lg:hidden' : 'lg:block'}`}>{item.label}</span>
                   {item.dot && (
                      <span className="absolute top-4 right-4 flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -2855,6 +2857,59 @@ export default function NutritionDashboard() {
                </div>
             )}
 
+          </div>
+        )}
+
+        {/* VUE MINUTE DOC */}
+        {activeTab === 'minute-doc' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-6xl mx-auto">
+             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row items-center gap-6">
+                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" className="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shrink-0 shadow-lg" alt="La Minute Doc" />
+                <div>
+                   <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center flex-wrap gap-3 mb-2`}>
+                      La Minute Doc <span className="bg-black text-[#39FF14] text-[12px] px-3 py-1 rounded-full shadow-sm">Par Dr. Thierno</span>
+                   </h2>
+                   <p className="text-zinc-500 font-bold text-sm">Découvrez nos podcasts et vidéos explicatives pour mieux comprendre votre corps et votre alimentation.</p>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { id: "1", title: "Le Fonio fait-il vraiment maigrir ?", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "12:05" },
+                  { id: "2", title: "Comment remplacer le cube Maggi ?", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "08:30" },
+                  { id: "3", title: "Le danger des jus locaux trop sucrés", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "15:20" },
+                  { id: "4", title: "L'attaya et la perte de poids", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "10:45" },
+                  { id: "5", title: "Jeûne intermittent & plats africains", videoUrl: "https://www.youtube.com/embed/acFsObjm2E0", duration: "18:10" }
+                ].map((podcast, idx) => (
+                   <div key={idx} className="bg-zinc-950 p-4 rounded-[2rem] border border-zinc-800 shadow-xl flex flex-col group hover:border-[#39FF14] transition-colors">
+                      <div className="relative aspect-video rounded-2xl overflow-hidden mb-4 bg-zinc-900 border border-zinc-800">
+                         <iframe src={`${podcast.videoUrl}?controls=1&rel=0`} className="w-full h-full border-0" allowFullScreen></iframe>
+                      </div>
+                      <div className="flex-1 flex flex-col justify-between">
+                         <h3 className="text-white font-black uppercase leading-tight mb-2 group-hover:text-[#39FF14] transition-colors">{podcast.title}</h3>
+                         <div className="flex justify-between items-center mt-2">
+                             <span className="bg-white/10 text-zinc-300 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"><Clock size={12}/> {podcast.duration}</span>
+                             <button onClick={() => window.open(podcast.videoUrl, '_blank')} className="text-zinc-500 hover:text-white p-2 transition-colors"><ExternalLink size={16}/></button>
+                         </div>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </div>
+        )}
+
+        {/* VUE FITNESS */}
+        {activeTab === 'fitness' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
+             <div className="bg-white dark:bg-zinc-900 p-8 sm:p-12 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm text-center relative overflow-hidden">
+                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shadow-lg mb-6 relative z-10" alt="Fitness" />
+                <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase tracking-tighter text-black dark:text-white mb-2`}>Zone Fitness</h2>
+                <p className="text-zinc-500 font-bold mb-6 text-sm max-w-md mx-auto">Entraînements sans matériel pour sculpter votre corps à la maison.</p>
+                
+                <div className="p-10 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl bg-zinc-50 dark:bg-zinc-800 text-zinc-400 font-black uppercase tracking-widest text-xs">
+                   Les programmes d'entraînement vidéo seront bientôt disponibles dans cette section.
+                </div>
+             </div>
           </div>
         )}
 
@@ -3908,8 +3963,8 @@ export default function NutritionDashboard() {
         {activeTab === 'weight' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
              <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 sm:p-12 rounded-[2rem] border shadow-sm text-center relative overflow-hidden`}>
-                <div className="absolute top-0 right-0 w-48 h-48 bg-[#39FF14]/10 blur-[60px] rounded-full pointer-events-none"></div>
-                <img src={MENU_ICONS.fitness} className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shadow-lg mb-6 relative z-10" alt="Fitness" />
+                <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none"></div>
+                <div className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-black flex items-center justify-center shadow-lg mb-6 relative z-10"><Scale className="text-[#39FF14]" size={40}/></div>
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} mb-2`}>Tracker de Poids</h2>
                 <p className="text-zinc-500 font-bold mb-6 text-xs max-w-sm mx-auto">Une pesée par semaine, pas plus. La constance bat l'obsession. Ajustez le curseur et validez.</p>
                 
@@ -4631,7 +4686,7 @@ export default function NutritionDashboard() {
              <div className="bg-black p-4 flex justify-between items-center border-b border-zinc-800">
                 <div className="flex items-center gap-3">
                    <div className="relative">
-                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl">👨🏿‍⚕️</div>
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-[#39FF14] flex items-center justify-center text-xl overflow-hidden"><img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781448403/A_photorealistic_portrait_of_the_202606141444_qcvy4q.jpg" alt="Dr. Thierno" className="w-full h-full object-cover" /></div>
                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#39FF14] rounded-full border border-black animate-pulse"></div>
                    </div>
                    <div><p className="text-[#39FF14] font-black uppercase text-xs">Dr. Thierno</p><p className="text-zinc-400 text-[9px] uppercase font-bold tracking-widest">Coach Nutrition</p></div>
@@ -4670,7 +4725,7 @@ export default function NutritionDashboard() {
                <X size={14} />
              </button>
              <button onClick={() => setIsThiernoChatOpen(true)} className="w-16 h-16 rounded-full shadow-2xl overflow-hidden border-2 border-[#39FF14] hover:scale-110 transition-transform bg-black relative flex items-center justify-center text-3xl">
-               👨🏿‍⚕️
+               <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781448403/A_photorealistic_portrait_of_the_202606141444_qcvy4q.jpg" alt="Dr. Thierno" className="w-full h-full object-cover" />
              </button>
            </div>
         )}
