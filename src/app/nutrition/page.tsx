@@ -1846,16 +1846,16 @@ export default function NutritionDashboard() {
   const isNewUser = (new Date().getTime() - createdDate.getTime()) / (1000 * 3600 * 24) <= 3;
 
   const menuItems = [
-    { id: 'week', label: 'Sama Menu', icon: MENU_ICONS.samaMenu },
-    { id: 'today', label: 'Mon Jour', icon: MENU_ICONS.monJour },
-    { id: 'favorites', label: 'Galerie Recettes', icon: BookOpen },
-    { id: 'weight', label: 'Mon Poids / Fitness', icon: MENU_ICONS.fitness },
-    { id: 'shop', label: 'Boutique', icon: MENU_ICONS.shop },
-    { id: 'orders', label: 'Mes Commandes', icon: Package },
-    { id: 'blog', label: 'Blog & Conseils', icon: FileText },
-    { id: 'coaching', label: 'Coaching', icon: Activity, dot: isNewUser },
-    { id: 'history', label: 'Historique', icon: MENU_ICONS.dashboard },
-    { id: 'profile', label: 'Réglages', icon: MENU_ICONS.profile },
+    { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
+    { id: 'today', label: 'Mon Jour', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" },
+    { id: 'favorites', label: 'Galerie Recettes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" },
+    { id: 'weight', label: 'Mon Poids / Fitness', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" },
+    { id: 'shop', label: 'Boutique', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_4_erkmnd.jpg" },
+    { id: 'orders', label: 'Mes Commandes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540553/A_cute__highly_detailed_3D_202606151621_l47tzv.jpg" },
+    { id: 'blog', label: 'Blog & Conseils', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540516/remplacer_tittle_par_CONSEILS_NUTRITION_202606151619_tb8clu.jpg" },
+    { id: 'coaching', label: 'Coaching', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540692/A_cute__highly_detailed_3D_202606151624_lzxhup.jpg" },
+    { id: 'history', label: 'Historique', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_ytie6s.jpg" },
+    { id: 'profile', label: 'Réglages', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg" },
   ];
 
   const addToCart = (product: any) => {
