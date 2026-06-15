@@ -3256,6 +3256,9 @@ export default function NutritionDashboard() {
                      <button onClick={() => setShowGroceryList(true)} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-800 transition shadow-sm flex items-center gap-2">
                         <ShoppingCart size={14}/> Liste de courses
                      </button>
+                     <button onClick={downloadGroceryListPDF} className="bg-white border border-zinc-200 text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-50 transition shadow-sm flex items-center gap-2 hidden sm:flex">
+                        <Download size={14}/> PDF
+                     </button>
                   </div>
                </div>
 
@@ -3336,9 +3339,14 @@ export default function NutritionDashboard() {
                {/* BOUTON GÉNÉRER LISTE COURSES EN BAS */}
                {(clientProfile?.plan_type === 'premium' || daysLeft > 0) && weeklyGeneratedMenu.length > 0 && (
                   <div className="mt-12 text-center">
-                     <button onClick={() => setShowGroceryList(true)} className="bg-black text-[#39FF14] px-10 py-5 rounded-[2.5rem] font-black uppercase text-sm md:text-base tracking-widest hover:scale-105 transition-transform shadow-[0_15px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3 mx-auto">
-                        <ShoppingCart size={24}/> Générer ma liste de courses
-                     </button>
+                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+                        <button onClick={() => setShowGroceryList(true)} className="bg-black text-[#39FF14] px-10 py-5 rounded-[2.5rem] font-black uppercase text-sm md:text-base tracking-widest hover:scale-105 transition-transform shadow-[0_15px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3">
+                           <ShoppingCart size={24}/> Voir ma liste de courses
+                        </button>
+                        <button onClick={downloadGroceryListPDF} className="bg-white text-black border-2 border-zinc-200 px-8 py-5 rounded-[2.5rem] font-black uppercase text-sm md:text-base tracking-widest hover:scale-105 transition-transform shadow-sm flex items-center justify-center gap-3">
+                           <Download size={24}/> Télécharger PDF
+                        </button>
+                     </div>
                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-4">Calculée automatiquement d'après votre Sama Menu</p>
                   </div>
                )}

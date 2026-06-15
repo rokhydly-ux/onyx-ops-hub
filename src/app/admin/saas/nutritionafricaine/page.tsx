@@ -990,6 +990,40 @@ export default function AdminNutritionAfricaine() {
       setReportCoachNotes("");
   };
 
+  const downloadGroceryListPDFAdmin = () => {
+      if (!showGroceryModal) return;
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.text("Liste de Courses - Onyx Nutrition", 14, 20);
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Client : ${showGroceryModal.client?.full_name || 'Client'}`, 14, 30);
+      doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 38);
+      
+      let y = 50;
+      const list = getGroceryListForAdmin(showGroceryModal);
+      
+      Object.entries(list).forEach(([rayon, items]: any) => {
+          if (Object.keys(items).length === 0) return;
+          if (y > 260) { doc.addPage(); y = 20; }
+          doc.setFontSize(14);
+          doc.setTextColor(0, 0, 0);
+          doc.setFont("helvetica", "bold");
+          doc.text(rayon.toUpperCase(), 14, y);
+          y += 8;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(12);
+          Object.entries(items).forEach(([nom, data]: any) => {
+              if (y > 280) { doc.addPage(); y = 20; }
+              doc.text(`• ${nom}`, 20, y);
+              doc.text(`${data.quantite} ${data.unite}`, 190, y, { align: 'right' });
+              y += 7;
+          });
+          y += 10;
+      });
+      doc.save(`Liste_Courses_${showGroceryModal.client?.full_name?.replace(/\s+/g, '_') || 'Client'}.pdf`);
+  };
+
   // Calculs pagination et filtres boutique
   const filteredShop = products.filter(p => {
       const matchSearch = !shopSearch || p.nom?.toLowerCase().includes(shopSearch.toLowerCase()) || p.categorie_nom?.toLowerCase().includes(shopSearch.toLowerCase());
@@ -1530,6 +1564,11 @@ export default function AdminNutritionAfricaine() {
                           );
                       });
                   })()}
+               </div>
+               <div className="mt-8 pt-6 border-t border-zinc-100">
+                  <button onClick={downloadGroceryListPDFAdmin} className="w-full bg-green-500 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-green-600 transition-colors shadow-md flex items-center justify-center gap-2">
+                     <Download size={18}/> Télécharger (PDF)
+                  </button>
                </div>
             </div>
          </div>
