@@ -413,43 +413,86 @@ export default function AdminNutritionAfricaine() {
   };
 
   const handleAIGenerateRecipe = () => {
-    const bases = ["Fonio (Boutique Onyx)", "Riz Étuvé (Marché)", "Pain Complet (Supermarché)", "Spaghetti Complet (Supermarché)"];
-    const proteins = ["Blanc de Poulet", "Thiof (Poisson)", "Viande Maigre", "Niébé"];
-    const veggies = ["Gombo", "Carottes", "Chou", "Jaxatu"];
-    const condiments = ["Soumbala", "Grains de Djar", "Pâte d'arachide pure", "Poudre de Moringa"];
-    const hotDrinks = ["Kinkeliba sans sucre", "Thé vert menthe", "Infusion de Djar", "Café Touba allégé"];
+      const intent = prompt("Quel est l'objectif ou l'ingrédient principal de cette recette ?\n(Ex: Diabète, Ventre plat, Sport, Poulet, Petit-déjeuner...)");
+      if (intent === null) return;
 
-    const isBreakfast = Math.random() > 0.5;
-    const type = isBreakfast ? 'Petit-déjeuner' : 'Déjeuner';
-    
-    let generatedName = "";
-    let ingredients = [];
+      const intentLower = intent.toLowerCase();
 
-    if (isBreakfast) {
-      const drink = hotDrinks[Math.floor(Math.random()*hotDrinks.length)];
-      generatedName = `Tartines de Pain Complet & Œufs + ${drink}`;
-      ingredients = [
-        {nom: "Pain Complet", quantite: 2, unite: "tranche", rayon: "Supermarché"},
-        {nom: "Oeufs", quantite: 2, unite: "pièce", rayon: "Supermarché"},
-        {nom: drink, quantite: 1, unite: "tasse", rayon: "Marché local"}
-      ];
-    } else {
-      const selectedProtein = proteins[Math.floor(Math.random()*proteins.length)];
-      const selectedBase = bases[Math.floor(Math.random()*bases.length)];
-      generatedName = `${selectedProtein} aux légumes et ${selectedBase.split(' (')[0]}`;
-      ingredients = [
-         {nom: selectedProtein, quantite: 150, unite: "g", rayon: "Boucherie / Pêche"},
-         {nom: selectedBase.split(' (')[0], quantite: 80, unite: "g", rayon: selectedBase.includes("Supermarché") ? "Supermarché" : "Marché local"},
-         {nom: veggies[Math.floor(Math.random()*veggies.length)], quantite: 100, unite: "g", rayon: "Marché local"},
-         {nom: condiments[Math.floor(Math.random()*condiments.length)], quantite: 1, unite: "càc", rayon: "Boutique Onyx"}
-      ];
-    }
+      let type = "Déjeuner";
+      let generatedName = "";
+      let ingredients: any[] = [];
+      let recipeText = "";
+      let bienfaits = "";
+      let calories = 450;
+      let proteins = 30;
+      let carbs = 45;
+      let fats = 15;
+      let prepTime = 20;
+
+      if (intentLower.includes("diabète") || intentLower.includes("sucre") || intentLower.includes("ig bas")) {
+          generatedName = "Bol de Fonio IG Bas & Poisson";
+          bienfaits = "Idéal pour stabiliser la glycémie. Le fonio remplace le riz blanc pour éviter le pic d'insuline.";
+          ingredients = [
+              {nom: "Fonio Premium", quantite: 60, unite: "g", rayon: "Boutique Onyx"},
+              {nom: "Poisson blanc", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"},
+              {nom: "Gombo", quantite: 100, unite: "g", rayon: "Marché local"},
+              {nom: "Soumbala", quantite: 1, unite: "càc", rayon: "Boutique Onyx"}
+          ];
+          recipeText = "1. Cuire le fonio à la vapeur (15 min).\n2. Faire griller le poisson avec une pincée de sel.\n3. Préparer une petite sauce gombo légère relevée au soumbala.\n4. Servir chaud.";
+          carbs = 35; proteins = 35; fats = 10; calories = 380;
+      } 
+      else if (intentLower.includes("sport") || intentLower.includes("muscle") || intentLower.includes("protéine")) {
+          generatedName = "Assiette du Sportif au Niébé & Poulet";
+          bienfaits = "Ultra riche en protéines pour la récupération musculaire après l'effort.";
+          ingredients = [
+              {nom: "Blanc de Poulet", quantite: 200, unite: "g", rayon: "Boucherie / Pêche"},
+              {nom: "Niébé", quantite: 100, unite: "g", rayon: "Marché local"},
+              {nom: "Pâte d'arachide pure", quantite: 1, unite: "càs", rayon: "Boutique Onyx"}
+          ];
+          recipeText = "1. Faire bouillir le niébé jusqu'à tendreté.\n2. Saisir le poulet à la poêle avec un peu de poivre.\n3. Ajouter une cuillère de pâte d'arachide pure en fin de cuisson pour l'énergie.";
+          carbs = 40; proteins = 45; fats = 20; calories = 550; prepTime = 30;
+      }
+      else if (intentLower.includes("minceur") || intentLower.includes("ventre") || intentLower.includes("léger") || intentLower.includes("soir") || intentLower.includes("dîner")) {
+          type = "Dîner";
+          generatedName = "Salade Détox & Poisson Grillé";
+          bienfaits = "Très léger pour le soir, favorise un ventre plat et une digestion rapide au coucher.";
+          ingredients = [
+              {nom: "Poisson (Thiof ou Yaboye)", quantite: 120, unite: "g", rayon: "Boucherie / Pêche"},
+              {nom: "Concombre", quantite: 1, unite: "pièce", rayon: "Marché local"},
+              {nom: "Citron", quantite: 1, unite: "pièce", rayon: "Marché local"},
+              {nom: "Bissap sans sucre", quantite: 1, unite: "tasse", rayon: "Boutique Onyx"}
+          ];
+          recipeText = "1. Couper le concombre en dés avec un filet de jus de citron.\n2. Griller le poisson au four avec des herbes.\n3. Accompagner le repas d'une infusion de Bissap pour drainer.";
+          carbs = 15; proteins = 25; fats = 10; calories = 280; prepTime = 15;
+      }
+      else if (intentLower.includes("matin") || intentLower.includes("déjeuner") || intentLower.includes("énergie") || intentLower.includes("avoine")) {
+          type = "Petit-déjeuner";
+          generatedName = "Porridge Énergie au Moringa & Bouye";
+          bienfaits = "Un concentré de vitamines et fibres solubles pour tenir toute la matinée sans sensation de faim.";
+          ingredients = [
+              {nom: "Flocons d'avoine", quantite: 50, unite: "g", rayon: "Supermarché"},
+              {nom: "Poudre de Bouye", quantite: 1, unite: "càs", rayon: "Boutique Onyx"},
+              {nom: "Poudre de Moringa", quantite: 1, unite: "càc", rayon: "Boutique Onyx"},
+              {nom: "Lait demi-écrémé", quantite: 150, unite: "ml", rayon: "Supermarché"}
+          ];
+          recipeText = "1. Chauffer le lait avec l'avoine à feu doux.\n2. Ajouter le bouye pour l'onctuosité et bien mélanger.\n3. Saupoudrer de Moringa hors du feu pour conserver les vitamines.";
+          carbs = 50; proteins = 12; fats = 8; calories = 320; prepTime = 10;
+      }
+      else {
+          const keyword = intent.split(' ')[0] || "Africaine";
+          generatedName = `Recette Spéciale : ${keyword.charAt(0).toUpperCase() + keyword.slice(1)}`;
+          bienfaits = "Recette équilibrée et adaptée à notre métabolisme, respectant le mix Sénégalais-Moderne.";
+          ingredients = [
+             {nom: "Protéine au choix", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"},
+             {nom: "Légumes locaux", quantite: 200, unite: "g", rayon: "Marché local"},
+             {nom: "Fonio ou Riz étuvé", quantite: 60, unite: "g", rayon: "Marché local"}
+          ];
+          recipeText = "1. Privilégiez une cuisson vapeur ou au four.\n2. Limitez l'ajout d'huile à 1 cuillère à soupe maximum.\n3. Remplacez le cube Maggi industriel par du Soumbala ou du Nététou.";
+      }
 
     setRecipeForm({
-       id: '', type, nom: generatedName, calories: 450, proteins: 30, carbs: 45, fats: 15, preparation_time: 20, is_bol_commun: false,
-       recipe: "Recette générée par IA respectant le mix Sénégalais-Moderne. Assurez-vous d'utiliser le condiment uniquement pour relever le goût.",
-       bienfaits: "Équilibre parfait entre fibres, protéines maigres et index glycémique contrôlé.",
-      ingredients, image_url: '', video_url: '', description: '', gallery: []
+       id: '', type, nom: generatedName, calories, proteins, carbs, fats, preparation_time: prepTime, is_bol_commun: false,
+       recipe: recipeText, bienfaits, ingredients, image_url: '', video_url: '', description: '', gallery: []
     });
     setEditingRecipe(null);
     setShowRecipeModal(true);
@@ -1864,9 +1907,75 @@ export default function AdminNutritionAfricaine() {
                    <button type="button" onClick={async () => {
                        if (!editingArticle.title) return alert("Saisir un titre d'abord.");
                        setIsGeneratingArticle(true);
-                       await new Promise(r => setTimeout(r, 2000));
+                       
+                       // Simulation d'une IA avancée avec des réponses dynamiques selon les concepts du titre
+                       await new Promise(r => setTimeout(r, 1500));
+                       
+                       const generateArticleContent = (title: string) => {
+                           const titleLower = title.toLowerCase();
+                           
+                           const concepts: Record<string, string> = {
+                               "diabète": "la régulation de la glycémie avec des aliments à index glycémique bas",
+                               "sucre": "la réduction des pics d'insuline et la maîtrise des envies sucrées",
+                               "sport": "la récupération musculaire et l'apport en protéines",
+                               "muscle": "la construction musculaire avec des protéines locales comme le Niébé",
+                               "peau": "l'éclat de la peau grâce aux antioxydants et à l'hydratation",
+                               "cheveux": "la fortification capillaire avec les nutriments locaux",
+                               "fatigue": "le regain d'énergie durable avec la vitamine C et le fer",
+                               "énergie": "le maintien de la vitalité tout au long de la journée",
+                               "digestion": "le confort intestinal et l'apport en fibres douces",
+                               "ventre": "le dégonflement abdominal et la lutte contre la rétention d'eau",
+                               "tension": "la santé cardiovasculaire et la réduction du sel industriel",
+                               "stress": "l'apaisement du système nerveux avec le magnésium (ex: Noix de cajou)",
+                               "grossesse": "les besoins accrus en fer, calcium et acide folique pour la maman",
+                               "allaitement": "l'énergie nécessaire pour nourrir bébé sans s'épuiser",
+                               "poids": "le déficit calorique intelligent sans sacrifier nos plats traditionnels",
+                               "maigrir": "la perte de masse grasse grâce à un rééquilibrage de fond",
+                               "jeûne": "l'optimisation de la fenêtre alimentaire et la rupture saine du jeûne",
+                               "ménopause": "l'équilibre hormonal et la protection du capital osseux",
+                               "enfant": "la croissance saine avec des alternatives naturelles aux goûters industriels",
+                               "sommeil": "la préparation au repos avec des dîners légers et des infusions apaisantes"
+                           };
+
+                           const foundConcepts = Object.keys(concepts).filter(key => titleLower.includes(key));
+                           
+                           let intro = "";
+                           let body = "";
+                           let outro = "";
+
+                           if (foundConcepts.length > 0) {
+                               const mainConceptText = concepts[foundConcepts[0]];
+                               intro = `La thématique "${title}" est au cœur de nombreuses préoccupations aujourd'hui. En effet, lorsqu'il s'agit de nutrition à l'africaine, il est primordial de comprendre l'impact sur ${mainConceptText}.`;
+                               
+                               body = `Voici comment adapter vos habitudes pour tirer le meilleur parti de cette approche :\n\n`;
+                               body += `1. **Ciblez vos besoins :** En lien avec "${title}", privilégiez les aliments qui soutiennent directement ${mainConceptText}.\n`;
+                               
+                               if (foundConcepts.length > 1) {
+                                   body += `2. **Synergie d'action :** N'oubliez pas également l'importance de ${concepts[foundConcepts[1]]}, qui vient souvent en complément.\n`;
+                               } else {
+                                   body += `2. **Nos super-aliments locaux :** Intégrez des produits bruts comme le Fonio, le Moringa ou le Bouye qui sont de formidables alliés pour cette démarche.\n`;
+                               }
+                               
+                               body += `3. **Hydratation et Constance :** Consommez des infusions naturelles (Bissap sans sucre, Kinkeliba) et maintenez vos nouvelles habitudes sur le long terme.`;
+                           } else {
+                               const stopWords = ['le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'et', 'ou', 'pour', 'avec', 'dans', 'sur', 'comment', 'pourquoi', 'quel', 'quelle'];
+                               const words = title.split(/[\s,']+/).filter((w: string) => w.length > 2 && !stopWords.includes(w.toLowerCase()));
+                               const keywords = words.length > 0 ? words.join(', ') : "votre alimentation";
+
+                               intro = `Il est essentiel de s'informer sur des sujets pointus comme : "${title}".\n\nÀ travers cet article, nous allons explorer en profondeur les enjeux autour de ces notions (${keywords}), et comment cela s'intègre parfaitement dans le cadre d'un rééquilibrage sain et local.`;
+                               
+                               body = `Voici 3 piliers essentiels à retenir :\n\n1. **Prenez conscience de l'impact :** Comprenez bien les principes liés à "${title}" avant de modifier drastiquement vos habitudes.\n2. **La puissance du local :** L'intégration de nos super-aliments naturels (comme le Moringa, le Fonio ou le Nététou) peut grandement soutenir vos efforts dans ce domaine.\n3. **La régularité prime sur la perfection :** Appliquez vos nouvelles connaissances pas à pas, sans frustration.`;
+                           }
+
+                           outro = `En maîtrisant les concepts liés à "${title}", vous franchirez une nouvelle étape majeure vers votre bien-être global.`;
+
+                           return `${intro}\n\n${body}\n\n${outro}`;
+                       };
+                       
+                       const generatedContent = generateArticleContent(editingArticle.title);
+                       
                        setEditingArticle({...editingArticle, 
-                           content: `Découvrez les bienfaits et l'importance de maîtriser l'art de la thématique : "${editingArticle.title}".\n\nDans cet article, nous vous expliquons comment intégrer ces conseils dans votre routine quotidienne pour des résultats visibles.\n\nPrivilégiez une alimentation riche et locale, réduisez le sucre, et complétez avec nos super-aliments pour atteindre vos objectifs sans frustration.`,
+                           content: generatedContent,
                            suggested_products: products.slice(0, 2).map(p => p.nom)
                        });
                        setIsGeneratingArticle(false);
@@ -1892,7 +2001,7 @@ export default function AdminNutritionAfricaine() {
                 if (isNew) {
                    payload.id = Date.now().toString();
                 }
-                if (tenantId) payload.tenant_id = tenantId;
+                
                 if (isNew) { 
                    const { data, error } = await supabase.from('marketing_articles').insert([payload]).select().single(); 
                    if (!error && data) { setArticles([data, ...articles]); setEditingArticle(null); } else alert("Erreur : " + error?.message);
