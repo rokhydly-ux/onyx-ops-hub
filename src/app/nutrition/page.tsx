@@ -431,6 +431,7 @@ export default function NutritionDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [isSharingPDF, setIsSharingPDF] = useState(false);
+  const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
   // Objectifs
   const [calorieGoal, setCalorieGoal] = useState(1500);
@@ -511,7 +512,7 @@ export default function NutritionDashboard() {
       return "0";
   })() : 0;
 
-  const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+  const [emblaNewArrivalsRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })]);
 
   useEffect(() => {
     // Gestion PWA Hors-Ligne & Sync
@@ -2263,21 +2264,16 @@ export default function NutritionDashboard() {
         {activeTab === 'today' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
             
-            {/* BANNIÈRE WELCOME BENTO */}
-            <div className="bg-zinc-950 rounded-[24px] p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
-               <div className="absolute top-0 right-0 w-64 h-64 bg-[#39FF14]/20 blur-[100px] rounded-full pointer-events-none"></div>
-               <div className="relative z-10 text-center md:text-left mb-6 md:mb-0">
-                  <span className="text-[#39FF14] font-black uppercase tracking-widest text-[10px] mb-2 block">Espace Personnel</span>
-                  <h1 className={`${spaceGrotesk.className} text-4xl md:text-5xl font-black uppercase text-white mb-2`}>
-                     {greetingText}, <span className="text-[#39FF14]">{user?.full_name?.split(' ')[0] || 'Membre'}</span> !
-                  </h1>
-                  <p className="text-zinc-400 font-medium text-sm">{greetingSubtext}</p>
+            {/* EN-TÊTE MON JOUR */}
+            <div className={`flex flex-col md:flex-row md:items-center justify-between pb-4 border-b ${theme === 'dark' ? 'border-zinc-800' : 'border-zinc-200'} gap-4`}>
+               <div>
+                  <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-3`}>
+                     <Calendar className="text-[#39FF14]" size={28} /> Mon Journal
+                  </h2>
+                  <p className="text-zinc-500 font-bold text-xs mt-1 uppercase tracking-widest">Suivi nutritionnel du {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                </div>
-               <button onClick={() => setActiveTab('weight')} className="relative z-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-6 py-3 rounded-full font-bold text-sm transition-all backdrop-blur-md w-full md:w-auto">
-                  <Scale size={16} /> Mettre à jour mon poids
-               </button>
             </div>
-            
+
             {/* SÉLECTEUR DE MODE & ACTIONS */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                <div className="bg-white border border-zinc-200 p-2 rounded-2xl flex items-center shadow-sm w-full md:w-auto">
@@ -2409,11 +2405,13 @@ export default function NutritionDashboard() {
                   <h3 className="font-black text-lg uppercase mb-1">Hydratation</h3>
                   <p className="text-xs font-bold text-zinc-500 mb-1">{waterGlasses} / 8 verres (Env. 2 Litres)</p>
                   <p className="text-[10px] font-medium text-blue-500 mb-4 italic px-4">L'eau draine les toxines et accélère ton métabolisme ! 💧</p>
-                  <div className="flex items-center gap-4">
-                     <button onClick={() => handleUpdateWater(-1)} className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center font-black text-xl text-zinc-500 hover:bg-zinc-200 transition-colors">-</button>
-                     <button onClick={() => handleUpdateWater(1)} className="bg-blue-50 text-blue-600 px-6 py-3 rounded-full font-black uppercase text-xs tracking-widest hover:bg-blue-100 transition-colors flex items-center gap-2 shadow-sm">
-                        <Plus size={16}/> Ajouter un verre
-                     </button>
+                  <div className="flex items-center bg-blue-50/50 border border-blue-100 rounded-full p-1.5 shadow-inner mb-2">
+                     <button onClick={() => handleUpdateWater(-1)} className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-black text-xl text-blue-400 hover:bg-blue-100 hover:text-blue-600 transition-colors shadow-sm">-</button>
+                     <div className="w-20 text-center flex flex-col">
+                        <span className="font-black text-blue-600 text-xl leading-none">{waterGlasses}</span>
+                        <span className="text-[8px] font-black uppercase text-blue-400 tracking-widest">Verres</span>
+                     </div>
+                     <button onClick={() => handleUpdateWater(1)} className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-black text-xl text-white hover:bg-blue-600 transition-colors shadow-sm">+</button>
                   </div>
                   {waterGlasses >= 8 && (
                      <div className="mt-4 bg-[#39FF14]/20 text-green-700 dark:text-[#39FF14] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm border border-[#39FF14]/30">
@@ -2475,8 +2473,8 @@ export default function NutritionDashboard() {
                     const itemsForThisMeal = safeConsumedMeals.filter(m => m.type === mealType);
                     
                     return (
-                       <div key={mealType} className={`${theme === 'dark' ? 'bg-zinc-900 shadow-2xl' : 'bg-white shadow-[0_15px_40px_rgba(0,0,0,0.06)]'} p-6 rounded-[2.5rem] border-0 transition-all hover:scale-[1.01] flex flex-col`}>
-                          <div className="flex justify-between items-center mb-4">
+                       <div key={mealType} className={`${theme === 'dark' ? 'bg-zinc-900 shadow-xl' : 'bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)]'} p-4 sm:p-5 rounded-[1.5rem] border-0 transition-all hover:scale-[1.01] flex flex-col`}>
+                          <div className="flex justify-between items-center mb-3">
                              <span className="bg-zinc-100 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">{mealType}</span>
                              {trackingMode === 'guided' && plannedMeal && (
                                 <span className="text-xs font-bold text-zinc-500 flex items-center gap-1"><Clock size={12}/> {plannedMeal.time}</span>
@@ -2485,13 +2483,13 @@ export default function NutritionDashboard() {
                           
                           <div className="flex-1">
                              {itemsForThisMeal.length > 0 && (
-                                <div className="space-y-3 mb-4">
+                                <div className="space-y-2 mb-3">
                                    {itemsForThisMeal.map((item, i) => (
-                                      <div key={item.id} className={`flex items-center justify-between p-4 rounded-3xl ${theme === 'dark' ? 'bg-zinc-800/80' : 'bg-zinc-50'} group shadow-sm hover:shadow-md transition-shadow`}>
+                                      <div key={item.id} className={`flex items-center justify-between p-3 rounded-2xl ${theme === 'dark' ? 'bg-zinc-800/80' : 'bg-zinc-50'} group shadow-sm hover:shadow-md transition-shadow`}>
                                          <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center text-lg">🍲</div>
+                                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center text-sm">🍲</div>
                                             <div>
-                                               <p className={`font-black text-sm ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-2`}>{item.name} {item.is_boutique && <span className="bg-[#39FF14]/10 text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}</p>
+                                               <p className={`font-black text-xs sm:text-sm ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-2`}>{item.name} {item.is_boutique && <span className="bg-[#39FF14]/10 text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}</p>
                                                <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-2 mt-0.5">
                                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.cals} kcal</span>
                                                   <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.prots}g prot</span>
@@ -2507,18 +2505,18 @@ export default function NutritionDashboard() {
                              )}
 
                            {plannedMeal && !itemsForThisMeal.some(m => m.name === plannedMeal.meal) && (
-                                <div className={`p-5 rounded-3xl transition-all group mb-4 shadow-inner ${theme === 'dark' ? 'bg-zinc-800/50 hover:bg-[#39FF14]/5' : 'bg-zinc-50 hover:bg-[#39FF14]/5'}`}>
+                                <div className={`p-3 sm:p-4 rounded-2xl transition-all group mb-3 shadow-inner ${theme === 'dark' ? 'bg-zinc-800/50 hover:bg-[#39FF14]/5' : 'bg-zinc-50 hover:bg-[#39FF14]/5'}`}>
                                  <div className="flex justify-between items-start mb-2">
-                                    <p className={`font-black text-lg ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{plannedMeal.meal}</p>
+                                    <p className={`font-black text-sm sm:text-base ${theme === 'dark' ? 'text-white' : 'text-black'} leading-tight`}>{plannedMeal.meal}</p>
                                     {trackingMode === 'flexible' && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[8px] font-black uppercase shrink-0">Suggestion Sama Menu</span>}
                                  </div>
-                                  <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-zinc-500">
-                                     <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {plannedMeal.cals} kcal</span>
-                                     <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {plannedMeal.proteins}g</span>
-                                     <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {plannedMeal.carbs}g</span>
-                                     <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {plannedMeal.fats}g</span>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] sm:text-xs font-bold text-zinc-500">
+                                     <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.cals} kcal</span>
+                                     <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.proteins}g</span>
+                                     <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.carbs}g</span>
+                                     <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.fats}g</span>
                                   </div>
-                                 <div className="mt-4 flex gap-2">
+                                 <div className="mt-3 flex gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
                                     <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, plannedMeal, 'guided'); }} className="px-4 bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center hover:bg-zinc-300 transition-colors">Recette</button>
                                    </div>
@@ -2527,9 +2525,9 @@ export default function NutritionDashboard() {
                           </div>
 
                           {(trackingMode === 'flexible' || (trackingMode === 'guided' && itemsForThisMeal.length === 0)) && (
-                             <div onClick={() => handleMealClick(mealType, plannedMeal, 'flexible')} className={`mt-4 flex flex-col items-center justify-center py-5 border-2 border-dashed rounded-3xl transition-all cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
-                                <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2 text-zinc-400">
-                                   <Plus size={16} />
+                             <div onClick={() => handleMealClick(mealType, plannedMeal, 'flexible')} className={`mt-2 flex flex-col items-center justify-center py-3 border-2 border-dashed rounded-2xl transition-all cursor-pointer ${theme === 'dark' ? 'border-zinc-700 hover:border-[#39FF14] hover:bg-[#39FF14]/5' : 'border-zinc-200 hover:border-[#39FF14] hover:bg-[#39FF14]/5'}`}>
+                                <div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-1.5 text-zinc-400">
+                                   <Plus size={14} />
                                 </div>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center">{itemsForThisMeal.length > 0 ? "Ajouter un autre plat ou produit" : "Recherche un plat ou un produit à ajouter à ma journée"}</span>
                              </div>
@@ -2537,6 +2535,53 @@ export default function NutritionDashboard() {
                        </div>
                     );
                 })}
+            </div>
+
+            {/* NOUVEAU : VITRINE BOUTIQUE INTÉGRÉE */}
+            <div className="mt-12 pt-12 border-t-2 border-dashed border-zinc-200 dark:border-zinc-800">
+               <div className="text-center mb-12">
+                  <div className="inline-flex items-center gap-2 bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
+                     <ShoppingBag size={14}/> Boutique Recommandée
+                  </div>
+                  <h2 className={`${spaceGrotesk.className} text-3xl md:text-4xl font-black uppercase tracking-tighter mb-4 text-black dark:text-white`}>
+                     Accélérez vos <span className="text-[#39FF14]">résultats.</span>
+                  </h2>
+                  <p className="text-zinc-500 font-bold text-base max-w-2xl mx-auto">Nos super-aliments et accessoires pour faciliter votre rééquilibrage.</p>
+               </div>
+
+               <div className="overflow-hidden mb-8" ref={emblaShopRef}>
+                  <div className="flex -ml-4">
+                      {(Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).filter((p: any) => p.badge === 'Best Seller' || p.rating >= 4.8).slice(0, 5).map((p: any, idx: number) => (
+                         <div key={idx} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.33%] min-w-0 pl-4">
+                             <div className={`border rounded-[2.5rem] p-6 hover:border-[#39FF14] transition-all hover:shadow-2xl group flex flex-col h-full ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                                 <div className="aspect-square rounded-[2rem] bg-zinc-50 dark:bg-zinc-950 overflow-hidden mb-6 relative cursor-pointer" onClick={() => openProductModal(p)}>
+                                    <img src={p.image_url} alt={p.nom} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    {p.badge && <span className="absolute top-4 right-4 bg-black text-[#39FF14] px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">{p.badge}</span>}
+                                    {p.stock <= 10 && <span className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg animate-pulse">Quantité Limitée</span>}
+                                 </div>
+                                 <div className="flex-1">
+                                    <h3 className="font-black text-lg uppercase tracking-tighter text-black dark:text-white mb-2 line-clamp-1">{p.nom}</h3>
+                                    <div className="flex flex-col gap-1 mb-6">
+                                       <p className="text-zinc-400 text-sm font-bold line-through">{p.prix_standard.toLocaleString()} F</p>
+                                       <p className="text-2xl font-black text-black dark:text-white">
+                                          {p.prix_premium.toLocaleString()} F <span className="text-[10px] font-bold text-[#39FF14] bg-black px-2 py-0.5 rounded ml-2 uppercase">Premium</span>
+                                       </p>
+                                    </div>
+                                 </div>
+                                 <button onClick={() => addToCart(p)} className="w-full bg-black text-white hover:bg-[#39FF14] hover:text-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl flex items-center justify-center gap-2">
+                                    <Plus size={16}/> Ajouter au Panier
+                                 </button>
+                             </div>
+                         </div>
+                      ))}
+                  </div>
+               </div>
+
+               <div className="mt-12 text-center">
+                  <button onClick={() => setActiveTab('shop')} className="inline-flex items-center gap-3 bg-white text-black border-2 border-black px-8 py-4 rounded-2xl font-black uppercase text-sm hover:bg-black hover:text-white transition-all shadow-lg">
+                     Voir toute la boutique <ArrowRight size={20}/>
+                  </button>
+               </div>
             </div>
 
             {/* BOUTON BILAN FIN DE JOURNÉE */}
@@ -3551,7 +3596,7 @@ export default function NutritionDashboard() {
               {/* CAROUSEL NOUVEAUTÉS */}
               <div className="mb-16">
                  <h3 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-2 text-black dark:text-white`}><Sparkles className="text-[#39FF14]"/> Nouveautés de la semaine</h3>
-                 <div className="overflow-hidden" ref={emblaShopRef}>
+                 <div className="overflow-hidden" ref={emblaNewArrivalsRef}>
                     <div className="flex gap-4">
                        {(Array.isArray(shopDataDB) ? shopDataDB : []).flatMap(cat => cat.produits || []).sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 6).map(product => (
                           <div key={product.id} onClick={() => openProductModal(product)} className={`flex-[0_0_auto] w-64 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'} border rounded-[2rem] p-4 cursor-pointer hover:border-[#39FF14] transition-all group shadow-sm mr-4`}>
