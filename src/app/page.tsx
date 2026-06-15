@@ -250,6 +250,8 @@ export default function OnyxOpsElite() {
   const [articles, setArticles] = useState<any[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [blogEmail, setBlogEmail] = useState("");
+  const [favoriteArticles, setFavoriteArticles] = useState<any[]>([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [simBudget, setSimBudget] = useState(50000);
 
   const waNumber = "221785338417";
@@ -293,6 +295,11 @@ export default function OnyxOpsElite() {
       }
     };
     fetchArticles();
+
+    const savedFavs = localStorage.getItem('onyx_blog_favorites');
+    if (savedFavs) {
+      try { setFavoriteArticles(JSON.parse(savedFavs)); } catch(e) {}
+    }
 
     // Récupération de l'ID Ambassadeur depuis l'URL ou la mémoire locale
     const searchParams = new URLSearchParams(window.location.search);
@@ -394,6 +401,10 @@ export default function OnyxOpsElite() {
   }, [onboardingFomoTime]);
 
   useEffect(() => {
+    localStorage.setItem('onyx_blog_favorites', JSON.stringify(favoriteArticles));
+  }, [favoriteArticles]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setShowAuthModal(false);
@@ -459,6 +470,13 @@ export default function OnyxOpsElite() {
   const handleWaClick = async (intent: string, msg: string) => {
     await saveLead({ source: 'Bouton Site', intent, message: msg, contact: leadData.phone || '', full_name: leadData.name || 'Visiteur Web' });
     window.open(getWaLink(msg), "_blank");
+  };
+
+  const toggleFavoriteArticle = (e: React.MouseEvent, articleId: any) => {
+    e.stopPropagation();
+    setFavoriteArticles(prev =>
+      prev.includes(articleId) ? prev.filter((id: any) => id !== articleId) : [...prev, articleId]
+    );
   };
 
   const handleQuizSubmit = (field: string, value: string) => {
@@ -1512,9 +1530,17 @@ export default function OnyxOpsElite() {
                <p className="text-zinc-600 font-bold mb-10 text-xl max-w-3xl mx-auto">Stratégies, astuces et méthodes pour dominer votre marché grâce au digital au Sénégal.</p>
             </div>
             
+            <div className="flex justify-center gap-4 mb-12">
+               <button onClick={() => setShowFavoritesOnly(false)} className={`px-6 py-2.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all ${!showFavoritesOnly ? 'bg-black text-[#39FF14] shadow-lg' : 'bg-white text-zinc-500 border border-zinc-200 hover:border-black hover:text-black'}`}>Tous les articles</button>
+               <button onClick={() => setShowFavoritesOnly(true)} className={`px-6 py-2.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-2 ${showFavoritesOnly ? 'bg-black text-[#39FF14] shadow-lg' : 'bg-white text-zinc-500 border border-zinc-200 hover:border-black hover:text-black'}`}><Heart size={14} className={showFavoritesOnly ? 'fill-[#39FF14] text-[#39FF14]' : ''} /> Mes Favoris {favoriteArticles.length > 0 && `(${favoriteArticles.length})`}</button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-               {articles.map((article) => (
-                  <div key={article.id} onClick={() => { setSelectedArticle(article); setBlogEmail(""); }} className="bg-white text-black border border-zinc-200 rounded-[3rem] p-8 shadow-sm hover:shadow-xl hover:border-black transition cursor-pointer flex flex-col h-full">
+               {(showFavoritesOnly ? articles.filter(a => favoriteArticles.includes(a.id)) : articles).map((article) => (
+                  <div key={article.id} onClick={() => { setSelectedArticle(article); setBlogEmail(""); }} className="bg-white text-black border border-zinc-200 rounded-[3rem] p-8 shadow-sm hover:shadow-xl hover:border-black transition cursor-pointer flex flex-col h-full relative group">
+                     <button onClick={(e) => toggleFavoriteArticle(e, article.id)} className="absolute top-6 right-6 p-3 bg-zinc-50 hover:bg-zinc-100 rounded-full transition-colors z-10 border border-transparent group-hover:border-zinc-200 shadow-sm" title="Ajouter aux favoris">
+                        <Heart size={18} className={`transition-colors ${favoriteArticles.includes(article.id) ? 'text-red-500 fill-red-500' : 'text-zinc-300 group-hover:text-red-400'}`} />
+                     </button>
                      <div className="flex gap-2 mb-6">
                         <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black uppercase">{article.category}</span>
                         <span className="bg-zinc-100 text-zinc-500 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Clock size={10}/> {article.readTime || '5 min'}</span>
@@ -1526,6 +1552,11 @@ export default function OnyxOpsElite() {
                      </div>
                   </div>
                ))}
+               {showFavoritesOnly && articles.filter(a => favoriteArticles.includes(a.id)).length === 0 && (
+                  <div className="col-span-full py-16 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200 rounded-3xl">
+                     Aucun article dans vos favoris pour le moment.
+                  </div>
+               )}
             </div>
 
             {selectedArticle && (
@@ -1890,7 +1921,7 @@ export default function OnyxOpsElite() {
                            <div className="w-full flex flex-col gap-2 mt-auto z-10">
                               <button onClick={() => { 
                                   if (!leadData.name || !leadData.phone) return alert("Veuillez saisir votre prénom et numéro WhatsApp.");
-                                  handleWaClick("Programme 3 Mois Nutrition", `Bonjour, je m'appelle ${leadData.name} et je veux profiter de l'offre 3 mois pour OnyxNutrition à 7.500F !`); setShowSaasChoice(null); 
+                                  handleWaClick("Programme 3 Mois Nutrition", `Bonjour, je m'appelle ${leadData.name} et je veux profiter de l'offre 3 mois pour Nutrition à l'Africaine à 7.500F !`); setShowSaasChoice(null); 
                               }} className="w-full bg-[#39FF14] text-black py-3 rounded-xl font-black text-[10px] uppercase hover:bg-white transition shadow-xl flex items-center justify-center gap-1">
                                  Prendre 3 mois & Économiser <ArrowRight size={14}/>
                               </button>
