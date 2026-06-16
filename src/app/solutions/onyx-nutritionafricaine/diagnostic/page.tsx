@@ -19,8 +19,9 @@ export default function NutritionDiagnostic() {
     name: "",
     phone: "",
     pin: "",
+    password: "",
     gender: "",
-    birthDate: "",
+    age: "",
     height: "",
     currentWeight: "",
     goalType: "",
@@ -34,16 +35,6 @@ export default function NutritionDiagnostic() {
   const progress = (step / totalSteps) * 100;
 
   // --- HELPER FUNCTIONS ---
-  const calculateAge = () => {
-    if (!formData.birthDate) return 0;
-    const today = new Date();
-    const birth = new Date(formData.birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-    return age;
-  };
-
   const handleChoice = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setTimeout(() => setStep(prev => prev + 1), 300);
@@ -65,7 +56,7 @@ export default function NutritionDiagnostic() {
   // --- NUTRITION ENGINE ---
   const heightCm = parseFloat(formData.height) || 0;
   const currentWeight = parseFloat(formData.currentWeight) || 0;
-  const age = calculateAge();
+  const age = parseInt(formData.age) || 0;
   const isMale = formData.gender === "Homme";
   
   const idealWeight = heightCm > 0 
@@ -116,6 +107,7 @@ export default function NutritionDiagnostic() {
         full_name: formData.name,
         phone: formData.phone,
         password_temp: formData.pin || "0000",
+        password: formData.password,
         type: "Client",
         saas: "Nutrition à l'Africaine",
         status: "Essai",
@@ -123,6 +115,8 @@ export default function NutritionDiagnostic() {
       }, { onConflict: 'phone' }).select().single();
 
       if (clientData) localStorage.setItem('onyx_custom_session', JSON.stringify(clientData));
+
+      const calculatedBirthDate = `${new Date().getFullYear() - (parseInt(formData.age) || 30)}-01-01`;
 
       await supabase.from('nutrition_profiles').upsert({
          phone: formData.phone,
@@ -133,7 +127,7 @@ export default function NutritionDiagnostic() {
          carbs_goal: Math.round(carbs),
          protein_goal: Math.round(protein),
          fats_goal: Math.round(fats),
-         diagnostic_data: formData,
+         diagnostic_data: { ...formData, birthDate: calculatedBirthDate },
          weekly_budget_tier: formData.weeklyBudget === 'Budget Serré' ? 'serre_8k' : formData.weeklyBudget === 'Budget Famille' ? 'famille_15k' : 'confort_25k',
          lunch_context: formData.lunchHabit === 'En solo au bureau' ? 'bureau_solo' : 'maison_bol_commun',
          cooking_mode: formData.cookingHabit === 'Je cuisine uniquement pour moi seule' ? 'pour_moi_seule' : 'pour_toute_la_famille',
@@ -453,13 +447,18 @@ export default function NutritionDiagnostic() {
                         className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" 
                       />
                       <input 
-                        type="password" required maxLength={4} placeholder="Code PIN secret (4 chiffres)"
+                        type="password" required placeholder="Mot de passe"
+                        value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black" 
+                      />
+                      <input 
+                        type="password" required maxLength={4} placeholder="Code PIN rapide (4 chiffres)"
                         value={formData.pin} onChange={(e) => setFormData({...formData, pin: e.target.value})}
                         className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black text-center" 
                       />
                       
                       <button 
-                        type="submit" disabled={isSubmitting || !formData.name || !formData.phone || !formData.pin}
+                        type="submit" disabled={isSubmitting || !formData.name || !formData.phone || !formData.pin || !formData.password}
                         className="w-full mt-4 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex justify-center items-center gap-2"
                       >
                         {isSubmitting ? "Calcul en cours..." : "Valider mon profil"} <ArrowRight size={18}/>

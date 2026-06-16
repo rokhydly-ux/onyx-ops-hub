@@ -4459,191 +4459,126 @@ export default function NutritionDashboard() {
             </div>
 
             <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pb-10">
-              {diagStep !== 5 ? (
-                <form onSubmit={handleDiagSubmit} className="space-y-6">
+              {diagStep !== 8 ? (
+                <form onSubmit={handleDiagSubmit} className="w-full">
                   {diagStep === 1 && (
-                    <div className="space-y-4 animate-in slide-in-from-right-8">
-                      <div className="flex items-center gap-3 mb-4"><Scale className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Informations de base</h3></div>
-                      
-                      {missingDiagGender && (
-                        <div className="space-y-2 mt-4">
-                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Votre sexe *</label>
-                        <div className="grid grid-cols-2 gap-4">
-                           <div onClick={() => setDiagData({...diagData, gender: 'Femme'})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.gender === 'Femme' ? 'border-[#39FF14] shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_1_1_en_gardant_202606111043_unmonc.jpg" className="w-full aspect-square object-cover" alt="Femme" />
-                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-sm backdrop-blur-sm">Femme</div>
-                           </div>
-                           <div onClick={() => setDiagData({...diagData, gender: 'Homme'})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.gender === 'Homme' ? 'border-[#39FF14] shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                              <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_format_1_1_en_202606111044_rjknkg.jpg" className="w-full aspect-square object-cover" alt="Homme" />
-                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-sm backdrop-blur-sm">Homme</div>
-                           </div>
-                        </div>
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre nouvel objectif ?</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                        {[
+                          { id: 'Perte de poids', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg', desc: 'Déficit calorique pour affiner le ventre' },
+                          { id: 'Maintien du poids', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg', desc: 'Stabiliser et manger sainement au quotidien' },
+                          { id: 'Prise de masse', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg', desc: 'Développer la masse musculaire' }
+                        ].map(goal => (
+                          <div key={goal.id} onClick={() => { setDiagData({...diagData, goalType: goal.id}); setTimeout(() => setDiagStep(2), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                            <img src={goal.img} alt={goal.id} className="w-full aspect-square object-cover" />
+                            <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
+                              <span className="font-black uppercase tracking-widest text-xs md:text-sm mb-1 text-center">{goal.id}</span>
+                              <span className="text-[10px] text-zinc-400 font-bold leading-tight text-center">{goal.desc}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      )}
-                      
-                      {diagData.gender === 'Femme' && (
-                         <div className="space-y-2 mt-4 animate-in slide-in-from-top-2">
-                            <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Profil de santé spécifique (Femme)</label>
-                            <select value={diagData.healthProfile} onChange={(e) => setDiagData({...diagData, healthProfile: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black cursor-pointer appearance-none">
-                               <option value="">Aucun / RAS</option>
-                               <option value="Allaitement">Allaitement</option>
-                               <option value="Grossesse">Grossesse</option>
-                               <option value="Péri-ménopause">Péri-ménopause</option>
-                               <option value="Ménopause">Ménopause</option>
-                               <option value="SOPK">SOPK (Syndrome des Ovaires Polykystiques)</option>
-                               <option value="Endométriose">Endométriose</option>
-                            </select>
-                         </div>
-                      )}
-
-                      {missingDiagAge && (
-                         <input type="number" required placeholder="Votre Âge *" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black mt-4" />
-                      )}
-                      {(missingDiagBirthDate && missingDiagAge) && (
-                         <div className="space-y-2 mt-4 animate-in slide-in-from-top-2">
-                            <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Date de naissance *</label>
-                            <input type="date" required value={diagData.birthDate} onChange={(e) => {
-                               const birthDate = e.target.value;
-                               let age = "";
-                               if (birthDate) {
-                                  const today = new Date();
-                                  const birth = new Date(birthDate);
-                                  let calculatedAge = today.getFullYear() - birth.getFullYear();
-                                  const m = today.getMonth() - birth.getMonth();
-                                  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) calculatedAge--;
-                                  age = calculatedAge.toString();
-                               }
-                               setDiagData({...diagData, birthDate, age});
-                            }} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
-                         </div>
-                      )}
                     </div>
                   )}
-                  
+
                   {diagStep === 2 && (
-                    <div className="space-y-4 animate-in slide-in-from-right-8">
-                      <div className="flex items-center gap-3 mb-4"><Target className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Vos Objectifs</h3></div>
-                      
-                      <div className="space-y-2 mb-6">
-                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est votre objectif principal ? *</label>
-                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            {[
-                           { id: "Perte de poids", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg", desc: "Déficit calorique" },
-                           { id: "Maintien", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg", desc: "TDEE exact" },
-                           { id: "Prise de masse", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg", desc: "Surplus calorique" }
-                            ].map(goal => (
-                           <div key={goal.id} onClick={() => setDiagData({...diagData, goalType: goal.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                              <img src={goal.img} className="w-full aspect-square object-cover" alt={goal.id} />
-                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 backdrop-blur-sm h-14 flex flex-col items-center justify-center leading-tight">
-                                 <span className="font-black uppercase tracking-widest text-xs">{goal.id}</span>
-                                 <span className="text-[9px] uppercase mt-0.5 opacity-70 tracking-widest">{goal.desc}</span>
-                              </div>
-                               </div>
-                            ))}
-                         </div>
-                      </div>
-
-                      <div className="flex flex-wrap md:flex-nowrap gap-4">
-                        <input type="number" required placeholder="Taille (cm) *" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
-                        <input type="number" required placeholder="Poids Actuel (kg) *" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
-                        <input type="number" required placeholder="Poids Cible (kg) *" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
-                      </div>
-
-                      {parseFloat(diagData.currentWeight) > 0 && parseFloat(diagData.targetWeight) > 0 && parseFloat(diagData.height) > 0 && (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 bg-zinc-50 p-6 rounded-[2rem] border border-zinc-200 shadow-inner">
-                          <div className="flex justify-center items-center gap-6 mb-6">
-                             <div className="flex flex-col items-center">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" alt="Cible" className="w-12 h-12 rounded-xl object-cover shadow-sm mb-2" />
-                                <span className="text-[10px] font-black uppercase text-zinc-500">Objectif</span>
-                             </div>
-                             <div className="flex flex-col items-center">
-                                <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458359/A_cute__highly_detailed_3D_202606141731_wog3pz.jpg" alt="Idéal" className="w-12 h-12 rounded-xl object-cover shadow-sm mb-2" />
-                                <span className="text-[10px] font-black uppercase text-[#39FF14]">Santé</span>
-                             </div>
-                          </div>
-                          
-                          <div className="h-56 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={[{name: 'Poids Actuel', poids: parseFloat(diagData.currentWeight) || 0}, {name: 'Objectif', poids: parseFloat(diagData.targetWeight) || 0}]} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" />
-                                <XAxis dataKey="name" stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis domain={['auto', 'auto']} stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
-                                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                <ReferenceLine y={(parseFloat(diagData.height) / 100) > 0 ? 22 * Math.pow(parseFloat(diagData.height) / 100, 2) : 0} stroke="#39FF14" strokeDasharray="3 3" label={{ position: 'top', value: 'Idéal Santé', fill: '#39FF14', fontSize: 12, fontWeight: 'bold' }} />
-                                <Line type="monotone" dataKey="poids" stroke="#000" strokeWidth={4} dot={{ r: 8, fill: '#000', stroke: '#39FF14', strokeWidth: 3 }} animationDuration={1500} />
-                              </LineChart>
-                            </ResponsiveContainer>
-                          </div>
-                        </motion.div>
-                      )}
-
-                      <div className="space-y-2 mt-6">
-                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Combien de pas faites-vous par jour ? *</label>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {["< 5 000 pas/jour (Sédentaire)", "5 000 à 7 499 pas/jour (Légèrement actif)", "7 500 à 9 999 pas/jour (Actif)", "10 000+ pas/jour (Très actif)"].map(steps => (
-                               <button type="button" key={steps} onClick={() => setDiagData({...diagData, dailySteps: steps})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${diagData.dailySteps === steps ? 'bg-black text-[#39FF14] border-black shadow-lg' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
-                                  {steps}
-                               </button>
-                            ))}
-                         </div>
-                      </div>
-                      
-                      {diagData.goalType === 'Perte de poids' && (
-                      <div className="space-y-2 mt-6 bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
-                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Rythme de perte de poids souhaité *</label>
-                        <div className="relative pt-4 pb-2 px-2">
-                           <input 
-                              type="range" min="1" max="3" step="1" 
-                              value={diagData.weightLossPace === 'Progressivement' ? 1 : diagData.weightLossPace === 'Normalement' ? 2 : 3}
-                              onChange={(e) => {
-                                 const val = e.target.value;
-                                 setDiagData({...diagData, weightLossPace: val === '1' ? 'Progressivement' : val === '2' ? 'Normalement' : 'Rapidement'});
-                              }}
-                              className="w-full accent-black h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
-                           />
-                           <div className="flex justify-between text-[10px] font-black uppercase text-zinc-400 mt-4">
-                              <span className={`w-1/3 text-left ${diagData.weightLossPace === 'Progressivement' ? 'text-[#39FF14] drop-shadow-md' : ''}`}>Progressif<br/>(-0.3kg/sem)</span>
-                              <span className={`w-1/3 text-center ${diagData.weightLossPace === 'Normalement' ? 'text-black' : ''}`}>Normal<br/>(-0.5kg/sem)</span>
-                              <span className={`w-1/3 text-right ${diagData.weightLossPace === 'Rapidement' ? 'text-red-500' : ''}`}>Rapide<br/>(-0.7kg/sem)</span>
-                           </div>
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quelles sont vos mensurations actuelles ?</h2>
+                      <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200 space-y-6">
+                        <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Taille (cm)</label>
+                          <input type="number" required placeholder="Ex: 170" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Actuel (kg)</label>
+                          <input type="number" required placeholder="Ex: 75" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
+                        </div>
+                        <button type="button" onClick={() => setDiagStep(3)} disabled={!diagData.height || !diagData.currentWeight} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100">Continuer</button>
                       </div>
-                      )}
                     </div>
                   )}
 
                   {diagStep === 3 && (
-                    <div className="space-y-4 animate-in slide-in-from-right-8">
-                      <div className="flex items-center gap-3 mb-4"><Apple className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Habitudes Alimentaires</h3></div>
-                      <div className="space-y-2">
-                         <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Consommation de riz/plats en sauce ? *</label>
-                         <div className="grid grid-cols-1 gap-2">
-                            {["Tous les jours", "3-4 fois par semaine", "Rarement"].map(habit => (
-                               <button type="button" key={habit} onClick={() => setDiagData({...diagData, dietaryHabits: habit})} className={`p-4 rounded-2xl border-2 text-left font-bold text-sm transition-all ${diagData.dietaryHabits === habit ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
-                                  {habit}
-                               </button>
-                            ))}
-                         </div>
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Vos conditions ont-elles changé ?</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg mb-8">
+                        {['Diabète', 'Hypertension', 'Préménopause ou Ménopause', 'Aucun problème'].map(condition => {
+                          const isSelected = diagData.healthProfile === condition;
+                          return (
+                            <div key={condition} onClick={() => setDiagData({...diagData, healthProfile: condition})} className={`cursor-pointer border-4 rounded-2xl p-6 flex items-center justify-between transition-all duration-300 ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-zinc-200 bg-white hover:border-zinc-400'}`}>
+                              <span className="font-bold text-sm md:text-base text-black">{condition}</span>
+                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-[#39FF14] bg-[#39FF14]' : 'border-zinc-300'}`}>{isSelected && <CheckCircle size={14} className="text-black" />}</div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="space-y-4 mt-6">
-                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est ton défi principal au quotidien ? *</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                           {[
-                             { id: "Le Sel & la Tension", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781177365/A_studio_minimalist_close-up_shot_202606111128_iln7to.jpg", title: "Le Sel & la Tension" },
-                             { id: "Le Sucre & l'Attaya", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781177365/A_minimalist_close-up_shot_of_202606111128_cn0uom.jpg", title: "Le Sucre & l'Attaya" },
-                             { id: "Le Bol Familial", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781177435/A_high-angle_studio_shot_of_202606111129_rmwlo7.jpg", title: "Le Bol Familial" }
-                           ].map(challenge => (
-                              <div key={challenge.id} onClick={() => setDiagData({...diagData, mainChallenge: challenge.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.mainChallenge === challenge.id ? 'border-[#39FF14] shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                                 <img src={challenge.img} className="w-full aspect-square object-cover" alt={challenge.title} />
-                                 <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-3 font-black uppercase tracking-widest text-[10px] backdrop-blur-sm">{challenge.title}</div>
-                              </div>
-                           ))}
-                        </div>
-                      </div>
+                      <button type="button" onClick={() => setDiagStep(4)} disabled={!diagData.healthProfile} className="w-full max-w-lg bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100">Continuer</button>
                     </div>
                   )}
 
                   {diagStep === 4 && (
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Comment déjeunez-vous le midi ?</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
+                        {[
+                          { id: 'En solo au bureau', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/La_Gamelle_ywfy3t.jpg', desc: 'Avec ma gamelle / Tupperware' },
+                          { id: 'À la maison', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Le_Bol_Commun_hb9fns.jpg', desc: 'Autour du grand bol familial commun' }
+                        ].map(habit => (
+                          <div key={habit.id} onClick={() => { setDiagData({...diagData, lunchHabit: habit.id}); setTimeout(() => setDiagStep(5), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.lunchHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                            <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
+                            <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
+                              <span className="font-black uppercase tracking-widest text-sm mb-2 text-center">{habit.id}</span>
+                              <span className="text-xs text-zinc-400 font-bold leading-relaxed text-center">{habit.desc}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {diagStep === 5 && (
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Pour qui préparez-vous les repas ?</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
+                        {[
+                          { id: 'Je cuisine uniquement pour moi seule', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_moi_seule_mfo6vw.jpg' },
+                          { id: 'Je cuisine la marmite pour toute la famille', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_la_famille_qzlwke.jpg' }
+                        ].map(habit => (
+                          <div key={habit.id} onClick={() => { setDiagData({...diagData, cookingHabit: habit.id}); setTimeout(() => setDiagStep(6), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.cookingHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                            <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
+                            <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
+                              <span className="font-black uppercase tracking-tight text-sm text-center">{habit.id}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {diagStep === 6 && (
+                    <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
+                      <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre budget courses par semaine ?</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                        {[
+                          { id: 'Budget Serré', price: '8 000 F / semaine', desc: 'La base survie et efficacité', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630660/A_cute__highly_detailed_3D_202606161723_fcl8jj.jpg' },
+                          { id: 'Budget Famille', price: '15 000 F / semaine', desc: 'Équilibre, goût et variété', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630665/A_cute__highly_detailed_3D_202606161723_1_rx6yry.jpg' },
+                          { id: 'Budget Confort', price: '25 000 F / semaine', desc: 'Santé premium 100% locale', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630664/A_cute__highly_detailed_3D_202606161723_2_xxku54.jpg' }
+                        ].map(budget => (
+                          <div key={budget.id} onClick={() => { setDiagData({...diagData, weeklyBudget: budget.id}); setTimeout(() => setDiagStep(7), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.weeklyBudget === budget.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                            <img src={budget.img} alt={budget.id} className="w-full aspect-square object-cover" />
+                            <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
+                              <span className="font-black uppercase tracking-widest text-xs mb-1">{budget.id}</span>
+                              <span className="text-[#39FF14] font-bold text-[10px] mb-2">{budget.price}</span>
+                              <span className="text-zinc-400 text-[10px] text-center leading-tight">{budget.desc}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {diagStep === 7 && (
                     <div className="text-center py-6 animate-in zoom-in">
                       <CheckCircle className="text-[#39FF14] w-16 h-16 mx-auto mb-4" />
                       <h3 className="text-xl font-black uppercase mb-2 text-black">Analyse en cours...</h3>
@@ -4653,13 +4588,6 @@ export default function NutritionDashboard() {
                       </button>
                     </div>
                   )}
-
-                  {diagStep < 4 && (
-                    <div className="flex gap-4 pt-4 border-t border-zinc-100">
-                      {diagStep > 1 && <button type="button" onClick={() => setDiagStep(diagStep - 1)} className="px-6 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black">Retour</button>}
-                      <button type="button" onClick={() => setDiagStep(diagStep + 1)} className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800">Suivant <ChevronRight size={18}/></button>
-                    </div>
-                  )}
                 </form>
               ) : (
                 <div className="text-center py-6 animate-in zoom-in">
@@ -4667,9 +4595,6 @@ export default function NutritionDashboard() {
                   <p className="text-zinc-600 font-medium mb-8">Les nouveaux menus ont été générés selon vos nouveaux paramètres, vous pouvez reprendre le suivi dès maintenant.</p>
                   
                   <div className="flex flex-col gap-3 mt-4">
-                     <button onClick={() => handleDownloadDiagnosticPDF(true)} disabled={isSharingPDF} type="button" className="w-full bg-[#25D366] text-white py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2 disabled:opacity-50">
-                        {isSharingPDF ? <Loader2 size={18} className="animate-spin"/> : <MessageCircle size={18}/>} Partager mon bilan sur WhatsApp
-                     </button>
                      <button onClick={() => setDiagStep(0)} type="button" className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors shadow-lg flex justify-center items-center gap-2">
                         Retourner au Tracker <ArrowRight size={18}/>
                      </button>
@@ -4679,9 +4604,8 @@ export default function NutritionDashboard() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* MODALE DE PAIEMENT WAVE / OM */}
+      )}\n
+      {/* MODALE DE PAIEMENT WAVE / OM */}{/* MODALE DE PAIEMENT WAVE / OM */}
       {showPaymentModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowPaymentModal(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white p-8 rounded-[3rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.15)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto flex flex-col overflow-hidden">
