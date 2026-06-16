@@ -453,6 +453,7 @@ export default function NutritionDashboard() {
   const [carbsGoal, setCarbsGoal] = useState(150);
   const [fatsGoal, setFatsGoal] = useState(50);
   const [isFastingMode, setIsFastingMode] = useState(false);
+  const [isExpertMode, setIsExpertMode] = useState(false);
   
   // Smart Planner (Générateur)
   const [weeklyGeneratedMenu, setWeeklyGeneratedMenu] = useState<any[]>([]);
@@ -668,6 +669,7 @@ export default function NutritionDashboard() {
              setProteinGoal(nutritionData.protein_goal || 80);
              setCarbsGoal(nutritionData.carbs_goal || 150);
              setFatsGoal(nutritionData.fats_goal || 50);
+             setIsExpertMode(nutritionData.expert_mode || false);
              setJongomaXP(nutritionData.jongoma_xp || 0);
              setIsFastingMode(nutritionData.diagnostic_data?.fasting_mode || false);
              if (nutritionData.weekly_menu && Array.isArray(nutritionData.weekly_menu) && nutritionData.weekly_menu.length > 0) {
@@ -1199,10 +1201,7 @@ export default function NutritionDashboard() {
       const diffIdealTarget = Math.abs(targetWInput - idealW);
       const showWarning = targetWInput > 0 && idealW > 0 && diffIdealTarget > 5;
 
-      if (diagStep === 2 && showWarning && !forceTarget) {
-         alert("Veuillez confirmer votre objectif de poids avant de continuer.");
-         return;
-      }
+      // Removed blocking validation to prevent user friction. The UI warning is sufficient.
 
       if (diagStep < 4) {
           setDiagStep(diagStep + 1);
@@ -1262,23 +1261,39 @@ export default function NutritionDashboard() {
   const getGroceryList = () => {
       const list: any = { 'Produits Locaux / Épices': {}, 'Glucides & Laitages': {}, 'Protéines Fraîches': {} };
       const safeWeeklyMenu = Array.isArray(weeklyGeneratedMenu) ? weeklyGeneratedMenu : [];
+      const cookingMultiplier = clientProfile?.diagnostic_data?.cooking_mode === 'pour_toute_la_famille' ? 4 : 1;
+      const stapleIngredients = ['riz', 'huile', 'oignon', 'tomate', 'légumes']; // à affiner
+
       safeWeeklyMenu.forEach(dayInfo => {
           Object.values(dayInfo?.meals || {}).forEach((recipe: any) => {
               if (!recipe || !Array.isArray(recipe.ingredients)) return;
               recipe.ingredients.forEach((ing: any) => {
-                  let finalRayon = 'Glucides & Laitages';
+                  let finalRayon = ing.rayon || 'Glucides & Laitages';
                   if (ing.rayon === 'Boutique Onyx' || ing.rayon === 'Marché local') finalRayon = 'Produits Locaux / Épices';
                   if (ing.rayon === 'Boucherie / Pêche') finalRayon = 'Protéines Fraîches';
                   
                   if (!list[finalRayon]) list[finalRayon] = {};
+                  
+                  const isStaple = stapleIngredients.some(staple => ing.nom.toLowerCase().includes(staple));
+                  const finalQuantity = isStaple ? ing.quantite * cookingMultiplier : ing.quantite;
+
                   if (list[finalRayon][ing.nom]) {
-                      list[finalRayon][ing.nom].quantite += ing.quantite;
+                      list[finalRayon][ing.nom].quantite += finalQuantity;
                   } else {
-                      list[finalRayon][ing.nom] = { quantite: ing.quantite, unite: ing.unite };
+                      list[finalRayon][ing.nom] = { quantite: finalQuantity, unite: ing.unite, price_cfa: ing.price_cfa || 0 };
                   }
               });
           });
       });
+
+      // Ajout conditionnel pour l'hypertension
+      if (clientProfile?.diagnostic_data?.health_conditions?.includes('hypertension')) {
+          if (!list['Produits Locaux / Épices']) list['Produits Locaux / Épices'] = {};
+          if (!list['Produits Locaux / Épices']['Nététou / Soumbala']) {
+              list['Produits Locaux / Épices']['Nététou / Soumbala'] = { quantite: 1, unite: 'sachet', price_cfa: 500 };
+          }
+      }
+
       return list;
   };
 
@@ -1404,6 +1419,8 @@ export default function NutritionDashboard() {
           supabase.from('nutrition_profiles').update({ pdf_history: newHistory }).eq('client_id', clientProfile.id);
       }
   };
+
+
 
   const handleUpdateWater = async (delta: number) => {
     if (!clientProfile) return;
@@ -1930,6 +1947,12 @@ export default function NutritionDashboard() {
      alert(newMode ? "Mode Jeûne Intermittent activé. Votre menu va être recalculé sans petit-déjeuner." : "Mode Jeûne désactivé. Le petit-déjeuner est de retour !");
      generateWeeklyMenu(newMode);
   };
+
+  const handleExpertModeChange = async (mode: boolean) => {
+      setIsExpertMode(mode);
+      if (clientProfile) await supabase.from('nutrition_profiles').update({ expert_mode: mode }).eq('client_id', clientProfile.id);
+  };
+
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-zinc-50"><Loader2 className="w-10 h-10 animate-spin text-[#39FF14]" /></div>;
@@ -2692,10 +2715,10 @@ export default function NutritionDashboard() {
                                   <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] sm:text-xs font-bold text-zinc-500">
                                      <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.cals} kcal</span>
                                      <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.proteins}g</span>
-                                     <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.carbs}g</span>
-                                     <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.fats}g</span>
+                                     {isExpertMode && <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.carbs}g</span>}
+                                     {isExpertMode && <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.fats}g</span>}
                                   </div>
-                                 <div className="mt-3 flex gap-2">
+                                 <div className="mt-3 flex gap-2 items-center">
                                     <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
                                     <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, plannedMeal, 'guided'); }} className="px-4 bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center hover:bg-zinc-300 transition-colors">Recette</button>
                                    </div>
@@ -3406,6 +3429,7 @@ export default function NutritionDashboard() {
                                  if(!recipe) return null;
                                  const isToday = dayPlan.day === formattedCurrentDay;
                                  const isConsumed = isToday && consumedMeals.some((m: any) => m.name === recipe.nom && m.type === mealType);
+                                 const isBolCommun = clientProfile?.diagnostic_data?.lunch_context === 'maison_bol_commun' && mealType === 'Déjeuner';
 
                                  return (
                                     <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
@@ -3413,8 +3437,16 @@ export default function NutritionDashboard() {
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
-                                       <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{recipe.calories} kcal</span>
+                                       <div className="text-right shrink-0 flex flex-col items-end gap-1 relative">
+                                          {isBolCommun && (
+                                             <div className="group">
+                                                <AlertTriangle size={16} className="text-orange-500 cursor-pointer mb-1"/>
+                                                <div className="absolute bottom-full right-0 mb-2 w-64 bg-black text-white text-xs font-medium p-3 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                                   💡 <strong>Conseil Woyof :</strong> Servez votre part dans une petite assiette creuse avant de rejoindre la famille, ou limitez votre espace de riz à la taille de votre poing dans le grand bol.
+                                                </div>
+                                             </div>
+                                          )}
+                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories} kcal` : (recipe.ux_unit || `${recipe.calories} kcal`)}</span>
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9)); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
@@ -3447,6 +3479,13 @@ export default function NutritionDashboard() {
                         <button onClick={() => setShowGroceryList(true)} className="bg-black text-[#39FF14] px-10 py-5 rounded-[2.5rem] font-black uppercase text-sm md:text-base tracking-widest hover:scale-105 transition-transform shadow-[0_15px_40px_rgba(57,255,20,0.3)] flex items-center justify-center gap-3">
                            <ShoppingCart size={24}/> Voir ma liste de courses
                         </button>
+                     {(() => {
+                        const list = getGroceryList();
+                        const totalCost = Object.values(list).flatMap(rayon => Object.values(rayon as any)).reduce((acc: number, item: any) => acc + (item.price_cfa * item.quantite), 0);
+                        return (
+                           <p className="text-xs font-bold text-zinc-500 mt-2">Coût estimé pour la semaine : {totalCost.toLocaleString('fr-FR')} FCFA (Marché Sandaga/Auchan)</p>
+                        );
+                     })()}
                         <button onClick={downloadGroceryListPDF} className="bg-white text-black border-2 border-zinc-200 px-8 py-5 rounded-[2.5rem] font-black uppercase text-sm md:text-base tracking-widest hover:scale-105 transition-transform shadow-sm flex items-center justify-center gap-3">
                            <Download size={24}/> Télécharger PDF
                         </button>

@@ -35,7 +35,6 @@ export default function NutritionDiagnostic() {
     allergies: "",
     cookingHabit: "",
     weeklyBudget: "",
-    familyDynamic: "",
     lunchHabit: "",
     shoppingHabit: "",
     sleepHours: ""
@@ -180,10 +179,7 @@ export default function NutritionDiagnostic() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step === 2 && showWarning && !forceTarget) {
-      alert("Veuillez confirmer votre objectif de poids avant de continuer.");
-      return;
-    }
+    // Removed blocking validation to prevent user friction.
     if (step < 6) {
       setStep(step + 1);
       return;
@@ -223,6 +219,10 @@ export default function NutritionDiagnostic() {
          protein_goal: Math.round(protein),
          fats_goal: Math.round(fats),
          diagnostic_data: formData,
+         weekly_budget_tier: formData.weeklyBudget === 'Serré' ? 'serre_8k' : formData.weeklyBudget === 'Famille' ? 'famille_15k' : 'confort_25k',
+         lunch_context: formData.lunchHabit === 'Au bureau avec ma gamelle' ? 'bureau_solo' : formData.lunchHabit === 'À la maison autour du bol familial' ? 'maison_bol_commun' : 'restaurant',
+         cooking_mode: formData.cookingHabit === 'Je cuisine pour moi seule' ? 'pour_moi_seule' : 'pour_toute_la_famille',
+         health_conditions: [formData.healthProfile].filter(p => p && p !== 'Aucun'),
          weekly_menu: [] // On réinitialise le menu existant pour forcer la regénération
       }, { onConflict: 'client_id' });
 
@@ -273,7 +273,7 @@ export default function NutritionDiagnostic() {
             {step === 7 ? "Diagnostic Terminé !" : "Création de votre profil"}
           </h1>
           <p className="text-zinc-400 text-sm mt-2 font-medium">
-            {step === 7 ? "L'algorithme a traité vos données." : "Pour un plan alimentaire 100% adapté à vos besoins."}
+            {step === 7 ? "Votre plan personnalisé est prêt." : "Pour un plan alimentaire 100% adapté à vos besoins."}
           </p>
         </div>
 
@@ -553,59 +553,6 @@ export default function NutritionDiagnostic() {
             </form>
           ) : (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-4">
-              
-              {/* L'En-tête de Victoire */}
-              <div className="bg-gradient-to-r from-green-600 to-[#2bd40d] text-white p-6 rounded-[2rem] shadow-2xl mb-8">
-                 <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase mb-2 tracking-tighter leading-tight`}>Diagnostic Terminé !</h2>
-                 <p className="font-bold text-sm">Ta feuille de route Jongoma est prête.</p>
-              </div>
-
-              {/* Le Comparatif de Poids Visuel */}
-              <div className="flex flex-col sm:flex-row items-center justify-between bg-zinc-50 border border-zinc-200 rounded-[2rem] p-6 mb-8 shadow-sm relative">
-                 <div className="text-center w-full sm:w-1/3">
-                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Poids Actuel</p>
-                    <p className="text-4xl md:text-5xl font-black text-red-500">{formData.currentWeight || '--'} <span className="text-lg">kg</span></p>
-                 </div>
-                 
-                 <div className="w-full sm:w-1/3 flex flex-col items-center justify-center py-4 sm:py-0">
-                    <motion.div animate={{ x: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 1.5 }} className="bg-black text-[#39FF14] p-3 rounded-full mb-2 shadow-[0_0_15px_#39FF14]">
-                       <ArrowRight size={24} />
-                    </motion.div>
-                    <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest text-center">En {estimatedWeeks > 0 ? estimatedWeeks : '--'} semaines<br/>sans frustration</p>
-                 </div>
-
-                 <div className="text-center w-full sm:w-1/3">
-                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Poids Idéal Santé</p>
-                    <p className="text-4xl md:text-5xl font-black text-[#39FF14] drop-shadow-[0_0_15px_rgba(57,255,20,0.5)]">{idealWeight > 0 ? idealWeight.toFixed(1) : '--'} <span className="text-lg text-black">kg</span></p>
-                 </div>
-              </div>
-              
-              {/* Le Badge du Profil Métabolique */}
-              <div className="bg-[#39FF14]/10 border-2 border-[#39FF14] rounded-2xl p-4 mb-8 flex items-center gap-4 text-left shadow-inner">
-                 <div className="bg-[#39FF14] p-3 rounded-xl text-black shadow-md"><Activity size={24} /></div>
-                 <div>
-                    <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Ton Profil Métabolique</p>
-                    <p className="font-black text-black text-sm md:text-base uppercase leading-tight mt-0.5">
-                       Jongoma {formData.dailySteps.includes('< 5 000') ? 'Sédentaire' : 'Active'} - 
-                       {formData.mainChallenge === 'Le Sel & la Tension' ? ' Sensible au Sel' : formData.mainChallenge === "Le Sucre & l'Attaya" ? ' Alerte Sucre' : ' Profil Familial'}
-                       {formData.healthProfile && formData.healthProfile !== 'Forme standard' ? ` - ${formData.healthProfile}` : ''}
-                    </p>
-                 </div>
-              </div>
-
-            {formData.healthProfile === 'Allaitement' && (
-               <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-8 flex items-center gap-4 text-left shadow-inner">
-                  <div className="text-2xl">🤱</div>
-                  <div><p className="font-black text-orange-600 text-sm uppercase">Profil Maman Énergie</p><p className="text-xs text-orange-800 font-medium mt-1">Tes calories incluent un bonus de 500 kcal pour nourrir ton bébé en toute sécurité sans bloquer ta perte de poids.</p></div>
-               </div>
-            )}
-            {age >= 50 && (
-               <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 mb-8 flex items-center gap-4 text-left shadow-inner">
-                  <div className="text-2xl">🧘‍♀️</div>
-                  <div><p className="font-black text-purple-600 text-sm uppercase">Profil Longévité</p><p className="text-xs text-purple-800 font-medium mt-1">Ton objectif de protéines a été rehaussé pour protéger ton tonus musculaire et tes articulations.</p></div>
-               </div>
-            )}
-
               <div className="bg-zinc-50 border border-zinc-200 rounded-[2rem] p-6 mb-10 text-left shadow-sm">
                  <p className="text-lg font-medium leading-relaxed text-zinc-800">
                    Calcul médical terminé. Votre corps a besoin de <strong className="font-black text-black text-2xl">{Math.round(dailyCalories)}</strong> kcal/jour.
@@ -614,7 +561,6 @@ export default function NutritionDiagnostic() {
                    La bonne nouvelle ? Vous n'aurez plus jamais à les compter. Suivez simplement nos portions en bols et cuillères.
                  </p>
               </div>
-
               <div className="flex flex-col gap-3">
                  <button onClick={handleWaRedirect} className="w-full bg-black text-[#39FF14] py-5 rounded-xl font-black uppercase text-sm tracking-widest hover:scale-105 transition-transform shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex justify-center items-center gap-2">
                     Débloquer mon plan (14 jours d'essai) <ArrowRight size={18}/>

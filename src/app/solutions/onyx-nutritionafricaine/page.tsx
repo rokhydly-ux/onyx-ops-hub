@@ -361,10 +361,7 @@ export default function NutritionAfricaineLanding() {
   // Diagnostic Modal Handlers
   const handleDiagSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (diagStep === 2 && showWarning && !forceTarget) {
-      alert("Veuillez confirmer votre objectif de poids avant de continuer.");
-      return;
-    }
+    // Removed blocking validation to prevent user friction.
     if (diagStep < 6) {
       setDiagStep(diagStep + 1);
       return;
