@@ -773,6 +773,7 @@ export default function AdminNutritionAfricaine() {
                       item.id = existingProd.id;
                       item.produit_id = existingProd.produit_id || `prod_${Date.now()}_${Math.floor(Math.random()*1000)}`;
                   } else {
+                      item.id = crypto.randomUUID();
                       item.produit_id = `prod_${Date.now()}_${Math.floor(Math.random()*1000)}`;
                   }
                   if (tenantId) item.tenant_id = tenantId;
@@ -838,7 +839,6 @@ export default function AdminNutritionAfricaine() {
       e.preventDefault();
       const payload = { ...productForm };
       payload.gallery = payload.gallery.map((url: string) => url.trim()).filter(Boolean);
-      delete payload.id;
       delete (payload as any).tenant_id;
       if (tenantId) (payload as any).tenant_id = tenantId;
       if (editingProduct) {
@@ -846,6 +846,7 @@ export default function AdminNutritionAfricaine() {
           if (!error) { setProducts(products.map(p => p.id === productForm.id ? { ...payload, id: productForm.id } : p)); setShowProductModal(false); }
           else alert(error.message);
       } else {
+          (payload as any).id = crypto.randomUUID();
           const { data, error } = await supabase.from('nutrition_products').insert([payload]).select().single();
           if (!error && data) { setProducts([data, ...products]); setShowProductModal(false); }
           else alert(error?.message);
