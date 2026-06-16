@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale, Flame, Lock, Download } from "lucide-react";
+import { ArrowRight, CheckCircle, Activity, ChevronRight, Target, Apple, Scale, Flame, Lock, Download, HeartPulse, Droplet, Wind, Utensils, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import jsPDF from "jspdf";
@@ -33,6 +33,8 @@ export default function NutritionDiagnostic() {
     mainChallenge: "",
     dietaryHabits: "",
     allergies: "",
+    cookingHabit: "",
+    weeklyBudget: "",
     familyDynamic: "",
     lunchHabit: "",
     shoppingHabit: "",
@@ -182,7 +184,7 @@ export default function NutritionDiagnostic() {
       alert("Veuillez confirmer votre objectif de poids avant de continuer.");
       return;
     }
-    if (step < 4) {
+    if (step < 6) {
       setStep(step + 1);
       return;
     }
@@ -244,7 +246,7 @@ export default function NutritionDiagnostic() {
       }
       localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
-      setStep(5); // Success step
+      setStep(7); // Success step
     } catch (err) {
       alert("Une erreur est survenue.");
     } finally {
@@ -264,25 +266,25 @@ export default function NutritionDiagnostic() {
         {/* Header */}
         <div className="bg-black text-white p-8 text-center relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800">
-            <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${(step / 4) * 100}%` }}></div>
+            <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${(step / 6) * 100}%` }}></div>
           </div>
           <Activity className="text-[#39FF14] mx-auto mb-4" size={32} />
           <h1 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter`}>
-            {step === 5 ? "Diagnostic Terminé !" : "Création de votre profil"}
+            {step === 7 ? "Diagnostic Terminé !" : "Création de votre profil"}
           </h1>
           <p className="text-zinc-400 text-sm mt-2 font-medium">
-            {step === 5 ? "L'algorithme a traité vos données." : "Pour un plan alimentaire 100% adapté à vos besoins."}
+            {step === 7 ? "L'algorithme a traité vos données." : "Pour un plan alimentaire 100% adapté à vos besoins."}
           </p>
         </div>
 
         {/* Form Content */}
         <div className="p-8 flex-1 flex flex-col justify-center">
-          {step !== 5 ? (
+          {step !== 7 ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              {step === 1 && (
+              {step === 1 && ( // Étape 1: Informations de base
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                  <div className="flex items-center gap-3 mb-6"><Scale className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Informations de base</h2></div>
+                  <div className="flex items-center gap-3 mb-6"><Scale className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Étape 1: Vos Informations</h2></div>
                   <input type="text" name="name" required placeholder="Votre Prénom et Nom *" value={formData.name} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   <input type="tel" name="phone" required placeholder="Numéro WhatsApp *" value={formData.phone} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   <input type="password" name="pin" maxLength={4} required placeholder="Créez un code PIN (4 chiffres) *" value={formData.pin} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
@@ -316,13 +318,7 @@ export default function NutritionDiagnostic() {
                         setFormData({...formData, birthDate, age});
                      }} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                   </div>
-                </motion.div>
-              )}
 
-              {step === 2 && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                  <div className="flex items-center gap-3 mb-6"><Target className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Mensurations & Objectifs</h2></div>
-                  
                   <div className="space-y-2 mb-6">
                      <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est votre objectif principal ? *</label>
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -341,11 +337,39 @@ export default function NutritionDiagnostic() {
                         ))}
                      </div>
                   </div>
-
+                  
                   <div className="flex flex-wrap md:flex-nowrap gap-4">
                     <input type="number" name="height" required placeholder="Taille (cm) *" value={formData.height} onChange={handleChange} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                     <input type="number" name="currentWeight" required placeholder="Poids Actuel (kg) *" value={formData.currentWeight} onChange={handleChange} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
                     <input type="number" name="targetWeight" required placeholder="Poids Cible (kg) *" value={formData.targetWeight} onChange={handleChange} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 2 && ( // Étape 2: Santé
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="flex items-center gap-3 mb-6"><HeartPulse className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Étape 2: Votre Santé</h2></div>
+                  
+                  <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Avez-vous des conditions spécifiques ?</label>
+                      <div className="grid grid-cols-2 gap-4">
+                          <div onClick={() => setFormData({...formData, healthProfile: 'Diabète'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${formData.healthProfile === 'Diabète' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <Droplet size={24} />
+                              <span className="font-bold text-sm">Diabète</span>
+                          </div>
+                          <div onClick={() => setFormData({...formData, healthProfile: 'Hypertension'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${formData.healthProfile === 'Hypertension' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <HeartPulse size={24} />
+                              <span className="font-bold text-sm">Hypertension</span>
+                          </div>
+                          <div onClick={() => setFormData({...formData, healthProfile: 'Préménopause/Ménopause'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${formData.healthProfile === 'Préménopause/Ménopause' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <Wind size={24} />
+                              <span className="font-bold text-sm">Préménopause/Ménopause</span>
+                          </div>
+                          <div onClick={() => setFormData({...formData, healthProfile: 'Aucun'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${formData.healthProfile === 'Aucun' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <CheckCircle size={24} />
+                              <span className="font-bold text-sm">Aucun</span>
+                          </div>
+                      </div>
                   </div>
 
                   {currentW > 0 && targetWInput > 0 && heightM > 0 && (
@@ -382,6 +406,11 @@ export default function NutritionDiagnostic() {
                     </motion.div>
                   )}
 
+                  <div className="space-y-2 mt-4">
+                      <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Allergies / Intolérances</label>
+                      <input type="text" name="allergies" placeholder="Ex: Lait, Arachide... (Laissez vide si aucune)" value={formData.allergies} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
+                  </div>
+
                   <div className="space-y-2 mt-6">
                     <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Combien de pas faites-vous par jour ? *</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -391,6 +420,30 @@ export default function NutritionDiagnostic() {
                           </button>
                        ))}
                     </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 3 && ( // Étape 3: Style de vie
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="flex items-center gap-3 mb-6"><Apple className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Étape 3: Votre Style de Vie</h2></div>
+                  
+                  <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Le midi, comment mangez-vous généralement ?</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div onClick={() => setFormData({...formData, lunchHabit: 'Au bureau avec ma gamelle'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${formData.lunchHabit === 'Au bureau avec ma gamelle' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <span className="text-3xl">🍱</span>
+                              <span className="font-bold text-sm">Au bureau avec ma gamelle</span>
+                          </div>
+                          <div onClick={() => setFormData({...formData, lunchHabit: 'À la maison autour du bol familial'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${formData.lunchHabit === 'À la maison autour du bol familial' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <span className="text-3xl">🍲</span>
+                              <span className="font-bold text-sm">À la maison autour du bol familial</span>
+                          </div>
+                          <div onClick={() => setFormData({...formData, lunchHabit: 'Dehors'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${formData.lunchHabit === 'Dehors' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <span className="text-3xl">🍽️</span>
+                              <span className="font-bold text-sm">Dehors (Restaurant, Fast-food)</span>
+                          </div>
+                      </div>
                   </div>
                   
                   {formData.goalType === 'Perte de poids' && (
@@ -416,60 +469,7 @@ export default function NutritionDiagnostic() {
                   </div>
                   )}
                   
-                  {formData.gender === 'Femme' && (
-                    <div className="space-y-4 mt-6">
-                       <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Ta situation actuelle *</label>
-                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          {[
-                            { id: "Allaitement", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181320/An_authentic_minimalistic_flat-lay_illustration_202606111234_dg6lni.jpg", title: "Allaitement" },
-                            { id: "Changements hormonaux", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181281/cle_ezqyki.jpg", title: "Changements hormonaux (Ménopause / Périménopause)" },
-                            { id: "Forme standard", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781181319/A_minimal_sleek_white_modern_202606111234_bpcoy2.jpg", title: "Forme standard" }
-                          ].map(profile => (
-                             <div key={profile.id} onClick={() => setFormData({...formData, healthProfile: profile.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${formData.healthProfile === profile.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                                <img src={profile.img} className="w-full aspect-square object-cover" alt={profile.title} />
-                                <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 font-black uppercase tracking-widest text-[9px] backdrop-blur-sm h-12 flex items-center justify-center leading-tight">{profile.title}</div>
-                             </div>
-                          ))}
-                       </div>
-                    </div>
-                  )}
                   <input type="number" name="sleepHours" required placeholder="Heures de sommeil par nuit (ex: 7) *" value={formData.sleepHours} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black mt-4" />
-                </motion.div>
-              )}
-
-              {step === 3 && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                  <div className="flex items-center gap-3 mb-6"><Apple className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Habitudes Alimentaires</h2></div>
-              <div className="space-y-2">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Dynamique familiale *</label>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {["Cuisine pour la famille", "Gère ses propres repas"].map(dyn => (
-                       <button type="button" key={dyn} onClick={() => setFormData({...formData, familyDynamic: dyn})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${formData.familyDynamic === dyn ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
-                          {dyn}
-                       </button>
-                    ))}
-                 </div>
-              </div>
-              <div className="space-y-2 mt-4">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">À midi, vous mangez plutôt... *</label>
-                 <div className="grid grid-cols-1 gap-2">
-                    {["À la cantine du bureau", "Un plat commandé", "Un repas préparé à la maison"].map(habit => (
-                       <button type="button" key={habit} onClick={() => setFormData({...formData, lunchHabit: habit})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${formData.lunchHabit === habit ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
-                          {habit}
-                       </button>
-                    ))}
-                 </div>
-              </div>
-              <div className="space-y-2 mt-4">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Où faites-vous vos courses principalement ? *</label>
-                 <div className="grid grid-cols-1 gap-2">
-                    {["Marché local", "Supermarché (Auchan, etc.)", "Mixte (Marché + Supermarché)"].map(habit => (
-                       <button type="button" key={habit} onClick={() => setFormData({...formData, shoppingHabit: habit})} className={`p-4 rounded-2xl border-2 text-left font-bold text-xs transition-all ${formData.shoppingHabit === habit ? 'bg-black text-[#39FF14] border-black shadow-md' : 'bg-zinc-50 border-zinc-200 hover:border-black text-black'}`}>
-                          {habit}
-                       </button>
-                    ))}
-                 </div>
-              </div>
               <div className="space-y-2 mt-4">
                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Consommation de riz/plats en sauce ? *</label>
                  <div className="grid grid-cols-1 gap-2">
@@ -479,24 +479,66 @@ export default function NutritionDiagnostic() {
                        </button>
                     ))}
                  </div>
-              </div>
-                  <input type="text" name="allergies" placeholder="Allergies / Intolérances (ex: Lait, Arachide...)" value={formData.allergies} onChange={handleChange} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition text-black" />
-                  <p className="text-xs text-zinc-500 font-bold mt-2">Laissez vide si vous n'avez aucune allergie.</p>
+               </div>
                 </motion.div>
               )}
 
               {step === 4 && (
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="flex items-center gap-3 mb-6"><Utensils className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Étape 4: Votre Cuisine</h2></div>
+                  
+                  <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Qui gère les repas ?</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div onClick={() => setFormData({...formData, cookingHabit: 'Je cuisine pour moi seule'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${formData.cookingHabit === 'Je cuisine pour moi seule' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <span className="text-4xl">🧑‍🍳</span>
+                              <span className="font-bold text-sm">Je cuisine pour moi seule</span>
+                          </div>
+                          <div onClick={() => setFormData({...formData, cookingHabit: 'Je cuisine pour toute la famille'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${formData.cookingHabit === 'Je cuisine pour toute la famille' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <span className="text-4xl">👨‍👩‍👧‍👦</span>
+                              <span className="font-bold text-sm">Je cuisine pour toute la famille</span>
+                          </div>
+                      </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 5 && (
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                  <div className="flex items-center gap-3 mb-6"><ShoppingBag className="text-[#39FF14]" /><h2 className="text-xl font-black uppercase">Étape 5: Budget Hebdo</h2></div>
+                  
+                  <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est votre budget courses par SEMAINE ?</label>
+                      <div className="grid grid-cols-1 gap-4">
+                          <div onClick={() => setFormData({...formData, weeklyBudget: 'Serré'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${formData.weeklyBudget === 'Serré' ? 'border-green-500 bg-green-50' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <span className="font-black text-lg text-green-600 uppercase">Serré (8 000 F / sem)</span>
+                              <span className="text-xs font-bold text-green-800">Mangez à votre faim sans crédit.</span>
+                          </div>
+                          <div onClick={() => setFormData({...formData, weeklyBudget: 'Famille'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${formData.weeklyBudget === 'Famille' ? 'border-orange-500 bg-orange-50' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <span className="font-black text-lg text-orange-600 uppercase">Famille (15 000 F / sem)</span>
+                              <span className="text-xs font-bold text-orange-800">Équilibre et variété.</span>
+                          </div>
+                          <div onClick={() => setFormData({...formData, weeklyBudget: 'Confort'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${formData.weeklyBudget === 'Confort' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                              <span className="font-black text-lg text-purple-600 uppercase">Confort (25 000 F / sem)</span>
+                              <span className="text-xs font-bold text-purple-800">Santé premium locale.</span>
+                          </div>
+                      </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 6 && (
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
                   <CheckCircle className="text-[#39FF14] w-20 h-20 mx-auto mb-6" />
-                  <h2 className="text-2xl font-black uppercase mb-4 text-black">Prêt(e) à générer votre plan ?</h2>
-                  <p className="text-zinc-600 font-medium mb-8">Nous allons analyser vos données pour créer un menu parfaitement adapté à votre métabolisme et à vos habitudes.</p>
+                  <h2 className="text-2xl font-black uppercase mb-4 text-black">Analyse en cours...</h2>
+                  <p className="text-zinc-600 font-medium mb-8">Validez pour générer vos nouveaux objectifs caloriques et votre menu adapté.</p>
                   <button type="submit" disabled={isSubmitting} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-xl flex justify-center items-center gap-2">
-                    {isSubmitting ? "Analyse en cours..." : "Valider mon profil"} <ArrowRight size={18}/>
+                    {isSubmitting ? "Calcul en cours..." : "Mettre à jour mon plan"} <ArrowRight size={18}/>
                   </button>
                 </motion.div>
               )}
 
-              {step < 4 && (
+              {step < 6 && (
                 <div className="flex gap-4 pt-4 border-t border-zinc-100">
                   {step > 1 && (
                     <button type="button" onClick={() => setStep(step - 1)} className="px-6 py-4 bg-zinc-100 rounded-xl font-bold text-sm hover:bg-zinc-200 transition text-black">
@@ -564,25 +606,13 @@ export default function NutritionDiagnostic() {
                </div>
             )}
 
-              {/* La Jauge Énergétique Verrouillée */}
-              <div className="bg-white border border-zinc-200 rounded-[2rem] p-6 mb-10 shadow-lg relative overflow-hidden group">
-                 <h3 className="font-black uppercase text-xs text-zinc-400 tracking-widest mb-4">Ton Quota Quotidien Calculé</h3>
-                 <div className="flex justify-center items-center gap-2 mb-6">
-                    <Flame className="text-orange-500 animate-pulse" size={32} />
-                    <span className="text-4xl font-black text-black">{dailyCalories > 0 ? dailyCalories.toFixed(0) : '--'} <span className="text-xl text-zinc-400">kcal / jour</span></span>
-                 </div>
-                 
-                 <div className="relative">
-                    <div className="filter blur-[6px] opacity-60 pointer-events-none select-none space-y-2">
-                       <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Matin</span><span className="text-sm font-medium">Bouillie de Mil allégée</span></div>
-                       <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Midi</span><span className="text-sm font-medium">Thieboudienne Diététique</span></div>
-                       <div className="bg-zinc-100 p-4 rounded-xl flex justify-between items-center"><span className="font-bold text-xs uppercase text-zinc-500">Soir</span><span className="text-sm font-medium">Salade de Niébé</span></div>
-                    </div>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/40 backdrop-blur-[2px] rounded-2xl">
-                       <div className="bg-black text-[#39FF14] p-3 rounded-full mb-3 shadow-xl"><Lock size={24} /></div>
-                       <p className="font-black uppercase text-sm text-black tracking-widest text-center">Menu complet verrouillé</p>
-                    </div>
-                 </div>
+              <div className="bg-zinc-50 border border-zinc-200 rounded-[2rem] p-6 mb-10 text-left shadow-sm">
+                 <p className="text-lg font-medium leading-relaxed text-zinc-800">
+                   Calcul médical terminé. Votre corps a besoin de <strong className="font-black text-black text-2xl">{Math.round(dailyCalories)}</strong> kcal/jour.
+                 </p>
+                 <p className="text-lg font-medium leading-relaxed text-zinc-800 mt-4">
+                   La bonne nouvelle ? Vous n'aurez plus jamais à les compter. Suivez simplement nos portions en bols et cuillères.
+                 </p>
               </div>
 
               <div className="flex flex-col gap-3">

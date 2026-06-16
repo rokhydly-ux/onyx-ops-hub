@@ -5,9 +5,9 @@ import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
-  Activity, HeartPulse, Smartphone, Flame, CheckCircle, 
+  Activity, HeartPulse, Smartphone, Flame, CheckCircle, Wind, Droplet,
   ArrowRight, ChevronLeft, AlertTriangle, Zap, ChevronDown, ChevronRight,
-  Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare, FileText, ShoppingBag
+  Send, X, ArrowUp, BookOpen, Sparkles, Target, Apple, Scale, Download, MessageSquare, FileText, ShoppingBag, Utensils
 } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -208,6 +208,8 @@ export default function NutritionAfricaineLanding() {
     mainChallenge: "",
     dietaryHabits: "",
     allergies: "",
+    cookingHabit: "",
+    weeklyBudget: "",
     saas: ""
   });
   const [forceTarget, setForceTarget] = useState(false);
@@ -330,6 +332,32 @@ export default function NutritionAfricaineLanding() {
     }
   };
 
+  const calculateDailyCalories = (data: any) => {
+      const heightCm = parseFloat(data.height) || 0;
+      const currentWeight = parseFloat(data.currentWeight) || 0;
+      const age = parseFloat(data.age) || 0;
+      const isMale = data.gender === "Homme";
+      const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+      let nap = 1.2;
+      if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
+      else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
+      else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+      const tdee = bmr * nap;
+      let rawCalories = tdee;
+      if (data.goalType === 'Perte de poids') {
+         let deficit = 500;
+         if (data.weightLossPace === 'Progressivement') deficit = 300;
+         else if (data.weightLossPace === 'Rapidement') deficit = 700;
+         rawCalories = tdee - deficit;
+      } else if (data.goalType === 'Prise de masse') {
+         rawCalories = tdee + 300;
+      } else if (data.goalType === 'Maintien') {
+         rawCalories = tdee;
+      }
+      if (data.healthProfile === "Allaitement") rawCalories += 500;
+      return Math.round(Math.max(isMale ? 1500 : 1200, rawCalories || 0));
+  };
+
   // Diagnostic Modal Handlers
   const handleDiagSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,7 +365,7 @@ export default function NutritionAfricaineLanding() {
       alert("Veuillez confirmer votre objectif de poids avant de continuer.");
       return;
     }
-    if (diagStep < 4) {
+    if (diagStep < 6) {
       setDiagStep(diagStep + 1);
       return;
     }
@@ -441,7 +469,7 @@ export default function NutritionAfricaineLanding() {
       }
       localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
-      setDiagStep(5);
+      setDiagStep(7);
     } catch (err) {
       alert("Une erreur est survenue.");
     } finally {
@@ -1449,24 +1477,50 @@ export default function NutritionAfricaineLanding() {
 
             <div className="bg-black text-white p-6 sm:p-8 text-center relative rounded-t-[2rem] shrink-0">
               <div className="absolute top-0 left-0 w-full h-1 bg-zinc-800">
-                <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${(diagStep / 4) * 100}%` }}></div>
+                <div className="h-full bg-[#39FF14] transition-all duration-500" style={{ width: `${(diagStep / 6) * 100}%` }}></div>
               </div>
               <Activity className="text-[#39FF14] mx-auto mb-2" size={28} />
               <h2 className={`${spaceGrotesk.className} text-xl md:text-3xl font-black uppercase tracking-tighter`}>
-                {diagStep === 5 ? "Diagnostic Terminé !" : "Bilan Nutritionnel"}
+                {diagStep === 7 ? "Diagnostic Terminé !" : "Bilan Nutritionnel"}
               </h2>
             </div>
 
             <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pb-10">
-              {diagStep !== 5 ? (
+              {diagStep !== 7 ? (
                 <form onSubmit={handleDiagSubmit} className="space-y-6">
                   {diagStep === 1 && (
-                    <div className="space-y-4 animate-in slide-in-from-right-8">
-                      <div className="flex items-center gap-3 mb-4"><Scale className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Informations de base</h3></div>
+                    <div className="space-y-6 animate-in slide-in-from-right-8">
+                      <div className="flex items-center gap-3 mb-4"><Scale className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Étape 1: Vos Informations</h3></div>
                       <input type="text" name="name" required placeholder="Votre Prénom et Nom *" value={diagData.name} onChange={(e) => setDiagData({...diagData, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
                       <input type="tel" name="phone" required placeholder="Numéro WhatsApp *" value={diagData.phone} onChange={(e) => setDiagData({...diagData, phone: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
                       <input type="password" name="pin" maxLength={4} required placeholder="Créez un code PIN (4 chiffres) *" value={diagData.pin} onChange={(e) => setDiagData({...diagData, pin: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold outline-none focus:border-black text-black" />
-                      <div className="space-y-2 mt-4">
+                      
+                      <div className="space-y-2">
+                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est votre objectif principal ? *</label>
+                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {[
+                           { id: "Perte de poids", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg", desc: "Déficit calorique" },
+                           { id: "Maintien", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg", desc: "TDEE exact" },
+                           { id: "Prise de masse", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg", desc: "Surplus calorique" }
+                            ].map(goal => (
+                           <div key={goal.id} onClick={() => setDiagData({...diagData, goalType: goal.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                              <img src={goal.img} className="w-full aspect-square object-cover" alt={goal.id} />
+                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 backdrop-blur-sm h-14 flex flex-col items-center justify-center leading-tight">
+                                 <span className="font-black uppercase tracking-widest text-xs">{goal.id}</span>
+                                 <span className="text-[9px] uppercase mt-0.5 opacity-70 tracking-widest">{goal.desc}</span>
+                              </div>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+
+                      <div className="flex flex-wrap md:flex-nowrap gap-4">
+                        <input type="number" required placeholder="Taille (cm) *" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                        <input type="number" required placeholder="Poids Actuel (kg) *" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                        <input type="number" required placeholder="Poids Cible (kg) *" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                      </div>
+
+                      <div className="space-y-2">
                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Votre sexe *</label>
                         <div className="grid grid-cols-2 gap-4">
                            <div onClick={() => setDiagData({...diagData, gender: 'Femme'})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.gender === 'Femme' ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
@@ -1479,7 +1533,7 @@ export default function NutritionAfricaineLanding() {
                            </div>
                         </div>
                       </div>
-                      <div className="space-y-2 mt-4">
+                      <div className="space-y-2">
                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Date de naissance *</label>
                          <input type="date" required value={diagData.birthDate} onChange={(e) => {
                             const birthDate = e.target.value;
@@ -1499,34 +1553,31 @@ export default function NutritionAfricaineLanding() {
                   )}
                   
                   {diagStep === 2 && (
-                    <div className="space-y-4 animate-in slide-in-from-right-8">
-                      <div className="flex items-center gap-3 mb-4"><Target className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Vos Objectifs</h3></div>
+                    <div className="space-y-6 animate-in slide-in-from-right-8">
+                      <div className="flex items-center gap-3 mb-4"><HeartPulse className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Étape 2: Votre Santé</h3></div>
                       
-                      <div className="space-y-2 mb-6">
-                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est votre objectif principal ? *</label>
-                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            {[
-                           { id: "Perte de poids", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg", desc: "Déficit calorique" },
-                           { id: "Maintien", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg", desc: "TDEE exact" },
-                           { id: "Prise de masse", img: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg", desc: "Surplus calorique" }
-                            ].map(goal => (
-                           <div key={goal.id} onClick={() => setDiagData({...diagData, goalType: goal.id})} className={`cursor-pointer border-4 rounded-2xl overflow-hidden relative transition-all ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_20px_rgba(57,255,20,0.2)]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                              <img src={goal.img} className="w-full aspect-square object-cover" alt={goal.id} />
-                              <div className="absolute bottom-0 w-full bg-black/80 text-white text-center py-2 px-1 backdrop-blur-sm h-14 flex flex-col items-center justify-center leading-tight">
-                                 <span className="font-black uppercase tracking-widest text-xs">{goal.id}</span>
-                                 <span className="text-[9px] uppercase mt-0.5 opacity-70 tracking-widest">{goal.desc}</span>
+                      <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Avez-vous des conditions spécifiques ?</label>
+                          <div className="grid grid-cols-2 gap-4">
+                              <div onClick={() => setDiagData({...diagData, healthProfile: 'Diabète'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${diagData.healthProfile === 'Diabète' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <Droplet size={24} />
+                                  <span className="font-bold text-sm">Diabète</span>
                               </div>
-                               </div>
-                            ))}
-                         </div>
+                              <div onClick={() => setDiagData({...diagData, healthProfile: 'Hypertension'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${diagData.healthProfile === 'Hypertension' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <HeartPulse size={24} />
+                                  <span className="font-bold text-sm">Hypertension</span>
+                              </div>
+                              <div onClick={() => setDiagData({...diagData, healthProfile: 'Préménopause/Ménopause'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${diagData.healthProfile === 'Préménopause/Ménopause' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <Wind size={24} />
+                                  <span className="font-bold text-sm">Préménopause/Ménopause</span>
+                              </div>
+                              <div onClick={() => setDiagData({...diagData, healthProfile: 'Aucun'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${diagData.healthProfile === 'Aucun' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <CheckCircle size={24} />
+                                  <span className="font-bold text-sm">Aucun</span>
+                              </div>
+                          </div>
                       </div>
                       
-                      <div className="flex flex-wrap md:flex-nowrap gap-4">
-                        <input type="number" required placeholder="Taille (cm) *" value={diagData.height} onChange={(e) => setDiagData({...diagData, height: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
-                        <input type="number" required placeholder="Poids Actuel (kg) *" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
-                        <input type="number" required placeholder="Poids Cible (kg) *" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full md:w-1/3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
-                      </div>
-
                       {currentW > 0 && targetWInput > 0 && heightM > 0 && (
                         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 bg-zinc-50 p-6 rounded-[2rem] border border-zinc-200 shadow-inner">
                           <div className="flex justify-center items-center gap-6 mb-6">
@@ -1555,7 +1606,7 @@ export default function NutritionAfricaineLanding() {
                         </motion.div>
                       )}
 
-                      <div className="space-y-2 mt-6">
+                      <div className="space-y-2">
                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Combien de pas faites-vous par jour ? *</label>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {["< 5 000 pas/jour (Sédentaire)", "5 000 à 7 499 pas/jour (Légèrement actif)", "7 500 à 9 999 pas/jour (Actif)", "10 000+ pas/jour (Très actif)"].map(steps => (
@@ -1567,7 +1618,7 @@ export default function NutritionAfricaineLanding() {
                       </div>
                       
                       {diagData.goalType === 'Perte de poids' && (
-                      <div className="space-y-2 mt-6 bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
+                      <div className="space-y-2 bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Rythme de perte de poids souhaité *</label>
                         <div className="relative pt-4 pb-2 px-2">
                            <input 
@@ -1592,8 +1643,27 @@ export default function NutritionAfricaineLanding() {
                   )}
 
                   {diagStep === 3 && (
-                    <div className="space-y-4 animate-in slide-in-from-right-8">
-                      <div className="flex items-center gap-3 mb-4"><Apple className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Habitudes Alimentaires</h3></div>
+                    <div className="space-y-6 animate-in slide-in-from-right-8">
+                      <div className="flex items-center gap-3 mb-4"><Apple className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Étape 3: Votre Style de Vie</h3></div>
+                      
+                      <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Le midi, comment mangez-vous généralement ?</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                              <div onClick={() => setDiagData({...diagData, lunchHabit: 'Au bureau avec ma gamelle'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${diagData.lunchHabit === 'Au bureau avec ma gamelle' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <span className="text-3xl">🍱</span>
+                                  <span className="font-bold text-sm">Au bureau avec ma gamelle</span>
+                              </div>
+                              <div onClick={() => setDiagData({...diagData, lunchHabit: 'À la maison autour du bol familial'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${diagData.lunchHabit === 'À la maison autour du bol familial' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <span className="text-3xl">🍲</span>
+                                  <span className="font-bold text-sm">À la maison autour du bol familial</span>
+                              </div>
+                              <div onClick={() => setDiagData({...diagData, lunchHabit: 'Dehors'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${diagData.lunchHabit === 'Dehors' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <span className="text-3xl">🍽️</span>
+                                  <span className="font-bold text-sm">Dehors (Restaurant, Fast-food)</span>
+                              </div>
+                          </div>
+                      </div>
+
                       <div className="space-y-2">
                          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Consommation de riz/plats en sauce ? *</label>
                          <div className="grid grid-cols-1 gap-2">
@@ -1604,7 +1674,7 @@ export default function NutritionAfricaineLanding() {
                             ))}
                          </div>
                       </div>
-                      <div className="space-y-4 mt-6">
+                      <div className="space-y-2">
                         <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est ton défi principal au quotidien ? *</label>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                            {[
@@ -1619,22 +1689,69 @@ export default function NutritionAfricaineLanding() {
                            ))}
                         </div>
                       </div>
-                      <input type="text" placeholder="Allergies (Ex: Arachide...)" value={diagData.allergies} onChange={(e) => setDiagData({...diagData, allergies: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Allergies / Intolérances</label>
+                        <input type="text" placeholder="Ex: Lait, Arachide... (Laissez vide si aucune)" value={diagData.allergies} onChange={(e) => setDiagData({...diagData, allergies: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-black" />
+                      </div>
                     </div>
                   )}
 
                   {diagStep === 4 && (
+                    <div className="space-y-6 animate-in slide-in-from-right-8">
+                      <div className="flex items-center gap-3 mb-4"><Utensils className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Étape 4: Votre Cuisine</h3></div>
+                      
+                      <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Qui gère les repas ?</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div onClick={() => setDiagData({...diagData, cookingHabit: 'Je cuisine pour moi seule'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${diagData.cookingHabit === 'Je cuisine pour moi seule' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <span className="text-4xl">🧑‍🍳</span>
+                                  <span className="font-bold text-sm">Je cuisine pour moi seule</span>
+                              </div>
+                              <div onClick={() => setDiagData({...diagData, cookingHabit: 'Je cuisine pour toute la famille'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-all ${diagData.cookingHabit === 'Je cuisine pour toute la famille' ? 'border-[#39FF14] shadow-md' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <span className="text-4xl">👨‍👩‍👧‍👦</span>
+                                  <span className="font-bold text-sm">Je cuisine pour toute la famille</span>
+                              </div>
+                          </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {diagStep === 5 && (
+                    <div className="space-y-6 animate-in slide-in-from-right-8">
+                      <div className="flex items-center gap-3 mb-4"><ShoppingBag className="text-[#39FF14]" /><h3 className="text-lg font-black uppercase text-black">Étape 5: Budget Hebdo</h3></div>
+                      
+                      <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Quel est votre budget courses par SEMAINE ?</label>
+                          <div className="grid grid-cols-1 gap-4">
+                              <div onClick={() => setDiagData({...diagData, weeklyBudget: 'Serré'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${diagData.weeklyBudget === 'Serré' ? 'border-green-500 bg-green-50' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <span className="font-black text-lg text-green-600 uppercase">Serré (8 000 F / sem)</span>
+                                  <span className="text-xs font-bold text-green-800">Mangez à votre faim sans crédit.</span>
+                              </div>
+                              <div onClick={() => setDiagData({...diagData, weeklyBudget: 'Famille'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${diagData.weeklyBudget === 'Famille' ? 'border-orange-500 bg-orange-50' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <span className="font-black text-lg text-orange-600 uppercase">Famille (15 000 F / sem)</span>
+                                  <span className="text-xs font-bold text-orange-800">Équilibre et variété.</span>
+                              </div>
+                              <div onClick={() => setDiagData({...diagData, weeklyBudget: 'Confort'})} className={`cursor-pointer border-4 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all ${diagData.weeklyBudget === 'Confort' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-zinc-50 hover:bg-zinc-100'}`}>
+                                  <span className="font-black text-lg text-purple-600 uppercase">Confort (25 000 F / sem)</span>
+                                  <span className="text-xs font-bold text-purple-800">Santé premium locale.</span>
+                              </div>
+                          </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {diagStep === 6 && (
                     <div className="text-center py-6 animate-in zoom-in">
                       <CheckCircle className="text-[#39FF14] w-16 h-16 mx-auto mb-4" />
                       <h3 className="text-xl font-black uppercase mb-2 text-black">Analyse en cours...</h3>
-                      <p className="text-zinc-600 font-medium mb-6">Validez pour générer vos recommandations sur-mesure.</p>
+                      <p className="text-zinc-600 font-medium mb-6">Validez pour générer vos nouveaux objectifs caloriques et votre menu adapté.</p>
                       <button type="submit" disabled={isSubmittingDiag} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase hover:scale-105 transition-transform flex justify-center items-center gap-2">
-                        {isSubmittingDiag ? "Traitement..." : "Voir mon résultat"} <ArrowRight size={18}/>
+                        {isSubmittingDiag ? "Calcul en cours..." : "Mettre à jour mon plan"} <ArrowRight size={18}/>
                       </button>
                     </div>
                   )}
 
-                  {diagStep < 4 && (
+                  {diagStep < 6 && (
                     <div className="flex gap-4 pt-4 border-t border-zinc-100">
                       {diagStep > 1 && <button type="button" onClick={() => setDiagStep(diagStep - 1)} className="px-6 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black">Retour</button>}
                       <button type="submit" className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800">Suivant <ChevronRight size={18}/></button>
@@ -1654,6 +1771,15 @@ export default function NutritionAfricaineLanding() {
                         <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Catégorie</span>
                         <span className="font-black text-sm md:text-base text-black bg-[#39FF14] px-4 py-1.5 rounded-xl text-center shadow-sm">{getIMCCategory(calculateIMC())}</span>
                      </div>
+                  </div>
+
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-3xl p-6 mb-6 text-left shadow-sm">
+                     <p className="text-lg font-medium leading-relaxed text-zinc-800">
+                       Calcul médical terminé. Votre corps a besoin de <strong className="font-black text-black text-2xl">{calculateDailyCalories(diagData)}</strong> kcal/jour.
+                     </p>
+                     <p className="text-lg font-medium leading-relaxed text-zinc-800 mt-4">
+                       La bonne nouvelle ? Vous n'aurez plus jamais à les compter. Suivez simplement nos portions en bols et cuillères.
+                     </p>
                   </div>
 
                {diagData.healthProfile === 'Allaitement' && (
