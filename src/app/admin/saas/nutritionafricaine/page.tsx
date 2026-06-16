@@ -81,7 +81,7 @@ export default function AdminNutritionAfricaine() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
-  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', video_url: '', description: '', gallery: [] as string[] });
+  const [recipeForm, setRecipeForm] = useState({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [] as any[], image_url: '', video_url: '', description: '', gallery: [] as string[], price_cfa: 0, budget_tier: 'Famille 15k' });
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [recipeFilterFast, setRecipeFilterFast] = useState(false);
   const [recipeSearch, setRecipeSearch] = useState("");
@@ -92,7 +92,7 @@ export default function AdminNutritionAfricaine() {
   const [orders, setOrders] = useState<any[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [productForm, setProductForm] = useState({ id: '', produit_id: '', categorie_nom: '', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5, gallery: [] as string[], video_url: '' });
+  const [productForm, setProductForm] = useState({ id: '', produit_id: '', categorie_nom: '', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, price_cfa: 0, calories: 0, protein: 0, carbs: 0, fat: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5, gallery: [] as string[], video_url: '', ux_unit: 'portion' });
   const [promos, setPromos] = useState<any[]>([]);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [editingPromo, setEditingPromo] = useState<any>(null);
@@ -288,14 +288,17 @@ export default function AdminNutritionAfricaine() {
 
                       recipesToImport.push({
                           nom: nom,
-                          type: r['type'] || 'Déjeuner',
-                          calories: Number(r['calories']) || 0,
-                          proteins: Number(r['proteins'] || r['protéines']) || 0,
-                          carbs: Number(r['carbs'] || r['glucides']) || 0,
-                          fats: Number(r['fats'] || r['lipides']) || 0,
+                          type: r['type'] || r['categorie'] || 'Déjeuner',
+                          calories: Number(r['calories'] || r['kcal']) || 0,
+                          proteins: Number(r['proteins'] || r['protéines'] || r['proteines_g'] || r['proteines']) || 0,
+                          carbs: Number(r['carbs'] || r['glucides'] || r['glucides_g'] || r['glucides']) || 0,
+                          fats: Number(r['fats'] || r['lipides'] || r['lipides_g'] || r['lipides']) || 0,
+                          price_cfa: Number(r['prix_cfa'] || r['price_cfa'] || r['prix'] || 0),
+                          budget_tier: r['budget_tier'] || r['budget'] || 'Famille 15k',
                           preparation_time: Number(r['preparation_time'] || r['temps']) || 15,
                           is_bol_commun: r['is_bol_commun']?.toLowerCase() === 'oui' || String(r['is_bol_commun']) === 'true',
-                          recipe: r['etapes_cuisson'] || r['recipe'] || r['recette_details'] || '',
+                          recipe: r['etapes_cuisson'] || r['recipe'] || r['recette_details'] || `Préparation de ${nom}.`,
+                          ux_unit: r['ux_unit'] || r['unite'] || 'portion',
                           bienfaits: r['bienfaits'] || r['benefits'] || '',
                           description: r['description'] || '',
                           image_url: r['photo'] || r['image_url'] || r['image'] || '',
@@ -386,12 +389,21 @@ export default function AdminNutritionAfricaine() {
                   const existingRecipe = recipes.find(er => er.nom.toLowerCase() === r.nom.toLowerCase());
                   const item = { ...r };
                   delete item.tenant_id;
-                  if (existingRecipe) {
+                  if (existingRecipe && existingRecipe.id) {
                       item.id = existingRecipe.id;
                   } else {
-                      item.id = crypto.randomUUID();
+                      item.id = crypto.randomUUID(); // FIX: Garantit un UUID valide pour l'insertion
                   }
                   if (tenantId) item.tenant_id = tenantId;
+
+                  // Sécurité : Forçage du typage numérique avant l'envoi à Supabase
+                  item.calories = Number(item.calories) || 0;
+                  item.proteins = Number(item.proteins) || 0;
+                  item.carbs = Number(item.carbs) || 0;
+                  item.fats = Number(item.fats) || 0;
+                  item.preparation_time = Number(item.preparation_time) || 15;
+                  item.price_cfa = Number(item.price_cfa) || 0;
+
                   return item;
               });
 
@@ -520,7 +532,7 @@ export default function AdminNutritionAfricaine() {
 
     setRecipeForm({
        id: '', type, nom: generatedName, calories, proteins, carbs, fats, preparation_time: prepTime, is_bol_commun: false,
-       recipe: recipeText, bienfaits, ingredients, image_url: '', video_url: '', description: '', gallery: []
+       recipe: recipeText, bienfaits, ingredients, image_url: '', video_url: '', description: '', gallery: [], price_cfa: 0, budget_tier: 'Famille 15k'
     });
     setEditingRecipe(null);
     setShowRecipeModal(true);
@@ -529,10 +541,10 @@ export default function AdminNutritionAfricaine() {
   const handleOpenRecipeModal = (recipe?: any) => {
      if (recipe) {
          setEditingRecipe(recipe);
-         setRecipeForm({ ...recipe, preparation_time: recipe.preparation_time || 15, bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', video_url: recipe.video_url || '', description: recipe.description || '' });
+         setRecipeForm({ ...recipe, preparation_time: recipe.preparation_time || 15, bienfaits: recipe.bienfaits || '', ingredients: recipe.ingredients || [], gallery: recipe.gallery || [], image_url: recipe.image_url || '', video_url: recipe.video_url || '', description: recipe.description || '', price_cfa: recipe.price_cfa || 0, budget_tier: recipe.budget_tier || 'Famille 15k' });
      } else {
          setEditingRecipe(null);
-         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [], image_url: '', video_url: '', description: '', gallery: [] });
+         setRecipeForm({ id: '', type: 'Petit-déjeuner', nom: '', calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 15, is_bol_commun: false, recipe: '', bienfaits: '', ingredients: [], image_url: '', video_url: '', description: '', gallery: [], price_cfa: 0, budget_tier: 'Famille 15k' });
      }
      setShowRecipeModal(true);
   };
@@ -603,7 +615,7 @@ export default function AdminNutritionAfricaine() {
           if (!error) { setRecipes(recipes.map(r => r.id === recipeForm.id ? { ...payload, id: recipeForm.id } : r)); setShowRecipeModal(false); }
           else alert(error.message);
       } else {
-          (payload as any).id = crypto.randomUUID();
+          (payload as any).id = crypto.randomUUID(); // FIX: Sécurité pour l'ID lors de la création manuelle
           delete (payload as any).id_temp; // Au cas où une clé temporaire traînerait
           const { data, error } = await supabase.from('nutrition_recipes').insert([payload]).select().single();
           if (!error && data) { setRecipes([data, ...recipes]); setShowRecipeModal(false); }
@@ -698,25 +710,45 @@ export default function AdminNutritionAfricaine() {
                   const uniqueCategories = new Set<string>();
 
                   for (const row of results.data as any[]) {
-                      if (!row.nom) continue;
+                      // Normalisation des clés pour gérer les espaces et la casse du fichier CSV
+                      const r: any = {};
+                      Object.keys(row).forEach(k => {
+                          if (k && typeof k === 'string') r[k.toLowerCase().trim()] = row[k];
+                      });
+
+                      const nom = r['nom'] || r['name'] || r['produit'];
+                      if (!nom) continue;
+
+                      const pStandard = parseInt(r['prix_standard'] || r['prix_cfa'] || r['price_cfa'] || r['prix'], 10) || 0;
+                      let pPremium = parseInt(r['prix_premium'] || r['price_premium'], 10);
+                      
+                      // Si prix_premium n'est pas fourni dans le CSV, calcul par défaut (80% du standard)
+                      if (isNaN(pPremium)) {
+                          pPremium = Math.round(pStandard * 0.8);
+                      }
+
+                      // Sécurité : le prix premium ne doit jamais être supérieur au prix standard
+                      if (pPremium > pStandard) {
+                          pPremium = pStandard;
+                      }
 
                       const mappedProduct = {
-                        nom: row.nom,
-                        categorie: row.categorie,
-                        categorie_nom: row.categorie || 'Général',
+                        nom,
+                        categorie: r['categorie'] || r['category'] || 'Général',
+                        categorie_nom: r['categorie'] || r['category'] || 'Général',
                         // FORCER LA CONVERSION EN NOMBRE POUR LE PRIX ET LES MACROS :
-                        price_cfa: parseInt(row.prix_cfa, 10) || 0, 
-                        calories: parseInt(row.kcal, 10) || 0,
-                        protein: parseFloat(row.proteines_g) || 0,
-                        carbs: parseFloat(row.glucides_g) || 0,
-                        fat: parseFloat(row.lipides_g) || 0,
+                        price_cfa: pStandard, 
+                        calories: parseInt(r['kcal'] || r['calories'] || r['kcal_100g'] || r['calories_100g'], 10) || 0,
+                        protein: parseFloat(r['proteines_g'] || r['protein'] || r['proteins'] || r['proteines']) || 0,
+                        carbs: parseFloat(r['glucides_g'] || r['carbs'] || r['carb'] || r['glucides']) || 0,
+                        fat: parseFloat(r['lipides_g'] || r['fat'] || r['fats'] || r['lipides']) || 0,
                         // RESTE DES DONNÉES :
-                        budget_tier: row.budget_tier,
-                        ux_unit: row.ux_unit,
-                        is_dietetic: row.is_dietetic === 'true' || row.is_dietetic === true,
+                        budget_tier: r['budget_tier'] || 'medium',
+                        ux_unit: r['ux_unit'] || r['unite'] || 'portion',
+                        is_dietetic: r['is_dietetic'] === 'true' || r['is_dietetic'] === true,
                         // Champs techniques requis pour l'affichage Onyx
-                        prix_standard: parseInt(row.prix_cfa, 10) || 0,
-                        prix_premium: Math.round((parseInt(row.prix_cfa, 10) || 0) * 0.8),
+                        prix_standard: pStandard,
+                        prix_premium: pPremium,
                         stock: 100,
                         rating: 5
                       };
@@ -769,11 +801,11 @@ export default function AdminNutritionAfricaine() {
                   const existingProd = products.find(ep => ep.nom.toLowerCase() === p.nom.toLowerCase());
                   const item = { ...p };
                   delete item.tenant_id;
-                  if (existingProd) {
+                  if (existingProd && existingProd.id) {
                       item.id = existingProd.id;
                       item.produit_id = existingProd.produit_id || `prod_${Date.now()}_${Math.floor(Math.random()*1000)}`;
                   } else {
-                      item.id = crypto.randomUUID();
+                      item.id = crypto.randomUUID(); // FIX: Garantit un UUID valide pour l'insertion
                       item.produit_id = `prod_${Date.now()}_${Math.floor(Math.random()*1000)}`;
                   }
                   if (tenantId) item.tenant_id = tenantId;
@@ -783,6 +815,10 @@ export default function AdminNutritionAfricaine() {
                   item.prix_standard = Number(item.prix_standard) || 0;
                   item.prix_premium = Number(item.prix_premium) || 0;
                   item.stock = Number(item.stock) || 0;
+                  item.calories = Number(item.calories) || 0;
+                  item.protein = Number(item.protein) || 0;
+                  item.carbs = Number(item.carbs) || 0;
+                  item.fat = Number(item.fat) || 0;
                   
                   // Strict mapping based on mission requirements
                   if ('calories_hidden' in p) item.calories_hidden = p.calories_hidden;
@@ -791,14 +827,37 @@ export default function AdminNutritionAfricaine() {
                   return item;
               });
 
-              const { data, error } = await supabase.from('nutrition_products').upsert(payload, { onConflict: 'id' }).select();
+              const { data: insertedProducts, error } = await supabase.from('nutrition_products').upsert(payload, { onConflict: 'id' }).select();
               if (error) {
                   console.error("Supabase upsert error details:", error);
                   throw new Error(`Erreur lors de l'insertion (chunk ${i}): ${error.message} - Code: ${error.code}`);
               }
 
-              if (data) {
-                  importedCount += data.length;
+              if (insertedProducts) {
+                  importedCount += insertedProducts.length;
+                  
+                  // AUTO-GÉNÉRATION DES RECETTES POUR LES NOUVEAUX PRODUITS
+                  const newProductsForRecipes = insertedProducts.filter((p: any) => !products.some(ep => ep.nom.toLowerCase() === p.nom.toLowerCase()));
+                  
+                  if (newProductsForRecipes.length > 0) {
+                      const recipesToInsert = newProductsForRecipes.map((p: any) => ({
+                          id: crypto.randomUUID(), // FIX BUG CRITIQUE: Garantit un ID non-nul
+                          nom: p.nom,
+                          type: 'Déjeuner',
+                          calories: Number(p.calories) || 0,
+                          proteins: Number(p.protein) || 0,
+                          carbs: Number(p.carbs) || 0,
+                          fats: Number(p.fat) || 0,
+                          price_cfa: Number(p.price_cfa) || 0,
+                          budget_tier: p.budget_tier || 'Famille 15k',
+                          recipe: `Préparation de ${p.nom}. Utilisez vos portions habituelles.`,
+                          ingredients: [{ nom: p.nom, quantite: 1, unite: p.ux_unit || 'portion', rayon: 'Boutique' }],
+                          tenant_id: tenantId
+                      }));
+                      
+                      const { error: recipeError } = await supabase.from('nutrition_recipes').insert(recipesToInsert);
+                      if (recipeError) console.error("Erreur auto-génération recettes:", recipeError.message);
+                  }
               }
 
               setProductCsvImportProgress(Math.round(((i + chunk.length) / totalRows) * 100));
@@ -830,7 +889,7 @@ export default function AdminNutritionAfricaine() {
          setProductForm({ ...prod, gallery: prod.gallery || [], video_url: prod.video_url || '' });
      } else {
          setEditingProduct(null);
-         setProductForm({ id: '', produit_id: `prod_${Date.now()}`, categorie_nom: 'Super-Aliments & Céréales Locales', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5, gallery: [], video_url: '' });
+         setProductForm({ id: '', produit_id: `prod_${Date.now()}`, categorie_nom: 'Super-Aliments & Céréales Locales', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, price_cfa: 0, calories: 0, protein: 0, carbs: 0, fat: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5, gallery: [], video_url: '', ux_unit: 'portion' });
      }
      setShowProductModal(true);
   };
@@ -1935,6 +1994,18 @@ export default function AdminNutritionAfricaine() {
                         <p className="text-[10px] font-bold text-blue-600">Repas partagé en famille (le Smart Planner en intègre 2-3 / sem).</p>
                      </div>
                   </label>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Prix estimé (CFA)</label><input type="number" value={recipeForm.price_cfa === 0 ? '' : recipeForm.price_cfa} onChange={e => setRecipeForm({...recipeForm, price_cfa: Number(e.target.value)})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black" placeholder="Ex: 1500" /></div>
+                     <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Tier Budget</label>
+                        <select value={recipeForm.budget_tier} onChange={e => setRecipeForm({...recipeForm, budget_tier: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black cursor-pointer">
+                           <option value="Serré 8k">Serré (8 000 F / sem)</option>
+                           <option value="Famille 15k">Famille (15 000 F / sem)</option>
+                           <option value="Confort 25k">Confort (25 000 F / sem)</option>
+                        </select>
+                     </div>
+                  </div>
 
                   <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">URL Vidéo de la Recette</label>
