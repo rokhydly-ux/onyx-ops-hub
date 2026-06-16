@@ -122,6 +122,8 @@ export default function AdminNutritionAfricaine() {
   const [isAutoReminderActive, setIsAutoReminderActive] = useState(false);
   const [showReportModal, setShowReportModal] = useState<any>(null);
   const [reportCoachNotes, setReportCoachNotes] = useState("");
+  const [showWelcomeModal, setShowWelcomeModal] = useState<any>(null);
+  const [welcomeMessageText, setWelcomeMessageText] = useState("");
   const [showGroceryModal, setShowGroceryModal] = useState<any>(null);
 
   // Blog Admin States
@@ -546,6 +548,13 @@ export default function AdminNutritionAfricaine() {
      setEditingRecipe(null);
      setRecipeForm(duplicated);
      setShowRecipeModal(true);
+  };
+
+  const handleSendWelcomeMessage = () => {
+      if (!showWelcomeModal) return;
+      const phone = (showWelcomeModal.phone || showWelcomeModal.client?.phone || "").replace('+', '');
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(welcomeMessageText)}`, '_blank');
+      setShowWelcomeModal(null);
   };
 
   const handleGenerateVideoIA = async () => {
@@ -1369,7 +1378,7 @@ export default function AdminNutritionAfricaine() {
                     <button onClick={() => window.open(`https://wa.me/${phone.replace('+', '')}`, '_blank')} className="w-full bg-black text-[#39FF14] py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform flex justify-center items-center gap-2">
                        Contacter sur WhatsApp <ExternalLink size={14}/>
                     </button>
-                 <div className="grid grid-cols-3 gap-2 mt-2">
+                 <div className="grid grid-cols-2 gap-2 mt-2">
                     <button onClick={() => handleOpenClientModal(profile)} className="bg-zinc-100 text-black py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-colors flex justify-center items-center gap-2" title="Objectifs">
                        <Edit3 size={14}/> Obj.
                     </button>
@@ -1378,6 +1387,9 @@ export default function AdminNutritionAfricaine() {
                     </button>
                     <button onClick={() => setShowGroceryModal(profile)} className="bg-green-50 text-green-600 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-100 transition-colors flex justify-center items-center gap-2 shadow-sm" title="Liste de Courses">
                        <ShoppingCart size={14}/> Courses
+                    </button>
+                    <button onClick={() => { setShowWelcomeModal(profile); setWelcomeMessageText(`Bonjour ${clientName.split(' ')[0]} ! 👋 Ravi de t'accompagner dans ta transformation avec Onyx Nutrition. Ton plan personnalisé est prêt, on commence quand ?`); }} className="bg-purple-50 text-purple-600 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-purple-100 transition-colors flex justify-center items-center gap-2" title="Message de Bienvenue">
+                       <MessageSquare size={14}/> Welcome
                     </button>
                  </div>
                  </div>
@@ -2322,6 +2334,43 @@ export default function AdminNutritionAfricaine() {
                      <MessageSquare size={18}/> Envoyer sur WhatsApp
                   </button>
                </div>
+            </div>
+         </div>
+      )}
+
+      {/* MODALE MESSAGE DE BIENVENUE */}
+      {showWelcomeModal && (
+         <div id="welcome-modal-overlay" onClick={(e: any) => e.target.id === 'welcome-modal-overlay' && setShowWelcomeModal(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-lg w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-purple-500 my-auto text-black">
+               <button onClick={() => setShowWelcomeModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-white transition-all"><X size={20}/></button>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-2 flex items-center gap-3`}><MessageSquare className="text-purple-500"/> Message de Bienvenue</h2>
+               <p className="text-zinc-500 font-bold text-xs mb-6">Client : {showWelcomeModal.client?.full_name}</p>
+
+               <div className="mb-6">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest ml-2 mb-2 block">Choisir un style de message</label>
+                  <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                     {[
+                        { id: 'amical', label: 'Amical 😊', text: (n: string) => `Salut ${n} ! Bienvenue dans la famille Onyx Nutrition. Ton programme est prêt, j'ai hâte de voir tes premiers retours. N'hésite pas si tu as des questions ! 👋` },
+                        { id: 'motivant', label: 'Motivant 🔥', text: (n: string) => `Allez ${n} ! C'est le moment de briller. Ta transformation commence aujourd'hui. Je suis à 100% derrière toi, on ne lâche rien pour atteindre tes objectifs ! 💪✨` },
+                        { id: 'medical', label: 'Médical 🩺', text: (n: string) => `Bonjour ${n}. J'ai analysé ton profil suite au diagnostic. Ton plan est scientifiquement calibré pour tes besoins. Commençons ce protocole ensemble pour ta santé. 🍏` }
+                     ].map(t => (
+                        <button key={t.id} type="button" onClick={() => setWelcomeMessageText(t.text(showWelcomeModal.client?.full_name?.split(' ')[0] || 'Client'))} className="px-4 py-2 bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border border-purple-100 shadow-sm active:scale-95">{t.label}</button>
+                     ))}
+                  </div>
+               </div>
+
+               <div className="space-y-4 mb-8">
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Message personnalisé (WhatsApp)</label>
+                  <textarea 
+                     value={welcomeMessageText} 
+                     onChange={e => setWelcomeMessageText(e.target.value)} 
+                     className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-medium text-sm outline-none focus:border-purple-500 min-h-[120px] resize-none shadow-inner" 
+                  />
+               </div>
+
+               <button onClick={handleSendWelcomeMessage} className="w-full bg-purple-500 text-white py-4 rounded-[2rem] font-black uppercase text-sm hover:bg-purple-600 transition-colors shadow-lg flex items-center justify-center gap-2">
+                  <MessageSquare size={18}/> Envoyer sur WhatsApp
+               </button>
             </div>
          </div>
       )}

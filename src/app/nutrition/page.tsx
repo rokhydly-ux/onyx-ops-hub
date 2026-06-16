@@ -1502,6 +1502,7 @@ export default function NutritionDashboard() {
          carbs: carbsRounded,
          fats: fatsRounded,
          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+         ux_unit: foodObj?.ux_unit || foodObj?.portion_standard_nom || '1 portion',
          photo_url: selectedMealPhoto || foodObj?.image_url || null
       };
 
@@ -2416,6 +2417,10 @@ export default function NutritionDashboard() {
                  <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="flex items-center gap-2 text-zinc-400 hover:text-yellow-500 transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
                    {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>} <span className="hidden sm:block">{theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}</span>
                  </button>
+                 <button onClick={() => handleExpertModeChange(!isExpertMode)} className={`flex items-center gap-2 font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border transition-colors ${isExpertMode ? 'text-[#39FF14] border-[#39FF14]' : 'text-zinc-400 border-zinc-800 hover:text-white'}`}>
+                    <Eye size={16}/>
+                    <span className="hidden sm:block">Kcal</span>
+                 </button>
              </div>
           </div>
           
@@ -2528,10 +2533,19 @@ export default function NutritionDashboard() {
                          strokeLinecap="round"
                       />
                    </svg>
-                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-4xl font-black">{remainingCalories}</span>
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Kcal Restantes</span>
-                   </div>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                     {isExpertMode ? (
+                         <>
+                             <span className="text-4xl font-black">{remainingCalories}</span>
+                             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Kcal Restantes</span>
+                         </>
+                     ) : (
+                         <>
+                             <PartyPopper size={32} className="text-[#39FF14]" />
+                             <span className="text-sm font-black uppercase tracking-widest mt-2">Objectif du Jour</span>
+                         </>
+                     )}
+                  </div>
                </div>
 
                {/* MINI-JAUGES MACROS & PIE CHART */}
@@ -2543,7 +2557,7 @@ export default function NutritionDashboard() {
                               <img src={CARBS_ICON} alt="Glucides" className="w-6 h-6 rounded-full shadow-sm object-cover" />
                               <span className="text-zinc-500">Glucides</span>
                            </div>
-                           <span className="text-zinc-400">{carbs} / {carbsGoal}g</span>
+                           {isExpertMode && <span className="text-zinc-400">{carbs} / {carbsGoal}g</span>}
                         </div>
                         <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
                            <div className="bg-yellow-600 h-full" style={{ width: `${Math.min((carbs/targetCarbs)*100, 100)}%` }}></div>
@@ -2555,7 +2569,7 @@ export default function NutritionDashboard() {
                               <img src={PROTEINS_ICON} alt="Protéines" className="w-6 h-6 rounded-full shadow-sm object-cover" />
                               <span className="text-zinc-500">Protéines</span>
                            </div>
-                           <span className="text-zinc-400">{proteins} / {proteinGoal}g</span>
+                           {isExpertMode && <span className="text-zinc-400">{proteins} / {proteinGoal}g</span>}
                         </div>
                         <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
                            <div className="bg-[#39FF14] h-full" style={{ width: `${Math.min((proteins/targetProtein)*100, 100)}%` }}></div>
@@ -2567,7 +2581,7 @@ export default function NutritionDashboard() {
                               <img src={FATS_ICON} alt="Lipides" className="w-6 h-6 rounded-full shadow-sm object-cover" />
                               <span className="text-zinc-500">Lipides</span>
                            </div>
-                           <span className="text-zinc-400">{fats} / {fatsGoal}g</span>
+                           {isExpertMode && <span className="text-zinc-400">{fats} / {fatsGoal}g</span>}
                         </div>
                         <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
                            <div className="bg-blue-400 h-full" style={{ width: `${Math.min((fats/targetFats)*100, 100)}%` }}></div>
@@ -2575,26 +2589,33 @@ export default function NutritionDashboard() {
                      </div>
                   </div>
                   <div className="h-32 flex justify-center items-center">
-                     {carbs === 0 && proteins === 0 && fats === 0 ? (
-                        <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest text-center leading-relaxed">Aucune donnée<br/>Aujourd'hui</p>
+                     {isExpertMode ? (
+                        carbs === 0 && proteins === 0 && fats === 0 ? (
+                           <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest text-center leading-relaxed">Aucune donnée<br/>Aujourd'hui</p>
+                        ) : (
+                           <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                  <Pie
+                                      data={[
+                                          { name: 'Protéines', value: proteins * 4, fill: '#39FF14' },
+                                          { name: 'Glucides', value: carbs * 4, fill: '#ca8a04' },
+                                          { name: 'Lipides', value: fats * 9, fill: '#d4d4d8' },
+                                      ].filter(d => d.value > 0)}
+                                      cx="50%" cy="50%" innerRadius={40} outerRadius={55} paddingAngle={5} dataKey="value" stroke="none"
+                                  >
+                                      {[{ name: 'Protéines', value: proteins * 4, fill: '#39FF14' }, { name: 'Glucides', value: carbs * 4, fill: '#ca8a04' }, { name: 'Lipides', value: fats * 9, fill: '#d4d4d8' }].filter(d => d.value > 0).map((entry, index) => (
+                                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                                      ))}
+                                  </Pie>
+                                  <RechartsTooltip formatter={(value: any) => [`${Math.round(value)} kcal`, 'Énergie']} contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '10px' }} />
+                              </PieChart>
+                           </ResponsiveContainer>
+                        )
                      ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                           <PieChart>
-                               <Pie
-                                   data={[
-                                       { name: 'Protéines', value: proteins * 4, fill: '#39FF14' },
-                                       { name: 'Glucides', value: carbs * 4, fill: '#ca8a04' },
-                                       { name: 'Lipides', value: fats * 9, fill: '#d4d4d8' },
-                                   ].filter(d => d.value > 0)}
-                                   cx="50%" cy="50%" innerRadius={40} outerRadius={55} paddingAngle={5} dataKey="value" stroke="none"
-                               >
-                                   {[{ name: 'Protéines', value: proteins * 4, fill: '#39FF14' }, { name: 'Glucides', value: carbs * 4, fill: '#ca8a04' }, { name: 'Lipides', value: fats * 9, fill: '#d4d4d8' }].filter(d => d.value > 0).map((entry, index) => (
-                                       <Cell key={`cell-${index}`} fill={entry.fill} />
-                                   ))}
-                               </Pie>
-                               <RechartsTooltip formatter={(value: any) => [`${Math.round(value)} kcal`, 'Énergie']} contentStyle={{ backgroundColor: '#18181b', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '10px' }} />
-                           </PieChart>
-                        </ResponsiveContainer>
+                         <div className="text-center">
+                             <Utensils size={24} className="text-zinc-400 mx-auto mb-2"/>
+                             <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Mode Simplifié</p>
+                         </div>
                      )}
                   </div>
                </div>
@@ -2668,6 +2689,7 @@ export default function NutritionDashboard() {
                         proteins: generatedMeal.proteins !== undefined ? generatedMeal.proteins : Math.round((generatedMeal.calories * 0.2) / 4),
                         carbs: generatedMeal.carbs !== undefined ? generatedMeal.carbs : Math.round((generatedMeal.calories * 0.5) / 4),
                         fats: generatedMeal.fats !== undefined ? generatedMeal.fats : Math.round((generatedMeal.calories * 0.3) / 9),
+                        ux_unit: (generatedMeal as any).ux_unit || "1 portion",
                         recipe: generatedMeal.recipe || `Ingrédients : ${generatedMeal.ingredients?.map((i: any) => `${i.quantite}${i.unite} ${i.nom}`).join(', ') || ''}`
                     } : null;
                     
@@ -2733,7 +2755,7 @@ export default function NutritionDashboard() {
                                      )}
                                   </div>
                                  <div className="mt-3 flex gap-2 items-center">
-                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
+                                    <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, plannedMeal.meal, plannedMeal.cals, plannedMeal.proteins, plannedMeal.carbs, plannedMeal.fats, { ux_unit: plannedMeal.ux_unit }); }} className="flex-1 bg-black text-[#39FF14] py-2 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:scale-105 transition-transform"><CheckCircle size={14}/> Valider</button>
                                     <button onClick={(e) => { e.stopPropagation(); handleMealClick(mealType, plannedMeal, 'guided'); }} className="px-4 bg-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center hover:bg-zinc-300 transition-colors">Recette</button>
                                    </div>
                                 </div>
@@ -2872,12 +2894,14 @@ export default function NutritionDashboard() {
                                 <h4 className="font-black text-xs uppercase tracking-widest text-zinc-400 mb-2">Recette / Consignes</h4>
                                 <p className="text-sm font-medium text-zinc-700 leading-relaxed">{selectedMealModal.meal.recipe}</p>
                              </div>
-                             <div className="grid grid-cols-4 gap-2 mb-8 text-center">
-                                <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{selectedMealModal.meal.cals}</p></div>
-                                <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{selectedMealModal.meal.carbs}g</p></div>
-                                <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{selectedMealModal.meal.proteins}g</p></div>
-                                <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{selectedMealModal.meal.fats}g</p></div>
-                             </div>
+                             {isExpertMode && (
+                                <div className="grid grid-cols-4 gap-2 mb-8 text-center">
+                                   <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{selectedMealModal.meal.cals}</p></div>
+                                   <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{selectedMealModal.meal.carbs}g</p></div>
+                                   <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{selectedMealModal.meal.proteins}g</p></div>
+                                   <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{selectedMealModal.meal.fats}g</p></div>
+                                </div>
+                             )}
                              {selectedMealModal.meal.bienfaits && (
                                 <div className="bg-[#39FF14]/10 p-4 rounded-2xl border border-[#39FF14]/30 mb-6 animate-in slide-in-from-bottom-4 duration-500">
                                    <h4 className="font-black text-xs uppercase tracking-widest text-[#39FF14] mb-1 flex items-center gap-2">
@@ -2902,7 +2926,7 @@ export default function NutritionDashboard() {
                                    )}
                                 </div>
                              </div>
-                             <button onClick={() => confirmMealLog(selectedMealModal.type, selectedMealModal.meal.meal, selectedMealModal.meal.cals, selectedMealModal.meal.proteins, selectedMealModal.meal.carbs, selectedMealModal.meal.fats)} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
+                             <button onClick={() => confirmMealLog(selectedMealModal.type, selectedMealModal.meal.meal, selectedMealModal.meal.cals, selectedMealModal.meal.proteins, selectedMealModal.meal.carbs, selectedMealModal.meal.fats, { ux_unit: selectedMealModal.meal.ux_unit })} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
                                 <CheckCircle size={20} /> J'ai mangé ça !
                              </button>
                          </>
@@ -3008,13 +3032,14 @@ export default function NutritionDashboard() {
                                        const calcProt = Math.round((selectedFoodDB.valeurs_pour_100g?.proteines || selectedFoodDB.proteins) * factor);
                                        const calcLip = Math.round((selectedFoodDB.valeurs_pour_100g?.lipides || selectedFoodDB.fats) * factor);
                                        return (
-                                          <>
+                                          <>{isExpertMode && (
                                              <div className="grid grid-cols-4 gap-2 text-center">
-                                                <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{calcCals}</p></div>
-                                                <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{calcGluc}g</p></div>
-                                                <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{calcProt}g</p></div>
-                                                <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{calcLip}g</p></div>
+                                                   <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{calcCals}</p></div>
+                                                   <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{calcGluc}g</p></div>
+                                                   <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{calcProt}g</p></div>
+                                                   <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{calcLip}g</p></div>
                                              </div>
+                                          )}
                                              {selectedFoodDB.message_coach_ia && (
                                                 <div className="mt-4 bg-[#39FF14]/10 p-4 rounded-xl border border-[#39FF14]/30 animate-in slide-in-from-bottom-2 duration-300">
                                                    <h4 className="font-black text-xs uppercase tracking-widest text-[#39FF14] mb-1 flex items-center gap-2"><Sparkles size={14}/> Note du Coach IA</h4>
@@ -3495,7 +3520,7 @@ export default function NutritionDashboard() {
                                           <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories} kcal` : (recipe.ux_unit || "1 portion")}</span>
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
-                                               <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9)); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
+                                               <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
                                              )}
                                              {isConsumed && (
                                                 <span className="bg-[#39FF14] text-black px-2 py-0.5 rounded text-[8px] font-black uppercase shadow-sm">Validé ✅</span>
@@ -3760,21 +3785,6 @@ export default function NutritionDashboard() {
                        <button onClick={sendWaterReminderPush} className="text-[10px] font-bold text-zinc-400 hover:text-black uppercase underline">Tester</button>
                        <button onClick={togglePushNotifications} className={`px-4 py-2 rounded-lg font-black uppercase text-[10px] tracking-widest transition-colors ${pushEnabled ? 'bg-green-100 text-green-700' : 'bg-black text-[#39FF14] hover:bg-zinc-800'}`}>
                            {pushEnabled ? 'Activé' : 'Activer'}
-                       </button>
-                   </div>
-                </div>
-             </div>
-
-             <div className="bg-white p-8 rounded-[24px] border border-zinc-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8">
-                <h3 className="text-lg font-black uppercase text-black mb-4 flex items-center gap-2"><Activity className="text-purple-500"/> Mode Expert</h3>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-zinc-50 border border-zinc-100 rounded-xl gap-4">
-                   <div>
-                       <p className="font-bold text-sm text-black">Afficher les Calories (Kcal) et Grammes</p>
-                       <p className="text-[10px] font-black uppercase text-zinc-500 mt-1">Par défaut, nous affichons uniquement les portions (bols, cuillères) pour réduire la charge mentale.</p>
-                   </div>
-                   <div className="flex items-center gap-3">
-                       <button onClick={() => handleExpertModeChange(!isExpertMode)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isExpertMode ? 'bg-[#39FF14]' : 'bg-zinc-300'}`}>
-                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isExpertMode ? 'translate-x-6' : 'translate-x-1'}`} />
                        </button>
                    </div>
                 </div>
