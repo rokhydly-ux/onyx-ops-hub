@@ -752,12 +752,26 @@ export default function AdminNutritionAfricaine() {
                   } else {
                       item.produit_id = `prod_${Date.now()}_${Math.floor(Math.random()*1000)}`;
                   }
-                      if (tenantId) item.tenant_id = tenantId;
+                  if (tenantId) item.tenant_id = tenantId;
+                  
+                  // Ensure strict typing for numeric fields to prevent silent DB failures
+                  item.price_cfa = Number(item.price_cfa) || 0;
+                  item.prix_standard = Number(item.prix_standard) || 0;
+                  item.prix_premium = Number(item.prix_premium) || 0;
+                  item.stock = Number(item.stock) || 0;
+                  
+                  // Strict mapping based on mission requirements
+                  if ('calories_hidden' in p) item.calories_hidden = p.calories_hidden;
+                  if ('calories_100g' in p) item.calories_100g = p.calories_100g;
+
                   return item;
               });
 
               const { data, error } = await supabase.from('nutrition_products').upsert(payload, { onConflict: 'id' }).select();
-              if (error) throw new Error("Erreur insertion: " + error.message);
+              if (error) {
+                  console.error("Supabase upsert error details:", error);
+                  throw new Error(`Erreur lors de l'insertion (chunk ${i}): ${error.message} - Code: ${error.code}`);
+              }
 
               if (data) {
                   importedCount += data.length;
@@ -766,14 +780,20 @@ export default function AdminNutritionAfricaine() {
               setProductCsvImportProgress(Math.round(((i + chunk.length) / totalRows) * 100));
           }
 
+          console.log(`Importation réussie : ${importedCount} produits ajoutés/mis à jour.`);
           alert(`Importation réussie ! ${importedCount} produits ajoutés/mis à jour.`);
           setPendingProductCsvFile(null);
 
+          // Force UI Refresh
           const { data } = await supabase.from('nutrition_products').select('*').order('created_at', { ascending: false });
-          if (data) setProducts(data);
+          if (data) {
+              setProducts(data);
+              console.log("Liste des produits rafraîchie avec succès depuis Supabase.");
+          }
 
       } catch (err: any) {
-          alert("Erreur lors de l'importation : " + err.message);
+          console.error("CSV Import Exception:", err);
+          alert("Erreur critique lors de l'importation : " + err.message);
       } finally {
           setIsImportingProductCsv(false);
           setProductCsvImportProgress(0);
