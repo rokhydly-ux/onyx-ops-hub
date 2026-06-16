@@ -124,6 +124,8 @@ export default function AdminNutritionAfricaine() {
   const [reportCoachNotes, setReportCoachNotes] = useState("");
   const [showWelcomeModal, setShowWelcomeModal] = useState<any>(null);
   const [welcomeMessageText, setWelcomeMessageText] = useState("");
+  const [selectedStyleId, setSelectedStyleId] = useState<string>("");
+  const [scheduleAutoSend, setScheduleAutoSend] = useState(false);
   const [showGroceryModal, setShowGroceryModal] = useState<any>(null);
 
   // Blog Admin States
@@ -335,6 +337,7 @@ export default function AdminNutritionAfricaine() {
           const existingNames = existing?.map(e => e.nom) || [];
 
           const toInsert = DEFAULT_RECIPES.filter(r => !existingNames.includes(r.nom)).map(r => ({
+              id: crypto.randomUUID(),
               nom: r.nom,
               type: r.type,
               calories: r.calories,
@@ -385,6 +388,8 @@ export default function AdminNutritionAfricaine() {
                   delete item.tenant_id;
                   if (existingRecipe) {
                       item.id = existingRecipe.id;
+                  } else {
+                      item.id = crypto.randomUUID();
                   }
                   if (tenantId) item.tenant_id = tenantId;
                   return item;
@@ -550,11 +555,26 @@ export default function AdminNutritionAfricaine() {
      setShowRecipeModal(true);
   };
 
-  const handleSendWelcomeMessage = () => {
+  const handleSendWelcomeMessage = async () => {
       if (!showWelcomeModal) return;
-      const phone = (showWelcomeModal.phone || showWelcomeModal.client?.phone || "").replace('+', '');
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(welcomeMessageText)}`, '_blank');
-      setShowWelcomeModal(null);
+
+      try {
+          // Sauvegarde de la préférence de style et de l'état de programmation
+          await supabase.from('nutrition_profiles').update({ 
+              preferred_message_style: selectedStyleId,
+              auto_welcome_enabled: scheduleAutoSend 
+          }).eq('client_id', showWelcomeModal.client?.id);
+
+          if (!scheduleAutoSend) {
+              const phone = (showWelcomeModal.phone || showWelcomeModal.client?.phone || "").replace('+', '');
+              window.open(`https://wa.me/${phone}?text=${encodeURIComponent(welcomeMessageText)}`, '_blank');
+          } else {
+              alert("Message programmé ! Il sera envoyé automatiquement 24h après l'inscription du client.");
+          }
+          setShowWelcomeModal(null);
+      } catch (err) {
+          alert("Erreur lors de la sauvegarde des paramètres de bienvenue.");
+      }
   };
 
   const handleGenerateVideoIA = async () => {
@@ -576,7 +596,6 @@ export default function AdminNutritionAfricaine() {
       e.preventDefault();
       const payload = { ...recipeForm };
       payload.gallery = payload.gallery.map((url: string) => url.trim()).filter(Boolean);
-      delete payload.id;
       delete (payload as any).tenant_id;
       if (tenantId) (payload as any).tenant_id = tenantId;
       if (editingRecipe) {
@@ -584,6 +603,8 @@ export default function AdminNutritionAfricaine() {
           if (!error) { setRecipes(recipes.map(r => r.id === recipeForm.id ? { ...payload, id: recipeForm.id } : r)); setShowRecipeModal(false); }
           else alert(error.message);
       } else {
+          (payload as any).id = crypto.randomUUID();
+          delete (payload as any).id_temp; // Au cas où une clé temporaire traînerait
           const { data, error } = await supabase.from('nutrition_recipes').insert([payload]).select().single();
           if (!error && data) { setRecipes([data, ...recipes]); setShowRecipeModal(false); }
           else alert(error?.message);
@@ -677,38 +698,31 @@ export default function AdminNutritionAfricaine() {
                   const uniqueCategories = new Set<string>();
 
                   for (const row of results.data as any[]) {
-                      const r: any = {};
-                      Object.keys(row).forEach(k => {
-                          if (k && typeof k === 'string') r[k.toLowerCase().trim()] = row[k];
-                      });
+                      if (!row.nom) continue;
 
-                      const nom = r['nom'] || r['name'] || r['produit'];
-                      if (!nom) continue;
+                      const mappedProduct = {
+                        nom: row.nom,
+                        categorie: row.categorie,
+                        categorie_nom: row.categorie || 'Général',
+                        // FORCER LA CONVERSION EN NOMBRE POUR LE PRIX ET LES MACROS :
+                        price_cfa: parseInt(row.prix_cfa, 10) || 0, 
+                        calories: parseInt(row.kcal, 10) || 0,
+                        protein: parseFloat(row.proteines_g) || 0,
+                        carbs: parseFloat(row.glucides_g) || 0,
+                        fat: parseFloat(row.lipides_g) || 0,
+                        // RESTE DES DONNÉES :
+                        budget_tier: row.budget_tier,
+                        ux_unit: row.ux_unit,
+                        is_dietetic: row.is_dietetic === 'true' || row.is_dietetic === true,
+                        // Champs techniques requis pour l'affichage Onyx
+                        prix_standard: parseInt(row.prix_cfa, 10) || 0,
+                        prix_premium: Math.round((parseInt(row.prix_cfa, 10) || 0) * 0.8),
+                        stock: 100,
+                        rating: 5
+                      };
 
-                      const categorie_nom = r['categorie_nom'] || r['catégorie'] || r['category'] || 'Général';
-                      
-                      let prix_standard = r['prix_standard'] || r['prix'] || 0;
-                      let prix_premium = r['prix_premium'] || r['prix premium'] || 0;
-                      let stock = r['stock'] || r['quantité'] || 0;
-
-                      productsToImport.push({
-                          nom,
-                          categorie_nom,
-                          description_courte: r['description_courte'] || r['description courte'] || '',
-                          description_longue: r['description_longue'] || r['description longue'] || '',
-                          prix_standard: Number(String(prix_standard).replace(/[^0-9.-]+/g, '')) || 0,
-                          prix_premium: Number(String(prix_premium).replace(/[^0-9.-]+/g, '')) || 0,
-                          stock: Number(String(stock).replace(/[^0-9.-]+/g, '')) || 0,
-                          price_cfa: Number(String(r['price_cfa'] || r['price cfa'] || 0).replace(/[^0-9.-]+/g, '')) || 0,
-                          budget_tier: r['budget_tier'] || r['budget tier'] || 'medium',
-                          ux_unit: r['ux_unit'] || r['ux unit'] || 'portion',
-                          image_url: r['image_url'] || r['image'] || '',
-                          badge: r['badge'] || '',
-                          goal: r['goal'] || r['objectif'] || 'all',
-                          rating: Number(r['rating'] || r['note']) || 5
-                      });
-
-                      uniqueCategories.add(categorie_nom);
+                      productsToImport.push(mappedProduct);
+                      uniqueCategories.add(mappedProduct.categorie_nom);
                   }
 
                   if (productsToImport.length === 0) {
@@ -1282,7 +1296,10 @@ export default function AdminNutritionAfricaine() {
                        <div className="flex items-center gap-3">
                           <img src={profile.client?.avatar_url || `https://ui-avatars.com/api/?name=${clientName}`} alt="Avatar" className="w-12 h-12 rounded-full border-2 border-zinc-100 object-cover" />
                           <div>
-                             <h3 className="font-black uppercase text-sm">{clientName}</h3>
+                             <h3 className="font-black uppercase text-sm flex items-center gap-2">
+                                {clientName}
+                                {profile.auto_welcome_enabled && <Clock size={14} className="text-purple-500 animate-pulse" title="Message de bienvenue automatique programmé" />}
+                             </h3>
                              <p className="text-xs font-mono text-zinc-500">{phone}</p>
                           </div>
                        </div>
@@ -1388,7 +1405,16 @@ export default function AdminNutritionAfricaine() {
                     <button onClick={() => setShowGroceryModal(profile)} className="bg-green-50 text-green-600 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-100 transition-colors flex justify-center items-center gap-2 shadow-sm" title="Liste de Courses">
                        <ShoppingCart size={14}/> Courses
                     </button>
-                    <button onClick={() => { setShowWelcomeModal(profile); setWelcomeMessageText(`Bonjour ${clientName.split(' ')[0]} ! 👋 Ravi de t'accompagner dans ta transformation avec Onyx Nutrition. Ton plan personnalisé est prêt, on commence quand ?`); }} className="bg-purple-50 text-purple-600 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-purple-100 transition-colors flex justify-center items-center gap-2" title="Message de Bienvenue">
+                    <button onClick={() => { 
+                        setShowWelcomeModal(profile); 
+                        const style = profile.preferred_message_style || 'amical';
+                        setSelectedStyleId(style);
+                        setScheduleAutoSend(profile.auto_welcome_enabled || false);
+                        const name = clientName.split(' ')[0];
+                        const styles: any = { amical: `Salut ${name} ! Bienvenue dans la famille...`, motivant: `Allez ${name} ! C'est le moment de briller...`, medical: `Bonjour ${name}. J'ai analysé ton profil...` };
+                        setWelcomeMessageText(styles[style] || `Bonjour ${name} ! 👋 Ravi de t'accompagner...`);
+                    }} 
+                    className="bg-purple-50 text-purple-600 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-purple-100 transition-colors flex justify-center items-center gap-2" title="Message de Bienvenue">
                        <MessageSquare size={14}/> Welcome
                     </button>
                  </div>
@@ -2354,7 +2380,10 @@ export default function AdminNutritionAfricaine() {
                         { id: 'motivant', label: 'Motivant 🔥', text: (n: string) => `Allez ${n} ! C'est le moment de briller. Ta transformation commence aujourd'hui. Je suis à 100% derrière toi, on ne lâche rien pour atteindre tes objectifs ! 💪✨` },
                         { id: 'medical', label: 'Médical 🩺', text: (n: string) => `Bonjour ${n}. J'ai analysé ton profil suite au diagnostic. Ton plan est scientifiquement calibré pour tes besoins. Commençons ce protocole ensemble pour ta santé. 🍏` }
                      ].map(t => (
-                        <button key={t.id} type="button" onClick={() => setWelcomeMessageText(t.text(showWelcomeModal.client?.full_name?.split(' ')[0] || 'Client'))} className="px-4 py-2 bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border border-purple-100 shadow-sm active:scale-95">{t.label}</button>
+                        <button key={t.id} type="button" onClick={() => { 
+                            setSelectedStyleId(t.id);
+                            setWelcomeMessageText(t.text(showWelcomeModal.client?.full_name?.split(' ')[0] || 'Client'));
+                        }} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border shadow-sm active:scale-95 ${selectedStyleId === t.id ? 'bg-purple-600 text-white border-purple-600 shadow-purple-200' : 'bg-purple-50 text-purple-600 border-purple-100 hover:bg-purple-100'}`}>{t.label}</button>
                      ))}
                   </div>
                </div>
@@ -2368,9 +2397,19 @@ export default function AdminNutritionAfricaine() {
                   />
                </div>
 
-               <button onClick={handleSendWelcomeMessage} className="w-full bg-purple-500 text-white py-4 rounded-[2rem] font-black uppercase text-sm hover:bg-purple-600 transition-colors shadow-lg flex items-center justify-center gap-2">
-                  <MessageSquare size={18}/> Envoyer sur WhatsApp
-               </button>
+               <div className="flex flex-col gap-4">
+                  <label className="flex items-center gap-3 p-4 bg-zinc-50 border border-zinc-200 rounded-2xl cursor-pointer hover:bg-zinc-100 transition-colors">
+                     <input type="checkbox" checked={scheduleAutoSend} onChange={e => setScheduleAutoSend(e.target.checked)} className="w-5 h-5 accent-purple-600" />
+                     <div>
+                        <p className="font-black text-xs uppercase text-zinc-700">Programmer l'envoi automatique</p>
+                        <p className="text-[10px] font-bold text-zinc-500">L'IA enverra ce message 24h après l'inscription.</p>
+                     </div>
+                  </label>
+
+                  <button onClick={handleSendWelcomeMessage} className="w-full bg-purple-500 text-white py-4 rounded-[2rem] font-black uppercase text-sm hover:bg-purple-600 transition-colors shadow-lg flex items-center justify-center gap-2">
+                     <MessageSquare size={18}/> {scheduleAutoSend ? 'Confirmer la programmation' : 'Envoyer maintenant'}
+                  </button>
+               </div>
             </div>
          </div>
       )}
