@@ -1588,6 +1588,16 @@ export default function AdminNutritionAfricaine() {
                               <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-1 rounded-md">G:{r.carbs}g</span>
                               <span className="flex items-center gap-1 text-zinc-500 bg-zinc-100 px-2 py-1 rounded-md">L:{r.fats}g</span>
                            </div>
+                           {r.budget_tier && (
+                              <div className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg mb-3 w-max shadow-sm ${
+                                 r.budget_tier === 'Serré 8k' ? 'bg-green-500 text-white' :
+                                 r.budget_tier === 'Famille 15k' ? 'bg-orange-500 text-white' :
+                                 'bg-purple-600 text-white'
+                              }`}>
+                                 {r.budget_tier === 'Serré 8k' ? '💰 Budget Serré' : 
+                                  r.budget_tier === 'Famille 15k' ? '🥗 Budget Famille' : '💎 Budget Confort'}
+                              </div>
+                           )}
                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-zinc-100">
                               <div className="flex items-center gap-3 text-zinc-400 text-xs font-bold">
                                  <span className="flex items-center gap-1" title="Vues"><Eye size={14} className="text-blue-500"/> {r.views || 0}</span>

@@ -665,7 +665,12 @@ export default function NutritionDashboard() {
             .maybeSingle();
 
           if (nutritionData) {
-             setClientProfile(prev => ({ ...prev, diagnostic_data: nutritionData.diagnostic_data, expert_mode: nutritionData.expert_mode }));
+             setClientProfile(prev => ({ 
+                ...prev, 
+                diagnostic_data: nutritionData.diagnostic_data, 
+                expert_mode: nutritionData.expert_mode,
+                weekly_budget_tier: nutritionData.weekly_budget_tier || 'famille_15k'
+             }));
              setCalorieGoal(nutritionData.daily_calorie_goal || 1500);
              setProteinGoal(nutritionData.protein_goal || 80);
              setCarbsGoal(nutritionData.carbs_goal || 150);
@@ -1002,6 +1007,16 @@ export default function NutritionDashboard() {
           });
       }
 
+      // FILTRAGE BUDGET (MISSION)
+      const userBudgetTier = clientProfile?.weekly_budget_tier || 'famille_15k';
+      const budgetMapping: Record<string, string[]> = {
+          'serre_8k': ['Serré 8k'],
+          'famille_15k': ['Serré 8k', 'Famille 15k'],
+          'confort_25k': ['Serré 8k', 'Famille 15k', 'Confort 25k']
+      };
+      const allowedTiers = budgetMapping[userBudgetTier] || budgetMapping['famille_15k'];
+      safeRecipes = safeRecipes.filter(r => !r.budget_tier || allowedTiers.includes(r.budget_tier));
+
       // RATIOS CALORIQUES MODE GUIDÉ (RULE 4)
       const targetDailyCals = calorieGoal || 1500;
       const mealTargets: Record<string, number> = activeFastingMode ? {
@@ -1139,6 +1154,16 @@ export default function NutritionDashboard() {
           const allergyList = allergies.split(/[,;\s]+/).filter(Boolean);
           currentRecipes = currentRecipes.filter(r => !r.ingredients?.some((ing: any) => allergyList.some(al => ing.nom.toLowerCase().includes(al))));
       }
+
+      // FILTRAGE BUDGET (MISSION)
+      const userBudgetTier = clientProfile?.weekly_budget_tier || 'famille_15k';
+      const budgetMapping: Record<string, string[]> = {
+          'serre_8k': ['Serré 8k'],
+          'famille_15k': ['Serré 8k', 'Famille 15k'],
+          'confort_25k': ['Serré 8k', 'Famille 15k', 'Confort 25k']
+      };
+      const allowedTiers = budgetMapping[userBudgetTier] || budgetMapping['famille_15k'];
+      currentRecipes = currentRecipes.filter(r => !r.budget_tier || allowedTiers.includes(r.budget_tier));
 
       const prevDayRecipeId = dayIndex > 0 ? weeklyGeneratedMenu[dayIndex - 1].meals[mealType]?.id : null;
       const nextDayRecipeId = dayIndex < 6 ? weeklyGeneratedMenu[dayIndex + 1].meals[mealType]?.id : null;
@@ -3961,6 +3986,16 @@ export default function NutritionDashboard() {
                                <div className="flex flex-wrap gap-1 mb-3">
                                    {isTop10 && <span className="bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"><Trophy size={10}/> Top 10</span>}
                                    {tags.map(t => <span key={t} className="bg-black text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">{t}</span>)}
+                                   {fav.budget_tier && (
+                                       <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm ${
+                                           fav.budget_tier === 'Serré 8k' ? 'bg-green-500 text-white' :
+                                           fav.budget_tier === 'Famille 15k' ? 'bg-orange-500 text-white' :
+                                           'bg-purple-600 text-white'
+                                       }`}>
+                                           {fav.budget_tier === 'Serré 8k' ? '💰 Serré' : 
+                                            fav.budget_tier === 'Famille 15k' ? '🥗 Famille' : '💎 Confort'}
+                                       </span>
+                                   )}
                                </div>
                                <div className="flex flex-wrap gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
                                    <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {cals} kcal</span>
