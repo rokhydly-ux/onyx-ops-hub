@@ -3445,13 +3445,20 @@ export default function NutritionDashboard() {
                                  const isBolCommun = clientProfile?.diagnostic_data?.lunch_context === 'maison_bol_commun' && mealType === 'Déjeuner';
 
                                  return (
-                                    <React.Fragment key={mealType}>
-                                    <div className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
+                                    <div key={mealType} className={`flex justify-between items-center p-4 rounded-2xl transition-all ${isConsumed ? 'bg-[#39FF14]/15 shadow-sm opacity-90 border border-[#39FF14]' : 'bg-zinc-50 hover:bg-white hover:shadow-md'}`}>
                                        <div className="flex-1 min-w-0 pr-2 cursor-pointer" onClick={() => handleMealClick(mealType, { type: mealType, meal: recipe.nom, cals: recipe.calories, proteins: recipe.proteins, carbs: recipe.carbs, fats: recipe.fats, recipe: recipe.recipe, bienfaits: recipe.bienfaits }, 'guided')} title="Voir la recette">
                                           <p className="text-[9px] font-black uppercase text-zinc-400 mb-0.5">{mealType}</p>
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
                                        <div className="text-right shrink-0 flex flex-col items-end gap-1 relative">
+                                          {isBolCommun && (
+                                             <div className="group">
+                                                <AlertTriangle size={16} className="text-orange-500 cursor-pointer mb-1"/>
+                                                <div className="absolute bottom-full right-0 mb-2 w-64 bg-black text-white text-xs font-medium p-3 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                                   💡 <strong>Conseil Woyof :</strong> Servez votre part dans une petite assiette creuse avant de rejoindre la famille, ou limitez votre espace de riz à la taille de votre poing dans le grand bol.
+                                                </div>
+                                             </div>
+                                          )}
                                           <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories} kcal` : (recipe.ux_unit || "1 portion")}</span>
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
@@ -3469,14 +3476,6 @@ export default function NutritionDashboard() {
                                           </div>
                                        </div>
                                     </div>
-                                    {isBolCommun && (
-                                      <div className="bg-zinc-100 border-2 border-[#39FF14] p-4 rounded-xl mt-1 mb-2">
-                                         <p className="text-xs font-medium text-black leading-relaxed">
-                                           💡 <strong>Conseil Woyof :</strong> Servez votre part dans une petite assiette creuse avant de rejoindre la famille, ou limitez votre espace de riz à la taille de votre poing dans le grand bol.
-                                         </p>
-                                      </div>
-                                    )}
-                                    </React.Fragment>
                                  )
                               })}
                            </div>
