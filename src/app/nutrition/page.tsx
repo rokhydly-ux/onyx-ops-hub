@@ -321,6 +321,8 @@ export default function NutritionDashboard() {
   const [moods, setMoods] = useState<string[]>([]);
   const [moodNotes, setMoodNotes] = useState<string>('');
   const [selectedMealModal, setSelectedMealModal] = useState<any>(null);
+  const [selectedMealPhoto, setSelectedMealPhoto] = useState<string | null>(null);
+  const mealPhotoInputRef = useRef<HTMLInputElement>(null);
   
   // Moteur de recherche et portions
   const [foodSearchQuery, setFoodSearchQuery] = useState("");
@@ -1415,8 +1417,10 @@ export default function NutritionDashboard() {
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
+    const todayLog = dailyLogs.find(l => l.log_date === todayStr);
     
     await supabase.from('nutrition_daily_logs').upsert({
+      ...(todayLog?.id ? { id: todayLog.id } : {}),
       client_id: clientProfile.id,
       tenant_id: clientProfile.tenant_id || null,
       log_date: todayStr,
@@ -1426,7 +1430,7 @@ export default function NutritionDashboard() {
       carbs_consumed: carbs,
       fats_consumed: fats,
       report_data: { ...reportData, consumedMeals, moods, moodNotes }
-    }, { onConflict: 'client_id, log_date' });
+    });
     
     setDailyLogs(prev => {
       const filtered = prev.filter(l => l.log_date !== todayStr);
@@ -1440,6 +1444,7 @@ export default function NutritionDashboard() {
       setSelectedFoodDB(null);
       setFoodQuantity(1);
       setFoodUnit("portion");
+      setSelectedMealPhoto(null);
       setSelectedMealModal({ type: mealType, meal: plannedMeal, mode: forceMode || trackingMode });
       
       // Log analytics (Incrémenter le compteur de vues de la recette)
@@ -1478,7 +1483,8 @@ export default function NutritionDashboard() {
          prots: protsRounded,
          carbs: carbsRounded,
          fats: fatsRounded,
-         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+         photo_url: selectedMealPhoto || foodObj?.image_url || null
       };
 
       const updatedConsumedMeals = [...consumedMeals, newConsumedItem];
@@ -1541,7 +1547,9 @@ export default function NutritionDashboard() {
 
       if (clientProfile) {
           const todayStr = new Date().toISOString().split('T')[0];
+          const todayLog = dailyLogs.find(l => l.log_date === todayStr);
           await supabase.from('nutrition_daily_logs').upsert({
+            ...(todayLog?.id ? { id: todayLog.id } : {}),
             client_id: clientProfile.id,
             tenant_id: clientProfile.tenant_id || null,
             log_date: todayStr,
@@ -1551,7 +1559,7 @@ export default function NutritionDashboard() {
             fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
-          }, { onConflict: 'client_id, log_date' });
+          });
       }
   };
 
@@ -1571,7 +1579,9 @@ export default function NutritionDashboard() {
 
       if (clientProfile) {
           const todayStr = new Date().toISOString().split('T')[0];
+          const todayLog = dailyLogs.find(l => l.log_date === todayStr);
           await supabase.from('nutrition_daily_logs').upsert({
+            ...(todayLog?.id ? { id: todayLog.id } : {}),
             client_id: clientProfile.id,
             tenant_id: clientProfile.tenant_id || null,
             log_date: todayStr,
@@ -1581,7 +1591,7 @@ export default function NutritionDashboard() {
             fats_consumed: newFats,
             water_glasses: waterGlasses,
             report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
-          }, { onConflict: 'client_id, log_date' });
+          });
       }
   };
 
@@ -1649,6 +1659,17 @@ export default function NutritionDashboard() {
       setToastMessage("Analyse du plat en cours par l'IA... 📸");
 
       try {
+          // Upload de l'image sur Supabase Storage en premier
+          let publicUrl = "";
+          const ext = file.name.split('.').pop();
+          const fileName = `meals/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+          const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
+          if (!uploadError) {
+              const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+              publicUrl = urlData.publicUrl;
+              setSelectedMealPhoto(publicUrl);
+          }
+
           // --- APPEL RÉEL À L'EDGE FUNCTION SUPABASE ---
           const formData = new FormData(); 
           formData.append('image', file);
@@ -1673,6 +1694,7 @@ export default function NutritionDashboard() {
                  fibres: 0 
               },
               isFood: true,
+              image_url: publicUrl,
               message_coach_ia: data.message_coach_ia || "Estimation générée automatiquement d'après la photo."
           };
 
@@ -1729,6 +1751,25 @@ export default function NutritionDashboard() {
       if (clientProfile) await supabase.from('nutrition_community_posts').insert({ client_id: clientProfile.id, content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 } });
   };
 
+  const handleUploadMealPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+          setUploadingImage(true);
+          const ext = file.name.split('.').pop();
+          const fileName = `meals/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+          const { error } = await supabase.storage.from('avatars').upload(fileName, file);
+          if (error) throw error;
+          const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+          setSelectedMealPhoto(data.publicUrl);
+      } catch (err: any) {
+          alert("Erreur d'upload : " + err.message);
+      } finally {
+          setUploadingImage(false);
+          if (mealPhotoInputRef.current) mealPhotoInputRef.current.value = '';
+      }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1761,7 +1802,10 @@ export default function NutritionDashboard() {
         setProteins(currentProts);
     }
 
+    const todayLog = dailyLogs.find(l => l.log_date === todayStr);
+
     const payload = {
+       ...(todayLog?.id ? { id: todayLog.id } : {}),
        client_id: clientProfile.id,
        tenant_id: clientProfile.tenant_id || null,
        log_date: todayStr,
@@ -1788,7 +1832,7 @@ export default function NutritionDashboard() {
     }
 
     try {
-       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload, { onConflict: 'client_id, log_date' });
+       const { error } = await supabase.from('nutrition_daily_logs').upsert(payload);
 
        if (error) throw error;
 
@@ -1937,6 +1981,7 @@ export default function NutritionDashboard() {
     { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
     { id: 'today', label: 'Mon Jour', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" },
     { id: 'favorites', label: 'Galerie Recettes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" },
+    { id: 'community', label: 'Communauté', icon: Camera },
     { id: 'weight', label: 'Mon Poids', icon: Scale },
     { id: 'fitness', label: 'Fitness', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" },
     { id: 'minute-doc', label: 'La Minute Doc', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" },
@@ -2085,7 +2130,9 @@ export default function NutritionDashboard() {
      setIsSaving(true);
      try {
          const todayStr = new Date().toISOString().split('T')[0];
+         const todayLog = dailyLogs.find(l => l.log_date === todayStr);
          await supabase.from('nutrition_daily_logs').upsert({
+           ...(todayLog?.id ? { id: todayLog.id } : {}),
            client_id: clientProfile.id,
            tenant_id: clientProfile.tenant_id || null,
            log_date: todayStr,
@@ -2095,7 +2142,7 @@ export default function NutritionDashboard() {
            proteins_consumed: proteins,
            carbs_consumed: carbs,
            fats_consumed: fats
-         }, { onConflict: 'client_id, log_date' });
+         });
          alert("Notes et humeurs du jour sauvegardées !");
      } catch(e) {
          alert("Erreur de sauvegarde.");
@@ -2248,7 +2295,7 @@ export default function NutritionDashboard() {
             <div className={`flex items-center gap-3 overflow-hidden transition-all duration-500 ${!isSidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`}>
                <img src={logoSrc} alt="OnyxNutrition Logo" className="h-32 md:h-40 w-auto object-contain transition-transform hover:scale-110 duration-500 animate-gentle-pulse drop-shadow-2xl" />
             </div>
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'}`}>
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`hidden lg:flex p-2 rounded-xl transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-[#39FF14]' : 'hover:bg-zinc-100 text-zinc-500 hover:text-black'} ${!isSidebarOpen ? 'mx-auto' : ''}`}>
                {isSidebarOpen ? <PanelLeftClose size={20}/> : <PanelLeftOpen size={20}/>}
             </button>
             <button onClick={() => setIsMobileMenuOpen(false)} className={`lg:hidden p-2 hover:bg-zinc-800 rounded-xl transition-colors ${!isSidebarOpen ? 'mx-auto' : ''}`}>
@@ -2264,8 +2311,18 @@ export default function NutritionDashboard() {
                   onClick={() => { setActiveTab(item.id); if (window.innerWidth < 1024) setIsMobileMenuOpen(false); }}
                   className={`w-full flex items-center p-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all group relative ${activeTab === item.id ? 'bg-[#39FF14] text-black shadow-[0_10px_20px_rgba(57,255,20,0.2)]' : (theme === 'dark' ? 'text-zinc-500 hover:bg-zinc-900 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-black')} ${!isSidebarOpen ? 'justify-center' : 'justify-start'}`}
                >
-                  {typeof item.icon === 'string' ? <img src={item.icon} className="w-6 h-6 rounded-xl object-cover shrink-0" alt="" /> : <item.icon size={20} className="shrink-0" />}
-                  <span className={`whitespace-nowrap ml-4 transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`}>{item.label}</span>
+                  {typeof item.icon === 'string' ? (
+                     <motion.img 
+                        animate={{ y: [0, -3, 0] }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                        src={item.icon} 
+                        className="w-6 h-6 rounded-xl object-cover shrink-0" 
+                        alt="" 
+                     />
+                  ) : (
+                     <item.icon size={20} className="shrink-0" />
+                  )}
+                  <span className={`whitespace-nowrap transition-all duration-500 overflow-hidden ${!isSidebarOpen ? 'max-w-0 opacity-0 ml-0' : 'max-w-[200px] opacity-100 ml-4'}`}>{item.label}</span>
                   {item.dot && (
                      <span className="absolute top-4 right-4 flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -2607,7 +2664,9 @@ export default function NutritionDashboard() {
                                    {itemsForThisMeal.map((item, i) => (
                                       <div key={item.id} className={`flex items-center justify-between p-3 rounded-2xl ${theme === 'dark' ? 'bg-zinc-800/80' : 'bg-zinc-50'} group shadow-sm hover:shadow-md transition-shadow`}>
                                          <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center text-sm">🍲</div>
+                                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center text-sm overflow-hidden shrink-0">
+                                               {item.photo_url ? <img src={item.photo_url} className="w-full h-full object-cover" alt="Plat" /> : '🍲'}
+                                            </div>
                                             <div>
                                                <p className={`font-black text-xs sm:text-sm ${theme === 'dark' ? 'text-white' : 'text-black'} flex items-center gap-2`}>{item.name} {item.is_boutique && <span className="bg-[#39FF14]/10 text-[#39FF14] px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Boutique</span>}</p>
                                                <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-2 mt-0.5">
@@ -2699,14 +2758,20 @@ export default function NutritionDashboard() {
 
                <div className="mt-12 text-center">
                   <button onClick={() => setActiveTab('shop')} className="inline-flex items-center gap-3 bg-white text-black border-2 border-black px-8 py-4 rounded-2xl font-black uppercase text-sm hover:bg-black hover:text-white transition-all shadow-lg">
-                     Voir toute la boutique <ArrowRight size={20}/>
+                     Voir toute la boutique <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_4_erkmnd.jpg" alt="Boutique" className="w-6 h-6 rounded-lg object-cover" />
                   </button>
                </div>
             </div>
 
             {/* BOUTON BILAN FIN DE JOURNÉE */}
             <button onClick={() => setShowDailyReport(true)} className="w-full bg-black text-[#39FF14] py-6 rounded-[2rem] font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-transform shadow-2xl flex items-center justify-center gap-3">
-               <ListChecks size={24} /> Bilan de fin de journée
+               <motion.img 
+                  animate={{ y: [0, -4, 0] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781603729/A_cute__highly_detailed_3D_202606152350_wyn4ds.jpg" 
+                  alt="Bilan" 
+                  className="w-8 h-8 rounded-xl object-cover" 
+               /> Bilan de fin de journée
             </button>
 
             {/* MODALE BILAN DE FIN DE JOURNÉE */}
@@ -2755,6 +2820,7 @@ export default function NutritionDashboard() {
                <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setSelectedMealModal(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
                   <div className="bg-white p-8 sm:p-10 rounded-3xl max-w-md w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto">
                      <button onClick={() => setSelectedMealModal(null)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+                     <input type="file" accept="image/*" capture="environment" ref={mealPhotoInputRef} className="hidden" onChange={handleUploadMealPhoto} />
                      <h2 className={`${spaceGrotesk.className} text-3xl font-black uppercase text-black tracking-tighter mb-2`}>{selectedMealModal.type}</h2>
                      
                      {selectedMealModal.mode === 'guided' && selectedMealModal.meal ? (
@@ -2783,6 +2849,22 @@ export default function NutritionDashboard() {
                                    <p className="text-sm font-medium text-zinc-700 leading-relaxed">{selectedMealModal.meal.bienfaits}</p>
                                 </div>
                              )}
+                             <div className="mb-6">
+                                <p className="font-black text-xs uppercase tracking-widest text-zinc-400 mb-2">Ajouter une photo (Optionnel)</p>
+                                <div className="flex items-center gap-4">
+                                   {selectedMealPhoto ? (
+                                       <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 shrink-0">
+                                          <img src={selectedMealPhoto} className="w-full h-full object-cover" />
+                                          <button onClick={() => setSelectedMealPhoto(null)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"><X size={12}/></button>
+                                       </div>
+                                   ) : (
+                                       <button onClick={() => mealPhotoInputRef.current?.click()} className="w-full py-4 border-2 border-dashed border-zinc-200 rounded-xl text-zinc-500 font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors">
+                                           {uploadingImage ? <Loader2 size={16} className="animate-spin"/> : <Camera size={16}/>}
+                                           Prendre en photo mon plat
+                                       </button>
+                                   )}
+                                </div>
+                             </div>
                              <button onClick={() => confirmMealLog(selectedMealModal.type, selectedMealModal.meal.meal, selectedMealModal.meal.cals, selectedMealModal.meal.proteins, selectedMealModal.meal.carbs, selectedMealModal.meal.fats)} className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
                                 <CheckCircle size={20} /> J'ai mangé ça !
                              </button>
@@ -2902,6 +2984,22 @@ export default function NutritionDashboard() {
                                                    <p className="text-xs font-medium text-zinc-700">{selectedFoodDB.message_coach_ia}</p>
                                                 </div>
                                              )}
+                                             <div className="mt-4">
+                                                <p className="font-black text-xs uppercase tracking-widest text-zinc-400 mb-2">Ajouter une photo (Optionnel)</p>
+                                                <div className="flex items-center gap-4">
+                                                   {selectedMealPhoto ? (
+                                                       <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 shrink-0">
+                                                          <img src={selectedMealPhoto} className="w-full h-full object-cover" />
+                                                          <button onClick={() => setSelectedMealPhoto(null)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"><X size={12}/></button>
+                                                       </div>
+                                                   ) : (
+                                                       <button onClick={() => mealPhotoInputRef.current?.click()} className="w-full py-4 border-2 border-dashed border-zinc-200 rounded-xl text-zinc-500 font-bold text-xs flex items-center justify-center gap-2 hover:bg-zinc-50 transition-colors">
+                                                           {uploadingImage ? <Loader2 size={16} className="animate-spin"/> : <Camera size={16}/>}
+                                                           Prendre en photo mon plat
+                                                       </button>
+                                                   )}
+                                                </div>
+                                             </div>
                                              <button onClick={() => confirmMealLog(selectedMealModal.type, selectedFoodDB.nom, calcCals, calcProt, calcGluc, calcLip, selectedFoodDB)} className={`w-full py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl flex justify-center items-center gap-2 transition-all mt-6 ${selectedFoodDB ? 'bg-black text-[#00E5FF] hover:scale-[1.02]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
                                                 <CheckCircle size={20} /> Ajouter au tracker
                                              </button>

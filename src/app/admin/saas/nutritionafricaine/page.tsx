@@ -2033,7 +2033,22 @@ export default function AdminNutritionAfricaine() {
               </div>
               <input type="url" placeholder="URL de l'image principale" value={editingArticle.image_url || ''} onChange={e => setEditingArticle({...editingArticle, image_url: e.target.value})} className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14]" />
               <textarea value={(editingArticle.gallery || []).join('\n')} onChange={e => setEditingArticle({...editingArticle, gallery: e.target.value.split('\n').filter(Boolean)})} className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14] min-h-[80px]" placeholder="Galerie d'images (1 URL par ligne)..." />
-              <input type="text" placeholder="Produits recommandés (séparés par des virgules)" value={(editingArticle.suggested_products || []).join(', ')} onChange={e => setEditingArticle({...editingArticle, suggested_products: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean)})} className="w-full p-5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[1.75rem] font-bold text-sm outline-none focus:border-[#39FF14]" />
+              <div className="space-y-2">
+                 <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest pl-4">Produits Recommandés (Séparés par des virgules)</label>
+                 <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-[1.75rem] border border-zinc-200 dark:border-zinc-800 focus-within:border-[#39FF14] transition-colors">
+                     <input type="text" placeholder="Ex: Fonio Premium, Poudre de Moringa..." value={(editingArticle.suggested_products || []).join(', ')} onChange={e => setEditingArticle({...editingArticle, suggested_products: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean)})} className="w-full bg-transparent font-bold text-sm outline-none mb-2 text-black dark:text-white" />
+                     {editingArticle.suggested_products && editingArticle.suggested_products.length > 0 && (
+                         <div className="flex gap-2 overflow-x-auto pt-2 custom-scrollbar">
+                             {products.filter(p => editingArticle.suggested_products.some((sp: string) => p.nom.toLowerCase().includes(sp.toLowerCase()))).map(prod => (
+                                 <div key={prod.id} className="flex items-center gap-2 bg-white dark:bg-zinc-800 p-2 rounded-xl border border-zinc-200 dark:border-zinc-700 shrink-0">
+                                     <img src={prod.image_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                                     <span className="text-xs font-black truncate max-w-[120px] text-black dark:text-white">{prod.nom}</span>
+                                 </div>
+                             ))}
+                         </div>
+                     )}
+                 </div>
+              </div>
             </div>
 
             <button onClick={async () => {
