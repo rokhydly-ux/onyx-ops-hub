@@ -418,6 +418,14 @@ export default function AdminNutritionAfricaine() {
 
       const intentLower = intent.toLowerCase();
 
+      const findProduct = (keyword: string, fallbackName: string, defaultUnit: string, fallbackPrice: number = 0) => {
+          const match = products.find(p => p.nom.toLowerCase().includes(keyword.toLowerCase()));
+          if (match) {
+              return { nom: match.nom, unite: match.ux_unit || defaultUnit, rayon: match.categorie_nom || "Boutique Onyx", price_cfa: match.price_cfa || match.prix_standard || fallbackPrice };
+          }
+          return { nom: fallbackName, unite: defaultUnit, rayon: "Marché local", price_cfa: fallbackPrice };
+      };
+
       let type = "Déjeuner";
       let generatedName = "";
       let ingredients: any[] = [];
@@ -433,10 +441,10 @@ export default function AdminNutritionAfricaine() {
           generatedName = "Bol de Fonio IG Bas & Poisson";
           bienfaits = "Idéal pour stabiliser la glycémie. Le fonio remplace le riz blanc pour éviter le pic d'insuline.";
           ingredients = [
-              {nom: "Fonio Premium", quantite: 60, unite: "g", rayon: "Boutique Onyx"},
-              {nom: "Poisson blanc", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"},
-              {nom: "Gombo", quantite: 100, unite: "g", rayon: "Marché local"},
-              {nom: "Soumbala", quantite: 1, unite: "càc", rayon: "Boutique Onyx"}
+              { ...findProduct("fonio", "Fonio Premium", "g", 1500), quantite: 60 },
+              { ...findProduct("poisson", "Poisson blanc", "g", 2000), quantite: 150 },
+              { ...findProduct("gombo", "Gombo", "g", 500), quantite: 100 },
+              { ...findProduct("soumbala", "Soumbala", "càc", 200), quantite: 1 }
           ];
           recipeText = "1. Cuire le fonio à la vapeur (15 min).\n2. Faire griller le poisson avec une pincée de sel.\n3. Préparer une petite sauce gombo légère relevée au soumbala.\n4. Servir chaud.";
           carbs = 35; proteins = 35; fats = 10; calories = 380;
@@ -445,9 +453,9 @@ export default function AdminNutritionAfricaine() {
           generatedName = "Assiette du Sportif au Niébé & Poulet";
           bienfaits = "Ultra riche en protéines pour la récupération musculaire après l'effort.";
           ingredients = [
-              {nom: "Blanc de Poulet", quantite: 200, unite: "g", rayon: "Boucherie / Pêche"},
-              {nom: "Niébé", quantite: 100, unite: "g", rayon: "Marché local"},
-              {nom: "Pâte d'arachide pure", quantite: 1, unite: "càs", rayon: "Boutique Onyx"}
+              { ...findProduct("poulet", "Blanc de Poulet", "g", 2500), quantite: 200 },
+              { ...findProduct("niébé", "Niébé", "g", 800), quantite: 100 },
+              { ...findProduct("arachide", "Pâte d'arachide pure", "càs", 1000), quantite: 1 }
           ];
           recipeText = "1. Faire bouillir le niébé jusqu'à tendreté.\n2. Saisir le poulet à la poêle avec un peu de poivre.\n3. Ajouter une cuillère de pâte d'arachide pure en fin de cuisson pour l'énergie.";
           carbs = 40; proteins = 45; fats = 20; calories = 550; prepTime = 30;
@@ -457,10 +465,10 @@ export default function AdminNutritionAfricaine() {
           generatedName = "Salade Détox & Poisson Grillé";
           bienfaits = "Très léger pour le soir, favorise un ventre plat et une digestion rapide au coucher.";
           ingredients = [
-              {nom: "Poisson (Thiof ou Yaboye)", quantite: 120, unite: "g", rayon: "Boucherie / Pêche"},
-              {nom: "Concombre", quantite: 1, unite: "pièce", rayon: "Marché local"},
-              {nom: "Citron", quantite: 1, unite: "pièce", rayon: "Marché local"},
-              {nom: "Bissap sans sucre", quantite: 1, unite: "tasse", rayon: "Boutique Onyx"}
+              { ...findProduct("poisson", "Poisson (Thiof ou Yaboye)", "g", 2000), quantite: 120 },
+              { ...findProduct("concombre", "Concombre", "pièce", 300), quantite: 1 },
+              { ...findProduct("citron", "Citron", "pièce", 100), quantite: 1 },
+              { ...findProduct("bissap", "Bissap sans sucre", "tasse", 500), quantite: 1 }
           ];
           recipeText = "1. Couper le concombre en dés avec un filet de jus de citron.\n2. Griller le poisson au four avec des herbes.\n3. Accompagner le repas d'une infusion de Bissap pour drainer.";
           carbs = 15; proteins = 25; fats = 10; calories = 280; prepTime = 15;
@@ -470,10 +478,10 @@ export default function AdminNutritionAfricaine() {
           generatedName = "Porridge Énergie au Moringa & Bouye";
           bienfaits = "Un concentré de vitamines et fibres solubles pour tenir toute la matinée sans sensation de faim.";
           ingredients = [
-              {nom: "Flocons d'avoine", quantite: 50, unite: "g", rayon: "Supermarché"},
-              {nom: "Poudre de Bouye", quantite: 1, unite: "càs", rayon: "Boutique Onyx"},
-              {nom: "Poudre de Moringa", quantite: 1, unite: "càc", rayon: "Boutique Onyx"},
-              {nom: "Lait demi-écrémé", quantite: 150, unite: "ml", rayon: "Supermarché"}
+              { ...findProduct("avoine", "Flocons d'avoine", "g", 1200), quantite: 50 },
+              { ...findProduct("bouye", "Poudre de Bouye", "càs", 1500), quantite: 1 },
+              { ...findProduct("moringa", "Poudre de Moringa", "càc", 2000), quantite: 1 },
+              { ...findProduct("lait", "Lait demi-écrémé", "ml", 800), quantite: 150 }
           ];
           recipeText = "1. Chauffer le lait avec l'avoine à feu doux.\n2. Ajouter le bouye pour l'onctuosité et bien mélanger.\n3. Saupoudrer de Moringa hors du feu pour conserver les vitamines.";
           carbs = 50; proteins = 12; fats = 8; calories = 320; prepTime = 10;
@@ -482,11 +490,24 @@ export default function AdminNutritionAfricaine() {
           const keyword = intent.split(' ')[0] || "Africaine";
           generatedName = `Recette Spéciale : ${keyword.charAt(0).toUpperCase() + keyword.slice(1)}`;
           bienfaits = "Recette équilibrée et adaptée à notre métabolisme, respectant le mix Sénégalais-Moderne.";
-          ingredients = [
-             {nom: "Protéine au choix", quantite: 150, unite: "g", rayon: "Boucherie / Pêche"},
-             {nom: "Légumes locaux", quantite: 200, unite: "g", rayon: "Marché local"},
-             {nom: "Fonio ou Riz étuvé", quantite: 60, unite: "g", rayon: "Marché local"}
-          ];
+          
+          // Try to randomly pick 3 products or use fallbacks
+          const randomProducts = products.slice(0, 3);
+          if (randomProducts.length >= 3) {
+             ingredients = randomProducts.map(p => ({
+                 nom: p.nom, quantite: 1, unite: p.ux_unit || "portion", rayon: p.categorie_nom || "Boutique Onyx", price_cfa: p.price_cfa || p.prix_standard || 1000
+             }));
+             // Set first to 150g, second to 200g, third to 60g for realism if they are generic
+             ingredients[0].quantite = 150; ingredients[0].unite = "g";
+             ingredients[1].quantite = 200; ingredients[1].unite = "g";
+             ingredients[2].quantite = 60; ingredients[2].unite = "g";
+          } else {
+             ingredients = [
+                 {nom: "Protéine au choix", quantite: 150, unite: "g", rayon: "Boucherie / Pêche", price_cfa: 2000},
+                 {nom: "Légumes locaux", quantite: 200, unite: "g", rayon: "Marché local", price_cfa: 500},
+                 {nom: "Fonio ou Riz étuvé", quantite: 60, unite: "g", rayon: "Marché local", price_cfa: 300}
+             ];
+          }
           recipeText = "1. Privilégiez une cuisson vapeur ou au four.\n2. Limitez l'ajout d'huile à 1 cuillère à soupe maximum.\n3. Remplacez le cube Maggi industriel par du Soumbala ou du Nététou.";
       }
 
@@ -669,6 +690,9 @@ export default function AdminNutritionAfricaine() {
                           prix_standard: Number(String(prix_standard).replace(/[^0-9.-]+/g, '')) || 0,
                           prix_premium: Number(String(prix_premium).replace(/[^0-9.-]+/g, '')) || 0,
                           stock: Number(String(stock).replace(/[^0-9.-]+/g, '')) || 0,
+                          price_cfa: Number(String(r['price_cfa'] || r['price cfa'] || 0).replace(/[^0-9.-]+/g, '')) || 0,
+                          budget_tier: r['budget_tier'] || r['budget tier'] || 'medium',
+                          ux_unit: r['ux_unit'] || r['ux unit'] || 'portion',
                           image_url: r['image_url'] || r['image'] || '',
                           badge: r['badge'] || '',
                           goal: r['goal'] || r['objectif'] || 'all',
