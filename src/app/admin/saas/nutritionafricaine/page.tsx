@@ -67,6 +67,15 @@ const DEFAULT_PRODUCTS = [
   { id: "prod_016", categorie_nom: "Équipements", slug: "equipements", nom: "Gourde Motivante 'Jongoma'", description_courte: "Atteignez votre quota d'eau avec style (1.5L).", description_longue: "Marqueurs de temps imprimés pour vous rappeler de boire de l'eau fraîche toute la journée. Design Vert Néon.", prix_standard: 7000, prix_premium: 5500, stock: 150, rating: 4.9, image_url: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1777563498/A_moody__high-end_luxury_promotional_202604301516_zoftg0.jpg", badge: "Best Seller", goal: "cooking" }
 ];
 
+const RECIPE_TYPE_FILTERS = [
+  { id: 'Tous', label: 'Toutes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
+  { id: 'Petit-déjeuner', label: 'Ndekki', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444564/A_cute__highly_detailed_3D_202606141342_yn2v23.jpg" },
+  { id: 'Déjeuner', label: 'Anioo', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444638/A_cute__highly_detailed_3D_202606141343_zsz5mp.jpg" },
+  { id: 'Collation', label: 'Gouter', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444566/supprimer_le_frame__remplace_le_202606141341_ayzsoe.jpg" },
+  { id: 'Dîner', label: 'Reer', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781444369/A_cute__highly_detailed_3D_202606141339_gqzmei.jpg" },
+  { id: 'Bol Commun', label: 'Bol Familial', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781198836/A_high-angle_studio_commercial_shot_202606111513_yehlsx.jpg" }
+];
+
 export default function AdminNutritionAfricaine() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -87,10 +96,14 @@ export default function AdminNutritionAfricaine() {
   const [recipeSearch, setRecipeSearch] = useState("");
   const [recipeViewMode, setRecipeViewMode] = useState<'list' | 'grid'>('grid');
   const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
+  const [recipeCategoryFilter, setRecipeCategoryFilter] = useState('Tous'); // Filtre par icônes
   const fileProductInputRef = useRef<HTMLInputElement>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [foodSearch, setFoodSearch] = useState(""); // Recherche dans Aliments
+  const [foodHealthFilter, setFoodHealthFilter] = useState<string[]>([]); // Filtres Diabète/Tension
+  const [foodBudgetFilter, setFoodBudgetFilter] = useState("all"); // Filtre Budget
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState({ id: '', produit_id: '', categorie_nom: '', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, price_cfa: 0, calories: 0, protein: 0, carbs: 0, fat: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5, gallery: [] as string[], video_url: '', ux_unit: 'portion' });
   const [promos, setPromos] = useState<any[]>([]);
@@ -434,7 +447,15 @@ export default function AdminNutritionAfricaine() {
   const handleAIGenerateRecipe = () => {
       const intent = prompt("Quel est l'objectif ou l'ingrédient principal de cette recette ?\n(Ex: Diabète, Ventre plat, Sport, Poulet, Petit-déjeuner...)");
       if (intent === null) return;
-
+      
+      // MISSION : Éviter les doublons lors de la génération
+      const exists = recipes.some(r => r.nom.toLowerCase().includes(intent.toLowerCase()));
+      if (exists) {
+          if (!confirm("Une recette similaire semble déjà exister. Continuer quand même ?")) {
+              return;
+          }
+      }
+      
       const intentLower = intent.toLowerCase();
 
       const findProduct = (keyword: string, fallbackName: string, defaultUnit: string, fallbackPrice: number = 0) => {
@@ -894,6 +915,18 @@ export default function AdminNutritionAfricaine() {
      setShowProductModal(true);
   };
 
+  // MISSION 1 : Fonction de mise à jour spécifique pour le CRUD Aliments
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const { error } = await supabase.from('nutrition_products').update(productForm).eq('id', productForm.id);
+      if (!error) {
+          setProducts(products.map(p => p.id === productForm.id ? { ...p, ...productForm } : p));
+          setEditingProduct(null);
+          setShowProductModal(false);
+          alert("Produit mis à jour avec succès !");
+      } else alert("Erreur : " + error.message);
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
       e.preventDefault();
       const payload = { ...productForm };
@@ -1026,6 +1059,34 @@ export default function AdminNutritionAfricaine() {
   });
 
   const averageCaloriesToday = clientsWithLogsToday > 0 ? Math.round(totalCaloriesToday / clientsWithLogsToday) : 0;
+
+  // MISSION 2 & 3 : Logique de filtrage et regroupement appliquée aux ALIMENTS
+  const groupedFilteredFoods = React.useMemo(() => {
+      const filtered = foods.filter(p => {
+          const matchSearch = !foodSearch || p.nom?.toLowerCase().includes(foodSearch.toLowerCase());
+          const matchBudget = foodBudgetFilter === 'all' || p.budget_tier === foodBudgetFilter;
+          
+          let matchHealth = true;
+          if (foodHealthFilter.includes('diabete')) {
+              matchHealth = (p.valeurs_pour_100g?.glucides < 15) && !['riz blanc', 'pain blanc', 'sucre'].some(bad => p.nom?.toLowerCase().includes(bad));
+          }
+          if (foodHealthFilter.includes('tension')) {
+              matchHealth = matchHealth && !['bouillon', 'cube', 'maggi', 'sel'].some(bad => p.nom?.toLowerCase().includes(bad)) && p.categorie !== 'Condiments industriels';
+          }
+          if (foodHealthFilter.includes('dietetic')) {
+              matchHealth = matchHealth && (p.is_dietetic === true || p.valeurs_pour_100g?.fibres > 5);
+          }
+          
+          return matchSearch && matchBudget && matchHealth;
+      });
+
+      return filtered.reduce((acc: any, p: any) => {
+          const cat = p.categorie || "Général";
+          if (!acc[cat]) acc[cat] = [];
+          acc[cat].push(p);
+          return acc;
+      }, {});
+  }, [foods, foodSearch, foodBudgetFilter, foodHealthFilter]);
 
   const generateClientReportPDF = async (profile: any, sendWhatsApp: boolean = false) => {
       const doc = new jsPDF();
@@ -1567,6 +1628,8 @@ export default function AdminNutritionAfricaine() {
                   {recipes.filter(r => {
                      if (recipeFilterFast && (r.preparation_time || 15) >= 30) return false;
                      if (recipeSearch && !r.nom.toLowerCase().includes(recipeSearch.toLowerCase())) return false;
+                     if (recipeCategoryFilter === 'Bol Commun' && !r.is_bol_commun) return false;
+                     if (recipeCategoryFilter !== 'Tous' && recipeCategoryFilter !== 'Bol Commun' && r.type !== recipeCategoryFilter) return false;
                      return true;
                   }).map(r => (
                      <div key={r.id} className="bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden hover:border-[#39FF14] hover:shadow-xl transition-all flex flex-col relative group border border-transparent">
@@ -1686,6 +1749,107 @@ export default function AdminNutritionAfricaine() {
            </div>
            )}
         </div>
+        )}
+
+        {activeTab === 'foods' && (
+           <div className="space-y-12 animate-in fade-in">
+              {/* MISSION 3 : BARRE DE FILTRES STICKY DANS ALIMENTS */}
+              <div className="sticky top-24 z-20 bg-white/80 backdrop-blur-md p-4 rounded-[2rem] border border-zinc-200 shadow-xl flex flex-col gap-4">
+                 <div className="flex flex-col md:flex-row gap-4 items-center">
+                    <div className="relative flex-1 w-full">
+                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18}/>
+                       <input 
+                          type="text" 
+                          placeholder="Chercher un aliment (riz, fonio, niébé...)" 
+                          value={foodSearch}
+                          onChange={e => setFoodSearch(e.target.value)}
+                          className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-black"
+                       />
+                    </div>
+                    <select 
+                       value={foodBudgetFilter} 
+                       onChange={e => setFoodBudgetFilter(e.target.value)}
+                       className="p-4 bg-zinc-50 border border-zinc-100 rounded-2xl font-black text-[10px] uppercase tracking-widest outline-none cursor-pointer"
+                    >
+                       <option value="all">Tous les budgets</option>
+                       <option value="Serré 8k">Serré 8k</option>
+                       <option value="Famille 15k">Famille 15k</option>
+                       <option value="Confort 25k">Confort 25k</option>
+                    </select>
+                 </div>
+                 
+                 <div className="flex flex-wrap gap-2">
+                    {[
+                       { id: 'diabete', label: 'Zéro Sucre / Diabète', icon: '🧁' },
+                       { id: 'tension', label: 'Sans Sel / Tension', icon: '🧂' },
+                       { id: 'dietetic', label: 'Strictement Diététique', icon: '🥗' }
+                    ].map(pill => {
+                       const isActive = foodHealthFilter.includes(pill.id);
+                       return (
+                          <button 
+                             key={pill.id}
+                             onClick={() => setFoodHealthFilter(prev => isActive ? prev.filter(p => p !== pill.id) : [...prev, pill.id])}
+                             className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all border-2 ${isActive ? 'bg-black text-[#39FF14] border-black shadow-[0_0_15px_#39FF14]' : 'bg-white text-zinc-500 border-zinc-100 hover:border-zinc-300'}`}
+                          >
+                             <span>{pill.icon}</span> {pill.label}
+                          </button>
+                       );
+                    })}
+                 </div>
+              </div>
+
+              {/* MISSION 2 : CATALOGUE BENTO PAR CATÉGORIE DANS ALIMENTS */}
+              {Object.keys(groupedFilteredFoods).map(catName => (
+                 <section key={catName} className="space-y-6">
+                    {/* BANNIÈRE DE CATÉGORIE */}
+                    <div className="relative h-32 md:h-48 rounded-[2.5rem] overflow-hidden group shadow-lg border border-zinc-200">
+                       <img 
+                          src={`https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=1200&auto=format&fit=crop`} 
+                          className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" 
+                          alt={catName} 
+                       />
+                       <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent flex items-center p-8 md:p-12">
+                          <h3 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white drop-shadow-2xl">{catName}</h3>
+                       </div>
+                    </div>
+
+                    {/* GRILLE BENTO DES ALIMENTS */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                       {groupedFilteredFoods[catName].map((p: any) => (
+                          <div key={p.id} className="bg-white border border-zinc-200 p-5 rounded-3xl shadow-sm hover:shadow-xl transition-all relative group flex flex-col">
+                             <button 
+                                onClick={() => handleOpenProductModal(p)}
+                                className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-400 group-hover:text-[#39FF14] group-hover:bg-black transition-all z-10"
+                             >
+                                <Edit3 size={14}/>
+                             </button>
+                             
+                             <div className="aspect-video rounded-2xl bg-zinc-50 overflow-hidden mb-4 border border-zinc-100">
+                                <img src={p.image_url || 'https://placehold.co/400x300/111/39FF14?text=Aliment'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={p.nom} />
+                             </div>
+                             
+                             <h4 className="font-black text-sm uppercase text-black mb-3 line-clamp-1">{p.nom}</h4>
+                             
+                             <div className="flex flex-wrap gap-2 mt-auto">
+                                <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black">{p.price_cfa?.toLocaleString() || 0} F</span>
+                                <div className="flex items-center gap-1.5 bg-zinc-50 px-3 py-1 rounded-full border border-zinc-100">
+                                   <span className="text-[10px] font-bold text-zinc-400 uppercase">Kcal:</span>
+                                   <span className="text-[10px] font-black text-black">{p.valeurs_pour_100g?.calories || 0}</span>
+                                </div>
+                                {p.is_dietetic && (
+                                   <span className="bg-[#39FF14]/10 text-green-700 px-2 py-1 rounded-lg text-[8px] font-black uppercase border border-[#39FF14]/30">Dietetic ✅</span>
+                                )}
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                 </section>
+              ))}
+
+              {Object.keys(groupedFilteredFoods).length === 0 && (
+                 <div className="py-32 text-center text-zinc-400 font-bold uppercase tracking-widest">Aucun aliment ne correspond à vos filtres.</div>
+              )}
+           </div>
         )}
 
       {/* MODALE LISTE COURSES ADMIN */}
@@ -1858,6 +2022,21 @@ export default function AdminNutritionAfricaine() {
               </table>
            </div>
         </div>
+        )}
+        
+        {activeTab === 'recipes' && (
+           <div className="flex gap-4 overflow-x-auto pb-4 mb-4 custom-scrollbar">
+              {RECIPE_TYPE_FILTERS.map(filter => (
+                 <button 
+                    key={filter.id} 
+                    onClick={() => setRecipeCategoryFilter(filter.id)} 
+                    className={`shrink-0 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 border-2 ${recipeCategoryFilter === filter.id ? 'bg-black text-[#39FF14] border-black shadow-lg scale-105' : 'bg-white text-zinc-500 border-zinc-100 hover:border-zinc-300'}`}
+                 >
+                    <img src={filter.icon} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                    {filter.label}
+                 </button>
+              ))}
+           </div>
         )}
 
         {activeTab === 'promos' && (
@@ -2278,7 +2457,7 @@ export default function AdminNutritionAfricaine() {
                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-3`}><ShoppingBag className="text-[#39FF14]"/> Produit Boutique</h2>
                
                <form onSubmit={handleSaveProduct} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Catégorie</label><input type="text" required value={productForm.categorie_nom} onChange={e => setProductForm({...productForm, categorie_nom: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nom</label><input type="text" required value={productForm.nom} onChange={e => setProductForm({...productForm, nom: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   </div>
@@ -2297,6 +2476,14 @@ export default function AdminNutritionAfricaine() {
                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Vidéo URL (YouTube ou Direct)</label><input type="url" value={productForm.video_url} onChange={e => setProductForm({...productForm, video_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="https://www.youtube.com/watch?v=..." /></div>
                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Galerie Images (1 URL par ligne)</label><textarea value={productForm.gallery.join('\n')} onChange={e => setProductForm({...productForm, gallery: e.target.value.split('\n')})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[80px]" placeholder="https://img1.jpg&#10;https://img2.jpg..." /></div>
                   <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Tier Budget</label>
+                     <select value={productForm.budget_tier} onChange={e => setProductForm({...productForm, budget_tier: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">
+                        <option value="Serré 8k">Serré 8k</option>
+                        <option value="Famille 15k">Famille 15k</option>
+                        <option value="Confort 25k">Confort 25k</option>
+                     </select>
+                  </div>
+                  <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Objectif (Goal)</label>
                      <select value={productForm.goal} onChange={e => setProductForm({...productForm, goal: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">
                         <option value="all">Général</option>
@@ -2306,8 +2493,17 @@ export default function AdminNutritionAfricaine() {
                         <option value="snacks">Snacks</option>
                      </select>
                   </div>
+
+                  <label className="flex items-center gap-3 p-4 bg-green-50 border border-green-100 rounded-2xl cursor-pointer hover:bg-green-100 transition-colors">
+                     <input type="checkbox" checked={productForm.is_dietetic} onChange={e => setProductForm({...productForm, is_dietetic: e.target.checked})} className="w-5 h-5 accent-green-600" />
+                     <div>
+                        <p className="font-black text-sm uppercase text-green-800">Produit Diététique</p>
+                        <p className="text-[10px] font-bold text-green-600">Active le badge "Dietetic" et les filtres santé.</p>
+                     </div>
+                  </label>
+
                   <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
-                     <Save size={20}/> Sauvegarder
+                     <Save size={20}/> {editingProduct ? 'Mettre à jour' : 'Enregistrer'}
                   </button>
                </form>
             </div>
