@@ -123,6 +123,7 @@ export default function AdminNutritionAfricaine() {
   const [isImportingRecipeCsv, setIsImportingRecipeCsv] = useState(false);
   const [recipeCsvImportProgress, setRecipeCsvImportProgress] = useState(0);
   const [foods, setFoods] = useState<any[]>([]);
+  const [foodUsageCounts, setFoodUsageCounts] = useState<Record<string, number>>({});
   const fileFoodInputRef = useRef<HTMLInputElement>(null);
 
   const [tenantId, setTenantId] = useState<string | null>(null);
@@ -190,6 +191,22 @@ export default function AdminNutritionAfricaine() {
                    };
                 });
                 setClients(mappedProfiles);
+
+                // Calculate food usage counts
+                const usage: Record<string, number> = {};
+                mappedProfiles.forEach(client => {
+                    client.logs.forEach((log: any) => {
+                        if (log.report_data && log.report_data.consumedMeals) {
+                            log.report_data.consumedMeals.forEach((meal: any) => {
+                                const foodName = meal.name?.toLowerCase();
+                                if (foodName) {
+                                    usage[foodName] = (usage[foodName] || 0) + 1;
+                                }
+                            });
+                        }
+                    });
+                });
+                setFoodUsageCounts(usage);
               } else if (isMounted) {
                 setClients([]);
               }
@@ -631,6 +648,7 @@ export default function AdminNutritionAfricaine() {
                   nom: recipe.nom,
                   categorie: recipe.type || 'Autre',
                   price_cfa: Number(recipe.price_cfa) || 0,
+                  is_dietetic: recipe.is_dietetic || false,
                   budget_tier: recipe.budget_tier || 'Famille 15k',
                   portion_standard_nom: recipe.ux_unit || 'portion',
                   portion_standard_grammes: 100, // Valeur par défaut
@@ -825,23 +843,25 @@ export default function AdminNutritionAfricaine() {
                       if (k && typeof k === 'string') r[k.toLowerCase().trim()] = row[k];
                   });
 
-                  return {
-                      nom: r.nom || r.name, 
-                      categorie: r.categorie || r.category || 'Autre',
-                      price_cfa: Number(r.price_cfa || r.prix || r.prix_cfa || 0),
-                      portion_standard_nom: r.portion_standard_nom || r.unite || '100g',
-                      portion_standard_grammes: Number(r.portion_standard_grammes || r.grammes || 100),
-                      valeurs_pour_100g: { 
-                          calories: Number(r.calories || r.kcal || r.calories_100g || 0), 
-                          proteines: Number(r.proteines || r.proteins || r.proteines_g || 0), 
-                          glucides: Number(r.glucides || r.carbs || r.glucides_g || 0), 
-                          lipides: Number(r.lipides || r.fats || r.lipides_g || 0), 
-                          fibres: Number(r.fibres || r.fiber || 0) 
-                      },
-                      message_coach_ia: r.message_coach_ia || r.conseil || '',
-                      budget_tier: r.budget_tier || r.budget || 'Famille 15k',
-                      tenant_id: tenantId
+                  const mappedFood = {
+                    nom: r.nom || r.name,
+                    categorie: r.categorie || r.category || 'Autre',
+                    budget_tier: r.budget_tier || r.budget || 'Famille 15k',
+                    portion_standard_nom: r.ux_unit || r.portion_standard_nom || r.unite || '100g',
+                    portion_standard_grammes: parseInt(r.portion_standard_grammes || r.grammes || r.grammes_100g || 100, 10),
+                    is_dietetic: r.is_dietetic === 'true' || r.is_dietetic === true,
+                    price_cfa: parseInt(r.prix_cfa || r.price_cfa || r.prix || 0, 10),
+                    valeurs_pour_100g: { 
+                        calories: parseInt(r.kcal || r.calories || r.calories_100g || 0, 10) || 0,
+                        proteines: parseFloat(r.proteines_g || r.proteines || r.proteins || r.protein_g || 0) || 0,
+                        glucides: parseFloat(r.glucides_g || r.glucides || r.carbs || r.carb_g || 0) || 0,
+                        lipides: parseFloat(r.lipides_g || r.lipides || r.fats || r.fat_g || 0) || 0,
+                        fibres: parseFloat(r.fibres || r.fiber || 0) || 0
+                    },
+                    message_coach_ia: r.message_coach_ia || r.conseil || '',
+                    tenant_id: tenantId
                   };
+                  return mappedFood;
               }).filter(f => f.nom);
 
               if(payload.length > 0) {
@@ -1303,14 +1323,21 @@ export default function AdminNutritionAfricaine() {
           
           return matchSearch && matchBudget && matchHealth;
       });
+      
+      // Sort by usage count (most used first)
+      const sorted = [...filtered].sort((a, b) => {
+          const usageA = foodUsageCounts[a.nom?.toLowerCase()] || 0;
+          const usageB = foodUsageCounts[b.nom?.toLowerCase()] || 0;
+          return usageB - usageA; // Descending order
+      });
 
-      return filtered.reduce((acc: any, p: any) => {
+      return sorted.reduce((acc: any, p: any) => {
           const cat = p.categorie || "Général";
           if (!acc[cat]) acc[cat] = [];
           acc[cat].push(p);
           return acc;
       }, {});
-  }, [foods, foodSearch, foodBudgetFilter, foodHealthFilter]);
+  }, [foods, foodSearch, foodBudgetFilter, foodHealthFilter, foodUsageCounts]);
 
   const generateClientReportPDF = async (profile: any, sendWhatsApp: boolean = false) => {
       const doc = new jsPDF();
@@ -2100,6 +2127,12 @@ export default function AdminNutritionAfricaine() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                        {groupedFilteredFoods[catName].map((p: any) => (
                           <div key={p.id} className="bg-white border border-zinc-200 p-5 rounded-3xl shadow-sm hover:shadow-xl transition-all relative group flex flex-col">
+                             <div className="absolute top-4 left-4 bg-[#39FF14]/10 text-green-700 px-3 py-1 rounded-full text-[9px] font-black z-10 border border-[#39FF14]/20 flex items-center gap-1 shadow-sm">
+                                <Trophy size={10}/> {(foodUsageCounts[p.nom?.toLowerCase()] || 0).toLocaleString()} utilisations
+                             </div>
+                             <div className="absolute top-4 right-14 bg-zinc-900 text-white px-3 py-1 rounded-full text-[10px] font-black z-10 shadow-sm border border-zinc-800">
+                                {p.price_cfa?.toLocaleString() || 0} FCFA
+                             </div>
                              <button 
                                 onClick={() => handleOpenFoodModal(p)}
                                 className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-400 group-hover:text-[#39FF14] group-hover:bg-black transition-all z-10"
@@ -2111,19 +2144,27 @@ export default function AdminNutritionAfricaine() {
                                 <img src={p.image_url || 'https://placehold.co/400x300/111/39FF14?text=Aliment'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={p.nom} />
                              </div>
                              
-                             <h4 className="font-black text-sm uppercase text-black mb-3 line-clamp-1">{p.nom}</h4>
+                             <h4 className="font-black text-sm uppercase text-black line-clamp-1">{p.nom}</h4>
+                             <p className="text-sm text-gray-500 font-bold mb-3 tracking-tighter">Portion: {p.ux_unit || p.portion_standard_nom || '100g'}</p>
                              
-                             <div className="flex flex-wrap gap-2 mt-auto">
-                                <span className="bg-black text-[#39FF14] px-3 py-1 rounded-full text-[10px] font-black">{p.price_cfa?.toLocaleString() || 0} F</span>
-                                <div className="flex items-center gap-1.5 bg-zinc-50 px-3 py-1 rounded-full border border-zinc-100">
-                                   <span className="text-[10px] font-bold text-zinc-400 uppercase">Kcal:</span>
-                                   <span className="text-[10px] font-black text-black">{p.valeurs_pour_100g?.calories || 0}</span>
+                             <div className="flex flex-wrap gap-1.5 mt-auto pt-4 border-t border-zinc-50">
+                                <div className="bg-orange-50 px-2 py-1 rounded-lg border border-orange-100">
+                                   <span className="text-[10px] font-black text-orange-600">{(p.valeurs_pour_100g?.calories || p.calories) || 0} kcal</span>
                                 </div>
+                                <div className="bg-green-50 px-2 py-1 rounded-lg border border-green-100">
+                                   <span className="text-[10px] font-black text-green-700">P: {(p.valeurs_pour_100g?.proteines || p.protein) || 0}g</span>
+                                </div>
+                                <div className="bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
+                                   <span className="text-[10px] font-black text-yellow-700">G: {(p.valeurs_pour_100g?.glucides || p.carbs) || 0}g</span>
+                                </div>
+                                <div className="bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-100">
+                                   <span className="text-[10px] font-black text-zinc-600">L: {(p.valeurs_pour_100g?.lipides || p.fat) || 0}g</span>
+                                </div>
+                             </div>
                                 {p.is_dietetic && (
                                    <span className="bg-[#39FF14]/10 text-green-700 px-2 py-1 rounded-lg text-[8px] font-black uppercase border border-[#39FF14]/30">Dietetic ✅</span>
                                 )}
                              </div>
-                          </div>
                        ))}
                     </div>
                  </section>
