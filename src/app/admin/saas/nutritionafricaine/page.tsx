@@ -102,11 +102,14 @@ export default function AdminNutritionAfricaine() {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [showFoodModal, setShowFoodModal] = useState(false);
+  const [editingFood, setEditingFood] = useState<any>(null);
   const [foodSearch, setFoodSearch] = useState(""); // Recherche dans Aliments
   const [foodHealthFilter, setFoodHealthFilter] = useState<string[]>([]); // Filtres Diabète/Tension
   const [foodBudgetFilter, setFoodBudgetFilter] = useState("all"); // Filtre Budget
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState({ id: '', produit_id: '', categorie_nom: '', nom: '', description_courte: '', description_longue: '', prix_standard: 0, prix_premium: 0, price_cfa: 0, calories: 0, protein: 0, carbs: 0, fat: 0, stock: 0, image_url: '', badge: '', goal: 'all', rating: 5, gallery: [] as string[], video_url: '', ux_unit: 'portion' });
+  const [foodFormState, setFoodFormState] = useState({ id: '', nom: '', categorie: 'Général', price_cfa: 0, budget_tier: 'Famille 15k', portion_standard_nom: '1 portion', portion_standard_grammes: 100, calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 0, is_dietetic: false, message_coach_ia: '', image_url: '' });
   const [promos, setPromos] = useState<any[]>([]);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [editingPromo, setEditingPromo] = useState<any>(null);
@@ -590,6 +593,7 @@ export default function AdminNutritionAfricaine() {
                       lipides: Number(recipe.fats) || 0,
                       fibres: 0
                   },
+                  preparation_time: Number(recipe.preparation_time) || 0,
                   message_coach_ia: recipe.bienfaits || recipe.description || ''
               };
 
@@ -984,7 +988,87 @@ export default function AdminNutritionAfricaine() {
      setShowProductModal(true);
   };
 
-  // MISSION 1 : Fonction de mise à jour spécifique pour le CRUD Aliments
+  const handleOpenFoodModal = (food?: any) => {
+      if (food) {
+          setEditingFood(food);
+          setFoodFormState({
+              id: food.id,
+              nom: food.nom || '',
+              categorie: food.categorie || 'Général',
+              price_cfa: food.price_cfa || 0,
+              budget_tier: food.budget_tier || 'Famille 15k',
+              portion_standard_nom: food.portion_standard_nom || '1 portion',
+              portion_standard_grammes: food.portion_standard_grammes || 100,
+              calories: food.valeurs_pour_100g?.calories || 0,
+              proteins: food.valeurs_pour_100g?.proteines || 0,
+              carbs: food.valeurs_pour_100g?.glucides || 0,
+              fats: food.valeurs_pour_100g?.lipides || 0,
+              preparation_time: food.preparation_time || 0,
+              is_dietetic: food.is_dietetic || false,
+              message_coach_ia: food.message_coach_ia || '',
+              image_url: food.image_url || ''
+          });
+      } else {
+          setEditingFood(null);
+          setFoodFormState({
+              id: '', nom: '', categorie: 'Général', price_cfa: 0, budget_tier: 'Famille 15k',
+              portion_standard_nom: '1 portion', portion_standard_grammes: 100,
+              calories: 0, proteins: 0, carbs: 0, fats: 0, preparation_time: 0,
+              is_dietetic: false, message_coach_ia: '', image_url: ''
+          });
+      }
+      setShowFoodModal(true);
+  };
+
+  const handleSaveFood = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const payload = {
+          nom: foodFormState.nom,
+          categorie: foodFormState.categorie,
+          price_cfa: Number(foodFormState.price_cfa),
+          budget_tier: foodFormState.budget_tier,
+          portion_standard_nom: foodFormState.portion_standard_nom,
+          portion_standard_grammes: Number(foodFormState.portion_standard_grammes),
+          valeurs_pour_100g: {
+              calories: Number(foodFormState.calories),
+              proteines: Number(foodFormState.proteins),
+              glucides: Number(foodFormState.carbs),
+              lipides: Number(foodFormState.fats),
+              fibres: 0
+          },
+          preparation_time: Number(foodFormState.preparation_time),
+          is_dietetic: foodFormState.is_dietetic,
+          message_coach_ia: foodFormState.message_coach_ia,
+          image_url: foodFormState.image_url,
+          tenant_id: tenantId
+      };
+
+      let error;
+      if (editingFood) {
+          const res = await supabase.from('nutrition_foods').update(payload).eq('id', foodFormState.id);
+          error = res.error;
+          if (!error) setFoods(foods.map(f => f.id === foodFormState.id ? { ...f, ...payload } : f));
+      } else {
+          const res = await supabase.from('nutrition_foods').insert([payload]).select();
+          error = res.error;
+          if (!error && res.data) setFoods([res.data[0], ...foods]);
+      }
+
+      if (!error) {
+          setShowFoodModal(false);
+          alert("Aliment enregistré avec succès !");
+      } else {
+          alert("Erreur: " + error.message);
+      }
+  };
+
+  const handleDeleteFood = async (id: string) => {
+      if (!confirm("Supprimer cet aliment de la base ?")) return;
+      const { error } = await supabase.from('nutrition_foods').delete().eq('id', id);
+      if (!error) setFoods(foods.filter(f => f.id !== id));
+      else alert(error.message);
+  };
+
   const handleUpdateProduct = async (e: React.FormEvent) => {
       e.preventDefault();
       const { error } = await supabase.from('nutrition_products').update(productForm).eq('id', productForm.id);
@@ -1410,7 +1494,7 @@ export default function AdminNutritionAfricaine() {
                         <input type="file" accept=".csv" className="hidden" ref={fileFoodInputRef} onChange={handleImportFoodCSV} />
                         <button onClick={() => fileFoodInputRef.current?.click()} className="bg-zinc-100 text-black px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={14}/> Import CSV</button>
                         <button onClick={downloadFoodCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
-                        <button className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={14}/> Nouvel Aliment</button>
+                        <button onClick={() => handleOpenFoodModal()} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={14}/> Nouvel Aliment</button>
                      </>
                   )}
                </div>
@@ -1934,7 +2018,7 @@ export default function AdminNutritionAfricaine() {
                        {groupedFilteredFoods[catName].map((p: any) => (
                           <div key={p.id} className="bg-white border border-zinc-200 p-5 rounded-3xl shadow-sm hover:shadow-xl transition-all relative group flex flex-col">
                              <button 
-                                onClick={() => handleOpenProductModal(p)}
+                                onClick={() => handleOpenFoodModal(p)}
                                 className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-400 group-hover:text-[#39FF14] group-hover:bg-black transition-all z-10"
                              >
                                 <Edit3 size={14}/>
@@ -2373,6 +2457,68 @@ export default function AdminNutritionAfricaine() {
 
                   <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
                      <CheckCircle size={20}/> Enregistrer la recette
+                  </button>
+               </form>
+            </div>
+         </div>
+      )}
+
+      {/* MODALE ALIMENT (BASE DE DONNÉES) */}
+      {showFoodModal && (
+         <div id="food-modal-overlay" onClick={(e: any) => e.target.id === 'food-modal-overlay' && setShowFoodModal(false)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] max-w-2xl w-full relative shadow-2xl animate-in zoom-in-95 border-t-[8px] border-[#39FF14] my-auto text-black">
+               <button onClick={() => setShowFoodModal(false)} className="absolute top-6 right-6 p-2 bg-zinc-100 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
+               <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-3`}><Database className="text-[#39FF14]"/> {editingFood ? 'Modifier Aliment' : 'Nouvel Aliment'}</h2>
+               
+               <form onSubmit={handleSaveFood} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Catégorie</label><input type="text" required value={foodFormState.categorie} onChange={e => setFoodFormState({...foodFormState, categorie: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nom</label><input type="text" required value={foodFormState.nom} onChange={e => setFoodFormState({...foodFormState, nom: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Prix (CFA)</label><input type="number" required value={foodFormState.price_cfa} onChange={e => setFoodFormState({...foodFormState, price_cfa: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Portion (ex: 1 bol)</label><input type="text" value={foodFormState.portion_standard_nom} onChange={e => setFoodFormState({...foodFormState, portion_standard_nom: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Grammes portion</label><input type="number" value={foodFormState.portion_standard_grammes} onChange={e => setFoodFormState({...foodFormState, portion_standard_grammes: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-orange-500 tracking-widest ml-1">Kcal</label><input type="number" required value={foodFormState.calories === 0 ? '' : foodFormState.calories} onChange={e => setFoodFormState({...foodFormState, calories: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-green-500 tracking-widest ml-1">Prot(g)</label><input type="number" required value={foodFormState.proteins === 0 ? '' : foodFormState.proteins} onChange={e => setFoodFormState({...foodFormState, proteins: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-yellow-600 tracking-widest ml-1">Gluc(g)</label><input type="number" required value={foodFormState.carbs === 0 ? '' : foodFormState.carbs} onChange={e => setFoodFormState({...foodFormState, carbs: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-1">Lip(g)</label><input type="number" required value={foodFormState.fats === 0 ? '' : foodFormState.fats} onChange={e => setFoodFormState({...foodFormState, fats: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-blue-500 tracking-widest ml-1">Temps(m)</label><input type="number" required value={foodFormState.preparation_time === 0 ? '' : foodFormState.preparation_time} onChange={e => setFoodFormState({...foodFormState, preparation_time: Number(e.target.value)})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black text-center" /></div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Tier Budget</label>
+                        <select value={foodFormState.budget_tier} onChange={e => setFoodFormState({...foodFormState, budget_tier: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black cursor-pointer">
+                           <option value="Serré 8k">Serré 8k</option>
+                           <option value="Famille 15k">Famille 15k</option>
+                           <option value="Confort 25k">Confort 25k</option>
+                        </select>
+                     </div>
+                     <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Image URL</label><input type="text" value={foodFormState.image_url} onChange={e => setFoodFormState({...foodFormState, image_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
+                  </div>
+
+                  <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Conseil Coach (IA)</label><textarea value={foodFormState.message_coach_ia} onChange={e => setFoodFormState({...foodFormState, message_coach_ia: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-medium text-sm outline-none focus:border-black min-h-[60px]" /></div>
+
+                  <div className="flex gap-4">
+                     <label className="flex-1 flex items-center gap-3 p-4 bg-green-50 border border-green-100 rounded-2xl cursor-pointer hover:bg-green-100 transition-colors">
+                        <input type="checkbox" checked={foodFormState.is_dietetic} onChange={e => setFoodFormState({...foodFormState, is_dietetic: e.target.checked})} className="w-5 h-5 accent-green-600" />
+                        <div>
+                           <p className="font-black text-sm uppercase text-green-800">Diététique ✅</p>
+                           <p className="text-[10px] font-bold text-green-600">Produit santé recommandé.</p>
+                        </div>
+                     </label>
+                     {editingFood && (
+                        <button type="button" onClick={() => handleDeleteFood(foodFormState.id)} className="p-4 bg-red-50 text-red-500 border border-red-100 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={24}/></button>
+                     )}
+                  </div>
+
+                  <button type="submit" className="w-full bg-black text-[#39FF14] py-5 rounded-[2rem] font-black uppercase text-sm shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
+                     <Save size={20}/> {editingFood ? 'Mettre à jour' : 'Enregistrer'}
                   </button>
                </form>
             </div>
