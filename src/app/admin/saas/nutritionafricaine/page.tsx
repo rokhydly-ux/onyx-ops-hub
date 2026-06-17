@@ -123,6 +123,8 @@ export default function AdminNutritionAfricaine() {
   const [isImportingRecipeCsv, setIsImportingRecipeCsv] = useState(false);
   const [recipeCsvImportProgress, setRecipeCsvImportProgress] = useState(0);
   const [foods, setFoods] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // MISSION 2
+  const [visibleCount, setVisibleCount] = useState(9); // MISSION 3
   const [foodUsageCounts, setFoodUsageCounts] = useState<Record<string, number>>({});
   const fileFoodInputRef = useRef<HTMLInputElement>(null);
 
@@ -859,7 +861,8 @@ export default function AdminNutritionAfricaine() {
                         fibres: parseFloat(r.fibres || r.fiber || 0) || 0
                     },
                     message_coach_ia: r.message_coach_ia || r.conseil || '',
-                    tenant_id: tenantId
+                    tenant_id: tenantId,
+                    image_url: r.image_url || r.photo || '' // Ajout du champ image_url
                   };
                   return mappedFood;
               }).filter(f => f.nom);
@@ -1505,6 +1508,9 @@ export default function AdminNutritionAfricaine() {
   }
 
   return (
+    <div className="min-h-screen flex flex-col"> {/* Added flex-col to enable sticky footer */}
+      <title>NUTRITION A L'AFRICAINE PAR ONYXHUB</title>
+      <meta name="description" content="Tableau de bord Admin Coach Nutrition - OnyxHub" />
     <div className="min-h-screen bg-[#fafafa] text-black font-sans pb-24">
       <header className="bg-black text-white px-8 py-6 flex items-center justify-between sticky top-0 z-30 border-b-4 border-[#39FF14]">
         <div className="flex items-center gap-6">
@@ -1512,13 +1518,13 @@ export default function AdminNutritionAfricaine() {
             <ChevronLeft size={16}/> Retour SaaS (Admin)
           </button>
           <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
-            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Nutrition" className="h-8 object-contain" />
+            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Nutrition" className="h-16 md:h-20 object-contain" />
             Coach <span className="text-[#39FF14]">Nutrition</span>
           </h1>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6 md:p-12">
+      <main className="max-w-7xl mx-auto p-6 md:p-12 flex-1"> {/* flex-1 to push footer down */}
         <div className="flex flex-col gap-6 mb-8">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                {/* Menu Horizontal */}
@@ -2062,119 +2068,155 @@ export default function AdminNutritionAfricaine() {
         )}
 
         {activeTab === 'foods' && (
-           <div className="space-y-12 animate-in fade-in">
-              {/* MISSION 3 : BARRE DE FILTRES STICKY DANS ALIMENTS */}
-              <div className="sticky top-24 z-20 bg-white/80 backdrop-blur-md p-4 rounded-[2rem] border border-zinc-200 shadow-xl flex flex-col gap-4">
-                 <div className="flex flex-col md:flex-row gap-4 items-center">
-                    <div className="relative flex-1 w-full">
-                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18}/>
-                       <input 
-                          type="text" 
-                          placeholder="Chercher un aliment (riz, fonio, niébé...)" 
-                          value={foodSearch}
-                          onChange={e => setFoodSearch(e.target.value)}
-                          className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-black"
-                       />
-                    </div>
-                    <select 
-                       value={foodBudgetFilter} 
-                       onChange={e => setFoodBudgetFilter(e.target.value)}
-                       className="p-4 bg-zinc-50 border border-zinc-100 rounded-2xl font-black text-[10px] uppercase tracking-widest outline-none cursor-pointer"
-                    >
-                       <option value="all">Tous les budgets</option>
-                       <option value="Serré 8k">Serré 8k</option>
-                       <option value="Famille 15k">Famille 15k</option>
-                       <option value="Confort 25k">Confort 25k</option>
-                    </select>
-                 </div>
-                 
-                 <div className="flex flex-wrap gap-2">
-                    {[
-                       { id: 'diabete', label: 'Zéro Sucre / Diabète', icon: '🧁' },
-                       { id: 'tension', label: 'Sans Sel / Tension', icon: '🧂' },
-                       { id: 'dietetic', label: 'Strictement Diététique', icon: '🥗' }
-                    ].map(pill => {
-                       const isActive = foodHealthFilter.includes(pill.id);
-                       return (
-                          <button 
-                             key={pill.id}
-                             onClick={() => setFoodHealthFilter(prev => isActive ? prev.filter(p => p !== pill.id) : [...prev, pill.id])}
-                             className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all border-2 ${isActive ? 'bg-black text-[#39FF14] border-black shadow-[0_0_15px_#39FF14]' : 'bg-white text-zinc-500 border-zinc-100 hover:border-zinc-300'}`}
+           <div className="space-y-12 animate-in fade-in"> {/* MISSION 1: Removed old table view */}
+              {selectedCategory === null ? (
+                  // Master View: Category Covers
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Object.keys(groupedFilteredFoods).map(catName => (
+                          <div
+                              key={catName}
+                              onClick={() => { setSelectedCategory(catName); setVisibleCount(9); }} /* Reset visibleCount on category change */
+                              className="relative h-48 rounded-[2.5rem] overflow-hidden group shadow-lg border border-zinc-200 cursor-pointer hover:border-[#39FF14] hover:shadow-xl transition-all"
                           >
-                             <span>{pill.icon}</span> {pill.label}
+                              <img
+                                  src={`https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=1200&auto=format&fit=crop`} /* Placeholder image, consider dynamic images per category */
+                                  className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                                  alt={catName}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent flex items-center p-8">
+                                  <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-white drop-shadow-2xl">{catName}</h3>
+                              </div>
+                          </div>
+                      ))}
+                      {Object.keys(groupedFilteredFoods).length === 0 && (
+                          <div className="col-span-full py-32 text-center text-zinc-400 font-bold uppercase tracking-widest">Aucune catégorie d'aliments trouvée.</div>
+                      )}
+                  </div>
+              ) : (
+                  // Detail View: Filters and Food Grid for selectedCategory (MISSION 2 & 3)
+                  <div className="flex flex-col md:flex-row gap-6">
+                      {/* Left Column: Filters (Sidebar) */}
+                      <div className="md:w-1/4 sticky top-24 h-fit space-y-6 bg-white/80 backdrop-blur-md p-6 rounded-[2rem] border border-zinc-200 shadow-xl">
+                          <button
+                              onClick={() => { setSelectedCategory(null); setVisibleCount(9); }}
+                              className="w-full bg-zinc-100 text-black px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"
+                          >
+                              <ChevronLeft size={14}/> Retour aux catégories
                           </button>
-                       );
-                    })}
-                 </div>
-              </div>
+                          <h3 className="text-lg font-black uppercase text-black mb-4">{selectedCategory}</h3>
 
-              {/* MISSION 2 : CATALOGUE BENTO PAR CATÉGORIE DANS ALIMENTS */}
-              {Object.keys(groupedFilteredFoods).map(catName => (
-                 <section key={catName} className="space-y-6">
-                    {/* BANNIÈRE DE CATÉGORIE */}
-                    <div className="relative h-32 md:h-48 rounded-[2.5rem] overflow-hidden group shadow-lg border border-zinc-200">
-                       <img 
-                          src={`https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=1200&auto=format&fit=crop`} 
-                          className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" 
-                          alt={catName} 
-                       />
-                       <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent flex items-center p-8 md:p-12">
-                          <h3 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white drop-shadow-2xl">{catName}</h3>
-                       </div>
-                    </div>
+                          <div className="relative">
+                              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18}/>
+                              <input
+                                  type="text"
+                                  placeholder="Chercher un aliment..."
+                                  value={foodSearch}
+                                  onChange={e => setFoodSearch(e.target.value)}
+                                  className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-2xl font-bold text-sm outline-none focus:border-black"
+                              />
+                          </div>
 
-                    {/* GRILLE BENTO DES ALIMENTS */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                       {groupedFilteredFoods[catName].map((p: any) => (
-                          <div key={p.id} className="bg-white border border-zinc-200 p-5 rounded-3xl shadow-sm hover:shadow-xl transition-all relative group flex flex-col">
-                             <div className="absolute top-4 left-4 bg-[#39FF14]/10 text-green-700 px-3 py-1 rounded-full text-[9px] font-black z-10 border border-[#39FF14]/20 flex items-center gap-1 shadow-sm">
-                                <Trophy size={10}/> {(foodUsageCounts[p.nom?.toLowerCase()] || 0).toLocaleString()} utilisations
-                             </div>
-                             <div className="absolute top-4 right-14 bg-zinc-900 text-white px-3 py-1 rounded-full text-[10px] font-black z-10 shadow-sm border border-zinc-800">
-                                {p.price_cfa?.toLocaleString() || 0} FCFA
-                             </div>
-                             <button 
-                                onClick={() => handleOpenFoodModal(p)}
-                                className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-400 group-hover:text-[#39FF14] group-hover:bg-black transition-all z-10"
-                             >
-                                <Edit3 size={14}/>
-                             </button>
-                             
-                             <div className="aspect-video rounded-2xl bg-zinc-50 overflow-hidden mb-4 border border-zinc-100">
-                                <img src={p.image_url || 'https://placehold.co/400x300/111/39FF14?text=Aliment'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={p.nom} />
-                             </div>
-                             
-                             <h4 className="font-black text-sm uppercase text-black line-clamp-1">{p.nom}</h4>
-                             <p className="text-sm text-gray-500 font-bold mb-3 tracking-tighter">Portion: {p.ux_unit || p.portion_standard_nom || '100g'}</p>
-                             
-                             <div className="flex flex-wrap gap-1.5 mt-auto pt-4 border-t border-zinc-50">
-                                <div className="bg-orange-50 px-2 py-1 rounded-lg border border-orange-100">
-                                   <span className="text-[10px] font-black text-orange-600">{(p.valeurs_pour_100g?.calories || p.calories) || 0} kcal</span>
-                                </div>
-                                <div className="bg-green-50 px-2 py-1 rounded-lg border border-green-100">
-                                   <span className="text-[10px] font-black text-green-700">P: {(p.valeurs_pour_100g?.proteines || p.protein) || 0}g</span>
-                                </div>
-                                <div className="bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
-                                   <span className="text-[10px] font-black text-yellow-700">G: {(p.valeurs_pour_100g?.glucides || p.carbs) || 0}g</span>
-                                </div>
-                                <div className="bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-100">
-                                   <span className="text-[10px] font-black text-zinc-600">L: {(p.valeurs_pour_100g?.lipides || p.fat) || 0}g</span>
-                                </div>
-                             </div>
-                                {p.is_dietetic && (
-                                   <span className="bg-[#39FF14]/10 text-green-700 px-2 py-1 rounded-lg text-[8px] font-black uppercase border border-[#39FF14]/30">Dietetic ✅</span>
-                                )}
-                             </div>
-                       ))}
-                    </div>
-                 </section>
-              ))}
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Budget Tier</label>
+                              <select
+                                  value={foodBudgetFilter}
+                                  onChange={e => setFoodBudgetFilter(e.target.value)}
+                                  className="w-full p-3 bg-zinc-50 border border-zinc-100 rounded-2xl font-black text-[10px] uppercase tracking-widest outline-none cursor-pointer"
+                              >
+                                  <option value="all">Tous les budgets</option>
+                                  <option value="Serré 8k">Serré 8k</option>
+                                  <option value="Famille 15k">Famille 15k</option>
+                                  <option value="Confort 25k">Confort 25k</option>
+                              </select>
+                          </div>
 
-              {Object.keys(groupedFilteredFoods).length === 0 && (
-                 <div className="py-32 text-center text-zinc-400 font-bold uppercase tracking-widest">Aucun aliment ne correspond à vos filtres.</div>
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Filtres Santé</label>
+                              <div className="flex flex-col gap-2">
+                                  {[
+                                      { id: 'diabete', label: 'Zéro Sucre / Diabète', icon: '🧁' },
+                                      { id: 'tension', label: 'Sans Sel / Tension', icon: '🧂' },
+                                      { id: 'dietetic', label: 'Strictement Diététique', icon: '🥗' }
+                                  ].map(pill => {
+                                      const isActive = foodHealthFilter.includes(pill.id);
+                                      return (
+                                          <label key={pill.id} className="flex items-center gap-2 cursor-pointer">
+                                              <input
+                                                  type="checkbox"
+                                                  checked={isActive}
+                                                  onChange={() => setFoodHealthFilter(prev => isActive ? prev.filter(p => p !== pill.id) : [...prev, pill.id])}
+                                                  className="w-4 h-4 accent-black"
+                                              />
+                                              <span className="text-sm font-medium text-black">{pill.icon} {pill.label}</span>
+                                          </label>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      </div>
+
+                      {/* Right Column: Food Grid */}
+                      <div className="flex-1 space-y-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {(groupedFilteredFoods[selectedCategory] || []).slice(0, visibleCount).map((p: any) => (
+                                  <div key={p.id} className="bg-white border border-zinc-200 p-5 rounded-3xl shadow-sm hover:shadow-xl transition-all relative group flex flex-col">
+                                      <div className="absolute top-4 left-4 bg-[#39FF14]/10 text-green-700 px-3 py-1 rounded-full text-[9px] font-black z-10 border border-[#39FF14]/20 flex items-center gap-1 shadow-sm">
+                                          <Trophy size={10}/> {(foodUsageCounts[p.nom?.toLowerCase()] || 0).toLocaleString()} utilisations
+                                      </div>
+                                      <div className="absolute top-4 right-14 bg-zinc-900 text-white px-3 py-1 rounded-full text-[10px] font-black z-10 shadow-sm border border-zinc-800">
+                                          {p.price_cfa?.toLocaleString() || 0} FCFA
+                                      </div>
+                                      <button
+                                          onClick={() => handleOpenFoodModal(p)}
+                                          className="absolute top-4 right-4 p-2 bg-zinc-100 rounded-full text-zinc-400 group-hover:text-[#39FF14] group-hover:bg-black transition-all z-10"
+                                      >
+                                          <Edit3 size={14}/>
+                                      </button>
+
+                                      <div className="aspect-video rounded-2xl bg-zinc-50 overflow-hidden mb-4 border border-zinc-100">
+                                          <img src={p.image_url || 'https://placehold.co/400x300/111/39FF14?text=Aliment'} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt={p.nom} />
+                                      </div>
+
+                                      <h4 className="font-black text-sm uppercase text-black line-clamp-1">{p.nom}</h4>
+                                      <p className="text-sm text-gray-500 font-bold mb-3 tracking-tighter">Portion: {p.ux_unit || p.portion_standard_nom || '100g'}</p>
+
+                                      <div className="flex flex-wrap gap-1.5 mt-auto pt-4 border-t border-zinc-50">
+                                          <div className="bg-orange-50 px-2 py-1 rounded-lg border border-orange-100">
+                                              <span className="text-[10px] font-black text-orange-600">{(p.valeurs_pour_100g?.calories || p.calories) || 0} kcal</span>
+                                          </div>
+                                          <div className="bg-green-50 px-2 py-1 rounded-lg border border-green-100">
+                                              <span className="text-[10px] font-black text-green-700">P: {(p.valeurs_pour_100g?.proteines || p.protein) || 0}g</span>
+                                          </div>
+                                          <div className="bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100">
+                                              <span className="text-[10px] font-black text-yellow-700">G: {(p.valeurs_pour_100g?.glucides || p.carbs) || 0}g</span>
+                                          </div>
+                                          <div className="bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-100">
+                                              <span className="text-[10px] font-black text-zinc-600">L: {(p.valeurs_pour_100g?.lipides || p.fat) || 0}g</span>
+                                          </div>
+                                          {p.is_dietetic && (
+                                              <span className="bg-[#39FF14]/10 text-green-700 px-2 py-1 rounded-lg text-[8px] font-black uppercase border border-[#39FF14]/30">Dietetic ✅</span>
+                                          )}
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                          {(groupedFilteredFoods[selectedCategory] || []).length > visibleCount && (
+                              <button
+                                  onClick={() => setVisibleCount(prev => prev + 9)}
+                                  className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform shadow-xl flex items-center justify-center gap-2 mt-6"
+                              >
+                                  Voir plus d'aliments <ChevronDown size={14}/>
+                              </button>
+                          )}
+                          {(groupedFilteredFoods[selectedCategory] || []).length === 0 && (
+                              <div className="py-32 text-center text-zinc-400 font-bold uppercase tracking-widest">Aucun aliment dans cette catégorie.</div>
+                          )}
+                      </div>
+                  </div>
               )}
            </div>
         )}
+        {/* End of space-y-12 animate-in fade-in */}
 
       {/* MODALE LISTE COURSES ADMIN */}
       {showGroceryModal && (
@@ -2398,37 +2440,6 @@ export default function AdminNutritionAfricaine() {
         </div>
         )}
 
-        {activeTab === 'foods' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-           <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto">
-              <table className="w-full text-left min-w-[800px]">
-                 <thead className="bg-zinc-50/50 border-b border-zinc-100">
-                    <tr>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Nom & Catégorie</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Portion</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Valeurs (100g)</th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Actions</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-zinc-50">
-                    {foods.map(f => (
-                       <tr key={f.id} className="hover:bg-zinc-50 transition-colors">
-                          <td className="p-4"><p className="font-bold text-sm text-black">{f.nom}</p><p className="text-[10px] font-black text-zinc-500 uppercase mt-1">{f.categorie}</p></td>
-                          <td className="p-4"><p className="text-xs font-bold text-zinc-600">{f.portion_standard_nom}</p><p className="text-[10px] text-zinc-400">{f.portion_standard_grammes}g</p></td>
-                          <td className="p-4"><div className="flex gap-2 text-[10px] font-bold"><span className="text-orange-500">{f.valeurs_pour_100g?.calories} kcal</span><span className="text-green-500">P:{f.valeurs_pour_100g?.proteines}g</span></div></td>
-                          <td className="p-4 text-right flex justify-end gap-2">
-                             <button className="p-2 bg-zinc-100 text-zinc-500 hover:text-black hover:bg-zinc-200 rounded-lg transition-colors"><Edit3 size={16}/></button>
-                             <button className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg transition-colors"><Trash2 size={16}/></button>
-                          </td>
-                       </tr>
-                    ))}
-                    {foods.length === 0 && <tr><td colSpan={4} className="p-10 text-center text-zinc-400 font-bold">Aucun aliment configuré dans la base de données.</td></tr>}
-                 </tbody>
-              </table>
-           </div>
-        </div>
-        )}
-
         {activeTab === 'blog' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
              <div className="flex flex-col md:flex-row justify-between md:items-center bg-white dark:bg-zinc-900 p-4 lg:p-5 rounded-[2rem] lg:rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden group gap-4 mb-6">
@@ -2595,7 +2606,14 @@ export default function AdminNutritionAfricaine() {
                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter mb-6 flex items-center gap-3`}><Database className="text-[#39FF14]"/> {editingFood ? 'Modifier Aliment' : 'Nouvel Aliment'}</h2>
                
                <form onSubmit={handleSaveFood} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Image URL</label>
+                     <input type="text" value={foodFormState.image_url} onChange={e => setFoodFormState({...foodFormState, image_url: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" placeholder="https://..." />
+                     {foodFormState.image_url && (
+                        <img src={foodFormState.image_url} alt="Prévisualisation" className="w-32 h-32 object-cover rounded-xl mt-2 border border-zinc-200 shadow-sm" />
+                     )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Catégorie</label><input type="text" required value={foodFormState.categorie} onChange={e => setFoodFormState({...foodFormState, categorie: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Nom</label><input type="text" required value={foodFormState.nom} onChange={e => setFoodFormState({...foodFormState, nom: e.target.value})} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black" /></div>
                   </div>
@@ -2650,7 +2668,7 @@ export default function AdminNutritionAfricaine() {
       )}
 
       {/* MODALE ÉDITION ARTICLE BLOG */}
-      {editingArticle && (
+      {editingArticle && ( // This modal is outside the main content, so it's fine.
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setEditingArticle(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
           <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onClick={() => setEditingArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
@@ -3106,6 +3124,12 @@ export default function AdminNutritionAfricaine() {
           </div>
         </div>
       )}
+      </div>
+
+      {/* FOOTER GLOBAL ADMIN (MISSION 4) */}
+      <footer className="mt-auto bg-[#39FF14] text-black py-6 px-6 text-center">
+          <p className="text-[10px] font-bold uppercase tracking-widest">NUTRITION A L'AFRICAINE PAR ONYXHUB © 2026</p>
+      </footer>
     </div>
   );
 }
