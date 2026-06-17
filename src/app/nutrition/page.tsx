@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
- , PartyPopper } from "lucide-react";
+, PartyPopper } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
@@ -210,6 +210,7 @@ const buildDynamicRecipes = async (foodDatabase: any[]) => {
                     image_url: p.image_url,
                     is_bol_commun: false,
                     bienfaits: p.description_courte || "Une recette savoureuse et bénéfique.",
+                    budget_tier: p.budget_tier || 'Famille 15k',
                     recipe: `Préparez une portion de ${p.nom}. ${p.description_courte || ''}`,
                     ingredients: [{ nom: p.nom, quantite: 1, unite: "portion", rayon: "Boutique Onyx" }]
                 };
@@ -237,6 +238,7 @@ const buildDynamicRecipes = async (foodDatabase: any[]) => {
         carbs: f.valeurs_pour_100g.glucides,
         fats: f.valeurs_pour_100g.lipides,
         is_bol_commun: false,
+        budget_tier: f.budget_tier || 'Famille 15k',
         bienfaits: f.message_coach_ia || "Excellent pour un rééquilibrage nutritionnel africain.",
         recipe: `Cuisinez ${f.portion_standard_grammes}g de ${f.nom} avec un minimum d'huile.`,
         ingredients: [{ nom: f.nom, quantite: f.portion_standard_grammes, unite: "g", rayon: "Marché / Supermarché" }]
@@ -979,6 +981,11 @@ export default function NutritionDashboard() {
           } else {
               currentRecipes = DEFAULT_RECIPES;
           }
+
+          // MISSION : Incorporer les produits et aliments dans la génération de menu
+          const dynamicRecs = await buildDynamicRecipes(foodDatabaseDB);
+          currentRecipes = [...currentRecipes, ...dynamicRecs];
+
       } catch(e) {
           currentRecipes = DEFAULT_RECIPES;
       }
@@ -1058,6 +1065,16 @@ export default function NutritionDashboard() {
               let available = safeRecipes.filter(r => r.type === type && !recentMeals[type].slice(-2).includes(r.id));
               if (available.length === 0) available = safeRecipes.filter(r => r.type === type && !recentMeals[type].slice(-1).includes(r.id));
               if (available.length === 0) available = safeRecipes.filter(r => r.type === type);
+
+              // MISSION : Prioritisation "Serré 8k" pour budgets restreints
+              if (userBudgetTier !== 'confort_25k') {
+                  const tightBudgetRecipes = available.filter(r => r.budget_tier === 'Serré 8k');
+                  // 70% de chance de ne proposer que du budget serré si disponible
+                  if (tightBudgetRecipes.length > 0 && Math.random() > 0.3) {
+                      available = tightBudgetRecipes;
+                  }
+              }
+
               if (type === 'Petit-déjeuner') {
                   const withHotDrinks = available.filter(r => r.ingredients?.some((ing: any) => ['kinkeliba', 'thé vert', 'djar', 'café touba'].some(drink => ing.nom.toLowerCase().includes(drink))));
                   if (withHotDrinks.length > 0) available = withHotDrinks;
@@ -3646,6 +3663,11 @@ export default function NutritionDashboard() {
                                        <span className="text-[#39FF14] mt-0.5">●</span> {meal}
                                     </li>
                                  ))}
+                                 {dayPlan.meals?.['Déjeuner']?.budget_tier === 'Serré 8k' && (
+                                    <li className="text-xs font-bold text-green-700 flex items-start gap-2 mt-4">
+                                       <PartyPopper size={16} className="text-green-500"/> Recette priorisée pour votre budget serré !
+                                    </li>
+                                 )}
                               </ul>
                            </div>
                         )}

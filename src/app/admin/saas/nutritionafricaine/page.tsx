@@ -86,7 +86,7 @@ export default function AdminNutritionAfricaine() {
   const [recipes, setRecipes] = useState<any[]>([]);
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<any>(null);
-  const [clientForm, setClientForm] = useState({ id: '', daily_calorie_goal: 0, protein_goal: 0, carbs_goal: 0, fats_goal: 0, tracking_mode: 'guided' });
+  const [clientForm, setClientForm] = useState({ id: '', daily_calorie_goal: 0, protein_goal: 0, carbs_goal: 0, fats_goal: 0, tracking_mode: 'guided', weekly_budget_tier: 'famille_15k' });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
@@ -255,8 +255,54 @@ export default function AdminNutritionAfricaine() {
         protein_goal: profile.protein_goal || 80,
         carbs_goal: profile.carbs_goal || 150,
         fats_goal: profile.fats_goal || 50,
-        tracking_mode: profile.tracking_mode || 'guided'
+        tracking_mode: profile.tracking_mode || 'guided',
+        weekly_budget_tier: profile.weekly_budget_tier || 'famille_15k'
     });
+  };
+
+  const handleBulkRefreshMenus = async () => {
+      if (!confirm("Voulez-vous réinitialiser le menu de TOUS vos clients actifs ? Cela les obligera à recalculer leur menu avec les nouveaux prix et recettes au prochain chargement.")) return;
+      setLoading(true);
+      try {
+          const { error } = await supabase
+              .from('nutrition_profiles')
+              .update({ weekly_menu: null })
+              .not('client_id', 'is', null);
+          
+          if (error) throw error;
+          alert("Tous les menus ont été réinitialisés avec succès !");
+      } catch (err: any) {
+          alert("Erreur lors de la réinitialisation : " + err.message);
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  const handleBulkPriceUpdate = async () => {
+      const pct = prompt("De quel pourcentage souhaitez-vous modifier les prix CFA ? (Ex: 10 pour +10%, -5 pour -5%)");
+      if (pct === null || isNaN(Number(pct))) return;
+      
+      const percentage = Number(pct);
+      if (!confirm(`Voulez-vous modifier le prix de TOUS les aliments de ${percentage}% ?`)) return;
+      
+      setLoading(true);
+      try {
+          const factor = 1 + (percentage / 100);
+          const { data } = await supabase.from('nutrition_foods').select('id, price_cfa');
+          if (data) {
+              for (const item of data) {
+                  const newPrice = Math.round((item.price_cfa || 0) * factor);
+                  await supabase.from('nutrition_foods').update({ price_cfa: newPrice }).eq('id', item.id);
+              }
+              const { data: refreshed } = await supabase.from('nutrition_foods').select('*');
+              if (refreshed) setFoods(refreshed);
+              alert("Mise à jour massive des prix terminée !");
+          }
+      } catch (err: any) {
+          alert("Erreur : " + err.message);
+      } finally {
+          setLoading(false);
+      }
   };
 
   const handleSaveClient = async (e: React.FormEvent) => {
@@ -266,8 +312,9 @@ export default function AdminNutritionAfricaine() {
           daily_calorie_goal: clientForm.daily_calorie_goal, 
           protein_goal: clientForm.protein_goal, 
           carbs_goal: clientForm.carbs_goal, 
-          fats_goal: clientForm.fats_goal, 
-          tracking_mode: clientForm.tracking_mode 
+          fats_goal: clientForm.fats_goal,
+          tracking_mode: clientForm.tracking_mode,
+          weekly_budget_tier: clientForm.weekly_budget_tier
       };
       if (editingClient.id) payload.id = editingClient.id;
       if (tenantId) (payload as any).tenant_id = tenantId;
@@ -584,6 +631,7 @@ export default function AdminNutritionAfricaine() {
                   nom: recipe.nom,
                   categorie: recipe.type || 'Autre',
                   price_cfa: Number(recipe.price_cfa) || 0,
+                  budget_tier: recipe.budget_tier || 'Famille 15k',
                   portion_standard_nom: recipe.ux_unit || 'portion',
                   portion_standard_grammes: 100, // Valeur par défaut
                   valeurs_pour_100g: {
@@ -767,24 +815,47 @@ export default function AdminNutritionAfricaine() {
   const handleImportFoodCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      setLoading(true);
       Papa.parse(file, {
           header: true, skipEmptyLines: true,
           complete: async (results) => {
-              const payload = (results.data as any[]).map(r => ({
-                  nom: r.nom, 
-                  categorie: r.categorie || 'Autre',
-                  portion_standard_nom: r.portion_standard_nom || '100g',
-                  portion_standard_grammes: Number(r.portion_standard_grammes) || 100,
-                  valeurs_pour_100g: { calories: Number(r.calories)||0, proteines: Number(r.proteines)||0, glucides: Number(r.glucides)||0, lipides: Number(r.lipides)||0, fibres: Number(r.fibres)||0 },
-                  message_coach_ia: r.message_coach_ia || ''
-              })).filter(f => f.nom);
+              const payload = (results.data as any[]).map(row => {
+                  const r: any = {};
+                  Object.keys(row).forEach(k => {
+                      if (k && typeof k === 'string') r[k.toLowerCase().trim()] = row[k];
+                  });
+
+                  return {
+                      nom: r.nom || r.name, 
+                      categorie: r.categorie || r.category || 'Autre',
+                      price_cfa: Number(r.price_cfa || r.prix || r.prix_cfa || 0),
+                      portion_standard_nom: r.portion_standard_nom || r.unite || '100g',
+                      portion_standard_grammes: Number(r.portion_standard_grammes || r.grammes || 100),
+                      valeurs_pour_100g: { 
+                          calories: Number(r.calories || r.kcal || r.calories_100g || 0), 
+                          proteines: Number(r.proteines || r.proteins || r.proteines_g || 0), 
+                          glucides: Number(r.glucides || r.carbs || r.glucides_g || 0), 
+                          lipides: Number(r.lipides || r.fats || r.lipides_g || 0), 
+                          fibres: Number(r.fibres || r.fiber || 0) 
+                      },
+                      message_coach_ia: r.message_coach_ia || r.conseil || '',
+                      budget_tier: r.budget_tier || r.budget || 'Famille 15k',
+                      tenant_id: tenantId
+                  };
+              }).filter(f => f.nom);
+
               if(payload.length > 0) {
-                  await supabase.from('nutrition_foods').insert(payload);
-                  alert(`${payload.length} aliments importés avec succès !`);
-                  const { data } = await supabase.from('nutrition_foods').select('*');
-                  if (data) setFoods(data);
+                  const { error } = await supabase.from('nutrition_foods').insert(payload);
+                  if (error) {
+                      alert("Erreur lors de l'importation : " + error.message);
+                  } else {
+                      alert(`${payload.length} aliments importés avec succès !`);
+                      const { data } = await supabase.from('nutrition_foods').select('*');
+                      if (data) setFoods(data);
+                  }
               }
               if (fileFoodInputRef.current) fileFoodInputRef.current.value = '';
+              setLoading(false);
           }
       });
   };
@@ -1458,6 +1529,7 @@ export default function AdminNutritionAfricaine() {
                              className="w-full p-3 pl-12 bg-white border border-zinc-200 rounded-xl font-bold text-xs outline-none focus:border-black shadow-sm"
                           />
                        </div>
+                       <button onClick={handleBulkRefreshMenus} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2" title="Forcer le recalcul des menus clients"><RefreshCcw size={14}/> Recalc. Menus</button>
                        <button onClick={() => setFilterInactive(!filterInactive)} className={`px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-sm flex items-center justify-center gap-2 ${filterInactive ? 'bg-orange-500 text-white border-transparent' : 'bg-white text-zinc-500 hover:text-black border border-zinc-200'}`} title="Inactifs depuis plus de 3 jours">
                           <Clock size={14}/> Inactifs
                        </button>
@@ -1471,6 +1543,11 @@ export default function AdminNutritionAfricaine() {
                         <button onClick={() => setRecipeFilterFast(!recipeFilterFast)} className={`px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-sm flex items-center justify-center gap-2 ${recipeFilterFast ? 'bg-[#39FF14] text-black border border-[#39FF14]' : 'bg-zinc-100 text-black hover:bg-zinc-200'}`} title="Filtrer les recettes de moins de 30 min"><Clock size={14}/> {recipeFilterFast ? 'Toutes' : '< 30 Min'}</button>
                         {selectedRecipes.length > 0 && (
                            <button onClick={handleBulkDeleteRecipes} className="bg-red-50 text-red-500 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-red-100 transition-all shadow-sm flex items-center justify-center gap-2"><Trash2 size={14}/> Supprimer ({selectedRecipes.length})</button>
+                        )}
+                        {selectedRecipes.length > 0 && showOnlyIndividualProducts && (
+                           <button onClick={handleMoveToFoods} className="bg-orange-500 text-white px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-600 transition-all shadow-sm flex items-center justify-center gap-2">
+                              <RefreshCcw size={14}/> Transférer ({selectedRecipes.length})
+                           </button>
                         )}
                         <button onClick={handleInitDefaultRecipes} className="bg-blue-50 text-blue-600 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-100 transition-all shadow-sm flex items-center justify-center gap-2"><Sparkles size={14}/> Init 40 Recettes</button>
                         <button onClick={handleAIGenerateRecipe} className="bg-[#39FF14]/20 text-green-700 border border-[#39FF14]/50 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#39FF14]/30 transition-all shadow-sm flex items-center justify-center gap-2"><Bot size={14}/> Générer via IA</button>
@@ -1494,6 +1571,7 @@ export default function AdminNutritionAfricaine() {
                         <input type="file" accept=".csv" className="hidden" ref={fileFoodInputRef} onChange={handleImportFoodCSV} />
                         <button onClick={() => fileFoodInputRef.current?.click()} className="bg-zinc-100 text-black px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all shadow-sm flex items-center justify-center gap-2"><Upload size={14}/> Import CSV</button>
                         <button onClick={downloadFoodCsvTemplate} className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-zinc-700 transition-all shadow-sm flex items-center justify-center gap-2" title="Télécharger un modèle vierge"><Download size={14}/></button>
+                        <button onClick={handleBulkPriceUpdate} className="bg-orange-50 text-orange-600 px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-100 transition-all shadow-sm flex items-center justify-center gap-2"><TrendingUp size={14}/> Maj. Prix %</button>
                         <button onClick={() => handleOpenFoodModal()} className="bg-black text-[#39FF14] px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2"><Plus size={14}/> Nouvel Aliment</button>
                      </>
                   )}
@@ -1577,9 +1655,14 @@ export default function AdminNutritionAfricaine() {
                              <p className="text-xs font-mono text-zinc-500">{phone}</p>
                           </div>
                        </div>
-                       <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${profile.tracking_mode === 'guided' || profile.tracking_mode === 'autopilot' ? 'bg-black text-[#39FF14]' : 'bg-[#00E5FF]/20 text-[#00E5FF]'}`}>
+                       <div className="flex flex-col items-end gap-1">
+                          <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${profile.tracking_mode === 'guided' || profile.tracking_mode === 'autopilot' ? 'bg-black text-[#39FF14]' : 'bg-[#00E5FF]/20 text-[#00E5FF]'}`}>
                           {profile.tracking_mode === 'guided' || profile.tracking_mode === 'autopilot' ? 'Guidé' : 'Libre'}
-                       </span>
+                          </span>
+                          {profile.weekly_budget_tier && (
+                             <span className="text-[8px] font-black uppercase text-zinc-400 tracking-tighter">Budget: {profile.weekly_budget_tier.replace('_', ' ')}</span>
+                          )}
+                       </div>
                     </div>
 
                     {/* GRAPHIQUES POIDS & EAU */}
@@ -2693,6 +2776,14 @@ export default function AdminNutritionAfricaine() {
                         <option value="guided">Guidé (Menu Strict)</option>
                         <option value="flexible">Libre (Flexible)</option>
                         <option value="autopilot">Autopilot</option>
+                     </select>
+                  </div>
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest ml-2">Tier Budget Hebdomadaire</label>
+                     <select value={clientForm.weekly_budget_tier} onChange={e => setClientForm({...clientForm, weekly_budget_tier: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black cursor-pointer">
+                        <option value="serre_8k">Serré (8 000 F / sem)</option>
+                        <option value="famille_15k">Famille (15 000 F / sem)</option>
+                        <option value="confort_25k">Confort (25 000 F / sem)</option>
                      </select>
                   </div>
 
