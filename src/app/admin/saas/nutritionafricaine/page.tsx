@@ -1508,10 +1508,9 @@ export default function AdminNutritionAfricaine() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col"> {/* Added flex-col to enable sticky footer */}
+    <div className="min-h-screen flex flex-col bg-[#fafafa] text-black font-sans relative">
       <title>NUTRITION A L'AFRICAINE PAR ONYXHUB</title>
       <meta name="description" content="Tableau de bord Admin Coach Nutrition - OnyxHub" />
-    <div className="min-h-screen bg-[#fafafa] text-black font-sans pb-24">
       <header className="bg-black text-white px-8 py-6 flex items-center justify-between sticky top-0 z-30 border-b-4 border-[#39FF14]">
         <div className="flex items-center gap-6">
           <button onClick={() => router.push('/admin')} className="flex items-center gap-2 text-zinc-400 hover:text-[#39FF14] transition-colors font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
@@ -1524,7 +1523,7 @@ export default function AdminNutritionAfricaine() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6 md:p-12 flex-1"> {/* flex-1 to push footer down */}
+      <main className="max-w-7xl w-full mx-auto p-6 md:p-12 flex-1 pb-24">
         <div className="flex flex-col gap-6 mb-8">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                {/* Menu Horizontal */}
@@ -2669,7 +2668,7 @@ export default function AdminNutritionAfricaine() {
 
       {/* MODALE ÉDITION ARTICLE BLOG */}
       {editingArticle && ( // This modal is outside the main content, so it's fine.
-        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setEditingArticle(null)} className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
+        <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setEditingArticle(null)} className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500 overflow-y-auto">
           <div className="bg-white dark:bg-zinc-950 dark:text-white p-6 sm:p-8 rounded-3xl max-w-2xl w-full relative shadow-2xl border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onClick={() => setEditingArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all"><X size={20}/></button>
             
@@ -3124,7 +3123,6 @@ export default function AdminNutritionAfricaine() {
           </div>
         </div>
       )}
-      </div>
 
       {/* FOOTER GLOBAL ADMIN (MISSION 4) */}
       <footer className="mt-auto bg-[#39FF14] text-black py-6 px-6 text-center">
