@@ -96,6 +96,7 @@ export default function AdminNutritionAfricaine() {
   const [recipeSearch, setRecipeSearch] = useState("");
   const [recipeViewMode, setRecipeViewMode] = useState<'list' | 'grid'>('grid');
   const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
+  const [showOnlyIndividualProducts, setShowIndividualProductsOnly] = useState(false);
   const [recipeCategoryFilter, setRecipeCategoryFilter] = useState('Tous'); // Filtre par icônes
   const fileProductInputRef = useRef<HTMLInputElement>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -557,6 +558,74 @@ export default function AdminNutritionAfricaine() {
     });
     setEditingRecipe(null);
     setShowRecipeModal(true);
+  };
+
+  // MISSION : DÉPLACER LES PRODUITS ISOLÉS VERS ALIMENTS (SYNC & CLEANUP)
+  const handleMoveToFoods = async () => {
+      if (selectedRecipes.length === 0) return;
+      if (!confirm(`Voulez-vous déplacer ${selectedRecipes.length} produits isolés vers la section Aliments ?\n\nLes données (macros, prix, unités) seront synchronisées et les entrées seront supprimées des recettes.`)) return;
+      
+      setLoading(true);
+      try {
+          const selectedData = recipes.filter(r => selectedRecipes.includes(r.id));
+          
+          for (const recipe of selectedData) {
+              // 1. Chercher si l'aliment existe déjà par son nom pour mise à jour
+              const { data: existingFood } = await supabase
+                  .from('nutrition_foods')
+                  .select('id')
+                  .eq('nom', recipe.nom)
+                  .maybeSingle();
+
+              const foodPayload = {
+                  nom: recipe.nom,
+                  categorie: recipe.type || 'Autre',
+                  price_cfa: Number(recipe.price_cfa) || 0,
+                  portion_standard_nom: recipe.ux_unit || 'portion',
+                  portion_standard_grammes: 100, // Valeur par défaut
+                  valeurs_pour_100g: {
+                      calories: Number(recipe.calories) || 0,
+                      proteines: Number(recipe.proteins) || 0,
+                      glucides: Number(recipe.carbs) || 0,
+                      lipides: Number(recipe.fats) || 0,
+                      fibres: 0
+                  },
+                  message_coach_ia: recipe.bienfaits || recipe.description || ''
+              };
+
+              if (existingFood) {
+                  // MISE À JOUR si existe (pour récupérer macros et prix perdus)
+                  await supabase.from('nutrition_foods').update(foodPayload).eq('id', existingFood.id);
+              } else {
+                  // INSERTION si nouveau
+                  await supabase.from('nutrition_foods').insert([foodPayload]);
+              }
+          }
+
+          // 2. Suppression des recettes correspondantes
+          const { error: delErr } = await supabase
+              .from('nutrition_recipes')
+              .delete()
+              .in('id', selectedRecipes);
+          
+          if (delErr) throw delErr;
+
+          alert(`${selectedRecipes.length} produits isolés ont été déplacés et synchronisés dans la base Aliments !`);
+          
+          // 3. Rafraîchissement global
+          const [recipesRes, foodsRes] = await Promise.all([
+              supabase.from('nutrition_recipes').select('*').order('created_at', { ascending: false }),
+              supabase.from('nutrition_foods').select('*')
+          ]);
+          if (recipesRes.data) setRecipes(recipesRes.data);
+          if (foodsRes.data) setFoods(foodsRes.data);
+          setSelectedRecipes([]);
+          setShowIndividualProductsOnly(false);
+      } catch (err: any) {
+          alert("Erreur lors du déplacement : " + err.message);
+      } finally {
+          setLoading(false);
+      }
   };
 
   const handleOpenRecipeModal = (recipe?: any) => {
@@ -1612,16 +1681,49 @@ export default function AdminNutritionAfricaine() {
               </div>
            )}
            
+           {/* MISSION : FILTRE PAR ICÔNES SOUS LE GRAPHIQUE */}
+           <div className="flex gap-4 overflow-x-auto pb-6 mb-4 custom-scrollbar border-b border-zinc-100">
+              {RECIPE_TYPE_FILTERS.map(filter => (
+                 <button 
+                    key={filter.id} 
+                    onClick={() => setRecipeCategoryFilter(filter.id)} 
+                    className={`shrink-0 px-6 py-4 rounded-3xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 border-2 ${recipeCategoryFilter === filter.id ? 'bg-black text-[#39FF14] border-black shadow-xl scale-105' : 'bg-white text-zinc-500 border-zinc-100 hover:border-zinc-300 hover:shadow-md'}`}
+                 >
+                    <img src={filter.icon} alt="" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
+                    {filter.label}
+                 </button>
+              ))}
+           </div>
+
            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-2">
               <div className="relative w-full md:w-96">
                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                 <input type="text" placeholder="Rechercher une recette..." value={recipeSearch} onChange={e => setRecipeSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black shadow-sm" />
+                 <input type="text" placeholder={showOnlyIndividualProducts ? "Chercher dans les produits isolés..." : "Rechercher une recette..."} value={recipeSearch} onChange={e => setRecipeSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-white border border-zinc-200 rounded-xl font-bold text-sm outline-none focus:border-black shadow-sm" />
               </div>
-              <div className="flex items-center gap-2 bg-white border border-zinc-200 p-1.5 rounded-xl shadow-sm">
+
+              <div className="flex items-center gap-2">
+                 <button 
+                   onClick={() => { setShowIndividualProductsOnly(!showOnlyIndividualProducts); setSelectedRecipes([]); }} 
+                   className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border-2 flex items-center gap-2 ${showOnlyIndividualProducts ? 'bg-orange-500 text-white border-orange-500 shadow-lg' : 'bg-white text-zinc-500 border-zinc-200 hover:border-black'}`}
+                 >
+                   <Package size={14}/> {showOnlyIndividualProducts ? 'Retour aux Recettes' : 'Gérer Produits Isolés'}
+                 </button>
+                 
+                 <div className="flex items-center gap-2 bg-white border border-zinc-200 p-1.5 rounded-xl shadow-sm">
                  <button onClick={() => setRecipeViewMode('list')} className={`p-2 rounded-lg transition-colors ${recipeViewMode === 'list' ? 'bg-black text-[#39FF14] shadow' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`} title="Vue Liste"><Menu size={16}/></button>
                  <button onClick={() => setRecipeViewMode('grid')} className={`p-2 rounded-lg transition-colors ${recipeViewMode === 'grid' ? 'bg-black text-[#39FF14] shadow' : 'text-zinc-500 hover:text-black hover:bg-zinc-100'}`} title="Vue Grille"><LayoutDashboard size={16}/></button>
               </div>
+              </div>
            </div>
+
+           {selectedRecipes.length > 0 && showOnlyIndividualProducts && (
+              <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 flex items-center justify-between animate-in slide-in-from-top-2">
+                 <p className="text-xs font-black uppercase text-orange-700 tracking-widest flex items-center gap-2"><Sparkles size={16}/> {selectedRecipes.length} produits isolés sélectionnés</p>
+                 <button onClick={handleMoveToFoods} className="bg-orange-500 text-white px-6 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-600 transition-all shadow-md flex items-center gap-2">
+                    <RefreshCcw size={14}/> Déplacer vers Aliments & Sync Macros
+                 </button>
+              </div>
+           )}
 
            {recipeViewMode === 'grid' ? (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1630,6 +1732,12 @@ export default function AdminNutritionAfricaine() {
                      if (recipeSearch && !r.nom.toLowerCase().includes(recipeSearch.toLowerCase())) return false;
                      if (recipeCategoryFilter === 'Bol Commun' && !r.is_bol_commun) return false;
                      if (recipeCategoryFilter !== 'Tous' && recipeCategoryFilter !== 'Bol Commun' && r.type !== recipeCategoryFilter) return false;
+                     
+                     const isIndividual = r.ingredients && r.ingredients.length === 1 && r.ingredients[0].rayon?.includes('Boutique');
+                     
+                     if (showOnlyIndividualProducts) return isIndividual;
+                     if (isIndividual) return false; // Masquer les isolés dans la vue normale
+                     
                      return true;
                   }).map(r => (
                      <div key={r.id} className="bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden hover:border-[#39FF14] hover:shadow-xl transition-all flex flex-col relative group border border-transparent">
@@ -1695,7 +1803,7 @@ export default function AdminNutritionAfricaine() {
                              }
                           }} className="w-4 h-4 accent-black cursor-pointer" />
                        </th>
-                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Type & Nom</th>
+                       <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">{showOnlyIndividualProducts ? 'Produit Isolé' : 'Type & Nom'}</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Macros</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Pop. & Temps</th>
                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Bol Commun</th>
@@ -1703,7 +1811,15 @@ export default function AdminNutritionAfricaine() {
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-zinc-50">
-                    {recipes.filter(r => recipeFilterFast ? ((r.preparation_time || 15) < 30) : true).filter(r => recipeSearch ? r.nom.toLowerCase().includes(recipeSearch.toLowerCase()) : true).map(r => (
+                    {recipes.filter(r => {
+                        const isIndividual = r.ingredients && r.ingredients.length === 1 && r.ingredients[0].rayon?.includes('Boutique');
+                        if (showOnlyIndividualProducts) return isIndividual && (!recipeSearch || r.nom.toLowerCase().includes(recipeSearch.toLowerCase()));
+                        
+                        if (isIndividual) return false;
+                        if (recipeFilterFast && (r.preparation_time || 15) >= 30) return false;
+                        if (recipeSearch && !r.nom.toLowerCase().includes(recipeSearch.toLowerCase())) return false;
+                        return true;
+                    }).map(r => (
                        <tr key={r.id} className="hover:bg-zinc-50 transition-colors">
                           <td className="p-4 text-center">
                              <input type="checkbox" checked={selectedRecipes.includes(r.id)} onChange={() => {
