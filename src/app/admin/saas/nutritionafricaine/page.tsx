@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu, ScanLine, Camera, Image as ImageIcon, Scale, Apple, Trophy, CreditCard, PanelLeftClose, PanelLeftOpen, Briefcase, Lock, Award, Volume2, VolumeX, WifiOff, BookOpen, Heart, Box, Share2, Minus, Gift, ArrowRight, ListChecks, Compass, RefreshCcw, PartyPopper } from "lucide-react";
+import { Users, Search, Activity, HeartPulse, ExternalLink, ChevronLeft, ChevronDown, Calendar, Flame, Droplet, Target, AlertTriangle, Clock, Utensils, Plus, Edit3, Trash2, X, Save, CheckCircle, LineChart as LineChartIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Upload, ShoppingBag, ShoppingCart, Package, MessageSquare, Ticket, Database, Loader2, Mail, Download, Sparkles, Bot, Star, Filter, ChevronRight, Eye, FileText, TrendingUp, Video, Copy, LayoutDashboard, Menu, ScanLine, Camera, Image as ImageIcon, Scale, Apple, Trophy, CreditCard, PanelLeftClose, PanelLeftOpen, Briefcase, Lock, Award, Volume2, VolumeX, WifiOff, BookOpen, Heart, Box, Share2, Minus, Gift, ArrowRight, ListChecks, Compass, RefreshCcw, PartyPopper, User, LogOut, Settings } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Papa from 'papaparse';
 import jsPDF from 'jspdf';
@@ -152,6 +152,12 @@ export default function AdminNutritionAfricaine() {
   const [articles, setArticles] = useState<any[]>([]);
   const [editingArticle, setEditingArticle] = useState<any>(null);
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
+  const [isExpertMode, setIsExpertMode] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const handleLogout = () => {
+    router.push('/login');
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -1520,6 +1526,38 @@ export default function AdminNutritionAfricaine() {
             <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781224243/logo_dore_um5fsr.png" alt="Onyx Nutrition" className="h-16 md:h-20 object-contain" />
             Coach <span className="text-[#39FF14]">Nutrition</span>
           </h1>
+        </div>
+
+        <div className="flex items-center gap-6">
+          {/* Mode Expert Switch */}
+          <button onClick={() => setIsExpertMode(!isExpertMode)} className={`flex items-center gap-2 font-black uppercase text-xs tracking-widest bg-zinc-900 px-4 py-2 rounded-xl border transition-colors ${isExpertMode ? 'text-[#39FF14] border-[#39FF14]' : 'text-zinc-400 border-zinc-800 hover:text-white'}`}>
+            <Eye size={16}/>
+            <span className="hidden sm:block">Kcal (Mode Expert)</span>
+          </button>
+
+          {/* Profile Dropdown */}
+          <div className="relative">
+            <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="w-10 h-10 bg-zinc-800 rounded-full border-2 border-[#39FF14] flex items-center justify-center text-[#39FF14] hover:scale-105 transition-transform shadow-[0_0_15px_rgba(57,255,20,0.3)]">
+              <User size={18} />
+            </button>
+            
+            {showProfileMenu && (
+              <div className="absolute right-0 mt-3 w-56 bg-white text-black border border-zinc-200 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
+                <div className="p-4 border-b border-zinc-100 bg-zinc-50">
+                  <p className="text-xs font-black uppercase tracking-widest text-black">Admin Coach</p>
+                  <p className="text-[10px] text-zinc-500 font-bold mt-1">admin@onyxhub.com</p>
+                </div>
+                <div className="p-2 flex flex-col gap-1">
+                  <button onClick={() => { setShowProfileMenu(false); alert('Paramètres du compte en construction'); }} className="flex items-center gap-3 text-xs font-bold text-zinc-600 hover:text-black hover:bg-zinc-100 p-3 rounded-xl transition-colors text-left w-full">
+                    <Settings size={16}/> Paramètres du compte
+                  </button>
+                  <button onClick={handleLogout} className="flex items-center gap-3 text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-50 p-3 rounded-xl transition-colors text-left w-full">
+                    <LogOut size={16}/> Se déconnecter
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -3124,9 +3162,36 @@ export default function AdminNutritionAfricaine() {
         </div>
       )}
 
-      {/* FOOTER GLOBAL ADMIN (MISSION 4) */}
-      <footer className="mt-auto bg-[#39FF14] text-black py-6 px-6 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest">NUTRITION A L'AFRICAINE PAR ONYXHUB © 2026</p>
+      {/* FOOTER GLOBAL ADMIN */}
+      <footer className="mt-auto bg-[#39FF14] text-gray-900 py-6 px-8 w-full border-t-4 border-black">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+             {/* Colonne 1 : Écosystème */}
+             <div className="flex flex-col gap-3 text-left">
+                <h3 className="font-black text-lg uppercase tracking-tighter text-black">Onyx Nutrition</h3>
+                <div className="flex flex-col gap-2">
+                   <button onClick={() => router.push('/admin')} className="text-xs font-bold uppercase tracking-widest text-gray-800 hover:text-black hover:underline underline-offset-2 transition-all w-fit text-left">Tableau de bord OnyxHub</button>
+                   <button onClick={() => router.push('/admin/saas/staff')} className="text-xs font-bold uppercase tracking-widest text-gray-800 hover:text-black hover:underline underline-offset-2 transition-all w-fit text-left">OnyxStaff</button>
+                </div>
+             </div>
+             
+             {/* Colonne 2 : Support */}
+             <div className="flex flex-col gap-3 text-left md:text-center">
+                <h3 className="font-black text-sm uppercase tracking-widest text-black">Ressources</h3>
+                <div className="flex flex-col gap-2 md:items-center">
+                   <button onClick={() => alert("Formulaire de bug")} className="text-xs font-bold uppercase tracking-widest text-gray-800 hover:text-black hover:underline underline-offset-2 transition-all w-fit">Signaler un bug</button>
+                   <button onClick={() => alert("Documentation Coach en cours")} className="text-xs font-bold uppercase tracking-widest text-gray-800 hover:text-black hover:underline underline-offset-2 transition-all w-fit">Documentation Coach</button>
+                   <button onClick={() => window.open('mailto:support@onyxlinks.com')} className="text-xs font-bold uppercase tracking-widest text-gray-800 hover:text-black hover:underline underline-offset-2 transition-all w-fit">Support Technique</button>
+                </div>
+             </div>
+             
+             {/* Colonne 3 : Système */}
+             <div className="flex flex-col gap-2 text-left md:text-right mt-auto md:mt-0">
+                <p className="text-sm font-black uppercase tracking-widest text-black">© 2026 NUTRITION A L'AFRICAINE</p>
+                <p className="text-[10px] font-bold text-gray-800 flex items-center md:justify-end gap-2 uppercase tracking-widest">
+                   Version 1.0.0 - Tous les systèmes sont opérationnels <span className="relative flex h-2 w-2 ml-1"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-green-600"></span></span>
+                </p>
+             </div>
+          </div>
       </footer>
     </div>
   );

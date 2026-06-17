@@ -3663,7 +3663,7 @@ export default function NutritionDashboard() {
                                        <span className="text-[#39FF14] mt-0.5">●</span> {meal}
                                     </li>
                                  ))}
-                                 {dayPlan.meals?.['Déjeuner']?.budget_tier === 'Serré 8k' && (
+                                 {todayPlan?.meals?.['Déjeuner']?.budget_tier === 'Serré 8k' && (
                                     <li className="text-xs font-bold text-green-700 flex items-start gap-2 mt-4">
                                        <PartyPopper size={16} className="text-green-500"/> Recette priorisée pour votre budget serré !
                                     </li>
