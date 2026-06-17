@@ -1246,11 +1246,6 @@ export default function NutritionDashboard() {
 
       // Removed blocking validation to prevent user friction. The UI warning is sufficient.
 
-      if (diagStep < 4) {
-          setDiagStep(diagStep + 1);
-          return;
-      }
-
       setIsSubmittingDiag(true);
       try {
           let deficit = 500;
@@ -1291,9 +1286,11 @@ export default function NutritionDashboard() {
           if (clientProfile) {
               await supabase.from('nutrition_profiles').upsert({ client_id: clientProfile.id, bmr: Math.round(bmr), tdee: Math.round(tdee), daily_calorie_goal: Math.round(dailyCalories), carbs_goal: Math.round(carbs), protein_goal: Math.round(protein), fats_goal: Math.round(fats), diagnostic_data: diagData }, { onConflict: 'client_id' });
               await generateWeeklyMenu();
+              // Hard refresh to exit modal and reload data
+              window.location.href = '/nutrition';
           }
           
-          setDiagStep(5);
+          // BUG FIX: Removed setDiagStep(5) which caused an infinite loop. The page now reloads.
       } catch (err) {
           alert("Erreur lors de l'enregistrement du diagnostic.");
       } finally {
