@@ -23,6 +23,7 @@ export default function NutritionDiagnostic() {
     birthDate: "",
     height: "",
     currentWeight: "",
+    targetWeight: "",
     goalType: "",
     healthConditions: [] as string[],
     lunchHabit: "",
@@ -321,8 +322,16 @@ export default function NutritionDiagnostic() {
                           className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" 
                         />
                       </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible (kg)</label>
+                        <input 
+                          type="number" required placeholder="Ex: 65"
+                          value={formData.targetWeight} onChange={(e) => setFormData({...formData, targetWeight: e.target.value})}
+                          className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" 
+                        />
+                      </div>
                       <button 
-                        type="submit" disabled={!formData.height || !formData.currentWeight}
+                        type="submit" disabled={!formData.height || !formData.currentWeight || !formData.targetWeight}
                         className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
                       >
                         Continuer

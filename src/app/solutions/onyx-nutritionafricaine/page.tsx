@@ -361,11 +361,6 @@ export default function NutritionAfricaineLanding() {
   // Diagnostic Modal Handlers
   const handleDiagSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Le formulaire ne doit être soumis qu'à la toute dernière étape (9)
-    if (diagStep < 9) {
-      return;
-    }
-
     setIsSubmittingDiag(true);
     try {
       const trialEnds = new Date();
@@ -431,7 +426,7 @@ export default function NutritionAfricaineLanding() {
              calories: dailyCalories, carbs, protein, fats
           }));
 
-          await supabase.from('nutrition_profiles').upsert({
+          const payload = {
              phone: diagData.phone,
              client_id: clientData?.id || null,
              bmr: Math.round(bmr),
@@ -442,7 +437,14 @@ export default function NutritionAfricaineLanding() {
              fats_goal: Math.round(fats),
              diagnostic_data: diagData,
              weekly_menu: [] 
-          }, { onConflict: 'client_id' });
+          };
+          console.log("Diagnostic Landing payload en cours d'enregistrement:", payload);
+
+          const { error: profileErr } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
+          if (profileErr) {
+              alert("Erreur SQL lors de l'enregistrement : " + profileErr.message);
+              throw profileErr;
+          }
 
           await supabase.from('leads').insert([{
         full_name: diagData.name,
@@ -466,7 +468,8 @@ export default function NutritionAfricaineLanding() {
       localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
       // Affiche proprement l'écran de succès final
-      setDiagStep(10);
+      router.push('/nutrition?from=diagnostic');
+
     } catch (err) {
       alert("Une erreur est survenue.");
     } finally {
@@ -1488,9 +1491,9 @@ export default function NutritionAfricaineLanding() {
                   {diagStep === 1 && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
                       <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre sexe ?</h2>
-                      <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
+                      <div className="grid grid-cols-2 gap-4 w-full max-w-lg mb-8">
                         {[{ id: 'Homme', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_format_1_1_en_202606111044_rjknkg.jpg' }, { id: 'Femme', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781174715/redimensionner_1_1_en_gardant_202606111043_unmonc.jpg' }].map(option => (
-                          <div key={option.id} onClick={() => { setDiagData({...diagData, gender: option.id}); setTimeout(() => setDiagStep(2), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 ${diagData.gender === option.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                          <div key={option.id} onClick={() => setDiagData({...diagData, gender: option.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 ${diagData.gender === option.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
                             <img src={option.img} alt={option.id} className="w-full aspect-square object-cover" />
                             <div className="absolute bottom-0 w-full bg-black/80 text-white py-4 font-black uppercase tracking-widest text-sm text-center backdrop-blur-md">{option.id}</div>
                           </div>
@@ -1502,13 +1505,13 @@ export default function NutritionAfricaineLanding() {
                   {diagStep === 2 && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
                       <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre objectif principal ?</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-8">
                         {[
                           { id: 'Perte de poids', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg', desc: 'Déficit calorique pour affiner le ventre' },
                           { id: 'Maintien du poids', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg', desc: 'Stabiliser et manger sainement au quotidien' },
                           { id: 'Prise de masse', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg', desc: 'Développer la masse musculaire' }
                         ].map(goal => (
-                          <div key={goal.id} onClick={() => { setDiagData({...diagData, goalType: goal.id}); setTimeout(() => setDiagStep(3), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                          <div key={goal.id} onClick={() => setDiagData({...diagData, goalType: goal.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
                             <img src={goal.img} alt={goal.id} className="w-full aspect-square object-cover" />
                             <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
                               <span className="font-black uppercase tracking-widest text-xs md:text-sm mb-1 text-center">{goal.id}</span>
@@ -1525,7 +1528,6 @@ export default function NutritionAfricaineLanding() {
                       <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel âge avez-vous ?</h2>
                       <div className="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200">
                         <input type="number" required placeholder="Ex: 30" value={diagData.age} onChange={(e) => setDiagData({...diagData, age: e.target.value})} className="w-full p-5 bg-zinc-50 border-2 border-zinc-200 rounded-2xl font-black text-xl text-center outline-none focus:border-[#39FF14] transition-colors text-black" />
-                        <button type="button" onClick={() => { if(diagData.age) setDiagStep(4); }} disabled={!diagData.age} className="w-full mt-6 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100">Continuer</button>
                       </div>
                     </div>
                   )}
@@ -1542,7 +1544,10 @@ export default function NutritionAfricaineLanding() {
                           <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Actuel (kg)</label>
                           <input type="number" required placeholder="Ex: 75" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
-                        <button type="button" onClick={() => setDiagStep(5)} disabled={!diagData.height || !diagData.currentWeight} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100">Continuer</button>
+                        <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible (kg)</label>
+                          <input type="number" required placeholder="Ex: 65" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1561,7 +1566,6 @@ export default function NutritionAfricaineLanding() {
                           );
                         })}
                       </div>
-                      <button type="button" onClick={() => setDiagStep(6)} disabled={!diagData.healthProfile} className="w-full max-w-lg bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100">Continuer</button>
                     </div>
                   )}
 
@@ -1573,7 +1577,7 @@ export default function NutritionAfricaineLanding() {
                           { id: 'En solo au bureau', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/La_Gamelle_ywfy3t.jpg', desc: 'Avec ma gamelle / Tupperware' },
                           { id: 'À la maison', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Le_Bol_Commun_hb9fns.jpg', desc: 'Autour du grand bol familial commun' }
                         ].map(habit => (
-                          <div key={habit.id} onClick={() => { setDiagData({...diagData, lunchHabit: habit.id}); setTimeout(() => setDiagStep(7), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.lunchHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                          <div key={habit.id} onClick={() => setDiagData({...diagData, lunchHabit: habit.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.lunchHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
                             <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
                             <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
                               <span className="font-black uppercase tracking-widest text-sm mb-2 text-center">{habit.id}</span>
@@ -1593,7 +1597,7 @@ export default function NutritionAfricaineLanding() {
                           { id: 'Je cuisine uniquement pour moi seule', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_moi_seule_mfo6vw.jpg' },
                           { id: 'Je cuisine la marmite pour toute la famille', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_la_famille_qzlwke.jpg' }
                         ].map(habit => (
-                          <div key={habit.id} onClick={() => { setDiagData({...diagData, cookingHabit: habit.id}); setTimeout(() => setDiagStep(8), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.cookingHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                          <div key={habit.id} onClick={() => setDiagData({...diagData, cookingHabit: habit.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.cookingHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
                             <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
                             <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
                               <span className="font-black uppercase tracking-tight text-sm text-center">{habit.id}</span>
@@ -1613,7 +1617,7 @@ export default function NutritionAfricaineLanding() {
                           { id: 'Budget Famille', price: '15 000 F / semaine', desc: 'Équilibre, goût et variété', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630665/A_cute__highly_detailed_3D_202606161723_1_rx6yry.jpg' },
                           { id: 'Budget Confort', price: '25 000 F / semaine', desc: 'Santé premium 100% locale', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630664/A_cute__highly_detailed_3D_202606161723_2_xxku54.jpg' }
                         ].map(budget => (
-                          <div key={budget.id} onClick={() => { setDiagData({...diagData, weeklyBudget: budget.id}); setTimeout(() => setDiagStep(9), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.weeklyBudget === budget.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                          <div key={budget.id} onClick={() => setDiagData({...diagData, weeklyBudget: budget.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.weeklyBudget === budget.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
                             <img src={budget.img} alt={budget.id} className="w-full aspect-square object-cover" />
                             <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
                               <span className="font-black uppercase tracking-widest text-xs mb-1">{budget.id}</span>
@@ -1636,6 +1640,30 @@ export default function NutritionAfricaineLanding() {
                         <input type="password" required maxLength={4} placeholder="Code PIN rapide (4 chiffres)" value={diagData.pin} onChange={(e) => setDiagData({...diagData, pin: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold outline-none focus:border-black transition-colors text-black text-center" />
                         <button type="submit" disabled={isSubmittingDiag || !diagData.name || !diagData.phone || !diagData.pin || !diagData.password} className="w-full mt-4 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 flex justify-center items-center gap-2">{isSubmittingDiag ? "Calcul en cours..." : "Valider mon profil"} <ArrowRight size={18}/></button>
                       </div>
+                    </div>
+                  )}
+
+                  {diagStep < 9 && (
+                    <div className="flex gap-4 pt-6 mt-8 border-t border-zinc-100">
+                        {diagStep > 1 && (
+                            <button type="button" onClick={() => setDiagStep(s => s - 1)} className="px-8 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black hover:bg-zinc-200 transition">
+                                Retour
+                            </button>
+                        )}
+                        <button 
+                            type="button" 
+                            onClick={() => setDiagStep(s => s + 1)} 
+                            disabled={
+                                (diagStep === 1 && !diagData.gender) ||
+                                (diagStep === 2 && !diagData.goalType) ||
+                                (diagStep === 3 && !diagData.age) ||
+                                (diagStep === 4 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight)) ||
+                                (diagStep === 5 && !diagData.healthProfile)
+                            }
+                            className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Suivant <ChevronRight size={18}/>
+                        </button>
                     </div>
                   )}
                 </form>

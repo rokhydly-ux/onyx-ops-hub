@@ -452,6 +452,7 @@ export default function NutritionDashboard() {
   const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })]);
   const [xpAnimation, setXpAnimation] = useState<{ amount: number; reason: string; id: number } | null>(null);
   const [showFirstBadgeModal, setShowFirstBadgeModal] = useState(false);
+  const [showSecondBadgeModal, setShowSecondBadgeModal] = useState(false);
 
   // Objectifs
   const [calorieGoal, setCalorieGoal] = useState(0);
@@ -892,6 +893,7 @@ export default function NutritionDashboard() {
           const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
           audio.volume = 0.5;
           audio.play().catch(()=>{});
+          setShowSecondBadgeModal(true);
       }
 
       setJongomaXP(newXP);
@@ -1286,16 +1288,11 @@ export default function NutritionDashboard() {
       
       const heightCm = parseFloat(diagData.height) || 0;
       const currentWeight = parseFloat(diagData.currentWeight) || 0;
+      const targetWInput = parseFloat(diagData.targetWeight) || 0;
       const age = parseFloat(diagData.age) || 0;
       const isMale = diagData.gender === "Homme";
       
       const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
-      
-      const targetWInput = parseFloat(diagData.targetWeight) || 0;
-      const heightM = heightCm / 100;
-      const idealW = heightM > 0 ? 22 * (heightM * heightM) : 0;
-      const diffIdealTarget = Math.abs(targetWInput - idealW);
-      const showWarning = targetWInput > 0 && idealW > 0 && diffIdealTarget > 5;
 
       // Removed blocking validation to prevent user friction. The UI warning is sufficient.
 
@@ -1337,17 +1334,30 @@ export default function NutritionDashboard() {
           setFatsGoal(Math.round(fats));
 
           if (clientProfile) {
-              const { error } = await supabase.from('nutrition_profiles').upsert({ client_id: clientProfile.id, bmr: Math.round(bmr), tdee: Math.round(tdee), daily_calorie_goal: Math.round(dailyCalories), carbs_goal: Math.round(carbs), protein_goal: Math.round(protein), fats_goal: Math.round(fats), diagnostic_data: diagData }, { onConflict: 'client_id' });
-              if (error) throw error;
+              const payload = {
+                  client_id: clientProfile.id,
+                  bmr: Math.round(bmr),
+                  tdee: Math.round(tdee),
+                  daily_calorie_goal: Math.round(dailyCalories),
+                  carbs_goal: Math.round(carbs),
+                  protein_goal: Math.round(protein),
+                  fats_goal: Math.round(fats),
+                  diagnostic_data: diagData
+              };
+              console.log("Diagnostic payload en cours d'enregistrement:", payload);
+              const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
+              if (error) {
+                 alert("Erreur SQL lors de l'enregistrement : " + error.message);
+                 throw error;
+              }
               await generateWeeklyMenu();
           }
           
           // CRITIQUE : Hard refresh garanti pour vider le state du wizard et re-fetcher les nouvelles données DB
           window.location.href = '/nutrition';
           
-          // BUG FIX: Removed setDiagStep(5) which caused an infinite loop. The page now reloads.
-      } catch (err) {
-          alert("Erreur lors de l'enregistrement du diagnostic.");
+      } catch (err: any) {
+          console.error("Erreur capture", err);
       } finally {
           setIsSubmittingDiag(false);
       }
@@ -1849,24 +1859,13 @@ export default function NutritionDashboard() {
   const handleSaveWeight = async () => {
       const todayStr = new Date().toISOString().split('T')[0];
       const lastLog = weightLogs.length > 0 ? weightLogs[weightLogs.length - 1] : null;
-      
-      if (lastLog) {
-          const days = (new Date(todayStr).getTime() - new Date(lastLog.log_date).getTime()) / (1000 * 3600 * 24);
-          if (days < 7 && lastLog.log_date !== todayStr) {
-              alert(`Vous avez déjà enregistré votre poids cette semaine. On évite l'obsession ! Revenez dans ${Math.ceil(7 - days)} jours.`);
-              return;
-          }
-      }
-      
+
       const newWeight = currentWeightInput;
       if (!newWeight || newWeight <= 0) return alert("Veuillez saisir un poids valide.");
 
       const startWeight = weightLogs.length > 0 ? weightLogs[0].weight : parseFloat(clientProfile?.diagnostic_data?.currentWeight || "0");
       const prevWeight = lastLog ? lastLog.weight : startWeight;
       const targetW = parseFloat(clientProfile?.diagnostic_data?.targetWeight || "0");
-      
-      const isLoss = newWeight < prevWeight;
-      const isStagnant = newWeight === prevWeight;
       const wantsToLose = targetW < startWeight;
 
       let isGoalReached = false;
@@ -1882,12 +1881,12 @@ export default function NutritionDashboard() {
           const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
           audio.volume = 0.5;
           audio.play().catch(()=>{});
-      } else if (isStagnant) {
-          setWeightCoachMessage({ title: "Stagnation", text: "⚖️ Ton corps stabilise, c'est normal. On garde le rythme du Sama Menu !", type: 'info' });
-      } else if ((wantsToLose && isLoss) || (!wantsToLose && !isLoss && !isStagnant)) {
-          setWeightCoachMessage({ title: "Bonne direction !", text: "✨ Bravo ! La méthode Nutrition à l'Africaine fonctionne sur toi. Continue comme ça !", type: 'success' });
+      } else if (newWeight < prevWeight) {
+          setWeightCoachMessage({ title: "Félicitations ! 🎉", text: "🎉 Félicitations ! La méthode fonctionne, tes efforts paient de manière incroyable. Continue comme ça !", type: 'success' });
+      } else if (newWeight > prevWeight) {
+          setWeightCoachMessage({ title: "Petit Rebond 🌱", text: "🌱 Ne t'en fais pas ! Une légère hausse est souvent due à de la rétention d'eau ou à un petit stress passager. Zéro culpabilité, on garde le cap avec ton Sama Menu dès aujourd'hui.", type: 'warning' });
       } else {
-          setWeightCoachMessage({ title: "Petit rebond", text: "🌱 Pas de panique. Un petit rebond arrive souvent. Reste focus sur les portions cette semaine.", type: 'warning' });
+          setWeightCoachMessage({ title: "Stabilité Parfaite ⚖️", text: "⚖️ Stabilité parfaite ! Ton corps consolide ses acquis. Reste constante !", type: 'info' });
       }
       
       const newLog = { log_date: todayStr, weight: newWeight };
@@ -2179,7 +2178,7 @@ export default function NutritionDashboard() {
     { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
     { id: 'today', label: 'Mon Jour', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" },
     { id: 'favorites', label: 'Galerie Recettes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" },
-    { id: 'community', label: 'Communauté', icon: Camera },
+    { id: 'community', label: 'Communauté', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781804851/camera_ohydou.jpg" },
     { id: 'weight', label: 'Mon Poids', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" },
     { id: 'fitness', label: 'Fitness', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" },
     { id: 'minute-doc', label: 'La Minute Doc', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" },
@@ -4607,12 +4606,14 @@ export default function NutritionDashboard() {
                 <div className={`max-w-md mx-auto ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'} p-8 rounded-[2.5rem] border mb-10 shadow-inner`}>
                    <p className={`text-7xl font-black ${theme === 'dark' ? 'text-white' : 'text-black'} mb-8 tracking-tighter`}>{currentWeightInput || 0} <span className="text-2xl text-zinc-400">kg</span></p>
                    <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Saisissez votre poids du jour (kg)</label>
-                   <input 
-                      type="number" step="0.1" 
-                      value={currentWeightInput || ''} 
-                      onChange={e => setCurrentWeightInput(parseFloat(e.target.value) || 0)}
-                      className={`w-full p-6 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-600 text-white' : 'bg-white border-zinc-200 text-black'} border-2 rounded-2xl font-black text-center text-4xl outline-none focus:border-[#39FF14] transition-colors mb-8 shadow-sm`}
-                   />
+                   <div className="relative pt-6 pb-6 mb-8 w-full max-w-sm mx-auto">
+                       <input 
+                          type="range" min="40" max="150" step="0.1"
+                          value={currentWeightInput || 0} 
+                          onChange={e => setCurrentWeightInput(parseFloat(e.target.value) || 0)}
+                          className="w-full accent-black h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                       />
+                   </div>
                    <button onClick={handleSaveWeight} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-xl flex items-center justify-center gap-2">
                        <CheckCircle size={20}/> Enregistrer mon poids
                    </button>
@@ -4856,13 +4857,13 @@ export default function NutritionDashboard() {
                   {diagStep === 1 && (
                     <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
                       <h2 className="text-2xl md:text-3xl font-black uppercase mb-8 text-black">Quel est votre nouvel objectif ?</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-8">
                         {[
                           { id: 'Perte de poids', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544253/A_high-end_commercial_photorealistic_full-body_202606151657_cfq5fb.jpg', desc: 'Déficit calorique pour affiner le ventre' },
                           { id: 'Maintien du poids', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781542708/A_high-end_commercial_photorealistic_portrait_202606151658_noabp9.jpg', desc: 'Stabiliser et manger sainement au quotidien' },
                           { id: 'Prise de masse', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781544091/rajoute_le_logo_sur_la_202606151721_aayo61.jpg', desc: 'Développer la masse musculaire' }
                         ].map(goal => (
-                          <div key={goal.id} onClick={() => { setDiagData({...diagData, goalType: goal.id}); setTimeout(() => setDiagStep(2), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                          <div key={goal.id} onClick={() => setDiagData({...diagData, goalType: goal.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.goalType === goal.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
                             <img src={goal.img} alt={goal.id} className="w-full aspect-square object-cover" />
                             <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
                               <span className="font-black uppercase tracking-widest text-xs md:text-sm mb-1 text-center">{goal.id}</span>
@@ -4886,7 +4887,10 @@ export default function NutritionDashboard() {
                           <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Actuel (kg)</label>
                           <input type="number" required placeholder="Ex: 75" value={diagData.currentWeight} onChange={(e) => setDiagData({...diagData, currentWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
-                        <button type="button" onClick={() => setDiagStep(3)} disabled={!diagData.height || !diagData.currentWeight} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100">Continuer</button>
+                        <div className="space-y-2">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible (kg)</label>
+                          <input type="number" required placeholder="Ex: 65" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -4905,7 +4909,6 @@ export default function NutritionDashboard() {
                           );
                         })}
                       </div>
-                      <button type="button" onClick={() => setDiagStep(4)} disabled={!diagData.healthProfile} className="w-full max-w-lg bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100">Continuer</button>
                     </div>
                   )}
 
@@ -4917,7 +4920,7 @@ export default function NutritionDashboard() {
                           { id: 'En solo au bureau', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/La_Gamelle_ywfy3t.jpg', desc: 'Avec ma gamelle / Tupperware' },
                           { id: 'À la maison', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Le_Bol_Commun_hb9fns.jpg', desc: 'Autour du grand bol familial commun' }
                         ].map(habit => (
-                          <div key={habit.id} onClick={() => { setDiagData({...diagData, lunchHabit: habit.id}); setTimeout(() => setDiagStep(5), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.lunchHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                          <div key={habit.id} onClick={() => setDiagData({...diagData, lunchHabit: habit.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.lunchHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
                             <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
                             <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
                               <span className="font-black uppercase tracking-widest text-sm mb-2 text-center">{habit.id}</span>
@@ -4937,7 +4940,7 @@ export default function NutritionDashboard() {
                           { id: 'Je cuisine uniquement pour moi seule', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_moi_seule_mfo6vw.jpg' },
                           { id: 'Je cuisine la marmite pour toute la famille', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781631228/Je_cuisine_pour_la_famille_qzlwke.jpg' }
                         ].map(habit => (
-                          <div key={habit.id} onClick={() => { setDiagData({...diagData, cookingHabit: habit.id}); setTimeout(() => setDiagStep(6), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.cookingHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                          <div key={habit.id} onClick={() => setDiagData({...diagData, cookingHabit: habit.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.cookingHabit === habit.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
                             <img src={habit.img} alt={habit.id} className="w-full h-48 md:h-64 object-cover" />
                             <div className="flex-1 bg-black/90 text-white p-5 flex flex-col justify-center items-center backdrop-blur-md">
                               <span className="font-black uppercase tracking-tight text-sm text-center">{habit.id}</span>
@@ -4957,7 +4960,7 @@ export default function NutritionDashboard() {
                           { id: 'Budget Famille', price: '15 000 F / semaine', desc: 'Équilibre, goût et variété', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630665/A_cute__highly_detailed_3D_202606161723_1_rx6yry.jpg' },
                           { id: 'Budget Confort', price: '25 000 F / semaine', desc: 'Santé premium 100% locale', img: 'https://res.cloudinary.com/dtr2wtoty/image/upload/v1781630664/A_cute__highly_detailed_3D_202606161723_2_xxku54.jpg' }
                         ].map(budget => (
-                          <div key={budget.id} onClick={() => { setDiagData({...diagData, weeklyBudget: budget.id}); setTimeout(() => setDiagStep(7), 300); }} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.weeklyBudget === budget.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
+                          <div key={budget.id} onClick={() => setDiagData({...diagData, weeklyBudget: budget.id})} className={`cursor-pointer border-4 rounded-[2rem] overflow-hidden relative transition-all duration-300 flex flex-col ${diagData.weeklyBudget === budget.id ? 'border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] scale-105' : 'border-transparent bg-white shadow-sm hover:shadow-xl hover:scale-105'}`}>
                             <img src={budget.img} alt={budget.id} className="w-full aspect-square object-cover" />
                             <div className="flex-1 bg-black/90 text-white p-4 flex flex-col justify-center items-center backdrop-blur-md">
                               <span className="font-black uppercase tracking-widest text-xs mb-1">{budget.id}</span>
@@ -4978,6 +4981,27 @@ export default function NutritionDashboard() {
                       <button type="submit" disabled={isSubmittingDiag} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase hover:scale-105 transition-transform flex justify-center items-center gap-2">
                         {isSubmittingDiag ? "Recalcul en cours..." : "Mettre à jour mon plan"} <ArrowRight size={18}/>
                       </button>
+                    </div>
+                  )}
+
+                  {diagStep < 7 && (
+                    <div className="flex gap-4 pt-6 mt-8 border-t border-zinc-100">
+                        {diagStep > 1 && (
+                            <button type="button" onClick={() => setDiagStep(s => s - 1)} className="px-8 py-4 bg-zinc-100 rounded-xl font-bold text-sm text-black hover:bg-zinc-200 transition">
+                                Retour
+                            </button>
+                        )}
+                        <button 
+                            type="button" 
+                            onClick={() => setDiagStep(s => s + 1)} 
+                            disabled={
+                                (diagStep === 2 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight)) ||
+                                (diagStep === 3 && !diagData.healthProfile)
+                            }
+                            className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Suivant <ChevronRight size={18}/>
+                        </button>
                     </div>
                   )}
                 </form>
