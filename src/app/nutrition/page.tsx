@@ -1301,7 +1301,7 @@ export default function NutritionDashboard() {
           let deficit = 500;
           if (diagData.weightLossPace === 'Progressivement') deficit = 300;
           else if (diagData.weightLossPace === 'Rapidement') deficit = 700;
-          
+
           const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
           const weightToLose = currentWeight - finalTargetWeight;
           
@@ -1894,8 +1894,15 @@ export default function NutritionDashboard() {
       setWeightLogs(updatedLogs);
       
       if (clientProfile) {
-          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert({ client_id: clientProfile.id, tenant_id: clientProfile.tenant_id, log_date: todayStr, weight: newWeight }, { onConflict: 'client_id, log_date' });
-          
+          const payload = {
+            client_id: clientProfile.id,
+            user_id: user.id, // Correction pour la politique RLS
+            tenant_id: clientProfile.tenant_id,
+            log_date: todayStr,
+            weight: newWeight
+          };
+          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload, { onConflict: 'client_id, log_date' });
+
           if (!insertErr) {
               // 2. Mise à jour du poids actuel dans le profil (pour garder l'algorithme à jour)
               const updatedDiagData = { 
@@ -2178,7 +2185,7 @@ export default function NutritionDashboard() {
     { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
     { id: 'today', label: 'Mon Jour', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" },
     { id: 'favorites', label: 'Galerie Recettes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" },
-    { id: 'community', label: 'Communauté', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781804851/camera_ohydou.jpg" },
+    { id: 'community', label: 'Communauté', icon: Camera },
     { id: 'weight', label: 'Mon Poids', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" },
     { id: 'fitness', label: 'Fitness', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" },
     { id: 'minute-doc', label: 'La Minute Doc', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" },
