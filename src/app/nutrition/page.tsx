@@ -317,7 +317,7 @@ export default function NutritionDashboard() {
   
   // Bilan
   const [showDailyReport, setShowDailyReport] = useState(false);
-  const [reportData, setReportData] = useState({ followedMenu: false, cravedRice: false, drankWater: false });
+  const [reportData, setReportData] = useState<any>({ followedMenu: false, cravedRice: false, drankWater: false });
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [consumedMeals, setConsumedMeals] = useState<any[]>([]);
   const [moods, setMoods] = useState<string[]>([]);
@@ -436,7 +436,7 @@ export default function NutritionDashboard() {
   const [jongomaXP, setJongomaXP] = useState(0);
   const [weightLogs, setWeightLogs] = useState<any[]>([]);
   const [currentWeightInput, setCurrentWeightInput] = useState<number>(0);
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [showConfetti, setShowConfetti] = useState<boolean | string>(false);
   const [weightCoachMessage, setWeightCoachMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
   const [newPostText, setNewPostText] = useState("");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -451,6 +451,7 @@ export default function NutritionDashboard() {
   const [isSharingPDF, setIsSharingPDF] = useState(false);
   const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })]);
   const [xpAnimation, setXpAnimation] = useState<{ amount: number; reason: string; id: number } | null>(null);
+  const [showFirstBadgeModal, setShowFirstBadgeModal] = useState(false);
 
   // Objectifs
   const [calorieGoal, setCalorieGoal] = useState(0);
@@ -876,12 +877,13 @@ export default function NutritionDashboard() {
       // Vérification des déblocages de badges pour que le coach IA (Rokhy) réagisse
       if (jongomaXP < 500 && newXP >= 500) {
           leveledUp = true;
-          setRokhyMessage({ title: "Nouveau Badge Débloqué ! 💎", text: "Félicitations ! Tu viens de débloquer le badge Adhérente ! Continue comme ça, tes efforts paient !", type: 'success' });
+          setRokhyMessage({ title: "Nouveau Badge Débloqué ! ", text: "Félicitations ! Tu viens de débloquer le badge Adhérente ! Continue comme ça, tes efforts paient !", type: 'success' });
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 8000);
           const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
           audio.volume = 0.5;
           audio.play().catch(()=>{});
+          setShowFirstBadgeModal(true);
       } else if (jongomaXP < 2000 && newXP >= 2000) {
           leveledUp = true;
           setRokhyMessage({ title: "Nouveau Badge Débloqué ! 🌟", text: "Incroyable ! Tu as atteint le niveau Star Nutrition ! Un grand bravo pour ta régularité, c'est exceptionnel !", type: 'success' });
@@ -1526,6 +1528,16 @@ export default function NutritionDashboard() {
         updateXP(5, "Objectif d'eau quotidien atteint !");
     }
 
+    // Vérification de la complétion des jauges
+    const isNowCompleted = (calorieGoal > 0) && calories >= (calorieGoal * 0.85) && proteins >= (proteinGoal * 0.8) && carbs >= (carbsGoal * 0.8) && newAmount >= 8;
+    let newlyCompletedGauges = false;
+    if (isNowCompleted && !reportData.gaugesCompletedXP) {
+        newlyCompletedGauges = true;
+        updateXP(50, "Toutes les jauges complétées ! 🎯");
+        setReportData((prev: any) => ({ ...prev, gaugesCompletedXP: true }));
+        setRokhyMessage({ title: "Journée Parfaite ! 🎯", text: "Incroyable ! Tu as rempli toutes tes jauges aujourd'hui (Eau + Macros). Ton corps te remercie ! Profite de tes 50 XP bien mérités.", type: 'success' });
+    }
+
     const todayStr = new Date().toISOString().split('T')[0];
     const todayLog = dailyLogs.find(l => l.log_date === todayStr);
     
@@ -1539,7 +1551,7 @@ export default function NutritionDashboard() {
       proteins_consumed: proteins,
       carbs_consumed: carbs,
       fats_consumed: fats,
-      report_data: { ...reportData, consumedMeals, moods, moodNotes }
+      report_data: { ...reportData, consumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
     });
     
     setDailyLogs(prev => {
@@ -1610,6 +1622,15 @@ export default function NutritionDashboard() {
           updateXP(10, "3 repas logués aujourd'hui !");
       }
 
+      // Vérification de la complétion des jauges
+      const isNowCompleted = (calorieGoal > 0) && newCals >= (calorieGoal * 0.85) && newProts >= (proteinGoal * 0.8) && newCarbs >= (carbsGoal * 0.8) && waterGlasses >= 8;
+      let newlyCompletedGauges = false;
+      if (isNowCompleted && !reportData.gaugesCompletedXP) {
+          newlyCompletedGauges = true;
+          updateXP(50, "Toutes les jauges complétées ! 🎯");
+          setReportData((prev: any) => ({ ...prev, gaugesCompletedXP: true }));
+      }
+
       setSelectedMealModal(null);
       
       // Sauvegarde des produits OpenFoodFacts validés dans la DB locale Onyx (Auto-apprentissage)
@@ -1636,6 +1657,10 @@ export default function NutritionDashboard() {
          alertTitle = "Produit Ultra-Transformé ⚠️";
          alertText = foodObj.message_coach_ia || "Ce produit industriel contient souvent des additifs. Remplaçons-le par nos super-aliments naturels (Fonio, Moringa) disponibles dans la boutique Onyx !";
          alertType = 'warning';
+      } else if (newlyCompletedGauges) {
+         alertTitle = "Journée Parfaite ! 🎯";
+         alertText = "Incroyable ! Tu as rempli toutes tes jauges aujourd'hui (Eau + Macros). Ton corps te remercie ! Profite de tes 50 XP bien mérités.";
+         alertType = 'success';
       } else if (calsRounded > 600) {
          alertTitle = "Repas très calorique 🔥";
          alertText = "Oula ! Ce repas est très riche en énergie. Pense à boire notre infusion de Bissap Rouge ou Thé Vert Ataya pour accélérer la digestion !";
@@ -1669,7 +1694,7 @@ export default function NutritionDashboard() {
             carbs_consumed: newCarbs,
             fats_consumed: newFats,
             water_glasses: waterGlasses,
-            report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes }
+            report_data: { ...reportData, consumedMeals: updatedConsumedMeals, moods, moodNotes, ...(newlyCompletedGauges ? { gaugesCompletedXP: true } : {}) }
           });
       }
   };
@@ -1851,7 +1876,7 @@ export default function NutritionDashboard() {
       }
       
       if (isGoalReached) {
-          setShowConfetti(true);
+          setShowConfetti('weight');
           setTimeout(() => setShowConfetti(false), 8000);
           setWeightCoachMessage({ title: "Objectif Atteint ! 🎉", text: "INCROYABLE ! Tu as atteint ton objectif de poids. Félicitations pour tous tes efforts, tu es une vraie championne !", type: 'success' });
           const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
@@ -2146,21 +2171,23 @@ export default function NutritionDashboard() {
   const missingDiagGender = !clientProfile?.diagnostic_data?.gender;
   const missingDiagAge = !clientProfile?.diagnostic_data?.age;
   const missingDiagBirthDate = !clientProfile?.diagnostic_data?.birthDate;
+  
+  // Active le point rouge (dot) sur l'historique si l'utilisateur a débloqué au moins le premier badge (500 XP) mais qu'il ne se trouve pas actuellement sur cet onglet.
+  const hasUnseenBadges = jongomaXP >= 500 && activeTab !== 'history';
 
   const menuItems = [
     { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
     { id: 'today', label: 'Mon Jour', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" },
     { id: 'favorites', label: 'Galerie Recettes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" },
     { id: 'community', label: 'Communauté', icon: Camera },
-    { id: 'weight', label: 'Mon Poids', icon: Scale },
+    { id: 'weight', label: 'Mon Poids', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" },
     { id: 'fitness', label: 'Fitness', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" },
     { id: 'minute-doc', label: 'La Minute Doc', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" },
     { id: 'shop', label: 'Boutique', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_4_erkmnd.jpg" },
     { id: 'orders', label: 'Mes Commandes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540553/A_cute__highly_detailed_3D_202606151621_l47tzv.jpg" },
     { id: 'blog', label: 'Blog & Conseils', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540516/remplacer_tittle_par_CONSEILS_NUTRITION_202606151619_tb8clu.jpg" },
     { id: 'coaching', label: 'Coaching', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540692/A_cute__highly_detailed_3D_202606151624_lzxhup.jpg" },
-    { id: 'history', label: 'Historique', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_ytie6s.jpg" },
-    { id: 'library', label: 'Bibliothèque', icon: Apple },
+    { id: 'history', label: 'Historique', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_ytie6s.jpg", dot: hasUnseenBadges },
     { id: 'profile', label: 'Réglages', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781536233/A_cute__highly_detailed_3D_202606151510_uj9z5c.jpg" },
   ];
 
@@ -2449,19 +2476,24 @@ export default function NutritionDashboard() {
       {/* ANIMATION LUDIQUE DE CONFETTIS */}
       {showConfetti && (
         <div className="fixed inset-0 z-[500] pointer-events-none overflow-hidden">
-          {[...Array(60)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
-              style={{
-                left: `${Math.random() * 100}%`,
-                animation: `fall-${i % 2 === 0 ? 'left' : 'right'} ${2 + Math.random() * 3}s ease-in forwards`,
-                animationDelay: `${Math.random() * 0.5}s`,
-              }}
-            >
-              {['🎉', '✨', '🏆', '🥬', '🎯', '🥑'][i % 6]}
-            </div>
-          ))}
+          {[...Array(60)].map((_, i) => {
+            const emojis = showConfetti === 'weight'
+              ? ['🎉', '⚖️', '💪', '🔥', '🏆', '✨']
+              : ['🎉', '✨', '🏆', '🥬', '🎯', '🥑'];
+            return (
+              <div
+                key={i}
+                className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animation: `fall-${i % 2 === 0 ? 'left' : 'right'} ${2 + Math.random() * 3}s ease-in forwards`,
+                  animationDelay: `${Math.random() * 0.5}s`,
+                }}
+              >
+                {emojis[i % emojis.length]}
+              </div>
+            );
+          })}
           <style dangerouslySetInnerHTML={{__html: `@keyframes fall-left { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg) translateX(-50px); opacity: 0; } } @keyframes fall-right { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(-360deg) translateX(50px); opacity: 0; } }`}} />
         </div>
       )}
