@@ -2009,6 +2009,7 @@ export default function AdminNutritionAfricaine() {
                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-zinc-100">
                               <div className="flex items-center gap-3 text-zinc-400 text-xs font-bold">
                                  <span className="flex items-center gap-1" title="Vues"><Eye size={14} className="text-blue-500"/> {r.views || 0}</span>
+                                 <span className="flex items-center gap-1" title="Likes"><Heart size={14} className="text-red-500"/> {r.likes || 0}</span>
                                  <span className={`flex items-center gap-1 ${(r.preparation_time || 15) > 45 ? 'text-red-500 font-black' : 'text-orange-500'}`} title="Temps de préparation"><Clock size={14}/> {r.preparation_time || 15}m</span>
                               </div>
                               <div className="flex gap-1">
@@ -2083,6 +2084,7 @@ export default function AdminNutritionAfricaine() {
                           <td className="p-4">
                              <div className="flex items-center gap-3 text-zinc-500 font-bold text-xs">
                                 <span className="flex items-center gap-1" title="Vues"><Eye size={14} className="text-blue-500"/> {r.views || 0}</span>
+                                <span className="flex items-center gap-1" title="Likes"><Heart size={14} className="text-red-500"/> {r.likes || 0}</span>
                                 <span className={`flex items-center gap-1 ${(r.preparation_time || 15) > 45 ? 'text-red-500 font-black' : ''}`} title="Temps de préparation"><Clock size={14} className={(r.preparation_time || 15) > 45 ? 'text-red-500' : 'text-orange-500'}/> {r.preparation_time || 15} min</span>
                              </div>
                           </td>

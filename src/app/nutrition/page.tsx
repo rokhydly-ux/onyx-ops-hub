@@ -2053,14 +2053,29 @@ export default function NutritionDashboard() {
       const mealName = meal.meal || meal.nom;
       const exists = favoriteMeals.find(f => (f.meal || f.nom) === mealName);
       let newFavs;
+      let increment = 0;
+      
       if (exists) {
           newFavs = favoriteMeals.filter(f => (f.meal || f.nom) !== mealName);
+          increment = -1;
       } else {
           newFavs = [...favoriteMeals, meal];
+          increment = 1;
       }
       setFavoriteMeals(newFavs);
+      
+      setAllRecipesDB(prev => prev.map(r => r.nom === mealName ? { ...r, likes: Math.max(0, (r.likes || 0) + increment) } : r));
+
       if (clientProfile) {
           await supabase.from('nutrition_profiles').update({ favorite_meals: newFavs }).eq('client_id', clientProfile.id);
+      }
+      
+      // Mise à jour du compteur global de likes en base de données
+      if (meal.id && !String(meal.id).startsWith('def_') && !String(meal.id).startsWith('gen_')) {
+          const { data: rec } = await supabase.from('nutrition_recipes').select('likes').eq('id', meal.id).maybeSingle();
+          if (rec) {
+              await supabase.from('nutrition_recipes').update({ likes: Math.max(0, (rec.likes || 0) + increment) }).eq('id', meal.id);
+          }
       }
   };
 
@@ -4088,6 +4103,7 @@ export default function NutritionDashboard() {
                                    <div className="flex flex-col">
                                        <p className="font-bold text-sm text-black line-clamp-1" title={name}>{name}</p>
                                        <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Eye size={12}/> {fav.views || 0} vues</p>
+                                       <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1 mt-0.5"><Heart size={12} className={isFav ? "text-red-500 fill-current" : ""}/> {fav.likes || 0} likes</p>
                                        <p className={`text-[10px] font-bold flex items-center gap-1 mt-0.5 ${(fav.preparation_time || 15) > 45 ? 'text-red-500' : 'text-zinc-500'}`}><Clock size={12}/> {fav.preparation_time || 15} min</p>
                                    </div>
                                    <button onClick={() => toggleFavorite(fav)} className={`transition-colors ${isFav ? 'text-red-500 hover:text-red-700' : 'text-zinc-300 hover:text-red-500'} shrink-0`}><HeartPulse size={18} className={isFav ? "fill-current" : ""}/></button>
