@@ -435,8 +435,9 @@ export default function NutritionDashboard() {
   // Gamification & Feed Communautaire
   const [jongomaXP, setJongomaXP] = useState(0);
   const [weightLogs, setWeightLogs] = useState<any[]>([]);
-  const [currentWeightInput, setCurrentWeightInput] = useState<number>(75);
+  const [currentWeightInput, setCurrentWeightInput] = useState<number>(0);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [weightCoachMessage, setWeightCoachMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
   const [newPostText, setNewPostText] = useState("");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
@@ -449,12 +450,13 @@ export default function NutritionDashboard() {
   const [pdfHistory, setPdfHistory] = useState<any[]>([]);
   const [isSharingPDF, setIsSharingPDF] = useState(false);
   const [emblaShopRef] = useEmblaCarousel({ loop: true, align: 'start' }, [Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })]);
+  const [xpAnimation, setXpAnimation] = useState<{ amount: number; reason: string; id: number } | null>(null);
 
   // Objectifs
-  const [calorieGoal, setCalorieGoal] = useState(1500);
-  const [proteinGoal, setProteinGoal] = useState(80);
-  const [carbsGoal, setCarbsGoal] = useState(150);
-  const [fatsGoal, setFatsGoal] = useState(50);
+  const [calorieGoal, setCalorieGoal] = useState(0);
+  const [proteinGoal, setProteinGoal] = useState(0);
+  const [carbsGoal, setCarbsGoal] = useState(0);
+  const [fatsGoal, setFatsGoal] = useState(0);
   const [isFastingMode, setIsFastingMode] = useState(false);
   const [isExpertMode, setIsExpertMode] = useState(false);
   
@@ -678,6 +680,10 @@ export default function NutritionDashboard() {
              setProteinGoal(nutritionData.protein_goal || 80);
              setCarbsGoal(nutritionData.carbs_goal || 150);
              setFatsGoal(nutritionData.fats_goal || 50);
+             setCalorieGoal(nutritionData.daily_calorie_goal || 0);
+             setProteinGoal(nutritionData.protein_goal || 0);
+             setCarbsGoal(nutritionData.carbs_goal || 0);
+             setFatsGoal(nutritionData.fats_goal || 0);
              setIsExpertMode(nutritionData.expert_mode || false);
              setJongomaXP(nutritionData.jongoma_xp || 0);
              setIsFastingMode(nutritionData.diagnostic_data?.fasting_mode || false);
@@ -705,6 +711,8 @@ export default function NutritionDashboard() {
               setCurrentWeightInput(fetchedLogs[fetchedLogs.length - 1].weight);
           } else if (diagCurrentWeight && !isNaN(parseFloat(diagCurrentWeight))) {
               setCurrentWeightInput(parseFloat(diagCurrentWeight));
+          } else {
+              setCurrentWeightInput(0);
           }
           
           if (nutritionData) {
@@ -863,9 +871,11 @@ export default function NutritionDashboard() {
 
   const updateXP = async (amount: number, reason: string) => {
       const newXP = jongomaXP + amount;
+      let leveledUp = false;
       
       // Vérification des déblocages de badges pour que le coach IA (Rokhy) réagisse
       if (jongomaXP < 500 && newXP >= 500) {
+          leveledUp = true;
           setRokhyMessage({ title: "Nouveau Badge Débloqué ! 💎", text: "Félicitations ! Tu viens de débloquer le badge Adhérente ! Continue comme ça, tes efforts paient !", type: 'success' });
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 8000);
@@ -873,6 +883,7 @@ export default function NutritionDashboard() {
           audio.volume = 0.5;
           audio.play().catch(()=>{});
       } else if (jongomaXP < 2000 && newXP >= 2000) {
+          leveledUp = true;
           setRokhyMessage({ title: "Nouveau Badge Débloqué ! 🌟", text: "Incroyable ! Tu as atteint le niveau Star Nutrition ! Un grand bravo pour ta régularité, c'est exceptionnel !", type: 'success' });
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 8000);
@@ -885,8 +896,14 @@ export default function NutritionDashboard() {
       if (clientProfile) {
          await supabase.from('nutrition_profiles').update({ jongoma_xp: newXP }).eq('client_id', clientProfile.id);
       }
-      setToastMessage(`+${amount} XP ! (${reason})`);
-      setTimeout(() => setToastMessage(null), 3000);
+      setXpAnimation({ amount, reason, id: Date.now() });
+
+      // Effet sonore de gain d'XP (sauf si on vient de level up pour ne pas superposer les sons)
+      if (!leveledUp) {
+          const xpAudio = new Audio("https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3");
+          xpAudio.volume = 0.4;
+          xpAudio.play().catch(()=>{});
+      }
   };
 
   const getJongomaLevel = (xp: number) => {
@@ -1318,11 +1335,12 @@ export default function NutritionDashboard() {
           setFatsGoal(Math.round(fats));
 
           if (clientProfile) {
-              await supabase.from('nutrition_profiles').upsert({ client_id: clientProfile.id, bmr: Math.round(bmr), tdee: Math.round(tdee), daily_calorie_goal: Math.round(dailyCalories), carbs_goal: Math.round(carbs), protein_goal: Math.round(protein), fats_goal: Math.round(fats), diagnostic_data: diagData }, { onConflict: 'client_id' });
+              const { error } = await supabase.from('nutrition_profiles').upsert({ client_id: clientProfile.id, bmr: Math.round(bmr), tdee: Math.round(tdee), daily_calorie_goal: Math.round(dailyCalories), carbs_goal: Math.round(carbs), protein_goal: Math.round(protein), fats_goal: Math.round(fats), diagnostic_data: diagData }, { onConflict: 'client_id' });
+              if (error) throw error;
               await generateWeeklyMenu();
           }
           
-          // Hard refresh garanti pour vider le state du wizard et re-fetcher le plan
+          // CRITIQUE : Hard refresh garanti pour vider le state du wizard et re-fetcher les nouvelles données DB
           window.location.href = '/nutrition';
           
           // BUG FIX: Removed setDiagStep(5) which caused an infinite loop. The page now reloads.
@@ -1816,27 +1834,35 @@ export default function NutritionDashboard() {
       }
       
       const newWeight = currentWeightInput;
-      const isLoss = lastLog ? newWeight < lastLog.weight : true;
-      const targetW = parseFloat(clientProfile?.diagnostic_data?.targetWeight || "0");
+      if (!newWeight || newWeight <= 0) return alert("Veuillez saisir un poids valide.");
+
       const startWeight = weightLogs.length > 0 ? weightLogs[0].weight : parseFloat(clientProfile?.diagnostic_data?.currentWeight || "0");
+      const prevWeight = lastLog ? lastLog.weight : startWeight;
+      const targetW = parseFloat(clientProfile?.diagnostic_data?.targetWeight || "0");
+      
+      const isLoss = newWeight < prevWeight;
+      const isStagnant = newWeight === prevWeight;
+      const wantsToLose = targetW < startWeight;
 
       let isGoalReached = false;
       if (targetW > 0 && startWeight > 0) {
-         if (startWeight > targetW && newWeight <= targetW) isGoalReached = true;
-         if (startWeight < targetW && newWeight >= targetW) isGoalReached = true;
+         if (wantsToLose && newWeight <= targetW) isGoalReached = true;
+         if (!wantsToLose && newWeight >= targetW) isGoalReached = true;
       }
       
       if (isGoalReached) {
           setShowConfetti(true);
           setTimeout(() => setShowConfetti(false), 8000);
-          setRokhyMessage({ title: "Objectif Atteint ! 🎉", text: "INCROYABLE ! Tu as atteint ton objectif de poids. Félicitations pour tous tes efforts, tu es une vraie championne !", type: 'success' });
+          setWeightCoachMessage({ title: "Objectif Atteint ! 🎉", text: "INCROYABLE ! Tu as atteint ton objectif de poids. Félicitations pour tous tes efforts, tu es une vraie championne !", type: 'success' });
           const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
           audio.volume = 0.5;
           audio.play().catch(()=>{});
-      } else if (isLoss) {
-          setRokhyMessage({ title: "Perte validée !", text: "Bravo ! Les efforts payent. Continue sur cette lancée et n'oublie pas tes infusions Détox de la boutique pour accélérer les résultats !", type: 'success' });
+      } else if (isStagnant) {
+          setWeightCoachMessage({ title: "Stagnation", text: "⚖️ Ton corps stabilise, c'est normal. On garde le rythme du Sama Menu !", type: 'info' });
+      } else if ((wantsToLose && isLoss) || (!wantsToLose && !isLoss && !isStagnant)) {
+          setWeightCoachMessage({ title: "Bonne direction !", text: "✨ Bravo ! La méthode Nutrition à l'Africaine fonctionne sur toi. Continue comme ça !", type: 'success' });
       } else {
-          setRokhyMessage({ title: "Ne panique pas.", text: "Stop, ne panique pas. Le poids fluctue. Reste focus sur ton menu et pense à notre Fonio Premium pour réguler ta glycémie cette semaine.", type: 'warning' });
+          setWeightCoachMessage({ title: "Petit rebond", text: "🌱 Pas de panique. Un petit rebond arrive souvent. Reste focus sur les portions cette semaine.", type: 'warning' });
       }
       
       const newLog = { log_date: todayStr, weight: newWeight };
@@ -1844,15 +1870,22 @@ export default function NutritionDashboard() {
       setWeightLogs(updatedLogs);
       
       if (clientProfile) {
-          await supabase.from('nutrition_weight_logs').upsert({ client_id: clientProfile.id, tenant_id: clientProfile.tenant_id, log_date: todayStr, weight: newWeight }, { onConflict: 'client_id, log_date' });
+          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert({ client_id: clientProfile.id, tenant_id: clientProfile.tenant_id, log_date: todayStr, weight: newWeight }, { onConflict: 'client_id, log_date' });
           
-          // 2. Mise à jour du poids actuel dans le profil (pour garder l'algorithme à jour)
-          const updatedDiagData = { 
-              ...(clientProfile.diagnostic_data || {}), 
-              currentWeight: newWeight.toString() 
-          };
-          await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('client_id', clientProfile.id);
-          setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
+          if (!insertErr) {
+              // 2. Mise à jour du poids actuel dans le profil (pour garder l'algorithme à jour)
+              const updatedDiagData = { 
+                  ...(clientProfile.diagnostic_data || {}), 
+                  currentWeight: newWeight.toString() 
+              };
+              await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('client_id', clientProfile.id);
+              setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
+              
+              setToastMessage("Poids enregistré avec succès !");
+              setTimeout(() => setToastMessage(null), 3000);
+          } else {
+              alert("Erreur lors de la sauvegarde du poids : " + insertErr.message);
+          }
       }
   };
 
@@ -2576,8 +2609,8 @@ export default function NutritionDashboard() {
             
             {/* Bandeau Essai Gratuit */}
             <div className="flex items-center gap-4">
-               <div className="hidden sm:flex items-center gap-3 bg-zinc-900 p-2 pr-4 rounded-2xl border border-zinc-800 shadow-inner cursor-pointer hover:bg-zinc-800 transition-colors" title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
-                  <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border border-zinc-700">{lvlInfo.badge}</div>
+               <div className={`hidden sm:flex items-center gap-3 bg-zinc-900 p-2 pr-4 rounded-2xl border ${xpAnimation ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.4)]' : 'border-zinc-800 shadow-inner'} cursor-pointer hover:bg-zinc-800 transition-all duration-300`} title={lvlInfo.desc + " - Cliquez pour voir le classement"} onClick={openLeaderboard}>
+                  <div className={`w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shadow-md border ${xpAnimation ? 'border-[#39FF14] animate-pulse' : 'border-zinc-700'}`}>{lvlInfo.badge}</div>
                   <div>
                      <p className="text-[#39FF14] text-[10px] font-black uppercase tracking-widest">Niveau : {lvlInfo.name}</p>
                      <p className="text-white text-xs font-bold">{jongomaXP} XP</p>
@@ -2652,6 +2685,7 @@ export default function NutritionDashboard() {
                <h2 className={`${spaceGrotesk.className} text-xl font-black uppercase tracking-tighter flex items-center justify-center gap-3 mb-6`}><Activity className="text-[#39FF14]"/> Synthèse Journalière</h2>
                
                {/* JAUGE CENTRALE (CALORIES) */}
+               {calorieGoal > 0 && (
                <div className="relative w-48 h-48 mx-auto mb-8">
                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                       <circle cx="50" cy="50" r="40" className="stroke-zinc-800" strokeWidth="6" fill="transparent" />
@@ -2659,9 +2693,9 @@ export default function NutritionDashboard() {
                          cx="50" cy="50" r="40" 
                          className="stroke-[#39FF14] text-[#39FF14]" strokeWidth="6" fill="transparent" 
                          strokeDasharray={2 * Math.PI * 40} 
-                         strokeDashoffset={(2 * Math.PI * 40) - (Math.min(remainingCalories / targetCalories, 1) * (2 * Math.PI * 40))}
+                         strokeDashoffset={(2 * Math.PI * 40) - (Math.min(remainingCalories / calorieGoal, 1) * (2 * Math.PI * 40))}
                          initial={{ strokeDashoffset: 2 * Math.PI * 40 }}
-                         animate={{ strokeDashoffset: (2 * Math.PI * 40) - (Math.min(remainingCalories / targetCalories, 1) * (2 * Math.PI * 40)) }}
+                         animate={{ strokeDashoffset: (2 * Math.PI * 40) - (Math.min(remainingCalories / calorieGoal, 1) * (2 * Math.PI * 40)) }}
                          transition={{ duration: 1.5, ease: "easeOut" }}
                          strokeLinecap="round"
                       />
@@ -2679,7 +2713,7 @@ export default function NutritionDashboard() {
                          </>
                      )}
                   </div>
-               </div>
+               </div>)}
 
                {/* MINI-JAUGES MACROS & PIE CHART */}
                <div className="grid md:grid-cols-2 gap-8 items-center max-w-md mx-auto mt-6">
@@ -4512,6 +4546,19 @@ export default function NutritionDashboard() {
                                <Target size={18} />
                                <p className="text-xs font-black uppercase tracking-widest">Date estimée : {etaString}</p>
                             </div>
+                            
+                            {weightCoachMessage && (
+                               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 flex gap-4 items-start animate-in slide-in-from-top-4 mt-4">
+                                  <div className="relative shrink-0">
+                                     <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781176401/A_portrait_of_the_character_202606111113_jfaetc.jpg" alt="Rokhy Coach IA" className="w-10 h-10 rounded-full border-2 border-white shadow-md" />
+                                     <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#39FF14] border-2 border-white rounded-full"></div>
+                                  </div>
+                                  <div>
+                                     <h4 className="font-black text-sm text-black dark:text-white flex items-center gap-2">Rokhy (Coach IA)</h4>
+                                     <p className={`text-xs font-bold mt-1 ${weightCoachMessage.type === 'warning' ? 'text-orange-600 dark:text-orange-400' : weightCoachMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-blue-800 dark:text-blue-300'} leading-relaxed`}>{weightCoachMessage.text}</p>
+                                  </div>
+                               </div>
+                            )}
                          </>
                       ) : (
                          <p className="text-sm font-medium text-zinc-500">Aucun objectif défini. Refaites votre diagnostic.</p>
@@ -4526,15 +4573,16 @@ export default function NutritionDashboard() {
                 <p className="text-zinc-500 font-bold mb-6 text-xs max-w-sm mx-auto">Une pesée par semaine, pas plus. La constance bat l'obsession. Ajustez le curseur et validez.</p>
                 
                 <div className={`max-w-md mx-auto ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'} p-8 rounded-[2.5rem] border mb-10 shadow-inner`}>
-                   <p className={`text-7xl font-black ${theme === 'dark' ? 'text-white' : 'text-black'} mb-8 tracking-tighter`}>{currentWeightInput} <span className="text-2xl text-zinc-400">kg</span></p>
+                   <p className={`text-7xl font-black ${theme === 'dark' ? 'text-white' : 'text-black'} mb-8 tracking-tighter`}>{currentWeightInput || 0} <span className="text-2xl text-zinc-400">kg</span></p>
+                   <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Saisissez votre poids du jour (kg)</label>
                    <input 
-                      type="range" min="40" max="150" step="0.5" 
-                      value={currentWeightInput} 
-                      onChange={e => setCurrentWeightInput(parseFloat(e.target.value))}
-                      className="w-full accent-[#39FF14] h-3 bg-zinc-300 dark:bg-zinc-600 rounded-full appearance-none cursor-pointer mb-8"
+                      type="number" step="0.1" 
+                      value={currentWeightInput || ''} 
+                      onChange={e => setCurrentWeightInput(parseFloat(e.target.value) || 0)}
+                      className={`w-full p-6 ${theme === 'dark' ? 'bg-zinc-900 border-zinc-600 text-white' : 'bg-white border-zinc-200 text-black'} border-2 rounded-2xl font-black text-center text-4xl outline-none focus:border-[#39FF14] transition-colors mb-8 shadow-sm`}
                    />
-                   <button onClick={handleSaveWeight} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-xl">
-                       Enregistrer ma pesée
+                   <button onClick={handleSaveWeight} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-xl flex items-center justify-center gap-2">
+                       <CheckCircle size={20}/> Enregistrer mon poids
                    </button>
                 </div>
 
@@ -4967,6 +5015,27 @@ export default function NutritionDashboard() {
           </div>
         </div>
       )}
+
+      {/* XP GAIN ANIMATION */}
+      <AnimatePresence>
+        {xpAnimation && (
+          <motion.div
+            key={xpAnimation.id}
+            initial={{ opacity: 0, y: 50, scale: 0.5 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -50, scale: 0.8 }}
+            onAnimationComplete={() => setTimeout(() => setXpAnimation(null), 3000)}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="fixed bottom-24 left-6 z-[120] bg-gradient-to-br from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-2xl font-black shadow-2xl flex items-center gap-3 border-2 border-white/50"
+          >
+            <Sparkles size={24} />
+            <div className="flex flex-col">
+              <span className="text-2xl font-black leading-none">+{xpAnimation.amount} XP</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">{xpAnimation.reason}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* INTERVENTION AVATAR ROKHY (IA) */}
       {rokhyMessage && (
