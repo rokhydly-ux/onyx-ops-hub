@@ -436,6 +436,7 @@ export default function NutritionDashboard() {
   const [jongomaXP, setJongomaXP] = useState(0);
   const [weightLogs, setWeightLogs] = useState<any[]>([]);
   const [currentWeightInput, setCurrentWeightInput] = useState<number>(75);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [newPostText, setNewPostText] = useState("");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
@@ -687,10 +688,16 @@ export default function NutritionDashboard() {
           
           // Récupérer le poids
           const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('client_id', activeProfile.id).order('log_date', { ascending: true });
-          if (wLogs) {
-              setWeightLogs(wLogs);
-              if (wLogs.length > 0) setCurrentWeightInput(wLogs[wLogs.length - 1].weight);
+          
+          let fetchedLogs = wLogs || [];
+          if (fetchedLogs.length === 0 && nutritionData?.diagnostic_data?.currentWeight) {
+              const initialWeight = parseFloat(nutritionData.diagnostic_data.currentWeight);
+              const initialDate = activeProfile.created_at ? new Date(activeProfile.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+              fetchedLogs = [{ log_date: initialDate, weight: initialWeight }];
           }
+          
+          setWeightLogs(fetchedLogs);
+          if (fetchedLogs.length > 0) setCurrentWeightInput(fetchedLogs[fetchedLogs.length - 1].weight);
           
           if (nutritionData) {
               setFavoriteMeals(nutritionData.favorite_meals || []);
@@ -848,11 +855,30 @@ export default function NutritionDashboard() {
 
   const updateXP = async (amount: number, reason: string) => {
       const newXP = jongomaXP + amount;
+      
+      // Vérification des déblocages de badges pour que le coach IA (Rokhy) réagisse
+      if (jongomaXP < 500 && newXP >= 500) {
+          setRokhyMessage({ title: "Nouveau Badge Débloqué ! 💎", text: "Félicitations ! Tu viens de débloquer le badge Adhérente ! Continue comme ça, tes efforts paient !", type: 'success' });
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 8000);
+          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+          audio.volume = 0.5;
+          audio.play().catch(()=>{});
+      } else if (jongomaXP < 2000 && newXP >= 2000) {
+          setRokhyMessage({ title: "Nouveau Badge Débloqué ! 🌟", text: "Incroyable ! Tu as atteint le niveau Star Nutrition ! Un grand bravo pour ta régularité, c'est exceptionnel !", type: 'success' });
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 8000);
+          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+          audio.volume = 0.5;
+          audio.play().catch(()=>{});
+      }
+
       setJongomaXP(newXP);
       if (clientProfile) {
          await supabase.from('nutrition_profiles').update({ jongoma_xp: newXP }).eq('client_id', clientProfile.id);
       }
-      alert(`+${amount} XP ! (${reason})`);
+      setToastMessage(`+${amount} XP ! (${reason})`);
+      setTimeout(() => setToastMessage(null), 3000);
   };
 
   const getJongomaLevel = (xp: number) => {
@@ -1286,9 +1312,10 @@ export default function NutritionDashboard() {
           if (clientProfile) {
               await supabase.from('nutrition_profiles').upsert({ client_id: clientProfile.id, bmr: Math.round(bmr), tdee: Math.round(tdee), daily_calorie_goal: Math.round(dailyCalories), carbs_goal: Math.round(carbs), protein_goal: Math.round(protein), fats_goal: Math.round(fats), diagnostic_data: diagData }, { onConflict: 'client_id' });
               await generateWeeklyMenu();
-              // Hard refresh to exit modal and reload data
-              window.location.href = '/nutrition';
           }
+          
+          // Hard refresh garanti pour vider le state du wizard et re-fetcher le plan
+          window.location.href = '/nutrition';
           
           // BUG FIX: Removed setDiagStep(5) which caused an infinite loop. The page now reloads.
       } catch (err) {
@@ -1782,8 +1809,23 @@ export default function NutritionDashboard() {
       
       const newWeight = currentWeightInput;
       const isLoss = lastLog ? newWeight < lastLog.weight : true;
+      const targetW = parseFloat(clientProfile?.diagnostic_data?.targetWeight || "0");
+      const startWeight = weightLogs.length > 0 ? weightLogs[0].weight : parseFloat(clientProfile?.diagnostic_data?.currentWeight || "0");
+
+      let isGoalReached = false;
+      if (targetW > 0 && startWeight > 0) {
+         if (startWeight > targetW && newWeight <= targetW) isGoalReached = true;
+         if (startWeight < targetW && newWeight >= targetW) isGoalReached = true;
+      }
       
-      if (isLoss) {
+      if (isGoalReached) {
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 8000);
+          setRokhyMessage({ title: "Objectif Atteint ! 🎉", text: "INCROYABLE ! Tu as atteint ton objectif de poids. Félicitations pour tous tes efforts, tu es une vraie championne !", type: 'success' });
+          const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
+          audio.volume = 0.5;
+          audio.play().catch(()=>{});
+      } else if (isLoss) {
           setRokhyMessage({ title: "Perte validée !", text: "Bravo ! Les efforts payent. Continue sur cette lancée et n'oublie pas tes infusions Détox de la boutique pour accélérer les résultats !", type: 'success' });
       } else {
           setRokhyMessage({ title: "Ne panique pas.", text: "Stop, ne panique pas. Le poids fluctue. Reste focus sur ton menu et pense à notre Fonio Premium pour réguler ta glycémie cette semaine.", type: 'warning' });
@@ -1795,6 +1837,14 @@ export default function NutritionDashboard() {
       
       if (clientProfile) {
           await supabase.from('nutrition_weight_logs').upsert({ client_id: clientProfile.id, tenant_id: clientProfile.tenant_id, log_date: todayStr, weight: newWeight }, { onConflict: 'client_id, log_date' });
+          
+          // 2. Mise à jour du poids actuel dans le profil (pour garder l'algorithme à jour)
+          const updatedDiagData = { 
+              ...(clientProfile.diagnostic_data || {}), 
+              currentWeight: newWeight.toString() 
+          };
+          await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('client_id', clientProfile.id);
+          setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
       }
   };
 
@@ -2339,6 +2389,27 @@ export default function NutritionDashboard() {
           animation: gentle-pulse 4s ease-in-out infinite;
         }
       `}} />
+      
+      {/* ANIMATION LUDIQUE DE CONFETTIS */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-[500] pointer-events-none overflow-hidden">
+          {[...Array(60)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-[-10%] opacity-0 text-3xl md:text-5xl drop-shadow-lg"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animation: `fall-${i % 2 === 0 ? 'left' : 'right'} ${2 + Math.random() * 3}s ease-in forwards`,
+                animationDelay: `${Math.random() * 0.5}s`,
+              }}
+            >
+              {['🎉', '✨', '🏆', '🥬', '🎯', '🥑'][i % 6]}
+            </div>
+          ))}
+          <style dangerouslySetInnerHTML={{__html: `@keyframes fall-left { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg) translateX(-50px); opacity: 0; } } @keyframes fall-right { 0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(-360deg) translateX(50px); opacity: 0; } }`}} />
+        </div>
+      )}
+
       {/* SIDEBAR VERTICAL */}
       <aside 
          onMouseEnter={() => { 
@@ -3362,7 +3433,7 @@ export default function NutritionDashboard() {
             <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                <div>
                   <h3 className="text-lg font-black uppercase text-black mb-2 flex items-center gap-2"><Award className="text-yellow-500" size={24}/> Badges & Récompenses</h3>
-                  <p className="text-sm text-zinc-500 font-medium mb-4">Cumulez des jours parfaits (suivi du menu et hydratation) pour débloquer des trophées.</p>
+                  <p className="text-sm text-zinc-500 font-medium mb-4">Cumulez de l'XP et des jours parfaits pour débloquer des trophées.</p>
                   <div className="flex gap-2">
                      {Array.from({length: 7}, (_, i) => {
                         const d = new Date();
@@ -3378,9 +3449,24 @@ export default function NutritionDashboard() {
                      })}
                   </div>
                </div>
-               <div className="flex gap-4">
-                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[120px] transition-all ${(Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60'}`}>
-                     <Award size={36} className="mb-2" />
+               <div className="flex flex-wrap gap-4 justify-center md:justify-end">
+                  <div className="p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all bg-green-50 border-green-400 text-green-600 shadow-md">
+                     <span className="text-2xl mb-2">🌱</span>
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Novice<br/><span className="text-[8px] text-green-700/70">0 XP</span></span>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 500 ? 'bg-blue-50 border-blue-400 text-blue-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
+                     {jongomaXP < 500 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
+                     <span className="text-2xl mb-2">💎</span>
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Adhérente<br/><span className="text-[8px] opacity-70">500 XP</span></span>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${jongomaXP >= 2000 ? 'bg-yellow-50 border-yellow-400 text-yellow-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
+                     {jongomaXP < 2000 && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
+                     <span className="text-2xl mb-2">🌟</span>
+                     <span className="text-[10px] font-black uppercase text-center leading-tight">Star Nutrition<br/><span className="text-[8px] opacity-70">2000 XP</span></span>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center min-w-[100px] transition-all relative ${(Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length >= 5 ? 'bg-orange-50 border-orange-400 text-orange-600 shadow-md scale-105' : 'bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60 grayscale'}`}>
+                     {((Array.isArray(dailyLogs) ? dailyLogs : []).filter(l => l.report_data?.followedMenu && l.water_glasses >= 6).length < 5) && <Lock size={12} className="absolute top-2 right-2 text-zinc-300"/>}
+                     <Award size={28} className="mb-2" />
                      <span className="text-[10px] font-black uppercase text-center leading-tight">Semaine<br/>Parfaite</span>
                   </div>
                </div>
@@ -3938,7 +4024,7 @@ export default function NutritionDashboard() {
                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                    <input 
                       type="text" 
-                      placeholder="Rechercher une recette (ex: Thieboudienne, Fonio)..." 
+                      placeholder="Rechercher une recette ou macro (ex: Thieboudienne, 300 kcal, 20g)..." 
                       value={favoriteSearchQuery}
                       onChange={e => setFavoriteSearchQuery(e.target.value)}
                       className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-2xl font-bold text-sm outline-none focus:border-black transition-colors"
@@ -3962,7 +4048,11 @@ export default function NutritionDashboard() {
                    {(() => {
                       const top10RecipeIds = [...allRecipesDB].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10).map(r => r.id);
                       let filteredRecipes = allRecipesDB.filter(r => {
-                         const matchSearch = r.nom?.toLowerCase().includes(favoriteSearchQuery.toLowerCase());
+                         const query = favoriteSearchQuery.toLowerCase();
+                         const numericQuery = query.replace(/\D/g, '');
+                         const matchSearch = r.nom?.toLowerCase().includes(query) || 
+                                             (numericQuery !== "" && r.calories?.toString().includes(numericQuery)) || 
+                                             (numericQuery !== "" && r.proteins?.toString().includes(numericQuery));
                          if (!matchSearch) return false;
                          if (recipeFilter === 'Favoris') return favoriteMeals.some(f => (f.meal || f.nom) === r.nom);
                          if (recipeFilter === 'Populaire') return true;
@@ -4338,9 +4428,74 @@ export default function NutritionDashboard() {
         </AnimatePresence>
 
         {/* VUE TRACKER DE POIDS */}
-        {activeTab === 'weight' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
-             <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 sm:p-12 rounded-[2rem] border shadow-sm text-center relative overflow-hidden`}>
+        {activeTab === 'weight' && (() => {
+           const startWeight = weightLogs.length > 0 ? weightLogs[0].weight : parseFloat(clientProfile?.diagnostic_data?.currentWeight || "0");
+           const targetW = parseFloat(clientProfile?.diagnostic_data?.targetWeight || "0");
+           const currentW = currentWeightInput || startWeight;
+
+           let remainingWeight = 0;
+           let progressPct = 0;
+           let etaString = "Non défini";
+
+           if (startWeight > 0 && targetW > 0) {
+               remainingWeight = Math.abs(currentW - targetW);
+               const totalDiff = Math.abs(startWeight - targetW);
+               const actualDiff = startWeight > targetW 
+                   ? startWeight - currentW 
+                   : currentW - startWeight; 
+               
+               progressPct = totalDiff === 0 ? 100 : Math.max(0, Math.min(100, (actualDiff / totalDiff) * 100));
+               
+               const weeksLeft = remainingWeight / 0.5;
+               const etaDate = new Date();
+               etaDate.setDate(etaDate.getDate() + (weeksLeft * 7));
+               etaString = etaDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+               etaString = etaString.charAt(0).toUpperCase() + etaString.slice(1);
+           }
+
+           return (
+             <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
+                
+                {/* BENTO CARD : MON OBJECTIF (MISSION 2 & 3) */}
+                <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 rounded-[2rem] border shadow-sm relative overflow-hidden flex flex-col md:flex-row items-center gap-8`}>
+                   <div className="shrink-0">
+                      <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" alt="Cible 3D" className="w-24 h-24 md:w-32 md:h-32 rounded-2xl shadow-xl object-cover" />
+                   </div>
+                   <div className="flex-1 w-full">
+                      <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} mb-2`}>Mon Objectif</h2>
+                      {targetW > 0 ? (
+                         <>
+                            <div className="flex justify-between items-end mb-4">
+                               <div>
+                                  <p className="text-zinc-500 font-bold text-sm">Cible : <span className={`font-black ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{targetW} kg</span></p>
+                                  <p className="text-zinc-500 font-bold text-sm">Reste : <span className="font-black text-[#39FF14]">{remainingWeight.toFixed(1)} kg</span></p>
+                               </div>
+                               <div className="text-right">
+                                  <p className="text-3xl font-black text-[#39FF14]">{Math.round(progressPct)}%</p>
+                               </div>
+                            </div>
+
+                            <div className="w-full h-4 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-4 shadow-inner relative">
+                               <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${progressPct}%` }}
+                                  transition={{ duration: 1.5, ease: "easeOut" }}
+                                  className="h-full bg-[#39FF14] rounded-full shadow-[0_0_15px_rgba(57,255,20,0.6)]"
+                               ></motion.div>
+                            </div>
+                            
+                            <div className="bg-black text-[#39FF14] px-4 py-3 rounded-xl flex items-center gap-3 w-max">
+                               <Target size={18} />
+                               <p className="text-xs font-black uppercase tracking-widest">Date estimée : {etaString}</p>
+                            </div>
+                         </>
+                      ) : (
+                         <p className="text-sm font-medium text-zinc-500">Aucun objectif défini. Refaites votre diagnostic.</p>
+                      )}
+                   </div>
+                </div>
+
+                <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 sm:p-12 rounded-[2rem] border shadow-sm text-center relative overflow-hidden`}>
                 <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none"></div>
                 <div className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-black flex items-center justify-center shadow-lg mb-6 relative z-10"><Scale className="text-[#39FF14]" size={40}/></div>
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} mb-2`}>Tracker de Poids</h2>
@@ -4375,7 +4530,7 @@ export default function NutritionDashboard() {
                 )}
              </div>
           </div>
-        )}
+        ); })()}
 
         {/* VUE COMMUNAUTÉ (FEED) */}
         {activeTab === 'community' && (

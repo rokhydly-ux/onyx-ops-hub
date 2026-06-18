@@ -361,9 +361,8 @@ export default function NutritionAfricaineLanding() {
   // Diagnostic Modal Handlers
   const handleDiagSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Removed blocking validation to prevent user friction.
-    if (diagStep < 6) {
-      setDiagStep(diagStep + 1);
+    // Le formulaire ne doit être soumis qu'à la toute dernière étape (9)
+    if (diagStep < 9) {
       return;
     }
 
@@ -466,7 +465,8 @@ export default function NutritionAfricaineLanding() {
       }
       localStorage.setItem('onyx_nutrition_welcome', welcomeMsg);
 
-      setDiagStep(7);
+      // Affiche proprement l'écran de succès final
+      setDiagStep(10);
     } catch (err) {
       alert("Une erreur est survenue.");
     } finally {
