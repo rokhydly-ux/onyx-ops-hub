@@ -690,14 +690,22 @@ export default function NutritionDashboard() {
           const { data: wLogs } = await supabase.from('nutrition_weight_logs').select('*').eq('client_id', activeProfile.id).order('log_date', { ascending: true });
           
           let fetchedLogs = wLogs || [];
-          if (fetchedLogs.length === 0 && nutritionData?.diagnostic_data?.currentWeight) {
-              const initialWeight = parseFloat(nutritionData.diagnostic_data.currentWeight);
+          const diagCurrentWeight = nutritionData?.diagnostic_data?.currentWeight;
+
+          if (fetchedLogs.length === 0 && diagCurrentWeight) {
+              const initialWeight = parseFloat(diagCurrentWeight);
               const initialDate = activeProfile.created_at ? new Date(activeProfile.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-              fetchedLogs = [{ log_date: initialDate, weight: initialWeight }];
+              if (!isNaN(initialWeight)) {
+                 fetchedLogs = [{ log_date: initialDate, weight: initialWeight }];
+              }
           }
           
           setWeightLogs(fetchedLogs);
-          if (fetchedLogs.length > 0) setCurrentWeightInput(fetchedLogs[fetchedLogs.length - 1].weight);
+          if (fetchedLogs.length > 0) {
+              setCurrentWeightInput(fetchedLogs[fetchedLogs.length - 1].weight);
+          } else if (diagCurrentWeight && !isNaN(parseFloat(diagCurrentWeight))) {
+              setCurrentWeightInput(parseFloat(diagCurrentWeight));
+          }
           
           if (nutritionData) {
               setFavoriteMeals(nutritionData.favorite_meals || []);
@@ -788,7 +796,7 @@ export default function NutritionDashboard() {
     if (searchParams.get('from') === 'diagnostic') {
       alert("Félicitations et bienvenue ! Votre espace personnel est prêt.");
       // Nettoyer l'URL
-      router.replace('/nutrition', undefined);
+      router.replace('/nutrition');
     }
 
   }, [router, searchParams]);
@@ -4908,8 +4916,8 @@ export default function NutritionDashboard() {
             </div>
           </div>
         </div>
-      )}\n
-      {/* MODALE DE PAIEMENT WAVE / OM */}{/* MODALE DE PAIEMENT WAVE / OM */}
+      )}
+      {/* MODALE DE PAIEMENT WAVE / OM */}
       {showPaymentModal && (
         <div id="modal-overlay" onClick={(e: any) => e.target.id === 'modal-overlay' && setShowPaymentModal(false)} className="fixed inset-0 z-[600] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white p-8 rounded-[3rem] max-w-md w-full relative shadow-[0_0_50px_rgba(57,255,20,0.15)] border-t-[8px] border-[#39FF14] animate-in zoom-in-95 my-auto flex flex-col overflow-hidden">
