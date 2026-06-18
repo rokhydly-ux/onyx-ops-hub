@@ -1333,9 +1333,10 @@ export default function NutritionDashboard() {
           setCarbsGoal(Math.round(carbs));
           setFatsGoal(Math.round(fats));
 
-          if (clientProfile) {
+          if (clientProfile && user) {
               const payload = {
                   client_id: clientProfile.id,
+                  user_id: user.id,
                   bmr: Math.round(bmr),
                   tdee: Math.round(tdee),
                   daily_calorie_goal: Math.round(dailyCalories),
@@ -1344,20 +1345,18 @@ export default function NutritionDashboard() {
                   fats_goal: Math.round(fats),
                   diagnostic_data: diagData
               };
-              console.log("Diagnostic payload en cours d'enregistrement:", payload);
+              console.log("Payload du diagnostic (Espace Client):", payload);
               const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
               if (error) {
                  alert("Erreur SQL lors de l'enregistrement : " + error.message);
                  throw error;
               }
-              await generateWeeklyMenu();
+              alert("Succès");
+              window.location.reload();
           }
           
-          // CRITIQUE : Hard refresh garanti pour vider le state du wizard et re-fetcher les nouvelles données DB
-          window.location.href = '/nutrition';
-          
       } catch (err: any) {
-          console.error("Erreur capture", err);
+          alert("Erreur lors de l'enregistrement du diagnostic: " + err.message);
       } finally {
           setIsSubmittingDiag(false);
       }
@@ -4613,12 +4612,13 @@ export default function NutritionDashboard() {
                 <div className={`max-w-md mx-auto ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'} p-8 rounded-[2.5rem] border mb-10 shadow-inner`}>
                    <p className={`text-7xl font-black ${theme === 'dark' ? 'text-white' : 'text-black'} mb-8 tracking-tighter`}>{currentWeightInput || 0} <span className="text-2xl text-zinc-400">kg</span></p>
                    <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Saisissez votre poids du jour (kg)</label>
-                   <div className="relative pt-6 pb-6 mb-8 w-full max-w-sm mx-auto">
+                   <div className="relative pt-6 pb-6 mb-8 w-full max-w-sm mx-auto group">
+                       <div className="absolute top-1/2 left-2.5 right-2.5 h-1 -translate-y-1/2 rounded-full bg-zinc-200 dark:bg-zinc-700" style={{ backgroundImage: 'repeating-linear-gradient(to right, #a1a1aa 0, #a1a1aa 1px, transparent 1px, transparent 10%)' }} />
                        <input 
                           type="range" min="40" max="150" step="0.1"
                           value={currentWeightInput || 0} 
                           onChange={e => setCurrentWeightInput(parseFloat(e.target.value) || 0)}
-                          className="w-full accent-black h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                          className="w-full accent-black dark:accent-[#39FF14] h-2 bg-transparent rounded-lg appearance-none cursor-pointer relative z-10"
                        />
                    </div>
                    <button onClick={handleSaveWeight} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-xl flex items-center justify-center gap-2">
@@ -4626,7 +4626,40 @@ export default function NutritionDashboard() {
                    </button>
                 </div>
 
-                {Array.isArray(weightLogs) && weightLogs.length > 0 && (
+                {/* HISTORIQUE DE LA PESÉE */}
+                <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 rounded-[2rem] border shadow-sm mt-8`}>
+                    <h3 className="font-black text-lg uppercase mb-4 flex items-center gap-2"><ListChecks className="text-[#39FF14]"/> Historique des Pesées</h3>
+                    <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
+                        {weightLogs.length > 0 ? (
+                            [...weightLogs].reverse().map((log, index, arr) => {
+                                const prevLog = arr[index + 1];
+                                const diff = prevLog ? log.weight - prevLog.weight : null;
+                                return (
+                                    <div key={log.log_date} className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                                        <div>
+                                            <p className="font-bold text-black dark:text-white">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                            <p className="text-2xl font-black text-black dark:text-white mt-1">{log.weight.toFixed(1)} kg</p>
+                                        </div>
+                                        <div className="text-right">
+                                            {diff !== null ? (
+                                                <span className={`font-black text-lg ${diff < 0 ? 'text-green-500' : diff > 0 ? 'text-red-500' : 'text-zinc-500'}`}>
+                                                    {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
+                                                </span>
+                                            ) : (
+                                                <span className="font-black text-lg text-zinc-500">--</span>
+                                            )}
+                                            <p className="text-xs text-zinc-400">{diff === 0 ? 'Stable' : diff === null ? 'Première pesée' : diff < 0 ? 'Perte' : 'Prise'}</p>
+                                        </div>
+                                    </div>
+                                )
+                            })
+                        ) : (
+                            <p className="text-sm text-zinc-500 italic text-center py-8">Aucun historique de poids pour le moment. Enregistrez votre première pesée !</p>
+                        )}
+                    </div>
+                </div>
+
+                {Array.isArray(weightLogs) && weightLogs.length > 1 && (
                    <div className="h-72 w-full mt-10 pt-8 border-t border-zinc-100">
                      <h3 className="text-left font-black uppercase text-sm text-zinc-400 tracking-widest mb-6">Évolution</h3>
                      <ResponsiveContainer width="100%" height="100%">
