@@ -1109,7 +1109,7 @@ export default function NutritionDashboard() {
       safeRecipes = safeRecipes.filter(r => !r.budget_tier || allowedTiers.includes(r.budget_tier));
 
       // RATIOS CALORIQUES MODE GUIDÉ (RULE 4)
-      const targetDailyCals = calorieGoal || 1500;
+      const targetDailyCals = calorieGoal || clientProfile?.daily_calorie_goal || 1500;
       const mealTargets: Record<string, number> = activeFastingMode ? {
          'Déjeuner': targetDailyCals * 0.45,
          'Collation': targetDailyCals * 0.20,
@@ -1279,7 +1279,7 @@ export default function NutritionDashboard() {
           let newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
           
           if (trackingMode === 'guided') {
-              const targetDailyCals = calorieGoal || 1500;
+              const targetDailyCals = calorieGoal || clientProfile?.daily_calorie_goal || 1500;
               const mealTargets: Record<string, number> = isFastingMode ? {
                  'Déjeuner': targetDailyCals * 0.45,
                  'Collation': targetDailyCals * 0.20,
@@ -1310,6 +1310,43 @@ export default function NutritionDashboard() {
       } else {
           alert("Aucune alternative disponible pour ce type de repas dans la base de données.");
       }
+  };
+
+
+  const calculatePreviewGoals = (data: any) => {
+      const heightCm = parseFloat(data.height) || 0;
+      const currentWeight = parseFloat(data.currentWeight) || 0;
+      const targetWInput = parseFloat(data.targetWeight) || 0;
+      const age = parseFloat(data.age) || 0;
+      const isMale = data.gender === "Homme";
+      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
+      let deficit = 500;
+      if (data.weightLossPace === 'Progressivement') deficit = 300;
+      else if (data.weightLossPace === 'Rapidement') deficit = 700;
+
+      const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
+      const weightToLose = currentWeight - finalTargetWeight;
+
+      const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+      let nap = 1.2;
+      if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
+      else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
+      else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+      const tdee = bmr * nap;
+      let rawCalories = tdee;
+      if (data.goalType === 'Perte de poids') rawCalories = tdee - deficit;
+      else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
+      else if (data.goalType === 'Maintien') rawCalories = tdee;
+      if (data.healthProfile === "Allaitement") rawCalories += 500;
+      const dailyCalories = Math.round(Math.max(isMale ? 1500 : 1200, rawCalories || 0));
+
+      // Calculate ETA
+      const weeksLeft = Math.abs(weightToLose) / (deficit / 700); // 7000kcal = 1kg, roughly 1 week at 1000kcal deficit, 700kcal daily = 0.7kg/week. Let's say 0.5kg/week for 500kcal deficit.
+      const etaDate = new Date();
+      etaDate.setDate(etaDate.getDate() + (Math.abs(weightToLose) / 0.5 * 7));
+      const etaStr = etaDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+      return { dailyCalories, weightToLose, finalTargetWeight, etaStr };
   };
 
   const handleDiagSubmit = async (e: React.FormEvent) => {
@@ -4087,7 +4124,7 @@ export default function NutritionDashboard() {
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="col-span-2 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center">
                   <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Métabolisme de base (BMR)</span>
-                  <div className="text-4xl font-black text-black">{clientProfile?.diagnostic_data?.bmr || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
+                  <div className="text-4xl font-black text-black">{calorieGoal || clientProfile?.daily_calorie_goal || clientProfile?.diagnostic_data?.bmr || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
                 </div>
 
                 <div className="col-span-1 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
@@ -5197,16 +5234,39 @@ export default function NutritionDashboard() {
                     </div>
                   )}
 
-                  {diagStep === 7 && (
-                    <div className="text-center py-6 animate-in zoom-in">
+                  {diagStep === 7 && (() => {
+                    const preview = calculatePreviewGoals(diagData);
+                    return (
+                    <div className="text-center py-6 animate-in zoom-in max-w-2xl mx-auto">
                       <CheckCircle className="text-[#39FF14] w-16 h-16 mx-auto mb-4" />
-                      <h3 className="text-xl font-black uppercase mb-2 text-black">Analyse en cours...</h3>
-                      <p className="text-zinc-600 font-medium mb-6">Validez pour générer vos nouveaux objectifs caloriques et votre menu adapté.</p>
+                      <h3 className="text-2xl md:text-3xl font-black uppercase mb-4 text-black">Vos Nouveaux Objectifs</h3>
+                      <p className="text-zinc-600 font-medium mb-8">Voici le plan calculé sur mesure selon vos nouvelles réponses. Ces valeurs remplaceront vos anciens réglages.</p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                         <div className="bg-white border-2 border-zinc-100 p-6 rounded-3xl shadow-sm flex flex-col items-center">
+                            <Flame className="text-[#39FF14] w-8 h-8 mb-3"/>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Calories Cibles</p>
+                            <p className="text-3xl font-black text-black">{preview.dailyCalories}</p>
+                            <p className="text-xs font-bold text-zinc-500 mt-1">kcal / jour</p>
+                         </div>
+                         <div className="bg-white border-2 border-zinc-100 p-6 rounded-3xl shadow-sm flex flex-col items-center">
+                            <Target className="text-[#39FF14] w-8 h-8 mb-3"/>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Cible</p>
+                            <p className="text-3xl font-black text-black">{preview.finalTargetWeight}<span className="text-xl">kg</span></p>
+                            <p className="text-xs font-bold text-zinc-500 mt-1">{preview.weightToLose > 0 ? `-${preview.weightToLose.toFixed(1)} kg à perdre` : 'Maintien'}</p>
+                         </div>
+                         <div className="bg-white border-2 border-zinc-100 p-6 rounded-3xl shadow-sm flex flex-col items-center">
+                            <Clock className="text-[#39FF14] w-8 h-8 mb-3"/>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Objectif prévu</p>
+                            <p className="text-xl font-black text-black mt-2 capitalize">{preview.etaStr}</p>
+                         </div>
+                      </div>
+
                       <button type="submit" disabled={isSubmittingDiag} className="w-full bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase hover:scale-105 transition-transform flex justify-center items-center gap-2">
-                        {isSubmittingDiag ? "Recalcul en cours..." : "Mettre à jour mon plan"} <ArrowRight size={18}/>
+                        {isSubmittingDiag ? "Recalcul en cours..." : "Appliquer ce nouveau plan"} <ArrowRight size={18}/>
                       </button>
                     </div>
-                  )}
+                  );})()}
 
                   {diagStep < 7 && (
                     <div className="flex gap-4 pt-6 mt-8 border-t border-zinc-100">
