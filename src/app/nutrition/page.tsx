@@ -438,6 +438,7 @@ export default function NutritionDashboard() {
   const [currentWeightInput, setCurrentWeightInput] = useState<number>(0);
   const [showConfetti, setShowConfetti] = useState<boolean | string>(false);
   const [weightCoachMessage, setWeightCoachMessage] = useState<{title: string, text: string, type: 'warning'|'success'|'info'} | null>(null);
+  const [coachFeedback, setCoachFeedback] = useState<{ type: 'success' | 'warning' | 'neutral'; text: string } | null>(null);
   const [newPostText, setNewPostText] = useState("");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
@@ -1880,43 +1881,44 @@ export default function NutritionDashboard() {
           const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3");
           audio.volume = 0.5;
           audio.play().catch(()=>{});
-      } else if (newWeight < prevWeight) {
-          setWeightCoachMessage({ title: "Félicitations ! 🎉", text: "🎉 Félicitations ! La méthode fonctionne, tes efforts paient de manière incroyable. Continue comme ça !", type: 'success' });
-      } else if (newWeight > prevWeight) {
-          setWeightCoachMessage({ title: "Petit Rebond 🌱", text: "🌱 Ne t'en fais pas ! Une légère hausse est souvent due à de la rétention d'eau ou à un petit stress passager. Zéro culpabilité, on garde le cap avec ton Sama Menu dès aujourd'hui.", type: 'warning' });
-      } else {
-          setWeightCoachMessage({ title: "Stabilité Parfaite ⚖️", text: "⚖️ Stabilité parfaite ! Ton corps consolide ses acquis. Reste constante !", type: 'info' });
       }
-      
+
       const newLog = { log_date: todayStr, weight: newWeight };
-      const updatedLogs = [...weightLogs.filter(l => l.log_date !== todayStr), newLog].sort((a,b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime());
-      setWeightLogs(updatedLogs);
+      setWeightLogs(prev => [...prev, newLog]);
       
       if (clientProfile) {
           const payload = {
             client_id: clientProfile.id,
-            user_id: user.id, // Correction pour la politique RLS
+            user_id: user.id,
             tenant_id: clientProfile.tenant_id,
             log_date: todayStr,
             weight: newWeight
           };
-          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload, { onConflict: 'client_id, log_date' });
+          const { error: insertErr } = await supabase.from('nutrition_weight_logs').insert(payload);
 
-          if (!insertErr) {
-              // 2. Mise à jour du poids actuel dans le profil (pour garder l'algorithme à jour)
-              const updatedDiagData = { 
-                  ...(clientProfile.diagnostic_data || {}), 
-                  currentWeight: newWeight.toString() 
-              };
-              await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('client_id', clientProfile.id);
-              setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
-              
-              setToastMessage("Poids enregistré avec succès !");
-              setTimeout(() => setToastMessage(null), 3000);
-          } else {
+          if (insertErr) {
               alert("Erreur lors de la sauvegarde du poids : " + insertErr.message);
+              return;
           }
+
+          const updatedDiagData = { 
+              ...(clientProfile.diagnostic_data || {}), 
+              currentWeight: newWeight.toString() 
+          };
+          await supabase.from('nutrition_profiles').update({ diagnostic_data: updatedDiagData }).eq('client_id', clientProfile.id);
+          setClientProfile((prev: any) => prev ? { ...prev, diagnostic_data: updatedDiagData } : prev);
       }
+
+      if (newWeight < prevWeight) {
+          setCoachFeedback({ type: 'success', text: "🎉 Félicitations ! La méthode fonctionne, tes efforts paient de manière incroyable. Continue comme ça !" });
+      } else if (newWeight > prevWeight) {
+          setCoachFeedback({ type: 'warning', text: "🌱 Ne t'en fais pas ! Une légère hausse est souvent due à de la rétention d'eau. Zéro culpabilité, on garde le cap avec ton Sama Menu !" });
+      } else {
+          setCoachFeedback({ type: 'neutral', text: "⚖️ Stabilité parfaite ! Ton corps consolide ses acquis. Reste constante !" });
+      }
+
+      setToastMessage("Poids enregistré avec succès !");
+      setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleDeleteWeightLog = async (logDate: string) => {
@@ -4630,23 +4632,48 @@ export default function NutritionDashboard() {
                 <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none"></div>
                 <div className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-black flex items-center justify-center shadow-lg mb-6 relative z-10"><Scale className="text-[#39FF14]" size={40}/></div>
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} mb-2`}>Tracker de Poids</h2>
-                <p className="text-zinc-500 font-bold mb-6 text-xs max-w-sm mx-auto">Une pesée par semaine, pas plus. La constance bat l'obsession. Ajustez le curseur et validez.</p>
+                <p className="text-zinc-500 font-bold mb-6 text-xs max-w-sm mx-auto">Enregistre ton poids aussi souvent que tu le souhaites. Chaque note aide ton coach à affiner ton plan.</p>
                 
                 <div className={`max-w-md mx-auto ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'} p-8 rounded-[2.5rem] border mb-10 shadow-inner`}>
-                   <p className={`text-7xl font-black ${theme === 'dark' ? 'text-white' : 'text-black'} mb-8 tracking-tighter`}>{currentWeightInput || 0} <span className="text-2xl text-zinc-400">kg</span></p>
-                   <label className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4 block">Saisissez votre poids du jour (kg)</label>
-                   <div className="relative pt-6 pb-6 mb-8 w-full max-w-sm mx-auto group">
-                       <div className="absolute top-1/2 left-2.5 right-2.5 h-1 -translate-y-1/2 rounded-full bg-zinc-200 dark:bg-zinc-700" style={{ backgroundImage: 'repeating-linear-gradient(to right, #a1a1aa 0, #a1a1aa 1px, transparent 1px, transparent 10%)' }} />
-                       <input 
-                          type="range" min="40" max="150" step="0.1"
-                          value={currentWeightInput || 0} 
+                   <div className="relative mb-8 w-full h-44">
+                       <div className="absolute inset-x-0 top-14 h-10 rounded-full overflow-hidden" style={{ background: 'repeating-linear-gradient(to right, #ccc, #ccc 2px, transparent 2px, transparent 20px)' }} />
+                       <div className="absolute inset-x-0 top-[50%] h-1 -translate-y-1/2 bg-zinc-200" />
+                       <div className="absolute top-4" style={{ left: `${((Math.max(currentWeightInput, 60) - 40) / 110) * 100}%`, transform: 'translateX(-50%)' }}>
+                          <div className="text-5xl font-black text-black dark:text-white tracking-tight">
+                             {Math.max(currentWeightInput, 60).toFixed(1)}<span className="ml-2 text-2xl font-extrabold">kg</span>
+                          </div>
+                          <div className="mt-4 w-1.5 h-20 bg-[#39FF14] rounded-full shadow-[0_0_20px_rgba(57,255,20,0.55)]" />
+                       </div>
+                       <input
+                          type="range"
+                          min="40"
+                          max="150"
+                          step="0.1"
+                          value={Math.max(currentWeightInput, 60)}
                           onChange={e => setCurrentWeightInput(parseFloat(e.target.value) || 0)}
-                          className="w-full accent-black dark:accent-[#39FF14] h-2 bg-transparent rounded-lg appearance-none cursor-pointer relative z-10"
+                          className="absolute inset-x-0 bottom-0 h-full w-full opacity-0 cursor-pointer"
+                          style={{ appearance: 'none', WebkitAppearance: 'none' }}
                        />
                    </div>
-                   <button onClick={handleSaveWeight} className="w-full bg-black dark:bg-white text-[#39FF14] dark:text-black py-5 rounded-2xl font-black uppercase text-sm hover:scale-105 transition-transform shadow-xl flex items-center justify-center gap-2">
+                   <button onClick={handleSaveWeight} className="w-full bg-gradient-to-r from-[#0f3f08] via-black to-[#0f3f08] text-[#39FF14] py-5 rounded-[1.75rem] font-black uppercase text-sm shadow-[0_20px_50px_rgba(57,255,20,0.18)] border border-[#39FF14]/10 hover:shadow-[0_25px_70px_rgba(57,255,20,0.25)] transition-all duration-300 flex items-center justify-center gap-2">
                        <CheckCircle size={20}/> Enregistrer mon poids
                    </button>
+                   {coachFeedback && (
+                      <div className="mt-6 p-5 rounded-[2rem] border border-[#39FF14]/20 bg-gradient-to-br from-white/80 via-[#39FF14]/10 to-black/5 shadow-[0_30px_80px_rgba(57,255,20,0.12)] backdrop-blur-xl flex items-start gap-4">
+                         <div className="relative shrink-0">
+                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781176401/A_portrait_of_the_character_202606111113_jfaetc.jpg" alt="Coach Rokhy" className="w-16 h-16 rounded-full border-2 border-black shadow-xl" />
+                            <span className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#39FF14] border border-black shadow-[0_0_10px_rgba(57,255,20,0.45)]"></span>
+                         </div>
+                         <div className="flex-1">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/10 border border-[#39FF14]/15 mb-3">
+                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#0f3f08]">Coach Rokhy</span>
+                            </div>
+                            <p className={`text-sm leading-6 font-semibold ${coachFeedback.type === 'success' ? 'text-[#064e1f]' : coachFeedback.type === 'warning' ? 'text-[#7c4a00]' : 'text-slate-800'}`}>
+                               {coachFeedback.text}
+                            </p>
+                         </div>
+                      </div>
+                   )}
                 </div>
 
                 {/* HISTORIQUE DE LA PESÉE */}
