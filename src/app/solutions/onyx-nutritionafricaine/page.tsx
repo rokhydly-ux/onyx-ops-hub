@@ -333,7 +333,7 @@ export default function NutritionAfricaineLanding() {
     }
   };
 
-  const calculateDailyCalories = (data: any) => {
+    const calculateDailyCalories = (data: any, forceSafeMode: boolean = false) => {
       const heightCm = parseFloat(data.height) || 0;
       const currentWeight = parseFloat(data.currentWeight) || 0;
       const targetWInput = parseFloat(data.targetWeight) || 0;
@@ -341,10 +341,12 @@ export default function NutritionAfricaineLanding() {
       const isMale = data.gender === "Homme";
 
       const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
+
       let nap = 1.2;
       if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
       else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
       else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
+
       const tdee = bmr * nap;
 
       const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
@@ -352,12 +354,19 @@ export default function NutritionAfricaineLanding() {
       const weightToLose = currentWeight - finalTargetWeight;
 
       let requiredDailyDeficit = 0;
-      const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-      const now = new Date();
-      const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+      let userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+      let now = new Date();
+      let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
 
       if (data.goalType === 'Perte de poids' && weightToLose > 0) {
           requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
+      }
+
+      const maxSafeWeeklyLossKg = currentWeight * 0.01;
+      const maxSafeDailyDeficit = (maxSafeWeeklyLossKg * 7700) / 7;
+
+      if (forceSafeMode) {
+          requiredDailyDeficit = Math.min(500, maxSafeDailyDeficit);
       }
 
       let rawCalories = tdee;
@@ -366,8 +375,7 @@ export default function NutritionAfricaineLanding() {
       else if (data.goalType === 'Maintien') rawCalories = tdee;
       if (data.healthProfile === "Allaitement") rawCalories += 500;
 
-      const floorCalories = isMale ? 1500 : 1200;
-      return Math.round(Math.max(floorCalories, rawCalories || floorCalories));
+      return Math.round(rawCalories);
   };
 
   // Diagnostic Modal Handlers

@@ -1325,7 +1325,7 @@ export default function NutritionDashboard() {
       // ÉTAPE A : Calcul dynamique du BMR (Mifflin-St Jeor) et TDEE
       const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
 
-      let nap = 1.2; // Niveau d'Activité Physique (Physical Activity Level)
+      let nap = 1.2; // Niveau d'Activité Physique
       if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
       else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
       else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
@@ -1337,77 +1337,63 @@ export default function NutritionDashboard() {
       const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
       const weightToLose = currentWeight - finalTargetWeight;
 
-      // ÉTAPE B : Analyse du rythme choisi (Calcul précis du déficit basé sur la Date Cible de l'utilisateur)
+      // ÉTAPE B : Analyse du rythme choisi par l'utilisateur
       let requiredDailyDeficit = 0;
-      const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-      const now = new Date();
-      const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+      let userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+      let now = new Date();
+      let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
 
       if (data.goalType === 'Perte de poids' && weightToLose > 0) {
           // 1kg de graisse = ~7700 kcal
-          const totalKcalToBurn = weightToLose * 7700;
-          requiredDailyDeficit = totalKcalToBurn / daysToTarget;
+          requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
       }
 
-      // ÉTAPE C : Seuil de sécurité physiologique (Max 1% du poids corporel par semaine)
+      // ÉTAPE C : Suppression du plancher médical hardcodé
+
+      // Seuil de sécurité physiologique (Max 1% du poids corporel par semaine)
       const maxSafeWeeklyLossKg = currentWeight * 0.01;
       const maxSafeDailyDeficit = (maxSafeWeeklyLossKg * 7700) / 7;
 
-      // Plancher absolu médical
-      const floorCalories = isMale ? 1500 : 1200;
+      let isAggressive = false;
 
-      // Calcul des calories brutes requises par l'utilisateur (avant sécurisation)
+      // ÉTAPE D : Gestion du Mode Forcé "Sain"
+      if (forceSafeMode) {
+          // L'utilisateur a cliqué sur le bouton de suggestion : on applique un déficit sûr
+          requiredDailyDeficit = Math.min(500, maxSafeDailyDeficit);
+          const safeDaysNeeded = (weightToLose * 7700) / requiredDailyDeficit;
+          userTargetDate = new Date();
+          userTargetDate.setDate(userTargetDate.getDate() + safeDaysNeeded);
+      } else {
+          // Mode classique : on vérifie UNIQUEMENT si le rythme (déficit demandé) est dangereux (> 1% poids)
+          if (data.goalType === 'Perte de poids' && weightToLose > 0 && requiredDailyDeficit > maxSafeDailyDeficit + 10) {
+              isAggressive = true;
+          }
+      }
+
+      // Calcul des calories brutes requises par l'utilisateur
       let rawCalories = tdee;
       if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
       else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
       else if (data.goalType === 'Maintien') rawCalories = tdee;
       if (data.healthProfile === "Allaitement") rawCalories += 500;
 
-      // Vérification : Est-ce un rythme agressif/dangereux ?
-      let isAggressive = false;
-      if (data.goalType === 'Perte de poids') {
-          if (requiredDailyDeficit > maxSafeDailyDeficit + 1 || rawCalories < floorCalories - 1) {
-              isAggressive = true;
-          }
-      }
-
-      // Si l'utilisateur a cliqué sur "Choisir le rythme sain"
-      if (forceSafeMode) {
-          isAggressive = false;
-          requiredDailyDeficit = Math.min(500, maxSafeDailyDeficit); // Déficit de 500kcal par défaut, capé au max sain
-          rawCalories = tdee - requiredDailyDeficit;
-      }
-
-      // Application des sécurités au chiffre final
-      const dailyCalories = Math.round(Math.max(floorCalories, rawCalories || floorCalories));
-
-      // ÉTAPE D : Suggestions et ETA
-      // Formatage de la date d'ETA choisie ou en cours
+      // Application finale des calories (Aucune limitation stricte hardcodée)
+      const dailyCalories = Math.round(rawCalories);
+      let isFloorLimited = false; // Désactivé
+      let floorCalories = 0; // Désactivé
       let etaStr = userTargetDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-      if (forceSafeMode) {
-         // Recalculer l'ETA basé sur le déficit sécurisé
-         const safeDaysNeeded = (weightToLose * 7700) / requiredDailyDeficit;
-         const safeDate = new Date();
-         safeDate.setDate(safeDate.getDate() + safeDaysNeeded);
-         etaStr = safeDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-      }
 
-      // Génération des données de suggestion pour le bouton UI "💡 Notre conseil santé"
+      // ÉTAPE E : Génération des suggestions pour le bouton UI "💡 Notre conseil santé"
       const suggestedDailyDeficit = Math.min(500, maxSafeDailyDeficit);
       const suggestedWeeklyLossKg = (suggestedDailyDeficit * 7) / 7700;
-      let suggestedCalories = Math.round(Math.max(floorCalories, tdee - suggestedDailyDeficit));
+      let suggestedCalories = Math.round(tdee - suggestedDailyDeficit);
 
       const suggestedWeeksLeft = weightToLose > 0 ? Math.abs(weightToLose) / suggestedWeeklyLossKg : 0;
       const suggestedEtaDate = new Date();
       suggestedEtaDate.setDate(suggestedEtaDate.getDate() + (suggestedWeeksLeft * 7));
       const suggestedETA = suggestedEtaDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
-      // Si le plan calculé dynamiquement recommande quand même un chiffre "proche" du plancher, on ne déclenche pas le Warning inutilement
-      if (suggestedCalories >= dailyCalories && dailyCalories === floorCalories && forceSafeMode) {
-          isAggressive = false;
-      }
-
-      return { dailyCalories, weightToLose, finalTargetWeight, etaStr, isAggressive, suggestedETA, suggestedCalories, suggestedEtaDate, bmr, tdee };
+      return { dailyCalories, weightToLose, finalTargetWeight, etaStr, isAggressive, isFloorLimited, suggestedETA, suggestedCalories, suggestedEtaDate, bmr, tdee, floorCalories };
   };
   const handleDiagSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -5270,7 +5256,6 @@ export default function NutritionDashboard() {
 
                   {diagStep === 7 && (() => {
                     const preview = calculatePreviewGoals(diagData);
-                    const safePreview = calculatePreviewGoals(diagData, true); // Calcul de suggestion saine
                     return (
                     <div className="text-center py-6 animate-in zoom-in max-w-2xl mx-auto">
                       <CheckCircle className="text-[#39FF14] w-16 h-16 mx-auto mb-4" />
@@ -5279,12 +5264,12 @@ export default function NutritionDashboard() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                          <div className="relative bg-white border-2 border-zinc-100 p-6 rounded-3xl shadow-sm flex flex-col items-center">
-                            {preview.isAggressive && <div title="Seuil de sécurité actif" className="absolute top-4 right-4"><AlertTriangle className="text-red-500 w-5 h-5" /></div>}
+                            {preview.isFloorLimited && <div title="Seuil de sécurité actif" className="absolute top-4 right-4"><AlertTriangle className="text-yellow-500 w-5 h-5" /></div>}
                             <Flame className={`${preview.isAggressive ? 'text-red-500' : 'text-[#39FF14]'} w-8 h-8 mb-3`} />
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Calories Cibles</p>
                             <p className="text-3xl font-black text-black">{preview.dailyCalories}</p>
                             <p className="text-xs font-bold text-zinc-500 mt-1">kcal / jour</p>
-                            {preview.isAggressive && <span className="mt-2 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Limite atteinte ({parseFloat(diagData.height) > 0 && diagData.gender === "Homme" ? "1500" : "1200"} kcal)</span>}
+                            {preview.isFloorLimited && <span className="mt-2 bg-yellow-100 text-yellow-800 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Limite atteinte ({preview.floorCalories} kcal)</span>}
                          </div>
                          <div className="bg-white border-2 border-zinc-100 p-6 rounded-3xl shadow-sm flex flex-col items-center">
                             <Target className="text-[#39FF14] w-8 h-8 mb-3"/>
@@ -5296,7 +5281,7 @@ export default function NutritionDashboard() {
                             <Clock className={`${preview.isAggressive ? 'text-red-500' : 'text-[#39FF14]'} w-8 h-8 mb-3`} />
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Objectif prévu</p>
                             <p className="text-xl font-black text-black mt-2 capitalize">{preview.etaStr}</p>
-                            {preview.isAggressive && <span className="mt-2 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Rythme Très Rapide ⚠️</span>}
+                            {preview.isAggressive && <span className="mt-2 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Rythme Trop Rapide ⚠️</span>}
                          </div>
                       </div>
 
