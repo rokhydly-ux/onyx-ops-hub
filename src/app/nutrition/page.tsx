@@ -761,12 +761,32 @@ export default function NutritionDashboard() {
           if (dbPromos) setShopPromoCodesDB(dbPromos);
           
           // Fetch Community Posts
-          const { data: cPosts } = await supabase.from('nutrition_community_posts').select('*, clients(full_name)').order('created_at', { ascending: false });
+          const { data: cPosts } = await supabase
+            .from('nutrition_community_posts')
+            .select(`
+              *,
+              reactions:nutrition_community_reactions(reaction_type),
+              comments:nutrition_community_comments(count)
+            `)
+            .order('created_at', { ascending: false });
           if (cPosts) {
-              setCommunityPosts(cPosts.map((p: any) => ({
-                 ...p,
-                 client: p.clients?.full_name || 'Membre'
-              })));
+              setCommunityPosts(cPosts.map((p: any) => {
+                 // Aggregate reactions
+                 const reactions = { top: 0, sain: 0, courage: 0 };
+                 if (Array.isArray(p.reactions)) {
+                     p.reactions.forEach((r: any) => {
+                        if (r.reaction_type === 'top') reactions.top++;
+                        else if (r.reaction_type === 'sain') reactions.sain++;
+                        else if (r.reaction_type === 'courage') reactions.courage++;
+                     });
+                 }
+                 return {
+                   ...p,
+                   client: p.client || 'Membre',
+                   reactions,
+                   commentCount: p.comments?.[0]?.count || 0
+                 };
+              }));
           }
 
           // Fetch Foods
@@ -1951,15 +1971,67 @@ export default function NutritionDashboard() {
     }
   };
 
+  const handleReaction = async (postId: string, type: 'top' | 'sain' | 'courage') => {
+      if (!user) return alert("Vous devez être connecté pour réagir.");
+
+      // Optimistic update
+      setCommunityPosts(prev => prev.map(post => {
+          if (post.id === postId) {
+              const currentReactions = post.reactions || { top: 0, sain: 0, courage: 0 };
+              return {
+                  ...post,
+                  reactions: {
+                      ...currentReactions,
+                      [type]: (currentReactions[type] || 0) + 1
+                  }
+              };
+          }
+          return post;
+      }));
+
+      try {
+          const { error } = await supabase.from('nutrition_community_reactions').insert({
+              post_id: postId,
+              user_id: user.id,
+              reaction_type: type
+          });
+
+          if (error) {
+             // Handle unique constraint or other errors silently or by reverting
+             if (error.code !== '23505') { // 23505 is unique violation
+                 console.error("Error reacting:", error);
+             }
+          }
+      } catch (err) {
+          console.error(err);
+      }
+  };
+
   const handlePostCommunity = async () => {
       if (clientProfile?.plan_type !== 'premium' && daysLeft <= 0) return alert("La publication est réservée aux membres Premium pour garantir l'absence de spams.");
       if (!newPostText && !newPostImage) return;
-      const newPost = { id: Date.now().toString(), client: user?.full_name || 'Membre', content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 }, created_at: new Date().toISOString() };
-      setCommunityPosts([newPost, ...communityPosts]);
+
+      const newPostData = {
+          client_id: clientProfile?.id || user?.id,
+          client: user?.full_name || 'Membre',
+          content: newPostText,
+          image_url: newPostImage,
+          tenant_id: clientProfile?.tenant_id || null
+      };
+
+      const optimisticPost = { ...newPostData, id: Date.now().toString(), reactions: { top: 0, sain: 0, courage: 0 }, created_at: new Date().toISOString() };
+      setCommunityPosts([optimisticPost, ...communityPosts]);
       setNewPostText("");
       setNewPostImage(null);
+      setImageInputMode('upload');
       updateXP(15, "Photo/Plat publié dans le Feed");
-      if (clientProfile) await supabase.from('nutrition_community_posts').insert({ client_id: clientProfile.id, content: newPostText, image_url: newPostImage, reactions: { top: 0, sain: 0, courage: 0 } });
+
+      try {
+          const { error } = await supabase.from('nutrition_community_posts').insert(newPostData);
+          if (error) throw error;
+      } catch (err: any) {
+          alert("Erreur lors de la publication : " + err.message);
+      }
   };
 
   const handleUploadMealPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -4829,10 +4901,10 @@ export default function NutritionDashboard() {
                           )}
 
                           <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-200/60">
-                             <button className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-red-50 hover:border-red-100 hover:text-red-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🔥 Top {post.reactions?.top > 0 && <span className="ml-1 opacity-70">({post.reactions.top})</span>}</button>
-                             <button className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-green-50 hover:border-green-100 hover:text-green-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🥗 Sain {post.reactions?.sain > 0 && <span className="ml-1 opacity-70">({post.reactions.sain})</span>}</button>
-                             <button className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">💪 Courage {post.reactions?.courage > 0 && <span className="ml-1 opacity-70">({post.reactions.courage})</span>}</button>
-                             <button className="flex items-center gap-1.5 ml-auto text-zinc-400 hover:text-black transition-colors p-2"><MessageCircle size={18}/></button>
+                             <button onClick={() => handleReaction(post.id, 'top')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-red-50 hover:border-red-100 hover:text-red-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🔥 Top {post.reactions?.top > 0 && <span className="ml-1 opacity-70">({post.reactions.top})</span>}</button>
+                             <button onClick={() => handleReaction(post.id, 'sain')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-green-50 hover:border-green-100 hover:text-green-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🥗 Sain {post.reactions?.sain > 0 && <span className="ml-1 opacity-70">({post.reactions.sain})</span>}</button>
+                             <button onClick={() => handleReaction(post.id, 'courage')} className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">💪 Courage {post.reactions?.courage > 0 && <span className="ml-1 opacity-70">({post.reactions.courage})</span>}</button>
+                             <button onClick={() => alert('Les commentaires arrivent bientôt !')} className="flex items-center gap-1.5 ml-auto text-zinc-400 hover:text-black transition-colors p-2"><MessageCircle size={18}/> {post.commentCount > 0 && <span className="text-xs font-bold">{post.commentCount}</span>}</button>
                           </div>
                        </div>
                     )})}
