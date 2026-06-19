@@ -411,6 +411,7 @@ export default function NutritionDashboard() {
     height: "",
     currentWeight: "",
     targetWeight: "",
+    targetDate: "",
     goalType: "Perte de poids",
     dailySteps: "",
     weightLossPace: "Normalement",
@@ -1313,79 +1314,100 @@ export default function NutritionDashboard() {
   };
 
 
-    const calculatePreviewGoals = (data: any, forceSafeMode: boolean = false) => {
+      const calculatePreviewGoals = (data: any, forceSafeMode: boolean = false) => {
+      // Extraction des données du profil
       const heightCm = parseFloat(data.height) || 0;
       const currentWeight = parseFloat(data.currentWeight) || 0;
       const targetWInput = parseFloat(data.targetWeight) || 0;
       const age = parseFloat(data.age) || 0;
       const isMale = data.gender === "Homme";
 
-      // Étape A : Calcul dynamique du BMR (Mifflin-St Jeor) et TDEE
+      // ÉTAPE A : Calcul dynamique du BMR (Mifflin-St Jeor) et TDEE
       const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
 
-      let nap = 1.2;
+      let nap = 1.2; // Niveau d'Activité Physique (Physical Activity Level)
       if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
       else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
       else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
 
       const tdee = bmr * nap;
 
+      // Détermination du poids cible
       const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
       const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
       const weightToLose = currentWeight - finalTargetWeight;
 
-      // Étape B : Analyse du rythme choisi
-      let userDeficit = 500;
-      if (data.weightLossPace === 'Progressivement') userDeficit = 300;
-      else if (data.weightLossPace === 'Rapidement') userDeficit = 700;
+      // ÉTAPE B : Analyse du rythme choisi (Calcul précis du déficit basé sur la Date Cible de l'utilisateur)
+      let requiredDailyDeficit = 0;
+      const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+      const now = new Date();
+      const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
 
-      if (forceSafeMode) userDeficit = 500; // Forcer un déficit sain si l'utilisateur clique sur le conseil
+      if (data.goalType === 'Perte de poids' && weightToLose > 0) {
+          // 1kg de graisse = ~7700 kcal
+          const totalKcalToBurn = weightToLose * 7700;
+          requiredDailyDeficit = totalKcalToBurn / daysToTarget;
+      }
 
+      // ÉTAPE C : Seuil de sécurité physiologique (Max 1% du poids corporel par semaine)
+      const maxSafeWeeklyLossKg = currentWeight * 0.01;
+      const maxSafeDailyDeficit = (maxSafeWeeklyLossKg * 7700) / 7;
+
+      // Plancher absolu médical
+      const floorCalories = isMale ? 1500 : 1200;
+
+      // Calcul des calories brutes requises par l'utilisateur (avant sécurisation)
       let rawCalories = tdee;
-      if (data.goalType === 'Perte de poids') rawCalories = tdee - userDeficit;
+      if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
       else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
       else if (data.goalType === 'Maintien') rawCalories = tdee;
       if (data.healthProfile === "Allaitement") rawCalories += 500;
 
-      // Plancher absolu de 1200 kcal
-      const floorCalories = 1200;
-      const dailyCalories = Math.round(Math.max(floorCalories, rawCalories || floorCalories));
-
-      // Étape C : Seuil de sécurité et Rythme sain (Max 1% du poids corporel par semaine)
-      const maxSafeWeeklyLossKg = currentWeight * 0.01;
-      // 1kg de graisse = ~7700 kcal. Déficit max par jour :
-      const maxSafeDailyDeficit = (maxSafeWeeklyLossKg * 7700) / 7;
-
-      const userWeeklyLossKg = (userDeficit * 7) / 7700;
-
+      // Vérification : Est-ce un rythme agressif/dangereux ?
       let isAggressive = false;
       if (data.goalType === 'Perte de poids') {
-          if (userWeeklyLossKg > maxSafeWeeklyLossKg || rawCalories < floorCalories) {
+          if (requiredDailyDeficit > maxSafeDailyDeficit || rawCalories < floorCalories) {
               isAggressive = true;
           }
       }
 
-      // Si on est déjà en mode forcé sécurisé, retirer l'agressivité
-      if (forceSafeMode) isAggressive = false;
+      // Si l'utilisateur a cliqué sur "Choisir le rythme sain"
+      if (forceSafeMode) {
+          isAggressive = false;
+          requiredDailyDeficit = Math.min(500, maxSafeDailyDeficit); // Déficit de 500kcal par défaut, capé au max sain
+          rawCalories = tdee - requiredDailyDeficit;
+      }
 
-      // Étape D : Suggestions et ETA
-      // Calcul de l'ETA actuel
-      const currentWeeksLeft = Math.abs(weightToLose) / (userWeeklyLossKg || 0.5);
-      const etaDate = new Date();
-      etaDate.setDate(etaDate.getDate() + (currentWeeksLeft * 7));
-      const etaStr = etaDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      // Application des sécurités au chiffre final
+      const dailyCalories = Math.round(Math.max(floorCalories, rawCalories || floorCalories));
 
-      // Calcul des suggestions
+      // ÉTAPE D : Suggestions et ETA
+      // Formatage de la date d'ETA choisie ou en cours
+      let etaStr = userTargetDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      if (forceSafeMode) {
+         // Recalculer l'ETA basé sur le déficit sécurisé
+         const safeDaysNeeded = (weightToLose * 7700) / requiredDailyDeficit;
+         const safeDate = new Date();
+         safeDate.setDate(safeDate.getDate() + safeDaysNeeded);
+         etaStr = safeDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      }
+
+      // Génération des données de suggestion pour le bouton UI "💡 Notre conseil santé"
       const suggestedDailyDeficit = Math.min(500, maxSafeDailyDeficit);
       const suggestedWeeklyLossKg = (suggestedDailyDeficit * 7) / 7700;
       let suggestedCalories = Math.round(Math.max(floorCalories, tdee - suggestedDailyDeficit));
 
-      const suggestedWeeksLeft = Math.abs(weightToLose) / suggestedWeeklyLossKg;
+      const suggestedWeeksLeft = weightToLose > 0 ? Math.abs(weightToLose) / suggestedWeeklyLossKg : 0;
       const suggestedEtaDate = new Date();
       suggestedEtaDate.setDate(suggestedEtaDate.getDate() + (suggestedWeeksLeft * 7));
       const suggestedETA = suggestedEtaDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
-      return { dailyCalories, weightToLose, finalTargetWeight, etaStr, isAggressive, suggestedETA, suggestedCalories, bmr, tdee };
+      // Si le plan calculé dynamiquement recommande quand même un chiffre "proche" du plancher, on ne déclenche pas le Warning inutilement
+      if (suggestedCalories >= dailyCalories && dailyCalories === floorCalories && forceSafeMode) {
+          isAggressive = false;
+      }
+
+      return { dailyCalories, weightToLose, finalTargetWeight, etaStr, isAggressive, suggestedETA, suggestedCalories, suggestedEtaDate, bmr, tdee };
   };
   const handleDiagSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -5160,6 +5182,10 @@ export default function NutritionDashboard() {
                           <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible (kg)</label>
                           <input type="number" required placeholder="Ex: 65" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
+                        <div className="space-y-2 pt-2 border-t border-zinc-100">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Date souhaitée pour l'objectif</label>
+                          <input type="date" required value={diagData.targetDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => setDiagData({...diagData, targetDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-lg outline-none focus:border-[#39FF14] transition-colors text-black" />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -5282,7 +5308,11 @@ export default function NutritionDashboard() {
                                   <strong>💡 Notre conseil santé :</strong> Atteindre votre objectif en <strong className="font-black">{preview.suggestedETA}</strong> avec <strong className="font-black">{preview.suggestedCalories} kcal/jour</strong> serait plus durable et préserverait votre masse musculaire sans effet yoyo.
                                </p>
                             </div>
-                            <button type="button" onClick={() => setDiagData({...diagData, weightLossPace: 'Progressivement'})} className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition shadow-sm">
+                            <button type="button" onClick={() => {
+                                 // Mettre à jour la date cible avec la date suggérée saine
+                                 const isoDate = preview.suggestedEtaDate.toISOString().split('T')[0];
+                                 setDiagData({...diagData, targetDate: isoDate});
+                               }} className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition shadow-sm">
                                Choisir le rythme sain
                             </button>
                          </div>
@@ -5305,7 +5335,7 @@ export default function NutritionDashboard() {
                             type="button" 
                             onClick={() => setDiagStep(s => s + 1)} 
                             disabled={
-                                (diagStep === 2 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight)) ||
+                                (diagStep === 2 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight || !diagData.targetDate)) ||
                                 (diagStep === 3 && !diagData.healthProfile)
                             }
                             className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
