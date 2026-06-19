@@ -1337,7 +1337,6 @@ export default function NutritionDashboard() {
           if (clientProfile && user) {
               const payload = {
                   client_id: clientProfile.id,
-                  user_id: user.id,
                   daily_calorie_goal: Math.round(dailyCalories),
                   carbs_goal: Math.round(carbs),
                   protein_goal: Math.round(protein),
@@ -1894,7 +1893,6 @@ export default function NutritionDashboard() {
       if (clientProfile) {
           const payload = {
             client_id: clientProfile.id,
-            user_id: user.id,
             tenant_id: clientProfile.tenant_id,
             log_date: todayStr,
             weight: newWeight
