@@ -738,7 +738,7 @@ export default function NutritionDashboard() {
           } // Fin if (activeProfile.id)
 
           // Fetch DB Products
-          let prodQuery = supabase.from('nutrition_products').select('*');
+          const prodQuery = supabase.from('nutrition_products').select('*');
           const { data: dbProds } = await prodQuery;
           if (dbProds && dbProds.length > 0) {
              const grouped = dbProds.reduce((acc: any, p: any) => {
@@ -757,7 +757,7 @@ export default function NutritionDashboard() {
           }
 
           // Fetch Promo Codes
-          let promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
+          const promoQuery = supabase.from('nutrition_promo_codes').select('*').eq('active', true);
           const { data: dbPromos } = await promoQuery;
           if (dbPromos) setShopPromoCodesDB(dbPromos);
           
@@ -769,7 +769,7 @@ export default function NutritionDashboard() {
           if (dbFoods) setFoodDatabaseDB(dbFoods);
 
           // Fetch All Recipes for Gallery
-          let recipeQuery = supabase.from('nutrition_recipes').select('*');
+          const recipeQuery = supabase.from('nutrition_recipes').select('*');
           const { data: dbRecipes } = await recipeQuery;
           if (dbRecipes && dbRecipes.length > 0) setAllRecipesDB(dbRecipes);
           else setAllRecipesDB(DEFAULT_RECIPES);
@@ -1059,7 +1059,7 @@ export default function NutritionDashboard() {
       const activeFastingMode = fastingOverride !== undefined ? fastingOverride : isFastingMode;
       let currentRecipes: any[] = [];
       try {
-          let recipeQuery = supabase.from('nutrition_recipes').select('*');
+          const recipeQuery = supabase.from('nutrition_recipes').select('*');
           const { data } = await recipeQuery;
           if (data && data.length > 0) {
               currentRecipes = data;
@@ -1085,7 +1085,7 @@ export default function NutritionDashboard() {
           return true;
       });
 
-      let newMenu: any[] = [];
+      const newMenu: any[] = [];
       let bolCommunCount = 0;
       const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
       
@@ -1167,10 +1167,10 @@ export default function NutritionDashboard() {
               return available;
           };
 
-          let breakfasts = activeFastingMode ? [] : getAvailable('Petit-déjeuner');
-          let lunches = getAvailable('Déjeuner');
-          let dinners = getAvailable('Dîner');
-          let snacks = getAvailable('Collation');
+          const breakfasts = activeFastingMode ? [] : getAvailable('Petit-déjeuner');
+          const lunches = getAvailable('Déjeuner');
+          const dinners = getAvailable('Dîner');
+          const snacks = getAvailable('Collation');
 
           let bestCombination: any = null;
           let minDiff = Infinity;
@@ -1231,7 +1231,7 @@ export default function NutritionDashboard() {
   const handleSwapMeal = async (dayIndex: number, mealType: string, currentRecipeId: string) => {
       let currentRecipes: any[] = [];
       try {
-          let recipeQuery = supabase.from('nutrition_recipes').select('*');
+          const recipeQuery = supabase.from('nutrition_recipes').select('*');
           const { data } = await recipeQuery;
           if (data && data.length > 0) {
               currentRecipes = data;
@@ -1340,8 +1340,8 @@ export default function NutritionDashboard() {
       // ÉTAPE B : Analyse du rythme choisi par l'utilisateur
       let requiredDailyDeficit = 0;
       let userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-      let now = new Date();
-      let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+      const now = new Date();
+      const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
 
       if (data.goalType === 'Perte de poids' && weightToLose > 0) {
           // 1kg de graisse = ~7700 kcal
@@ -1377,16 +1377,25 @@ export default function NutritionDashboard() {
       else if (data.goalType === 'Maintien') rawCalories = tdee;
       if (data.healthProfile === "Allaitement") rawCalories += 500;
 
-      // Application finale des calories (Aucune limitation stricte hardcodée)
-      const dailyCalories = Math.round(rawCalories);
-      let isFloorLimited = false; // Désactivé
-      let floorCalories = 0; // Désactivé
-      let etaStr = userTargetDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      // Application finale des calories : Plancher absolu de 1200 kcal pour éviter les valeurs négatives
+      // Si l'utilisateur choisit une date trop proche, les calories brutes chutent en dessous de zéro.
+      // On autorise un déficit agressif mais on ne descend JAMAIS en dessous de 1200 pour que l'app fonctionne.
+      let finalCalories = rawCalories;
+      let isFloorLimited = false;
+      const floorCalories = 1200;
+
+      if (finalCalories < floorCalories) {
+          finalCalories = floorCalories;
+          isFloorLimited = true;
+      }
+
+      const dailyCalories = Math.round(finalCalories);
+      const etaStr = userTargetDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
       // ÉTAPE E : Génération des suggestions pour le bouton UI "💡 Notre conseil santé"
       const suggestedDailyDeficit = Math.min(500, maxSafeDailyDeficit);
       const suggestedWeeklyLossKg = (suggestedDailyDeficit * 7) / 7700;
-      let suggestedCalories = Math.round(tdee - suggestedDailyDeficit);
+      const suggestedCalories = Math.round(tdee - suggestedDailyDeficit);
 
       const suggestedWeeksLeft = weightToLose > 0 ? Math.abs(weightToLose) / suggestedWeeklyLossKg : 0;
       const suggestedEtaDate = new Date();
@@ -1404,7 +1413,7 @@ export default function NutritionDashboard() {
           const dailyCalories = preview.dailyCalories;
           
           const age = parseFloat(diagData.age) || 0;
-          let proteinRatio = age >= 50 ? 0.35 : 0.30;
+          const proteinRatio = age >= 50 ? 0.35 : 0.30;
           const carbs = (dailyCalories * (0.70 - proteinRatio)) / 4;
           const protein = (dailyCalories * proteinRatio) / 4;
           const fats = (dailyCalories * 0.30) / 9;
@@ -2480,7 +2489,7 @@ export default function NutritionDashboard() {
   };
 
   const handleReorder = (order: any) => {
-     let updatedCart = [...shopCart];
+     const updatedCart = [...shopCart];
      const itemsToAdd = order.items || [];
      
      itemsToAdd.forEach((item: any) => {
