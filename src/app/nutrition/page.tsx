@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import {
+useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   ChevronLeft, ChevronRight, Download, Lock, CheckCircle, Sun, Moon, Activity, Calendar, Clock, ArrowRight, Sparkles, HeartPulse, Droplet, Flame, Target, ListChecks, Utensils, RefreshCcw, Compass, X, BarChart as BarChartIcon, LineChart as LineChartIcon, Settings, Save, Award, MessageCircle, AlertCircle, Search, Trash2, Info, ShoppingCart, Scale, Camera, Image as ImageIcon, Trophy, CreditCard, ScanLine, Loader2, ExternalLink, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, ShoppingBag, Tag, Filter, Star, BookOpen, Heart, Box, Eye, Share2, AlertTriangle, Package, Minus, Plus, Gift, Apple, Video, MessageSquare, Bell, Volume2, VolumeX, WifiOff, FileText, Edit3
-, PartyPopper } from "lucide-react";
+, PartyPopper, TrendingDown, Dumbbell, TrendingUp, Send
+} from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, ReferenceLine, BarChart, Bar } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from 'embla-carousel-react';
@@ -4578,166 +4580,168 @@ export default function NutritionDashboard() {
 
            return (
              <div className="bg-[#F8F9FA] p-0 lg:p-6 lg:pl-8">
-               <div className="flex flex-col gap-8 w-full max-w-[1200px] mx-auto min-h-[80vh] px-4 py-6 lg:bg-white lg:rounded-[2rem] lg:shadow-sm lg:p-10 lg:border lg:border-gray-100">
-                 <div className="space-y-8 animate-in fade-in slide-in-from-left-4 w-full">
-                    
-                    {/* BENTO CARD : MON OBJECTIF (MISSION 2 & 3) */}
-                    <div className={`${theme === 'dark' ? 'bg-zinc-900 lg:bg-zinc-950 border-zinc-800' : 'bg-white lg:bg-gray-50 border-zinc-200'} p-8 rounded-[2rem] border shadow-sm relative overflow-hidden flex flex-col md:flex-row items-center gap-8`}>
-                   <div className="shrink-0">
-                      <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" alt="Cible 3D" className="w-24 h-24 md:w-32 md:h-32 rounded-2xl shadow-xl object-cover" />
-                   </div>
-                   <div className="flex-1 w-full">
-                      <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} mb-2`}>Mon Objectif</h2>
-                      {targetW > 0 ? (
-                         <>
-                            <div className="flex justify-between items-end mb-4">
-                               <div>
-                                  <p className="text-zinc-500 font-bold text-sm">Cible : <span className={`font-black ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{targetW} kg</span></p>
-                                  <p className="text-zinc-500 font-bold text-sm">Reste : <span className="font-black text-[#39FF14]">{remainingWeight.toFixed(1)} kg</span></p>
-                               </div>
-                               <div className="text-right">
-                                  <p className="text-3xl font-black text-[#39FF14]">{Math.round(progressPct)}%</p>
-                               </div>
-                            </div>
+               <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
 
-                            <div className="w-full h-4 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-4 shadow-inner relative">
-                               <motion.div 
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${progressPct}%` }}
-                                  transition={{ duration: 1.5, ease: "easeOut" }}
-                                  className="h-full bg-[#39FF14] rounded-full shadow-[0_0_15px_rgba(57,255,20,0.6)]"
-                               ></motion.div>
-                            </div>
-                            
-                            <div className="bg-black text-[#39FF14] px-4 py-3 rounded-xl flex items-center gap-3 w-max">
-                               <Target size={18} />
-                               <p className="text-xs font-black uppercase tracking-widest">Date estimée : {etaString}</p>
-                            </div>
-                            
-                            {weightCoachMessage && (
-                               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 flex gap-4 items-start animate-in slide-in-from-top-4 mt-4">
-                                  <div className="relative shrink-0">
-                                     <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781176401/A_portrait_of_the_character_202606111113_jfaetc.jpg" alt="Rokhy Coach IA" className="w-10 h-10 rounded-full border-2 border-white shadow-md" />
-                                     <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#39FF14] border-2 border-white rounded-full"></div>
-                                  </div>
-                                  <div>
-                                     <h4 className="font-black text-sm text-black dark:text-white flex items-center gap-2">Rokhy (Coach IA)</h4>
-                                     <p className={`text-xs font-bold mt-1 ${weightCoachMessage.type === 'warning' ? 'text-orange-600 dark:text-orange-400' : weightCoachMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-blue-800 dark:text-blue-300'} leading-relaxed`}>{weightCoachMessage.text}</p>
-                                  </div>
-                               </div>
-                            )}
-                         </>
-                      ) : (
-                         <p className="text-sm font-medium text-zinc-500">Aucun objectif défini. Refaites votre diagnostic.</p>
-                      )}
-                   </div>
-                </div>
-
-                <div className={`${theme === 'dark' ? 'bg-zinc-900 lg:bg-zinc-950 border-zinc-800' : 'bg-white lg:bg-gray-50 border-zinc-200'} p-8 sm:p-12 rounded-[2rem] border shadow-sm text-center relative overflow-hidden`}>
-                <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none"></div>
-                <div className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-black flex items-center justify-center shadow-lg mb-6 relative z-10"><Scale className="text-[#39FF14]" size={40}/></div>
-                <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} mb-2`}>Tracker de Poids</h2>
-                <p className="text-zinc-500 font-bold mb-6 text-xs max-w-sm mx-auto">Enregistre ton poids aussi souvent que tu le souhaites. Chaque note aide ton coach à affiner ton plan.</p>
-                
-                <div className={`max-w-md mx-auto ${theme === 'dark' ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'} p-8 rounded-[2.5rem] border mb-10 shadow-inner`}>
-                   <div className="relative mb-8 w-full h-44">
-                       <div className="absolute inset-x-0 top-14 h-10 rounded-full overflow-hidden" style={{ background: 'repeating-linear-gradient(to right, #ccc, #ccc 2px, transparent 2px, transparent 20px)' }} />
-                       <div className="absolute inset-x-0 top-[50%] h-1 -translate-y-1/2 bg-zinc-200" />
-                       <div className="absolute top-4" style={{ left: `${((Math.max(currentWeightInput, 60) - 40) / 110) * 100}%`, transform: 'translateX(-50%)' }}>
-                          <div className="text-5xl font-black text-black dark:text-white tracking-tight">
-                             {Math.max(currentWeightInput, 60).toFixed(1)}<span className="ml-2 text-2xl font-extrabold">kg</span>
-                          </div>
-                          <div className="mt-4 w-1.5 h-20 bg-[#39FF14] rounded-full shadow-[0_0_20px_rgba(57,255,20,0.55)]" />
-                       </div>
-                       <input
-                          type="range"
-                          min="40"
-                          max="150"
-                          step="0.1"
-                          value={Math.max(currentWeightInput, 60)}
-                          onChange={e => setCurrentWeightInput(parseFloat(e.target.value) || 0)}
-                          className="absolute inset-x-0 bottom-0 h-full w-full opacity-0 cursor-pointer"
-                          style={{ appearance: 'none', WebkitAppearance: 'none' }}
-                       />
-                   </div>
-                   <button onClick={handleSaveWeight} className="w-full bg-gradient-to-r from-[#0f3f08] via-black to-[#0f3f08] text-[#39FF14] py-5 rounded-[1.75rem] font-black uppercase text-sm shadow-[0_20px_50px_rgba(57,255,20,0.18)] border border-[#39FF14]/10 hover:shadow-[0_25px_70px_rgba(57,255,20,0.25)] transition-all duration-300 flex items-center justify-center gap-2">
-                       <CheckCircle size={20}/> Enregistrer mon poids
-                   </button>
-                   {coachFeedback && (
-                      <div className="mt-6 p-5 rounded-[2rem] border border-[#39FF14]/20 bg-gradient-to-br from-white/80 via-[#39FF14]/10 to-black/5 shadow-[0_30px_80px_rgba(57,255,20,0.12)] backdrop-blur-xl flex items-start gap-4">
-                         <div className="relative shrink-0">
-                            <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781176401/A_portrait_of_the_character_202606111113_jfaetc.jpg" alt="Coach Rokhy" className="w-16 h-16 rounded-full border-2 border-black shadow-xl" />
-                            <span className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#39FF14] border border-black shadow-[0_0_10px_rgba(57,255,20,0.45)]"></span>
+                 {/* EN-TÊTE ET OBJECTIF */}
+                 <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 rounded-[2rem] border shadow-sm flex flex-col md:flex-row justify-between items-center gap-6`}>
+                     <div>
+                         <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter text-black dark:text-white flex items-center gap-3`}>
+                             <Scale className="text-[#39FF14] w-8 h-8 md:w-10 md:h-10" /> Mon Évolution
+                         </h2>
+                         <p className="text-zinc-500 font-medium mt-2">Suivez votre progression vers votre objectif de {targetW} kg.</p>
+                     </div>
+                     <div className="text-center md:text-right bg-zinc-50 dark:bg-zinc-800/50 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-700 w-full md:w-auto">
+                         <p className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-2">Objectif : {targetW} kg</p>
+                         <div className="flex items-end justify-center md:justify-end gap-2">
+                             <span className="text-4xl md:text-5xl font-black text-black dark:text-white">{remainingWeight.toFixed(1)}</span>
+                             <span className="text-lg font-bold text-zinc-400 mb-1">kg restants</span>
                          </div>
-                         <div className="flex-1">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/10 border border-[#39FF14]/15 mb-3">
-                               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#0f3f08]">Coach Rokhy</span>
-                            </div>
-                            <p className={`text-sm leading-6 font-semibold ${coachFeedback.type === 'success' ? 'text-[#064e1f]' : coachFeedback.type === 'warning' ? 'text-[#7c4a00]' : 'text-slate-800'}`}>
-                               {coachFeedback.text}
-                            </p>
-                         </div>
-                      </div>
-                   )}
-                </div>
-             </div>
+                         <p className="text-xs text-zinc-400 mt-2 font-medium flex items-center justify-center md:justify-end gap-1">
+                             <Clock size={12}/> Estimé : {etaString}
+                         </p>
+                     </div>
+                 </div>
 
-                {/* HISTORIQUE DE LA PESÉE */}
-                <div className={`${theme === 'dark' ? 'bg-zinc-900 lg:bg-zinc-950 border-zinc-800' : 'bg-white lg:bg-gray-50 border-zinc-200'} p-8 rounded-[2rem] border shadow-sm mt-8`}>
-                    <h3 className="font-black text-lg uppercase mb-4 flex items-center gap-2"><ListChecks className="text-[#39FF14]"/> Historique des Pesées</h3>
-                    <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
-                        {weightLogs.length > 0 ? (
-                            [...weightLogs].reverse().map((log, index, arr) => {
-                                const prevLog = arr[index + 1];
-                                const diff = prevLog ? log.weight - prevLog.weight : null;
-                                return (
-                                    <div key={log.log_date} className="group flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
-                                        <div>
-                                            <p className="font-bold text-black dark:text-white">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                                            <p className="text-2xl font-black text-black dark:text-white mt-1">{log.weight.toFixed(1)} kg</p>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-right">
-                                                {diff !== null ? (
-                                                    <span className={`font-black text-lg ${diff < 0 ? 'text-green-500' : diff > 0 ? 'text-red-500' : 'text-zinc-500'}`}>
-                                                        {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
-                                                    </span>
-                                                ) : (
-                                                    <span className="font-black text-lg text-zinc-500">--</span>
-                                                )}
-                                                <p className="text-xs text-zinc-400">{diff === 0 ? 'Stable' : diff === null ? 'Première pesée' : diff < 0 ? 'Perte' : 'Prise'}</p>
-                                            </div>
-                                            <button onClick={() => handleDeleteWeightLog(log.log_date)} className="p-3 bg-white dark:bg-zinc-700 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-500/20" title="Supprimer cette entrée">
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                     {/* COLONNE GAUCHE: PROGRESSION ET SAISIE */}
+                     <div className="lg:col-span-2 space-y-8">
+
+                         {/* BARRE DE PROGRESSION */}
+                         <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 rounded-[2rem] border shadow-sm`}>
+                             <div className="flex justify-between text-sm font-bold mb-4">
+                                 <span className="text-zinc-500">Départ: {startWeight} kg</span>
+                                 <span className="text-[#39FF14] bg-black px-3 py-1 rounded-full text-xs uppercase tracking-widest">{progressPct.toFixed(0)}% Complété</span>
+                                 <span className="text-zinc-500">Cible: {targetW} kg</span>
+                             </div>
+                             <div className="h-4 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                                 <motion.div
+                                     initial={{ width: 0 }}
+                                     animate={{ width: `${progressPct}%` }}
+                                     transition={{ duration: 1, ease: "easeOut" }}
+                                     className="h-full bg-gradient-to-r from-[#39FF14] to-[#2ecc71] relative"
+                                 >
+                                     <div className="absolute inset-0 bg-white/20 w-full h-full skeleton-shimmer"></div>
+                                 </motion.div>
+                             </div>
+                             <p className="text-xs text-center text-zinc-400 mt-4 font-medium italic">Une perte de 0.5kg par semaine est considérée comme saine et durable.</p>
+                         </div>
+
+                         {/* SAISIE DU POIDS */}
+                         <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 rounded-[2rem] border shadow-sm relative overflow-hidden`}>
+                             <div className="absolute -right-10 -top-10 w-40 h-40 bg-[#39FF14]/10 rounded-full blur-3xl"></div>
+
+                             <h3 className="font-black text-lg uppercase mb-6 flex items-center gap-2 relative z-10"><TrendingDown className="text-[#39FF14]"/> Nouvelle Pesée</h3>
+
+                             <div className="flex flex-col items-center gap-8 relative z-10">
+                                 <div className="flex items-center gap-6">
+                                     <button
+                                         onClick={() => setCurrentWeightInput(Math.max(30, Number((currentWeightInput - 0.1).toFixed(1))))}
+                                         className="w-14 h-14 rounded-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-2xl hover:bg-zinc-100 dark:hover:bg-zinc-700 active:scale-95 transition-all text-black dark:text-white"
+                                     >-</button>
+                                     <div className="text-center">
+                                         <input
+                                             type="number"
+                                             value={currentWeightInput}
+                                             onChange={(e) => setCurrentWeightInput(Number(e.target.value))}
+                                             className="text-6xl md:text-7xl font-black text-center bg-transparent w-40 md:w-48 outline-none text-black dark:text-white focus:text-[#39FF14] transition-colors"
+                                             step="0.1"
+                                         />
+                                         <span className="text-xl font-bold text-zinc-400 uppercase tracking-widest block mt-2">kg</span>
+                                     </div>
+                                     <button
+                                         onClick={() => setCurrentWeightInput(Number((currentWeightInput + 0.1).toFixed(1)))}
+                                         className="w-14 h-14 rounded-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-2xl hover:bg-zinc-100 dark:hover:bg-zinc-700 active:scale-95 transition-all text-black dark:text-white"
+                                     >+</button>
+                                 </div>
+
+                                 <button onClick={handleSaveWeight} className="w-full md:w-auto px-10 py-4 bg-black text-[#39FF14] rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 hover:shadow-[0_0_30px_rgba(57,255,20,0.3)] transition-all duration-300 flex items-center justify-center gap-2">
+                                     <CheckCircle size={20}/> Enregistrer mon poids
+                                 </button>
+                                 {coachFeedback && (
+                                    <div className="mt-6 w-full p-5 rounded-2xl border border-[#39FF14]/20 bg-[#39FF14]/5 flex items-start gap-4">
+                                       <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-[#39FF14] shrink-0 border border-[#39FF14]/30"><Dumbbell size={20}/></div>
+                                       <div>
+                                          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Coach virtuel</p>
+                                          <p className={`text-sm font-bold ${coachFeedback.type === 'success' ? 'text-green-600' : coachFeedback.type === 'warning' ? 'text-orange-500' : 'text-zinc-700'}`}>
+                                             {coachFeedback.text}
+                                          </p>
+                                       </div>
                                     </div>
-                                )
-                            })
-                        ) : (
-                            <p className="text-sm text-zinc-500 italic text-center py-8">Aucun historique de poids pour le moment. Enregistrez votre première pesée !</p>
-                        )}
-                    </div>
-                </div>
+                                 )}
+                             </div>
+                         </div>
+                     </div>
 
-                {Array.isArray(weightLogs) && weightLogs.length > 1 && (
-                   <div className="h-72 w-full mt-10 pt-8 border-t border-zinc-100">
-                     <h3 className="text-left font-black uppercase text-sm text-zinc-400 tracking-widest mb-6">Évolution</h3>
-                     <ResponsiveContainer width="100%" height="100%">
-                       <LineChart data={weightLogs.filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime()))}>
-                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
-                         <XAxis dataKey="log_date" tickFormatter={(v) => new Date(v).toLocaleDateString('fr-FR', {day:'numeric', month:'short'})} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
-                         <YAxis domain={['auto', 'auto']} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
-                         <RechartsTooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
-                         <Line type="monotone" dataKey="weight" stroke="#39FF14" strokeWidth={4} dot={{ r: 6, fill: '#000', stroke: '#39FF14', strokeWidth: 2 }} activeDot={{ r: 8 }} />
-                       </LineChart>
-                     </ResponsiveContainer>
-                   </div>
-                )}
+                     {/* COLONNE DROITE: HISTORIQUE ET GRAPH */}
+                     <div className="space-y-8">
+                         <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 rounded-[2rem] border shadow-sm flex flex-col h-full`}>
+                             <h3 className="font-black text-lg uppercase mb-6 flex items-center gap-2"><ListChecks className="text-[#39FF14]"/> Historique</h3>
+
+                             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 max-h-[400px]">
+                                 {weightLogs.length > 0 ? (
+                                     [...weightLogs].reverse().map((log, index, arr) => {
+                                         const prevLog = arr[index + 1];
+                                         const diff = prevLog ? log.weight - prevLog.weight : null;
+                                         return (
+                                             <div key={log.log_date} className="group flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                                                 <div>
+                                                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{new Date(log.log_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</p>
+                                                     <p className="text-xl font-black text-black dark:text-white">{log.weight.toFixed(1)} <span className="text-xs text-zinc-400 font-normal">kg</span></p>
+                                                 </div>
+                                                 <div className="flex items-center gap-3">
+                                                     <div className="text-right">
+                                                         {diff !== null ? (
+                                                             <span className={`font-black text-sm ${diff <= 0 ? 'text-[#39FF14]' : 'text-red-500'}`}>
+                                                                 {diff > 0 ? '+' : ''}{diff.toFixed(1)}
+                                                             </span>
+                                                         ) : (
+                                                             <span className="font-black text-sm text-zinc-500">--</span>
+                                                         )}
+                                                     </div>
+                                                     <button onClick={() => handleDeleteWeightLog(log.log_date)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-zinc-700 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-500/20 shadow-sm" title="Supprimer">
+                                                         <Trash2 size={14} />
+                                                     </button>
+                                                 </div>
+                                             </div>
+                                         )
+                                     })
+                                 ) : (
+                                     <div className="h-full flex flex-col items-center justify-center text-center p-6 text-zinc-400">
+                                         <Scale className="w-12 h-12 mb-4 opacity-20"/>
+                                         <p className="text-sm font-medium">Aucun historique de poids. Enregistrez votre première pesée pour commencer.</p>
+                                     </div>
+                                 )}
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+
+                 {/* GRAPH ÉVOLUTION */}
+                 {Array.isArray(weightLogs) && weightLogs.length > 1 && (
+                     <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 rounded-[2rem] border shadow-sm mt-8`}>
+                         <h3 className="font-black text-lg uppercase mb-6 flex items-center gap-2"><TrendingUp className="text-[#39FF14]"/> Courbe de Poids</h3>
+                         <div className="h-64 w-full">
+                             <ResponsiveContainer width="100%" height="100%">
+                               <LineChart data={weightLogs.filter(l => l && l.log_date && !isNaN(new Date(l.log_date).getTime()))}>
+                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#27272a' : '#f4f4f5'} />
+                                 <XAxis dataKey="log_date" tickFormatter={(v) => new Date(v).toLocaleDateString('fr-FR', {day:'numeric', month:'short'})} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} />
+                                 <YAxis domain={['auto', 'auto']} stroke="#a1a1aa" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}kg`} width={40}/>
+                                 <RechartsTooltip
+                                     contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', backgroundColor: theme === 'dark' ? '#18181b' : '#fff', color: theme === 'dark' ? '#fff' : '#000' }}
+                                     formatter={(value: number) => [`${value.toFixed(1)} kg`, 'Poids']}
+                                     labelFormatter={(label: string) => new Date(label).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                 />
+                                 <Line type="monotone" dataKey="weight" stroke="#39FF14" strokeWidth={4} dot={{ r: 6, fill: '#000', stroke: '#39FF14', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#39FF14', stroke: '#000' }} />
+                               </LineChart>
+                             </ResponsiveContainer>
+                         </div>
+                     </div>
+                 )}
+               </div>
              </div>
-          </div>
-       </div>
-        ); })()}
+           );
+        })()}
 
         {/* VUE COMMUNAUTÉ (FEED) */}
         {activeTab === 'community' && (
