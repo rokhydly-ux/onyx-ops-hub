@@ -4781,7 +4781,7 @@ export default function NutritionDashboard() {
 
                    {imageInputMode === 'url' && (
                        <div className="mb-4 flex gap-2 items-center">
-                           <input type="text" placeholder="Collez l'URL de l'image ici..." className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black" onBlur={(e) => { if(e.target.value) setNewPostImage(e.target.value); }} />
+                           <input type="text" placeholder="Collez l'URL de l'image ici..." className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black text-black" onBlur={(e) => { if(e.target.value) setNewPostImage(e.target.value); }} />
                            <button onClick={() => setImageInputMode('upload')} className="text-xs text-zinc-500 underline">Importer plutôt</button>
                        </div>
                    )}
