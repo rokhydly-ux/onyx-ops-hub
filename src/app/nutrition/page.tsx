@@ -1338,13 +1338,15 @@ export default function NutritionDashboard() {
               const payload = {
                   client_id: clientProfile.id,
                   user_id: user.id,
-                  bmr: Math.round(bmr),
-                  tdee: Math.round(tdee),
                   daily_calorie_goal: Math.round(dailyCalories),
                   carbs_goal: Math.round(carbs),
                   protein_goal: Math.round(protein),
                   fats_goal: Math.round(fats),
-                  diagnostic_data: diagData
+                  diagnostic_data: { 
+                      ...diagData,
+                      bmr: Math.round(bmr),
+                      tdee: Math.round(tdee)
+                  }
               };
               console.log("Payload du diagnostic (Espace Client):", payload);
               const { error } = await supabase.from('nutrition_profiles').upsert(payload, { onConflict: 'client_id' });
@@ -3997,7 +3999,7 @@ export default function NutritionDashboard() {
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="col-span-2 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center">
                   <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Métabolisme de base (BMR)</span>
-                  <div className="text-4xl font-black text-black">{clientProfile?.bmr || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
+                  <div className="text-4xl font-black text-black">{clientProfile?.diagnostic_data?.bmr || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
                 </div>
 
                 <div className="col-span-1 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
