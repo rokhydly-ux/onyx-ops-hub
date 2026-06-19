@@ -1884,7 +1884,10 @@ export default function NutritionDashboard() {
       }
 
       const newLog = { log_date: todayStr, weight: newWeight };
-      setWeightLogs(prev => [...prev, newLog]);
+      setWeightLogs(prev => {
+          const filtered = prev.filter(log => log.log_date !== todayStr);
+          return [...filtered, newLog].sort((a,b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime());
+      });
       
       if (clientProfile) {
           const payload = {
@@ -1894,7 +1897,7 @@ export default function NutritionDashboard() {
             log_date: todayStr,
             weight: newWeight
           };
-          const { error: insertErr } = await supabase.from('nutrition_weight_logs').insert(payload);
+          const { error: insertErr } = await supabase.from('nutrition_weight_logs').upsert(payload, { onConflict: ['client_id', 'log_date'] });
 
           if (insertErr) {
               alert("Erreur lors de la sauvegarde du poids : " + insertErr.message);
