@@ -761,33 +761,7 @@ export default function NutritionDashboard() {
           if (dbPromos) setShopPromoCodesDB(dbPromos);
           
           // Fetch Community Posts
-          const { data: cPosts } = await supabase
-            .from('nutrition_community_posts')
-            .select(`
-              *,
-              reactions:nutrition_community_reactions(reaction_type),
-              comments:nutrition_community_comments(count)
-            `)
-            .order('created_at', { ascending: false });
-          if (cPosts) {
-              setCommunityPosts(cPosts.map((p: any) => {
-                 // Aggregate reactions
-                 const reactions = { top: 0, sain: 0, courage: 0 };
-                 if (Array.isArray(p.reactions)) {
-                     p.reactions.forEach((r: any) => {
-                        if (r.reaction_type === 'top') reactions.top++;
-                        else if (r.reaction_type === 'sain') reactions.sain++;
-                        else if (r.reaction_type === 'courage') reactions.courage++;
-                     });
-                 }
-                 return {
-                   ...p,
-                   client: p.client || 'Membre',
-                   reactions,
-                   commentCount: p.comments?.[0]?.count || 0
-                 };
-              }));
-          }
+          await fetchCommunityPosts();
 
           // Fetch Foods
           const { data: dbFoods } = await supabase.from('nutrition_foods').select('*');
@@ -939,6 +913,36 @@ export default function NutritionDashboard() {
       if (xp >= 2000) return { name: "Star Nutrition", badge: "🌟", desc: "Code promo boutique débloqué !" };
       if (xp >= 500) return { name: "Adhérente", badge: "💎", desc: "Badge de profil débloqué" };
       return { name: "Novice", badge: "🌱", desc: "En apprentissage" };
+  };
+
+
+  const fetchCommunityPosts = async () => {
+      const { data: cPosts } = await supabase
+        .from('nutrition_community_posts')
+        .select(`
+          *,
+          reactions:nutrition_community_reactions(reaction_type),
+          comments:nutrition_community_comments(count)
+        `)
+        .order('created_at', { ascending: false });
+      if (cPosts) {
+          setCommunityPosts(cPosts.map((p: any) => {
+             const reactions = { top: 0, sain: 0, courage: 0 };
+             if (Array.isArray(p.reactions)) {
+                 p.reactions.forEach((r: any) => {
+                    if (r.reaction_type === 'top') reactions.top++;
+                    else if (r.reaction_type === 'sain') reactions.sain++;
+                    else if (r.reaction_type === 'courage') reactions.courage++;
+                 });
+             }
+             return {
+               ...p,
+               client: p.client || 'Membre',
+               reactions,
+               commentCount: p.comments?.[0]?.count || 0
+             };
+          }));
+      }
   };
 
   const fetchLeaderboard = async () => {
@@ -2029,6 +2033,7 @@ export default function NutritionDashboard() {
       try {
           const { error } = await supabase.from('nutrition_community_posts').insert(newPostData);
           if (error) throw error;
+          await fetchCommunityPosts();
       } catch (err: any) {
           alert("Erreur lors de la publication : " + err.message);
       }
