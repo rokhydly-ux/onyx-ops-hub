@@ -1366,7 +1366,7 @@ export default function NutritionDashboard() {
       // Vérification : Est-ce un rythme agressif/dangereux ?
       let isAggressive = false;
       if (data.goalType === 'Perte de poids') {
-          if (requiredDailyDeficit > maxSafeDailyDeficit || rawCalories < floorCalories) {
+          if (requiredDailyDeficit > maxSafeDailyDeficit + 1 || rawCalories < floorCalories - 1) {
               isAggressive = true;
           }
       }
@@ -5284,7 +5284,7 @@ export default function NutritionDashboard() {
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">Calories Cibles</p>
                             <p className="text-3xl font-black text-black">{preview.dailyCalories}</p>
                             <p className="text-xs font-bold text-zinc-500 mt-1">kcal / jour</p>
-                            {preview.isAggressive && <span className="mt-2 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Limité à 1200 kcal</span>}
+                            {preview.isAggressive && <span className="mt-2 bg-red-100 text-red-600 text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Limite atteinte ({parseFloat(diagData.height) > 0 && diagData.gender === "Homme" ? "1500" : "1200"} kcal)</span>}
                          </div>
                          <div className="bg-white border-2 border-zinc-100 p-6 rounded-3xl shadow-sm flex flex-col items-center">
                             <Target className="text-[#39FF14] w-8 h-8 mb-3"/>
@@ -5309,11 +5309,11 @@ export default function NutritionDashboard() {
                                </p>
                             </div>
                             <button type="button" onClick={() => {
-                                 // Mettre à jour la date cible avec la date suggérée saine
+                                 // Mettre à jour la date cible avec la date suggérée saine et forcer le type de rythme
                                  const isoDate = preview.suggestedEtaDate.toISOString().split('T')[0];
                                  setDiagData({...diagData, targetDate: isoDate});
                                }} className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition shadow-sm">
-                               Choisir le rythme sain
+                               Appliquer ce rythme sain
                             </button>
                          </div>
                       )}
