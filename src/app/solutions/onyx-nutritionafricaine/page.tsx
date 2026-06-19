@@ -354,9 +354,9 @@ export default function NutritionAfricaineLanding() {
       const weightToLose = currentWeight - finalTargetWeight;
 
       let requiredDailyDeficit = 0;
-      let userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
-      let now = new Date();
-      let daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+      const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+      const now = new Date();
+      const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
 
       if (data.goalType === 'Perte de poids' && weightToLose > 0) {
           requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
@@ -375,7 +375,14 @@ export default function NutritionAfricaineLanding() {
       else if (data.goalType === 'Maintien') rawCalories = tdee;
       if (data.healthProfile === "Allaitement") rawCalories += 500;
 
-      return Math.round(rawCalories);
+      // Absolute floor of 1200 kcal to prevent negative or dangerously low calories when date is too close
+      let finalCalories = rawCalories;
+      const floorCalories = 1200;
+      if (finalCalories < floorCalories) {
+          finalCalories = floorCalories;
+      }
+
+      return Math.round(finalCalories);
   };
 
   // Diagnostic Modal Handlers
@@ -588,7 +595,7 @@ export default function NutritionAfricaineLanding() {
   else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
   else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
   const tdee = bmr * nap;
-  let rawCalories = weightToLose > 0 ? tdee - 500 : (weightToLose < 0 ? tdee + 300 : tdee);
+  const rawCalories = weightToLose > 0 ? tdee - 500 : (weightToLose < 0 ? tdee + 300 : tdee);
   const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
 
   const heightM = heightCm / 100;
@@ -718,7 +725,7 @@ export default function NutritionAfricaineLanding() {
         let botResponse = "";
         let botOptions: string[] | undefined = undefined;
         let nextStep = botStep;
-        let currentData = { ...botData };
+        const currentData = { ...botData };
 
         if (botStep === 0) {
             const lowerReply = reply.toLowerCase();
