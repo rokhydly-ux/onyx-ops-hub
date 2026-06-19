@@ -2212,7 +2212,7 @@ export default function NutritionDashboard() {
     { id: 'week', label: 'Sama Menu', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535959/A_cute__highly_detailed_3D_202606151505_1_uvgqf0.jpg" },
     { id: 'today', label: 'Mon Jour', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_2_akqmx4.jpg" },
     { id: 'favorites', label: 'Galerie Recettes', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781540350/A_cute__highly_detailed_3D_202606151617_hk2xbf.jpg" },
-    { id: 'community', label: 'Communauté', icon: Camera },
+    { id: 'community', label: 'Communauté', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781804851/camera_ohydou.jpg" },
     { id: 'weight', label: 'Mon Poids', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" },
     { id: 'fitness', label: 'Fitness', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781535958/A_cute__highly_detailed_3D_202606151505_3_punr1t.jpg" },
     { id: 'minute-doc', label: 'La Minute Doc', icon: "https://res.cloudinary.com/dtr2wtoty/image/upload/v1781541191/A_cute__highly_detailed_3D_202606151632_qytnih.jpg" },
@@ -4577,10 +4577,12 @@ export default function NutritionDashboard() {
            }
 
            return (
-             <div className="space-y-8 animate-in fade-in slide-in-from-left-4 max-w-4xl mx-auto">
-                
-                {/* BENTO CARD : MON OBJECTIF (MISSION 2 & 3) */}
-                <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 rounded-[2rem] border shadow-sm relative overflow-hidden flex flex-col md:flex-row items-center gap-8`}>
+             <div className="bg-[#F8F9FA] p-0 lg:p-6 lg:pl-8">
+               <div className="flex flex-col gap-8 w-full max-w-[1200px] mx-auto min-h-[80vh] px-4 py-6 lg:bg-white lg:rounded-[2rem] lg:shadow-sm lg:p-10 lg:border lg:border-gray-100">
+                 <div className="space-y-8 animate-in fade-in slide-in-from-left-4 w-full">
+                    
+                    {/* BENTO CARD : MON OBJECTIF (MISSION 2 & 3) */}
+                    <div className={`${theme === 'dark' ? 'bg-zinc-900 lg:bg-zinc-950 border-zinc-800' : 'bg-white lg:bg-gray-50 border-zinc-200'} p-8 rounded-[2rem] border shadow-sm relative overflow-hidden flex flex-col md:flex-row items-center gap-8`}>
                    <div className="shrink-0">
                       <img src="https://res.cloudinary.com/dtr2wtoty/image/upload/v1781458367/A_cute__highly_detailed_3D_202606141732_kn3ujk.jpg" alt="Cible 3D" className="w-24 h-24 md:w-32 md:h-32 rounded-2xl shadow-xl object-cover" />
                    </div>
@@ -4631,7 +4633,7 @@ export default function NutritionDashboard() {
                    </div>
                 </div>
 
-                <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 sm:p-12 rounded-[2rem] border shadow-sm text-center relative overflow-hidden`}>
+                <div className={`${theme === 'dark' ? 'bg-zinc-900 lg:bg-zinc-950 border-zinc-800' : 'bg-white lg:bg-gray-50 border-zinc-200'} p-8 sm:p-12 rounded-[2rem] border shadow-sm text-center relative overflow-hidden`}>
                 <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none"></div>
                 <div className="mx-auto w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-black flex items-center justify-center shadow-lg mb-6 relative z-10"><Scale className="text-[#39FF14]" size={40}/></div>
                 <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-black'} mb-2`}>Tracker de Poids</h2>
@@ -4678,9 +4680,10 @@ export default function NutritionDashboard() {
                       </div>
                    )}
                 </div>
+             </div>
 
                 {/* HISTORIQUE DE LA PESÉE */}
-                <div className={`${theme === 'dark' ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'} p-8 rounded-[2rem] border shadow-sm mt-8`}>
+                <div className={`${theme === 'dark' ? 'bg-zinc-900 lg:bg-zinc-950 border-zinc-800' : 'bg-white lg:bg-gray-50 border-zinc-200'} p-8 rounded-[2rem] border shadow-sm mt-8`}>
                     <h3 className="font-black text-lg uppercase mb-4 flex items-center gap-2"><ListChecks className="text-[#39FF14]"/> Historique des Pesées</h3>
                     <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
                         {weightLogs.length > 0 ? (
@@ -4733,6 +4736,7 @@ export default function NutritionDashboard() {
                 )}
              </div>
           </div>
+       </div>
         ); })()}
 
         {/* VUE COMMUNAUTÉ (FEED) */}
