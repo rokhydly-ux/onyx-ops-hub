@@ -201,6 +201,7 @@ export default function NutritionAfricaineLanding() {
     height: "",
     currentWeight: "",
     targetWeight: "",
+    targetDate: "",
     goalType: "Perte de poids",
     dailySteps: "",
     weightLossPace: "Normalement",
@@ -335,27 +336,38 @@ export default function NutritionAfricaineLanding() {
   const calculateDailyCalories = (data: any) => {
       const heightCm = parseFloat(data.height) || 0;
       const currentWeight = parseFloat(data.currentWeight) || 0;
+      const targetWInput = parseFloat(data.targetWeight) || 0;
       const age = parseFloat(data.age) || 0;
       const isMale = data.gender === "Homme";
+
       const bmr = (heightCm > 0 && currentWeight > 0 && age > 0) ? (10 * currentWeight) + (6.25 * heightCm) - (5 * age) + (isMale ? 5 : -161) : 0;
       let nap = 1.2;
       if (data.dailySteps === "5 000 à 7 499 pas/jour (Légèrement actif)") nap = 1.375;
       else if (data.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
       else if (data.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
       const tdee = bmr * nap;
-      let rawCalories = tdee;
-      if (data.goalType === 'Perte de poids') {
-         let deficit = 500;
-         if (data.weightLossPace === 'Progressivement') deficit = 300;
-         else if (data.weightLossPace === 'Rapidement') deficit = 700;
-         rawCalories = tdee - deficit;
-      } else if (data.goalType === 'Prise de masse') {
-         rawCalories = tdee + 300;
-      } else if (data.goalType === 'Maintien') {
-         rawCalories = tdee;
+
+      const idealWeight = heightCm > 0 ? (isMale ? (heightCm - 100 - ((heightCm - 150) / 4)) : (heightCm - 100 - ((heightCm - 150) / 2.5))) : 0;
+      const finalTargetWeight = targetWInput > 0 ? targetWInput : idealWeight;
+      const weightToLose = currentWeight - finalTargetWeight;
+
+      let requiredDailyDeficit = 0;
+      const userTargetDate = data.targetDate ? new Date(data.targetDate) : new Date();
+      const now = new Date();
+      const daysToTarget = Math.max(1, Math.ceil((userTargetDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
+
+      if (data.goalType === 'Perte de poids' && weightToLose > 0) {
+          requiredDailyDeficit = (weightToLose * 7700) / daysToTarget;
       }
+
+      let rawCalories = tdee;
+      if (data.goalType === 'Perte de poids') rawCalories = tdee - requiredDailyDeficit;
+      else if (data.goalType === 'Prise de masse') rawCalories = tdee + 300;
+      else if (data.goalType === 'Maintien') rawCalories = tdee;
       if (data.healthProfile === "Allaitement") rawCalories += 500;
-      return Math.round(Math.max(isMale ? 1500 : 1200, rawCalories || 0));
+
+      const floorCalories = isMale ? 1500 : 1200;
+      return Math.round(Math.max(floorCalories, rawCalories || floorCalories));
   };
 
   // Diagnostic Modal Handlers
@@ -1548,6 +1560,10 @@ export default function NutritionAfricaineLanding() {
                           <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Poids Cible (kg)</label>
                           <input type="number" required placeholder="Ex: 65" value={diagData.targetWeight} onChange={(e) => setDiagData({...diagData, targetWeight: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-xl outline-none focus:border-[#39FF14] transition-colors text-black" />
                         </div>
+                        <div className="space-y-2 pt-2 border-t border-zinc-100">
+                          <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Date cible</label>
+                          <input type="date" required value={diagData.targetDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => setDiagData({...diagData, targetDate: e.target.value})} className="w-full p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl font-bold text-center text-lg outline-none focus:border-[#39FF14] transition-colors text-black" />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1657,7 +1673,7 @@ export default function NutritionAfricaineLanding() {
                                 (diagStep === 1 && !diagData.gender) ||
                                 (diagStep === 2 && !diagData.goalType) ||
                                 (diagStep === 3 && !diagData.age) ||
-                                (diagStep === 4 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight)) ||
+                                (diagStep === 4 && (!diagData.height || !diagData.currentWeight || !diagData.targetWeight || !diagData.targetDate)) ||
                                 (diagStep === 5 && !diagData.healthProfile)
                             }
                             className="flex-1 bg-black text-[#39FF14] py-4 rounded-xl font-black uppercase flex justify-center items-center gap-2 hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
