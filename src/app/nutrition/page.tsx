@@ -1919,6 +1919,29 @@ export default function NutritionDashboard() {
       }
   };
 
+  const handleDeleteWeightLog = async (logDate: string) => {
+    if (!clientProfile || !confirm(`Voulez-vous vraiment supprimer la pesée du ${new Date(logDate).toLocaleDateString('fr-FR')} ? Cette action est irréversible.`)) {
+        return;
+    }
+
+    try {
+        const { error } = await supabase
+            .from('nutrition_weight_logs')
+            .delete()
+            .eq('client_id', clientProfile.id)
+            .eq('log_date', logDate);
+
+        if (error) throw error;
+
+        setWeightLogs(prev => prev.filter(log => log.log_date !== logDate));
+        setToastMessage("Pesée supprimée avec succès.");
+        setTimeout(() => setToastMessage(null), 3000);
+
+    } catch (err: any) {
+        alert("Erreur lors de la suppression : " + err.message);
+    }
+  };
+
   const handlePostCommunity = async () => {
       if (clientProfile?.plan_type !== 'premium' && daysLeft <= 0) return alert("La publication est réservée aux membres Premium pour garantir l'absence de spams.");
       if (!newPostText && !newPostImage) return;
@@ -4635,20 +4658,25 @@ export default function NutritionDashboard() {
                                 const prevLog = arr[index + 1];
                                 const diff = prevLog ? log.weight - prevLog.weight : null;
                                 return (
-                                    <div key={log.log_date} className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                                    <div key={log.log_date} className="group flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
                                         <div>
                                             <p className="font-bold text-black dark:text-white">{new Date(log.log_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                                             <p className="text-2xl font-black text-black dark:text-white mt-1">{log.weight.toFixed(1)} kg</p>
                                         </div>
-                                        <div className="text-right">
-                                            {diff !== null ? (
-                                                <span className={`font-black text-lg ${diff < 0 ? 'text-green-500' : diff > 0 ? 'text-red-500' : 'text-zinc-500'}`}>
-                                                    {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
-                                                </span>
-                                            ) : (
-                                                <span className="font-black text-lg text-zinc-500">--</span>
-                                            )}
-                                            <p className="text-xs text-zinc-400">{diff === 0 ? 'Stable' : diff === null ? 'Première pesée' : diff < 0 ? 'Perte' : 'Prise'}</p>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                                {diff !== null ? (
+                                                    <span className={`font-black text-lg ${diff < 0 ? 'text-green-500' : diff > 0 ? 'text-red-500' : 'text-zinc-500'}`}>
+                                                        {diff > 0 ? '+' : ''}{diff.toFixed(1)} kg
+                                                    </span>
+                                                ) : (
+                                                    <span className="font-black text-lg text-zinc-500">--</span>
+                                                )}
+                                                <p className="text-xs text-zinc-400">{diff === 0 ? 'Stable' : diff === null ? 'Première pesée' : diff < 0 ? 'Perte' : 'Prise'}</p>
+                                            </div>
+                                            <button onClick={() => handleDeleteWeightLog(log.log_date)} className="p-3 bg-white dark:bg-zinc-700 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-500/20" title="Supprimer cette entrée">
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
                                     </div>
                                 )
@@ -5362,6 +5390,13 @@ export default function NutritionDashboard() {
                 <button onClick={() => setShowCartExitIntent(false)} className="mt-4 text-xs font-bold text-zinc-400 uppercase tracking-widest hover:text-black dark:hover:text-white transition">Non merci, je quitte</button>
             </div>
         </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-black text-[#39FF14] px-6 py-3 rounded-full font-black text-xs shadow-2xl flex items-center gap-2 z-[400] animate-in slide-in-from-bottom-5">
+             <CheckCircle size={16}/> {toastMessage}
+         </div>
       )}
     </main>
 
