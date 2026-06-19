@@ -1,4 +1,5 @@
 "use client";
+import imageCompression from 'browser-image-compression';
 
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -445,6 +446,7 @@ export default function NutritionDashboard() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [newPostImage, setNewPostImage] = useState<string | null>(null);
+    const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [communityPosts, setCommunityPosts] = useState<any[]>([]);
   const [favoriteMeals, setFavoriteMeals] = useState<any[]>([]);
@@ -1979,19 +1981,28 @@ export default function NutritionDashboard() {
       }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCommunityImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
         setUploadingImage(true);
+
+        // Compression
+        const options = {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1000,
+          useWebWorker: true
+        };
+        const compressedFile = await imageCompression(file, options);
+
         const ext = file.name.split('.').pop();
         const fileName = `posts/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-        const { error, data: uploadData } = await supabase.storage.from('avatars').upload(fileName, file);
+        const { error, data: uploadData } = await supabase.storage.from('community_images').upload(fileName, compressedFile);
         if (error) throw error;
-        const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+        const { data } = supabase.storage.from('community_images').getPublicUrl(fileName);
         setNewPostImage(data.publicUrl);
     } catch (err: any) {
-        alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'avatars' est public et accepte les uploads.");
+        alert("Erreur d'upload : " + err.message + "\nAssurez-vous que le bucket 'community_images' est public et accepte les uploads.");
     } finally {
         setUploadingImage(false);
     }
@@ -4745,57 +4756,87 @@ export default function NutritionDashboard() {
 
         {/* VUE COMMUNAUTÉ (FEED) */}
         {activeTab === 'community' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 max-w-3xl mx-auto">
-             <div className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col gap-4">
-                <div className="flex justify-between items-start">
+          <div className="min-h-screen bg-gray-50 p-0 md:p-6 lg:p-8 animate-in fade-in slide-in-from-right-4">
+             <div className="w-full max-w-3xl mx-auto bg-white flex flex-col gap-6 px-4 py-6 md:rounded-3xl md:shadow-sm md:border md:border-gray-100 md:px-8 lg:rounded-[2rem] lg:p-10">
+                <div className="flex justify-between items-start mb-2">
                   <div>
-                     <h2 className={`${spaceGrotesk.className} text-2xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Camera className="text-[#39FF14]" /> Le Mur des Assiettes</h2>
-                     <p className="text-zinc-500 text-sm font-bold">Partagez vos repas sains avec la communauté Premium Onyx.</p>
+                     <h2 className={`${spaceGrotesk.className} text-2xl md:text-3xl font-black uppercase tracking-tighter text-black flex items-center gap-3`}><Camera className="text-[#39FF14] w-8 h-8" /> Le Mur</h2>
+                     <p className="text-zinc-500 text-sm font-medium mt-1">Partagez vos repas sains avec la communauté.</p>
                   </div>
-                  <button onClick={openLeaderboard} className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-1 shadow-sm border border-yellow-200 shrink-0">
-                     <Trophy size={14}/> Classement
+                  <button onClick={openLeaderboard} className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-2 shadow-sm border border-yellow-200 shrink-0">
+                     <Trophy size={16}/> Classement
                   </button>
                 </div>
                 
-                <div className="bg-zinc-50 border border-zinc-100 p-4 rounded-2xl focus-within:border-black transition-colors">
+                {/* ZONE CRÉER UNE PUBLICATION */}
+                <div className="bg-gray-50 border border-gray-100 p-5 rounded-2xl focus-within:border-black transition-colors focus-within:shadow-sm">
                    {newPostImage && (
-                       <div className="relative w-24 h-24 mb-3 rounded-xl overflow-hidden border border-zinc-200">
-                          <img src={newPostImage} className="w-full h-full object-cover" />
-                          <button onClick={() => setNewPostImage(null)} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full hover:bg-red-500"><X size={12}/></button>
+                       <div className="relative w-32 h-32 mb-4 rounded-xl overflow-hidden border border-zinc-200">
+                          <img src={newPostImage} className="w-full h-full object-cover" alt="Preview" />
+                          <button onClick={() => setNewPostImage(null)} className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-500 transition-colors backdrop-blur-sm"><X size={14}/></button>
                        </div>
                    )}
-                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Qu'y a-t-il dans votre assiette aujourd'hui ?" className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[80px]" />
-                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-zinc-200">
-                      <label className="text-zinc-400 hover:text-black transition-colors p-2 cursor-pointer">
-                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-                         {uploadingImage ? <Activity size={20} className="animate-spin" /> : <ImageIcon size={20}/>}
-                      </label>
-                      <button onClick={handlePostCommunity} className="bg-black text-[#39FF14] px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-md">Publier (+15 XP)</button>
+
+                   <textarea value={newPostText} onChange={e => setNewPostText(e.target.value)} placeholder="Qu'y a-t-il dans votre assiette aujourd'hui ?" className="w-full bg-transparent resize-none outline-none font-medium text-sm min-h-[80px] text-black placeholder:text-zinc-400" />
+
+                   {imageInputMode === 'url' && (
+                       <div className="mb-4 flex gap-2 items-center">
+                           <input type="text" placeholder="Collez l'URL de l'image ici..." className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-black" onBlur={(e) => { if(e.target.value) setNewPostImage(e.target.value); }} />
+                           <button onClick={() => setImageInputMode('upload')} className="text-xs text-zinc-500 underline">Importer plutôt</button>
+                       </div>
+                   )}
+
+                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-2 pt-4 border-t border-gray-200 gap-4 sm:gap-0">
+                      <div className="flex items-center gap-4">
+                          {imageInputMode === 'upload' ? (
+                            <>
+                              <label className="flex items-center gap-2 text-zinc-500 hover:text-black transition-colors cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-xs font-bold">
+                                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCommunityImageUpload} disabled={uploadingImage} />
+                                 {uploadingImage ? <Activity size={16} className="animate-spin text-[#39FF14]" /> : <ImageIcon size={16}/>}
+                                 Importer
+                              </label>
+                              <button onClick={() => setImageInputMode('url')} className="text-xs text-zinc-500 underline font-medium">Lien web</button>
+                            </>
+                          ) : null}
+                      </div>
+                      <button onClick={handlePostCommunity} className="w-full sm:w-auto bg-black text-[#39FF14] px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg flex justify-center items-center gap-2">
+                          Publier <span className="text-[10px] text-[#39FF14]/70">+15 XP</span>
+                      </button>
                    </div>
                 </div>
-             </div>
 
-             <div className="space-y-6">
-                {(Array.isArray(communityPosts) ? communityPosts : []).map((post, idx) => (
-                   <div key={post.id || idx} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm">
-                      <div className="flex items-center gap-3 mb-4">
-                         <div className="w-10 h-10 bg-black text-[#39FF14] rounded-full flex items-center justify-center font-black">{post.client?.charAt(0) || 'M'}</div>
-                         <div>
-                            <p className="font-bold text-sm text-black">{post.client}</p>
-                            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
-                         </div>
-                         {post.client === user?.full_name && <span className="ml-auto bg-yellow-100 text-yellow-700 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Premium</span>}
-                      </div>
-                      <p className="text-zinc-700 font-medium text-sm mb-4 leading-relaxed">{post.content}</p>
-                      {post.image_url && <img src={post.image_url} alt="Plat" className="w-full h-64 object-cover rounded-2xl mb-4 border border-zinc-100" />}
-                      
-                      <div className="flex items-center gap-2 pt-4 border-t border-zinc-100">
-                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-red-50 hover:text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🔥 Top {post.reactions?.top > 0 && `(${post.reactions.top})`}</button>
-                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-green-50 hover:text-green-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">🥗 Sain {post.reactions?.sain > 0 && `(${post.reactions.sain})`}</button>
-                         <button className="flex items-center gap-1.5 bg-zinc-50 hover:bg-blue-50 hover:text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 transition-colors">💪 Courage {post.reactions?.courage > 0 && `(${post.reactions.courage})`}</button>
-                      </div>
-                   </div>
-                ))}
+                {/* FEED */}
+                <div className="space-y-8 mt-4">
+                   {(Array.isArray(communityPosts) ? communityPosts : []).map((post, idx) => {
+                       const isCoach = post.client === 'Coach Rokhy' || post.client?.toLowerCase().includes('coach');
+                       return (
+                       <div key={post.id || idx} className={`bg-gray-50 p-6 rounded-3xl shadow-sm border ${isCoach ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-gray-100'}`}>
+                          <div className="flex items-center gap-3 mb-4">
+                             <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-lg ${isCoach ? 'bg-[#39FF14] text-black border-2 border-black' : 'bg-black text-[#39FF14]'}`}>{post.client?.charAt(0) || 'M'}</div>
+                             <div>
+                                <p className={`font-bold text-base ${isCoach ? 'text-black' : 'text-zinc-900'}`}>{post.client} {isCoach && <CheckCircle size={14} className="inline text-[#39FF14] ml-1 fill-black" />}</p>
+                                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">{post.created_at && !isNaN(new Date(post.created_at).getTime()) ? new Date(post.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Récemment'}</p>
+                             </div>
+                             {!isCoach && post.client === user?.full_name && <span className="ml-auto bg-yellow-100 text-yellow-700 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-widest border border-yellow-200">Premium</span>}
+                          </div>
+
+                          <p className="text-zinc-700 font-medium text-sm mb-5 leading-relaxed">{post.content}</p>
+
+                          {post.image_url && (
+                             <div className="w-full mb-5 rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-white">
+                                <img src={post.image_url} alt="Plat" className="w-full h-auto max-h-96 object-cover" />
+                             </div>
+                          )}
+
+                          <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-200/60">
+                             <button className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-red-50 hover:border-red-100 hover:text-red-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🔥 Top {post.reactions?.top > 0 && <span className="ml-1 opacity-70">({post.reactions.top})</span>}</button>
+                             <button className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-green-50 hover:border-green-100 hover:text-green-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">🥗 Sain {post.reactions?.sain > 0 && <span className="ml-1 opacity-70">({post.reactions.sain})</span>}</button>
+                             <button className="flex items-center gap-1.5 bg-white border border-gray-100 shadow-sm hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 transition-all">💪 Courage {post.reactions?.courage > 0 && <span className="ml-1 opacity-70">({post.reactions.courage})</span>}</button>
+                             <button className="flex items-center gap-1.5 ml-auto text-zinc-400 hover:text-black transition-colors p-2"><MessageCircle size={18}/></button>
+                          </div>
+                       </div>
+                    )})}
+                </div>
              </div>
           </div>
         )}
