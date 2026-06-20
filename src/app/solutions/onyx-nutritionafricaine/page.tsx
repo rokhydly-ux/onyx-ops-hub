@@ -440,7 +440,8 @@ export default function NutritionAfricaineLanding() {
           if (diagData.healthProfile === "Allaitement") {
               rawCalories += 500;
           }
-          const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
+          // We use the new dynamic logic function here as well to ensure consistency and floor rules
+          const dailyCalories = calculateDailyCalories(diagData);
 
           let proteinRatio = 0.30;
           if (age >= 50) proteinRatio = 0.35;
@@ -595,8 +596,9 @@ export default function NutritionAfricaineLanding() {
   else if (diagData.dailySteps === "7 500 à 9 999 pas/jour (Actif)") nap = 1.55;
   else if (diagData.dailySteps === "10 000+ pas/jour (Très actif)") nap = 1.725;
   const tdee = bmr * nap;
-  const rawCalories = weightToLose > 0 ? tdee - 500 : (weightToLose < 0 ? tdee + 300 : tdee);
-  const dailyCalories = Math.max(isMale ? 1500 : 1200, rawCalories || 0);
+
+  // Use the exact same shared logic for the final recap view instead of old hardcoded math
+  const dailyCalories = calculateDailyCalories(diagData);
 
   const heightM = heightCm / 100;
   const currentW = parseFloat(diagData.currentWeight) || 0;

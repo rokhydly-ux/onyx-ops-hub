@@ -684,14 +684,27 @@ export default function NutritionDashboard() {
                 expert_mode: nutritionData.expert_mode,
                 weekly_budget_tier: nutritionData.weekly_budget_tier || 'famille_15k'
              }));
-             setCalorieGoal(nutritionData.daily_calorie_goal || 1500);
-             setProteinGoal(nutritionData.protein_goal || 80);
-             setCarbsGoal(nutritionData.carbs_goal || 150);
-             setFatsGoal(nutritionData.fats_goal || 50);
-             setCalorieGoal(nutritionData.daily_calorie_goal || 0);
-             setProteinGoal(nutritionData.protein_goal || 0);
-             setCarbsGoal(nutritionData.carbs_goal || 0);
-             setFatsGoal(nutritionData.fats_goal || 0);
+             // Fixation des valeurs négatives éventuelles stockées en base de données avant la correction du bug
+             let dbCalories = nutritionData.daily_calorie_goal || 1500;
+             if (dbCalories < 1200) dbCalories = 1200;
+
+             let dbProteins = nutritionData.protein_goal || 80;
+             let dbCarbs = nutritionData.carbs_goal || 150;
+             let dbFats = nutritionData.fats_goal || 50;
+
+             // Si les macros sont négatives ou à 0, on les recalcule proportionnellement
+             if (dbProteins <= 0 || dbCarbs <= 0 || dbFats <= 0) {
+                 const age = parseFloat(nutritionData.diagnostic_data?.age || "30");
+                 const proteinRatio = age >= 50 ? 0.35 : 0.30;
+                 dbCarbs = Math.round((dbCalories * (0.70 - proteinRatio)) / 4);
+                 dbProteins = Math.round((dbCalories * proteinRatio) / 4);
+                 dbFats = Math.round((dbCalories * 0.30) / 9);
+             }
+
+             setCalorieGoal(dbCalories);
+             setProteinGoal(dbProteins);
+             setCarbsGoal(dbCarbs);
+             setFatsGoal(dbFats);
              setIsExpertMode(nutritionData.expert_mode || false);
              setJongomaXP(nutritionData.jongoma_xp || 0);
              setIsFastingMode(nutritionData.diagnostic_data?.fasting_mode || false);
@@ -4148,8 +4161,13 @@ export default function NutritionDashboard() {
 
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="col-span-2 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center">
-                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Métabolisme de base (BMR)</span>
-                  <div className="text-4xl font-black text-black">{calorieGoal || clientProfile?.daily_calorie_goal || clientProfile?.diagnostic_data?.bmr || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
+                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Objectif Calorique Quotidien</span>
+                  <div className="text-4xl font-black text-black">{calorieGoal || clientProfile?.daily_calorie_goal || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
+                  {clientProfile?.diagnostic_data?.bmr && (
+                      <div className="text-xs text-zinc-400 font-medium mt-1 flex items-center gap-1">
+                          <Activity size={10} /> BMR réel : {clientProfile.diagnostic_data.bmr} kcal
+                      </div>
+                  )}
                 </div>
 
                 <div className="col-span-1 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
