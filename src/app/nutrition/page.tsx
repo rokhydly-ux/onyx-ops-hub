@@ -684,20 +684,43 @@ export default function NutritionDashboard() {
                 expert_mode: nutritionData.expert_mode,
                 weekly_budget_tier: nutritionData.weekly_budget_tier || 'famille_15k'
              }));
-             setCalorieGoal(nutritionData.daily_calorie_goal || 1500);
-             setProteinGoal(nutritionData.protein_goal || 80);
-             setCarbsGoal(nutritionData.carbs_goal || 150);
-             setFatsGoal(nutritionData.fats_goal || 50);
-             setCalorieGoal(nutritionData.daily_calorie_goal || 0);
-             setProteinGoal(nutritionData.protein_goal || 0);
-             setCarbsGoal(nutritionData.carbs_goal || 0);
-             setFatsGoal(nutritionData.fats_goal || 0);
+             // Fixation des valeurs négatives éventuelles stockées en base de données avant la correction du bug
+             let dbCalories = nutritionData.daily_calorie_goal;
+
+             // Si le quota n'est pas défini, on redirige obligatoirement vers le diagnostic au lieu de hardcoder 1500
+             if (!dbCalories) {
+                 window.location.href = '/solutions/onyx-nutritionafricaine';
+                 return;
+             }
+             if (dbCalories < 1200) dbCalories = 1200;
+
+             let dbProteins = nutritionData.protein_goal || 80;
+             let dbCarbs = nutritionData.carbs_goal || 150;
+             let dbFats = nutritionData.fats_goal || 50;
+
+             // Si les macros sont négatives ou à 0, on les recalcule proportionnellement
+             if (dbProteins <= 0 || dbCarbs <= 0 || dbFats <= 0) {
+                 const age = parseFloat(nutritionData.diagnostic_data?.age || "30");
+                 const proteinRatio = age >= 50 ? 0.35 : 0.30;
+                 dbCarbs = Math.round((dbCalories * (0.70 - proteinRatio)) / 4);
+                 dbProteins = Math.round((dbCalories * proteinRatio) / 4);
+                 dbFats = Math.round((dbCalories * 0.30) / 9);
+             }
+
+             setCalorieGoal(dbCalories);
+             setProteinGoal(dbProteins);
+             setCarbsGoal(dbCarbs);
+             setFatsGoal(dbFats);
              setIsExpertMode(nutritionData.expert_mode || false);
              setJongomaXP(nutritionData.jongoma_xp || 0);
              setIsFastingMode(nutritionData.diagnostic_data?.fasting_mode || false);
              if (nutritionData.weekly_menu && Array.isArray(nutritionData.weekly_menu) && nutritionData.weekly_menu.length > 0) {
                  setWeeklyGeneratedMenu(nutritionData.weekly_menu);
              }
+          } else {
+             // Redirection forcée si le profil nutritionnel complet est introuvable
+             window.location.href = '/solutions/onyx-nutritionafricaine';
+             return;
           }
           
           // Récupérer le poids
@@ -1110,7 +1133,7 @@ export default function NutritionDashboard() {
       safeRecipes = safeRecipes.filter(r => !r.budget_tier || allowedTiers.includes(r.budget_tier));
 
       // RATIOS CALORIQUES MODE GUIDÉ (RULE 4)
-      const targetDailyCals = calorieGoal || clientProfile?.daily_calorie_goal || 1500;
+      const targetDailyCals = Math.max(1200, calorieGoal || clientProfile?.daily_calorie_goal || 1500);
       const mealTargets: Record<string, number> = activeFastingMode ? {
          'Déjeuner': targetDailyCals * 0.45,
          'Collation': targetDailyCals * 0.20,
@@ -1177,7 +1200,8 @@ export default function NutritionDashboard() {
           const bcLunches = lunches.filter(r => r.is_bol_commun);
           const normalLunches = lunches.filter(r => !r.is_bol_commun);
 
-          // Recherche intelligente d'une combinaison approchant le quota dynamique (+/- 50 kcal)
+          // RÈGLE 5 : Toujours respecter le quota dynamique (scaleRecipe forcé en mode Flexible & Guided pour garantir le bon nombre de calories)
+          // Le diagnostic DOIT s'appliquer aux repas suggérés, même si l'utilisateur est en "Flexible".
           for (let i = 0; i < 30; i++) {
               let lunchCandidate;
               if (bolCommunCount < 3 && Math.random() > 0.4 && bcLunches.length > 0) {
@@ -1204,14 +1228,16 @@ export default function NutritionDashboard() {
           if (bestCombination?.isBc) bolCommunCount++;
           const { rawBf, rawL, rawSn, rawD } = bestCombination || {};
 
+          // On applique TOUJOURS scaleRecipe (qui redimensionne le repas pour correspondre aux calories du diagnostic)
+          // au lieu de le limiter uniquement au trackingMode 'guided', car Sama Menu doit TOUJOURS être 100% sur mesure.
           const dayMeals: any = {
-              'Déjeuner': trackingMode === 'guided' ? scaleRecipe(rawL, mealTargets['Déjeuner']) : rawL,
-              'Collation': trackingMode === 'guided' ? scaleRecipe(rawSn, mealTargets['Collation']) : rawSn,
-              'Dîner': trackingMode === 'guided' ? scaleRecipe(rawD, mealTargets['Dîner']) : rawD
+              'Déjeuner': scaleRecipe(rawL, mealTargets['Déjeuner']),
+              'Collation': scaleRecipe(rawSn, mealTargets['Collation']),
+              'Dîner': scaleRecipe(rawD, mealTargets['Dîner'])
           };
 
           if (!activeFastingMode) {
-              dayMeals['Petit-déjeuner'] = trackingMode === 'guided' ? scaleRecipe(rawBf, mealTargets['Petit-déjeuner']) : rawBf;
+              dayMeals['Petit-déjeuner'] = scaleRecipe(rawBf, mealTargets['Petit-déjeuner']);
           }
 
           if (dayMeals['Petit-déjeuner']) recentMeals['Petit-déjeuner'].push(dayMeals['Petit-déjeuner'].id);
@@ -1279,8 +1305,9 @@ export default function NutritionDashboard() {
       if (alternatives.length > 0) {
           let newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
           
-          if (trackingMode === 'guided') {
-              const targetDailyCals = calorieGoal || clientProfile?.daily_calorie_goal || 1500;
+          // We apply the strict dynamic calorie quota requirement from Rule 2 for alternative recipe replacement
+          if (trackingMode === 'guided' || trackingMode === 'flexible') {
+              const targetDailyCals = Math.max(1200, calorieGoal || clientProfile?.daily_calorie_goal || 1500);
               const mealTargets: Record<string, number> = isFastingMode ? {
                  'Déjeuner': targetDailyCals * 0.45,
                  'Collation': targetDailyCals * 0.20,
@@ -3103,8 +3130,8 @@ export default function NutritionDashboard() {
                                                <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-2 mt-0.5">
                                                   {isExpertMode ? (
                                                     <>
-                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.cals} kcal</span>
-                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {item.prots}g prot</span>
+                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {Math.abs(item.cals || 0)} kcal</span>
+                                                      <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full object-cover shadow-sm"/> {Math.abs(item.prots || 0)}g prot</span>
                                                     </>
                                                   ) : (
                                                     <span className="flex items-center gap-1 text-zinc-600">{item.ux_unit || "1 portion"}</span>
@@ -3129,10 +3156,10 @@ export default function NutritionDashboard() {
                                   <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] sm:text-xs font-bold text-zinc-500">
                                      {isExpertMode ? (
                                         <>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.cals} kcal</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.proteins}g</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.carbs}g</span>
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {plannedMeal.fats}g</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(plannedMeal.cals || 0)} kcal</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(plannedMeal.proteins || 0)}g</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(plannedMeal.carbs || 0)}g</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(plannedMeal.fats || 0)}g</span>
                                         </>
                                      ) : (
                                         <span className="flex items-center gap-1 text-zinc-600">{plannedMeal.ux_unit || "1 portion"}</span>
@@ -3280,10 +3307,10 @@ export default function NutritionDashboard() {
                              </div>
                              {isExpertMode && (
                                 <div className="grid grid-cols-4 gap-2 mb-8 text-center">
-                                   <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{selectedMealModal.meal.cals}</p></div>
-                                   <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{selectedMealModal.meal.carbs}g</p></div>
-                                   <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{selectedMealModal.meal.proteins}g</p></div>
-                                   <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{selectedMealModal.meal.fats}g</p></div>
+                                   <div className="bg-orange-50 p-2 rounded-xl border border-orange-100 flex flex-col items-center"><img src={CALS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-orange-400">Kcal</p><p className="font-black text-orange-600">{Math.abs(selectedMealModal.meal.cals || 0)}</p></div>
+                                   <div className="bg-yellow-50 p-2 rounded-xl border border-yellow-100 flex flex-col items-center"><img src={CARBS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-yellow-500">Gluc</p><p className="font-black text-yellow-700">{Math.abs(selectedMealModal.meal.carbs || 0)}g</p></div>
+                                   <div className="bg-green-50 p-2 rounded-xl border border-green-100 flex flex-col items-center"><img src={PROTEINS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-green-500">Prot</p><p className="font-black text-green-700">{Math.abs(selectedMealModal.meal.proteins || 0)}g</p></div>
+                                   <div className="bg-zinc-100 p-2 rounded-xl border border-zinc-200 flex flex-col items-center"><img src={FATS_ICON} className="w-6 h-6 rounded-full mb-1 shadow-sm"/><p className="text-[9px] font-black uppercase text-zinc-400">Lip</p><p className="font-black text-zinc-600">{Math.abs(selectedMealModal.meal.fats || 0)}g</p></div>
                                 </div>
                              )}
                              {selectedMealModal.meal.bienfaits && (
@@ -3356,7 +3383,7 @@ export default function NutritionDashboard() {
                                             <p className="font-bold text-sm">{item.nom}</p>
                                             <p className="text-[10px] text-zinc-500 uppercase font-black">{item.isRecipe ? item.type : item.categorie}</p>
                                          </div>
-                                         <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{item.isRecipe ? item.calories : item.valeurs_pour_100g?.calories} kcal</span>
+                                         <span className="text-xs font-black text-[#39FF14] bg-black px-2 py-1 rounded">+{Math.abs(item.isRecipe ? (item.calories || 0) : (item.valeurs_pour_100g?.calories || 0))} kcal</span>
                                       </div>
                                       ));
                                    })()}
@@ -3628,23 +3655,68 @@ export default function NutritionDashboard() {
 
         {/* MODALE LECTURE ARTICLE */}
         {selectedArticle && (
-           <div id="article-overlay" onClick={(e: any) => e.target.id === 'article-overlay' && setSelectedArticle(null)} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+           <div id="article-overlay" onClick={(e: any) => {
+               if (e.target.id === 'article-overlay') {
+                   setSelectedArticle(null);
+               }
+           }} className="fixed inset-0 z-[400] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
              <div className="bg-white dark:bg-zinc-950 text-black dark:text-white p-8 md:p-12 rounded-[3rem] max-w-4xl w-full relative shadow-2xl animate-in zoom-in-95 duration-200 my-auto border-t-[8px] border-[#39FF14]">
-               <div className="absolute top-6 right-20 z-10">
-                 <button onClick={() => { const text = `Découvrez cet article intéressant sur Onyx Nutrition : ${selectedArticle.title}\n\nLisez-le en vous connectant sur le hub !`; window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank'); }} className="p-3 bg-[#25D366] text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur WhatsApp"><Share2 size={20}/></button>
+               <div className="absolute top-6 right-20 z-10 flex gap-2">
+                 <button onClick={() => {
+                     const text = `Découvrez cet article intéressant sur Onyx Nutrition : ${selectedArticle.title}\n\nLisez-le en vous connectant sur le hub !`;
+                     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                 }} className="p-3 bg-[#25D366] text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur WhatsApp"><Share2 size={20}/></button>
+                 <button onClick={() => {
+                     const url = window.location.href;
+                     const text = `Découvrez cet article : ${selectedArticle.title}\n${url}`;
+                     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                 }} className="p-3 bg-black text-white rounded-full hover:scale-105 transition-all shadow-md" title="Partager sur X (Twitter)">
+                     <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 24.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.004 3.82H5.078z"></path>
+                     </svg>
+                 </button>
                </div>
                <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-full hover:bg-black hover:text-[#39FF14] transition-all z-10"><X size={20}/></button>
                
-               <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase mb-6 inline-block tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
+               <div className="flex items-center gap-3 mb-6">
+                   <span className="bg-black text-[#39FF14] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">{selectedArticle.category || 'Nutrition'}</span>
+                   {selectedArticle.views_count !== undefined && (
+                       <span className="text-zinc-500 dark:text-zinc-400 text-[10px] font-black uppercase flex items-center gap-1">
+                           <Eye size={12}/> {selectedArticle.views_count} vues
+                       </span>
+                   )}
+               </div>
                
-               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-8 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
+               <h2 className={`${spaceGrotesk.className} text-3xl md:text-5xl font-black uppercase mb-4 leading-tight tracking-tighter`}>{selectedArticle.title}</h2>
+
+               <div className="flex items-center gap-4 mb-8">
+                   <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border-2 border-[#39FF14]">
+                       {selectedArticle.author_name?.includes('Thierno') ? (
+                           <div className="text-xs font-black">Dr.T</div>
+                       ) : (
+                           <div className="text-xs font-black">C.R</div>
+                       )}
+                   </div>
+                   <div>
+                       <p className="text-sm font-black text-black dark:text-white uppercase">{selectedArticle.author_name || 'Coach Rokhy'}</p>
+                       <p className="text-xs text-zinc-500 font-bold">{selectedArticle.estimated_read_time || 'Lecture rapide'}</p>
+                   </div>
+               </div>
                
                {selectedArticle.image_url && <img src={selectedArticle.image_url} alt="" className="w-full h-64 md:h-96 object-cover rounded-[2rem] mb-10 shadow-lg" />}
                
                <div className="prose prose-zinc dark:prose-invert max-w-none">
                   <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-8 font-bold leading-relaxed">{selectedArticle.desc}</p>
                   
-                  <div className="text-sm md:text-base text-zinc-800 dark:text-zinc-200 mb-10 whitespace-pre-wrap leading-loose font-medium">{selectedArticle.content}</div>
+                  <div className="text-sm md:text-base text-zinc-800 dark:text-zinc-200 mb-10 whitespace-pre-wrap leading-loose font-medium">
+                      {/* Regex to find potential shop links and make them clickable */}
+                      {selectedArticle.content?.split(/(\bhttps?:\/\/[^\s]+)/g).map((part: string, i: number) => {
+                          if (part.match(/^https?:\/\//)) {
+                              return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-[#39FF14] underline font-bold hover:text-green-400 transition-colors">{part}</a>;
+                          }
+                          return part;
+                      })}
+                  </div>
 
                   {selectedArticle.gallery && selectedArticle.gallery.length > 0 && (
                      <div className="mb-10">
@@ -3656,6 +3728,16 @@ export default function NutritionDashboard() {
                         </div>
                      </div>
                   )}
+               </div>
+
+               <div className="mt-12 bg-zinc-50 dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-between flex-wrap gap-4">
+                   <div>
+                       <h4 className="font-black uppercase text-sm mb-1">Prêt(e) à passer à l'action ?</h4>
+                       <p className="text-xs text-zinc-500 font-bold">Découvrez nos produits recommandés dans la boutique.</p>
+                   </div>
+                   <button onClick={() => { setSelectedArticle(null); setActiveTab('shop'); }} className="bg-black text-[#39FF14] px-6 py-3 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:scale-105 transition-transform">
+                       Visiter la boutique <ArrowRight size={14} />
+                   </button>
                </div>
              </div>
            </div>
@@ -3688,7 +3770,7 @@ export default function NutritionDashboard() {
                                    <div className="flex items-center gap-2 mt-2">
                                        <span className="text-[10px] bg-black text-white px-2 py-1 rounded-md font-bold">Unité : {product.ux_unit || 'portion'}</span>
                                        {isExpertMode && product.calories && (
-                                           <span className="text-[10px] bg-[#39FF14] text-black px-2 py-1 rounded-md font-bold">{product.calories} kcal</span>
+                                           <span className="text-[10px] bg-[#39FF14] text-black px-2 py-1 rounded-md font-bold">{Math.abs(product.calories)} kcal</span>
                                        )}
                                    </div>
                                </div>
@@ -3793,7 +3875,7 @@ export default function NutritionDashboard() {
                               <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
                                  <div className={`w-full max-w-[30px] rounded-t-lg transition-all duration-500 relative ${count > target ? 'bg-red-500 group-hover:bg-red-400' : 'bg-orange-500 group-hover:bg-orange-400'}`} style={{ height: `${heightPct}%`, minHeight: '4px' }}>
                                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                                       {count} kcal
+                                       {Math.abs(count || 0)} kcal
                                     </div>
                                  </div>
                                  <span className="mt-3 text-[10px] font-bold text-zinc-400 uppercase">{d.toLocaleDateString('fr-FR', {weekday:'short'})}</span>
@@ -3825,7 +3907,7 @@ export default function NutritionDashboard() {
                            </div>
                         </div>
                         <div className="flex items-center gap-6 text-sm font-bold text-zinc-500">
-                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.calories_consumed || 0} kcal</span>
+                                           <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {Math.abs(log.calories_consumed || 0)} kcal</span>
                                            <span className="flex items-center gap-1 text-zinc-600"><img src={WATER_ICON} className="w-4 h-4 rounded-full shadow-sm"/> {log.water_glasses || 0}/8</span>
                         </div>
                      </div>
@@ -3916,7 +3998,7 @@ export default function NutritionDashboard() {
                                           <p className={`text-xs font-bold truncate ${isConsumed ? 'text-[#39FF14]' : 'text-black'}`}>{recipe.nom} {isConsumed && '✅'}</p>
                                        </div>
                                        <div className="text-right shrink-0 flex flex-col items-end gap-1 relative">
-                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${recipe.calories} kcal` : (recipe.ux_unit || "1 portion")}</span>
+                                          <span className={`text-[10px] font-bold ${isConsumed ? 'text-[#39FF14]' : 'text-zinc-500'}`}>{isExpertMode ? `${Math.abs(recipe.calories || 0)} kcal` : (recipe.ux_unit || "1 portion")}</span>
                                           <div className="flex items-center gap-1 mt-0.5">
                                              {isToday && !isConsumed && (
                                                <button onClick={(e) => { e.stopPropagation(); confirmMealLog(mealType, recipe.nom, recipe.calories, recipe.proteins || Math.round((recipe.calories * 0.2)/4), recipe.carbs || Math.round((recipe.calories * 0.5)/4), recipe.fats || Math.round((recipe.calories * 0.3)/9), { ux_unit: recipe.ux_unit || '1 portion' }); setToastMessage('Ajouté à Mon Jour !'); setTimeout(()=>setToastMessage(null), 3000); }} className="bg-[#39FF14] text-black px-1.5 py-1 rounded text-[8px] font-black uppercase shadow-sm hover:bg-black hover:text-[#39FF14] transition-colors" title="Ajouter à Mon Jour">➕ Ajouter</button>
@@ -4148,8 +4230,13 @@ export default function NutritionDashboard() {
 
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="col-span-2 bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 flex flex-col justify-center">
-                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Métabolisme de base (BMR)</span>
-                  <div className="text-4xl font-black text-black">{calorieGoal || clientProfile?.daily_calorie_goal || clientProfile?.diagnostic_data?.bmr || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
+                  <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Objectif Calorique Quotidien</span>
+                  <div className="text-4xl font-black text-black">{calorieGoal || clientProfile?.daily_calorie_goal || 1500} <span className="text-sm font-bold text-zinc-400">kcal / jour</span></div>
+                  {clientProfile?.diagnostic_data?.bmr && (
+                      <div className="text-xs text-zinc-400 font-medium mt-1 flex items-center gap-1">
+                          <Activity size={10} /> BMR réel : {clientProfile.diagnostic_data.bmr} kcal
+                      </div>
+                  )}
                 </div>
 
                 <div className="col-span-1 bg-[#39FF14]/10 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-center items-center text-center">
@@ -4382,10 +4469,10 @@ export default function NutritionDashboard() {
                                    )}
                                </div>
                                <div className="flex flex-wrap gap-3 text-[10px] font-black uppercase text-zinc-500 mb-4">
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {cals} kcal</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {prots}g prot</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.carbs || 0}g</span>
-                                   <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {fav.fats || 0}g</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CALS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(cals || 0)} kcal</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={PROTEINS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(prots || 0)}g prot</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={CARBS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(fav.carbs || 0)}g</span>
+                                   <span className="flex items-center gap-1 text-zinc-600"><img src={FATS_ICON} className="w-3 h-3 rounded-full shadow-sm"/> {Math.abs(fav.fats || 0)}g</span>
                                </div>
                            </div>
                            <button onClick={() => {
